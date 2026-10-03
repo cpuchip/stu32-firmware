@@ -48,4 +48,8 @@ int ab_format_display(const abn *v, const ab_display *d, char *out, int size, in
    cells (theta is one), or -1 and "" if nothing fits. */
 int ab_format_complex(const abn *re, const abn *im, const ab_display *d, char *out, int size);
 
+/* A vector of n elements (1..3) in the guide's bracket form, each element in the decimal format
+   (unit 010). Returns the length, or -1 and "" if nothing fits. */
+int ab_format_vector(const abn *el, int n, const ab_display *d, char *out, int size);
+
 #endif

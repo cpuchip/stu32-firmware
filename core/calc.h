@@ -63,7 +63,10 @@ typedef enum {
     AB_KI,                  /* the i between the parts of x i y */
     AB_KTHETA,              /* the theta between r and a of polar entry */
     AB_XIY, AB_RTA,         /* the complex display form */
-    AB_ARG
+    AB_ARG,
+    /* unit 010: vectors */
+    AB_KVEC,                /* [ ]: begins a vector */
+    AB_KCOMMA               /* , : the next element */
 } ab_op;
 
 #define AB_VAR_A 0                  /* AB_VAR_A + k is the k-th letter; I and J are letters too */
@@ -85,12 +88,16 @@ typedef struct {
     bool mant_neg, exp_neg;
 } ab_entry;
 
-/* What a stack level holds (unit 009): a real number or a complex number; unit 010 adds vectors. */
-typedef enum { AB_REAL = 0, AB_COMPLEX } ab_kind;
+/* What a stack level holds: a real number, a complex number (unit 009) or a vector of 1 to 3
+   elements (unit 010). A register has three parts (UG p.2-2): a real fills the first, a complex
+   number the first two, a vector one per element. */
+typedef enum { AB_REAL = 0, AB_COMPLEX, AB_VECTOR } ab_kind;
 
 typedef struct {
     ab_kind kind;
-    abn re, im;             /* a real number is re, with im zero */
+    abn re, im;             /* parts 1 and 2: a real number is re, with im zero */
+    abn p3;                 /* part 3: a 3-D vector's third element */
+    int len;                /* a vector's element count, 1..3 (0 otherwise) */
 } ab_val;
 
 typedef struct {
@@ -113,6 +120,8 @@ typedef struct {
     ab_entry entry;         /* the number being typed, or its second part after i or theta */
     ab_entry entry1;        /* the first part, once i or theta has been pressed */
     int cpart;              /* 0 a real entry, 1 typing y of x i y, 2 typing a of r theta a */
+    ab_entry ventry[2];     /* a vector's finished elements while the next is typed (unit 010) */
+    int vlen;               /* 0, or the elements of the vector being typed, 1..3 */
 } ab_calc;
 
 void ab_init(ab_calc *c);

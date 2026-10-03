@@ -17,9 +17,9 @@
 static ab_val ab_real(abn v)
 {
     ab_val r;
+    memset(&r, 0, sizeof r);
     r.kind = AB_REAL;
     r.re = v;
-    r.im = abn_zero();
     return r;
 }
 
@@ -88,6 +88,7 @@ static cplx cx_of(const ab_val *v)
 static ab_val ab_cx(cplx z)
 {
     ab_val r;
+    memset(&r, 0, sizeof r);
     r.kind = AB_COMPLEX;
     r.re = z.re;
     r.im = z.im;
@@ -791,6 +792,7 @@ static bool takes_complex(ab_op op)
 abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
 {
     if (op == AB_KI || op == AB_KTHETA) return complex_key(c, op);
+    if (op == AB_KVEC || op == AB_KCOMMA) return ABN_OK;   /* STUB: unit 010 lands after the oracle */
     if (op <= AB_KE || (op >= AB_KA && op <= AB_KF)) return entry_key(c, op);
     if (op == AB_SUF) return suffix(c, arg);
     if ((op == AB_KCHS || op == AB_KBKSP) && c->entry.active) return entry_key(c, op);

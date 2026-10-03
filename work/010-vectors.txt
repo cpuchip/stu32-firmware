@@ -1,0 +1,63 @@
+# Work unit 010 key vectors: vectors. Format as unit 009, with the key tokens [ (begin a vector) and
+# , (the next element); the guide has no closing key, entry ends as any number's does. An
+# expectation "[a,b,c]" is a vector: the register must hold a vector of that length, "=" each
+# element exact. Exact references: python decimal at 500 digits, rounded once to 34 (half even).
+
+M01 | 35s p.10-2 [1.5,-2.2] + [-1.5,2.2]; CHS before the digits; Y gets the old Z | [ 1.5 , CHS 2.2 ENTER [ CHS 1.5 , 2.2 + | X=[0,0] Y=0 L=[-1.5,2.2]
+M02 | 35s p.10-2 ENTER copies the vector | [ 1.5 , CHS 2.2 ENTER | X=[1.5,-2.2] Y=[1.5,-2.2]
+M03 | 35s p.10-2 [-3.4,4.5] - [2.3,1.4] (the guide's ALG example, in RPN) | [ CHS 3.4 , 4.5 ENTER [ 2.3 , 1.4 - | X=[-5.7,3.1]
+M04 | 35s p.10-3 [3,4] x 5: vector in Y, scalar in X | [ 3 , 4 ENTER 5 * | X=[15,20] Y=0 L=5
+M05 | 35s p.10-3 [-2,4] / 2 (ALG example, in RPN) | [ CHS 2 , 4 ENTER 2 / | X=[-1,2]
+M06 | 35s p.10-3 ABS [5,12] is 13 | [ 5 , 12 ABS | X=13 L=[5,12]
+M07 | 35s p.10-4 [1,2] . [3,4] = 11 (ALG example, in RPN: x on two vectors) | [ 1 , 2 ENTER [ 3 , 4 * | X=11
+M08 | 35s p.10-4/10-5 [9,5] . [2,2] = 28 | [ 9 , 5 ENTER [ 2 , 2 * | X=28
+M09 | 35s p.10-5 angle between [1,0] and [0,1] in DEG is 90 | DEG [ 1 , 0 ENTER [ 0 , 1 * [ 1 , 0 ABS / [ 0 , 1 ABS / ACOS | X=90
+M10 | 35s p.10-5 [3,4] . [0,5] = 20 with 90 below | 90 DEG [ 3 , 4 ENTER [ 0 , 5 * | X=20 Y=90
+M11 | 35s p.10-5/10-6 the magnitudes of [3,4] and [0,5] multiply to 25 | 90 DEG [ 3 , 4 ENTER [ 0 , 5 * [ 3 , 4 ABS [ 0 , 5 ABS * | X=25 Y=20 Z=90
+M12 | 35s p.10-6 angle between [3,4] and [0,5] is 36.8699 | 90 DEG [ 3 , 4 ENTER [ 0 , 5 * [ 3 , 4 ABS [ 0 , 5 ABS * / ACOS | X^36.8698976458440212968556125590934107 Y=90
+M13 | 35s p.10-1 + of vectors of different length: INVALID DATA | [ 1 , 2 ENTER [ 1 , 2 , 3 + | ERR X=[1,2,3] Y=[1,2]
+M14 | 35s p.10-4 the dot product of different lengths: INVALID DATA | [ 1 , 2 ENTER [ 1 , 2 , 3 * | ERR X=[1,2,3] Y=[1,2]
+M15 | 35s p.10-1 three elements at most: a fourth comma is ignored (ours) | [ 1 , 2 , 3 , 4 ENTER | X=[1,2,34]
+M16 | 35s p.2-2 a 1-D vector fills part 1 | [ 5 ENTER | X=[5] Y=[5]
+M17 | 35s p.3-2 a variable holds a vector | [ 1 , 2 , 3 STO:A CLX RCL:A | X=[1,2,3]
+M18 | 35s p.5-6 /c of a vector: INVALID DATA | [ 1 , 2 /C | ERR X=[1,2]
+M19 | 35s p.11-4 logic on a vector: INVALID DATA | [ 1 , 2 ENTER 1 AND | ERR X=1 Y=[1,2]
+M20 | 35s p.F statistics reject a vector: INVALID DATA | [ 1 , 2 SIGMA+ | ERR X=[1,2]
+O01 | ours: 3-D sum, one rounding per element | [ 1 , 2 , 3 ENTER [ 0.1 , 0.2 , 0.3 + | X=[1.1,2.2,3.3]
+O02 | ours: division correctly rounded per element | [ 1 , 2 ENTER 3 / | X=[0.3333333333333333333333333333333333,0.6666666666666666666666666666666667]
+O03 | ours (rule 3): the dot product is exact before its one rounding | [ 1 E 20 , 1 , 1 E 20 CHS ENTER [ 1 , 1 , 1 * | X=1
+O04 | ours (rule 3): a dot product rounded once | [ 0.1234567890123456789012345678901234 , 3 ENTER [ 3 , 0.1000000000000000000000000000000001 * | X=0.6703703670370370367037037036703705
+O05 | ours: ABS of a Pythagorean 3-D vector | [ 2 , 3 , 6 ABS | X=7
+O06 | ours (rule 3): ABS correctly rounded | [ 1 , 1 ABS | X=1.414213562373095048801688724209698
+O07 | ours (rule 3): ABS where rounding the sum of squares first would be one unit off | [ 3.718324588177956732429184138590386 , 4.646046906600203 E 15 CHS ABS | X=3.718324588177956732429184138593289
+O08 | ours: a scalar times a vector (scalar in Y) | 2 ENTER [ 1 , 2 * | X=[2,4]
+O09 | ours: a number divided by a vector is INVALID DATA | 2 ENTER [ 1 , 2 / | ERR X=[1,2] Y=2
+O10 | ours (rule 4): a vector divided by 0 is an error | [ 1 , 2 ENTER 0 / | ERR X=0 Y=[1,2]
+O11 | ours: a vector plus a number is INVALID DATA | [ 1 , 2 ENTER 3 + | ERR X=3 Y=[1,2]
+O12 | ours (rule 2): a vector with a complex number is INVALID DATA | [ 1 , 2 ENTER 1 CI 1 * | ERR X=1i1 Y=[1,2]
+O13 | ours: i cannot be typed in a vector | [ 1 CI | ERR X=[1]
+O14 | ours (rule 2): an unlisted function on a vector is INVALID DATA | [ 4 , 9 SQRT | ERR X=[4,9]
+O15 | ours (rule 2): CHS is not listed for a completed vector | [ 4 , 9 ENTER CHS | ERR X=[4,9]
+O16 | ours (rule 4): an element out of range changes nothing | [ 1 E 6000 , 1 ENTER 1 E 200 * | ERR X=1E200 Y=[1E6000,1]
+O17 | ours: LAST X holds the vector x | [ 1 , 2 ENTER [ 3 , 4 + LASTX | X=[3,4] Y=[4,6]
+O18 | ours: backspace through an empty element erases the comma | [ 1 , 2 BKSP BKSP 3 ENTER | X=[13]
+O19 | ours: backspace in an empty first element erases the bracket (X 0, lift off) | 5 ENTER [ BKSP 7 + | X=12
+O20 | ours: storage arithmetic with vectors | [ 1 , 2 STO:A [ 3 , 4 STO+:A RCL:A | X=[4,6]
+O21 | ours: storage arithmetic that fails changes nothing | [ 1 , 2 STO:A 5 STO+:A RCL:A | ERR X=[1,2] Y=5
+O22 | ours: the unnamed indirect variables hold reals only | 5 STO:I [ 1 , 2 STO:(I) | ERR X=[1,2]
+O23 | ours: CHS after an element's digits | [ 1 , 2 CHS ENTER | X=[1,-2]
+O24 | ours: CHS on the first element | [ 1 CHS , 2 ENTER | X=[-1,2]
+O25 | 35s p.2-4 x<>y moves the whole vector | [ 1 , 2 ENTER 3 XY | X=[1,2] Y=3
+O26 | ours: 1-D vectors add | [ 1 ENTER [ 2 + | X=[3]
+O27 | ours: an exponent inside an element | [ 1.5 E 3 , 2 ENTER | X=[1500,2]
+O28 | ours: fraction entry inside an element | [ .1.4 , 2 ENTER | X=[0.25,2]
+O29 | ours: ABS of the zero vector | [ 0 , 0 ABS | X=0
+O30 | ours (rule 3): ABS exact though the sum of squares leaves the range | [ 3 E 3000 , 4 E 3000 ABS | X=5E3000
+O31 | ours: [ ends a number being typed, and the vector lifts | 1 [ 2 , 3 ENTER | X=[2,3] Y=[2,3] Z=1
+O32 | ours: a comma outside a vector is ignored | 1 , 2 ENTER | X=12
+O33 | ours: a vector divided by a scalar keeps LAST X | [ 3 , 6 ENTER 3 / | X=[1,2] L=3
+O34 | ours: ABS of a 1-D vector is its magnitude | [ 5 CHS ABS | X=5
+O35 | ours: the dot product of 3-D vectors | [ 1 , 2 , 3 ENTER [ 4 , 5 , 6 * | X=32
+O36 | ours: scalar times a 3-D vector, exact per element | [ 1.5 , 2.5 , 3.5 ENTER 2 * | X=[3,5,7]
+O37 | ours: ARG of a vector is INVALID DATA | [ 1 , 1 ARG | ERR X=[1,1]
+O38 | ours: RCL arithmetic, dot product with a vector variable | [ 1 , 2 STO:B CLX [ 3 , 4 RCL*:B | X=11 L=[3,4]

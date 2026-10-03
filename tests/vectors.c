@@ -46,6 +46,7 @@ static const struct { const char *name; ab_op op; } NAMED[] = {
     {"DEC", AB_DEC}, {"HEX", AB_HEX}, {"OCT", AB_OCT}, {"BIN", AB_BIN},
     {"HA", AB_KA}, {"HB", AB_KB}, {"HC", AB_KC}, {"HD", AB_KD}, {"HE", AB_KE_HEX}, {"HF", AB_KF},
     {"CI", AB_KI}, {"CA", AB_KTHETA}, {"XIY", AB_XIY}, {"RTA", AB_RTA}, {"ARG", AB_ARG},
+    {"[", AB_KVEC}, {",", AB_KCOMMA},
     {"AND", AB_AND}, {"XOR", AB_XOR}, {"OR", AB_OR}, {"NOT", AB_NOT}, {"NAND", AB_NAND}, {"NOR", AB_NOR},
     {"SIGMA+", AB_SIGMAPLUS}, {"SIGMA-", AB_SIGMAMINUS}, {"CLSIGMA", AB_CLSIGMA},
     {"XBAR", AB_XBAR}, {"YBAR", AB_YBAR}, {"XWBAR", AB_XWBAR}, {"SX", AB_SX}, {"SY", AB_SY},
@@ -227,6 +228,54 @@ int main(int argc, char **argv)
                 fprintf(stderr, "%s:%d: %s: bad expectation '%s'\n", argv[1], lineno, id, ex);
                 return 2;
             }
+            /* "[a,b,c]" is a vector expectation (unit 010): the register must hold a vector of that
+               length; "=" compares each element exactly, "^" each within 8 units of its own 34th
+               digit. */
+            if (ex[2] == '[') {
+                char buf[256], *el[4];
+                int n = 0, okv = 1;
+                size_t bl = strlen(ex + 3);
+                snprintf(buf, sizeof buf, "%s", ex + 3);
+                if (bl == 0 || buf[bl - 1] != ']') {
+                    fprintf(stderr, "%s:%d: %s: bad vector '%s'\n", argv[1], lineno, id, ex + 2);
+                    return 2;
+                }
+                buf[bl - 1] = '\0';
+                for (char *q = strtok(buf, ","); q && n < 4; q = strtok(NULL, ",")) el[n++] = q;
+                if (n < 1 || n > 3) {
+                    fprintf(stderr, "%s:%d: %s: bad vector '%s'\n", argv[1], lineno, id, ex + 2);
+                    return 2;
+                }
+                okv = rv && rv->kind == AB_VECTOR && rv->len == n;
+                for (int j = 0; okv && j < n; j++) {
+                    const abn *g = j == 0 ? &rv->re : j == 1 ? &rv->im : &rv->p3;
+                    char gt[ABN_TEXT_MAX];
+                    norm w, gv;
+                    if (normalize(el[j], &w) != 0) {
+                        fprintf(stderr, "%s:%d: %s: bad element '%s'\n", argv[1], lineno, id, el[j]);
+                        return 2;
+                    }
+                    abn_to_text(g, gt, sizeof gt);
+                    okv = normalize(gt, &gv) == 0 &&
+                          (ex[1] == '^' ? norm_within_units(&w, &gv, 8) : norm_equal(&w, &gv));
+                }
+                checks++;
+                if (okv) {
+                    checks_ok++;
+                } else {
+                    char g[3][ABN_TEXT_MAX] = {"?", "?", "?"};
+                    if (rv) {
+                        abn_to_text(&rv->re, g[0], sizeof g[0]);
+                        abn_to_text(&rv->im, g[1], sizeof g[1]);
+                        abn_to_text(&rv->p3, g[2], sizeof g[2]);
+                    }
+                    vec_ok = 0;
+                    printf("FAIL %s: expected %s, got %s (len %d) %s %s %s\n", id, orig,
+                           !rv ? "?" : rv->kind == AB_VECTOR ? "vector" : rv->kind == AB_COMPLEX ? "complex" : "real",
+                           rv ? rv->len : 0, g[0], g[1], g[2]);
+                }
+                continue;
+            }
             /* "a i b" is a complex expectation (unit 009): the register must hold a complex number;
                "=" compares each part exactly, "^" each part within 8 units of the expected
                value's leading digit (normwise). A real expectation needs a real register. */
@@ -275,7 +324,8 @@ int main(int argc, char **argv)
             if (rv && rv->kind != AB_REAL) {
                 checks++;
                 vec_ok = 0;
-                printf("FAIL %s: expected real %s, got a complex number\n", id, orig);
+                printf("FAIL %s: expected real %s, got a %s\n", id, orig,
+                       rv->kind == AB_VECTOR ? "vector" : "complex number");
                 continue;
             }
             char got_text[ABN_TEXT_MAX];

@@ -121,6 +121,24 @@ int main(int argc, char **argv)
         ab_display dsp = {{AB_ALL, 0, 22, '.', true}, false, 4095, 0, 10, false, 0};
         abn v, vim;
         bool cpx = false;
+        /* a value "[a,b,c]" is a vector (unit 010) */
+        abn vel[3];
+        int vn = 0;
+        if (value[0] == '[') {
+            size_t vl = strlen(value);
+            if (vl < 3 || value[vl - 1] != ']') {
+                fprintf(stderr, "%s:%d: %s: bad vector value\n", argv[1], lineno, id);
+                return 2;
+            }
+            value[vl - 1] = '\0';
+            for (char *q = strtok(value + 1, ","); q; q = strtok(NULL, ",")) {
+                if (vn == 3 || abn_from_text(&vel[vn++], q) != ABN_OK) {
+                    fprintf(stderr, "%s:%d: %s: bad vector value\n", argv[1], lineno, id);
+                    return 2;
+                }
+            }
+            value = (char *)"0";
+        }
         /* a value "a i b" is complex (unit 009) */
         char *ip = strchr(value, 'i');
         if (ip) {
@@ -145,11 +163,12 @@ int main(int argc, char **argv)
         }
         char got[512];
         int ind = 0;
-        int len = cpx ? ab_format_complex(&v, &vim, &dsp, got, sizeof got)
+        int len = vn ? ab_format_vector(vel, vn, &dsp, got, sizeof got)
+                : cpx ? ab_format_complex(&v, &vim, &dsp, got, sizeof got)
                       : ab_format_display(&v, &dsp, got, sizeof got, &ind);
         total++;
         /* a base pattern is returned whole (unit 008 rule 6); every other text fits the width */
-        bool fits = dsp.base != 10 || (cpx ? len : (int)strlen(got)) <= dsp.dec.width;
+        bool fits = dsp.base != 10 || (cpx || vn ? len : (int)strlen(got)) <= dsp.dec.width;
         if (len >= 0 && strcmp(got, want) == 0 && fits && ind == want_ind) {
             passed++;
         } else {

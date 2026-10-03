@@ -394,3 +394,9 @@ int ab_format_complex(const abn *re, const abn *im, const ab_display *d, char *o
     memcpy(out + la + gl, tb, (size_t)lb + 1);
     return la + 1 + lb;
 }
+
+int ab_format_vector(const abn *el, int n, const ab_display *d, char *out, int size)
+{
+    (void)n;
+    return ab_format(&el[0], &d->dec, out, size);     /* STUB: unit 010 lands after the oracle */
+}

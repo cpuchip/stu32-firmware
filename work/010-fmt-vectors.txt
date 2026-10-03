@@ -1,0 +1,17 @@
+# Work unit 010 display vectors: vectors. Format as unit 002; a value "[a,b,c]" is a vector, shown in
+# the guide's bracket form (UG p.10-2 to 10-4): elements in the decimal format, comma-separated,
+# no spaces.
+
+D01 | 35s p.10-2 | [0,0] | FIX 4 |  | [0.0000,0.0000]
+D02 | 35s p.10-2 | [1.5,-2.2] | FIX 4 |  | [1.5000,-2.2000]
+D03 | 35s p.10-2 | [-5.7,3.1] | FIX 4 |  | [-5.7000,3.1000]
+D04 | 35s p.10-3 | [15,20] | FIX 4 |  | [15.0000,20.0000]
+D05 | 35s p.10-3 | [-1,2] | FIX 4 |  | [-1.0000,2.0000]
+D06 | 35s p.10-4 | [9,5] | FIX 4 |  | [9.0000,5.0000]
+D07 | 35s p.10-3 | [3,4] | FIX 4 |  | [3.0000,4.0000]
+D08 | ours: ALL, each element at most 12 digits (as complex parts, UG p.1-25) | [1,2,3] | ALL |  | [1,2,3]
+D09 | ours: a 1-D vector | [5] | FIX 2 |  | [5.00]
+D10 | ours: too wide: each element gets an equal share of the line | [0.3333333333333333333333333333333333,0.6666666666666666666666666666666667,1] | ALL |  | [3.3E-1,6.7E-1,1]
+D11 | ours: with the radix a comma, elements are separated by a semicolon | [1.5,-2.2] | FIX 1 | radix=, | [1,5;-2,2]
+D12 | ours: no thousands separators inside a vector | [12345.5,1] | FIX 1 |  | [12345.5,1.0]
+D13 | ours: 3-D in FIX 2 | [1,-2.555,3] | FIX 2 |  | [1.00,-2.56,3.00]

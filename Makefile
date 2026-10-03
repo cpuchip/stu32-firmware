@@ -59,6 +59,8 @@ test: all
 	./build/fmt_vectors work/008-fmt-vectors.txt
 	./build/vectors work/009-vectors.txt
 	./build/fmt_vectors work/009-fmt-vectors.txt
+	./build/vectors work/010-vectors.txt
+	./build/fmt_vectors work/010-fmt-vectors.txt
 	./build/fmt_vectors work/002-vectors.txt
 	python3 tests/fmt_fuzz.py build/fmt_drive 20000
 
