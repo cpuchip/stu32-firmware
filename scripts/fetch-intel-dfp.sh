@@ -23,15 +23,16 @@ DEST="$ROOT/third_party/intel-dfp"
 TARBALL="$DEST/IntelRDFPMathLib20U5.tar.gz"
 TARGET="${TARGET:-}"
 # A cross build (abacus's recipe, #3719): the library's 32-bit configuration and its Linux
-# conventions, fenv.h included for the rounding-mode calls, each target's code model.
+# conventions, scripts/fenv-nearest.h included for the rounding-mode calls (it explains why),
+# each target's code model.
 case "$TARGET" in
 "")      CROSS=(); TREE="$DEST"; OUT="$ROOT/build/intel"; CC="${CC:-cc}" ;;
 esp32s3) CC=xtensa-esp32s3-elf-gcc; TREE="$DEST/$TARGET"; OUT="$ROOT/build/intel-$TARGET"
          CROSS=(CC_NAME=gcc "AR_CMD=xtensa-esp32s3-elf-ar rv" CFLAGS_ARCH=-Dia32 CFLAGS_OS=-DLINUX
-                "CFLAGS_OPT=-O2 -mlongcalls" "CFLAGS_AUX=-include fenv.h") ;;
+                "CFLAGS_OPT=-O2 -mlongcalls" "CFLAGS_AUX=-include $ROOT/scripts/fenv-nearest.h") ;;
 esp32c6) CC=riscv32-esp-elf-gcc; TREE="$DEST/$TARGET"; OUT="$ROOT/build/intel-$TARGET"
          CROSS=(CC_NAME=gcc "AR_CMD=riscv32-esp-elf-ar rv" CFLAGS_ARCH=-Dia32 CFLAGS_OS=-DLINUX
-                "CFLAGS_OPT=-O2 -march=rv32imac_zicsr_zifencei -mabi=ilp32" "CFLAGS_AUX=-include fenv.h") ;;
+                "CFLAGS_OPT=-O2 -march=rv32imac_zicsr_zifencei -mabi=ilp32" "CFLAGS_AUX=-include $ROOT/scripts/fenv-nearest.h") ;;
 *)       echo "fetch-intel-dfp: unknown TARGET '$TARGET' (esp32s3, esp32c6)" >&2; exit 2 ;;
 esac
 SRC="$TREE/IntelRDFPMathLib20U5"
@@ -61,6 +62,13 @@ for f in sin cos tan; do
     grep -q '^static const BID_UINT384 bid_decimal128_moduli\[\] =' "$SRC/LIBRARY/src/bid128_$f.c" || {
         echo "fetch-intel-dfp: bid128_$f.c: moduli table not found for the const patch" >&2; exit 1; }
 done
+# The library's makefile does not track flags: a build with other flags starts clean.
+STAMP="$SRC/.abacus-flags"
+FLAGS="$CC ${OPTS[*]} ${CROSS[*]:-}"
+if [ "$(cat "$STAMP" 2>/dev/null)" != "$FLAGS" ]; then
+    make -s -C "$SRC/LIBRARY" clean >/dev/null 2>&1 || true
+    printf '%s' "$FLAGS" > "$STAMP"
+fi
 make -s -C "$SRC/LIBRARY" -j"$(nproc 2>/dev/null || echo 4)" CC="$CC" "${OPTS[@]}" "${CROSS[@]}" >/dev/null
 cp "$SRC/LIBRARY/libbid.a" "$OUT/libbid.a"
 echo "fetch-intel-dfp: verified $SHA256, built ${OUT#"$ROOT"/}/libbid.a"
