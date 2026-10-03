@@ -15,8 +15,10 @@
  * - Power (power.h): keys are activity, a run is activity; app_tick says when to turn off.
  * - Saving (store.h, by the device): after a change, once APP_QUIET_MS pass with no key and no run
  *   (ours: few writes to flash), and always before turning off.
- * Menus and soft keys are not defined yet (the layout's menus): a menu key and a soft key do
- * nothing for now, and UNDO is the device's, later. */
+ * - Menus (keymap.h's MENUS; only PRGM is defined, abacus #3877): a menu key opens its menu and
+ *   its labels go to the soft keys; a soft key does its item and closes it; C only closes it
+ *   (ours: in program entry C would otherwise leave it); any other key closes it and acts.
+ *   A menu not defined yet, and a soft key with no menu open, do nothing; UNDO is the device's. */
 #ifndef APP_H
 #define APP_H
 
@@ -43,6 +45,7 @@ typedef struct {
     int prompt_op;          /* the op waiting for its argument, -1 none */
     int prompt_kind;        /* KM_ARG_* */
     char prompt_text[16];   /* what the X line shows meanwhile: "STO _" */
+    int menu;               /* the menu open on the soft keys (km_menu_at), -1 none */
     bool running;           /* a run in slices */
     int busy_op;            /* the op that started it, for ab_busy_message */
     bool dirty;             /* changed since the last save */

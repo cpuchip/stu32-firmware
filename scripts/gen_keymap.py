@@ -54,6 +54,18 @@ MEANING = {
     "→FRAC": OP("AB_FDISP"),                     # the Fraction-display toggle, ch.5 (abacus #3822)
 }
 
+# The menus (abacus #3877; provisional until Michael rules the menus): a menu's name and its six
+# soft keys, each (legend, kind, op, arg, prompt). Only PRGM is defined; a menu key whose menu is
+# not here is a menu not defined yet (arg -1). Data only, like LETTERS.
+MENUS = [
+    ("PRGM", [("PRGM", "KM_OP", "AB_PRGM", 0, 0), ("LBL", "KM_PROMPT", "AB_LBL", 0, "KM_ARG_LABEL"),
+              ("INPUT", "KM_PROMPT", "AB_INPUT", 0, "KM_ARG_VAR"), ("SST", "KM_OP", "AB_SST", 0, 0),
+              ("BST", "KM_OP", "AB_BST", 0, 0), ("CLPGM", "KM_OP", "AB_CLPGM", 0, 0)]),
+]
+# Menu legends that act as plain ops until their menu is ruled (abacus #3867): the EQN menu's
+# first item will take this over.
+MENU_AS_OP = {"EQN": OP("AB_EQN")}
+
 # The letter layer (abacus #3826, the P4 panel's assignment; provisional until Michael rules where
 # letters are printed): key number -> a letter, or a role. Data only: a printed legend later
 # changes this table and nothing else. Keys not listed type nothing.
@@ -114,8 +126,12 @@ def actions():
                     acts.append(("KM_SHIFT", "0", "1" if key["cap"] == "gold" else "2", "0", ""))
                 elif not legend:
                     acts.append(("KM_NONE", "0", "0", "0", ""))
+                elif legend in MENU_AS_OP:
+                    kind, op, arg, prompt = MENU_AS_OP[legend]
+                    acts.append((kind, op, str(arg), str(prompt), legend))
                 elif key.get(shift + "_menu"):
-                    acts.append(("KM_MENU", "0", "0", "0", legend))
+                    index = [m[0] for m in MENUS].index(legend) if legend in [m[0] for m in MENUS] else -1
+                    acts.append(("KM_MENU", "0", str(index), "0", legend))
                 elif legend in MEANING:
                     kind, op, arg, prompt = MEANING[legend]
                     acts.append((kind, op, str(arg), str(prompt), legend))
@@ -137,7 +153,17 @@ def emit():
         cells = ", ".join(f"{{{kind}, {op}, {arg}, {prompt}, {cstr(legend)}}}" for kind, op, arg, prompt, legend in acts)
         lines.append(f"    [{k}] = {{{cells}}},")
     check_letters(acts_by_key)
-    lines += ["};", "", "static const km_letter LETTER[KB_KEYS] = {"]
+    lines += ["};", "", "static const km_menu MENUS[] = {"]
+    for name, items in MENUS:
+        if len(items) != 6:
+            sys.exit(f"gen_keymap: menu {name} needs six soft keys")
+        cells = ", ".join(f"{{{kind}, {op}, {arg}, {prompt}, {cstr(legend)}}}" for legend, kind, op, arg, prompt in items)
+        lines.append(f"    {{{cstr(name)}, {{{cells}}}}},")
+    lines += ["};", "",
+              "const km_menu *km_menu_at(int index)",
+              "{",
+              "    return index >= 0 && index < (int)(sizeof MENUS / sizeof MENUS[0]) ? &MENUS[index] : (const km_menu *)0;",
+              "}", "", "static const km_letter LETTER[KB_KEYS] = {"]
     for k in sorted(LETTERS):
         lines.append(f"    [{k}] = {letter_cell(LETTERS[k])},")
     lines += ["};", "",

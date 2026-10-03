@@ -11,6 +11,7 @@ void app_init(app_state *a, ab_calc *c, uint32_t now_ms)
     memset(a, 0, sizeof *a);
     a->c = c;
     a->prompt_op = -1;
+    a->menu = -1;
     a->last_key_ms = now_ms;
     pwr_init(&a->pwr, now_ms);
     c->slice = APP_SLICE_LINES;
@@ -52,6 +53,8 @@ static void do_op(app_state *a, int op, int arg)
     }
 }
 
+static void do_action(app_state *a, const km_action *act);
+
 void app_key(app_state *a, int key, uint32_t now_ms)
 {
     const km_action *face = km_lookup(key, KM_FACE);
@@ -80,6 +83,16 @@ void app_key(app_state *a, int key, uint32_t now_ms)
         }
         return;
     }
+    if (a->menu >= 0) {                         /* a menu on the soft keys */
+        const km_menu *mn = km_menu_at(a->menu);
+        a->menu = -1;
+        if (face->kind == KM_SOFT && mn) {
+            a->shift = 0;
+            do_action(a, &mn->item[face->arg]);
+            return;
+        }
+        if (face->kind == KM_OP && face->op == AB_CANCEL && a->shift == 0) return;   /* C: only closes it */
+    }
     if (face->kind == KM_SHIFT) {               /* the same shift cancels, the other switches */
         a->shift = a->shift == face->arg ? 0 : face->arg;
         return;
@@ -87,6 +100,11 @@ void app_key(app_state *a, int key, uint32_t now_ms)
     const km_action *act = km_lookup(key, a->shift);
     if (act->kind == KM_NONE) act = face;       /* no separate legend: the face action (#3827) */
     a->shift = 0;
+    do_action(a, act);
+}
+
+static void do_action(app_state *a, const km_action *act)
+{
     switch (act->kind) {
     case KM_OP:
         do_op(a, act->op, act->arg);
@@ -97,10 +115,13 @@ void app_key(app_state *a, int key, uint32_t now_ms)
         else
             prompt_open(a, act->op, act->prompt);
         break;
+    case KM_MENU:
+        if (act->arg >= 0 && km_menu_at(act->arg)) a->menu = act->arg;
+        break;
     case KM_DEVICE:
         if (act->arg == KM_DEV_OFF) a->off = true;
         break;
-    default:                                    /* menus and soft keys: not defined yet */
+    default:                                    /* a menu not defined yet, a soft key with none open */
         break;
     }
 }
@@ -138,4 +159,6 @@ void app_ui(const app_state *a, screen_ui *ui)
     ui->shift = a->shift;
     ui->busy = a->running ? a->busy_op : 0;
     ui->prompt = a->prompt_op >= 0 ? a->prompt_text : NULL;
+    const km_menu *mn = a->menu >= 0 ? km_menu_at(a->menu) : NULL;
+    for (int i = 0; mn && i < SCREEN_SOFT && i < KM_SOFT_KEYS; i++) ui->soft[i] = mn->item[i].legend;
 }
