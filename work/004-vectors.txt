@@ -88,7 +88,7 @@ P11 | ours: combinations, rounded | 1000 ENTER 500 NCR | X=2.7028824094543656951
 P12 | ours: permutations, rounded | 200 ENTER 60 NPR | X=5.858395011795998783854272152579071E+133
 P13 | 35s p.4-15 nCr needs integers | 5.5 ENTER 2 NCR | ERR X=2 Y=5.5
 P14 | 35s p.4-15 nPr needs non-negative | 5 ENTER 2 CHS NPR | ERR X=-2 Y=5
-P15 | ours: huge n, small r | 1 E 30 ENTER 2 NCR | X=4.999999999999999999999999999995000E+59
+P15 | 35s p.F-2 n of 10^16 or more is INVALID DATA (ruled #3778; was ours: 1E30 nCr 2 computed) | 1 E 30 ENTER 2 NCR | ERR %ERRMSG=INVALID_DATA Y=1E30
 U01 | ours: exact factor, correctly rounded | 98.6 TOC | X=37
 U02 | ours: exact factor, correctly rounded | 40 CHS TOF | X=-40
 U03 | ours: exact factor, correctly rounded | 37 TOF | X=98.6
@@ -146,7 +146,7 @@ G07 | ours: RAND lifts like a recalled number | 1 ENTER 2 RAND INTG | X=0 Y=2 Z=
 
 # --- added after the mutation pass: each pins a behaviour no vector above could see
 P16 | ours: digits past the 39th decide the rounding (35-39 are 50000) | 361 ENTER 57 NCR | X=1.384520595152795204564827300758677E+67
-P17 | ours: C(n, n-2) with huge n is C(n, 2) | 1 E 30 ENTER 1 E 30 ENTER 2 - NCR | X=4.999999999999999999999999999995000E+59
+P17 | 35s p.F-2 n of 10^16 or more is INVALID DATA, whatever r (ruled #3778) | 1 E 30 ENTER 1 E 30 ENTER 2 - NCR | ERR %ERRMSG=INVALID_DATA
 Q11 | ours: second quadrant | 150 ENTER 2 TOREC | X^-1.73205080756887729352744634150587237 Y=1
 Q12 | ours: third quadrant | 225 ENTER 2 TOREC | X^-1.41421356237309504880168872420969808 Y^-1.41421356237309504880168872420969808
 G08 | ours: ten draws all in [0, 1) | RAND INTG RAND INTG + RAND INTG + RAND INTG + RAND INTG + RAND INTG + RAND INTG + RAND INTG + RAND INTG + RAND INTG + | X=0

@@ -263,6 +263,13 @@ typedef struct {
     bool m35;               /* the 35s's behaviour (abacus decisions section 22) */
     bool msg;               /* an error message is showing: the key after it acts (33s) or only
                                clears it (35s) */
+    /* unit 018: what the message says (ab_error_message): the operation that failed, innermost
+       first (a function inside an equation, a program line, else the key), its argument, its X
+       operand and the SOLVE / integrate in progress then */
+    int err_op, err_arg, err_active;
+    ab_val err_x;
+    bool err_set;           /* recorded already in this call (the innermost wins) */
+    abn_status err_status;  /* the status the message is for */
 } ab_calc;
 
 void ab_init(ab_calc *c);
@@ -299,6 +306,14 @@ abn_status ab_indirect(ab_calc *c, int code, ab_val *out);
    base mark (2, 8, 10 or 16) read as the keyboard reads typed digits (UG p.11-3). */
 abn_status ab_eqn_op(ab_calc *c, ab_op op, const ab_val *y, const ab_val *x, ab_val *out);
 abn_status ab_eqn_based(const char *digits, int n, int base, abn *out);
+
+/* Unit 018: the 35s's messages (appendix F, pp. F-1 to F-5), exact texts. ab_status_message is a
+   status's own text; ab_error_message the message showing now (NULL if none), made specific from
+   the operation that failed (SQRT(NEG), LOG(0), INVALID yˣ, SOLVE(SOLVE), INVALID (I)...);
+   ab_busy_message what shows while op runs (RUNNING, SOLVING, INTEGRATING; NULL for a quick one). */
+const char *ab_status_message(abn_status st);
+const char *ab_error_message(const ab_calc *c);
+const char *ab_busy_message(ab_op op);
 
 /* Unit 016: CLEAR ALL and MEMORY CLEAR as UG p.B-4's table has them. ab_init is MEMORY CLEAR,
    with the device fields (budget, slice) at their defaults. */

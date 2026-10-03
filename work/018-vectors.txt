@@ -1,0 +1,55 @@
+# Work unit 018 core vectors: the 35s's messages, appendix F (pp. F-1..F-5), exact texts.
+# %ERRMSG is the message showing (ab_error_message), %STATUSMSG a status's own text; blanks are
+# written _ and SYNTAX ERROR's line break /. Format as unit 017. abacus #3778 ruled that the guide
+# wins for 0^0 and nCr/nPr with r > n or n >= 1E16 (units 003 and 004 had computed them).
+
+F01 | 35s p.F-1 DIVIDE BY 0 | 1 ENTER 0 / | ERR %ERRMSG=DIVIDE_BY_0
+F02 | 35s p.F-1 DIVIDE BY 0 includes %CHG with Y zero | 0 ENTER 5 PCTCHG | ERR %ERRMSG=DIVIDE_BY_0
+F03 | 35s p.F-4 SQRT(NEG) | 4 CHS SQRT | ERR %ERRMSG=SQRT(NEG)
+F04 | 35s p.F-2 INVALID DATA: a complex number where none is taken | 1 CI 1 SQRT | ERR %ERRMSG=INVALID_DATA
+F05 | 35s p.F-3 LOG(0): LN of zero | 0 LN | ERR %ERRMSG=LOG(0)
+F06 | 35s p.F-3 LOG(0): LOG of zero | 0 LOG | ERR %ERRMSG=LOG(0)
+F07 | 35s p.F-3 LOG(NEG) | 2 CHS LN | ERR %ERRMSG=LOG(NEG)
+F08 | 35s p.F-3 LOG(0): of 0 + i0 | 0 CI 0 LN | ERR %ERRMSG=LOG(0)
+F09 | 35s p.F-3 INVALID yˣ: 0 to the 0th power (ruled #3778; unit 003 had 1) | 0 ENTER 0 POW | ERR %ERRMSG=INVALID_yˣ X=0 Y=0
+F10 | 35s p.F-3 INVALID yˣ: 0 to a negative power | 0 ENTER 2 CHS POW | ERR %ERRMSG=INVALID_yˣ
+F11 | 35s p.F-3 INVALID yˣ: a negative number to a non-integer power | 2 CHS ENTER .5 POW | ERR %ERRMSG=INVALID_yˣ
+F12 | 35s p.F-2 INVALID x!: a negative integer | 3 CHS FACT | ERR %ERRMSG=INVALID_x!
+F13 | 35s p.F-3 INVALID (I) | 900 STO:I RCL:(I) | ERR %ERRMSG=INVALID_(I)
+F14 | 35s p.F-3 INVALID (J) | 900 STO:J 5 STO:(J) | ERR %ERRMSG=INVALID_(J)
+F15 | 35s p.F-3 NONEXISTENT: XEQ a label not there | XEQ:Z | ERR %ERRMSG=NONEXISTENT
+F16 | 35s p.F-1 DUPLICAT.LBL | PRGM CLPGM LBL:A LBL:A | ERR %ERRMSG=DUPLICAT.LBL
+F17 | 35s p.F-5 STAT ERROR: n = 0 | CLSIGMA XBAR | ERR %ERRMSG=STAT_ERROR
+F18 | 35s p.F-5 STAT ERROR: sx with n = 1 | CLSIGMA 2 ENTER 3 SIGMA+ SX | ERR %ERRMSG=STAT_ERROR
+F19 | 35s p.F-2 INVALID DATA: combinations with a non-integer n | 5.5 ENTER 2 NCR | ERR %ERRMSG=INVALID_DATA
+F19b | 35s p.F-2 INVALID DATA: combinations with r > n (ruled #3778; unit 004 had 0) | 3 ENTER 5 NCR | ERR %ERRMSG=INVALID_DATA X=5 Y=3
+F19c | 35s p.F-2 INVALID DATA: permutations with r > n | 3 ENTER 5 NPR | ERR %ERRMSG=INVALID_DATA
+F19d | 35s p.F-2 INVALID DATA: n of 10^16 | 1 E 16 ENTER 2 NPR | ERR %ERRMSG=INVALID_DATA
+F19e | 35s p.F-2: n just below 10^16 is still computed | 9999999999999999 ENTER 1 NCR | X=9999999999999999
+F20 | 35s p.F-2 INVALID DATA: TAN of an odd multiple of 90 degrees | DEG 90 TAN | ERR %ERRMSG=INVALID_DATA
+F21 | 35s p.F-5 XEQ OVERFLOW: a 21st nested XEQ | PRGM CLPGM LBL:A XEQ:A PRGM XEQ:A | ERR %ERRMSG=XEQ_OVERFLOW
+F22 | 35s p.F-3 MEMORY FULL | EQ:0+1 EQ:1+1 EQ:2+1 EQ:3+1 EQ:4+1 EQ:5+1 EQ:6+1 EQ:7+1 EQ:8+1 EQ:9+1 EQ:10+1 EQ:11+1 EQ:12+1 EQ:13+1 EQ:14+1 EQ:15+1 EQ:16+1 EQ:17+1 EQ:18+1 EQ:19+1 EQ:20+1 EQ:21+1 EQ:22+1 EQ:23+1 EQ:24+1 EQ:25+1 EQ:26+1 EQ:27+1 EQ:28+1 EQ:29+1 EQ:30+1 EQ:31+1 EQ:32+1 EQ:33+1 EQ:34+1 EQ:35+1 EQ:36+1 EQ:37+1 EQ:38+1 EQ:39+1 EQ:40+1 EQ:41+1 EQ:42+1 EQ:43+1 EQ:44+1 EQ:45+1 EQ:46+1 EQ:47+1 EQ:48+1 EQ:49+1 EQ:50+1 EQ:51+1 EQ:52+1 EQ:53+1 EQ:54+1 EQ:55+1 EQ:56+1 EQ:57+1 EQ:58+1 EQ:59+1 EQ:60+1 EQ:61+1 EQ:62+1 EQ:63+1 EQ:64+1 | ERR %STATUSMSG=MEMORY_FULL
+F23 | 35s p.F-4 SELECT FN: SOLVE with no label chosen | SOLVE:X | ERR %ERRMSG=SELECT_FN
+F24 | 35s p.F-4 NO ROOT FND | PRGM CLPGM LBL:F RCL:X SQ 1 + RTN PRGM 0 STO:X 1 FN=:F SOLVE:X | ERR %ERRMSG=NO_ROOT_FND
+F25 | 35s p.F-4 SOLVE(SOLVE) | PRGM CLPGM LBL:F 1 STO:Y SOLVE:Y RCL:X - RTN PRGM 1 STO:X 2 FN=:F SOLVE:X | ERR %ERRMSG=SOLVE(SOLVE)
+F26 | 35s p.F-1 ∫(SOLVE): a SOLVE inside an integral | PRGM CLPGM LBL:F 1 STO:Y SOLVE:Y RCL:X RTN PRGM FN=:F 0 ENTER 1 INTEG:X | ERR %ERRMSG=∫(SOLVE)
+F27 | 35s p.F-4 SOLVE(∫FN): an integral inside a SOLVE | PRGM CLPGM LBL:F 0 ENTER 1 INTEG:Y RCL:X - RTN PRGM FN=:F 1 STO:X 2 SOLVE:X | ERR %ERRMSG=SOLVE(∫FN)
+F28 | 35s p.F-1 ∫(∫FN): an integral inside an integral | PRGM CLPGM LBL:F 0 ENTER 1 INTEG:Y RTN PRGM FN=:F 0 ENTER 1 INTEG:X | ERR %ERRMSG=∫(∫FN)
+F29 | 35s p.F-4 SOLVE ACTIVE: FN= during a SOLVE | PRGM CLPGM LBL:F FN=:G RCL:X 2 - RTN LBL:G RTN PRGM FN=:F 1 STO:X 3 SOLVE:X | ERR %ERRMSG=SOLVE_ACTIVE
+F30 | 35s p.F-1 ∫FN ACTIVE: FN= during an integral | PRGM CLPGM LBL:F FN=:G RCL:X RTN LBL:G RTN PRGM FN=:F 0 ENTER 1 INTEG:X | ERR %ERRMSG=∫FN_ACTIVE
+F31 | 35s p.F-5 SYNTAX ERROR, on two lines | EQ:2×(3+ XEQ | ERR %ERRMSG=SYNTAX/ERROR
+F32 | 35s p.F-2 INVALID VAR | EQ:A+1 SOLVE:B | ERR %ERRMSG=INVALID_VAR
+F33 | 35s p.F-3 NO SOLUTION | EQN SST SOLVE 1 RS 1 RS 1 RS 2 RS 2 RS 3 RS | ERR %ERRMSG=NO_SOLUTION
+F34 | 35s p.F-3 MULT SOLUTION | EQN SST SOLVE 1 RS 1 RS 1 RS 2 RS 2 RS 2 RS | ERR %ERRMSG=MULT_SOLUTION
+F35 | 35s p.F-2 INTERRUPTED | PRGM CLPGM LBL:F RCL:X SQ 2 - RTN PRGM 1 STO:X 2 FN=:F INTR:20 SOLVE:X | ERR %ERRMSG=INTERRUPTED
+F36 | 35s p.F-4 OVERFLOW | 1 E 6000 ENTER 1 E 200 * | ERR %ERRMSG=OVERFLOW
+F37 | 35s p.F-5 TOO BIG: a base result clamped (a status, not a message: the operation completes) | HEX 7 HF HF HF HF HF HF HF HF ENTER 2 * | ERR %STATUSMSG=TOO_BIG %ERRMSG=none
+F38 | 35s p.F-3, B-3 MEMORY CLEAR: a refused image | SAVE CORRUPT:30 LOAD | ERR %STATUSMSG=MEMORY_CLEAR
+F39 | ours (unit 017 rule 4): the 33s key after an error clears the message | 1 ENTER 0 / 5 | ERR %ERRMSG=none X=5
+F40 | ours (unit 018): the message is saved and loaded, its text with it | 4 CHS SQRT SAVE MEMCLR LOAD | ERR %ERRMSG=SQRT(NEG)
+F41 | 35s p.F-4 an error at a program line names that line's function | PRGM CLPGM LBL:E 4 CHS SQRT RTN PRGM XEQ:E | ERR %ERRMSG=SQRT(NEG) %STOP=ERROR
+F42 | 35s p.F-3 an error inside an equation names the function inside | EQ:LOG(0)+1 XEQ | ERR %ERRMSG=LOG(0)
+F43 | 35s p.F-2 INVALID DATA: a vector where none is taken | [ 1 , 2 SQRT | ERR %ERRMSG=INVALID_DATA
+F44 | ours (unit 018): no message showing | 2 SQRT | %ERRMSG=none
+F45 | 35s p.F-4 an equation line's error names the function inside | PRGM CLPGM LBL:E EQ:SQRT(-4) RTN PRGM XEQ:E | ERR %ERRMSG=SQRT(NEG)
+F46 | ours (unit 018): a second error says its own message, not the first's | 4 CHS SQRT 0 LN | ERR %ERRMSG=LOG(0)

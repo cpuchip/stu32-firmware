@@ -623,6 +623,19 @@ int vectors_run(const char *name, FILE *f)
                     bool same = b && mark && ab_state_save(&c, b, n) == mark_len && memcmp(b, mark, mark_len) == 0;
                     free(b);
                     snprintf(got, sizeof got, "%s", same ? eq + 1 : "different");
+                } else if (strcmp(ex, "%STATUSMSG") == 0) {
+                    /* the last error status's own text (unit 018), as %ERRMSG writes it */
+                    snprintf(got, sizeof got, "%s", ab_status_message(last_err));
+                    for (char *q = got; *q; q++)
+                        if (*q == ' ') *q = '_';
+                        else if (*q == '\n') *q = '/';
+                } else if (strcmp(ex, "%ERRMSG") == 0) {
+                    /* the message showing (unit 018), blanks written _ and its line break / */
+                    const char *m = ab_error_message(&c);
+                    snprintf(got, sizeof got, "%s", m ? m : "none");
+                    for (char *q = got; *q; q++)
+                        if (*q == ' ') *q = '_';
+                        else if (*q == '\n') *q = '/';
                 } else if (strcmp(ex, "%MSG") == 0) {
                     /* the equation line shown as a message (flag 10, unit 015); blanks written _ */
                     bool msg = c.stop == AB_STOP_MSG || (c.stop == AB_STOP_PSE && c.stop_var == -2);
