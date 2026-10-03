@@ -432,6 +432,18 @@ int main(int argc, char **argv)
     expect(text_at(&f, 20, 128, 4, "SOLVING", 1), "SOLVING while a SOLVE runs");
     screen_ui_default(&ui);
 
+    /* an op waiting for its argument takes X, after the op running and before a message */
+    ab_init(&c);
+    keys(&c, "1 ENTER 0 /");
+    ui.prompt = "STO _";
+    screen_render(&c, &ui, &f);
+    expect(text_at(&f, 20, 128, 4, "STO _", 1), "a prompt: 'STO _' in the X line, before the message");
+    expect(dark_in(&f, 2, 142, 10, 14) == 0, "a prompt: no X letter");
+    ui.busy = AB_XEQ;
+    screen_render(&c, &ui, &f);
+    expect(text_at(&f, 20, 128, 4, "RUNNING", 1), "the op running comes before a prompt");
+    screen_ui_default(&ui);
+
     /* a prompt takes Y, at scale 3, with no letter */
     ab_init(&c);
     c.stop = AB_STOP_INPUT;

@@ -11,7 +11,8 @@
  *   T, Z, Y      scale 2, right aligned, their letter at the left
  *   X            scale 4 when it fits 15 cells, else 3, else 2 (a window around the cursor)
  *   rows 206..   the six soft keys' labels, each in a box over its key
- * What the X line shows, first that applies: the op running (SOLVING ...), the error message,
+ * What the X line shows, first that applies: the op running (SOLVING ...), a prompt waiting for
+ * its argument (STO _), the error message,
  * the number being typed (with its cursor), in program entry the pointer's address and line, in Equation
  * mode the equation being typed or shown, else X. A prompt (INPUT A?) or a VIEW (A=) takes the
  * Y line. */
@@ -32,6 +33,7 @@ typedef struct {
     int battery;            /* charge in percent, 0..100; -1 not read yet */
     bool charging;
     int busy;               /* 0, or the op running in slices: AB_SOLVE, AB_INTEG, AB_XEQ, AB_RS */
+    const char *prompt;     /* an op waiting for its argument ("STO _", app.h), NULL none */
     char radix;             /* '.' or ',': the device's setting, as the core leaves it */
     bool separator;         /* thousands separator */
     const char *soft[SCREEN_SOFT];  /* the soft keys' labels (UTF-8); NULL or "" for none */
