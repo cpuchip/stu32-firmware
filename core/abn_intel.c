@@ -133,6 +133,21 @@ abn_status abn_from_text(abn *out, const char *s)
     return accept(out, r, fl);
 }
 
+abn_status abn_from_text_exact(abn *out, const char *s)
+{
+    _IDEC_flags fl = 0;
+    char buf[256];
+    size_t n = strlen(s);
+    if (!plain_number(s) || n >= sizeof buf) return ABN_BAD_TEXT;
+    memcpy(buf, s, n + 1);
+    BID_UINT128 r = bid128_from_string(buf, RND, &fl);
+    if (bid128_isZero(r) && bid128_isFinite(r) && !(fl & BID_INVALID_EXCEPTION)) {
+        *out = from_bid(r);
+        return ABN_OK;
+    }
+    return accept(out, r, fl);
+}
+
 int abn_to_text(const abn *a, char *buf, int size)
 {
     _IDEC_flags fl = 0;

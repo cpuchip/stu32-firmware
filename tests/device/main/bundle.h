@@ -6,7 +6,8 @@
 
 typedef struct {
     const char *name;
-    int fmt;                    /* 1: a format-vectors file (fmt_vectors), 0: key vectors */
+    int fmt;                    /* 0: key vectors, 1: format vectors (fmt_vectors), 2: a state image
+                                   (unit 016: loaded and saved for the timing) */
     const char *text;
     size_t len;
 } bundle_file;

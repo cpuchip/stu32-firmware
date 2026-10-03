@@ -51,6 +51,7 @@ void ab_init(ab_calc *c)
     c->eqn_count = 2;
     c->peq_line = -1;
     c->fn_eqn = -1;
+    c->eqn_edit = -1;
     for (int l = 0; l < 26; l++) c->labelpos[l] = -1;
     c->frac_c = 4095;          /* the default maximum denominator (UG p.5-5) */
     c->base = 10;
@@ -1312,19 +1313,28 @@ static void eqn_prompt(ab_calc *c)
     c->stop_var = var;
 }
 
-static abn_status prog_run_lines(ab_calc *c, long limit);
+static abn_status prog_run_lines(ab_calc *c, long limit, bool sst);
+static bool continuing;     /* ab_continue: the run goes on, its count of lines with it */
 
 /* Runs the program from the pointer (UG ch.13, 14); counts the runs in progress, so a SOLVE or
- * integral knows whether a program line keyed it. */
+ * integral knows whether a program line keyed it. A run the keys start (not one SOLVE makes)
+ * begins a new count of lines against the budget and forgets an interrupt left from before; a
+ * limit of 1 there is SST. */
 static abn_status prog_run(ab_calc *c, long limit)
 {
+    bool top = c->running == 0, sst = top && limit == 1 && !continuing;
+    if (top && !continuing) {
+        c->run_lines = 0;
+        c->intr = false;
+    }
+    continuing = false;
     c->running++;
-    abn_status st = prog_run_lines(c, limit);
+    abn_status st = prog_run_lines(c, limit, sst);
     c->running--;
     return st;
 }
 
-static abn_status prog_run_lines(ab_calc *c, long limit)
+static abn_status prog_run_lines(ab_calc *c, long limit, bool sst)
 {
     long steps = 0;
     c->stop = AB_STOP_NONE;     /* running: a stop reported earlier no longer applies */
@@ -1333,6 +1343,19 @@ static abn_status prog_run_lines(ab_calc *c, long limit)
         c->pc = 0;
     }
     while (steps < limit) {
+        if (c->intr) {
+            /* C or R/S during the run (UG p.13-19): the instruction before has finished; a run
+               the keys started stops at the next line, R/S resuming it; one SOLVE or integrate
+               makes ends that SOLVE or integral (p.7-8, 8-2) */
+            c->intr = false;
+            if (c->running > 1 || c->active) return ABN_INTERRUPTED;
+            c->stop = AB_STOP_STOP;
+            return ABN_OK;
+        }
+        if (c->running == 1 && !c->active && c->slice > 0 && steps >= c->slice && !sst) {
+            c->stop = AB_STOP_SLICE;            /* the device's slice (unit 016) */
+            return ABN_OK;
+        }
         if (c->pc < 0 || c->pc >= c->prog_len) {
             if (c->rdepth > c->rbase) {
                 c->pc = c->rstack[--c->rdepth];
@@ -1348,6 +1371,8 @@ static abn_status prog_run_lines(ab_calc *c, long limit)
         abn_status st = ABN_OK;
         bool skip = false;
         steps++;
+        if (c->running == 1) c->run_lines++;
+        if (c->intr_after > 0 && --c->intr_after == 0) c->intr = true;   /* the tests' interrupt */
         switch (op) {
         case AB_LIT:
             place_val(c, c->lit[arg]);
@@ -1393,7 +1418,7 @@ static abn_status prog_run_lines(ab_calc *c, long limit)
         case AB_PSE:                            /* shows X for the device's pause (p.13-19) */
             if (c->active) break;
             c->pc = next;
-            c->stop = limit == 1 ? AB_STOP_STOP : AB_STOP_PSE;
+            c->stop = sst ? AB_STOP_STOP : AB_STOP_PSE;
             c->stop_var = -1;
             return ABN_OK;
         case AB_INPUT: {
@@ -1429,7 +1454,7 @@ static abn_status prog_run_lines(ab_calc *c, long limit)
             c->stop = AB_STOP_VIEW;
             if (next < c->prog_len && c->prog[next].op == AB_PSE) {
                 next++;
-                c->stop = limit == 1 ? AB_STOP_STOP : AB_STOP_PSE;
+                c->stop = sst ? AB_STOP_STOP : AB_STOP_PSE;
             }
             c->pc = next;
             return ABN_OK;
@@ -1450,7 +1475,7 @@ static abn_status prog_run_lines(ab_calc *c, long limit)
                 c->stop_var = -2;
                 if (next < c->prog_len && c->prog[next].op == AB_PSE) {
                     next++;
-                    c->stop = limit == 1 ? AB_STOP_STOP : AB_STOP_PSE;
+                    c->stop = sst ? AB_STOP_STOP : AB_STOP_PSE;
                 }
                 c->pc = next;
                 return ABN_OK;
@@ -1500,6 +1525,12 @@ static abn_status prog_run_lines(ab_calc *c, long limit)
             st = do_key(c, (ab_op)op, arg);
             if (st == ABN_OK && c->susp.kind && c->stop == AB_STOP_INPUT)
                 return ABN_OK;                  /* its first evaluation prompts (unit 015) */
+            if (st == ABN_INTERRUPTED) {
+                /* interrupted (unit 016, ours): the program stops at the line, R/S runs it again */
+                c->pc = at;
+                c->stop = AB_STOP_STOP;
+                return st;
+            }
             if (op == AB_SOLVE && st == ABN_NO_ROOT) {
                 st = ABN_OK;                    /* no message: the next line is skipped (p.15-6) */
                 skip = true;
@@ -1517,7 +1548,7 @@ static abn_status prog_run_lines(ab_calc *c, long limit)
         }
         c->pc = skip ? next + 1 : next;
     }
-    if (limit == 1) {
+    if (sst) {
         c->stop = AB_STOP_STOP;
         return ABN_OK;
     }
@@ -1529,7 +1560,6 @@ static abn_status prog_run_lines(ab_calc *c, long limit)
 
 /* The stack each evaluation starts from: the trial value in X over the stack the SOLVE or integral
  * found (ours: the guide does not say), so an evaluation does not depend on the one before. */
-static ab_val ev_y, ev_z, ev_t;
 
 static bool math_error(abn_status st)
 {
@@ -1550,18 +1580,23 @@ static abn_status eval_fn(ab_calc *c, const abn *t, abn *f)
         *f = c->ev_cf;
         return c->ev_cst;
     }
+    if (c->intr) {
+        c->intr = false;                        /* C or R/S between evaluations (unit 016) */
+        return ABN_INTERRUPTED;
+    }
     slot_of_id(c, c->solve_var, &sl);
     if ((st = store_val(c, &sl, ab_real(*t))) != ABN_OK) return st;
     c->x = ab_real(*t);
-    c->y = ev_y;
-    c->z = ev_z;
-    c->t = ev_t;
+    c->y = c->ev_y;
+    c->z = c->ev_z;
+    c->t = c->ev_t;
     c->lift = true;
     if (c->fn_eqn >= 0) {
         /* a listed equation as the function (UG p.7-2, 8-3): its value, "=" as "-" */
         int pos;
         ab_val v;
         c->evals++;
+        if (c->intr_after > 0 && --c->intr_after == 0) c->intr = true;
         if ((st = eqn_eval(c, c->eqn[c->fn_eqn], false, false, &v, &pos)) != ABN_OK) return st;
         return fn_value(c, &v, f);
     }
@@ -1580,6 +1615,8 @@ static abn_status eval_fn(ab_calc *c, const abn *t, abn *f)
 /* f as SOLVE and integrate take it: a real number; for an integral also a one-element vector or
  * one whose other elements are 0, by its first element (UG p.10-6); else INVALID DATA. */
 static bool ev_nonreal;     /* the last evaluation's value was not one SOLVE / integrate take */
+static bool ev_best_set;    /* the evaluated point with the least |f| in the current SOLVE */
+static abn ev_best_x, ev_best_f;
 
 static abn_status fn_value(const ab_calc *c, const ab_val *v, abn *f)
 {
@@ -1623,6 +1660,15 @@ static abn_status ev(ab_calc *c, const abn *x, abn *f, bool *bad)
     ev_nonreal = false;
     st = eval_fn(c, x, f);
     *bad = math_error(st) && !ev_nonreal;  /* a complex or vector f is INVALID DATA, no point */
+    if (st == ABN_OK) {
+        /* the best estimate so far, for an interrupt (UG p.7-8: it is left in the unknown) */
+        abn af = abn_abs(f), ab = abn_abs(&ev_best_f);
+        if (!ev_best_set || abn_cmp(&af, &ab) < 0) {
+            ev_best_set = true;
+            ev_best_x = *x;
+            ev_best_f = *f;
+        }
+    }
     return *bad ? ABN_OK : st;
 }
 
@@ -1913,9 +1959,9 @@ static void susp_begin(ab_calc *c, int kind, int var, int code, ab_val var0)
     c->solve_phase = 1;
     c->evals = 0;
     c->ev_cached = false;
-    ev_y = c->y;
-    ev_z = c->z;
-    ev_t = c->t;
+    c->ev_y = c->y;
+    c->ev_z = c->z;
+    c->ev_t = c->t;
     c->rstack[c->rdepth++] = -1;               /* the level SOLVE / integrate holds */
 }
 
@@ -2165,9 +2211,19 @@ static abn_status fn_finish(ab_calc *c)
     c->rbase = c->susp.rbase;
     c->pc = c->susp.pc;
     c->rdepth = c->susp.rdepth + 1;
+    ev_best_set = false;
     st = kind == AB_SOLVE ? solve_finish(c) : integ_finish(c);
     if (st != ABN_OK && st != ABN_NO_ROOT) {
+        bool keep = st == ABN_INTERRUPTED && kind == AB_SOLVE && ev_best_set;
+        abn best = ev_best_x;
+        int var = c->susp.var;
         susp_abort(c);
+        if (keep) {
+            /* interrupted SOLVE (UG p.7-8): the best estimate in the unknown, the stack as before */
+            slot sl;
+            slot_of_id(c, var, &sl);
+            if (sl.val) *sl.val = ab_real(best);
+        }
         return st;
     }
     c->rdepth = c->susp.rdepth;
@@ -2224,9 +2280,9 @@ static abn_status fn_first(ab_calc *c)
     }
     c->ev_cx = x0;
     c->x = ab_real(x0);
-    c->y = ev_y;
-    c->z = ev_z;
-    c->t = ev_t;
+    c->y = c->ev_y;
+    c->z = c->ev_z;
+    c->t = c->ev_t;
     c->lift = true;
     c->rbase = c->rdepth;
     c->pc = c->labelpos[c->fn];
@@ -2957,6 +3013,82 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
     return do_key(c, op, arg);
 }
 
+void ab_interrupt(ab_calc *c)
+{
+    if (c->stop == AB_STOP_SLICE) c->stop = AB_STOP_STOP;  /* between slices: stopped at once */
+    else if (c->running) c->intr = true;                  /* during a call: read between lines */
+}
+
+abn_status ab_continue(ab_calc *c)
+{
+    if (c->stop != AB_STOP_SLICE) return ABN_OK;
+    c->stop = AB_STOP_NONE;
+    continuing = true;
+    return prog_run(c, c->budget - c->run_lines);
+}
+
+void ab_prog_relabel(ab_calc *c)
+{
+    prog_labels(c);
+}
+
+/* CLEAR ALL (UG p.B-4's middle column, p.1-29, G-5): the modes, the format, the flags, the
+ * fraction settings and the seed unchanged; the equation list (the built-ins stay), program memory,
+ * the stack (LAST X too: a stored number, ours), the variables, the statistics registers (ours:
+ * p.1-29 "all numbers stored"; the table has no row for them) cleared, the indirect variables not
+ * defined, FN= null, both pointers at the top, stack lift enabled; whatever was being typed,
+ * prompted or run is let go. */
+void ab_clear_all(ab_calc *c)
+{
+    ab_val zero = ab_real(abn_zero());
+    c->x = c->y = c->z = c->t = c->lastx = zero;
+    c->lift = true;
+    for (int i = 0; i < 26; i++) c->var[i] = zero;
+    for (int i = 0; i < AB_STAT_REGS; i++) c->stat[i] = abn_zero();
+    for (int i = 0; i <= c->ind_top; i++) c->ind[i] = abn_zero();
+    c->ind_top = -1;
+    prog_clear(c);
+    c->eqn_count = 2;
+    strcpy(c->eqn[0], EQN_LIN2);
+    strcpy(c->eqn[1], EQN_LIN3);
+    c->eqn_cur = -1;
+    c->fn = -1;
+    c->fn_eqn = -1;
+    memset(&c->entry, 0, sizeof c->entry);
+    memset(&c->entry1, 0, sizeof c->entry1);
+    memset(c->ventry, 0, sizeof c->ventry);
+    c->cpart = c->vlen = 0;
+    c->prgm = false;
+    c->plit = zero;
+    c->eqn_mode = c->eqn_typing = false;
+    c->eqn_edit = -1;
+    c->ebuf[0] = '\0';
+    c->ecur = 0;
+    c->eqn_pending = c->eqn_nvars = c->eqn_next = 0;
+    c->stop = AB_STOP_NONE;
+    c->stop_var = -1;
+    c->active = c->solve_phase = 0;
+    c->susp.kind = 0;
+    c->peq_line = -1;
+    c->peq_ready = false;
+    c->ev_cached = false;
+    c->run_lines = 0;
+}
+
+/* MEMORY CLEAR (UG p.B-3, B-4's right column): everything at its default, DEG, DEC, FIX 4, /c 4095,
+ * xiy, fraction display off, flags clear, seed zero; the device's settings (budget, slice) kept.
+ * Contrast, the radix mark and the thousands separator are the device's (the core shows numbers in
+ * its own form). ab_init differs only in the display: ALL (unit 002, ours). */
+void ab_memory_clear(ab_calc *c)
+{
+    long budget = c->budget, slice = c->slice;
+    ab_init(c);
+    c->disp_mode = AB_FIX;
+    c->disp_n = 4;
+    c->budget = budget;
+    c->slice = slice;
+}
+
 abn_status ab_eqn_op(ab_calc *c, ab_op op, const ab_val *y, const ab_val *x, ab_val *out)
 {
     ab_val sx = c->x, sy = c->y, sz = c->z, st_ = c->t, sl = c->lastx;
@@ -3432,7 +3564,7 @@ bool ab_flag(const ab_calc *c, int n)
 void ab_stop_text(const ab_calc *c, char *buf)
 {
     static const char *const NAMES[] = {"NONE", "DONE", "STOP", "INPUT", "VIEW", "PSE", "CANCELLED",
-                                        "ERROR", "BUDGET", "MSG"};
+                                        "ERROR", "BUDGET", "MSG", "SLICE"};
     static const char *const STATS[] = {"n", "SX", "SY", "SX2", "SY2", "SXY"};
     char v[16] = "";
     int id = c->stop_var;
@@ -3452,31 +3584,3 @@ void ab_stop_text(const ab_calc *c, char *buf)
     else snprintf(buf, 32, "%s", NAMES[c->stop]);
 }
 
-
-/* ---- unit 016 (red stubs: the behaviour arrives with the green commit) ---- */
-
-void ab_clear_all(ab_calc *c)
-{
-    (void)c;
-}
-
-void ab_memory_clear(ab_calc *c)
-{
-    (void)c;
-}
-
-abn_status ab_continue(ab_calc *c)
-{
-    (void)c;
-    return ABN_OK;
-}
-
-void ab_interrupt(ab_calc *c)
-{
-    (void)c;
-}
-
-void ab_prog_relabel(ab_calc *c)
-{
-    (void)c;
-}

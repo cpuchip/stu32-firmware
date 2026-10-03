@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "bundle.h"
+#include "state.h"
 
 int vectors_run(const char *name, FILE *f);
 int fmt_vectors_run(const char *name, FILE *fp);
@@ -42,8 +43,31 @@ static int64_t now_us(void)
 }
 #endif
 
+/* Unit 016: load the image and save it again, n times each, and report the time per call; the
+   saved bytes must be the image's. */
+static int time_image(const bundle_file *b)
+{
+    static ab_calc c;
+    static uint8_t out[4096];
+    int64_t t0, t1, t2;
+    const int n = 200;
+    size_t len = 0;
+    if (b->len > sizeof out) return 2;
+    ab_init(&c);
+    t0 = now_us();
+    for (int i = 0; i < n; i++)
+        if (ab_state_load(&c, (const uint8_t *)b->text, b->len) != ABN_OK) return 1;
+    t1 = now_us();
+    for (int i = 0; i < n; i++) len = ab_state_save(&c, out, sizeof out);
+    t2 = now_us();
+    printf("%s: %u bytes; load %.0f us, save %.0f us\n", b->name, (unsigned)b->len,
+           (double)(t1 - t0) / n, (double)(t2 - t1) / n);
+    return len == b->len && memcmp(out, b->text, len) == 0 ? 0 : 1;
+}
+
 static int run_file(const bundle_file *b)
 {
+    if (b->fmt == 2) return time_image(b);
     FILE *f = fmemopen((void *)b->text, b->len, "r");
     if (!f) {
         printf("%s: cannot open from flash\n", b->name);

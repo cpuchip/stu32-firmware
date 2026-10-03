@@ -1,0 +1,11 @@
+# The first forward-compatibility fixture (unit 016): tests/golden-v1.img, saved by the version-1
+# core from: RAD FIX3 SF:2, A = 1i2, B = [1,2,3], C = 4, one statistics point (3, 2), (I) = 5 holding
+# 9, the equations A+B×C and C^2, program Q (INPUT C, RCL C, SQ, the equation line C+1, RTN), the
+# stack 7, 8, then XEQ Q: stopped at INPUT C. Every later core must load it and give these answers.
+# Its CRC-32 is pinned here as computed by zlib (an outside check of the core's own CRC).
+G01 | unit 016 golden image: loads, stopped at INPUT C | LOADFILE:tests/golden-v1.img | %STOP=INPUT:C X=4 Y=8 Z=7 @B=[1,2,3] @C=4 %LINES=6 %EQN=2 %F2=1 %IMAGE=2144DF1C
+G02 | its program resumes: C = 6 gives 7 over 36 | LOADFILE:tests/golden-v1.img 6 RS | X=7 Y=36 %STOP=DONE
+G03 | its modes: RAD and FIX 3 (RND of pi) | LOADFILE:tests/golden-v1.img C PI RND | X=3.142
+G04 | its statistics, indirect variable and complex variable | LOADFILE:tests/golden-v1.img C NSUM 5 STO:I RCL:(I) RCL:A | X=1i2 Y=9 Z=5
+G05 | saving it again gives its bytes | LOADFILE:tests/golden-v1.img | %SAMEIMG=same
+G06 | its equations, the pointer at the last one typed | LOADFILE:tests/golden-v1.img C EQN BST | %EQ=A+B×C

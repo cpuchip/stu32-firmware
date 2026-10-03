@@ -14,7 +14,8 @@ ENGINE := build/abn_intel.o $(INTEL_LIB)
 LIBS := -lm
 
 .PHONY: all test accuracy clean device-host
-all: build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test
+KEYV := $(filter-out work/002-vectors.txt work/016-vectors.txt,$(filter-out %-fmt-vectors.txt,$(wildcard work/*-vectors.txt)))
+all: build/load_fuzz build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test
 
 $(INTEL_LIB):
 	CC="$(CC)" scripts/fetch-intel-dfp.sh
@@ -23,6 +24,9 @@ $(INTEL_LIB):
 build/abn_intel.o: core/abn_intel.c core/abn.h $(INTEL_LIB)
 	@mkdir -p build
 	$(CC) $(CFLAGS) $(BID_FLAGS) -isystem $(INTEL_SRC) -c -o $@ core/abn_intel.c
+
+build/load_fuzz: $(CORE) $(HDRS) $(ENGINE) tests/load_fuzz.c
+	$(CC) $(CFLAGS) -Icore -o $@ $(CORE) tests/load_fuzz.c $(ENGINE) $(LIBS)
 
 build/vectors: $(CORE) $(HDRS) $(ENGINE) tests/vectors.c tests/norm.h
 	$(CC) $(CFLAGS) -Icore -o $@ $(CORE) tests/vectors.c $(ENGINE) $(LIBS)
@@ -71,6 +75,9 @@ test: all
 	./build/vectors work/014-vectors.txt
 	./build/vectors work/015-vectors.txt
 	./build/vectors work/015b-vectors.txt
+	./build/vectors work/016-vectors.txt
+	./build/vectors tests/golden-v1.txt
+	./build/load_fuzz 20000
 	python3 tests/eqn_fuzz.py 1 2000 > build/eqn_fuzz.txt
 	./build/vectors build/eqn_fuzz.txt
 	python3 tests/prog_fuzz.py 1 1000 > build/prog_fuzz.txt
@@ -95,6 +102,10 @@ accuracy: build/fn_drive build/cx_drive build/vectors
 	./build/fmt_vectors build/frac_fuzz.txt
 	python3 tests/base_fuzz.py 1 5000 > build/base_fuzz.txt
 	./build/vectors build/base_fuzz.txt
+	# unit 016: every key-vector file with a save and load after every key, and run in slices
+	for f in $(KEYV); do AB_SAVELOAD=1 ./build/vectors $$f || exit 1; done
+	for n in 1 7 1000; do for f in $(KEYV); do AB_SLICE=$$n ./build/vectors $$f || exit 1; done; done
+	./build/load_fuzz 100000 7
 
 # The on-chip test app (tests/device), built and run on the host: the same runners and bundle
 # the chip gets. The bundle is compiled without -Wpedantic (its string literals are long).

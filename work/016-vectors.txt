@@ -18,6 +18,7 @@ M09 | 35s p.B-4 CLEAR ALL keeps the format: RND of pi in FIX 2 | FIX2 CLALL PI R
 M10 | 35s p.B-4 CLEAR ALL keeps the flags | SF:3 CLALL | %F3=1
 M11 | 35s p.B-4 CLEAR ALL clears stack, variables, programs, equations; EQN LIST TOP, PRGM TOP | 1 ENTER 2 STO:A EQ:A+1 C PRGM CLPGM LBL:A 1 RTN PRGM CLALL | X=0 Y=0 @A=0 %LINES=0 %EQN=0 %EQ=TOP %PC=TOP
 M12 | 35s p.B-4 CLEAR ALL: FN= null (SOLVE then SELECT FN) | PRGM CLPGM LBL:F RCL:X RTN PRGM FN=:F CLALL SOLVE:X | ERR %ERR=SELECT_FN
+M17 | 35s p.B-4 CLEAR ALL: FN= null, so a label keyed again is not chosen | PRGM CLPGM LBL:F RCL:X RTN PRGM FN=:F CLALL PRGM CLPGM LBL:F RCL:X RTN PRGM SOLVE:X | ERR %ERR=SELECT_FN
 M13 | 35s p.B-4 CLEAR ALL: the indirect variables not defined | 3 STO:I 5 STO:(I) CLALL 3 STO:I RCL:(I) | ERR %ERR=DOMAIN
 M14 | 35s p.B-4 CLEAR ALL keeps the seed | 7 SEED RAND SAVEX 7 SEED CLALL RAND | %SAMEX=same
 M15 | ours: CLEAR ALL clears the statistics registers too (p.1-29: all stored numbers) | 2 ENTER 3 SIGMA+ CLALL NSUM | X=0
@@ -44,6 +45,10 @@ S19 | ours: a version from the future: refused | 5 STO:A SAVE 7 STO:A IMGVER:2 L
 S20 | ours: a field out of range behind a correct checksum (angle 3): refused | 5 STO:A SAVE 7 STO:A SETBYTE:18:3 FIXCRC LOAD | ERR %ERR=BAD_IMAGE @A=7
 S21 | ours: an older version is read | 5 STO:A SAVE 7 STO:A IMGVER:1 LOAD | @A=5
 S22 | ours: a load keeps the device's slice (not in the image) | PRGM CLPGM LBL:A 1 2 3 4 5 RTN PRGM SAVE SLICE:2 LOAD XEQ:A | %STOP=SLICE
+S23 | ours: an image cut at a section's end, its checksum redone: the header's length refuses it | SAVE 7 STO:A TRUNC:66 FIXCRC LOAD | ERR %ERR=BAD_IMAGE @A=7
+S24 | ours: a zero keeps its sign and exponent (0 SGN gives 0E0, CHS a negative zero) | 0 SGN ENTER 0 CHS SAVE LOAD | %SAMEIMG=same
+S25 | ours: a GTO whose target was deleted is saved and loaded as such | PRGM LBL:A SQ GTO:A002 GTO.:A002 BKSP PRGM SAVE MEMCLR LOAD | %GO:A002=NONE %SAMEIMG=same
+S26 | ours: an image without both built-in solvers is refused (2*2's mark overwritten, checksum redone) | SAVE 7 STO:A SETBYTE:102:88 FIXCRC LOAD | ERR %ERR=BAD_IMAGE @A=7
 L01 | ours: a slice of 2 lines stops the run, the device's loop goes on | PRGM CLPGM LBL:A 1 ENTER 2 + 3 + 4 + 5 + RTN PRGM SLICE:2 XEQ:A | %STOP=SLICE
 L02 | ours: continued to the end, the same as run whole | PRGM CLPGM LBL:A 1 ENTER 2 + 3 + 4 + 5 + RTN PRGM SLICE:2 XEQ:A CONT CONT CONT CONT CONT CONT | X=15 %STOP=DONE
 L03 | 35s p.13-19 an interrupt at a slice stop: stopped, the instruction done, R/S resumes | PRGM CLPGM LBL:A 1 ENTER 2 + 3 + 4 + 5 + RTN PRGM SLICE:2 XEQ:A INTERRUPT | %STOP=STOP %PC=A003
@@ -53,6 +58,7 @@ L06 | 35s p.13-19 after RTN: R/S runs from the top | PRGM CLPGM 1 ENTER 2 + RTN 
 L07 | ours: the budget stays its own stop, counted across slices | PRGM CLPGM LBL:A 1 + GTO:A002 PRGM BUDGET:20 SLICE:7 0 XEQ:A CONT CONT CONT | ERR %ERR=BUDGET %STOP=BUDGET
 L08 | ours: the budget stop is at the same place sliced or not | PRGM CLPGM LBL:A 1 + GTO:A002 PRGM BUDGET:20 0 XEQ:A | ERR %STOP=BUDGET %PC=A003 X=1 Y=6
 L09 | ours: and sliced | PRGM CLPGM LBL:A 1 + GTO:A002 PRGM BUDGET:20 SLICE:3 0 XEQ:A CONT CONT CONT CONT CONT CONT CONT | ERR %STOP=BUDGET %PC=A003 X=1 Y=6
+L10 | ours: a SOLVE is not sliced (its evaluations run within the call) | PRGM CLPGM LBL:F RCL:X SQ 4 - RTN PRGM SLICE:1 1 STO:X 5 FN=:F SOLVE:X | X=2 @X=2
 I01 | 35s p.13-19 an interrupt while running: stopped after the current instruction | PRGM CLPGM LBL:A 1 ENTER 2 + 3 + 4 + 5 + RTN PRGM INTR:4 XEQ:A | %STOP=STOP %PC=A005
 I02 | 35s p.13-19 R/S resumes: the result as if never interrupted | PRGM CLPGM LBL:A 1 ENTER 2 + 3 + 4 + 5 + RTN PRGM INTR:4 XEQ:A RS | X=15 %STOP=DONE
 I03 | 35s p.7-8 SOLVE interrupted: INTERRUPTED, the best estimate in the unknown, the stack as before | PRGM CLPGM LBL:F RCL:X SQ 2 - RTN PRGM 1 STO:X 9 ENTER 2 FN=:F INTR:40 SOLVE:X | ERR %ERR=INTERRUPTED X=2 Y=9 @X#1.41421356,0.05
@@ -62,3 +68,5 @@ I06 | ours: R/S runs the SOLVE line again and the program goes on | PRGM CLPGM L
 I07 | 35s p.7-8 SOLVE of a listed equation interrupted | EQ:X^2-2 C 1 STO:X 3 EQN INTR:5 SOLVE:X | ERR %ERR=INTERRUPTED X=3 @X#1.41421356,0.6
 I08 | ours: an interrupt with nothing running changes nothing | PRGM CLPGM LBL:A 1 ENTER 2 + 3 + 4 + 5 + RTN PRGM INTERRUPT XEQ:A | X=15 %STOP=DONE
 I09 | 35s p.13-19, B-5 interrupted and resumed, the calculator is as if run straight through (stack, LAST X, lift, all) | PRGM CLPGM LBL:A 1 ENTER 2 + 3 + 4 + 5 + RTN PRGM 9 SQRT SAVE XEQ:A MARK LOAD INTR:4 XEQ:A RS | %SAMEMARK=same
+I10 | ours: an interrupt landing on a run's last line does not stop the next run | PRGM CLPGM LBL:A 1 ENTER 2 + 3 + 4 + 5 + RTN PRGM INTR:12 XEQ:A XEQ:A | X=15 %STOP=DONE
+I11 | ours: C with nothing running does not reach a later SOLVE of a listed equation | INTERRUPT EQ:X^2-4 C 1 STO:X 3 EQN SOLVE:X | X=2
