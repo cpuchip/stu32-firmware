@@ -140,6 +140,98 @@ int main(void)
             expect(ok, m);
         }
 
+    /* the letter layer, as abacus sent it (#3826): key, then letter or role */
+    {
+        static const struct { int key; const char *what; } L[] = {
+            {6, "A"}, {7, "B"}, {8, "C"}, {9, "D"}, {10, "E"}, {11, "F"}, {12, "G"}, {13, "H"}, {14, "I"},
+            {15, "J"}, {16, "K"}, {17, "L"}, {18, "M"}, {19, "N"}, {20, "O"}, {21, "P"}, {22, "Q"}, {24, "R"},
+            {25, "S"}, {26, "T"}, {27, "U"}, {28, "/"}, {31, "V"}, {32, "W"}, {33, "X"}, {34, "*"}, {37, "Y"},
+            {38, "Z"}, {39, "(I)"}, {40, "-"}, {42, "ESC"}, {43, "(J)"}, {46, "+"},
+        };
+        int seen[KB_KEYS] = {0}, letters = 0, used[26] = {0};
+        for (size_t i = 0; i < sizeof L / sizeof L[0]; i++) {
+            const km_letter *l = km_letter_of(L[i].key);
+            const char *w = L[i].what;
+            bool ok;
+            seen[L[i].key] = 1;
+            if (strlen(w) == 1 && w[0] >= 'A' && w[0] <= 'Z') ok = l->kind == KL_LETTER && l->value == w[0] - 'A';
+            else if (!strcmp(w, "(I)")) ok = l->kind == KL_IND_I;
+            else if (!strcmp(w, "(J)")) ok = l->kind == KL_IND_J;
+            else if (!strcmp(w, "ESC")) ok = l->kind == KL_ESC;
+            else ok = l->kind == KL_ARITH && l->value == (w[0] == '+' ? AB_ADD : w[0] == '-' ? AB_SUB : w[0] == '*' ? AB_MUL : AB_DIV);
+            snprintf(m, sizeof m, "letter layer: key %d should be %s (kind %d value %d)", L[i].key, w, l->kind, l->value);
+            expect(ok, m);
+        }
+        for (int k = 0; k < KB_KEYS; k++) {
+            const km_letter *l = km_letter_of(k);
+            if (!seen[k]) {
+                snprintf(m, sizeof m, "letter layer: key %d should type nothing", k);
+                expect(l->kind == KL_NONE, m);
+            }
+            if (l->kind == KL_LETTER && l->value >= 0 && l->value < 26) letters += !used[l->value]++;
+            if (l->kind != KL_NONE) expect(kb_exists(k / KB_COLS, k % KB_COLS), "a letter on a key that is not there");
+        }
+        expect(letters == 26, "the letter layer: 26 distinct letters");
+        /* the arithmetic keys are the keymap's own + - x / (so STO + reads as on the 35s) */
+        for (int k = 0; k < KB_KEYS; k++)
+            if (km_letter_of(k)->kind == KL_ARITH)
+                expect(km_lookup(k, KM_FACE)->kind == KM_OP && km_lookup(k, KM_FACE)->op == km_letter_of(k)->value,
+                       "an arithmetic letter-layer key is that arithmetic key");
+        expect(km_letter_of(-1)->kind == KL_NONE && km_letter_of(KB_KEYS)->kind == KL_NONE, "letters out of range: none");
+    }
+    /* STO and RCL with arithmetic (UG p.3-6, 3-7); nothing else takes it */
+    {
+        static const int A[4] = {AB_ADD, AB_SUB, AB_MUL, AB_DIV};
+        static const int S[4] = {AB_STOADD, AB_STOSUB, AB_STOMUL, AB_STODIV};
+        static const int R[4] = {AB_RCLADD, AB_RCLSUB, AB_RCLMUL, AB_RCLDIV};
+        for (int i = 0; i < 4; i++) {
+            expect(km_arith_op(AB_STO, A[i]) == S[i] && km_arith_op(AB_RCL, A[i]) == R[i], "STO/RCL with arithmetic");
+            expect(km_arith_op(AB_VIEW, A[i]) == -1 && km_arith_op(AB_XEQ, A[i]) == -1, "no arithmetic for VIEW, XEQ");
+        }
+        expect(km_arith_op(AB_STO, AB_SIN) == -1, "STO with SIN: nothing");
+    }
+    /* every letter-layer key, under every prompt, gives an argument the core takes: each prompt op
+       keyed with it in program entry records a named line ("STO G" from key 12) */
+    {
+        static const int OPS[] = {AB_STO, AB_RCL, AB_VIEW, AB_ISG, AB_DSE, AB_LBL, AB_XEQ, AB_GTO};
+        static const int KIND[] = {KM_ARG_VAR, KM_ARG_VAR, KM_ARG_VAR, KM_ARG_VAR, KM_ARG_VAR, KM_ARG_LABEL,
+                                   KM_ARG_TARGET, KM_ARG_TARGET};
+        int lines = 0;
+        for (int k = 0; k < KB_KEYS; k++) {
+            const km_letter *l = km_letter_of(k);
+            if (l->kind != KL_LETTER && l->kind != KL_IND_I && l->kind != KL_IND_J) continue;
+            for (int o = 0; o < 8; o++) {
+                int arg = km_prompt_arg(KIND[o], l);
+                if (KIND[o] == KM_ARG_LABEL && l->kind != KL_LETTER) {
+                    expect(arg == -1, "a label cannot be (I) or (J)");
+                    continue;
+                }
+                ab_init(&c);
+                ab_do(&c, AB_PRGM);
+                for (int lab = 0; lab < 26 && OPS[o] != AB_LBL; lab++) ab_do_arg(&c, AB_LBL, lab);  /* targets exist */
+                int before = c.prog_len;
+                char t[64] = "";
+                abn_status st = ab_do_arg(&c, (ab_op)OPS[o], arg);
+                bool ok = arg >= 0 || arg == AB_TGT_IND_I || arg == AB_TGT_IND_J;
+                ok = ok && st == ABN_OK && c.prog_len == before + 1 && ab_prog_line(&c, c.pc, NULL, t, sizeof t) > 0;
+                snprintf(m, sizeof m, "key %d with op %d: argument %d not taken (%s)", k, OPS[o], arg, t);
+                expect(ok, m);
+                lines += ok;
+            }
+        }
+        ab_init(&c);
+        ab_do(&c, AB_PRGM);
+        ab_do_arg(&c, km_lookup(12, KM_FACE)->op, km_prompt_arg(KM_ARG_VAR, km_letter_of(12)));
+        char t[32];
+        ab_prog_line(&c, c.pc, NULL, t, sizeof t);
+        expect(strcmp(t, "STO G") == 0, "STO then key 12 (letter G): STO G");
+        ab_do_arg(&c, km_arith_op(AB_STO, km_letter_of(46)->value), km_prompt_arg(KM_ARG_VAR, km_letter_of(39)));
+        ab_prog_line(&c, c.pc, NULL, t, sizeof t);
+        expect(strcmp(t, "STO+ (I)") == 0, "STO, +, then key 39 ((I)): STO+ (I)");
+        snprintf(m, sizeof m, "letter-layer arguments taken: %d", lines);
+        expect(lines == 26 * 8 + 2 * 7, m);
+    }
+
     printf("keymap_test: %d/%d checks; %d actions, %d undefined (listed above)\n", checks - bad, checks, defined,
            undefined);
     for (int k = 0; k < KB_KEYS; k++)

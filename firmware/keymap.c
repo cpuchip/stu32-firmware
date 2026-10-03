@@ -61,3 +61,23 @@ const km_action *km_lookup(int key, int shift)
     if (key < 0 || key >= KB_KEYS || shift < 0 || shift > 2) return &none;
     return &KEYMAP[key][shift];
 }
+
+/* red: the letter layer's stubs, replaced by the generated table in the green commit */
+const km_letter *km_letter_of(int key)
+{
+    static const km_letter none = {KL_NONE, 0};
+    (void)key;
+    return &none;
+}
+
+int km_arith_op(int op, int arith)
+{
+    (void)op; (void)arith;
+    return -1;
+}
+
+int km_prompt_arg(int prompt, const km_letter *l)
+{
+    (void)prompt; (void)l;
+    return -1;
+}

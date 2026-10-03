@@ -41,4 +41,25 @@ enum { KM_FACE = 0, KM_GOLD = 1, KM_BLUE = 2 };
 /* The action of key (row * 6 + column) in a shift; a key that does not exist is KM_NONE. */
 const km_action *km_lookup(int key, int shift);
 
+/* The letter layer: what each key types while a KM_PROMPT waits for its argument (the P4 panel's
+   assignment, abacus #3826, provisional until Michael rules where letters are printed; the 35s
+   prints a letter on each key, UG p.1-3). The table is data in the generator, so a printed legend
+   later changes only data. */
+typedef enum { KL_NONE = 0, KL_LETTER, KL_IND_I, KL_IND_J, KL_ESC, KL_ARITH } kl_kind;
+
+typedef struct {
+    kl_kind kind;
+    int value;              /* KL_LETTER: 0..25 for A..Z; KL_ARITH: AB_ADD, AB_SUB, AB_MUL, AB_DIV */
+} km_letter;
+
+const km_letter *km_letter_of(int key);
+
+/* STO or RCL followed by + - x / is STO+ ... RCL/ (UG p.3-6, 3-7); -1 for any other pair. */
+int km_arith_op(int op, int arith);
+
+/* The argument a prompt of kind KM_ARG_* takes from a letter-layer key: a variable code (A..Z,
+   (I), (J)), a label 0..25, or a target (a label's first line, or (I) / (J)); -1 when the key
+   gives nothing that prompt takes (a label cannot be (I)). */
+int km_prompt_arg(int prompt, const km_letter *l);
+
 #endif
