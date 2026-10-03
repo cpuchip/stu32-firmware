@@ -241,6 +241,133 @@ static abn_status two_number_op(ab_calc *c, ab_op op)
     return ABN_OK;
 }
 
+/* ---- storage (unit 005; UG p.3-1 to 3-9, p.14-20 to 14-24) ---- */
+
+/* A storage location: a register, and for an unnamed indirect variable its address. */
+typedef struct {
+    abn *reg;
+    int ind;                /* 0..800 for an unnamed indirect variable, otherwise -1 */
+} slot;
+
+/* The integer part of x as an int when it lies in [lo, hi]. */
+static bool int_in(const abn *x, int lo, int hi, int *v)
+{
+    abn t;
+    bool neg;
+    char d[ABN_DIGITS + 1];
+    int lead, n, r = 0;
+    if (abn_trunc(&t, x) != ABN_OK) return false;
+    abn_digits(&t, &neg, d, &lead);
+    n = (int)strlen(d);
+    if (n == 0) {
+        *v = 0;
+        return lo <= 0 && 0 <= hi;
+    }
+    if (lead > 4) return false;
+    for (int i = 0; i <= lead; i++) r = r * 10 + (i < n ? d[i] - '0' : 0);
+    r = neg ? -r : r;
+    if (r < lo || r > hi) return false;
+    *v = r;
+    return true;
+}
+
+/* A variable code names A..Z directly, or (I)/(J): the number in I or J chooses (UG p.14-22):
+ * -1..-26 are A..Z, -27..-32 the statistics registers (n, sum x, sum y, sum x^2, sum y^2,
+ * sum xy), 0..800 the unnamed indirect variables. A non-integer index is truncated (ours, unit
+ * 005; the guide does not say). An index outside -32..800 is INVALID (I) (UG p.14-22); so is
+ * reading an unnamed variable above the defined range (UG p.14-24). */
+static abn_status resolve(ab_calc *c, int code, bool for_read, slot *out)
+{
+    int k;
+    out->ind = -1;
+    if (code >= AB_VAR_A && code < AB_VAR_A + 26) {
+        out->reg = &c->var[code - AB_VAR_A];
+        return ABN_OK;
+    }
+    if (code != AB_VAR_IND_I && code != AB_VAR_IND_J) return ABN_DOMAIN;
+    const abn *idx = &c->var[(code == AB_VAR_IND_I ? 'I' : 'J') - 'A'];
+    if (!int_in(idx, -32, AB_IND_MAX, &k)) return ABN_DOMAIN;      /* INVALID (I) */
+    if (k <= -27) {
+        out->reg = &c->stat[-k - 27];
+    } else if (k < 0) {
+        out->reg = &c->var[-k - 1];
+    } else {
+        if (for_read && k > c->ind_top) return ABN_DOMAIN;          /* INVALID (I): undefined */
+        out->reg = &c->ind[k];
+        out->ind = k;
+    }
+    return ABN_OK;
+}
+
+/* Writes v to a location. The unnamed indirect variables are defined from address 0 up to the
+ * last nonzero one: storing a nonzero value above extends the range, and storing 0 in the last
+ * one releases it down to the next nonzero (UG p.14-24). */
+static void write_slot(ab_calc *c, const slot *sl, abn v)
+{
+    *sl->reg = v;
+    if (sl->ind < 0) return;
+    if (!abn_is_zero(&v)) {
+        if (sl->ind > c->ind_top) c->ind_top = sl->ind;
+    } else if (sl->ind == c->ind_top) {
+        while (c->ind_top >= 0 && abn_is_zero(&c->ind[c->ind_top])) c->ind_top--;
+    }
+}
+
+static abn_status arith(abn *r, ab_op op, const abn *a, const abn *b)
+{
+    switch (op) {
+    case AB_STOADD: case AB_RCLADD: return abn_add(r, a, b);
+    case AB_STOSUB: case AB_RCLSUB: return abn_sub(r, a, b);
+    case AB_STOMUL: case AB_RCLMUL: return abn_mul(r, a, b);
+    default: return abn_div(r, a, b);
+    }
+}
+
+static abn_status storage_op(ab_calc *c, ab_op op, int code)
+{
+    slot sl;
+    abn r;
+    abn_status st;
+    bool reads = op != AB_STO;
+    if ((st = resolve(c, code, reads, &sl)) != ABN_OK) return st;
+    switch (op) {
+    case AB_STO:
+        /* STO copies x into the variable; X keeps its value (UG p.3-2). */
+        write_slot(c, &sl, c->x);
+        break;
+    case AB_RCL:
+        /* RCL brings a copy into X like any recalled number (UG p.3-2, p.3-4; unit 005 rule 2). */
+        place_in_x(c, *sl.reg);
+        break;
+    case AB_STOADD: case AB_STOSUB: case AB_STOMUL: case AB_STODIV:
+        /* Storage arithmetic: variable = variable op x; the stack is untouched (UG p.3-6) and so
+           is LAST X (not in UG p.B-6's list). An error changes nothing (unit 005 rule 3). */
+        if ((st = arith(&r, op, sl.reg, &c->x)) != ABN_OK) return st;
+        write_slot(c, &sl, r);
+        break;
+    case AB_RCLADD: case AB_RCLSUB: case AB_RCLMUL: case AB_RCLDIV:
+        /* Recall arithmetic: x = x op variable; only X changes (UG p.3-7), and x is saved in
+           LAST X (UG p.B-6). */
+        if ((st = arith(&r, op, &c->x, sl.reg)) != ABN_OK) return st;
+        c->lastx = c->x;
+        c->x = r;
+        break;
+    case AB_XVAR: {
+        /* x<>variable swaps them; Y, Z, T are untouched (UG p.3-8). */
+        abn v = *sl.reg;
+        write_slot(c, &sl, c->x);
+        c->x = v;
+        break;
+    }
+    default:
+        /* VIEW shows the variable and changes nothing; it is not among the neutral operations
+           of UG p.B-5, so like any other it enables lift (ours, unit 005). */
+        break;
+    }
+    c->lift = true;
+    return ABN_OK;
+}
+
 abn_status ab_do(ab_calc *c, ab_op op)
 {
     return ab_do_arg(c, op, 0);
@@ -248,7 +375,6 @@ abn_status ab_do(ab_calc *c, ab_op op)
 
 abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
 {
-    if (op >= AB_STO) return ABN_OK;    /* STUB: unit 005 lands after the oracle */
 
     if (op <= AB_KE) return entry_key(c, op);
     if ((op == AB_KCHS || op == AB_KBKSP) && c->entry.active) return entry_key(c, op);
@@ -358,6 +484,16 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
         place_in_x(c, v);   /* a constant arrives like a recalled number (UG p.4-8) */
         break;
     }
+    case AB_STO: case AB_RCL:
+    case AB_STOADD: case AB_STOSUB: case AB_STOMUL: case AB_STODIV:
+    case AB_RCLADD: case AB_RCLSUB: case AB_RCLMUL: case AB_RCLDIV:
+    case AB_XVAR: case AB_VIEW:
+        return storage_op(c, op, arg);
+    case AB_CLVARS:
+        /* Clear the direct variables A..Z (UG p.3-5); neutral for stack lift (UG p.B-5). The
+           unnamed indirect variables have their own clearing (UG p.1-5, a later unit). */
+        for (int i = 0; i < 26; i++) c->var[i] = abn_zero();
+        return ABN_OK;
     case AB_SETFIX:
     case AB_SETSCI:
     case AB_SETENG:

@@ -34,7 +34,7 @@ S04 | B-6 x<>var leaves LAST X | 9 SQRT 5 STO:A XVAR:A | L=9
 S05 | ours (rule 3): STO / 0 leaves the variable and stack | 5 STO:A 0 STO/:A | ERR X=0 Y=5 @A=5
 S06 | ours: RCL / 0 leaves X and LAST X | 9 SQRT 0 STO:B 5 RCL/:B | ERR X=5 L=9
 S07 | ours (rule 3): STO * out of range leaves the variable | 1 E 5000 STO:A STO*:A | ERR @A=1E5000
-S08 | B-5 CLVARS clears A-Z and is neutral for lift | 5 STO:A 6 STO:Z 1 ENTER CLVARS 3 | X=3 Y=1 @A=0 @Z=0
+S08 | B-5 CLVARS clears A-Z and is neutral for lift | 5 STO:A 6 STO:Z 1 ENTER CLVARS 3 | X=3 Y=1 Z=6 @A=0 @Z=0
 S09 | ours: RCL-, STO- are var - x and x - var the right way round | 10 STO:A 3 RCL-:A 4 STO-:A | X=4 Y=-7 @A=6
 S10 | ours: (J) arithmetic | 3 STO:C 3 CHS STO:J 4 STO*:(J) | @C=12
 S11 | ours: x<>(I) with an indirect variable | 7 STO:I 11 STO:(I) 2 XVAR:(I) | X=11 @#7=2
