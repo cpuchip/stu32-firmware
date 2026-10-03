@@ -222,6 +222,16 @@ int main(int argc, char **argv)
             }
         si_key_rect(ks.down, &x, &y, &w, &h);
         expect(count(keys, x + 3, y + 3, w - 6, h - 6, SI_KEY_DOWN) > 0, "the key held: drawn down");
+        /* the shift keys say their name (abacus #3865): light on the key, dark when it is lit */
+        for (int k = 0; k < KB_KEYS; k++) {
+            const km_action *f = km_lookup(k, KM_FACE);
+            if (f->kind != KM_SHIFT) continue;
+            si_key_rect(k, &x, &y, &w, &h);
+            bool held = f->arg == ks.shift;
+            int want = held ? SI_BG : SI_FACE, n = count(keys, x + 4, y + 22, w - 8, 20, want);
+            snprintf(m, sizeof m, "shift key %d: its name in the face area (%s)", k, held ? "held, dark" : "light");
+            expect(n > 40, m);
+        }
         /* the letter layer while a prompt waits: each lettered key shows its letter large */
         ks = (si_keys_state){0, true, -1};
         si_draw_keys(keys, &ks);
