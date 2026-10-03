@@ -17,7 +17,8 @@ idf_component_register(
     SRCS device_main.c "${BUNDLE_C}" ${CORE_SRCS}
          "${REPO}/tests/vectors.c" "${REPO}/tests/fmt_vectors.c" "${REPO}/tests/diff_test.c"
          "${REPO}/tests/dref.c" "${REPO}/tests/abn_test.c" "${REPO}/tests/xnum_test.c"
-    INCLUDE_DIRS . "${REPO}/core" "${REPO}/tests")
+         "${REPO}/firmware/store.c"
+    INCLUDE_DIRS . "${REPO}/core" "${REPO}/tests" "${REPO}/firmware")
 
 if(NOT EXISTS "${BUNDLE_C}")
     message(FATAL_ERROR "no ${BUNDLE_C}: run tests/device/run.sh (it runs bundle.py first)")

@@ -10,6 +10,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "bundle.h"
@@ -101,7 +102,7 @@ static int run_file(const bundle_file *b)
     return r;
 }
 
-static int steps, failed;
+static int steps, failed, skipped;
 
 static void step(const char *label, int r, int64_t t0)
 {
@@ -109,6 +110,79 @@ static void step(const char *label, int r, int64_t t0)
     if (r) failed++;
     printf("  [%s] %s, %.1f s\n", r ? "FAIL" : "ok", label, (double)(now_us() - t0) / 1e6);
     fflush(stdout);
+}
+
+/* ---- unit 018: the device's store and slices in the loop ----
+   The harness saves and loads after every key with its image going through the store's two slots
+   on the abstate partition (store.h; vectors.c's vectors_flash), and runs programs in slices of 7
+   lines, as the device's calc task does. Where there is no partition (the C6's 4 MB, the host) the
+   store steps are reported skipped, not passed. */
+#include "store.h"
+extern const ab_flash *vectors_flash;
+static ab_flash dev_flash;
+
+#ifdef ESP_PLATFORM
+#include "esp_partition.h"
+
+static int pf_erase(void *ctx, uint32_t off, uint32_t len)
+{
+    return esp_partition_erase_range(ctx, off, len) == ESP_OK ? 0 : -1;
+}
+
+static int pf_write(void *ctx, uint32_t off, const void *src, uint32_t len)
+{
+    return esp_partition_write(ctx, off, src, len) == ESP_OK ? 0 : -1;
+}
+
+static int pf_read(void *ctx, uint32_t off, void *dst, uint32_t len)
+{
+    return esp_partition_read(ctx, off, dst, len) == ESP_OK ? 0 : -1;
+}
+#endif
+
+static const bundle_file *bundle_find(const char *name)
+{
+    for (unsigned i = 0; i < BUNDLE_COUNT; i++)
+        if (strcmp(BUNDLE[i].name, name) == 0) return &BUNDLE[i];
+    return NULL;
+}
+
+static void loop_step(const char *name, bool store, const char *slice)
+{
+    const bundle_file *b = bundle_find(name);
+    char label[96];
+    snprintf(label, sizeof label, "%s%s%s%s", name, store ? " + store on flash" : "", slice ? " + slices of " : "",
+             slice ? slice : "");
+    if (!b || (store && !dev_flash.ctx)) {
+        printf("  [skip] %s: %s\n", label, !b ? "not in this bundle" : "no abstate partition");
+        skipped++;
+        return;
+    }
+    if (store) {
+        setenv("AB_SAVELOAD", "1", 1);
+        vectors_flash = &dev_flash;
+    }
+    if (slice) setenv("AB_SLICE", slice, 1);
+    int64_t t = now_us();
+    step(label, run_file(b), t);
+    unsetenv("AB_SAVELOAD");
+    unsetenv("AB_SLICE");
+    vectors_flash = NULL;
+}
+
+static void loop_steps(void)
+{
+#ifdef ESP_PLATFORM
+    const esp_partition_t *p = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, 0x40, "abstate");
+    if (p) dev_flash = (ab_flash){(void *)p, 4096, p->size / 2, pf_erase, pf_write, pf_read};
+#endif
+    loop_step("work/016-vectors.txt", true, NULL);
+    loop_step("work/017-vectors.txt", true, NULL);
+    loop_step("work/011-vectors.txt", false, "7");
+    loop_step("work/012-vectors.txt", false, "7");
+    loop_step("work/013-vectors.txt", false, "7");
+    loop_step("work/015-vectors.txt", false, "7");
+    loop_step("work/016-vectors.txt", true, "7");          /* both: a save and load at every slice stop */
 }
 
 static int run_all(void)
@@ -121,8 +195,9 @@ static int run_all(void)
         t = now_us();
         step(BUNDLE[i].name, run_file(&BUNDLE[i]), t);
     }
-    printf("DEVICE %s: %d/%d steps passed, %.1f s\n", failed ? "FAIL" : "PASS", steps - failed,
-           steps, (double)(now_us() - t0) / 1e6);
+    loop_steps();
+    printf("DEVICE %s: %d/%d steps passed, %d skipped, %.1f s\n", failed ? "FAIL" : "PASS", steps - failed,
+           steps, skipped, (double)(now_us() - t0) / 1e6);
     return failed;
 }
 

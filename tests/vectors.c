@@ -23,6 +23,7 @@
 
 #include "calc.h"
 #include "state.h"
+#include "store.h"
 #include "norm.h"
 
 #define LINE_MAX_ 16384
@@ -99,10 +100,64 @@ static bool img_save(const ab_calc *c)
     return buf_save(c, &img, &img_len, &img_cap);
 }
 
-/* The harness's save and load: its own buffer. */
+/* Unit 018: with a store, the harness's images go through its two slots (store.h) and must come
+   back byte for byte, and what is loaded is what came back: on the device its flash partition
+   (device_main sets vectors_flash), on the host with AB_STORE=1 a flash in memory. */
+const ab_flash *vectors_flash;
+static uint8_t *simg;           /* an image as the store gave it back */
+static size_t simg_cap;
+
+static const uint8_t *through_store(const uint8_t *b, size_t n)
+{
+    if (!vectors_flash) return b;
+    if (n > simg_cap) {
+        uint8_t *g = realloc(simg, n);
+        if (!g) return NULL;
+        simg = g;
+        simg_cap = n;
+    }
+    if (ab_store_save(vectors_flash, b, (uint32_t)n) != 0) return NULL;
+    uint32_t got = ab_store_load(vectors_flash, simg, (uint32_t)simg_cap);
+    return got == n && memcmp(simg, b, n) == 0 ? simg : NULL;
+}
+
+#ifndef AB_DEVICE
+/* the host's flash for AB_STORE: two 64 KB slots of NOR (an erase sets 0xFF, a write clears bits) */
+static uint8_t ram_flash[2 * 64 * 1024];
+
+static int rf_erase(void *ctx, uint32_t off, uint32_t len)
+{
+    (void)ctx;
+    if (off + len > sizeof ram_flash) return -1;
+    memset(ram_flash + off, 0xFF, len);
+    return 0;
+}
+
+static int rf_write(void *ctx, uint32_t off, const void *src, uint32_t len)
+{
+    (void)ctx;
+    if (off + len > sizeof ram_flash) return -1;
+    for (uint32_t i = 0; i < len; i++) ram_flash[off + i] &= ((const uint8_t *)src)[i];
+    return 0;
+}
+
+static int rf_read(void *ctx, uint32_t off, void *dst, uint32_t len)
+{
+    (void)ctx;
+    if (off + len > sizeof ram_flash) return -1;
+    memcpy(dst, ram_flash + off, len);
+    return 0;
+}
+
+static const ab_flash host_flash = {NULL, 4096, sizeof ram_flash / 2, rf_erase, rf_write, rf_read};
+#endif
+
+/* The harness's save and load: its own buffer, through the store when there is one. */
 static bool harness_saveload(ab_calc *c)
 {
-    return buf_save(c, &himg, &himg_len, &himg_cap) && ab_state_load(c, himg, himg_len) == ABN_OK;
+    const uint8_t *back;
+    return buf_save(c, &himg, &himg_len, &himg_cap) && (back = through_store(himg, himg_len)) != NULL &&
+           ab_state_load(c, back, himg_len) == ABN_OK;
 }
 
 static ab_calc calc;            /* 106 KB: off the stack, and the only one on a device */
@@ -476,6 +531,9 @@ int vectors_run(const char *name, FILE *f)
 {
     env_saveload = getenv("AB_SAVELOAD") != NULL;
     env_slice = getenv("AB_SLICE") ? atol(getenv("AB_SLICE")) : 0;
+#ifndef AB_DEVICE
+    if (getenv("AB_STORE") && !vectors_flash) vectors_flash = &host_flash;
+#endif
     char line[LINE_MAX_];
     int lineno = 0, vectors = 0, vectors_ok = 0, checks = 0, checks_ok = 0;
     while (fgets(line, sizeof line, f)) {
@@ -522,10 +580,14 @@ int vectors_run(const char *name, FILE *f)
                 size_t n1;
                 static uint8_t *b2;
                 static size_t c2;
+                const uint8_t *back = NULL;
                 if (!buf_save(&c, &himg, &himg_len, &himg_cap)) {
                     fprintf(stderr, "%s:%d: %s: save failed after '%s'\n", name, lineno, id, tok);
                     op_errors += 1000;
-                } else if (ab_state_load(&c, himg, himg_len) != ABN_OK) {
+                } else if ((back = through_store(himg, himg_len)) == NULL) {
+                    fprintf(stderr, "%s:%d: %s: the store did not give the image back after '%s'\n", name, lineno, id, tok);
+                    op_errors += 1000;
+                } else if (ab_state_load(&c, back, himg_len) != ABN_OK) {
                     fprintf(stderr, "%s:%d: %s: load refused its own image after '%s'\n", name, lineno, id, tok);
                     op_errors += 1000;
                 } else {

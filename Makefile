@@ -58,8 +58,8 @@ build/store_test: $(CORE) $(HDRS) $(ENGINE) firmware/store.c firmware/store.h te
 build/load_fuzz: $(CORE) $(HDRS) $(ENGINE) tests/load_fuzz.c | build
 	$(CC) $(CFLAGS) -Icore -o $@ $(CORE) tests/load_fuzz.c $(ENGINE) $(LIBS)
 
-build/vectors: $(CORE) $(HDRS) $(ENGINE) tests/vectors.c tests/norm.h | build
-	$(CC) $(CFLAGS) -Icore -o $@ $(CORE) tests/vectors.c $(ENGINE) $(LIBS)
+build/vectors: $(CORE) $(HDRS) $(ENGINE) tests/vectors.c tests/norm.h firmware/store.c firmware/store.h | build
+	$(CC) $(CFLAGS) -Icore -Ifirmware -o $@ $(CORE) firmware/store.c tests/vectors.c $(ENGINE) $(LIBS)
 
 build/fmt_vectors: $(CORE) $(HDRS) $(ENGINE) tests/fmt_vectors.c | build
 	$(CC) $(CFLAGS) -Icore -o $@ $(CORE) tests/fmt_vectors.c $(ENGINE) $(LIBS)
@@ -147,13 +147,13 @@ accuracy: build/fn_drive build/cx_drive build/vectors
 	python3 tests/base_fuzz.py 1 5000 > build/base_fuzz.txt
 	./build/vectors build/base_fuzz.txt
 	# unit 016: every key-vector file with a save and load after every key, and run in slices
-	for f in $(KEYV) work/016-vectors.txt work/017-vectors.txt; do AB_SAVELOAD=1 ./build/vectors $$f || exit 1; done
+	for f in $(KEYV) work/016-vectors.txt work/017-vectors.txt; do AB_SAVELOAD=1 AB_STORE=1 ./build/vectors $$f || exit 1; done
 	for n in 1 7 1000; do for f in $(KEYV); do AB_SLICE=$$n ./build/vectors $$f || exit 1; done; done
 	./build/load_fuzz 100000 7
 
 # The on-chip test app (tests/device), built and run on the host: the same runners and bundle
 # the chip gets. The bundle is compiled without -Wpedantic (its string literals are long).
-DEVICE_RUNNERS := tests/vectors.c tests/fmt_vectors.c tests/diff_test.c tests/dref.c
+DEVICE_RUNNERS := tests/vectors.c tests/fmt_vectors.c tests/diff_test.c tests/dref.c firmware/store.c
 build/device/bundle.c: tests/device/bundle.py $(wildcard work/*-vectors.txt) tests/eqn_fuzz.py tests/prog_fuzz.py tests/veckey_fuzz.py | build
 	@mkdir -p build/device
 	python3 tests/device/bundle.py $@
@@ -166,7 +166,7 @@ build/device/xnum_test.o: tests/xnum_test.c $(HDRS) | build
 	@mkdir -p build/device
 	$(CC) $(CFLAGS) -DAB_DEVICE -Dmain=xnum_test_main -Icore -Itests -c -o $@ $<
 build/device_host: tests/device/main/device_main.c $(DEVICE_RUNNERS) $(CORE) $(HDRS) $(ENGINE) build/device/bundle.o build/device/abn_test.o build/device/xnum_test.o | build
-	$(CC) $(CFLAGS) -DAB_DEVICE -Icore -Itests -Itests/device/main -o $@ tests/device/main/device_main.c $(DEVICE_RUNNERS) $(CORE) build/device/bundle.o build/device/abn_test.o build/device/xnum_test.o $(ENGINE) $(LIBS)
+	$(CC) $(CFLAGS) -DAB_DEVICE -Icore -Ifirmware -Itests -Itests/device/main -o $@ tests/device/main/device_main.c $(DEVICE_RUNNERS) $(CORE) build/device/bundle.o build/device/abn_test.o build/device/xnum_test.o $(ENGINE) $(LIBS)
 device-host: build/device_host
 	./build/device_host
 
