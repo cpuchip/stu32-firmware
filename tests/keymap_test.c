@@ -73,7 +73,7 @@ static const want W[] = {
     OPK(7, 0, KM_FACE, AB_CANCEL, "C"), {7, 0, KM_GOLD, KM_DEVICE, 0, KM_DEV_OFF, 0, "OFF"}, MENU(7, 0, KM_BLUE, "SYS"),
     OPK(7, 1, KM_FACE, AB_K0, "0"), MENU(7, 1, KM_GOLD, "EQN"), MENU(7, 1, KM_BLUE, "APPS"),
     OPK(7, 2, KM_FACE, AB_KPOINT, "."), OPK(7, 2, KM_GOLD, AB_KCOMMA, ","),
-    {7, 2, KM_BLUE, KM_UNDEFINED, 0, 0, 0, "\xe2\x86\x92" "FRAC"},
+    OPK(7, 2, KM_BLUE, AB_FDISP, "\xe2\x86\x92" "FRAC"),    /* the Fraction-display toggle (ch.5; abacus #3822) */
     OPK(7, 3, KM_FACE, AB_RS, "R/S"), OPK(7, 3, KM_GOLD, AB_PSE, "PSE"), OPK(7, 3, KM_BLUE, AB_SST, "SST"),
     OPK(7, 4, KM_FACE, AB_ADD, "+"), MENU(7, 4, KM_GOLD, "SUMS"), MENU(7, 4, KM_BLUE, "L.R."),
 };
