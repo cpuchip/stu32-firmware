@@ -1,0 +1,62 @@
+# Work unit 007 formatting vectors: Fraction-display mode. Format as unit 002, with the mode
+# "FRAC c P|F|X" (maximum denominator c; most precise, factors of c, fixed denominator c) and the
+# option dec=<FIXn|SCIn|ENGn|ALL> (the decimal format a fraction falls back to, default ALL).
+# The expected text may end in " ^" (|value| above the shown fraction) or " v" (below): the accuracy
+# indicator. Values are 34-digit decimals; fractions are judged exactly against them (unit 007 rule 3)
+# with Python Fraction (brute force over every denominator), ties per rule 4.
+
+F01 | 35s p.5-3 2 3/8 | 2.375 | FRAC 4095 P |  | 2 3/8
+F02 | 35s p.5-3 14 15/32 | 14.46875 | FRAC 4095 P |  | 14 15/32
+F03 | 35s p.5-3 54/12 | 4.5 | FRAC 4095 P |  | 4 1/2
+F04 | 35s p.5-3 6 18/5 | 9.6 | FRAC 4095 P |  | 9 3/5
+F05 | 35s p.5-3 34/12 | 2.833333333333333333333333333333333 | FRAC 4095 P |  | 2 5/6 v
+F06 | 35s p.5-3 15/8192 | 0.0018310546875 | FRAC 4095 P |  | 0 7/3823 ^
+F07 | 35s p.5-3 12345678 12345/3 | 12349793 | FRAC 4095 P |  | 12349793
+F08 | 35s p.5-3 16 3/16384 (the guide prints no indicator; ours v, rule 3) | 16.00018310546875 | FRAC 4095 P |  | 16 1/4095 v
+F09 | 35s p.5-4 2/3 at fixed denominator 5 | 0.6666666666666666666666666666666667 | FRAC 5 X |  | 0 3/5 ^
+F10 | 35s p.5-4 -2/3 at fixed 5: indicator by magnitude | -0.6666666666666666666666666666666667 | FRAC 5 X |  | -0 3/5 ^
+F11 | 35s p.5-4 2 2/3 entered (34 digits round up too: ^) | 2.666666666666666666666666666666667 | FRAC 4095 P |  | 2 2/3 ^
+F12 | 35s p.5-7 pi, most precise (the guide omits v; rule 3) | 3.141592653589793238462643383279503 | FRAC 4095 P |  | 3 16/113 v
+F13 | 35s p.5-7 pi, factors of 4095 = 819 * 5 | 3.141592653589793238462643383279503 | FRAC 4095 F |  | 3 116/819 v
+F14 | 35s p.5-7 pi, fixed denominator | 3.141592653589793238462643383279503 | FRAC 4095 X |  | 3 580/4095 v
+F15 | 35s p.5-8 2.77 at /c 4095, format P | 2.77 | FRAC 4095 P |  | 2 77/100
+F16 | 35s p.5-8 2.77 at /c 4095, format F | 2.77 | FRAC 4095 F |  | 2 1051/1365 ^
+F17 | 35s p.5-8 2.77 at /c 4095, format X | 2.77 | FRAC 4095 X |  | 2 3153/4095 ^
+F18 | 35s p.5-8 2.77 at /c 16, format P | 2.77 | FRAC 16 P |  | 2 10/13 ^
+F19 | 35s p.5-8 2.77 at /c 16, format F | 2.77 | FRAC 16 F |  | 2 3/4 ^
+F20 | 35s p.5-8 2.77 at /c 16, format X | 2.77 | FRAC 16 X |  | 2 12/16 ^
+F21 | 35s p.5-8 /c 16 table, column 1, format P | 2 | FRAC 16 P |  | 2
+F22 | 35s p.5-8 /c 16 table, column 1, format F | 2 | FRAC 16 F |  | 2
+F23 | 35s p.5-8 /c 16 table, column 1, format X | 2 | FRAC 16 X |  | 2 0/16
+F24 | 35s p.5-8 /c 16 table, column 2, format P | 2.5 | FRAC 16 P |  | 2 1/2
+F25 | 35s p.5-8 /c 16 table, column 2, format F | 2.5 | FRAC 16 F |  | 2 1/2
+F26 | 35s p.5-8 /c 16 table, column 2, format X | 2.5 | FRAC 16 X |  | 2 8/16
+F27 | 35s p.5-8 /c 16 table, column 3, format P | 2.666666666666666666666666666666667 | FRAC 16 P |  | 2 2/3 ^
+F28 | 35s p.5-8 /c 16 table, column 3, format F | 2.666666666666666666666666666666667 | FRAC 16 F |  | 2 11/16 v
+F29 | 35s p.5-8 /c 16 table, column 3, format X | 2.666666666666666666666666666666667 | FRAC 16 X |  | 2 11/16 v
+F30 | 35s p.5-8 /c 16 table, column 4, format P | 2.9999 | FRAC 16 P |  | 3 v
+F31 | 35s p.5-8 /c 16 table, column 4, format F | 2.9999 | FRAC 16 F |  | 3 v
+F32 | 35s p.5-8 /c 16 table, column 4, format X | 2.9999 | FRAC 16 X |  | 3 0/16 v
+F33 | 35s p.5-8 /c 16 table, column 5, format P | 2.64 | FRAC 16 P |  | 2 9/14 v
+F34 | 35s p.5-8 /c 16 table, column 5, format F | 2.64 | FRAC 16 F |  | 2 5/8 ^
+F35 | 35s p.5-8 /c 16 table, column 5, format X | 2.64 | FRAC 16 X |  | 2 10/16 ^
+F36 | 35s p.5-9 56 3/4 / 6 at factors of 16 | 9.458333333333333333333333333333333 | FRAC 16 F |  | 9 7/16 ^
+F37 | 35s p.5-9 after RND | 9.4375 | FRAC 16 F |  | 9 7/16
+F38 | 35s p.5-9 times 6 | 56.625 | FRAC 16 F |  | 56 5/8
+F39 | 35s p.5-9 less 56 3/4 | -0.125 | FRAC 16 F |  | -0 1/8
+F40 | 35s p.5-6 stock price at factors of 8 | 53.25 | FRAC 8 F |  | 53 1/4
+F41 | 35s p.5-6 stock price at factors of 8 | 37.875 | FRAC 8 F |  | 37 7/8
+F42 | 35s p.5-6 time at fixed 60 (34-digit 1 25/60 rounds up: ^, rule 3) | 1.416666666666666666666666666666667 | FRAC 60 X |  | 1 25/60 ^
+F43 | 35s p.5-5 e^14 at /c 3125 (the guide's 888/3125 is its 12-digit value; ours, rule 3) | 1202604.284164776777749236770767859 | FRAC 3125 P | w=40 | 1202604 131/461 v
+F44 | ours (rule 5): too wide for the line falls back to the decimal format, no indicator | 1202604.284164776777749236770767859 | FRAC 3125 P | w=14 dec=FIX4 | 1,202,604.2842
+F45 | ours (rule 5): integer part beyond 34 digits falls back | 1E40 | FRAC 4095 P | dec=ALL | 1E40
+F46 | ours (rule 4): a tie takes the smaller denominator (0.25 at /c 2) | 0.25 | FRAC 2 P |  | 0 ^
+F47 | ours (rule 4): fixed denominator ties round away from zero | 0.25 | FRAC 2 X |  | 0 1/2 v
+F48 | ours: a whole carried up in fixed format | 0.9999 | FRAC 4 X |  | 1 0/4 v
+F49 | ours: a whole carried up, most precise | 0.9999 | FRAC 4 P |  | 1 v
+F50 | ours: a long integer part keeps every digit | 123456789012345678901234567.5 | FRAC 4095 P | w=40 | 123456789012345678901234567 1/2
+F51 | ours: zero | 0 | FRAC 4095 P |  | 0
+F52 | ours: zero in fixed format | 0 | FRAC 16 X |  | 0 0/16
+F53 | ours: negative tie, smaller denominator wins | -0.75 | FRAC 2 P |  | -1 v
+F54 | ours: a tiny value is 0 above | 1E-30 | FRAC 4095 P |  | 0 ^
+F55 | ours: negative tiny value | -1E-30 | FRAC 4095 P |  | -0 ^

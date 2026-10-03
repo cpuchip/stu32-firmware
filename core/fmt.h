@@ -26,4 +26,18 @@ typedef struct {
    not even the shortest form of the value fits the width. */
 int ab_format(const abn *v, const ab_fmt *f, char *out, int size);
 
+/* unit 007: the whole display setting, decimal or fraction. */
+typedef struct {
+    ab_fmt dec;             /* the decimal format: in effect, or the one Fraction-display mode restores */
+    bool fdisp;             /* Fraction-display mode */
+    unsigned c;             /* maximum denominator, 1..4095 */
+    int frac_format;        /* 0 most precise, 1 factors of c, 2 fixed denominator c */
+} ab_display;
+
+/* v as the text of one line under the display setting; *indicator is +1 when |v| lies above the
+   shown fraction, -1 below, 0 when exact or when decimal notation is shown. A fraction that does
+   not fit the width, or whose integer part needs more than 34 digits, falls back to the decimal
+   format with no indicator (ours, unit 007). Returns the length, or -1 and "" if nothing fits. */
+int ab_format_display(const abn *v, const ab_display *d, char *out, int size, int *indicator);
+
 #endif

@@ -264,3 +264,10 @@ int ab_format(const abn *value, const ab_fmt *f, char *out, int size)
     }
     return t.len;
 }
+
+/* STUB: unit 007 lands after the oracle */
+int ab_format_display(const abn *v, const ab_display *d, char *out, int size, int *indicator)
+{
+    *indicator = 0;
+    return ab_format(v, &d->dec, out, size);
+}

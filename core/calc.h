@@ -48,7 +48,12 @@ typedef enum {
     AB_SIGMAPLUS, AB_SIGMAMINUS, AB_CLSIGMA,
     AB_XBAR, AB_YBAR, AB_XWBAR, AB_SX, AB_SY, AB_PSX, AB_PSY,
     AB_XHAT, AB_YHAT, AB_CORR, AB_SLOPE, AB_YINT,
-    AB_NSUM, AB_SUMX, AB_SUMY, AB_SUMX2, AB_SUMY2, AB_SUMXY
+    AB_NSUM, AB_SUMX, AB_SUMY, AB_SUMX2, AB_SUMY2, AB_SUMXY,
+    /* unit 007: fractions */
+    AB_FDISP,               /* toggle Fraction-display mode */
+    AB_SETC,                /* /c from x (1 recalls it) */
+    AB_RCLC,                /* recall /c (ours: a separate token) */
+    AB_SF, AB_CF            /* set / clear flag arg (7, 8 or 9 in this unit) */
 } ab_op;
 
 #define AB_VAR_A 0                  /* AB_VAR_A + k is the k-th letter; I and J are letters too */
@@ -60,11 +65,12 @@ typedef enum {
 typedef enum { AB_ANGLE_DEG = 0, AB_ANGLE_RAD, AB_ANGLE_GRAD } ab_angle;
 
 #define AB_ENTRY_MANT ABN_DIGITS    /* most mantissa digits accepted in entry */
+#define AB_ENTRY_TEXT 80            /* room for a fraction: integer, numerator and denominator */
 #define AB_ENTRY_EXP 4              /* most exponent digits accepted (provisional) */
 
 typedef struct {
     bool active;                        /* a number is being keyed in (cursor present) */
-    char text[AB_ENTRY_MANT + AB_ENTRY_EXP + 4];  /* keys typed: digits, '.', 'E' */
+    char text[AB_ENTRY_TEXT];   /* keys typed: digits, '.', 'E' */
     int len;
     bool mant_neg, exp_neg;
 } ab_entry;
@@ -81,6 +87,9 @@ typedef struct {
     abn stat[AB_STAT_REGS]; /* the statistics registers, reached through (I)/(J) for now */
     abn ind[AB_IND_MAX + 1];/* unnamed indirect variables */
     int ind_top;            /* highest defined indirect address, -1 if none */
+    bool fdisp;             /* Fraction-display mode (flag 7; unit 007) */
+    uint32_t frac_c;        /* maximum denominator /c, 2..4095 */
+    bool flag8, flag9;      /* fraction format flags (UG p.5-6) */
     ab_entry entry;
 } ab_calc;
 

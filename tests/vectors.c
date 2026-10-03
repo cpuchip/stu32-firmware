@@ -76,6 +76,16 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
             return 0;
         }
     }
+    static const struct { const char *name; ab_op op; int arg; } FRACT[] = {
+        {"FDISP", AB_FDISP, 0}, {"/C", AB_SETC, 0}, {"RCL/C", AB_RCLC, 0},
+        {"SF:7", AB_SF, 7}, {"CF:7", AB_CF, 7}, {"SF:8", AB_SF, 8}, {"CF:8", AB_CF, 8},
+        {"SF:9", AB_SF, 9}, {"CF:9", AB_CF, 9}};
+    for (size_t i = 0; i < sizeof FRACT / sizeof FRACT[0]; i++) {
+        if (strcmp(tok, FRACT[i].name) == 0) {
+            if (ab_do_arg(c, FRACT[i].op, FRACT[i].arg) != ABN_OK) (*errors)++;
+            return 0;
+        }
+    }
     if (strcmp(tok, "CLVARS") == 0) {
         if (ab_do(c, AB_CLVARS) != ABN_OK) (*errors)++;
         return 0;

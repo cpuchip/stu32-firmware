@@ -1,0 +1,48 @@
+# Work unit 007 key vectors: fraction entry, /c, flags 7-9, RND in Fraction-display mode.
+# Format as unit 006, with the key tokens FDISP, /C (from x; 1 recalls), RCL/C, SF:7 CF:7 SF:8 CF:8
+# SF:9 CF:9. A second '.' during entry starts the denominator: "2.3.8" is 2 3/8 (UG p.5-1).
+# M-vectors: the manual's examples (HP 35s User's Guide ch.1 and 5); the rest are ours. Values are
+# the exact rationals rounded once to 34 digits (Python decimal, ROUND_HALF_EVEN).
+
+M01 | 35s p.5-1 2 3/8 is keyed 2.3.8 | 2.3.8 ENTER | X=2.375 Y=2.375
+M02 | 35s p.5-1 5/8 is .5.8 | .5.8 ENTER | X=0.625
+M03 | 35s p.5-1 or 0.5.8 | 0.5.8 ENTER | X=0.625
+M04 | 35s p.5-3 an improper fraction 54/12 is accepted | .54.12 ENTER | X=4.5
+M05 | 35s p.5-3 6 18/5 is 9 3/5 | 6.18.5 ENTER | X=9.6
+M06 | 35s p.5-3 34/12, the exact rational rounded once (rule 2) | .34.12 ENTER | X=2.833333333333333333333333333333333
+M07 | 35s p.5-3 a denominator above 4095 is accepted on entry | 16.3.16384 ENTER | X=16.00018310546875
+M08 | 35s p.5-3 12345678 12345/3 | 12345678.12345.3 ENTER | X=12349793
+M09 | 35s p.1-27 12 3/8 + 3/4 | 12.3.8 ENTER .3.4 + | X=13.125
+M10 | 35s p.5-4 2 2/3 entered (34 digits) | 2.2.3 ENTER | X=2.666666666666666666666666666666667
+M11 | 35s p.5-5 setting /c turns Fraction display on (RND rounds to it) | 16 /C 2.77 RND | X=2.769230769230769230769230769230769 L=2.77
+M12 | 35s p.5-5 1 /c recalls /c | 16 /C 1 /C | X=16
+M13 | 35s p.5-5 0 /c resets to 4095 | 16 /C 0 /C 1 /C | X=4095
+M14 | 35s p.5-5 above 4095 resets to 4095 | 16 /C 5000 /C 1 /C | X=4095
+M15 | 35s p.5-5 /c leaves LAST X | 9 SQRT 16 /C | L=9
+M16 | 35s p.5-5/5-7 a number keyed after n /c sees Y = 0 | 16 /C 5 | X=5 Y=0
+M17 | 35s p.5-9 56 3/4 / 6 at factors of 16, RND | SF:8 16 /C 56.3.4 ENTER 6 / RND | X=9.4375 L=9.458333333333333333333333333333333
+M18 | 35s p.5-9 the whole example: -1/8 | SF:8 16 /C 56.3.4 STO:A 6 / RND 6 * RCL:A - | X=-0.125
+M19 | 35s p.5-7 flags 8 and 9 set: fixed denominator (RND to 12/16) | SF:8 SF:9 16 /C 2.77 RND | X=2.75
+M20 | 35s p.5-7 flag 8 alone: factors (RND to 3/4) | SF:8 16 /C 2.77 RND | X=2.75
+M21 | 35s p.5-7 both clear: most precise (RND to 10/13) | SF:8 SF:9 CF:8 CF:9 16 /C 2.77 RND | X=2.769230769230769230769230769230769
+M22 | 35s p.5-2 choosing FIX turns Fraction display off | 16 /C FIX4 2.77 RND | X=2.77
+M23 | 35s p.5-1 FDISP toggles it off (ALL restored: RND changes nothing) | 16 /C FDISP 2.77 RND | X=2.77
+M24 | 35s p.14-10 flag 7 is Fraction display | 16 /C CF:7 SF:7 2.77 RND | X=2.769230769230769230769230769230769
+M25 | 35s p.14-10 clearing flag 7 turns it off | 16 /C CF:7 2.77 RND | X=2.77
+M26 | B-5 FDISP is neutral for lift | 1 ENTER FDISP 3 | X=3 Y=1 Z=0
+M27 | 35s p.5-8 2.9999 at /c 16 rounds to 3 (RND) | 16 /C 2.9999 RND | X=3
+O01 | ours: a third point is ignored | 1.2.3.4 ENTER | X=1.058823529411764705882352941176471
+O02 | ours: CHS negates the whole fraction | 2.3.8 CHS ENTER | X=-2.375
+O03 | ours: E is ignored once the fraction has begun | 2.3.8 E 5 ENTER | X=2.035294117647058823529411764705882
+O04 | ours: backspace removes the last key of a fraction | 2.3.8 BKSP 4 ENTER | X=2.75
+O05 | ours: no denominator yet: the number is the decimal so far | 12.3. ENTER | X=12.3
+O06 | ours: a leading 0 in the denominator is ignored (a denominator is never 0) | 2.3.0 ENTER | X=2.3
+O07 | ours: and the digits after it count | 2.3.04 ENTER | X=2.75
+O08 | ours: /c of a negative non-integer takes |IP| | 16.7 CHS /C 1 /C | X=16
+O09 | ours: RCL/C brings /c like a recalled number | 16 /C 1 ENTER 2 RCL/C | X=16 Y=2 Z=1
+O10 | ours: RND outside Fraction display is unchanged (ALL) | 2.77 RND | X=2.77
+O11 | ours: RND of an exact fraction stays exact | 16 /C 2.75 RND | X=2.75
+O12 | ours: RND fixed-denominator tie goes away from zero | SF:8 SF:9 2 /C 0.25 RND | X=0.5
+O13 | ours: RND most-precise tie goes to the smaller denominator | 2 /C 0.25 RND | X=0
+O14 | ours: a fraction typed in Fraction display mode | 16 /C 2.3.8 ENTER | X=2.375
+O15 | ours: /c keeps X (lift disabled) | 16 /C | X=16
