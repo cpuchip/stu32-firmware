@@ -14,6 +14,7 @@
  * Exit status: 0 when every expectation passes, 1 when any fails, 2 on a malformed file.
  */
 #include <ctype.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -50,7 +51,7 @@ static const struct { const char *name; ab_op op; } NAMED[] = {
     {"CI", AB_KI}, {"CA", AB_KTHETA}, {"XIY", AB_XIY}, {"RTA", AB_RTA}, {"ARG", AB_ARG},
     {"[", AB_KVEC}, {",", AB_KCOMMA},
     {"PRGM", AB_PRGM}, {"RTN", AB_RTN}, {"RS", AB_RS}, {"PSE", AB_PSE}, {"SST", AB_SST},
-    {"BST", AB_BST}, {"CLPGM", AB_CLPGM},
+    {"BST", AB_BST}, {"CLPGM", AB_CLPGM}, {"C", AB_CANCEL},
     {"AND", AB_AND}, {"XOR", AB_XOR}, {"OR", AB_OR}, {"NOT", AB_NOT}, {"NAND", AB_NAND}, {"NOR", AB_NOR},
     {"SIGMA+", AB_SIGMAPLUS}, {"SIGMA-", AB_SIGMAMINUS}, {"CLSIGMA", AB_CLSIGMA},
     {"XBAR", AB_XBAR}, {"YBAR", AB_YBAR}, {"XWBAR", AB_XWBAR}, {"SX", AB_SX}, {"SY", AB_SY},
@@ -71,7 +72,8 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
     static const struct { const char *prefix; ab_op op; } STORE[] = {
         {"STO:", AB_STO}, {"RCL:", AB_RCL}, {"STO+:", AB_STOADD}, {"STO-:", AB_STOSUB},
         {"STO*:", AB_STOMUL}, {"STO/:", AB_STODIV}, {"RCL+:", AB_RCLADD}, {"RCL-:", AB_RCLSUB},
-        {"RCL*:", AB_RCLMUL}, {"RCL/:", AB_RCLDIV}, {"XVAR:", AB_XVAR}, {"VIEW:", AB_VIEW}};
+        {"RCL*:", AB_RCLMUL}, {"RCL/:", AB_RCLDIV}, {"XVAR:", AB_XVAR}, {"VIEW:", AB_VIEW},
+        {"INPUT:", AB_INPUT}};
     for (size_t i = 0; i < sizeof STORE / sizeof STORE[0]; i++) {
         size_t n = strlen(STORE[i].prefix);
         if (strncmp(tok, STORE[i].prefix, n) == 0) {
@@ -102,6 +104,11 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
             size_t n = strlen(TGT[i].prefix);
             if (strncmp(tok, TGT[i].prefix, n) == 0) {
                 const char *v = tok + n;
+                if (strcmp(v, "(I)") == 0 || strcmp(v, "(J)") == 0) {
+                    /* XEQ (I), GTO (I): the label the index names (unit 012) */
+                    if (ab_do_arg(c, TGT[i].op, v[1] == 'I' ? AB_TGT_IND_I : AB_TGT_IND_J) != ABN_OK) (*errors)++;
+                    return 0;
+                }
                 if (v[0] < 'A' || v[0] > 'Z') return -1;
                 int line = v[1] ? atoi(v + 1) : 0;
                 if (v[1] && (strlen(v + 1) != 3 || line < 1)) return -1;
@@ -248,11 +255,20 @@ int main(int argc, char **argv)
         ab_calc c;
         ab_init(&c);
         int op_errors = 0;
+        bool holdpse = false;
         for (char *tok = strtok(keys, " \t"); tok; tok = strtok(NULL, " \t")) {
+            if (strcmp(tok, "HOLDPSE") == 0) {
+                holdpse = true;         /* see the PSE stops instead of resuming them */
+                continue;
+            }
             if (apply_token(&c, tok, &op_errors) != 0) {
                 fprintf(stderr, "%s:%d: %s: unknown key token '%s'\n", argv[1], lineno, id, tok);
                 return 2;
             }
+            /* a PSE stop resumes by itself after the device's pause (unit 012 rule 1): the runner
+               plays the device */
+            while (!holdpse && c.stop == AB_STOP_PSE)
+                if (ab_do(&c, AB_RS) != ABN_OK) op_errors++;
         }
 
         int want_error = 0;
@@ -288,6 +304,8 @@ int main(int argc, char **argv)
                         if (a / 1000 >= 26) snprintf(got, sizeof got, "NONE");
                         else snprintf(got, sizeof got, "%c%03d", 'A' + a / 1000, a % 1000);
                     }
+                } else if (strcmp(ex, "%STOP") == 0) {
+                    ab_stop_text(&c, got);
                 } else if (strcmp(ex, "%LINES") == 0) {
                     snprintf(got, sizeof got, "%d", c.prog_len);
                 } else if (strcmp(ex, "%YES") == 0) {

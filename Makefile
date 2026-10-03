@@ -66,6 +66,7 @@ test: all
 	./build/vectors work/010-vectors.txt
 	./build/fmt_vectors work/010-fmt-vectors.txt
 	./build/vectors work/011-vectors.txt
+	./build/vectors work/012-vectors.txt
 	python3 tests/prog_fuzz.py 1 1000 > build/prog_fuzz.txt
 	./build/vectors build/prog_fuzz.txt
 	python3 tests/veckey_fuzz.py 1 3000 > build/veckey_fuzz.txt

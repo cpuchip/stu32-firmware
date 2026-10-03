@@ -1331,6 +1331,9 @@ static abn_status program_key(ab_calc *c, ab_op op, int arg)
         return ABN_NONPROGRAMMABLE;
     case AB_LIT:
         return ABN_DOMAIN;
+    case AB_INPUT:
+    case AB_CANCEL:
+        return ABN_OK;                          /* STUB: unit 012 lands after the oracle */
     case AB_LBL:
         if (arg < 0 || arg >= 26) return ABN_DOMAIN;
         if (c->labelpos[arg] >= 0) return ABN_DUP_LABEL;
@@ -1803,4 +1806,10 @@ bool ab_flag(const ab_calc *c, int n)
     if (n == 8) return c->flag8;
     if (n == 9) return c->flag9;
     return n >= 0 && n <= 11 && (c->flags >> n) & 1u;
+}
+
+void ab_stop_text(const ab_calc *c, char *buf)
+{
+    (void)c;
+    strcpy(buf, "NONE");    /* STUB: unit 012 lands after the oracle */
 }

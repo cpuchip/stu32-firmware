@@ -1,0 +1,49 @@
+# Work unit 012 key vectors: keystroke programs, part 2. Format as unit 011, with INPUT:v, VIEW:v
+# (also v = (I), (J)), XEQ:(I) / GTO:(I), C (the clear/cancel key), HOLDPSE (see PSE stops rather
+# than resuming them as the device would) and %STOP= DONE | STOP | INPUT:v | VIEW:v | PSE | PSE:v |
+# CANCELLED | ERROR | BUDGET | NONE (an unnamed variable as #n). The cylinder's two equation lines
+# (p.13-16) are keyed as RPN until equations exist; its flag-10 message line is left out.
+
+M01 | 35s p.13-13 INPUT stops and prompts with R's value in X (B-5: lift off while waiting) | PRGM CLPGM LBL:A INPUT:R SQ PI * RTN PRGM XEQ:A | %STOP=INPUT:R X=0 %PC=A002
+M02 | 35s p.13-13 R/S stores the typed value in R and resumes | PRGM CLPGM LBL:A INPUT:R SQ PI * RTN PRGM XEQ:A 5 RS | X=78.53981633974483096156608458198758 @R=5 %STOP=DONE Y=0
+M03 | 35s p.13-13 an unchanged value stays: R/S stores X as it is | PRGM CLPGM LBL:A INPUT:R SQ PI * RTN PRGM 2 STO:R XEQ:A RS | X=12.56637061435917295385057353311801 @R=2
+M04 | 35s p.13-14 calculating at the prompt, then R/S stores the result | PRGM CLPGM LBL:A INPUT:R SQ PI * RTN PRGM XEQ:A 2 ENTER 3 + RS | X=78.53981633974483096156608458198758 @R=5
+M05 | 35s p.13-15 C during entry clears the number; a second C cancels the prompt with R's value in X | PRGM CLPGM LBL:A INPUT:R SQ PI * RTN PRGM 4 STO:R CLX XEQ:A 7 C C | %STOP=CANCELLED X=4 @R=4 %PC=A002
+M06 | 35s p.13-15 after C, R/S prompts again | PRGM CLPGM LBL:A INPUT:R SQ PI * RTN PRGM 4 STO:R CLX XEQ:A 7 C C RS | %STOP=INPUT:R X=4
+M07 | 35s p.13-15 ... and then runs on with the typed value | PRGM CLPGM LBL:A INPUT:R SQ PI * RTN PRGM 4 STO:R CLX XEQ:A 7 C C RS 5 RS | X=78.53981633974483096156608458198758 @R=5 %STOP=DONE
+M08 | 35s p.13-16/13-17 the cylinder: XEQ C prompts for R | PRGM CLPGM LBL:C INPUT:R INPUT:H RCL:R SQ PI * RCL:H * STO:V 2 PI * RCL:R * RCL:R RCL:H + * STO:S VIEW:V VIEW:S RTN PRGM XEQ:C | %STOP=INPUT:R
+M09 | 35s p.13-18 R = 2 1/2 (typed as a fraction), then the prompt for H | PRGM CLPGM LBL:C INPUT:R INPUT:H RCL:R SQ PI * RCL:H * STO:V 2 PI * RCL:R * RCL:R RCL:H + * STO:S VIEW:V VIEW:S RTN PRGM XEQ:C 2.1.2 RS | %STOP=INPUT:H @R=2.5
+M10 | 35s p.13-18 H = 8: VIEW V stops showing V (X untouched by VIEW) | PRGM CLPGM LBL:C INPUT:R INPUT:H RCL:R SQ PI * RCL:H * STO:V 2 PI * RCL:R * RCL:R RCL:H + * STO:S VIEW:V VIEW:S RTN PRGM XEQ:C 2.1.2 RS 8 RS | %STOP=VIEW:V @V=157.0796326794896619231321691639751 @S=164.9336143134641450192887776221740
+M11 | 35s p.13-18 R/S: VIEW S | PRGM CLPGM LBL:C INPUT:R INPUT:H RCL:R SQ PI * RCL:H * STO:V 2 PI * RCL:R * RCL:R RCL:H + * STO:S VIEW:V VIEW:S RTN PRGM XEQ:C 2.1.2 RS 8 RS RS | %STOP=VIEW:S
+M12 | 35s p.13-18 R/S: the program ends (V = 157.0796, S = 164.9336) | PRGM CLPGM LBL:C INPUT:R INPUT:H RCL:R SQ PI * RCL:H * STO:V 2 PI * RCL:R * RCL:R RCL:H + * STO:S VIEW:V VIEW:S RTN PRGM XEQ:C 2.1.2 RS 8 RS RS RS | %STOP=DONE @V=157.0796326794896619231321691639751 @S=164.9336143134641450192887776221740 X=164.9336143134641450192887776221740
+M13 | 35s p.13-18/13-19 VIEW then PSE: the variable is shown through the pause | PRGM CLPGM LBL:A VIEW:B PSE 7 RTN PRGM 4 STO:B HOLDPSE XEQ:A | %STOP=PSE:B %PC=A004
+M14 | 35s p.13-19 ... and execution continues (the device resumes after the pause) | PRGM CLPGM LBL:A VIEW:B PSE 7 RTN PRGM 4 STO:B XEQ:A | X=7 Y=4 %STOP=DONE
+M15 | 35s p.13-19 PSE alone shows X | PRGM CLPGM LBL:A 5 PSE 7 RTN PRGM HOLDPSE XEQ:A | %STOP=PSE X=5 %PC=A004
+M16 | 35s p.13-18 single steps: VIEW and PSE are one step | PRGM CLPGM LBL:A VIEW:B PSE 7 RTN PRGM GTO:A SST SST | %PC=A004
+M17 | 35s p.13-15 VIEW from a program: ENTER copies the value to X | PRGM CLPGM LBL:A VIEW:B 7 RTN PRGM 4 STO:B CLX XEQ:A ENTER | X=4 %STOP=VIEW:B
+M18 | 35s p.13-15 R/S after ENTER resumes | PRGM CLPGM LBL:A VIEW:B 7 RTN PRGM 4 STO:B CLX XEQ:A ENTER RS | X=7 Y=4 %STOP=DONE
+M19 | 35s p.13-11, G-9 SST through INPUT: the prompt, then a typed value and SST store it | PRGM CLPGM LBL:A INPUT:R SQ RTN PRGM GTO:A SST SST 3 SST | @R=3 X=3 %PC=A003
+M20 | 35s p.13-11 then x^2 | PRGM CLPGM LBL:A INPUT:R SQ RTN PRGM GTO:A SST SST 3 SST SST | X=9
+M21 | 35s p.13-26/13-27 5x^4 + 2x^3 with INPUT X: 7 gives 12,691 (the number line lifts after INPUT resumes, B-5) | PRGM CLPGM LBL:A INPUT:X 5 RCL:X 4 POW * RCL:X 3 POW 2 * + RTN PRGM XEQ:A 7 RS | X=12691
+M22 | 35s p.13-28 Horner's quartic with INPUTs: 5 2 0 0 0, x = 7 | PRGM CLPGM LBL:A INPUT:A INPUT:B INPUT:C INPUT:D INPUT:E INPUT:X RCL:X RCL*:A RCL+:B RCL*:X RCL+:C RCL*:X RCL+:D RCL*:X RCL+:E RTN PRGM XEQ:A 5 RS 2 RS 0 RS 0 RS 0 RS 7 RS | X=12691 %STOP=DONE
+M23 | 35s p.14-2 subroutine D/E with INPUT and VIEW: 5 gives X = -5 | PRGM CLPGM LBL:D INPUT:X XEQ:E001 STO:X VIEW:X RTN LBL:E CHS RTN PRGM XEQ:D 5 RS | %STOP=VIEW:X @X=-5
+M24 | 35s p.14-3/14-4 nested S and Q with INPUTs: 1 2 3 4 | PRGM CLPGM LBL:S INPUT:A INPUT:B INPUT:C INPUT:D RCL:D RCL:C RCL:B RCL:A SQ XEQ:Q001 XEQ:Q001 XEQ:Q001 SQRT RTN LBL:Q XY SQ + RTN PRGM XEQ:S 1 RS 2 RS 3 RS 4 RS | X=5.477225575051661134569697828008021
+M25 | 35s p.14-13/14-14 the flags program: 1, 1 shows X = 1 | PRGM CLPGM LBL:S CF:0 CF:1 INPUT:X FS?:0 LN STO:X INPUT:Y FS?:1 LN STO:Y VIEW:X VIEW:Y RTN PRGM XEQ:S 1 RS 1 RS | %STOP=VIEW:X @X=1 @Y=1
+M26 | 35s p.14-14 R/S: Y = 1 | PRGM CLPGM LBL:S CF:0 CF:1 INPUT:X FS?:0 LN STO:X INPUT:Y FS?:1 LN STO:Y VIEW:X VIEW:Y RTN PRGM XEQ:S 1 RS 1 RS RS | %STOP=VIEW:Y
+M27 | 35s p.14-17 the GTO loop with INPUTs, A=10 B=3: VIEW A shows 1 | PRGM CLPGM LBL:S INPUT:A INPUT:B RCL:A RCL-:B STO:A RCL:B X<Y? GTO:S004 VIEW:A RTN PRGM XEQ:S 10 RS 3 RS | %STOP=VIEW:A @A=1
+M28 | 35s p.14-22 INPUT (I) prompts for the variable I names: -3 is C | PRGM CLPGM LBL:A INPUT:(I) RTN PRGM 3 CHS STO:I XEQ:A | %STOP=INPUT:C
+M29 | 35s p.14-22 VIEW (I) shows an unnamed variable | PRGM CLPGM LBL:A VIEW:(I) RTN PRGM 5 STO:I 9 STO:(I) XEQ:A | %STOP=VIEW:#5
+O01 | ours (p.14-22 numbering): XEQ (I) with I = -2 calls label B | PRGM CLPGM LBL:A 2 CHS STO:I XEQ:(I) 1 + RTN LBL:B 7 RTN PRGM XEQ:A | X=8
+O02 | ours: GTO (J) with J = -3 goes to label C | PRGM CLPGM LBL:A 3 CHS STO:J GTO:(J) 1 RTN LBL:C 9 RTN PRGM XEQ:A | X=9
+O03 | ours: an index naming a variable, not a label, is NONEXISTENT | PRGM CLPGM LBL:A 5 STO:I XEQ:(I) RTN PRGM XEQ:A | ERR %STOP=ERROR %PC=A004
+O04 | ours: an index naming a label not keyed is NONEXISTENT | PRGM CLPGM LBL:A 2 CHS STO:I XEQ:(I) RTN PRGM XEQ:A | ERR %PC=A004
+O05 | 35s p.14-22 an index past 800 is INVALID (I) | PRGM CLPGM LBL:A 801 STO:I XEQ:(I) RTN PRGM XEQ:A | ERR %PC=A004
+O06 | ours: XEQ (I) from the keyboard | PRGM CLPGM LBL:B 7 RTN PRGM 2 CHS STO:I XEQ:(I) | X=7
+O07 | ours (rule 1): a STOP is reported | PRGM CLPGM LBL:A 1 RS 2 RTN PRGM XEQ:A | %STOP=STOP
+O08 | ours (rule 1): an error is reported with its line | PRGM CLPGM LBL:A 0 INV RTN PRGM XEQ:A | ERR %STOP=ERROR %PC=A003
+O09 | ours (rule 1): the budget is reported | PRGM CLPGM LBL:A GTO:A001 PRGM XEQ:A | ERR %STOP=BUDGET
+O10 | ours: INPUT from the keyboard does nothing (it is used only in programs, p.G-9) | 5 INPUT:R | X=5 @R=0
+O11 | 35s p.B-5 the prompt's value is overwritten by a typed number, not lifted | PRGM CLPGM LBL:A INPUT:R SQ PI * RTN PRGM 3 STO:R 9 XEQ:A 5 | X=5 Y=9
+O12 | ours: storing a complex reply in an unnamed variable is an error; the prompt stays | PRGM CLPGM LBL:A INPUT:(I) RTN PRGM 5 STO:I XEQ:A 1 CI 1 RS | ERR %STOP=INPUT:#5
+O13 | ours: a keyboard XEQ after a stop starts fresh | PRGM CLPGM LBL:A INPUT:R SQ PI * RTN PRGM XEQ:A PRGM PRGM 3 XEQ:A | %STOP=INPUT:R
+O14 | ours: VIEW from the keyboard does not stop anything (unit 005) | 4 STO:B VIEW:B 7 | X=7 Y=4 %STOP=NONE

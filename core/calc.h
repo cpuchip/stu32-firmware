@@ -81,8 +81,25 @@ typedef enum {
     AB_TEST,                /* arg: AB_TEST_* relation, + 6 for the tests against 0 */
     AB_FS,                  /* FS? arg: a flag 0..11 */
     AB_ISG, AB_DSE,         /* arg: a variable code */
-    AB_LIT                  /* internal: a program line holding a typed number (not a key) */
+    AB_LIT,                 /* internal: a program line holding a typed number (not a key) */
+    /* unit 012: programs, part 2 */
+    AB_INPUT,               /* arg: a variable code */
+    AB_CANCEL               /* the C key: clears a number being typed, else cancels a prompt */
 } ab_op;
+
+/* Why the last run stopped (unit 012 rule 1): the device draws it; the core never waits. */
+typedef enum {
+    AB_STOP_NONE = 0,       /* no run yet, or a keyboard GTO/XEQ setup */
+    AB_STOP_DONE,           /* finished: a top-level RTN or past the last line */
+    AB_STOP_STOP,           /* at a STOP line (R/S resumes) */
+    AB_STOP_INPUT,          /* at INPUT: prompting for stop_var (R/S stores X there and resumes) */
+    AB_STOP_VIEW,           /* at VIEW: showing stop_var (R/S resumes) */
+    AB_STOP_PSE,            /* at PSE: showing X, or stop_var after a VIEW; the device resumes
+                               after its pause (about 1 s, UG p.13-19) */
+    AB_STOP_CANCELLED,      /* a prompt cancelled with C: R/S prompts again (UG p.13-15) */
+    AB_STOP_ERROR,          /* an error at stop_line (the pointer is there) */
+    AB_STOP_BUDGET          /* AB_RUN_BUDGET lines without stopping */
+} ab_stop;
 
 enum { AB_TEST_NE = 0, AB_TEST_LE, AB_TEST_LT, AB_TEST_GT, AB_TEST_GE, AB_TEST_EQ };   /* UG p.14-7 order */
 
@@ -97,6 +114,8 @@ enum { AB_TEST_NE = 0, AB_TEST_LE, AB_TEST_LT, AB_TEST_GT, AB_TEST_GE, AB_TEST_E
 #define AB_RTN_DEPTH 20             /* nested subroutines below the top level (UG p.14-2) */
 #define AB_RUN_BUDGET 10000000L     /* lines one run may execute (ours, unit 011 rule 2) */
 #define AB_PC_TOP (-1)              /* the program pointer at PRGM TOP */
+#define AB_TGT_IND_I (-2)           /* XEQ (I), GTO (I): the label numbered by I (unit 012) */
+#define AB_TGT_IND_J (-3)
 
 typedef enum { AB_ANGLE_DEG = 0, AB_ANGLE_RAD, AB_ANGLE_GRAD } ab_angle;
 
@@ -159,6 +178,10 @@ typedef struct {
     uint16_t flags;         /* flags 0..6, 10, 11 (7, 8, 9 are fdisp, flag8, flag9) */
     bool yes;               /* the last test's answer, shown as YES / NO from the keyboard */
     long budget;            /* lines a run may execute: AB_RUN_BUDGET unless a device changes it */
+    ab_stop stop;           /* why the last run stopped (unit 012) */
+    int stop_var;           /* INPUT / VIEW / PSE: the variable (A..Z 0..25, or -27..-32, or
+                               1000 + an unnamed address); -1 for none */
+    int stop_line;          /* the line an error stopped at */
 } ab_calc;
 
 void ab_init(ab_calc *c);
@@ -180,6 +203,9 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg);
 void ab_prog_addr(const ab_calc *c, int i, char *buf);
 int ab_prog_find(const ab_calc *c, const char *addr);
 bool ab_flag(const ab_calc *c, int n);
+/* The stop state as text, for tests: DONE, STOP, INPUT:R, VIEW:V, PSE, PSE:V, CANCELLED, ERROR,
+   BUDGET, NONE (an unnamed variable as #n). */
+void ab_stop_text(const ab_calc *c, char *buf);
 
 /* The index of the constant named `name` (see core/const.c), or -1. */
 int ab_const_index(const char *name);
