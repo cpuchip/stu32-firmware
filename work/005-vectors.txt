@@ -46,3 +46,4 @@ S16 | ours: STO arithmetic on an undefined address is an error | 300 STO:I 2 STO
 S17 | ours: shrinking stops at the next nonzero | 10 STO:I 1 STO:(I) 20 STO:I 2 STO:(I) 0 STO:(I) 15 STO:I RCL:(I) | ERR X=15
 S18 | ours: and keeps what is below it | 10 STO:I 1 STO:(I) 20 STO:I 2 STO:(I) 0 STO:(I) 10 STO:I RCL:(I) | X=1
 S19 | ours: CLVARS clears I too, so (I) falls back to address 0 | 0 STO:I 4 STO:(I) 3 STO:I CLVARS RCL:(I) | X=4
+S20 | B-5 VIEW is not neutral: it enables lift (unit 005 ruling 5, provisional) | 5 STO:A 1 ENTER VIEW:A 3 | X=3 Y=1 Z=1 T=5
