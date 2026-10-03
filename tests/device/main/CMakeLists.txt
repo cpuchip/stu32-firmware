@@ -5,7 +5,13 @@ idf_build_get_property(target IDF_TARGET)
 set(BUNDLE_C "${CMAKE_CURRENT_LIST_DIR}/generated/bundle.c")
 set(BID_LIB "${REPO}/build/intel-${target}/libbid.a")
 set(BID_INC "${REPO}/third_party/intel-dfp/${target}/IntelRDFPMathLib20U5/LIBRARY/src")
-file(GLOB CORE_SRCS CONFIGURE_DEPENDS "${REPO}/core/*.c")   # a new core file joins without a clean
+# A new core file joins without a clean (CONFIGURE_DEPENDS), except in the script-mode pass ESP-IDF
+# makes to read requirements, where that keyword is refused.
+if(CMAKE_SCRIPT_MODE_FILE)
+    file(GLOB CORE_SRCS "${REPO}/core/*.c")
+else()
+    file(GLOB CORE_SRCS CONFIGURE_DEPENDS "${REPO}/core/*.c")
+endif()
 
 idf_component_register(
     SRCS device_main.c "${BUNDLE_C}" ${CORE_SRCS}
