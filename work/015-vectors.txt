@@ -1,0 +1,82 @@
+# Work unit 015 key vectors: equations, part 2 (first half): equation lines in programs (flags 10 and
+# 11), SOLVE and integrate of listed equations and of programs that prompt, the built-in linear
+# solvers, (I)/(J) and REGX..REGT in equations. Format as unit 014, with: SPACE (a blank in an
+# equation), REG:X (R-down's menu in an equation), RCL:(I) (typing (I)), SOLVE with no letter (a
+# built-in shown); %MSG=text (the message shown, blanks as _). In program entry EQ:text and EQN ...
+# ENTER make equation lines. Guide examples run in FIX 4 where the guide's display is FIX 4.
+
+M01 | 35s p.13-16/13-17 program C keyed: equation lines (EQN ... ENTER) and a message with blanks; 13 lines | PRGM CLPGM LBL:C INPUT:R INPUT:H EQN PI * RCL:R POW 2 * RCL:H ENTER STO:V EQN 2 * PI * RCL:R * () RCL:R + RCL:H > ENTER STO:S SF:10 EQN RCL:V RCL:O RCL:L SPACE + SPACE RCL:A RCL:R RCL:E RCL:A ENTER CF:10 VIEW:V VIEW:S RTN PRGM | %LINES=13 %STOP=NONE
+M02 | 35s p.13-18 R = 2 1/2, H = 8: flag 10 shows VOL + AREA as a message and stops | PRGM CLPGM LBL:C INPUT:R INPUT:H EQN PI * RCL:R POW 2 * RCL:H ENTER STO:V EQN 2 * PI * RCL:R * () RCL:R + RCL:H > ENTER STO:S SF:10 EQN RCL:V RCL:O RCL:L SPACE + SPACE RCL:A RCL:R RCL:E RCL:A ENTER CF:10 VIEW:V VIEW:S RTN PRGM XEQ:C 2.1.2 RS 8 RS | %STOP=MSG %MSG=VOL_+_AREA X=164.9336143134641450192887776221740
+M03 | 35s p.13-18 R/S: V = 157.0796 | PRGM CLPGM LBL:C INPUT:R INPUT:H EQN PI * RCL:R POW 2 * RCL:H ENTER STO:V EQN 2 * PI * RCL:R * () RCL:R + RCL:H > ENTER STO:S SF:10 EQN RCL:V RCL:O RCL:L SPACE + SPACE RCL:A RCL:R RCL:E RCL:A ENTER CF:10 VIEW:V VIEW:S RTN PRGM XEQ:C 2.1.2 RS 8 RS RS | %STOP=VIEW:V @V=157.0796326794896619231321691639751 %F10=0
+M04 | 35s p.13-18 R/S: S = 164.9336 | PRGM CLPGM LBL:C INPUT:R INPUT:H EQN PI * RCL:R POW 2 * RCL:H ENTER STO:V EQN 2 * PI * RCL:R * () RCL:R + RCL:H > ENTER STO:S SF:10 EQN RCL:V RCL:O RCL:L SPACE + SPACE RCL:A RCL:R RCL:E RCL:A ENTER CF:10 VIEW:V VIEW:S RTN PRGM XEQ:C 2.1.2 RS 8 RS RS RS | %STOP=VIEW:S @S=164.9336143134641450192887776221740
+M05 | 35s p.15-2/15-3 program G: SOLVE P skips INPUT P and prompts V first | PRGM CLPGM LBL:G INPUT:P INPUT:V INPUT:N INPUT:R INPUT:T EQ:P×V=N×R×T RTN PRGM FN=:G SOLVE:P | %STOP=INPUT:V
+M06 | 35s p.15-3 V 2, N .005, R .0821, T 24 + 273.1: P = 0.0610 | PRGM CLPGM LBL:G INPUT:P INPUT:V INPUT:N INPUT:R INPUT:T EQ:P×V=N×R×T RTN PRGM FN=:G SOLVE:P 2 RS .005 RS .0821 RS 24 ENTER 273.1 + RS | X=0.060979775 @P=0.060979775 @T=297.1 %STOP=DONE
+M07 | 35s p.15-4 program H: flag 11 prompts for V (its value 2) first, not for P | PRGM CLPGM LBL:G INPUT:P INPUT:V INPUT:N INPUT:R INPUT:T EQ:P×V=N×R×T RTN PRGM FN=:G SOLVE:P 2 RS .005 RS .0821 RS 24 ENTER 273.1 + RS STO:L PRGM LBL:H SF:11 EQ:P×V=N×R×T RTN PRGM FN=:H SOLVE:P | %STOP=INPUT:V X=2
+M08 | 35s p.15-4/15-5 R/S keeps V, N, R; T = 297.1 - 10: P = 0.0589; flag 11 cleared | PRGM CLPGM LBL:G INPUT:P INPUT:V INPUT:N INPUT:R INPUT:T EQ:P×V=N×R×T RTN PRGM FN=:G SOLVE:P 2 RS .005 RS .0821 RS 24 ENTER 273.1 + RS STO:L PRGM LBL:H SF:11 EQ:P×V=N×R×T RTN PRGM FN=:H SOLVE:P RS RS RS ENTER 10 - RS | X=0.058927275 @T=287.1 %F11=0 %STOP=DONE
+M09 | 35s p.15-5 RCL L - gives -0.0021 | PRGM CLPGM LBL:G INPUT:P INPUT:V INPUT:N INPUT:R INPUT:T EQ:P×V=N×R×T RTN PRGM FN=:G SOLVE:P 2 RS .005 RS .0821 RS 24 ENTER 273.1 + RS STO:L PRGM LBL:H SF:11 EQ:P×V=N×R×T RTN PRGM FN=:H SOLVE:P RS RS RS ENTER 10 - RS RCL:L - | X=-0.002052500
+M10 | 35s p.15-9 program S: an equation line integrated, Si(2) = 1.6054 in FIX 4 | PRGM CLPGM LBL:S EQ:SIN(X)÷X RTN PRGM RAD FIX4 FN=:S 0 ENTER 2 INTEG:X | X#1.6054129768026948485767201482,1E-4 %COVER=1.6054129768026948485767201482
+M11 | 35s p.7-3 SOLVE D prompts V, T, G (the unknown skipped) | EQ:D=V×T+0.5×G×T^2 SOLVE:D | %STOP=INPUT:V
+M12 | 35s p.7-3 V 0, T 5, G 9.8: D = 122.5 | EQ:D=V×T+0.5×G×T^2 SOLVE:D 0 RS 5 RS 9.8 RS | X=122.5 @D=122.5
+M13 | 35s p.7-4 SOLVE T with D 500 (V 0, G 9.8 kept): T = 10.1015, guesses T's 5 and X's 122.5 | EQ:D=V×T+0.5×G×T^2 SOLVE:D 0 RS 5 RS 9.8 RS EQN SOLVE:T 500 RS RS RS | X#10.1015254455221074914406337443549863,1E-30 @D=500
+M14 | 35s p.7-5 SOLVE P: V 2, N .005, R .0821, T 24 + 273.1 (arithmetic at a prompt): P = 0.0610 | EQ:P×V=N×R×T SOLVE:P 2 RS .005 RS .0821 RS 24 ENTER 273.1 + RS | X=0.060979775 @P=0.060979775
+M15 | 35s p.7-5/7-6 SOLVE N: P .05, V 5, R kept, T 18 + 273.1: N = 0.0105; x 28 / V = 0.0586 | EQ:P×V=N×R×T SOLVE:P 2 RS .005 RS .0821 RS 24 ENTER 273.1 + RS EQN SOLVE:N .05 RS 5 RS RS 18 ENTER 273.1 + RS 28 * RCL:V / | X#0.0585790970534295760003113060586268,1E-30 @T=291.1
+M16 | 35s p.7-10/7-11 guesses H 10 and X 20 (the stack when SOLVE is pressed): H = 15, Z = 0 | EQ:V=(40-H)×(20-H)×4×H C 10 STO:H ENTER 20 EQN SOLVE:H 7500 RS | X=15 Z=0 @H=15 Y#15,1E-4
+M17 | 35s p.7-12 guesses 30 and 40: 42.0256 | EQ:V=(40-H)×(20-H)×4×H C 30 STO:H ENTER 40 EQN SOLVE:H 7500 RS | X#42.02562418976663598532430683939775,1E-28
+M18 | 35s p.7-12 guesses 0 and 10: 2.9744 (printed 2.9774, a misprint) | EQ:V=(40-H)×(20-H)×4×H C 0 STO:H ENTER 10 EQN SOLVE:H 7500 RS | X#2.974375810233364014675693160602246,1E-28
+M19 | 35s p.7-3, 7-6 the list after a memory clear: EQN LIST TOP, then 2*2 lin. solve (v) | EQN SST | %EQ=2*2_lin._solve %EQN=0
+M20 | 35s p.7-3 above EQN LIST TOP: 3*3 lin. solve (^ from the top) | EQN BST | %EQ=3*3_lin._solve
+M21 | 35s p.7-6 2*2 SOLVE prompts A first, no letter keyed | EQN SST SOLVE | %STOP=INPUT:A
+M22 | 35s p.7-6/7-7 x + 2y = 5, 3x + 4y = 11: x = 1, y = 2, in X and Y | EQN SST SOLVE 1 RS 2 RS 5 RS 3 RS 4 RS 11 RS | @X=1 @Y=2 X=1 Y=2 @F=11
+M23 | 35s p.7-6 XEQ does nothing on a built-in | 9 EQN SST XEQ | X=9 %EQ=2*2_lin._solve
+M24 | 35s p.7-6 integrate does nothing on a built-in | 9 EQN SST INTEG:X | X=9
+M25 | 35s p.6-8 a built-in cannot be cleared | EQN SST BKSP | %EQ=2*2_lin._solve
+M26 | 35s p.6-8 an equation typed with 2*2 shown goes after 3*3 | EQN SST 1 + 1 ENTER BST | %EQ=3*3_lin._solve %EQN=1
+M27 | 35s p.8-3 integrate T prompts for X only (the limits 0, pi from the stack when pressed) | RAD FIX4 EQ:COS(X×SIN(T)) C 0 ENTER PI EQN INTEG:T | %STOP=INPUT:X
+M28 | 35s p.8-3 X = 2: 0.7034 in FIX 4 | RAD FIX4 EQ:COS(X×SIN(T)) C 0 ENTER PI EQN INTEG:T 2 RS | X#0.70337362695660089178480178628,1E-4 %COVER=0.70337362695660089178480178628 Z^3.141592653589793238462643383279503 T=0
+M29 | 35s p.8-4/8-5 Si(2) = 1.6054 in FIX 4 (the variable of integration not prompted) | RAD FIX4 EQ:SIN(X)÷X C 0 STO:X ENTER 2 EQN INTEG:X | X#1.6054129768026948485767201482,1E-4 %COVER=1.6054129768026948485767201482 %STOP=NONE
+M30 | 35s p.8-7 SCI 2: 1.61, uncertainty about 1.61E-2 | SCI2 RAD EQ:SIN(X)÷X C 0 ENTER 2 EQN INTEG:X | %COVER=1.6054129768026948485767201482 Y#0.0161,0.0003
+M31 | 35s p.E-7 xe^-x on 0..1000 in SCI 3: 1.000 | SCI3 EQ:X×EXP(-X) C 0 ENTER 1 E 3 EQN INTEG:X | X#1,1E-3 %COVER=1.0
+M32 | 35s p.D-3 -2x^3+4x^2-6x+8: 1.6506 | EQ:-2×X^3+4×X^2-6×X+8 C 0 STO:X 10 EQN SOLVE:X | X^1.65062919143938821888080096742619744 Z#0,1E-30
+M33 | 35s p.D-4 x^2+x-6, guesses 0 and 10: 2 | EQ:X^2+X-6 C 0 STO:X 10 EQN SOLVE:X | X=2 Z=0
+M34 | 35s p.D-5 guesses 0 and -10: -3 | EQ:X^2+X-6 C 0 STO:X 10 CHS EQN SOLVE:X | X=-3 Z=0
+M35 | 35s p.D-6 IP(X)=1.5: neighbours across the jump | EQ:IP(X)=1.5 C 0 STO:X 5 EQN SOLVE:X | X=1.999999999999999999999999999999999 Y=2 Z=-0.5
+M36 | 35s p.D-7 a pole between 2.3 and 2.7: NO ROOT FND | EQ:X÷(X^2-6)-1 C 2.3 STO:X 2.7 EQN SOLVE:X | ERR %ERR=NO_ROOT
+M37 | 35s p.D-9 x^2-6x+13 has no real root | EQ:X^2-6×X+13 C 0 STO:X 10 EQN SOLVE:X | ERR %ERR=NO_ROOT
+M38 | 35s p.D-10 10-INV(X), guesses .005 and 5: 0.1 | EQ:10-INV(X) C .005 STO:X 5 EQN SOLVE:X | X=0.1 Z=0
+M39 | 35s p.D-11 SQRT(X/(X+0.3))-0.5, guesses 0 and 10: 0.1 | EQ:SQRT(X÷(X+0.3))-0.5 C 0 STO:X 10 EQN SOLVE:X | X^0.1 Z#0,1E-30
+M40 | 35s p.D-11 guesses 0 and -10: NO ROOT FND | EQ:SQRT(X÷(X+0.3))-0.5 C 0 STO:X 10 CHS EQN SOLVE:X | ERR %ERR=NO_ROOT
+M41 | 35s p.17-3/17-4 SOLVE P (FIX 2): I 10.5/12, N 36, F 0, B 7250 - 1500: P = -186.89 | FIX2 EQ:P×100×(1-(1+I÷100)^-N)÷I+F×(1+I÷100)^-N+B SOLVE:P 10.5 ENTER 12 / RS 36 RS 0 RS 7250 ENTER 1500 - RS | X#-186.8890501519498322854753721557382,1E-26
+M42 | 35s p.17-5 SOLVE I with P = RND(P) + 10: I = 0.56 (x 12 = 6.75), the guess I's 0.875 and X | FIX2 EQ:P×100×(1-(1+I÷100)^-N)÷I+F×(1+I÷100)^-N+B SOLVE:P 10.5 ENTER 12 / RS 36 RS 0 RS 7250 ENTER 1500 - RS EQN SOLVE:I RND 10 + RS RS RS RS | X#0.5626017270074783870288539226213709,1E-25
+M43 | 35s p.17-6 SOLVE F with N 24: F = -2,047.05 | FIX2 EQ:P×100×(1-(1+I÷100)^-N)÷I+F×(1+I÷100)^-N+B SOLVE:P 10.5 ENTER 12 / RS 36 RS 0 RS 7250 ENTER 1500 - RS EQN SOLVE:I RND 10 + RS RS RS RS EQN SOLVE:F RS RS 24 RS RS | X#-2047.051253864816282289302504010016,1E-20
+M44 | 35s p.B-7 REGXxREGYxREGZxREGT: the product in X, the old X, Y, Z in Y, Z, T | PRGM CLPGM LBL:R EQN REG:X * REG:Y * REG:Z * REG:T ENTER RTN PRGM 1 ENTER 2 ENTER 3 ENTER 4 XEQ:R | X=24 Y=4 Z=3 T=2
+M45 | 35s p.13-5 an assignment line is evaluated as XEQ: no store | PRGM CLPGM LBL:A EQ:A=B+1 RTN PRGM 2 STO:B XEQ:A | X=-3 @A=0
+M46 | 35s p.14-11 flag 10 clear: the value goes on the stack | PRGM CLPGM LBL:E EQ:A×B RTN PRGM 6 STO:A 7 STO:B 5 XEQ:E | X=42 Y=5
+M47 | 35s p.14-11, 13-18 flag 10 set and a PSE next: the message shows through the pause | PRGM CLPGM LBL:E SF:10 EQ:A×B PSE 1 RTN PRGM HOLDPSE XEQ:E | %STOP=PSE:MSG %MSG=A×B
+M48 | 35s p.14-11 flag 11 prompts for each variable once, in order | PRGM CLPGM LBL:E SF:11 EQ:A+B×A RTN PRGM XEQ:E | %STOP=INPUT:A
+M49 | 35s p.14-11 A 2, B 5: 12, flag 11 cleared | PRGM CLPGM LBL:E SF:11 EQ:A+B×A RTN PRGM XEQ:E 2 RS 5 RS | X=12 %F11=0 %STOP=DONE
+M50 | 35s p.14-11 flag 11 clear: no prompts | PRGM CLPGM LBL:E EQ:A+B×A RTN PRGM 2 STO:A 5 STO:B XEQ:E | X=12 %STOP=DONE
+M51 | 35s p.14-23, 6-13 (I) in an equation: the variable I names, not prompted | 3 STO:B 2 CHS STO:I EQN RCL:(I) * 2 ENTER XEQ | X=6 %STOP=DONE
+M52 | 35s p.6-19, 13-16 a message evaluated (flag 10 clear) is a syntax error | PRGM CLPGM LBL:E EQ:VOL+AREA? RTN PRGM XEQ:E | ERR %ERR=SYNTAX %STOP=ERROR
+O01 | ours: SOLVE for a variable the equation does not have: INVALID VAR (p.F-2) | EQ:A+1 SOLVE:B | ERR %ERR=INVALID_VAR
+O02 | ours: integrate a variable the equation does not have: the constant times the width | FIX4 EQ:5 C 0 ENTER 2 EQN INTEG:Q | X#10,1E-20
+O03 | ours: 3*3: 2x+y-z=8, -3x-y+2z=-11, -2x+y+2z=-3 gives 2, 3, -1 | EQN SST SST SOLVE 2 RS 1 RS 1 CHS RS 8 RS 3 CHS RS 1 CHS RS 2 RS 11 CHS RS 2 CHS RS 1 RS 2 RS 3 CHS RS | @X=2 @Y=3 @Z=-1 X=2 Y=3 Z=-1
+O04 | ours: rounded once: x + y = 1, x - 2y = 0 | EQN SST SOLVE 1 RS 1 RS 1 RS 1 RS 2 CHS RS 0 RS | X=0.6666666666666666666666666666666667 Y=0.3333333333333333333333333333333333
+O05 | ours: x + y = 1, 2x + 2y = 3: NO SOLUTION, nothing changed | 7 STO:X EQN SST SOLVE 1 RS 1 RS 1 RS 2 RS 2 RS 3 RS | ERR %ERR=NO_SOLUTION @X=7
+O06 | ours: x + y = 1, 2x + 2y = 2: MULT SOLUTION | EQN SST SOLVE 1 RS 1 RS 1 RS 2 RS 2 RS 2 RS | ERR %ERR=MULT_SOLUTION
+O07 | ours: 0x + 0y = 1, 0x + 0y = 2: NO SOLUTION (ranks 0 and 1; Cramer's numerators are both 0) | EQN SST SOLVE 0 RS 0 RS 1 RS 0 RS 0 RS 2 RS | ERR %ERR=NO_SOLUTION
+O08 | ours: a singular 3*3 with consistent constants: MULT SOLUTION | EQN SST SST SOLVE 1 RS 2 RS 3 RS 6 RS 2 RS 4 RS 6 RS 12 RS 1 RS 1 RS 1 RS 3 RS | ERR %ERR=MULT_SOLUTION
+O09 | ours: the solution is exact before its one rounding (1E20 and 1 in one row) | EQN SST SOLVE 1 E 20 RS 1 RS 1 E 20 RS 1 RS 1 RS 2 RS | X=0.9999999999999999999900000000000000 Y=1.000000000000000000010000000000000
+O10 | unit 014 fix: RAND takes no prompts (it was read as R, A, N, D) | EQ:RAND×0+1 XEQ | X=1 %STOP=DONE
+O11 | ours: C at a SOLVE prompt (a listed equation) cancels it, the stack as it was | 4 STO:B EQ:A-B C 9 EQN SOLVE:A C | %STOP=CANCELLED
+O12 | ours: C at a prompt of the first evaluation abandons the SOLVE, the guess kept | PRGM CLPGM LBL:F INPUT:Y RCL:X RCL:Y - RTN PRGM 1 STO:X 9 FN=:F SOLVE:X C | %STOP=CANCELLED @X=1 X=9
+O13 | 35s p.15-6 a SOLVE line whose function prompts: R/S answers and the program goes on | PRGM CLPGM LBL:F INPUT:Y RCL:X SQ RCL:Y - RTN LBL:M 1 STO:X 5 FN=:F SOLVE:X VIEW:X RTN PRGM XEQ:M 4 RS | %STOP=VIEW:X X=2 @Y=4
+O14 | 35s p.15-6 no root after the prompt: the next line is skipped | PRGM CLPGM LBL:F INPUT:Y RCL:X SQ RCL:Y + RTN LBL:M 1 STO:X 5 FN=:F SOLVE:X VIEW:X 7 RTN PRGM XEQ:M 4 RS | X=7 %STOP=DONE
+O15 | ours: R/S after C at a SOLVE line's prompt runs the line again (prompts again) | PRGM CLPGM LBL:F INPUT:Y RCL:X SQ RCL:Y - RTN LBL:M 1 STO:X 5 FN=:F SOLVE:X VIEW:X RTN PRGM XEQ:M C RS | %STOP=INPUT:Y
+O16 | ours: C at a flag-11 prompt, then R/S: the line prompts again from its first variable | PRGM CLPGM LBL:E SF:11 EQ:A+B RTN PRGM XEQ:E 1 RS C RS | %STOP=INPUT:A
+O17 | ours: equation lines have their own store of AB_PEQN_MAX (64) | PRGM CLPGM EQ:0+1 EQ:1+1 EQ:2+1 EQ:3+1 EQ:4+1 EQ:5+1 EQ:6+1 EQ:7+1 EQ:8+1 EQ:9+1 EQ:10+1 EQ:11+1 EQ:12+1 EQ:13+1 EQ:14+1 EQ:15+1 EQ:16+1 EQ:17+1 EQ:18+1 EQ:19+1 EQ:20+1 EQ:21+1 EQ:22+1 EQ:23+1 EQ:24+1 EQ:25+1 EQ:26+1 EQ:27+1 EQ:28+1 EQ:29+1 EQ:30+1 EQ:31+1 EQ:32+1 EQ:33+1 EQ:34+1 EQ:35+1 EQ:36+1 EQ:37+1 EQ:38+1 EQ:39+1 EQ:40+1 EQ:41+1 EQ:42+1 EQ:43+1 EQ:44+1 EQ:45+1 EQ:46+1 EQ:47+1 EQ:48+1 EQ:49+1 EQ:50+1 EQ:51+1 EQ:52+1 EQ:53+1 EQ:54+1 EQ:55+1 EQ:56+1 EQ:57+1 EQ:58+1 EQ:59+1 EQ:60+1 EQ:61+1 EQ:62+1 EQ:63+1 EQ:64+1 PRGM | ERR %ERR=MEMORY_FULL %LINES=64
+O18 | ours: deleting an equation line frees its place | PRGM CLPGM EQ:0+1 EQ:1+1 EQ:2+1 EQ:3+1 EQ:4+1 EQ:5+1 EQ:6+1 EQ:7+1 EQ:8+1 EQ:9+1 EQ:10+1 EQ:11+1 EQ:12+1 EQ:13+1 EQ:14+1 EQ:15+1 EQ:16+1 EQ:17+1 EQ:18+1 EQ:19+1 EQ:20+1 EQ:21+1 EQ:22+1 EQ:23+1 EQ:24+1 EQ:25+1 EQ:26+1 EQ:27+1 EQ:28+1 EQ:29+1 EQ:30+1 EQ:31+1 EQ:32+1 EQ:33+1 EQ:34+1 EQ:35+1 EQ:36+1 EQ:37+1 EQ:38+1 EQ:39+1 EQ:40+1 EQ:41+1 EQ:42+1 EQ:43+1 EQ:44+1 EQ:45+1 EQ:46+1 EQ:47+1 EQ:48+1 EQ:49+1 EQ:50+1 EQ:51+1 EQ:52+1 EQ:53+1 EQ:54+1 EQ:55+1 EQ:56+1 EQ:57+1 EQ:58+1 EQ:59+1 EQ:60+1 EQ:61+1 EQ:62+1 EQ:63+1 BKSP EQ:9 PRGM | %LINES=64
+O19 | 35s p.15-11 a SOLVE whose equation SOLVEs again: SOLVE(SOLVE) is refused while one runs | PRGM CLPGM LBL:F 1 STO:Y FN=:G SOLVE:Y RCL:X - RTN LBL:G RCL:Y RTN PRGM 1 STO:X 2 FN=:F SOLVE:X | ERR %ERR=NESTED
+O20 | ours: the first evaluation is not repeated (SOLVE x^2 - 4: the same evaluations as unit 013) | PRGM CLPGM LBL:F RCL:X SQ 4 - RTN PRGM 1 STO:X 5 FN=:F SOLVE:X | X=2 %EVALS<=12
+O21 | ours: an equation's SOLVE and the same function as a program give the same root | EQ:X^3-2 C 1 STO:X 2 EQN SOLVE:X SAVEX PRGM CLPGM LBL:F RCL:X 3 POW 2 - RTN PRGM 1 STO:X 2 FN=:F SOLVE:X | %SAMEX=same
+O22 | ours: REGX in a listed equation reads the stack when evaluated | 5 EQ:REGX×2 XEQ | X=10
+O23 | ours: the 2*2 solver keeps T (and the stack under its results) as when SOLVE was pressed | 1 ENTER 2 ENTER 3 ENTER 4 EQN SST SOLVE 1 RS 2 RS 5 RS 3 RS 4 RS 11 RS | Z=2 T=1

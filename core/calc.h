@@ -93,7 +93,12 @@ typedef enum {
     AB_EQN,                 /* Equation mode on or off */
     AB_KEQ,                 /* the = key (types = in an equation) */
     AB_KPAREN,              /* the ( ) key (types a pair, the cursor inside) */
-    AB_KLEFT, AB_KRIGHT     /* the cursor keys < and > in an equation */
+    AB_KLEFT, AB_KRIGHT,    /* the cursor keys < and > in an equation */
+    /* unit 015 */
+    AB_EQLINE,              /* an equation as a program line: arg indexes peqn[] (UG p.13-7) */
+    AB_KSPACE,              /* SPACE: a blank in an equation (UG p.G-13) */
+    AB_KREG                 /* in an equation, R-down's menu choice: arg 0..3 types REGX..REGT
+                               (UG p.B-7) */
 } ab_op;
 
 /* Why the last run stopped (unit 012 rule 1): the device draws it; the core never waits. */
@@ -107,7 +112,9 @@ typedef enum {
                                after its pause (about 1 s, UG p.13-19) */
     AB_STOP_CANCELLED,      /* a prompt cancelled with C: R/S prompts again (UG p.13-15) */
     AB_STOP_ERROR,          /* an error at stop_line (the pointer is there) */
-    AB_STOP_BUDGET          /* AB_RUN_BUDGET lines without stopping */
+    AB_STOP_BUDGET,         /* AB_RUN_BUDGET lines without stopping */
+    AB_STOP_MSG             /* showing an equation line as a message, flag 10 set: the line at
+                               stop_line (R/S resumes after it; UG p.13-16, 14-11) */
 } ab_stop;
 
 enum { AB_TEST_NE = 0, AB_TEST_LE, AB_TEST_LT, AB_TEST_GT, AB_TEST_GE, AB_TEST_EQ };   /* UG p.14-7 order */
@@ -128,6 +135,8 @@ enum { AB_TEST_NE = 0, AB_TEST_LE, AB_TEST_LT, AB_TEST_GT, AB_TEST_GE, AB_TEST_E
 #define AB_TGT_EQN (-5)             /* XEQ in Equation mode: evaluate the equation shown (unit 014) */
 #define AB_EQN_MAX 64               /* equations in the list (ours, unit 014 rule 5) */
 #define AB_EQN_LEN 192              /* bytes of one equation's text (UTF-8, as the guide shows it) */
+#define AB_PEQN_MAX 64              /* equation lines in programs, a store of their own (ours, unit
+                                       015 rule 4: they are not in the list, UG p.13-7) */
 
 typedef enum { AB_ANGLE_DEG = 0, AB_ANGLE_RAD, AB_ANGLE_GRAD } ab_angle;
 
@@ -200,8 +209,9 @@ typedef struct {
     int rbase;              /* return depth that counts as the top level of the current run */
     long evals;             /* function evaluations used by the last SOLVE or integral */
     /* unit 014: the equation list and Equation mode */
-    char eqn[AB_EQN_MAX][AB_EQN_LEN];
-    int eqn_count;
+    char eqn[AB_EQN_MAX + 2][AB_EQN_LEN];   /* the list, with the two built-in linear solvers
+                                               (unit 015: text "\x01" then their LCD name) */
+    int eqn_count;          /* entries, the built-ins included */
     int eqn_cur;            /* the equation shown, -1 at EQN LIST TOP */
     bool eqn_mode;          /* Equation mode */
     bool eqn_typing;        /* an equation is being typed or edited */
@@ -209,9 +219,32 @@ typedef struct {
     char ebuf[AB_EQN_LEN];  /* the text being typed */
     int ecur;               /* the cursor: a byte offset into ebuf */
     int eqn_errpos;         /* SYNTAX ERROR: the character offset of the first error */
-    int eqn_pending;        /* evaluating with prompts: 1 ENTER, 2 XEQ, 0 none */
+    int eqn_pending;        /* prompting for: 1 ENTER, 2 XEQ, 3 SOLVE, 4 integrate, 5 the 2*2 and
+                               6 the 3*3 solver (unit 015); 0 none */
     int eqn_vars[26];       /* the variables to prompt for, in order */
     int eqn_nvars, eqn_next;
+    /* unit 015: equations in programs; SOLVE and integrate of equations */
+    char peqn[AB_PEQN_MAX][AB_EQN_LEN];     /* the texts of AB_EQLINE program lines */
+    bool peqn_used[AB_PEQN_MAX];
+    int peq_line;           /* the equation line whose flag-11 prompts are pending, -1 none */
+    bool peq_ready;         /* its prompts are answered: evaluate it when the line runs again */
+    int fn_eqn;             /* the function SOLVE / integrate evaluate is equation fn_eqn of the
+                               list, -1 for the FN= program */
+    int solve_phase;        /* 1 while the first evaluation runs (it may prompt), 2 after */
+    int running;            /* prog_run calls in progress (a SOLVE line is in a program) */
+    bool ev_cached;         /* the first evaluation's result, used by the search's first call */
+    abn ev_cx, ev_cf;
+    abn_status ev_cst;
+    struct {                /* a SOLVE or integral waiting on its first evaluation's prompts, or
+                               on an equation's prompts (kind 0: none) */
+        int kind;           /* AB_SOLVE or AB_INTEG */
+        int var;            /* the unknown, a stop_var id */
+        int code;           /* its target code as keyed */
+        ab_val x, y, z, t, lastx, var0;
+        bool lift;
+        int pc, rbase, rdepth;  /* where the run that keyed it stood */
+        bool from_prog;     /* keyed by a program line at pc */
+    } susp;
 } ab_calc;
 
 void ab_init(ab_calc *c);
@@ -239,6 +272,10 @@ void ab_stop_text(const ab_calc *c, char *buf);
 /* Adds an equation's text after the one shown and shows it (for tests and a device's editor; the
    keys build the same text, unit 014). Returns ABN_MEMORY_FULL when the list is full. */
 abn_status ab_eqn_add(ab_calc *c, const char *text);
+
+/* The value of the variable or register that (I) or (J) names (code AB_VAR_IND_I / J), for an
+   equation (unit 015); INVALID (I) as ABN_DOMAIN, as for RCL (I). */
+abn_status ab_indirect(ab_calc *c, int code, ab_val *out);
 
 /* The index of the constant named `name` (see core/const.c), or -1. */
 int ab_const_index(const char *name);

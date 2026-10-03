@@ -52,7 +52,7 @@ static const struct { const char *name; ab_op op; } NAMED[] = {
     {"[", AB_KVEC}, {",", AB_KCOMMA},
     {"PRGM", AB_PRGM}, {"RTN", AB_RTN}, {"RS", AB_RS}, {"PSE", AB_PSE}, {"SST", AB_SST},
     {"BST", AB_BST}, {"CLPGM", AB_CLPGM}, {"C", AB_CANCEL},
-    {"EQN", AB_EQN}, {"=", AB_KEQ}, {"()", AB_KPAREN}, {"<", AB_KLEFT}, {">", AB_KRIGHT},
+    {"EQN", AB_EQN}, {"SPACE", AB_KSPACE}, {"=", AB_KEQ}, {"()", AB_KPAREN}, {"<", AB_KLEFT}, {">", AB_KRIGHT},
     {"AND", AB_AND}, {"XOR", AB_XOR}, {"OR", AB_OR}, {"NOT", AB_NOT}, {"NAND", AB_NAND}, {"NOR", AB_NOR},
     {"SIGMA+", AB_SIGMAPLUS}, {"SIGMA-", AB_SIGMAMINUS}, {"CLSIGMA", AB_CLSIGMA},
     {"XBAR", AB_XBAR}, {"YBAR", AB_YBAR}, {"XWBAR", AB_XWBAR}, {"SX", AB_SX}, {"SY", AB_SY},
@@ -76,7 +76,8 @@ static abn_status do1(ab_calc *c, ab_op op, int arg)
 static const char *const STATUS_NAMES[] = {"OK", "DIV_ZERO", "RANGE", "BAD_TEXT", "DOMAIN", "INEXACT",
                                            "CLAMPED", "NONEXISTENT", "XEQ_OVERFLOW", "DUP_LABEL",
                                            "MEMORY_FULL", "NONPROGRAMMABLE", "BUDGET", "NO_ROOT",
-                                           "SELECT_FN", "NESTED", "SYNTAX"};
+                                           "SELECT_FN", "NESTED", "SYNTAX", "INVALID_VAR",
+                                           "NO_SOLUTION", "MULT_SOLUTION"};
 
 /* Applies one key token. Returns 0, or -1 for an unknown token. */
 static int apply_token(ab_calc *c, const char *tok, int *errors)
@@ -133,6 +134,15 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
                 if (do1(c, TGT[i].op, (v[0] - 'A') * 1000 + line) != ABN_OK) (*errors)++;
                 return 0;
             }
+        }
+        if (strncmp(tok, "REG:", 4) == 0 && tok[4] && strchr("XYZT", tok[4]) && !tok[5]) {
+            /* in an equation: R-down's menu, the register chosen (unit 015) */
+            if (do1(c, AB_KREG, (int)(strchr("XYZT", tok[4]) - "XYZT")) != ABN_OK) (*errors)++;
+            return 0;
+        }
+        if (strcmp(tok, "SOLVE") == 0) {      /* SOLVE with no letter: a built-in solver shown */
+            if (do1(c, AB_SOLVE, -1) != ABN_OK) (*errors)++;
+            return 0;
         }
         if (strcmp(tok, "RSALL") == 0) {       /* answer every equation prompt with R/S (runner) */
             while (c->eqn_pending && c->stop == AB_STOP_INPUT)
@@ -373,11 +383,23 @@ int vectors_run(const char *name, FILE *f)
                     bool same = c.x.kind == saved_x.kind && abn_cmp(&c.x.re, &saved_x.re) == 0 &&
                                 abn_cmp(&c.x.im, &saved_x.im) == 0;
                     snprintf(got, sizeof got, "%s", same ? eq + 1 : "different");
+                } else if (strcmp(ex, "%MSG") == 0) {
+                    /* the equation line shown as a message (flag 10, unit 015); blanks written _ */
+                    bool msg = c.stop == AB_STOP_MSG || (c.stop == AB_STOP_PSE && c.stop_var == -2);
+                    snprintf(got, sizeof got, "%s", msg ? c.peqn[c.prog[c.stop_line].arg] : "none");
+                    for (char *q = got; *q; q++)
+                        if (*q == ' ') *q = '_';
                 } else if (strcmp(ex, "%EQ") == 0) {
                     /* the equation shown (unit 014) */
-                    snprintf(got, sizeof got, "%s", c.eqn_cur >= 0 ? c.eqn[c.eqn_cur] : "TOP");
+                    /* a built-in linear solver as its LCD name, blanks written _ (unit 015) */
+                    const char *e = c.eqn_cur >= 0 ? c.eqn[c.eqn_cur] : "TOP";
+                    snprintf(got, sizeof got, "%s", e[0] == '\x01' ? e + 1 : e);
+                    for (char *q = got; *q; q++)
+                        if (*q == ' ') *q = '_';
                 } else if (strcmp(ex, "%EQN") == 0) {
-                    snprintf(got, sizeof got, "%d", c.eqn_count);
+                    int n = 0;                          /* the built-in solvers apart (unit 015) */
+                    for (int q = 0; q < c.eqn_count; q++) n += c.eqn[q][0] != '\x01';
+                    snprintf(got, sizeof got, "%d", n);
                 } else if (strcmp(ex, "%ERRPOS") == 0) {
                     snprintf(got, sizeof got, "%d", c.eqn_errpos);
                 } else if (strcmp(ex, "%LINES") == 0) {
