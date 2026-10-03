@@ -149,8 +149,34 @@ int abn_to_text(const abn *a, char *buf, int size)
 
 void abn_digits(const abn *a, bool *neg, char *digits, int *lead)
 {
-    (void)a;
-    *neg = false;
-    digits[0] = '\0';
-    *lead = 0;
+    /* The library writes a finite value as [+|-]coefficient E[+|-]exponent with no
+     * leading zeros in the coefficient: "+1490987E-4" is 149.0987. */
+    _IDEC_flags fl = 0;
+    char t[128];
+    const char *p = t;
+    int n = 0;
+    long e = 0;
+    bool eneg = false;
+    bid128_to_string(t, to_bid(a), &fl);
+    *neg = (*p == '-');
+    if (*p == '-' || *p == '+') p++;
+    while (*p == '0') p++;                  /* only a zero coefficient starts with 0 */
+    for (; *p >= '0' && *p <= '9'; p++) {
+        if (n < ABN_DIGITS) digits[n++] = *p;
+    }
+    if (*p == 'E') {
+        p++;
+        if (*p == '-' || *p == '+') eneg = (*p++ == '-');
+        for (; *p >= '0' && *p <= '9'; p++) e = e * 10 + (*p - '0');
+    }
+    if (eneg) e = -e;
+    int len = n;
+    while (n > 0 && digits[n - 1] == '0') n--;
+    digits[n] = '\0';
+    if (n == 0) {
+        *neg = false;
+        *lead = 0;
+        return;
+    }
+    *lead = (int)(e + len - 1);
 }

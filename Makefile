@@ -14,7 +14,7 @@ ENGINE := build/abn_intel.o $(INTEL_LIB)
 LIBS := -lm
 
 .PHONY: all test clean
-all: build/vectors build/fmt_vectors build/abn_test build/diff_test
+all: build/vectors build/fmt_vectors build/fmt_drive build/abn_test build/diff_test
 
 $(INTEL_LIB):
 	CC="$(CC)" scripts/fetch-intel-dfp.sh
@@ -30,6 +30,9 @@ build/vectors: $(CORE) $(HDRS) $(ENGINE) tests/vectors.c tests/norm.h
 build/fmt_vectors: $(CORE) $(HDRS) $(ENGINE) tests/fmt_vectors.c
 	$(CC) $(CFLAGS) -Icore -o $@ $(CORE) tests/fmt_vectors.c $(ENGINE) $(LIBS)
 
+build/fmt_drive: core/fmt.c $(HDRS) $(ENGINE) tests/fmt_drive.c
+	$(CC) $(CFLAGS) -Icore -o $@ core/fmt.c tests/fmt_drive.c $(ENGINE) $(LIBS)
+
 build/abn_test: $(HDRS) $(ENGINE) tests/abn_test.c tests/norm.h tests/cases.h
 	$(CC) $(CFLAGS) -Icore -o $@ tests/abn_test.c $(ENGINE) $(LIBS)
 
@@ -41,6 +44,7 @@ test: all
 	./build/diff_test
 	./build/vectors work/001-vectors.txt
 	./build/fmt_vectors work/002-vectors.txt
+	python3 tests/fmt_fuzz.py build/fmt_drive 20000
 
 clean:
 	rm -rf build
