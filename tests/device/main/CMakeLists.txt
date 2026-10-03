@@ -5,7 +5,7 @@ idf_build_get_property(target IDF_TARGET)
 set(BUNDLE_C "${CMAKE_CURRENT_LIST_DIR}/generated/bundle.c")
 set(BID_LIB "${REPO}/build/intel-${target}/libbid.a")
 set(BID_INC "${REPO}/third_party/intel-dfp/${target}/IntelRDFPMathLib20U5/LIBRARY/src")
-file(GLOB CORE_SRCS "${REPO}/core/*.c")
+file(GLOB CORE_SRCS CONFIGURE_DEPENDS "${REPO}/core/*.c")   # a new core file joins without a clean
 
 idf_component_register(
     SRCS device_main.c "${BUNDLE_C}" ${CORE_SRCS}
