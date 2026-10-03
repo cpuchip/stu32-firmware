@@ -61,3 +61,15 @@ D43 | ours: ALL integer, no radix    | 100                     | ALL   |        
 D44 | ours: ALL negative small       | -0.001234               | ALL   |               | -0.001234
 D45 | ours: ALL too few digits left  | 0.000123456789012345678 | ALL   | w=14          | 1.23456789E-4
 D46 | ours: ALL integer too wide     | -123456789012.5         | ALL   | w=14          | -1.23456789E11
+
+# --- Amendment 1 (2026-10-03). D47-D49 were proposed by soroban from the unit's text; D50-D54
+# follow the amendment's rulings.
+D47 | soroban: half at the first kept digit     | 0.005                 | FIX 2  |       | 0.01
+D48 | soroban: min(digits,12) with < 12 digits  | 0.9999999             | ALL    | w=8   | 1
+D49 | soroban: the 34-digit FIX fallback        | 9.7038E24             | FIX 11 | w=40  | 9.70380000000E24
+D50 | amendment: exact SCI before rounded plain | 9.9999E-9             | ALL    | w=14  | 9.9999E-9
+D51 | amendment: exact SCI before rounded plain | 7E-11                 | ALL    | w=12  | 7E-11
+D52 | amendment: exact SCI before rounded plain | 0.000000012345        | ALL    | w=12  | 1.2345E-8
+D53 | ruling 1: zero in SCI 0                   | 0                     | SCI 0  |       | 0E0
+D54 | ruling 1: zero in ENG 0                   | 0                     | ENG 0  |       | 0E0
+D55 | ours: plain at zero decimals still counts | 123456789012345678.9012345678901234 | ALL | w=23 | 123,456,789,012,345,679

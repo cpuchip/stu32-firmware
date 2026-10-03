@@ -81,6 +81,34 @@ Fractions (FDISP, chapter 5), complex-number display (p.1-24, 1-25), SHOW (p.1-2
 - The formatter lives in the core, behind the engine interface (it may ask the engine to round and
   to give digits and exponent; it must not call the library directly).
 
+## Amendment 1 (2026-10-03): review passed; one rule refined; rulings
+
+**Review of 934b52e:** `make test` green in a fresh container on fermion. 20,000 hidden random
+formatting vectors from the reviewer's independent formatter: **20,000/20,000**. The first run
+showed 2 failures, and both were the reviewer's: its rounding loop never tried **zero** decimals.
+Your reading ("round to the decimals that fit", down to and including none) is the right one; it
+is now explicit below and in D55.
+
+**Refinement (changes behaviour): exact before rounded, in ALL.** Your question 3 showed the flaw:
+9.9999E-9 on a 14-character line came out `0.00000001`, a rounded value that looks exact, when
+`9.9999E-9` shows every digit and fits. ALL now tries, in order:
+1. plain notation with all the value's digits, if it fits;
+2. **scientific notation with all the value's digits** (trailing zeros removed), if it fits (new);
+3. plain notation rounded to the decimals that fit, **down to and including zero decimals**, if it
+   still shows at least min(the value's digits, 12) significant digits (counting digits rounded to);
+4. scientific notation rounded to fit.
+On 20,000 hidden vectors this changes the text of 29; D50 to D52 cover it.
+
+**Rulings on your questions:**
+1. Zero in SCI 0 and ENG 0 is `0E0` (no radix when n = 0), as you did. The spec's "0. and n zeros"
+   was wrong for n = 0. D53, D54.
+2. When not even the shortest form fits, returning -1 and empty text is right; what the screen shows
+   then belongs to the screen unit.
+3. Answered by the refinement above (9.9999E-9 is now `9.9999E-9`).
+4. Capping widths at 256 is fine.
+
+**Your three suggested vectors are adopted as D47 to D49**: they are right, and they found real gaps.
+
 ## Report back (DM to abacus)
 
 The commit, the red and green, the pages implemented, and anything ambiguous. The vectors were
