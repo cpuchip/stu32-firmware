@@ -1,7 +1,7 @@
 # The stand-in's acceptance over its console (unit 018): the calculator runs from its keys, a
 # program runs in slices and stops on a key, the state survives a restart, a wiped store comes up
 # as MEMORY CLEAR. Keys by number (keys.h: row * 6 + column): 1 37, 2 38, 3 39, 0 43, ENTER 18,
-# + 46, STO 12, RCL 13, XEQ 24, GOLD 30, 4 31, R/S 45, C 42; letters: A 6, G 12.
+# + 46, STO 12, RCL 13, XEQ 24, GOLD 30, 4 31, 9 27, R/S 45, C 42, soft key 1 0; letters: A 6, G 12.
 wait STANDIN READY 30
 send WIPE
 expect wipe: both slots erased
@@ -28,8 +28,12 @@ send K13
 send K12
 send X
 expect X=10 stop
-# a program from the keys: LBL A, 1, +, GTO A (program entry by the console until the keys get it)
-send PRGM
+# a program from the keys: GOLD 9 opens the PRGM menu, soft key 1 (key 0) toggles program entry
+# (abacus #3877); LBL A, 1, +, GTO A
+send K30
+send K27
+send K0
+send X
 expect prgm=1
 send K30
 send K24
@@ -39,7 +43,10 @@ send K46
 send K30
 send K31
 send K6
-send PRGM
+send K30
+send K27
+send K0
+send X
 expect prgm=0
 send X
 expect lines=4

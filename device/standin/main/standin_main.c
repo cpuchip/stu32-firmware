@@ -258,8 +258,8 @@ static void dump(void)
     char stop[32];
     ab_stop_text(calc, stop);
     const char *m = ab_error_message(calc);
-    printf("state: X=%s stop=%s lines=%d running=%d shift=%d prompt=%s msg=%s heap=%u stack-free=%u\n", x, stop,
-           calc->prog_len, app.running, app.shift, app.prompt_op >= 0 ? app.prompt_text : "-", m ? m : "-",
+    printf("state: X=%s stop=%s lines=%d prgm=%d running=%d shift=%d prompt=%s msg=%s heap=%u stack-free=%u\n", x, stop,
+           calc->prog_len, calc->prgm, app.running, app.shift, app.prompt_op >= 0 ? app.prompt_text : "-", m ? m : "-",
            (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL), (unsigned)uxTaskGetStackHighWaterMark(NULL));
 }
 
