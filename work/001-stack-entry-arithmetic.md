@@ -59,13 +59,24 @@ keystrokes from the rendered pages (e.g. `pdftoppm -r 110 -f N -l N -png`). Manu
 
 ## Numbers in this unit
 
-The number engine (a permissive decimal library or our own) is **Michael's decision, pending**;
-your charter says to ask him before adding any library. Until he rules:
+~~The number engine (a permissive decimal library or our own) is **Michael's decision, pending**;
+your charter says to ask him before adding any library.~~ **Ruled 2026-10-03 by Michael: "Lets do
+A intel decimal libs."** The engine is the **Intel Decimal Floating-Point Math Library**:
 
-- Write the stack against a small number interface of your own design (make, add, subtract,
-  multiply, divide, negate, parse from entry, compare, to-text), so the engine can be swapped.
-- Back it for now with a **decimal** implementation you write yourself, at least 16 significant
-  digits, round-half-even. No binary floating point anywhere in results (0.1 + 0.2 must be 0.3).
+- Fetch it from Intel's own distribution at netlib, and nowhere else (not from any calculator
+  project that bundles it): `https://netlib.org/misc/intel/IntelRDFPMathLib20U5.tar.gz`
+  (v2.5, dated 2026-09-28, 5,817,987 bytes, sha256
+  `85dafd70f0fe2a8da218ade4233fca9d3228b0b04cd6d8527f7499926be01037`, checked on fermion
+  2026-10-03). Verify the hash before use. Licence: BSD-3-Clause ("Copyright (c) 2007-2026, Intel
+  Corp."); keep its notice with the source and in our eventual licence file.
+- Use the 128-bit decimal format (34 significant digits). Rounding mode for arithmetic: the
+  library's default (round-half-even) unless a later unit says otherwise.
+- Still write the stack against a small number interface of your own design (make, add, subtract,
+  multiply, divide, negate, parse from entry, compare, to-text), with the library behind it, so
+  the core never calls the library directly and the engine stays swappable.
+- No binary floating point anywhere in results (0.1 + 0.2 must be 0.3).
+- If you already wrote a provisional decimal of your own, keep it only if it helps as a test
+  oracle; the shipped path is the library.
 - The 35s's own limits (12 displayed digits, exponents to ±499; p.1-15) are **not** binding on
   us; range and overflow behaviour come in a later unit with the engine.
 
