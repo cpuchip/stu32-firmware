@@ -210,8 +210,21 @@ static abn_status two_number_op(ab_calc *c, ab_op op)
     return ABN_OK;
 }
 
+int ab_const_index(const char *name)
+{
+    (void)name;
+    return 0;   /* STUB */
+}
+
 abn_status ab_do(ab_calc *c, ab_op op)
 {
+    return ab_do_arg(c, op, 0);
+}
+
+abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
+{
+    (void)arg;
+    if (op >= AB_HMS) return ABN_OK;    /* STUB: unit 004 operations land after the oracle */
     if (op <= AB_KE) return entry_key(c, op);
     if ((op == AB_KCHS || op == AB_KBKSP) && c->entry.active) return entry_key(c, op);
 

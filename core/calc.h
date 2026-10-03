@@ -7,7 +7,9 @@
 #define CALC_H
 
 #include <stdbool.h>
+#include <stdint.h>
 #include "abn.h"
+#include "fmt.h"
 
 typedef enum {
     AB_K0, AB_K1, AB_K2, AB_K3, AB_K4, AB_K5, AB_K6, AB_K7, AB_K8, AB_K9,
@@ -28,7 +30,14 @@ typedef enum {
     AB_PI, AB_DEG, AB_RAD, AB_GRAD,
     AB_SIN, AB_COS, AB_TAN, AB_ASIN, AB_ACOS, AB_ATAN,
     AB_SINH, AB_COSH, AB_TANH, AB_ASINH, AB_ACOSH, AB_ATANH,
-    AB_PCT, AB_PCTCHG
+    AB_PCT, AB_PCTCHG,
+    /* unit 004: conversions, probability, parts of numbers, display setting */
+    AB_HMS, AB_HMSINV, AB_TODEG, AB_TORAD,
+    AB_TOKG, AB_TOLB, AB_TOC, AB_TOF, AB_TOCM, AB_TOIN, AB_TOL, AB_TOGAL, AB_TOKM, AB_TOMILE,
+    AB_FACT, AB_NCR, AB_NPR, AB_RAND, AB_SEED,
+    AB_IP, AB_FP, AB_INTG, AB_RND, AB_ABS, AB_SGN, AB_TOPOL, AB_TOREC,
+    AB_CONST,               /* arg: index from ab_const_index */
+    AB_SETFIX, AB_SETSCI, AB_SETENG, AB_SETALL  /* arg: the digit setting, 0..33 (ALL takes none) */
 } ab_op;
 
 typedef enum { AB_ANGLE_DEG = 0, AB_ANGLE_RAD, AB_ANGLE_GRAD } ab_angle;
@@ -48,6 +57,9 @@ typedef struct {
     abn lastx;
     bool lift;              /* stack lift enabled */
     ab_angle angle;         /* angular mode for trigonometry */
+    ab_mode disp_mode;      /* display setting, for RND (unit 004) */
+    int disp_n;
+    uint64_t rng;           /* random generator state (unit 004) */
     ab_entry entry;
 } ab_calc;
 
@@ -57,5 +69,12 @@ void ab_init(ab_calc *c);
    registers and LAST X are left as they were and the error is returned; a number being
    keyed in is still completed. ABN_OK otherwise. */
 abn_status ab_do(ab_calc *c, ab_op op);
+
+/* An operation that takes an argument: AB_CONST (a constant's index) and AB_FIX, AB_SCI, AB_ENG
+   (the digit setting). ab_do(c, op) is ab_do_arg(c, op, 0). */
+abn_status ab_do_arg(ab_calc *c, ab_op op, int arg);
+
+/* The index of the constant named `name` (see core/const.c), or -1. */
+int ab_const_index(const char *name);
 
 #endif

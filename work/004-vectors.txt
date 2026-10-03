@@ -1,0 +1,145 @@
+# Work unit 004 acceptance vectors: constants, conversions, probability, parts of numbers, RND.
+# Format as unit 003 (ID | source | keys | expectations; "=" exact, "^" within 8 units in the 34th
+# significant digit, ERR). New key tokens: HMS HMSINV TODEG TORAD TOKG TOLB TOC TOF TOCM TOIN TOL
+# TOGAL TOKM TOMILE FACT NCR NPR RAND SEED IP FP INTG RND ABS SGN TOPOL TOREC, CONST:<name>, and the
+# display settings FIX0..FIX33 SCI0..SCI33 ENG0..ENG33 ALL.
+# Constant names (35s p.4-8/4-9 list, ASCII): c g G Vm NA Rinf qe me mp mn mmu k h hbar phi0 a0 eps0 R
+# F u mu0 muB muN mup mue mun mumu re Z0 lambdac lambdacn lambdacp alpha sigma t atm gammap C1 C2 G0 e
+# ("qe" is the elementary charge, "e" the base of natural logarithms).
+# TOPOL takes x in X and y in Y and leaves r in X, theta in Y; TOREC the reverse (ours).
+# M-vectors: the manual's examples (HP 35s User's Guide ch.4, keys from the rendered pages). Values:
+# CODATA 2022 (physics.nist.gov allascii.txt, fetched 2026-10-03); "=" correctly rounded to 34 digits
+# with Python decimal (ROUND_HALF_EVEN); "^" from mpmath 1.4.1 at 150 digits.
+
+M01 | 35s p.4-14 30 degrees to radians | 30 TORAD | X^0.523598775598298873077107230546583814 L=30
+M02 | 35s p.4-14 1 lb to kg | 1 TOKG | X=0.45359237 L=1
+M03 | 35s p.4-14 1 kg to lb | 1 TOLB | X=2.204622621848775807229738013450270
+M04 | 35s p.4-14 32 F to C | 32 TOC | X=0
+M05 | 35s p.4-14 100 C to F | 100 TOF | X=212
+M06 | 35s p.4-14 1 in to cm | 1 TOCM | X=2.54
+M07 | 35s p.4-14 100 cm to in | 100 TOIN | X=39.37007874015748031496062992125984
+M08 | 35s p.4-14 1 gal to l (US gal) | 1 TOL | X=3.785411784
+M09 | 35s p.4-14 1 l to gal | 1 TOGAL | X=0.2641720523581484153798999216091625
+M10 | 35s p.4-14 1 mile to km | 1 TOKM | X=1.609344
+M11 | 35s p.4-14 1 km to mile | 1 TOMILE | X=0.6213711922373339696174341843633182
+M12 | 35s p.4-13 1/7 hour in H.MMSS | 1 ENTER 7 / HMS | X^0.083428571428571428571428571428571444
+M13 | 35s p.4-16 committees of 6 from 24 | 24 ENTER 6 NCR | X=134596 L=6
+M14 | 35s p.4-16 all-women committee | 24 ENTER 6 NCR 14 ENTER 6 NCR XY / | X=0.02231121281464530892448512585812357
+M15 | 35s p.4-18 IP of 2.47 | 2.47 IP | X=2 L=2.47
+M16 | 35s p.4-18 FP of 2.47 | 2.47 FP | X=0.47
+M17 | 35s p.4-18 ABS of -7 | 7 CHS ABS | X=7 L=-7
+M18 | 35s p.4-18 SGN of 9 | 9 SGN | X=1
+M19 | 35s p.4-18 INTG of -5.3 | 5.3 CHS INTG | X=-6
+M20 | 35s p.4-17 IP of 14.23 | 14.23 IP | X=14
+M21 | 35s p.4-17 FP of 14.23 | 14.23 FP | X=0.23
+K01 | ours: CODATA 2022 c (list from 35s p.4-8/4-9) | CONST:c | X=299792458
+K02 | ours: CODATA 2022 g (list from 35s p.4-8/4-9) | CONST:g | X=9.80665
+K03 | ours: CODATA 2022 G (list from 35s p.4-8/4-9) | CONST:G | X=6.67430E-11
+K04 | ours: CODATA 2022 Vm (list from 35s p.4-8/4-9) | CONST:Vm | X=0.02241396954501413773501110288675056
+K05 | ours: CODATA 2022 NA (list from 35s p.4-8/4-9) | CONST:NA | X=6.02214076E23
+K06 | ours: CODATA 2022 Rinf (list from 35s p.4-8/4-9) | CONST:Rinf | X=10973731.568157
+K07 | ours: CODATA 2022 qe (list from 35s p.4-8/4-9) | CONST:qe | X=1.602176634E-19
+K08 | ours: CODATA 2022 me (list from 35s p.4-8/4-9) | CONST:me | X=9.1093837139E-31
+K09 | ours: CODATA 2022 mp (list from 35s p.4-8/4-9) | CONST:mp | X=1.67262192595E-27
+K10 | ours: CODATA 2022 mn (list from 35s p.4-8/4-9) | CONST:mn | X=1.67492750056E-27
+K11 | ours: CODATA 2022 mmu (list from 35s p.4-8/4-9) | CONST:mmu | X=1.883531627E-28
+K12 | ours: CODATA 2022 k (list from 35s p.4-8/4-9) | CONST:k | X=1.380649E-23
+K13 | ours: CODATA 2022 h (list from 35s p.4-8/4-9) | CONST:h | X=6.62607015E-34
+K14 | ours: CODATA 2022 hbar (list from 35s p.4-8/4-9) | CONST:hbar | X=1.054571817646156391262428003302281E-34
+K15 | ours: CODATA 2022 phi0 (list from 35s p.4-8/4-9) | CONST:phi0 | X=2.067833848461929323081115412147497E-15
+K16 | ours: CODATA 2022 a0 (list from 35s p.4-8/4-9) | CONST:a0 | X=5.29177210544E-11
+K17 | ours: CODATA 2022 eps0 (list from 35s p.4-8/4-9) | CONST:eps0 | X=8.8541878188E-12
+K18 | ours: CODATA 2022 R (list from 35s p.4-8/4-9) | CONST:R | X=8.31446261815324
+K19 | ours: CODATA 2022 F (list from 35s p.4-8/4-9) | CONST:F | X=96485.3321233100184
+K20 | ours: CODATA 2022 u (list from 35s p.4-8/4-9) | CONST:u | X=1.66053906892E-27
+K21 | ours: CODATA 2022 mu0 (list from 35s p.4-8/4-9) | CONST:mu0 | X=1.25663706127E-6
+K22 | ours: CODATA 2022 muB (list from 35s p.4-8/4-9) | CONST:muB | X=9.2740100657E-24
+K23 | ours: CODATA 2022 muN (list from 35s p.4-8/4-9) | CONST:muN | X=5.0507837393E-27
+K24 | ours: CODATA 2022 mup (list from 35s p.4-8/4-9) | CONST:mup | X=1.41060679545E-26
+K25 | ours: CODATA 2022 mue (list from 35s p.4-8/4-9) | CONST:mue | X=-9.2847646917E-24
+K26 | ours: CODATA 2022 mun (list from 35s p.4-8/4-9) | CONST:mun | X=-9.6623653E-27
+K27 | ours: CODATA 2022 mumu (list from 35s p.4-8/4-9) | CONST:mumu | X=-4.49044830E-26
+K28 | ours: CODATA 2022 re (list from 35s p.4-8/4-9) | CONST:re | X=2.8179403205E-15
+K29 | ours: CODATA 2022 Z0 (list from 35s p.4-8/4-9) | CONST:Z0 | X=376.730313412
+K30 | ours: CODATA 2022 lambdac (list from 35s p.4-8/4-9) | CONST:lambdac | X=2.42631023538E-12
+K31 | ours: CODATA 2022 lambdacn (list from 35s p.4-8/4-9) | CONST:lambdacn | X=1.31959090382E-15
+K32 | ours: CODATA 2022 lambdacp (list from 35s p.4-8/4-9) | CONST:lambdacp | X=1.32140985360E-15
+K33 | ours: CODATA 2022 alpha (list from 35s p.4-8/4-9) | CONST:alpha | X=7.2973525643E-3
+K34 | ours: CODATA 2022 sigma (list from 35s p.4-8/4-9) | CONST:sigma | X=5.670374419184429453970996731889231E-8
+K35 | ours: CODATA 2022 t (list from 35s p.4-8/4-9) | CONST:t | X=273.15
+K36 | ours: CODATA 2022 atm (list from 35s p.4-8/4-9) | CONST:atm | X=101325
+K37 | ours: CODATA 2022 gammap (list from 35s p.4-8/4-9) | CONST:gammap | X=2.6752218708E8
+K38 | ours: CODATA 2022 C1 (list from 35s p.4-8/4-9) | CONST:C1 | X=3.741771852192758011367155555929985E-16
+K39 | ours: CODATA 2022 C2 (list from 35s p.4-8/4-9) | CONST:C2 | X=0.01438776877503933802146671601543912
+K40 | ours: CODATA 2022 G0 (list from 35s p.4-8/4-9) | CONST:G0 | X=0.00007748091729863650646680823323308764
+K41 | ours: CODATA 2022 e (list from 35s p.4-8/4-9) | CONST:e | X=2.718281828459045235360287471352662
+K42 | constants arrive like a recalled number | 1 ENTER 2 CONST:c | X=299792458 Y=2 Z=1
+P01 | ours: 0! = 1 | 0 FACT | X=1 L=0
+P02 | ours: 36! exact | 36 FACT | X=371993326789901217467999448150835200000000
+P03 | ours: 37! correctly rounded | 37 FACT | X=1.376375309122634504631597958158090E+43
+P04 | ours: 100! correctly rounded | 100 FACT | X=9.332621544394415268169923885626670E+157
+P05 | ours: the largest factorial in range | 2123 FACT | X=1.479907299403249333203306687281203E+6143
+P06 | ours: 2124! is out of range | 2124 FACT | ERR X=2124
+P07 | 35s p.4-15 non-integer x! (gamma) deferred: error | 2.5 FACT | ERR X=2.5
+P08 | ours: negative integer factorial is an error | 3 CHS FACT | ERR X=-3
+P09 | ours: permutations | 10 ENTER 3 NPR | X=720 L=3
+P10 | ours: combinations, exact | 50 ENTER 25 NCR | X=126410606437752
+P11 | ours: combinations, rounded | 1000 ENTER 500 NCR | X=2.702882409454365695156146936259753E+299
+P12 | ours: permutations, rounded | 200 ENTER 60 NPR | X=5.858395011795998783854272152579071E+133
+P13 | 35s p.4-15 nCr needs integers | 5.5 ENTER 2 NCR | ERR X=2 Y=5.5
+P14 | 35s p.4-15 nPr needs non-negative | 5 ENTER 2 CHS NPR | ERR X=-2 Y=5
+P15 | ours: huge n, small r | 1 E 30 ENTER 2 NCR | X=4.999999999999999999999999999995000E+59
+U01 | ours: exact factor, correctly rounded | 98.6 TOC | X=37
+U02 | ours: exact factor, correctly rounded | 40 CHS TOF | X=-40
+U03 | ours: exact factor, correctly rounded | 37 TOF | X=98.6
+U04 | ours: exact factor, correctly rounded | 0 TOF | X=32
+U05 | ours: exact factor, correctly rounded | 1.234567890123456789012345678901234 TOC | X=-17.09190672770919067277091906727709
+U06 | ours: exact factor, correctly rounded | 1.234567890123456789012345678901234 TOF | X=34.22222220222222222022222222202222
+U07 | ours: exact factor, correctly rounded | 7.777777777777777777777777777777777 TOLB | X=17.14706483660158961178685121572432
+U08 | ours: exact factor, correctly rounded | 9.999999999999999999999999999999999 TOKG | X=4.535923700000000000000000000000000
+U09 | ours: exact factor, correctly rounded | 3 TOMILE | X=1.864113576712001908852302553089955
+U10 | ours: exact factor, correctly rounded | 12 TOGAL | X=3.170064628297780984558799059309950
+H01 | ours: 1.5 h is 1 h 30 m | 1.5 HMS | X=1.3 L=1.5
+H02 | ours: and back | 1.3 HMSINV | X=1.5 L=1.3
+H03 | ours: 2.75 h | 2.75 HMS | X=2.45
+H04 | ours: negative hours | 1.5 CHS HMS | X=-1.3
+H05 | ours: 10 h 50 m back | 10.5 HMSINV | X=10.83333333333333333333333333333333
+H06 | ours: 1 h 2 m 3.4 s | 1.02034 HMSINV | X=1.034277777777777777777777777777778
+H07 | ours: seconds carry | 0.999999999999999999999999999999999 HMS | X^0.59599999999999999999999999999999964
+H08 | ours: pi radians to degrees | PI TODEG | X^180.000000000000000000000000000000007
+H09 | ours: 1 radian to degrees | 1 TODEG | X^57.2957795130823208767981548141051703
+Q01 | ours: 3,4 to polar | 4 ENTER 3 TOPOL | X=5 Y^53.1301023541559787031443874409065893 L=3
+Q02 | ours: r=2, 30 deg to rectangular (unit 004 rule 6) | 30 ENTER 2 TOREC | X^1.73205080756887729352744634150587237 Y=1
+Q03 | ours: 1,1 is exactly 45 deg | 1 ENTER 1 TOPOL | X^1.41421356237309504880168872420969808 Y=45
+Q04 | ours: the negative x axis is 180 | 0 ENTER 2 CHS TOPOL | X=2 Y=180
+Q05 | ours: down the y axis is -90 | 3 CHS ENTER 0 TOPOL | X=3 Y=-90
+Q06 | ours: origin | 0 ENTER 0 TOPOL | X=0 Y=0
+Q07 | ours: GRAD | GRAD 1 ENTER 1 CHS TOPOL | X^1.41421356237309504880168872420969808 Y=150
+Q08 | ours: RAD round trip value | RAD 1 ENTER 1 TOPOL | X^1.41421356237309504880168872420969808 Y^0.785398163397448309615660845819875721
+Q09 | ours: 90 deg, r 5 | 90 ENTER 5 TOREC | X=0 Y=5
+Q10 | ours: Z and T are untouched | 7 ENTER 8 ENTER 4 ENTER 3 TOPOL | X=5 Z=8 T=7
+N01 | 35s p.4-17 IP truncates | 5.3 CHS IP | X=-5
+N02 | ours: FP keeps the sign of x (x - IP x) | 5.3 CHS FP | X=-0.3
+N03 | 35s p.4-17 SGN of 0 | 0 SGN | X=0
+N04 | 35s p.4-17 SGN of a negative | 2 CHS SGN | X=-1
+N05 | 35s p.4-18 INTG of an integer | 7 INTG | X=7
+N06 | ours: IP of a huge value | 1.234567890123456789 E 40 IP | X=1.234567890123456789E40
+N07 | ours: FP of a tiny value | 1.5 E 20 CHS FP | X=1.5E-20
+D01 | ours: RND rounds to what the display setting shows | FIX2 3.14159 RND | X=3.14
+D02 | ours: RND rounds to what the display setting shows | FIX0 2.5 RND | X=3
+D03 | ours: RND rounds to what the display setting shows | FIX0 2.5 CHS RND | X=-3
+D04 | ours: RND rounds to what the display setting shows | SCI2 123456 RND | X=123000
+D05 | ours: RND rounds to what the display setting shows | ENG1 0.0012345 RND | X=0.0012
+D06 | ours: RND rounds to what the display setting shows | ALL 1.23456 RND | X=1.23456
+D07 | ours: RND rounds to what the display setting shows | FIX4 2 ENTER 3 / RND | X=0.6667
+D08 | ours: RND rounds to what the display setting shows | SCI0 9.6 RND | X=10
+D09 | ours: RND rounds to what the display setting shows | FIX33 1 ENTER 3 / RND | X=0.333333333333333333333333333333333
+D10 | B-5 display settings leave lift alone | 1 ENTER FIX2 3 | X=3 Y=1 Z=0
+D11 | B-6 RND saves x in LAST X | FIX2 3.14159 RND | X=3.14 L=3.14159
+G01 | ours: RAND is in [0, 1) | RAND INTG | X=0
+G02 | 35s p.4-15 RAND is greater than 0 | RAND SGN | X=1
+G03 | ours: same seed, same number | 7 SEED RAND 7 SEED RAND - | X=0
+G04 | ours: same seed, same sequence | 42 SEED RAND RAND 42 SEED RAND RAND - XY RDN - | X=0
+G05 | ours: SEED leaves X in place | 5 SEED | X=5
+G06 | ours: seed 0 is a seed too (no clock in the core) | 0 SEED RAND INTG | X=0
+G07 | ours: RAND lifts like a recalled number | 1 ENTER 2 RAND INTG | X=0 Y=2 Z=1

@@ -36,6 +36,13 @@ static const struct { const char *name; ab_op op; } NAMED[] = {
     {"SINH", AB_SINH}, {"COSH", AB_COSH}, {"TANH", AB_TANH},
     {"ASINH", AB_ASINH}, {"ACOSH", AB_ACOSH}, {"ATANH", AB_ATANH},
     {"PCT", AB_PCT}, {"PCTCHG", AB_PCTCHG},
+    {"HMS", AB_HMS}, {"HMSINV", AB_HMSINV}, {"TODEG", AB_TODEG}, {"TORAD", AB_TORAD},
+    {"TOKG", AB_TOKG}, {"TOLB", AB_TOLB}, {"TOC", AB_TOC}, {"TOF", AB_TOF},
+    {"TOCM", AB_TOCM}, {"TOIN", AB_TOIN}, {"TOL", AB_TOL}, {"TOGAL", AB_TOGAL},
+    {"TOKM", AB_TOKM}, {"TOMILE", AB_TOMILE}, {"FACT", AB_FACT}, {"NCR", AB_NCR}, {"NPR", AB_NPR},
+    {"RAND", AB_RAND}, {"SEED", AB_SEED}, {"IP", AB_IP}, {"FP", AB_FP}, {"INTG", AB_INTG},
+    {"RND", AB_RND}, {"ABS", AB_ABS}, {"SGN", AB_SGN}, {"TOPOL", AB_TOPOL}, {"TOREC", AB_TOREC},
+    {"ALL", AB_SETALL},
 };
 
 /* Applies one key token. Returns 0, or -1 for an unknown token. */
@@ -44,6 +51,23 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
     for (size_t i = 0; i < sizeof NAMED / sizeof NAMED[0]; i++) {
         if (strcmp(tok, NAMED[i].name) == 0) {
             if (ab_do(c, NAMED[i].op) != ABN_OK) (*errors)++;
+            return 0;
+        }
+    }
+    if (strncmp(tok, "CONST:", 6) == 0) {
+        int k = ab_const_index(tok + 6);
+        if (k < 0) return -1;
+        if (ab_do_arg(c, AB_CONST, k) != ABN_OK) (*errors)++;
+        return 0;
+    }
+    static const struct { const char *prefix; ab_op op; } SETTING[] = {
+        {"FIX", AB_SETFIX}, {"SCI", AB_SETSCI}, {"ENG", AB_SETENG}};
+    for (size_t i = 0; i < sizeof SETTING / sizeof SETTING[0]; i++) {
+        size_t n = strlen(SETTING[i].prefix);
+        if (strncmp(tok, SETTING[i].prefix, n) == 0 && isdigit((unsigned char)tok[n])) {
+            int digits = atoi(tok + n);
+            if (digits > AB_FMT_N_MAX) return -1;
+            if (ab_do_arg(c, SETTING[i].op, digits) != ABN_OK) (*errors)++;
             return 0;
         }
     }

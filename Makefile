@@ -47,6 +47,7 @@ test: all
 	./build/diff_test
 	./build/vectors work/001-vectors.txt
 	./build/vectors work/003-vectors.txt
+	./build/vectors work/004-vectors.txt
 	./build/fmt_vectors work/002-vectors.txt
 	python3 tests/fmt_fuzz.py build/fmt_drive 20000
 
