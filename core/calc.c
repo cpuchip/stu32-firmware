@@ -9,6 +9,7 @@
 #include "fn.h"
 #include "const.h"
 #include "stat.h"
+#include "frac.h"
 
 void ab_init(ab_calc *c)
 {
@@ -19,7 +20,7 @@ void ab_init(ab_calc *c)
     c->disp_mode = AB_ALL;      /* ALL is the default display (ours, unit 002) */
     c->disp_n = 0;
     c->ind_top = -1;
-    c->frac_c = 4095;
+    c->frac_c = 4095;          /* the default maximum denominator (UG p.5-5) */
     {
         abn zero = abn_zero();
         fn_seed(&c->rng, &zero);    /* a fixed start: the core has no clock */
@@ -70,8 +71,41 @@ static int count_digits(const ab_entry *e, bool exponent)
 
 /* The value the keys typed so far stand for. A mantissa with no digit yet reads as 0, and
  * an exponent with no digit yet as E0. */
+static int count_char(const ab_entry *e, char ch)
+{
+    int n = 0;
+    for (int i = 0; i < e->len; i++) n += e->text[i] == ch;
+    return n;
+}
+
 static abn_status entry_value(const ab_entry *e, abn *out)
 {
+    /* A second point makes the entry a fraction: integer . numerator . denominator (UG p.5-1),
+     * the exact rational rounded once (unit 007 rule 2). With no denominator digit yet, the
+     * number is the decimal typed so far (ours, unit 007). */
+    if (count_char(e, '.') == 2) {
+        char ip[AB_ENTRY_TEXT], nu[AB_ENTRY_TEXT], de[AB_ENTRY_TEXT];
+        int part = 0, a = 0, b = 0, c2 = 0;
+        for (int i = 0; i < e->len; i++) {
+            char ch = e->text[i];
+            if (ch == '.') part++;
+            else if (part == 0) ip[a++] = ch;
+            else if (part == 1) nu[b++] = ch;
+            else de[c2++] = ch;
+        }
+        ip[a] = nu[b] = de[c2] = '\0';
+        if (c2 > 0) return fr_from_parts(out, e->mant_neg, ip, nu, de);
+        char s[AB_ENTRY_TEXT + 4];
+        int n = 0;
+        if (e->mant_neg) s[n++] = '-';
+        s[n++] = '0';
+        for (int i = 0; i < a; i++) s[n++] = ip[i];
+        s[n++] = '.';
+        for (int i = 0; i < b; i++) s[n++] = nu[i];
+        s[n++] = '0';
+        s[n] = '\0';
+        return abn_from_text(out, s);
+    }
     char s[sizeof e->text + 8];
     int n = 0;
     if (e->mant_neg) s[n++] = '-';
@@ -99,17 +133,23 @@ static abn_status entry_key(ab_calc *c, ab_op op)
         memset(&e, 0, sizeof e);
     }
     bool in_exp = has_char(&e, 'E');
+    int points = count_char(&e, '.');
     if (op <= AB_K9) {
         int limit = in_exp ? AB_ENTRY_EXP : AB_ENTRY_MANT;
         if (count_digits(&e, in_exp) >= limit) return ABN_OK;
+        /* a denominator never starts with 0 (ours, unit 007): the key is ignored */
+        if (op == AB_K0 && points == 2 && e.text[e.len - 1] == '.') return ABN_OK;
         e.text[e.len++] = (char)('0' + (op - AB_K0));
     } else if (op == AB_KPOINT) {
-        if (in_exp || has_char(&e, '.')) return ABN_OK;
+        /* the second point starts a fraction's denominator (UG p.5-1); a third is ignored, as is
+           a point in the exponent (ours, unit 007) */
+        if (in_exp || points >= 2) return ABN_OK;
         e.text[e.len++] = '.';
     } else if (op == AB_KE) {
         /* E starts the exponent of the mantissa typed so far (UG p.1-16). With no
-         * mantissa the guide gives no meaning (it keys 1 E 6 for a million): ignored. */
-        if (in_exp || count_digits(&e, false) == 0) return ABN_OK;
+         * mantissa the guide gives no meaning (it keys 1 E 6 for a million): ignored. A
+         * fraction has no exponent (ours, unit 007): ignored too. */
+        if (in_exp || points == 2 || count_digits(&e, false) == 0) return ABN_OK;
         e.text[e.len++] = 'E';
     } else if (op == AB_KCHS) {
         /* During entry, change sign applies to the part being typed: the exponent once E
@@ -143,6 +183,13 @@ static abn_status entry_key(ab_calc *c, ab_op op)
 }
 
 /* ---- operations ---- */
+
+/* Flags 8 and 9 choose the fraction format (UG p.5-6, p.14-10): 8 clear, most precise; 8 set,
+ * factors of /c; 8 and 9 set, fixed denominator /c. */
+static fr_format frac_format_of(const ab_calc *c)
+{
+    return !c->flag8 ? FR_PRECISE : (c->flag9 ? FR_FIXED : FR_FACTORS);
+}
 
 static fn_angle angle_of(const ab_calc *c)
 {
@@ -196,7 +243,18 @@ static abn_status one_number_fn(ab_calc *c, ab_op op)
     case AB_INTG: st = fn_intg(&r, &c->x); break;
     case AB_ABS: st = fn_abs(&r, &c->x); break;
     case AB_SGN: st = fn_sgn(&r, &c->x); break;
-    default: st = fn_rnd(&r, &c->x, c->disp_mode, c->disp_n); break;     /* AB_RND */
+    default:    /* AB_RND */
+        if (c->fdisp) {
+            /* RND in Fraction-display mode: x becomes the shown fraction, rounded once (UG p.5-8,
+               unit 007 rule 6); beyond fractions, as the decimal format */
+            fr_result fr;
+            if (fr_approx(&fr, &c->x, c->frac_c, frac_format_of(c)) == ABN_OK) {
+                st = fr_value(&r, &fr);
+                break;
+            }
+        }
+        st = fn_rnd(&r, &c->x, c->disp_mode, c->disp_n);
+        break;
     }
     if (st != ABN_OK) return st;
     c->lastx = c->x;
@@ -377,7 +435,6 @@ abn_status ab_do(ab_calc *c, ab_op op)
 
 abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
 {
-    if (op >= AB_FDISP) return ABN_OK;      /* STUB: unit 007 lands after the oracle */
 
     if (op <= AB_KE) return entry_key(c, op);
     if ((op == AB_KCHS || op == AB_KBKSP) && c->entry.active) return entry_key(c, op);
@@ -546,6 +603,51 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
         /* The summation registers, recalled (UG p.12-11). */
         place_in_x(c, c->stat[op - AB_NSUM]);
         break;
+    case AB_FDISP:
+        /* Fraction-display mode on or off; neutral for lift (UG p.5-1, p.B-5) */
+        c->fdisp = !c->fdisp;
+        return ABN_OK;
+    case AB_SF:
+    case AB_CF:
+        /* Flags 7 (Fraction display), 8 and 9 (its format) (UG p.14-10); others come with
+           programming. Not in UG p.B-5's neutral list, so like any other they enable lift. */
+        if (arg == 7) c->fdisp = op == AB_SF;
+        else if (arg == 8) c->flag8 = op == AB_SF;
+        else if (arg == 9) c->flag9 = op == AB_SF;
+        else return ABN_DOMAIN;
+        break;
+    case AB_SETC: {
+        /* /c from |IP(x)| (UG p.5-5): 1 recalls the maximum denominator into X; 0 or anything
+           above 4095 resets it to 4095; otherwise it is set. Setting turns Fraction display on.
+           LAST X is untouched. After setting, X keeps the number and lift is disabled, so the
+           next number replaces it (ours, unit 007: the guide's examples show Y = 0 there). */
+        abn t, big = abn_from_int(4095), one = abn_from_int(1);
+        if (abn_trunc(&t, &c->x) != ABN_OK) return ABN_DOMAIN;
+        t = abn_abs(&t);
+        if (abn_cmp(&t, &one) == 0) {
+            c->x = abn_from_int((int32_t)c->frac_c);
+            break;
+        }
+        if (abn_is_zero(&t) || abn_cmp(&t, &big) > 0) {
+            c->frac_c = 4095;
+        } else {
+            int v;
+            bool ng;
+            char dg[ABN_DIGITS + 1];
+            int ld;
+            abn_digits(&t, &ng, dg, &ld);
+            v = 0;
+            for (int i = 0; i <= ld; i++) v = v * 10 + (i < (int)strlen(dg) ? dg[i] - '0' : 0);
+            c->frac_c = (uint32_t)v;
+        }
+        c->fdisp = true;
+        c->lift = false;
+        return ABN_OK;
+    }
+    case AB_RCLC:
+        /* /c recalled like any number (ours, unit 007: the guide recalls with 1 /c) */
+        place_in_x(c, abn_from_int((int32_t)c->frac_c));
+        break;
     case AB_CLVARS:
         /* Clear the direct variables A..Z (UG p.3-5); neutral for stack lift (UG p.B-5). The
            unnamed indirect variables have their own clearing (UG p.1-5, a later unit). */
@@ -558,6 +660,7 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
         /* Display settings change no number and leave stack lift alone (UG p.1-21, p.B-5). */
         if (arg < 0 || arg > AB_FMT_N_MAX) return ABN_DOMAIN;
         c->disp_mode = op == AB_SETFIX ? AB_FIX : op == AB_SETSCI ? AB_SCI : op == AB_SETENG ? AB_ENG : AB_ALL;
+        c->fdisp = false;   /* choosing a decimal format ends Fraction-display mode (UG p.5-2) */
         c->disp_n = op == AB_SETALL ? 0 : arg;
         return ABN_OK;
     case AB_PCT:

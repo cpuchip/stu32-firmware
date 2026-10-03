@@ -27,4 +27,12 @@ typedef struct {
 /* Fails (ABN_RANGE) when the integer part of |v| has more than 34 digits. */
 abn_status fr_approx(fr_result *out, const abn *v, uint32_t c, fr_format f);
 
+/* The value of the fraction fr_approx shows, (-1)^neg (ip + n/d), rounded once to 34 digits. */
+abn_status fr_value(abn *out, const fr_result *r);
+
+/* (-1)^neg (int + num/den) for decimal digit strings (a typed fraction), rounded once. den must
+   not be all zeros. */
+abn_status fr_from_parts(abn *out, bool neg, const char *int_digits, const char *num_digits,
+                         const char *den_digits);
+
 #endif

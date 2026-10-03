@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include "fmt.h"
+#include "frac.h"
 
 #define MAXD (ABN_DIGITS + 2)
 #define TEXT_CAP 256        /* longest text built; widths beyond it are capped */
@@ -265,9 +266,49 @@ int ab_format(const abn *value, const ab_fmt *f, char *out, int size)
     return t.len;
 }
 
-/* STUB: unit 007 lands after the oracle */
+/* Fraction-display mode (UG p.5-1 to 5-9; rules ours, unit 007): the integer part and, unless
+ * it is zero in a reducing format, the fraction: "2 3/8", "0 7/16", "-2 1/2", "3", and in the
+ * fixed format "2 0/16". No thousands separators (the guide's fractions show none, p.5-3, p.5-5).
+ * A fraction that does not fit, or whose integer part exceeds the 34 digits a number carries,
+ * falls back to the decimal format with no indicator. */
 int ab_format_display(const abn *v, const ab_display *d, char *out, int size, int *indicator)
 {
     *indicator = 0;
+    if (d->fdisp) {
+        fr_result r;
+        fr_format f = d->frac_format == 1 ? FR_FACTORS : d->frac_format == 2 ? FR_FIXED : FR_PRECISE;
+        if (fr_approx(&r, v, d->c < 1 ? 1 : d->c, f) == ABN_OK) {
+            char t[ABN_DIGITS + 32];
+            int n = 0;
+            if (r.neg) t[n++] = '-';
+            for (const char *p = r.ip; *p; p++) t[n++] = *p;
+            if (r.n != 0 || f == FR_FIXED) {
+                char nb[12];
+                int k = 0;
+                uint32_t parts[2] = {r.n, r.d};
+                t[n++] = ' ';
+                for (int which = 0; which < 2; which++) {
+                    uint32_t u = parts[which];
+                    k = 0;
+                    do {
+                        nb[k++] = (char)('0' + u % 10);
+                        u /= 10;
+                    } while (u);
+                    while (k) t[n++] = nb[--k];
+                    if (which == 0) t[n++] = '/';
+                }
+            }
+            t[n] = '\0';
+            if (n <= d->dec.width) {
+                if (size > 0) {
+                    int c = n < size - 1 ? n : size - 1;
+                    memcpy(out, t, (size_t)c);
+                    out[c] = '\0';
+                }
+                *indicator = r.indicator;
+                return n;
+            }
+        }
+    }
     return ab_format(v, &d->dec, out, size);
 }

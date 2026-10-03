@@ -175,3 +175,47 @@ abn_status fr_approx(fr_result *out, const abn *v, uint32_t c, fr_format f)
     if (out->n == 0 && out->ip[0] == '0' && out->ip[1] == '\0' && out->indicator == 0) out->neg = false;
     return ABN_OK;
 }
+
+abn_status fr_from_parts(abn *out, bool neg, const char *int_digits, const char *num_digits,
+                         const char *den_digits)
+{
+    static bigint I, N, Dn, t;
+    static bigint q, num;
+    bool inexact;
+    if (!bi_from_digits(&I, int_digits, 0) || !bi_from_digits(&N, num_digits, 0) ||
+        !bi_from_digits(&Dn, den_digits, 0))
+        return ABN_RANGE;
+    if (bi_is_zero(&Dn)) return ABN_DOMAIN;
+    if (!bi_mul(&t, &I, &Dn) || !bi_add(&num, &t, &N)) return ABN_RANGE;   /* I*D + N */
+    if (bi_is_zero(&num)) {
+        *out = abn_zero();
+        return ABN_OK;
+    }
+    /* scale so the quotient carries at least 45 digits, then round once */
+    int extra = 45 + (bi_ndigits(&Dn) > bi_ndigits(&num) ? bi_ndigits(&Dn) - bi_ndigits(&num) : 0);
+    if (!bi_mul_pow10(&num, extra) || !bi_div(&q, &num, &Dn, &inexact)) return ABN_RANGE;
+    return bi_to_abn(out, &q, neg, -extra, inexact);
+}
+
+abn_status fr_value(abn *out, const fr_result *r)
+{
+    char num[12], den[12];
+    int k = 0;
+    uint32_t v = r->n;
+    char tmp[12];
+    do {
+        tmp[k++] = (char)('0' + v % 10);
+        v /= 10;
+    } while (v);
+    for (int i = 0; i < k; i++) num[i] = tmp[k - 1 - i];
+    num[k] = '\0';
+    k = 0;
+    v = r->d ? r->d : 1;
+    do {
+        tmp[k++] = (char)('0' + v % 10);
+        v /= 10;
+    } while (v);
+    for (int i = 0; i < k; i++) den[i] = tmp[k - 1 - i];
+    den[k] = '\0';
+    return fr_from_parts(out, r->neg, r->ip, num, den);
+}

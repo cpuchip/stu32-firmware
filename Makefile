@@ -56,11 +56,13 @@ test: all
 	python3 tests/fmt_fuzz.py build/fmt_drive 20000
 
 # Needs mpmath (not part of `make test`): the unit 003/004 functions against mpmath at 150 digits,
-# and random statistics data sets against the exact reference.
+# random statistics data sets, and random fractions, against exact references.
 accuracy: build/fn_drive build/vectors
 	python3 tests/fn_fuzz.py build/fn_drive
 	python3 tests/stat_fuzz.py 1 1500 > build/stat_fuzz.txt
 	./build/vectors build/stat_fuzz.txt
+	python3 tests/frac_fuzz.py 1 3000 > build/frac_fuzz.txt
+	./build/fmt_vectors build/frac_fuzz.txt
 
 clean:
 	rm -rf build
