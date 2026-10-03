@@ -1251,7 +1251,7 @@ static abn_status prog_run(ab_calc *c, long limit)
     }
     while (steps < limit) {
         if (c->pc < 0 || c->pc >= c->prog_len) {
-            if (c->rdepth) {
+            if (c->rdepth > c->rbase) {
                 c->pc = c->rstack[--c->rdepth];
                 continue;
             }
@@ -1275,7 +1275,7 @@ static abn_status prog_run(ab_calc *c, long limit)
             break;
         case AB_RTN:
             c->lift = true;
-            if (c->rdepth) {
+            if (c->rdepth > c->rbase) {
                 next = c->rstack[--c->rdepth];
                 break;
             }
@@ -1303,10 +1303,12 @@ static abn_status prog_run(ab_calc *c, long limit)
             break;
         }
         case AB_RS:                             /* STOP */
+            if (c->active) break;               /* while SOLVE / integrate evaluate: ignored (ours) */
             c->pc = next;
             c->stop = AB_STOP_STOP;
             return ABN_OK;
         case AB_PSE:                            /* shows X for the device's pause (p.13-19) */
+            if (c->active) break;
             c->pc = next;
             c->stop = limit == 1 ? AB_STOP_STOP : AB_STOP_PSE;
             c->stop_var = -1;
@@ -1316,6 +1318,15 @@ static abn_status prog_run(ab_calc *c, long limit)
                replaces it (UG p.13-13, p.B-5, G-9); R/S stores X and resumes (unit 012) */
             slot sl;
             if ((st = resolve(c, arg, false, &sl)) != ABN_OK) break;
+            if (c->active) {
+                /* while SOLVE / integrate evaluate (UG p.15-2, 15-8): the unknown's INPUT is
+                   skipped, any other reads the stored value as RCL would (unit 013 brief) */
+                if (slot_id(c, &sl) != c->solve_var) {
+                    place_val(c, load_val(&sl));
+                    c->lift = true;
+                }
+                break;
+            }
             place_val(c, load_val(&sl));
             c->lift = false;
             c->pc = at;
@@ -1329,6 +1340,7 @@ static abn_status prog_run(ab_calc *c, long limit)
             slot sl;
             if ((st = resolve(c, arg, true, &sl)) != ABN_OK) break;
             c->lift = true;
+            if (c->active) break;               /* not shown while SOLVE / integrate evaluate */
             c->stop_var = slot_id(c, &sl);
             c->stop = AB_STOP_VIEW;
             if (next < c->prog_len && c->prog[next].op == AB_PSE) {
@@ -1353,6 +1365,13 @@ static abn_status prog_run(ab_calc *c, long limit)
             st = loop_op(c, op, arg, &skip);
             if (st == ABN_OK) c->lift = true;
             break;
+        case AB_SOLVE:
+            st = do_key(c, (ab_op)op, arg);
+            if (st == ABN_NO_ROOT) {
+                st = ABN_OK;                    /* no message: the next line is skipped (p.15-6) */
+                skip = true;
+            }
+            break;
         default:
             st = do_key(c, (ab_op)op, arg);
             break;
@@ -1371,6 +1390,585 @@ static abn_status prog_run(ab_calc *c, long limit)
     }
     c->stop = AB_STOP_BUDGET;
     return ABN_BUDGET;
+}
+
+/* ---- SOLVE and integrate on programmed functions (unit 013; UG ch.7, 8, 15, App. D, E) ---- */
+
+/* The stack each evaluation starts from: the trial value in X over the stack the SOLVE or integral
+ * found (ours: the guide does not say), so an evaluation does not depend on the one before. */
+static ab_val ev_y, ev_z, ev_t;
+
+static bool math_error(abn_status st)
+{
+    return st == ABN_DIV_ZERO || st == ABN_RANGE || st == ABN_DOMAIN;
+}
+
+/* f(t): the trial value stored in the variable and put in X, the function's label run as a
+ * subroutine (it holds the return level SOLVE / integrate took), f the X it returns. */
+static abn_status eval_fn(ab_calc *c, const abn *t, abn *f)
+{
+    slot sl;
+    abn_status st;
+    int pc0 = c->pc, rb0 = c->rbase;
+    slot_of_id(c, c->solve_var, &sl);
+    if ((st = store_val(c, &sl, ab_real(*t))) != ABN_OK) return st;
+    c->x = ab_real(*t);
+    c->y = ev_y;
+    c->z = ev_z;
+    c->t = ev_t;
+    c->lift = true;
+    c->rbase = c->rdepth;
+    c->pc = c->labelpos[c->fn];
+    st = prog_run(c, c->budget);
+    c->rdepth = c->rbase;
+    c->rbase = rb0;
+    c->pc = pc0;
+    c->evals++;
+    if (st != ABN_OK) return st;
+    if (c->x.kind != AB_REAL) return ABN_DOMAIN;
+    *f = c->x.re;
+    return ABN_OK;
+}
+
+static int sgn(const abn *a)
+{
+    return abn_is_zero(a) ? 0 : abn_is_negative(a) ? -1 : 1;
+}
+
+static int cmp_abs(const abn *a, const abn *b)
+{
+    abn x = abn_abs(a), y = abn_abs(b);
+    return abn_cmp(&x, &y);
+}
+
+#define SOLVE_SEARCH 100    /* evaluations the search for a sign change may use (ours) */
+#define SOLVE_MAX 400       /* evaluations one SOLVE may use (ours) */
+
+/* The outcome of the root finder: a root (or, failing, the point of least |f|), the other end of
+ * the last bracket or the previous estimate, and f at the first. */
+typedef struct {
+    abn x, prev, fx;
+    bool found;
+} solve_out;
+
+/* f at x; a math error makes the point unusable (bad, no root: UG p.7-9, D-12 report NO ROOT FND
+ * for an undefined region); other errors stop SOLVE. */
+static abn_status ev(ab_calc *c, const abn *x, abn *f, bool *bad)
+{
+    abn_status st = eval_fn(c, x, f);
+    *bad = math_error(st);
+    return *bad ? ABN_OK : st;
+}
+
+/* Two guesses (UG p.7-8): if f has the same sign at both, a secant search (each step at most ten
+ * times the last interval; doubling outward where f is flat) looks for a sign change; then
+ * Brent's method (R. P. Brent, Algorithms for Minimization without Derivatives, 1973, ch.4,
+ * procedure zero), then bisection until the bracket's ends are adjacent 34-digit numbers. The
+ * result is the end with the smaller |f| (ties: the lower), the other end as the previous estimate
+ * (UG p.D-3). No sign change within SOLVE_SEARCH evaluations, a search that closes in without
+ * one, an unusable point, or a converged bracket whose |f| exceeds both starting values (a pole,
+ * UG p.D-7: ours, reconciling D-6's text with D-D's example) is no root, reported at the point of
+ * least |f|. */
+static abn_status solve_core(ab_calc *c, abn a, abn b, solve_out *o)
+{
+    abn fa, fb, fc, cc, d, e, t1, t2, best, fbest, fmax;
+    abn two = abn_from_int(2), half, eps, tiny;
+    bool bad;
+    abn_status st;
+    abn_from_text(&half, "0.5");
+    abn_from_text(&eps, "1E-33");
+    abn_from_text(&tiny, "1E-6000");
+    o->found = false;
+    if (abn_cmp(&a, &b) == 0) {
+        /* equal guesses are nudged apart (UG p.7-9): by 1E-6 relative, or 1E-6 at 0 (ours) */
+        abn n;
+        abn_from_text(&n, "1E-6");
+        if (abn_is_zero(&a)) b = n;
+        else if (abn_mul(&t1, &a, &n) != ABN_OK || abn_add(&b, &a, &t1) != ABN_OK) b = n;
+    }
+    if ((st = ev(c, &a, &fa, &bad)) != ABN_OK) return st;
+    if (bad) {
+        o->x = b;
+        o->prev = a;
+        o->fx = abn_zero();
+        if ((st = ev(c, &b, &o->fx, &bad)) != ABN_OK) return st;
+        return ABN_OK;
+    }
+    if ((st = ev(c, &b, &fb, &bad)) != ABN_OK) return st;
+    best = a;
+    fbest = fa;
+    o->prev = b;
+    if (bad) goto noroot;
+    if (abn_is_zero(&fa) || abn_is_zero(&fb)) {
+        bool az = abn_is_zero(&fa);
+        o->x = az ? a : b;
+        o->prev = az ? b : a;
+        o->fx = abn_zero();
+        o->found = true;
+        return ABN_OK;
+    }
+    /* the search for a sign change */
+    for (int k = 0; sgn(&fa) == sgn(&fb); k++) {
+        abn x, fx, step, lim;
+        if (k >= SOLVE_SEARCH) goto noroot;
+        if (cmp_abs(&fa, &fb) < 0) {         /* b the better point */
+            abn tx = a, tf = fa;
+            a = b;
+            fa = fb;
+            b = tx;
+            fb = tf;
+        }
+        best = b;
+        fbest = fb;
+        o->prev = a;
+        if (abn_sub(&t1, &b, &a) != ABN_OK) goto noroot;
+        if (abn_cmp(&fa, &fb) != 0) {
+            /* secant: x = b - fb (b - a) / (fb - fa), the step at most 10 |b - a| */
+            abn ten = abn_from_int(10);
+            if (abn_sub(&t2, &fb, &fa) != ABN_OK || abn_div(&step, &t1, &t2) != ABN_OK ||
+                abn_mul(&step, &step, &fb) != ABN_OK)
+                goto noroot;
+            step = abn_neg(&step);
+            if (abn_mul(&lim, &t1, &ten) != ABN_OK) goto noroot;
+            lim = abn_abs(&lim);
+            if (cmp_abs(&step, &lim) > 0) step = abn_is_negative(&step) ? abn_neg(&lim) : lim;
+        } else if (abn_mul(&step, &t1, &two) != ABN_OK) {   /* flat: double outward, past b */
+            goto noroot;
+        }
+        if (abn_add(&x, &b, &step) != ABN_OK) goto noroot;
+        if (abn_cmp(&x, &b) == 0 || abn_cmp(&x, &a) == 0) {
+            if (abn_add(&x, &b, &t1) != ABN_OK) goto noroot;
+            if (abn_cmp(&x, &b) == 0) goto noroot;  /* no room left to move: closed in */
+        }
+        if ((st = ev(c, &x, &fx, &bad)) != ABN_OK) return st;
+        if (bad) goto noroot;
+        a = b;
+        fa = fb;
+        b = x;
+        fb = fx;
+        if (abn_is_zero(&fb)) {
+            o->x = b;
+            o->prev = a;
+            o->fx = fb;
+            o->found = true;
+            return ABN_OK;
+        }
+        if (cmp_abs(&fb, &fbest) < 0) {
+            best = b;
+            fbest = fb;
+            o->prev = a;
+        }
+        /* closing in on a minimum of |f| without a sign change */
+        {
+            abn ma = abn_abs(&a), mb = abn_abs(&b), w, rel;
+            abn_from_text(&rel, "1E-30");
+            if (abn_sub(&w, &b, &a) != ABN_OK) goto noroot;
+            w = abn_abs(&w);
+            if (abn_cmp(&ma, &mb) < 0) ma = mb;
+            if (abn_mul(&t2, &ma, &rel) != ABN_OK) goto noroot;
+            if (abn_cmp(&w, &t2) <= 0) goto noroot;
+        }
+    }
+    /* Brent's method on the bracket [a, b] */
+    fmax = cmp_abs(&fa, &fb) > 0 ? abn_abs(&fa) : abn_abs(&fb);
+    if (sgn(&a) * sgn(&b) < 0) {
+        /* a bracket around 0: f(0) first, so no later bracket straddles 0, where a relative
+           tolerance has no floor (ours) */
+        abn z = abn_zero(), fz;
+        if ((st = ev(c, &z, &fz, &bad)) != ABN_OK) return st;
+        if (!bad) {
+            if (abn_is_zero(&fz)) {
+                o->x = z;
+                o->prev = cmp_abs(&fa, &fb) <= 0 ? a : b;
+                o->fx = fz;
+                o->found = true;
+                return ABN_OK;
+            }
+            if (sgn(&fz) == sgn(&fa)) {
+                a = z;
+                fa = fz;
+            } else {
+                b = z;
+                fb = fz;
+            }
+        }
+    }
+    cc = a;
+    fc = fa;
+    if (abn_sub(&d, &b, &a) != ABN_OK) goto noroot;
+    e = d;
+    while (c->evals < SOLVE_MAX) {
+        abn tol, xm, p, q, r, sv, m1, m2;
+        if (sgn(&fb) == sgn(&fc)) {
+            cc = a;
+            fc = fa;
+            if (abn_sub(&d, &b, &a) != ABN_OK) goto noroot;
+            e = d;
+        }
+        if (cmp_abs(&fc, &fb) < 0) {
+            a = b;
+            b = cc;
+            cc = a;
+            fa = fb;
+            fb = fc;
+            fc = fa;
+        }
+        t1 = abn_abs(&b);
+        if (abn_mul(&tol, &t1, &eps) != ABN_OK || abn_mul(&tol, &tol, &two) != ABN_OK ||
+            abn_add(&tol, &tol, &tiny) != ABN_OK)
+            goto noroot;
+        if (abn_sub(&xm, &cc, &b) != ABN_OK || abn_mul(&xm, &xm, &half) != ABN_OK) goto noroot;
+        if (cmp_abs(&xm, &tol) <= 0 || abn_is_zero(&fb)) break;
+        t1 = abn_abs(&e);
+        if (abn_cmp(&t1, &tol) >= 0 && cmp_abs(&fa, &fb) > 0) {
+            /* inverse quadratic interpolation, or the secant when a = c */
+            abn one = abn_from_int(1);
+            if (abn_div(&sv, &fb, &fa) != ABN_OK) goto noroot;
+            if (abn_cmp(&a, &cc) == 0) {
+                if (abn_mul(&p, &xm, &two) != ABN_OK || abn_mul(&p, &p, &sv) != ABN_OK ||
+                    abn_sub(&q, &one, &sv) != ABN_OK)
+                    goto noroot;
+            } else {
+                abn u, w;
+                if (abn_div(&q, &fa, &fc) != ABN_OK || abn_div(&r, &fb, &fc) != ABN_OK) goto noroot;
+                /* p = s (2 xm q (q - r) - (b - a)(r - 1)); q = (q - 1)(r - 1)(s - 1) */
+                if (abn_sub(&u, &q, &r) != ABN_OK || abn_mul(&u, &u, &q) != ABN_OK ||
+                    abn_mul(&u, &u, &xm) != ABN_OK || abn_mul(&u, &u, &two) != ABN_OK ||
+                    abn_sub(&w, &b, &a) != ABN_OK || abn_sub(&t2, &r, &one) != ABN_OK ||
+                    abn_mul(&w, &w, &t2) != ABN_OK || abn_sub(&u, &u, &w) != ABN_OK ||
+                    abn_mul(&p, &u, &sv) != ABN_OK)
+                    goto noroot;
+                if (abn_sub(&u, &q, &one) != ABN_OK || abn_sub(&w, &r, &one) != ABN_OK ||
+                    abn_mul(&u, &u, &w) != ABN_OK || abn_sub(&w, &sv, &one) != ABN_OK ||
+                    abn_mul(&q, &u, &w) != ABN_OK)
+                    goto noroot;
+            }
+            if (sgn(&p) > 0) q = abn_neg(&q);
+            p = abn_abs(&p);
+            /* accept if 2p < min(3 xm q - |tol q|, |e q|) */
+            {
+                abn three = abn_from_int(3), tq;
+                if (abn_mul(&m1, &xm, &q) != ABN_OK || abn_mul(&m1, &m1, &three) != ABN_OK ||
+                    abn_mul(&tq, &tol, &q) != ABN_OK)
+                    goto noroot;
+                tq = abn_abs(&tq);
+                if (abn_sub(&m1, &m1, &tq) != ABN_OK || abn_mul(&m2, &e, &q) != ABN_OK) goto noroot;
+                m2 = abn_abs(&m2);
+                if (abn_cmp(&m1, &m2) > 0) m1 = m2;
+                if (abn_mul(&t2, &p, &two) != ABN_OK) goto noroot;
+                if (abn_cmp(&t2, &m1) < 0) {
+                    e = d;
+                    if (abn_div(&d, &p, &q) != ABN_OK) goto noroot;
+                } else {
+                    d = xm;
+                    e = d;
+                }
+            }
+        } else {
+            d = xm;
+            e = d;
+        }
+        a = b;
+        fa = fb;
+        if (cmp_abs(&d, &tol) > 0) {
+            if (abn_add(&b, &b, &d) != ABN_OK) goto noroot;
+        } else {
+            abn st1 = sgn(&xm) < 0 ? abn_neg(&tol) : tol;
+            if (abn_add(&b, &b, &st1) != ABN_OK) goto noroot;
+        }
+        if ((st = ev(c, &b, &fb, &bad)) != ABN_OK) return st;
+        if (bad) goto noroot_bracket;
+    }
+    /* bisection until the ends are adjacent */
+    while (!abn_is_zero(&fb) && c->evals < SOLVE_MAX) {
+        abn mid, fm;
+        if (abn_sub(&t1, &cc, &b) != ABN_OK || abn_mul(&t1, &t1, &half) != ABN_OK ||
+            abn_add(&mid, &b, &t1) != ABN_OK)
+            goto noroot;
+        if (abn_cmp(&mid, &b) == 0 || abn_cmp(&mid, &cc) == 0) break;
+        if ((st = ev(c, &mid, &fm, &bad)) != ABN_OK) return st;
+        if (bad) goto noroot_bracket;
+        if (sgn(&fm) == sgn(&fb)) {
+            b = mid;
+            fb = fm;
+        } else {
+            cc = mid;
+            fc = fm;
+        }
+        if (abn_is_zero(&fm)) {
+            b = mid;
+            fb = fm;
+        }
+    }
+    if (!abn_is_zero(&fb) && c->evals >= SOLVE_MAX) goto noroot_bracket;
+    {
+        /* the end with the smaller |f| (ties: the lower) is the root */
+        int k = abn_is_zero(&fb) ? -1 : cmp_abs(&fb, &fc);
+        bool take_b = k < 0 || (k == 0 && abn_cmp(&b, &cc) < 0);
+        o->x = take_b ? b : cc;
+        o->fx = take_b ? fb : fc;
+        o->prev = take_b ? cc : b;
+        t1 = abn_abs(&o->fx);
+        o->found = abn_cmp(&t1, &fmax) <= 0;    /* else a pole */
+        return ABN_OK;
+    }
+noroot_bracket:
+    best = cmp_abs(&fb, &fc) <= 0 ? b : cc;
+    fbest = cmp_abs(&fb, &fc) <= 0 ? fb : fc;
+    o->prev = cmp_abs(&fb, &fc) <= 0 ? cc : b;
+noroot:
+    o->x = best;
+    o->fx = fbest;
+    return ABN_OK;
+}
+
+/* SOLVE var (UG p.7-2, 7-8, 15-1): the guesses are the variable and X; the root goes to the
+ * variable and X, the previous estimate to Y, f at the root to Z; T keeps its value and lift is
+ * enabled (ours: the guide does not say; SOLVE is in neither of p.B-5's lists); LAST X is kept
+ * (not in p.B-6's list). No root: ABN_NO_ROOT with the same report at the point of least |f| (UG
+ * p.7-8); a program skips the next line instead (p.15-6). The search uses one of the 20 return
+ * levels (p.15-11). Any other error leaves everything as it was. */
+static abn_status solve_op(ab_calc *c, int code)
+{
+    slot sl;
+    abn_status st;
+    ab_val ox = c->x, oy = c->y, oz = c->z, ot = c->t, olx = c->lastx, ovar;
+    bool olift = c->lift;
+    solve_out o;
+    if (c->active) return ABN_NESTED;
+    if (c->fn < 0 || c->labelpos[c->fn] < 0) return ABN_SELECT_FN;
+    if ((st = resolve(c, code, false, &sl)) != ABN_OK) return st;
+    if (!sl.val) return ABN_DOMAIN;             /* not an unnamed or statistics register (p.14-23) */
+    if (sl.val->kind != AB_REAL || c->x.kind != AB_REAL) return ABN_DOMAIN;   /* BAD GUESS (p.F-1) */
+    if (c->rdepth >= AB_RTN_DEPTH) return ABN_XEQ_OVERFLOW;
+    ovar = *sl.val;
+    c->active = AB_SOLVE;
+    c->solve_var = slot_id(c, &sl);
+    c->evals = 0;
+    ev_y = oy;
+    ev_z = oz;
+    ev_t = ot;
+    c->rstack[c->rdepth++] = -1;               /* the level SOLVE holds */
+    st = solve_core(c, ovar.re, ox.re, &o);
+    c->rdepth--;
+    c->active = 0;
+    if (st != ABN_OK) {
+        *sl.val = ovar;
+        c->x = ox;
+        c->y = oy;
+        c->z = oz;
+        c->t = ot;
+        c->lastx = olx;
+        c->lift = olift;
+        return st;
+    }
+    *sl.val = ab_real(o.x);
+    c->x = ab_real(o.x);
+    c->y = ab_real(o.prev);
+    c->z = ab_real(o.fx);
+    c->t = ot;
+    c->lastx = olx;
+    c->lift = true;
+    return o.found ? ABN_OK : ABN_NO_ROOT;
+}
+
+/* Gauss-Kronrod 7-15 on [-1, 1] (A. S. Kronrod, Nodes and Weights of Quadrature Formulas, 1965;
+ * the values solved here from exactness to degree 22 with mpmath at 80 digits): the positive nodes,
+ * their Kronrod weights, and the Gauss weights of the 7-point rule (every other node, and 0). */
+static const char *const GK_X[8] = {"0.9914553711208126392068546975263285166",
+    "0.9491079123427585245261896840478512624", "0.8648644233597690727897127886409262012",
+    "0.7415311855993944398638647732807884071", "0.5860872354676911302941448382587295984",
+    "0.4058451513773971669066064120769614633", "0.2077849550078984676006894037732449135", "0"};
+static const char *const GK_WK[8] = {"0.02293532201052922496373200805896959199",
+    "0.06309209262997855329070066318920428667", "0.1047900103222501838398763225415180174",
+    "0.1406532597155259187451895905102379204", "0.1690047266392679028265834265985502841",
+    "0.1903505780647854099132564024210136828", "0.2044329400752988924141619992346490847",
+    "0.2094821410847278280129991748917142637"};
+static const char *const GK_WG[4] = {"0.1294849661688696932706114326790820183",
+    "0.2797053914892766679014677714237795825", "0.3818300505051189449503697754889751339",
+    "0.4179591836734693877551020408163265306"};
+
+#define INTEG_PARTS 100     /* subintervals one integral may use: 1,500 evaluations (ours) */
+
+static abn ia[INTEG_PARTS], ib[INTEG_PARTS], ires[INTEG_PARTS], ierr[INTEG_PARTS], iabs[INTEG_PARTS];
+
+/* One 15-point rule on [a, b]: the Kronrod result, its error estimate (QUADPACK's QK15: R.
+ * Piessens et al., QUADPACK, 1983: resasc min(1, (200 |K - G| / resasc)^1.5)) and the integral
+ * of |f| (for the display-format uncertainty). */
+static abn_status gk15(ab_calc *c, const abn *a, const abn *b, abn *res, abn *err, abn *rabs)
+{
+    abn cen, h, fv[15], two = abn_from_int(2), half, rk = abn_zero(), rg = abn_zero(), ra = abn_zero(),
+        rasc = abn_zero(), t, x, w, kh, k200 = abn_from_int(200);
+    abn_status st;
+    abn_from_text(&half, "0.5");
+    if ((st = abn_add(&cen, a, b)) != ABN_OK || (st = abn_mul(&cen, &cen, &half)) != ABN_OK ||
+        (st = abn_sub(&h, b, a)) != ABN_OK || (st = abn_mul(&h, &h, &half)) != ABN_OK)
+        return st;
+    for (int i = 0; i < 8; i++) {
+        abn xi, wk;
+        abn_from_text(&xi, GK_X[i]);
+        abn_from_text(&wk, GK_WK[i]);
+        if ((st = abn_mul(&t, &h, &xi)) != ABN_OK) return st;
+        for (int side = 0; side < (i < 7 ? 2 : 1); side++) {
+            abn f, fa;
+            if ((st = side ? abn_sub(&x, &cen, &t) : abn_add(&x, &cen, &t)) != ABN_OK) return st;
+            if ((st = eval_fn(c, &x, &f)) != ABN_OK) return st;
+            fv[i * 2 + side] = f;
+            if ((st = abn_mul(&w, &wk, &f)) != ABN_OK || (st = abn_add(&rk, &rk, &w)) != ABN_OK) return st;
+            fa = abn_abs(&f);
+            if ((st = abn_mul(&w, &wk, &fa)) != ABN_OK || (st = abn_add(&ra, &ra, &w)) != ABN_OK) return st;
+            if (i % 2 == 1) {
+                abn wg;
+                abn_from_text(&wg, GK_WG[i / 2]);
+                if ((st = abn_mul(&w, &wg, &f)) != ABN_OK || (st = abn_add(&rg, &rg, &w)) != ABN_OK) return st;
+            }
+        }
+    }
+    /* resasc: the integral of |f - mean| with the Kronrod weights */
+    if ((st = abn_mul(&kh, &rk, &half)) != ABN_OK) return st;
+    for (int i = 0; i < 8; i++) {
+        abn wk, dv;
+        abn_from_text(&wk, GK_WK[i]);
+        for (int side = 0; side < (i < 7 ? 2 : 1); side++) {
+            if ((st = abn_sub(&dv, &fv[i * 2 + side], &kh)) != ABN_OK) return st;
+            dv = abn_abs(&dv);
+            if ((st = abn_mul(&w, &wk, &dv)) != ABN_OK || (st = abn_add(&rasc, &rasc, &w)) != ABN_OK) return st;
+        }
+    }
+    {
+        abn ah = abn_abs(&h);
+        if ((st = abn_mul(res, &rk, &h)) != ABN_OK || (st = abn_sub(&t, &rk, &rg)) != ABN_OK ||
+            (st = abn_mul(err, &t, &h)) != ABN_OK || (st = abn_mul(rabs, &ra, &ah)) != ABN_OK ||
+            (st = abn_mul(&rasc, &rasc, &ah)) != ABN_OK)
+            return st;
+        *err = abn_abs(err);
+        if (!abn_is_zero(&rasc) && !abn_is_zero(err)) {
+            abn r, one = abn_from_int(1), sr;
+            if ((st = abn_mul(&r, err, &k200)) != ABN_OK || (st = abn_div(&r, &r, &rasc)) != ABN_OK) return st;
+            if (abn_cmp(&r, &one) < 0) {
+                if ((st = abn_sqrt(&sr, &r)) != ABN_OK || (st = abn_mul(&r, &r, &sr)) != ABN_OK) return st;
+            } else {
+                r = one;
+            }
+            if ((st = abn_mul(err, &rasc, &r)) != ABN_OK) return st;
+        }
+        (void)two;
+    }
+    return ABN_OK;
+}
+
+/* integrate var from Y to X (UG p.8-2, 15-8): X the integral, Y its uncertainty, Z the upper and T
+ * the lower limit; lift enabled; LAST X and the variable kept (ours: the guide does not say). The
+ * accuracy follows the display format at the time (p.8-2, 8-6): f is taken as good to the digits
+ * shown, an uncertainty U = 10^-n times the integral of |f| in SCI n or ENG n, 10^-n |b - a| in
+ * FIX n, ALL as SCI 11 (the guide pairs "SCI 11 or ALL", p.E-5) (ours, unit 013 rule 2). Global
+ * adaptive Gauss-Kronrod 7-15 (QUADPACK's QAG) subdivides the worst piece until its error estimate
+ * is below U / 10, or INTEG_PARTS pieces; Y = U + the error estimate, so it covers the error of
+ * the rule as well as that of f's digits. The ends are never evaluated (p.8-5). An error in the
+ * function stops the integral (the guide's integrator cannot proceed either), nothing changed. */
+static abn_status integ_op(ab_calc *c, int code)
+{
+    slot sl;
+    abn_status st;
+    ab_val ox = c->x, oy = c->y, oz = c->z, ot = c->t, olx = c->lastx, ovar;
+    bool olift = c->lift;
+    int n = 1, mode = c->disp_mode, digits = c->disp_n;
+    abn tot, err, rab, u, tenth, t;
+    if (c->active) return ABN_NESTED;
+    if (c->fn < 0 || c->labelpos[c->fn] < 0) return ABN_SELECT_FN;
+    if ((st = resolve(c, code, false, &sl)) != ABN_OK) return st;
+    if (!sl.val) return ABN_DOMAIN;
+    if (c->x.kind != AB_REAL || c->y.kind != AB_REAL) return ABN_DOMAIN;
+    if (c->rdepth >= AB_RTN_DEPTH) return ABN_XEQ_OVERFLOW;
+    ovar = *sl.val;
+    c->active = AB_INTEG;
+    c->solve_var = slot_id(c, &sl);
+    c->evals = 0;
+    ev_y = oy;
+    ev_z = oz;
+    ev_t = ot;
+    c->rstack[c->rdepth++] = -1;
+    if (mode == AB_ALL) digits = 11;
+    abn_from_text(&tenth, "0.1");
+    ia[0] = oy.re;
+    ib[0] = ox.re;
+    st = gk15(c, &ia[0], &ib[0], &ires[0], &ierr[0], &iabs[0]);
+    while (st == ABN_OK) {
+        int worst = 0;
+        tot = err = rab = abn_zero();
+        for (int i = 0; i < n; i++) {
+            if ((st = abn_add(&tot, &tot, &ires[i])) != ABN_OK || (st = abn_add(&err, &err, &ierr[i])) != ABN_OK ||
+                (st = abn_add(&rab, &rab, &iabs[i])) != ABN_OK)
+                break;
+            if (abn_cmp(&ierr[i], &ierr[worst]) > 0) worst = i;
+        }
+        if (st != ABN_OK) break;
+        {
+            abn p;
+            if ((st = abn_pow10(&p, -digits)) != ABN_OK) break;
+            if (mode == AB_FIX) {
+                abn w;
+                if ((st = abn_sub(&w, &ox.re, &oy.re)) != ABN_OK) break;
+                w = abn_abs(&w);
+                st = abn_mul(&u, &w, &p);
+            } else {
+                st = abn_mul(&u, &rab, &p);
+            }
+            if (st != ABN_OK) break;
+        }
+        if ((st = abn_mul(&t, &u, &tenth)) != ABN_OK) break;
+        if (abn_cmp(&err, &t) <= 0 || n >= INTEG_PARTS) break;
+        /* split the worst piece in two */
+        {
+            abn mid, half;
+            abn_from_text(&half, "0.5");
+            if ((st = abn_add(&mid, &ia[worst], &ib[worst])) != ABN_OK || (st = abn_mul(&mid, &mid, &half)) != ABN_OK)
+                break;
+            ia[n] = mid;
+            ib[n] = ib[worst];
+            ib[worst] = mid;
+            if ((st = gk15(c, &ia[worst], &ib[worst], &ires[worst], &ierr[worst], &iabs[worst])) != ABN_OK) break;
+            if ((st = gk15(c, &ia[n], &ib[n], &ires[n], &ierr[n], &iabs[n])) != ABN_OK) break;
+            n++;
+        }
+    }
+    c->rdepth--;
+    c->active = 0;
+    *sl.val = ovar;
+    if (st == ABN_OK) st = abn_add(&t, &u, &err);
+    if (st != ABN_OK) {
+        c->x = ox;
+        c->y = oy;
+        c->z = oz;
+        c->t = ot;
+        c->lastx = olx;
+        c->lift = olift;
+        return st;
+    }
+    c->x = ab_real(tot);
+    c->y = ab_real(t);
+    c->z = ox;
+    c->t = oy;
+    c->lastx = olx;
+    c->lift = true;
+    return ABN_OK;
+}
+
+/* FN= label (UG p.15-1, 15-8): chooses the function; (I)/(J) name a label (p.14-22). Refused while
+ * a SOLVE or integral evaluates (SOLVE ACTIVE, p.F-4). A label not (yet) keyed is accepted: SOLVE
+ * then reports SELECT FN (p.F-4). */
+static abn_status fn_op(ab_calc *c, int arg)
+{
+    int t;
+    abn_status st;
+    if (c->active) return ABN_NESTED;
+    if (arg == AB_TGT_IND_I || arg == AB_TGT_IND_J) {
+        if ((st = ind_target(c, arg, &t)) != ABN_OK) return st;
+        arg = t / 1000;                         /* the label (I) names */
+    }
+    if (arg < 0 || arg >= 26) return ABN_DOMAIN;
+    c->fn = arg;
+    return ABN_OK;
 }
 
 /* R/S, or SST (limit 1), resuming a stopped program: at an INPUT prompt X is stored in the
@@ -1848,10 +2446,15 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
         return ABN_OK;                          /* only in programs (UG p.G-9) */
     case AB_CANCEL:
         return cancel_key(c);
-    case AB_FN:
+    case AB_FN: {
+        abn_status st = fn_op(c, arg);          /* FN= enables lift (not in p.B-5's lists) */
+        if (st != ABN_OK) return st;
+        break;
+    }
     case AB_SOLVE:
+        return solve_op(c, arg);
     case AB_INTEG:
-        return ABN_OK;                          /* STUB: unit 013 lands after the oracle */
+        return integ_op(c, arg);
     case AB_LIT:
         return ABN_DOMAIN;
     case AB_SETC: {

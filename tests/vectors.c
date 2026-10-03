@@ -315,7 +315,7 @@ int main(int argc, char **argv)
                 /* program state (unit 011): %PC=A005 or TOP; %GO:A004=A003 (that line's target);
                    %LINES=n; %YES=0|1 (the last test); %Fn=0|1 (flag n) */
                 char *eq = strchr(ex, '=');
-                char got[32] = "?";
+                char got[128] = "?";
                 if (!eq) {
                     fprintf(stderr, "%s:%d: %s: bad expectation '%s'\n", argv[1], lineno, id, ex);
                     return 2;
@@ -343,6 +343,12 @@ int main(int argc, char **argv)
                 } else if (strncmp(ex, "%EVALS<", 7) == 0) {
                     /* "%EVALS<=n" is written %EVALS<=n: the evaluations used, at most n */
                     snprintf(got, sizeof got, "%s", c.evals <= atol(eq + 1) ? eq + 1 : "more");
+                } else if (strcmp(ex, "%XVAR") == 0) {
+                    /* "%XVAR=A": variable A holds exactly what X holds (unit 013: SOLVE's root) */
+                    int vi = eq[1] >= 'A' && eq[1] <= 'Z' ? eq[1] - 'A' : -1;
+                    bool same = vi >= 0 && c.var[vi].kind == c.x.kind && abn_cmp(&c.var[vi].re, &c.x.re) == 0 &&
+                                abn_cmp(&c.var[vi].im, &c.x.im) == 0;
+                    snprintf(got, sizeof got, "%s", same ? eq + 1 : "different");
                 } else if (strcmp(ex, "%STOP") == 0) {
                     ab_stop_text(&c, got);
                 } else if (strcmp(ex, "%LINES") == 0) {
@@ -543,6 +549,7 @@ int main(int argc, char **argv)
         }
         vectors++;
         if (vec_ok) vectors_ok++;
+        if (getenv("AB_EVALS")) fprintf(stderr, "%s evals %ld\n", id, c.evals);   /* unit 013 report */
     }
     fclose(f);
     printf("%s: %d/%d vectors, %d/%d expectations\n", argv[1], vectors_ok, vectors,

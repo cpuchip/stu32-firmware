@@ -82,6 +82,8 @@ accuracy: build/fn_drive build/cx_drive build/vectors
 	python3 tests/cx_fuzz.py build/cx_drive
 	python3 tests/cxkey_fuzz.py 1 5000 > build/cxkey_fuzz.txt
 	./build/vectors build/cxkey_fuzz.txt
+	python3 tests/solve_fuzz.py 1 1500 > build/solve_fuzz.txt
+	./build/vectors build/solve_fuzz.txt
 	python3 tests/stat_fuzz.py 1 1500 > build/stat_fuzz.txt
 	./build/vectors build/stat_fuzz.txt
 	python3 tests/frac_fuzz.py 1 3000 > build/frac_fuzz.txt
