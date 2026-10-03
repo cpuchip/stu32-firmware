@@ -20,8 +20,18 @@ typedef enum {
     AB_XY,                  /* exchange X and Y */
     AB_LASTX,
     AB_CLX, AB_CLSTK,       /* clear X, clear the stack */
-    AB_ADD, AB_SUB, AB_MUL, AB_DIV
+    AB_ADD, AB_SUB, AB_MUL, AB_DIV,
+    /* unit 003: one-argument functions, powers, trigonometry, percent */
+    AB_EXP, AB_LN, AB_TENX, AB_LOG,
+    AB_IDIV, AB_RMDR,
+    AB_SQ, AB_SQRT, AB_INV, AB_POW, AB_XROOT,
+    AB_PI, AB_DEG, AB_RAD, AB_GRAD,
+    AB_SIN, AB_COS, AB_TAN, AB_ASIN, AB_ACOS, AB_ATAN,
+    AB_SINH, AB_COSH, AB_TANH, AB_ASINH, AB_ACOSH, AB_ATANH,
+    AB_PCT, AB_PCTCHG
 } ab_op;
+
+typedef enum { AB_ANGLE_DEG = 0, AB_ANGLE_RAD, AB_ANGLE_GRAD } ab_angle;
 
 #define AB_ENTRY_MANT ABN_DIGITS    /* most mantissa digits accepted in entry */
 #define AB_ENTRY_EXP 4              /* most exponent digits accepted (provisional) */
@@ -37,6 +47,7 @@ typedef struct {
     abn x, y, z, t;
     abn lastx;
     bool lift;              /* stack lift enabled */
+    ab_angle angle;         /* angular mode for trigonometry */
     ab_entry entry;
 } ab_calc;
 

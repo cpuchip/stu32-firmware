@@ -98,4 +98,54 @@ static inline int norm_equal(const norm *a, const norm *b)
     return a->neg == b->neg && a->exp == b->exp && strcmp(a->dig, b->dig) == 0;
 }
 
+/* True when got is within `units` units in the 34th significant digit of want, computed on
+ * the digit strings with exact integer arithmetic (no engine, no floating point). A zero
+ * want requires an exact zero. */
+static inline int norm_within_units(const norm *want, const norm *got, int units)
+{
+    enum { CAP = 240 };
+    if (want->zero) return got->zero;
+    if (got->zero) return 0;
+    long unit = want->exp - 33;
+    long wlow = want->exp - (long)strlen(want->dig) + 1;
+    long glow = got->exp - (long)strlen(got->dig) + 1;
+    if (got->exp > want->exp + 2 || got->exp < unit - 2) return 0;
+    long base = unit;
+    if (wlow < base) base = wlow;
+    if (glow < base) base = glow;
+    long top = (want->exp > got->exp ? want->exp : got->exp) + 2;
+    if (top - base + 1 > CAP) return 0;
+    int w[CAP] = {0}, g[CAP] = {0}, d[CAP] = {0};   /* little-endian, position - base */
+    for (size_t i = 0; i < strlen(want->dig); i++) w[want->exp - (long)i - base] = want->dig[i] - '0';
+    for (size_t i = 0; i < strlen(got->dig); i++) g[got->exp - (long)i - base] = got->dig[i] - '0';
+    int n = (int)(top - base + 1);
+    /* |got - want| as a magnitude: same signs subtract, opposite signs add. */
+    if (want->neg == got->neg) {
+        int cmp = 0;
+        for (int i = n - 1; i >= 0 && !cmp; i--) cmp = (g[i] > w[i]) - (g[i] < w[i]);
+        const int *a = cmp >= 0 ? g : w, *b = cmp >= 0 ? w : g;
+        int borrow = 0;
+        for (int i = 0; i < n; i++) {
+            int v = a[i] - b[i] - borrow;
+            borrow = v < 0;
+            d[i] = v + (borrow ? 10 : 0);
+        }
+    } else {
+        int carry = 0;
+        for (int i = 0; i < n; i++) {
+            int v = g[i] + w[i] + carry;
+            d[i] = v % 10;
+            carry = v / 10;
+        }
+        if (carry) return 0;
+    }
+    /* Compare d with units * 10^(unit - base). */
+    int lim[CAP] = {0};
+    long at = unit - base;
+    for (int u = units, i = 0; u > 0; u /= 10, i++) lim[at + i] = u % 10;
+    for (int i = n - 1; i >= 0; i--)
+        if (d[i] != lim[i]) return d[i] < lim[i];
+    return 1;
+}
+
 #endif

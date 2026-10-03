@@ -6,7 +6,8 @@
  * Numbers in expectations are compared by this file's own normalizer (sign, significant
  * digits, exponent of the leading digit), not by the engine's parser, so a parser bug
  * cannot hide itself. "=" is exact equality; "~" compares after rounding both sides to
- * 12 significant digits (half away from zero, on the digit strings). The expectation
+ * 12 significant digits (half away from zero, on the digit strings); "^" means within 8
+ * units in the 34th significant digit of the value (unit 003 amendment 1). The expectation
  * ERR means at least one operation in the vector must return an error; without it, any
  * error fails the vector.
  *
@@ -26,6 +27,15 @@ static const struct { const char *name; ab_op op; } NAMED[] = {
     {"RDN", AB_RDN}, {"RUP", AB_RUP}, {"XY", AB_XY}, {"LASTX", AB_LASTX},
     {"CLX", AB_CLX}, {"CLSTK", AB_CLSTK},
     {"+", AB_ADD}, {"-", AB_SUB}, {"*", AB_MUL}, {"/", AB_DIV},
+    {"EXP", AB_EXP}, {"LN", AB_LN}, {"TENX", AB_TENX}, {"LOG", AB_LOG},
+    {"IDIV", AB_IDIV}, {"RMDR", AB_RMDR},
+    {"SQ", AB_SQ}, {"SQRT", AB_SQRT}, {"INV", AB_INV}, {"POW", AB_POW}, {"XROOT", AB_XROOT},
+    {"PI", AB_PI}, {"DEG", AB_DEG}, {"RAD", AB_RAD}, {"GRAD", AB_GRAD},
+    {"SIN", AB_SIN}, {"COS", AB_COS}, {"TAN", AB_TAN},
+    {"ASIN", AB_ASIN}, {"ACOS", AB_ACOS}, {"ATAN", AB_ATAN},
+    {"SINH", AB_SINH}, {"COSH", AB_COSH}, {"TANH", AB_TANH},
+    {"ASINH", AB_ASINH}, {"ACOSH", AB_ACOSH}, {"ATANH", AB_ATANH},
+    {"PCT", AB_PCT}, {"PCTCHG", AB_PCTCHG},
 };
 
 /* Applies one key token. Returns 0, or -1 for an unknown token. */
@@ -123,7 +133,7 @@ int main(int argc, char **argv)
         for (int k = 0; k < nexp; k++) {
             char *ex = exps[k];
             const abn *r = reg(&c, ex[0]);
-            if (!r || (ex[1] != '=' && ex[1] != '~')) {
+            if (!r || (ex[1] != '=' && ex[1] != '~' && ex[1] != '^')) {
                 fprintf(stderr, "%s:%d: %s: bad expectation '%s'\n", argv[1], lineno, id, ex);
                 return 2;
             }
@@ -139,14 +149,15 @@ int main(int argc, char **argv)
                 round_norm(&want, 12);
                 round_norm(&got, 12);
             }
-            ok = ok && norm_equal(&want, &got);
+            if (ex[1] == '^') ok = ok && norm_within_units(&want, &got, 8);
+            else ok = ok && norm_equal(&want, &got);
             checks++;
             if (ok) {
                 checks_ok++;
             } else {
                 vec_ok = 0;
                 printf("FAIL %s: %c expected %s%s, got %s\n", id, ex[0],
-                       ex[1] == '~' ? "~" : "", ex + 2, got_text);
+                       ex[1] == '=' ? "" : (ex[1] == '~' ? "~" : "^"), ex + 2, got_text);
             }
         }
         vectors++;

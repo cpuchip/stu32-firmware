@@ -1,0 +1,129 @@
+# Work unit 003 acceptance vectors: one-argument functions, powers, trigonometry, percent.
+# Format as unit 001 (ID | source | keys | expectations), with the unit 003 key tokens, and:
+#   "X^value"  within 8 units in the 34th significant digit of value (unit 003 amendment 1)
+#   "ERR"      at least one operation returned an error
+# T01-T15 are the reviewer's starters (work/003-real-functions.md). M-vectors are the manual's own
+# examples (HP 35s User's Guide ch.4, keys read from the rendered pages), the rest are ours.
+# "^" values: mpmath 1.4.1 at 60 digits on the exact decimal argument; where keys chain several
+# operations, each intermediate was rounded to 34 digits (Python decimal, ROUND_HALF_EVEN) first.
+# Generator: soroban's scratch gen003.py (not committed; values are reproducible from the keys).
+
+T01 | ours: exact angle   | DEG 45 TAN      | X=1
+T02 | ours: exact angle   | DEG 30 SIN      | X=0.5
+T03 | ours: exact angle   | DEG 60 COS      | X=0.5
+T04 | ours: exact angle   | DEG 180 SIN     | X=0
+T05 | ours: exact angle   | DEG 90 COS      | X=0
+T06 | ours: tan 90 errors | DEG 90 TAN      | ERR X=90
+T07 | ours: exact inverse | DEG 0.5 ASIN    | X=30
+T08 | ours: exact inverse | DEG 1 ATAN      | X=45
+T09 | ours: exact in GRAD | GRAD 50 TAN     | X=1
+T10 | ours: RAD no cases  | RAD PI SIN      | X^-1.158028306006248941790250554076921836E-34
+T11 | ours: exact results | 16 SQRT         | X=4
+T12 | ours: exact results | 2 ENTER 10 POW  | X=1024
+T13 | ours: exact results | 1000 LOG        | X=3
+T14 | ours: domain error  | 2 CHS SQRT      | ERR X=-2
+T15 | LAST X (B-6)        | 9 SQRT          | X=3 L=9
+
+M01 | 35s p.4-2 INT÷ of 58 by 9 | 58 ENTER 9 IDIV | X=6 L=9
+M02 | 35s p.4-2 Rmdr of 58 by 9 | 58 ENTER 9 RMDR | X=4 L=9
+M03 | 35s p.4-3 15 squared | 15 SQ | X=225 L=15
+M04 | 35s p.4-3 10 to the 6th | 6 TENX | X=1000000
+M05 | 35s p.4-3 5 to the 4th | 5 ENTER 4 POW | X=625 L=4
+M06 | 35s p.4-3 2 to the -1.4 | 2 ENTER 1.4 CHS POW | X^0.37892914162759952058681495032661131
+M07 | 35s p.4-3 (-1.4) cubed | 1.4 CHS ENTER 3 POW | X=-2.744
+M08 | 35s p.4-3 square root of 196 | 196 SQRT | X=14
+M09 | 35s p.4-3 cube root of -125 | 125 CHS ENTER 3 XROOT | X=-5
+M10 | 35s p.4-3 4th root of 625 | 625 ENTER 4 XROOT | X=5
+M11 | 35s p.4-3 (-1.4)th root of .37893 | 0.37893 ENTER 1.4 CHS XROOT | X^1.99999676392293240923868154736108532
+M12 | 35s p.4-3 pi (ours: 34 digits) | PI | X=3.141592653589793238462643383279503
+M13 | 35s p.4-5 cos(5/7 pi) in RAD | RAD 5 ENTER 7 / PI * COS | X^-0.623489801858733530525004884004239764
+M14 | 35s p.4-5 cos 128.57 deg | DEG 128.57 COS | X^-0.623470308045555349963725309318242708
+M15 | 35s p.4-7 6% of 15.76 keeps y | 15.76 ENTER 6 PCT | X=0.9456 Y=15.76 L=6
+M16 | 35s p.4-7 price plus tax | 15.76 ENTER 6 PCT + | X=16.7056
+M17 | 35s p.4-7 %CHG 16.12 to 15.76 | 16.12 ENTER 15.76 PCTCHG | X=-2.233250620347394540942928039702233 Y=16.12 L=15.76
+E01 | ours: exact 10^3 | 3 TENX | X=1000
+E02 | ours: exact LOG 1E-5 | 0.00001 LOG | X=-5
+E03 | ours: exact e^0 | 0 EXP | X=1
+E04 | ours: exact LN 1 | 1 LN | X=0
+E05 | ours: exact cube root | 1.331 ENTER 3 XROOT | X=1.1
+E06 | ours: exact 1/8 | 8 INV | X=0.125 L=8
+E07 | ours: exact 2^-3 | 2 ENTER 3 CHS POW | X=0.125
+E08 | ours: exact (-2)^3 | 2 CHS ENTER 3 POW | X=-8
+E09 | ours: exact 7^20 fits 34 digits | 7 ENTER 20 POW | X=79792266297612001
+A01 | ours: exact angle | DEG 150 SIN | X=0.5
+A02 | ours: exact angle | DEG 120 COS | X=-0.5
+A03 | ours: exact angle | DEG 210 SIN | X=-0.5
+A04 | ours: exact angle | DEG 135 TAN | X=-1
+A05 | ours: exact angle | DEG 270 COS | X=0
+A06 | ours: exact angle | DEG 360 SIN | X=0
+A07 | ours: exact angle | DEG 30 CHS SIN | X=-0.5
+A08 | ours: exact angle | DEG 225 TAN | X=1
+A09 | ours: exact angle | DEG 3600030 SIN | X=0.5
+A10 | ours: exact angle | DEG 0 COS | X=1
+A11 | ours: exact angle | DEG 180 COS | X=-1
+A12 | ours: exact angle | DEG 315 TAN | X=-1
+A13 | ours: exact angle | GRAD 200 SIN | X=0
+A14 | ours: exact angle | GRAD 100 COS | X=0
+A15 | ours: exact angle | GRAD 150 TAN | X=-1
+A16 | ours: exact angle | GRAD 300 SIN | X=-1
+A17 | ours: exact angle | DEG 0.5 ACOS | X=60
+A18 | ours: exact angle | DEG 1 CHS ACOS | X=180
+A19 | ours: exact angle | DEG 1 CHS ASIN | X=-90
+A20 | ours: exact angle | DEG 1 CHS ATAN | X=-45
+A21 | ours: exact angle | GRAD 1 ASIN | X=100
+A22 | ours: exact angle | GRAD 1 ATAN | X=50
+A23 | ours: exact angle | DEG 0.5 CHS ACOS | X=120
+A24 | ours: exact angle | DEG 0 ACOS | X=90
+A25 | ours: exact angle | GRAD 1 CHS ACOS | X=200
+A26 | ours: tan 270 is an error | DEG 270 TAN | ERR X=270
+A27 | ours: tan 100 gon is an error | GRAD 100 TAN | ERR X=100
+A28 | ours: irrational stays irrational | DEG 45 SIN | X^0.707106781186547524400844362104849039
+A29 | ours: irrational stays irrational | DEG 60 SIN | X^0.866025403784438646763723170752936183
+A30 | ours: tiny angle keeps relative accuracy | DEG 1 E 20 CHS SIN | X^0.000000000000000000000174532925199432957692369076848861271
+A31 | ours: just off an exact angle | DEG 89.99999999999999999999999999999999 COS | X^0.000000000000000000000000000000000174532925199432957692369077087727045
+A32 | ours: GRAD irrational | GRAD 33 TAN | X^0.570389929673294886984294436716517134
+A33 | ours: DEG inverse irrational | DEG 0.3 ASIN | X^17.4576031237220922902460457924449418
+A34 | ours: GRAD inverse irrational | GRAD 0.5 ASIN | X^33.3333333333333333333333333333333333
+F01 | ours: accuracy | 1 EXP | X^2.7182818284590452353602874713526625
+F02 | ours: accuracy | 2 LN | X^0.693147180559945309417232121458176568
+F03 | ours: accuracy | 2 LOG | X^0.301029995663981195213738894724493027
+F04 | ours: accuracy | 0.5 TENX | X^3.16227766016837933199889354443271853
+F05 | ours: accuracy | 2 SQRT | X^1.41421356237309504880168872420969808
+F06 | ours: accuracy | 3 INV | X^0.333333333333333333333333333333333333
+F07 | ours: accuracy | 1 SINH | X^1.17520119364380145688238185059560082
+F08 | ours: accuracy | 1 COSH | X^1.54308063481524377847790562075706168
+F09 | ours: accuracy | 0.5 TANH | X^0.462117157260009758502318483643672549
+F10 | ours: accuracy | 1 ASINH | X^0.881373587019543025232609324979792309
+F11 | ours: accuracy | 2 ACOSH | X^1.31695789692481670862504634730796844
+F12 | ours: accuracy | 0.5 ATANH | X^0.549306144334054845697622618461262852
+F13 | ours: accuracy in RAD | RAD 1 SIN | X^0.841470984807896506652502321630299
+F14 | ours: accuracy in RAD | RAD 1 COS | X^0.540302305868139717400936607442976604
+F15 | ours: accuracy in RAD | RAD 1 TAN | X^1.55740772465490223050697480745836017
+F16 | ours: accuracy in RAD | RAD 0.3 ASIN | X^0.304692654015397507972002961227529167
+F17 | ours: accuracy in RAD | RAD 0.3 ACOS | X^1.26610367277949911125931873041222228
+F18 | ours: accuracy in RAD | RAD 2 ATAN | X^1.10714871779409050301706546017853704
+F19 | ours: accuracy in RAD | RAD 1 E 30 SIN | X^-0.0901169019121380580303864289529873303
+F20 | ours: accuracy in RAD | RAD 100 COS | X^0.862318872287683934101938513950842536
+F21 | ours: x root irrational | 2 ENTER 3 XROOT | X^1.25992104989487316476721060727822835
+F22 | ours: power irrational | 3 ENTER 0.5 POW | X^1.73205080756887729352744634150587237
+R01 | ours: domain or range error | 0 LN | ERR X=0
+R02 | ours: domain or range error | 1 CHS LOG | ERR X=-1
+R03 | ours: domain or range error | 0 INV | ERR X=0
+R04 | ours: domain or range error | 2 DEG ASIN | ERR X=2
+R05 | ours: domain or range error | 2 CHS RAD ACOS | ERR X=-2
+R06 | ours: domain or range error | 0.5 ACOSH | ERR X=0.5
+R07 | ours: domain or range error | 1 ATANH | ERR X=1
+R08 | ours: domain or range error | 2 CHS ENTER 0.5 POW | ERR X=0.5 Y=-2
+R09 | ours: domain or range error | 0 ENTER 1 CHS POW | ERR X=-1 Y=0
+R10 | ours: domain or range error | 16 CHS ENTER 2 XROOT | ERR X=2 Y=-16
+R11 | ours: domain or range error | 5 ENTER 0 IDIV | ERR X=0 Y=5
+R12 | ours: domain or range error | 5 ENTER 0 RMDR | ERR X=0 Y=5
+R13 | ours: domain or range error | 0 ENTER 5 PCTCHG | ERR X=5 Y=0
+R14 | ours: domain or range error | 3 SQRT 2 CHS SQRT | ERR X=-2 L=3
+R15 | ours: domain or range error | 20000 EXP | ERR X=20000
+S01 | B-6 POW saves x in LAST X | 2 ENTER 10 POW | X=1024 L=10
+S02 | PI arrives like a recalled number | 1 ENTER 2 PI | X=3.141592653589793238462643383279503 Y=2 Z=1
+S03 | two-number functions drop the stack | 7 ENTER 8 ENTER 2 ENTER 3 POW | X=8 Y=8 Z=7 T=7
+S04 | one-number functions leave Y alone | 5 ENTER 16 SQRT | X=4 Y=5
+S05 | PCT does not drop | 1 ENTER 200 ENTER 10 PCT | X=20 Y=200 Z=1
+S06 | B-5 angle keys keep X | 45 RAD DEG TAN | X=1
