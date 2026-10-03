@@ -15,6 +15,13 @@
  *   parg := "-" parg | post
  *   post := prim { "!" }
  *   prim := number | variable | name | name "(" add [ "," add ] ")" | "(" add ")"
+ *         | "[" add { "," add } "]"           (a vector, unit 015)
+ *
+ * Unit 015: values are whole stack values (real, complex, vector), and each operation is done by
+ * the keyboard itself (ab_eqn_op), so complex numbers, vectors, base modes and INVALID DATA follow
+ * the keys exactly. Numbers may be complex (1i2, 3θ10) or marked with a base (1Fh, 1100b, 17o,
+ * 12d; unmarked is decimal, p.11-3). The logic functions take the function form of p.11-4, and %
+ * is %(y,x) (ours).
  */
 #ifndef EQN_H
 #define EQN_H
@@ -36,6 +43,6 @@ int eqn_assign_var(const char *text);
    With check_only, the syntax is checked and nothing is computed. SYNTAX ERROR: ABN_SYNTAX with
    *errpos the character offset of the first error (p.6-19). Every operation is the keyboard's own
    function (unit 014 rule 2). */
-abn_status eqn_eval(ab_calc *c, const char *text, bool rhs_only, bool check_only, abn *out, int *errpos);
+abn_status eqn_eval(ab_calc *c, const char *text, bool rhs_only, bool check_only, ab_val *out, int *errpos);
 
 #endif

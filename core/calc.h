@@ -276,6 +276,11 @@ abn_status ab_eqn_add(ab_calc *c, const char *text);
 /* The value of the variable or register that (I) or (J) names (code AB_VAR_IND_I / J), for an
    equation (unit 015); INVALID (I) as ABN_DOMAIN, as for RCL (I). */
 abn_status ab_indirect(ab_calc *c, int code, ab_val *out);
+/* For an equation (unit 015): one keyboard operation op on y (in Y; NULL to keep Y) and x (in X),
+   its X the result; the stack, LAST X and lift as they were afterwards. And digits typed with a
+   base mark (2, 8, 10 or 16) read as the keyboard reads typed digits (UG p.11-3). */
+abn_status ab_eqn_op(ab_calc *c, ab_op op, const ab_val *y, const ab_val *x, ab_val *out);
+abn_status ab_eqn_based(const char *digits, int n, int base, abn *out);
 
 /* The index of the constant named `name` (see core/const.c), or -1. */
 int ab_const_index(const char *name);

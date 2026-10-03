@@ -822,6 +822,19 @@ abn_status ab_indirect(ab_calc *c, int code, ab_val *out)
     return st;
 }
 
+abn_status ab_eqn_based(const char *digits, int n, int base, abn *out)
+{
+    char d[AB_EQN_LEN];
+    int64_t v;
+    if (n <= 0 || n >= (int)sizeof d) return ABN_SYNTAX;
+    memcpy(d, digits, (size_t)n);
+    d[n] = '\0';
+    if (base == 10) return abn_from_text(out, d) == ABN_OK ? ABN_OK : ABN_SYNTAX;
+    if (!base_parse(d, base, &v)) return ABN_RANGE;     /* past the largest word (UG p.11-7) */
+    *out = base_from_word(v);
+    return ABN_OK;
+}
+
 /* Stores v. The registers that hold reals refuse a complex number (ours, unit 009: the guide
  * shows complex numbers in the lettered variables, UG p.9-2): INVALID DATA, nothing changed. */
 static abn_status store_val(ab_calc *c, const slot *sl, ab_val v)
@@ -1428,7 +1441,7 @@ static abn_status prog_run_lines(ab_calc *c, long limit)
                flag 11 is set (not the unknown; not in SOLVE's later evaluations), and flag 11 is
                cleared */
             const char *t = c->peqn[arg];
-            abn v;
+            ab_val v;
             int pos;
             if (ab_flag(c, 10)) {
                 if (c->active) break;
@@ -1463,7 +1476,7 @@ static abn_status prog_run_lines(ab_calc *c, long limit)
                 break;
             }
             c->flags &= (uint16_t)~(1u << 11);
-            place_val(c, ab_real(v));
+            place_val(c, v);
             c->lift = true;
             break;
         }
@@ -1523,6 +1536,8 @@ static bool math_error(abn_status st)
     return st == ABN_DIV_ZERO || st == ABN_RANGE || st == ABN_DOMAIN;
 }
 
+static abn_status fn_value(const ab_calc *c, const ab_val *v, abn *f);
+
 /* f(t): the trial value stored in the variable and put in X, the function's label run as a
  * subroutine (it holds the return level SOLVE / integrate took), f the X it returns. */
 static abn_status eval_fn(ab_calc *c, const abn *t, abn *f)
@@ -1545,8 +1560,10 @@ static abn_status eval_fn(ab_calc *c, const abn *t, abn *f)
     if (c->fn_eqn >= 0) {
         /* a listed equation as the function (UG p.7-2, 8-3): its value, "=" as "-" */
         int pos;
+        ab_val v;
         c->evals++;
-        return eqn_eval(c, c->eqn[c->fn_eqn], false, false, f, &pos);
+        if ((st = eqn_eval(c, c->eqn[c->fn_eqn], false, false, &v, &pos)) != ABN_OK) return st;
+        return fn_value(c, &v, f);
     }
     c->rbase = c->rdepth;
     c->pc = c->labelpos[c->fn];
@@ -1556,9 +1573,25 @@ static abn_status eval_fn(ab_calc *c, const abn *t, abn *f)
     c->pc = pc0;
     c->evals++;
     if (st != ABN_OK) return st;
-    if (c->x.kind != AB_REAL) return ABN_DOMAIN;
-    *f = c->x.re;
+    return fn_value(c, &c->x, f);
     return ABN_OK;
+}
+
+/* f as SOLVE and integrate take it: a real number; for an integral also a one-element vector or
+ * one whose other elements are 0, by its first element (UG p.10-6); else INVALID DATA. */
+static bool ev_nonreal;     /* the last evaluation's value was not one SOLVE / integrate take */
+
+static abn_status fn_value(const ab_calc *c, const ab_val *v, abn *f)
+{
+    ev_nonreal = false;
+    if (v->kind == AB_REAL ||
+        (c->active == AB_INTEG && v->kind == AB_VECTOR &&
+         (v->len == 1 || (abn_is_zero(&v->im) && (v->len < 3 || abn_is_zero(&v->p3)))))) {
+        *f = v->re;
+        return ABN_OK;
+    }
+    ev_nonreal = true;
+    return ABN_DOMAIN;
 }
 
 static int sgn(const abn *a)
@@ -1586,8 +1619,10 @@ typedef struct {
  * for an undefined region); other errors stop SOLVE. */
 static abn_status ev(ab_calc *c, const abn *x, abn *f, bool *bad)
 {
-    abn_status st = eval_fn(c, x, f);
-    *bad = math_error(st);
+    abn_status st;
+    ev_nonreal = false;
+    st = eval_fn(c, x, f);
+    *bad = math_error(st) && !ev_nonreal;  /* a complex or vector f is INVALID DATA, no point */
     return *bad ? ABN_OK : st;
 }
 
@@ -2150,12 +2185,12 @@ static abn_status fn_first_done(ab_calc *c, abn_status st)
 {
     c->rdepth = c->susp.rdepth + 1;
     c->evals = 1;
-    if (st == ABN_OK && c->x.kind != AB_REAL) st = ABN_DOMAIN;
-    if (st != ABN_OK && !math_error(st)) {
+    c->ev_cf = abn_zero();
+    if (st == ABN_OK) st = fn_value(c, &c->x, &c->ev_cf);
+    if (st != ABN_OK && (!math_error(st) || ev_nonreal)) {
         susp_abort(c);
         return st;
     }
-    c->ev_cf = st == ABN_OK ? c->x.re : abn_zero();
     c->ev_cst = st;
     c->ev_cached = true;
     return fn_finish(c);
@@ -2580,6 +2615,8 @@ static const char *eqn_fname(ab_op op)
     case AB_TOC: return "\xe2\x86\x92\xc2\xb0" "C"; case AB_TOF: return "\xe2\x86\x92\xc2\xb0" "F";
     case AB_TOCM: return "\xe2\x86\x92" "CM"; case AB_TOIN: return "\xe2\x86\x92IN"; case AB_SEED: return "SEED";
     case AB_ARG: return "ARG"; case AB_XHAT: return "x\xcc\x82"; case AB_YHAT: return "\xc5\xb7";
+    case AB_AND: return "AND"; case AB_XOR: return "XOR"; case AB_OR: return "OR"; case AB_NOT: return "NOT";
+    case AB_NAND: return "NAND"; case AB_NOR: return "NOR"; case AB_PCT: return "%";
     default: return NULL;
     }
 }
@@ -2612,7 +2649,7 @@ static abn_status eqn_step(ab_calc *c)
     const char *t = c->eqn[c->eqn_cur];
     int av = eqn_assign_var(t), pos;
     bool rhs = c->eqn_pending == 1 && av >= 0;
-    abn v;
+    ab_val v;
     abn_status st;
     if (c->eqn_next < c->eqn_nvars) {
         int var = c->eqn_vars[c->eqn_next];
@@ -2630,8 +2667,8 @@ static abn_status eqn_step(ab_calc *c)
         c->stop = AB_STOP_NONE;
         return st;
     }
-    if (rhs) c->var[av] = ab_real(v);
-    place_val(c, ab_real(v));
+    if (rhs) c->var[av] = v;
+    place_val(c, v);
     c->lift = true;
     c->stop = AB_STOP_DONE;
     return ABN_OK;
@@ -2648,7 +2685,7 @@ static abn_status eqn_solve_key(ab_calc *c, ab_op op, int code)
 {
     const char *t;
     int b, pos, v[26], n;
-    abn val;
+    ab_val val;
     abn_status st;
     slot sl;
     if (c->eqn_cur < 0) return ABN_OK;             /* EQN LIST TOP: nothing (ours) */
@@ -2737,7 +2774,7 @@ static abn_status eqn_evaluate(ab_calc *c, bool enter)
     const char *t;
     int av, pos;
     bool rhs;
-    abn v;
+    ab_val v;
     abn_status st;
     if (c->eqn_cur < 0) return ABN_DOMAIN;         /* EQN LIST TOP: nothing to evaluate (ours) */
     if (eqn_builtin(c, c->eqn_cur)) return ABN_OK; /* a built-in: ENTER, XEQ do nothing (p.7-6) */
@@ -2761,7 +2798,9 @@ static bool eqn_type(ab_calc *c, ab_op op, int arg)
 {
     const char *t;
     if (!(op <= AB_KE || op == AB_KCHS || op == AB_KPAREN || (op == AB_RCL && arg >= 0 && arg <= AB_VAR_IND_J) ||
-          (op == AB_KREG && arg >= 0 && arg < 4) || eqn_fname(op) || eqn_token(op)))
+          (op == AB_KREG && arg >= 0 && arg < 4) || (op >= AB_KA && op <= AB_KF) || op == AB_KI ||
+          op == AB_KTHETA || op == AB_KVEC || (op == AB_SUF && (arg == 2 || arg == 8 || arg == 10 || arg == 16)) ||
+          eqn_fname(op) || eqn_token(op)))
         return false;
     if (!c->eqn_typing) {
         c->eqn_typing = true;
@@ -2788,6 +2827,17 @@ static bool eqn_type(ab_calc *c, ab_op op, int arg)
     } else if (op == AB_KREG) {
         static const char *const REG[4] = {"REGX", "REGY", "REGZ", "REGT"};
         ed_insert(c, REG[arg], 0);
+    } else if (op >= AB_KA && op <= AB_KF) {
+        char d[2] = {(char)('A' + (op - AB_KA)), '\0'};     /* hex digits (UG p.11-2) */
+        ed_insert(c, d, 0);
+    } else if (op == AB_KI) {
+        ed_insert(c, "i", 0);                       /* x i y (UG p.9-7) */
+    } else if (op == AB_KTHETA) {
+        ed_insert(c, "\xce\xb8", 0);               /* r theta a */
+    } else if (op == AB_KVEC) {
+        ed_insert(c, "[]", 1);                      /* a vector's brackets, the cursor inside (p.10-8) */
+    } else if (op == AB_SUF) {
+        ed_insert(c, arg == 2 ? "b" : arg == 8 ? "o" : arg == 10 ? "d" : "h", 0);   /* p.11-3 */
     } else if ((t = eqn_fname(op)) != NULL) {
         char buf[24];
         strcpy(buf, t);
@@ -2905,6 +2955,24 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
     if (c->prgm) return program_key(c, op, arg);
     if (c->eqn_mode && !c->eqn_pending) return eqn_key(c, op, arg);
     return do_key(c, op, arg);
+}
+
+abn_status ab_eqn_op(ab_calc *c, ab_op op, const ab_val *y, const ab_val *x, ab_val *out)
+{
+    ab_val sx = c->x, sy = c->y, sz = c->z, st_ = c->t, sl = c->lastx;
+    bool lift = c->lift;
+    abn_status st;
+    if (y) c->y = *y;
+    if (x) c->x = *x;
+    st = do_key(c, op, 0);
+    *out = c->x;
+    c->x = sx;
+    c->y = sy;
+    c->z = sz;
+    c->t = st_;
+    c->lastx = sl;
+    c->lift = lift;
+    return st;
 }
 
 static abn_status do_key(ab_calc *c, ab_op op, int arg)

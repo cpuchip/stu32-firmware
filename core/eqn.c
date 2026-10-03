@@ -22,7 +22,8 @@ enum {
     F_TOMILE, F_TOKM, F_NCR, F_NPR, F_TOKG, F_TOLB, F_TOC, F_TOF, F_TOCM, F_TOIN, F_SEED, F_ARG,
     F_RAND, F_PI, F_SX, F_SY, F_PSX, F_PSY, F_XBAR, F_YBAR, F_XWBAR, F_XHAT, F_YHAT, F_CORR,
     F_SLOPE, F_YINT, F_N, F_SUMX, F_SUMY, F_SUMX2, F_SUMY2, F_SUMXY,
-    F_REGX, F_REGY, F_REGZ, F_REGT
+    F_REGX, F_REGY, F_REGZ, F_REGT,
+    F_AND, F_XOR, F_OR, F_NOT, F_NAND, F_NOR, F_PCT
 };
 
 static const fname NAMES[] = {
@@ -47,6 +48,31 @@ static const fname NAMES[] = {
     {"\xce\xa3xy", K0, F_SUMXY}, {"\xce\xa3x", K0, F_SUMX}, {"\xce\xa3y", K0, F_SUMY},
     /* the stack registers, read when the equation is evaluated (UG p.B-7; unit 015) */
     {"REGX", K0, F_REGX}, {"REGY", K0, F_REGY}, {"REGZ", K0, F_REGZ}, {"REGT", K0, F_REGT},
+    /* the logic functions in the function form of p.11-4, and % as %(y,x) (ours: p.G-2 marks %
+       usable in equations and gives no form) (unit 015) */
+    {"AND", K2, F_AND}, {"XOR", K2, F_XOR}, {"OR", K2, F_OR}, {"NOT", K1, F_NOT},
+    {"NAND", K2, F_NAND}, {"NOR", K2, F_NOR}, {"%", K2, F_PCT},
+};
+
+/* The keyboard operation of each name (unit 015: an equation's operations are the keys'). */
+static const ab_op OPS[] = {
+    [F_LN] = AB_LN, [F_LOG] = AB_LOG, [F_EXP] = AB_EXP, [F_ALOG] = AB_TENX, [F_SQ] = AB_SQ,
+    [F_SQRT] = AB_SQRT, [F_INV] = AB_INV, [F_IP] = AB_IP, [F_FP] = AB_FP, [F_RND] = AB_RND,
+    [F_ABS] = AB_ABS, [F_SGN] = AB_SGN, [F_INTG] = AB_INTG, [F_IDIV] = AB_IDIV, [F_RMDR] = AB_RMDR,
+    [F_SIN] = AB_SIN, [F_COS] = AB_COS, [F_TAN] = AB_TAN, [F_ASIN] = AB_ASIN, [F_ACOS] = AB_ACOS,
+    [F_ATAN] = AB_ATAN, [F_SINH] = AB_SINH, [F_COSH] = AB_COSH, [F_TANH] = AB_TANH,
+    [F_ASINH] = AB_ASINH, [F_ACOSH] = AB_ACOSH, [F_ATANH] = AB_ATANH, [F_TODEG] = AB_TODEG,
+    [F_TORAD] = AB_TORAD, [F_HMSINV] = AB_HMSINV, [F_HMS] = AB_HMS, [F_PCTCHG] = AB_PCTCHG,
+    [F_XROOT] = AB_XROOT, [F_TOL] = AB_TOL, [F_TOGAL] = AB_TOGAL, [F_TOMILE] = AB_TOMILE,
+    [F_TOKM] = AB_TOKM, [F_NCR] = AB_NCR, [F_NPR] = AB_NPR, [F_TOKG] = AB_TOKG, [F_TOLB] = AB_TOLB,
+    [F_TOC] = AB_TOC, [F_TOF] = AB_TOF, [F_TOCM] = AB_TOCM, [F_TOIN] = AB_TOIN, [F_SEED] = AB_SEED,
+    [F_ARG] = AB_ARG, [F_RAND] = AB_RAND, [F_PI] = AB_PI, [F_SX] = AB_SX, [F_SY] = AB_SY,
+    [F_PSX] = AB_PSX, [F_PSY] = AB_PSY, [F_XBAR] = AB_XBAR, [F_YBAR] = AB_YBAR,
+    [F_XWBAR] = AB_XWBAR, [F_XHAT] = AB_XHAT, [F_YHAT] = AB_YHAT, [F_CORR] = AB_CORR,
+    [F_SLOPE] = AB_SLOPE, [F_YINT] = AB_YINT, [F_N] = AB_NSUM, [F_SUMX] = AB_SUMX,
+    [F_SUMY] = AB_SUMY, [F_SUMX2] = AB_SUMX2, [F_SUMY2] = AB_SUMY2, [F_SUMXY] = AB_SUMXY,
+    [F_AND] = AB_AND, [F_XOR] = AB_XOR, [F_OR] = AB_OR, [F_NOT] = AB_NOT, [F_NAND] = AB_NAND,
+    [F_NOR] = AB_NOR, [F_PCT] = AB_PCT,
 };
 
 /* (I) and (J) as one token each, apart from a plain I in parentheses (UG p.14-23): shown as the
@@ -94,209 +120,221 @@ static fn_angle angle(const ab_calc *c)
     return c->angle == AB_ANGLE_RAD ? FN_RAD : c->angle == AB_ANGLE_GRAD ? FN_GRAD : FN_DEG;
 }
 
-/* One operation on values, with the keyboard's functions. */
-static void apply1(parser *p, int id, abn *v)
+static ab_val real_val(abn v)
 {
-    abn r = *v;
-    abn_status st = ABN_OK;
-    fn_angle m = angle(p->c);
+    ab_val r;
+    memset(&r, 0, sizeof r);
+    r.kind = AB_REAL;
+    r.re = v;
+    return r;
+}
+
+/* An operation, done by the keyboard itself (ab_eqn_op): y (NULL for one number) and x in Y and X,
+ * the key's function run; its X replaces x. So a complex or vector value, a base mode, INVALID
+ * DATA and every rounding are exactly the keys' (unit 015). */
+static void kop(parser *p, ab_op op, const ab_val *y, ab_val *x)
+{
+    ab_val r;
+    abn_status st;
     if (p->check || p->st != ABN_OK) return;
-    switch (id) {
-    case F_LN: st = fn_ln(&r, v); break;
-    case F_LOG: st = fn_log(&r, v); break;
-    case F_EXP: st = fn_exp(&r, v); break;
-    case F_ALOG: st = fn_tenx(&r, v); break;
-    case F_SQ: st = fn_sq(&r, v); break;
-    case F_SQRT: st = fn_sqrt(&r, v); break;
-    case F_INV: st = fn_inv(&r, v); break;
-    case F_IP: st = fn_ip(&r, v); break;
-    case F_FP: st = fn_fp(&r, v); break;
-    case F_ABS: st = fn_abs(&r, v); break;
-    case F_SGN: st = fn_sgn(&r, v); break;
-    case F_INTG: st = fn_intg(&r, v); break;
-    case F_SIN: st = fn_sin(&r, v, m); break;
-    case F_COS: st = fn_cos(&r, v, m); break;
-    case F_TAN: st = fn_tan(&r, v, m); break;
-    case F_ASIN: st = fn_asin(&r, v, m); break;
-    case F_ACOS: st = fn_acos(&r, v, m); break;
-    case F_ATAN: st = fn_atan(&r, v, m); break;
-    case F_SINH: st = fn_sinh(&r, v); break;
-    case F_COSH: st = fn_cosh(&r, v); break;
-    case F_TANH: st = fn_tanh(&r, v); break;
-    case F_ASINH: st = fn_asinh(&r, v); break;
-    case F_ACOSH: st = fn_acosh(&r, v); break;
-    case F_ATANH: st = fn_atanh(&r, v); break;
-    case F_TODEG: st = fn_todeg(&r, v); break;
-    case F_TORAD: st = fn_torad(&r, v); break;
-    case F_HMSINV: st = fn_hmsinv(&r, v); break;
-    case F_HMS: st = fn_hms(&r, v); break;
-    case F_TOL: st = fn_convert(&r, v, FN_TOL); break;
-    case F_TOGAL: st = fn_convert(&r, v, FN_TOGAL); break;
-    case F_TOMILE: st = fn_convert(&r, v, FN_TOMILE); break;
-    case F_TOKM: st = fn_convert(&r, v, FN_TOKM); break;
-    case F_TOKG: st = fn_convert(&r, v, FN_TOKG); break;
-    case F_TOLB: st = fn_convert(&r, v, FN_TOLB); break;
-    case F_TOC: st = fn_convert(&r, v, FN_TOC); break;
-    case F_TOF: st = fn_convert(&r, v, FN_TOF); break;
-    case F_TOCM: st = fn_convert(&r, v, FN_TOCM); break;
-    case F_TOIN: st = fn_convert(&r, v, FN_TOIN); break;
-    case F_SEED: fn_seed(&p->c->rng, v); break;            /* reseeds; its value is x (ours) */
-    case F_ARG: {
-        abn rr, zero = abn_zero();
-        st = fn_topol(&rr, &r, v, &zero, m);
-        break;
-    }
-    case F_XHAT: st = st_xhat(&r, p->c->stat, v); break;
-    case F_YHAT: st = st_yhat(&r, p->c->stat, v); break;
-    case F_RND:
-        /* as the keyboard's RND: in Fraction display the fraction shown (p.G-12, 5-8) */
-        if (p->c->fdisp) {
-            fr_result fr;
-            fr_format f = !p->c->flag8 ? FR_PRECISE : (p->c->flag9 ? FR_FIXED : FR_FACTORS);
-            if (fr_approx(&fr, v, p->c->frac_c, f) == ABN_OK) {
-                st = fr_value(&r, &fr);
-                break;
-            }
-        }
-        st = fn_rnd(&r, v, p->c->disp_mode, p->c->disp_n);
-        break;
-    default: break;
-    }
-    if (st != ABN_OK) fail(p, st);
-    else *v = r;
+    if ((st = ab_eqn_op(p->c, op, y, x, &r)) != ABN_OK) fail(p, st);
+    else *x = r;
 }
 
 /* Two arguments, as typed (a, b): RPN's Y, X order kept, XROOT's reversed (p.6-16). */
-static void apply2(parser *p, int id, abn *a, const abn *b)
+static void apply2(parser *p, int id, ab_val *a, const ab_val *b)
 {
-    abn r = *a;
-    abn_status st = ABN_OK;
-    if (p->check || p->st != ABN_OK) return;
-    switch (id) {
-    case F_IDIV: st = fn_idiv(&r, a, b); break;
-    case F_RMDR: st = fn_rmdr(&r, a, b); break;
-    case F_PCTCHG: st = fn_pctchg(&r, a, b); break;
-    case F_XROOT: st = fn_xroot(&r, b, a); break;
-    case F_NCR: st = fn_ncr(&r, a, b); break;
-    default: st = fn_npr(&r, a, b); break;
+    if (id == F_XROOT) {
+        ab_val i = *a;
+        *a = *b;
+        kop(p, AB_XROOT, a, &i);
+        if (p->st == ABN_OK && !p->check) *a = i;
+        return;
     }
-    if (st != ABN_OK) fail(p, st);
-    else *a = r;
+    {
+        ab_val x = *b;
+        kop(p, OPS[id], a, &x);
+        if (p->st == ABN_OK && !p->check) *a = x;
+    }
 }
 
-static void apply0(parser *p, int id, abn *v)
+static void apply0(parser *p, int id, ab_val *v)
 {
-    abn_status st = ABN_OK;
-    const abn *R = p->c->stat;
-    if (p->check || p->st != ABN_OK) return;
-    switch (id) {
-    case F_PI: *v = fn_pi(); break;
-    case F_RAND: *v = fn_rand(&p->c->rng); break;
-    case F_SX: st = st_sdev(v, R, false, false); break;
-    case F_SY: st = st_sdev(v, R, true, false); break;
-    case F_PSX: st = st_sdev(v, R, false, true); break;
-    case F_PSY: st = st_sdev(v, R, true, true); break;
-    case F_XBAR: st = st_mean(v, R, false); break;
-    case F_YBAR: st = st_mean(v, R, true); break;
-    case F_XWBAR: st = st_wmean(v, R); break;
-    case F_CORR: st = st_corr(v, R); break;
-    case F_SLOPE: st = st_slope(v, R); break;
-    case F_YINT: st = st_yint(v, R); break;
-    case F_N: *v = R[ST_N]; break;
-    case F_SUMX: *v = R[ST_SX]; break;
-    case F_SUMY: *v = R[ST_SY]; break;
-    case F_SUMX2: *v = R[ST_SX2]; break;
-    case F_SUMY2: *v = R[ST_SY2]; break;
-    case F_REGX: case F_REGY: case F_REGZ: case F_REGT: {
-        const ab_val *r = id == F_REGX ? &p->c->x : id == F_REGY ? &p->c->y : id == F_REGZ ? &p->c->z : &p->c->t;
-        if (r->kind != AB_REAL) st = ABN_DOMAIN;            /* complex in equations: part 2 */
-        else *v = r->re;
-        break;
+    if (id >= F_REGX && id <= F_REGT) {
+        /* the stack register as evaluation found it: kop leaves the stack as it was (UG p.B-7) */
+        if (!p->check) *v = id == F_REGX ? p->c->x : id == F_REGY ? p->c->y : id == F_REGZ ? p->c->z : p->c->t;
+        return;
     }
-    default: *v = R[ST_SXY]; break;
-    }
-    if (st != ABN_OK) fail(p, st);
+    *v = real_val(abn_zero());
+    kop(p, OPS[id], NULL, v);
 }
 
-static void binop(parser *p, const char *op, abn *a, const abn *b)
+static void binop(parser *p, const char *op, ab_val *a, const ab_val *b)
 {
-    abn r;
-    abn_status st;
-    if (p->check || p->st != ABN_OK) return;
-    if (*op == '+') st = abn_add(&r, a, b);
-    else if (*op == '-') st = abn_sub(&r, a, b);
-    else if (*op == '*') st = abn_mul(&r, a, b);
-    else if (*op == '/') st = abn_div(&r, a, b);
-    else st = fn_pow(&r, a, b);
-    if (st != ABN_OK) fail(p, st);
-    else *a = r;
+    ab_val x = *b;
+    ab_op o = *op == '+' ? AB_ADD : *op == '-' ? AB_SUB : *op == '*' ? AB_MUL : *op == '/' ? AB_DIV : AB_POW;
+    kop(p, o, a, &x);
+    if (p->st == ABN_OK && !p->check) *a = x;
 }
 
-static void parse_add(parser *p, abn *v);
+static void parse_add(parser *p, ab_val *v);
 
-/* A number as typed: digits, a point, E and an exponent (with its minus); two points a fraction. */
-static bool parse_number(parser *p, abn *v)
+/* A number marked with a base (UG p.11-3): digits of that base, then b, o, d or h; its length in
+   bytes, 0 if s does not start with one. */
+static int based_len(const char *s, int *base)
 {
-    const char *s = p->s + p->i;
-    int n = 0, points = 0, digits = 0;
-    char buf[AB_EQN_LEN + 4];
-    while (s[n] >= '0' && s[n] <= '9') n++, digits++;
+    int n = 0, b;
+    while ((s[n] >= '0' && s[n] <= '9') || (s[n] >= 'A' && s[n] <= 'F')) n++;
+    if (n == 0) return 0;
+    b = s[n] == 'b' ? 2 : s[n] == 'o' ? 8 : s[n] == 'd' ? 10 : s[n] == 'h' ? 16 : 0;
+    if (!b) return 0;
+    for (int i = 0; i < n; i++) {
+        int d = s[i] <= '9' ? s[i] - '0' : s[i] - 'A' + 10;
+        if (d >= b) return 0;
+    }
+    *base = b;
+    return n + 1;
+}
+
+/* The digits, point and exponent of a decimal number from s: its length, and the counts. */
+static int decimal_len(const char *s, int *points, int *digits)
+{
+    int n = 0;
+    *points = *digits = 0;
     while (s[n] == '.' || (s[n] >= '0' && s[n] <= '9')) {
-        if (s[n] == '.') points++;
-        else digits++;
+        if (s[n] == '.') (*points)++;
+        else (*digits)++;
         n++;
     }
-    if (!digits && !points) return false;
-    if (s[n] == 'E' && (s[n + 1] == '-' ? (s[n + 2] >= '0' && s[n + 2] <= '9') : (s[n + 1] >= '0' && s[n + 1] <= '9'))) {
-        if (points == 2) {
-            p->i += n;
-            fail(p, ABN_SYNTAX);        /* a fraction has no exponent (unit 007) */
-            return true;
-        }
+    if ((*digits || *points) && s[n] == 'E' &&
+        (s[n + 1] == '-' ? (s[n + 2] >= '0' && s[n + 2] <= '9') : (s[n + 1] >= '0' && s[n + 1] <= '9'))) {
         n++;
         if (s[n] == '-') n++;
         while (s[n] >= '0' && s[n] <= '9') n++;
     }
-    if (!digits || points > 2 || n >= (int)sizeof buf - 2) {
-        fail(p, ABN_SYNTAX);
+    return n;
+}
+
+/* One decimal part (n bytes at s): a number, or with two points a fraction a.b.c (unit 007). */
+static abn_status decimal_value(const char *s, int n, int points, abn *v)
+{
+    if (points == 2) {
+        char ip[AB_EQN_LEN], nu[AB_EQN_LEN], de[AB_EQN_LEN];
+        int a = 0, b = 0, d = 0, part = 0;
+        for (int i = 0; i < n; i++) {
+            if (s[i] == 'E') return ABN_SYNTAX;     /* a fraction has no exponent */
+            if (s[i] == '.') part++;
+            else if (part == 0) ip[a++] = s[i];
+            else if (part == 1) nu[b++] = s[i];
+            else de[d++] = s[i];
+        }
+        ip[a] = nu[b] = de[d] = '\0';
+        return d ? fr_from_parts(v, false, a ? ip : "0", b ? nu : "0", de) : ABN_SYNTAX;
+    }
+    {
+        char buf[AB_EQN_LEN + 4];
+        int k = 0;
+        abn_status st;
+        if (s[0] == '.') buf[k++] = '0';
+        memcpy(buf + k, s, (size_t)n);
+        buf[k + n] = '\0';
+        st = abn_from_text(v, buf);
+        return st == ABN_BAD_TEXT ? ABN_SYNTAX : st;
+    }
+}
+
+/* A number as typed (UG p.6-5): decimal (digits, a point, E and an exponent; two points a
+ * fraction), marked with a base (1Fh, 1100b: read as the keyboard reads typed digits), or complex,
+ * x i y or r θ a (a in the angle mode, converted as polar entry is, p.9-2), the second part
+ * possibly negative. */
+static bool parse_number(parser *p, ab_val *v)
+{
+    const char *s = p->s + p->i;
+    int n, points, digits, base;
+    abn a, b;
+    abn_status st = ABN_OK;
+    if ((n = based_len(s, &base)) > 0) {
+        if (!p->check && p->st == ABN_OK && (st = ab_eqn_based(s, n - 1, base, &a)) == ABN_OK) *v = real_val(a);
+        if (st != ABN_OK) fail(p, st);
         p->i += n;
         return true;
     }
-    if (!p->check && p->st == ABN_OK) {
-        abn_status st;
-        if (points == 2) {
-            char ip[AB_EQN_LEN], nu[AB_EQN_LEN], de[AB_EQN_LEN];
-            int a = 0, b = 0, d = 0, part = 0;
-            for (int i = 0; i < n; i++) {
-                if (s[i] == '.') part++;
-                else if (part == 0) ip[a++] = s[i];
-                else if (part == 1) nu[b++] = s[i];
-                else de[d++] = s[i];
-            }
-            ip[a] = nu[b] = de[d] = '\0';
-            st = d ? fr_from_parts(v, false, a ? ip : "0", b ? nu : "0", de) : ABN_SYNTAX;
-        } else {
-            int k = 0;
-            if (s[0] == '.') buf[k++] = '0';
-            memcpy(buf + k, s, (size_t)n);
-            buf[k + n] = '\0';
-            st = abn_from_text(v, buf);
-        }
-        if (st != ABN_OK) fail(p, st == ABN_BAD_TEXT ? ABN_SYNTAX : st);
+    n = decimal_len(s, &points, &digits);
+    if (n == 0) return false;
+    if (!digits || points > 2) {
+        p->i += n;
+        fail(p, ABN_SYNTAX);
+        return true;
+    }
+    if (!p->check && p->st == ABN_OK) st = decimal_value(s, n, points, &a);
+    if (st != ABN_OK) {
+        fail(p, st);
+        p->i += n;
+        return true;
     }
     p->i += n;
+    if (at(p, "i") || at(p, "\xce\xb8")) {
+        bool polar = s[n] != 'i', neg = at(p, "-");
+        const char *s2 = p->s + p->i;
+        int n2 = decimal_len(s2, &points, &digits);
+        if (n2 == 0 || !digits || points > 1) {
+            fail(p, ABN_SYNTAX);
+            return true;
+        }
+        if (!p->check && p->st == ABN_OK && (st = decimal_value(s2, n2, points, &b)) == ABN_OK) {
+            ab_val z;
+            memset(&z, 0, sizeof z);
+            z.kind = AB_COMPLEX;
+            if (neg) b = abn_neg(&b);
+            if (polar) st = fn_torec(&z.re, &z.im, &a, &b, angle(p->c));
+            else z.re = a, z.im = b;
+            if (st == ABN_OK) *v = z;
+        }
+        p->i += n2;
+        if (st != ABN_OK) fail(p, st);
+        return true;
+    }
+    if (!p->check && p->st == ABN_OK) *v = real_val(a);
     return true;
 }
 
-static void parse_prim(parser *p, abn *v)
+static void parse_prim(parser *p, ab_val *v)
 {
     const char *s = p->s + p->i;
-    *v = abn_zero();
+    *v = real_val(abn_zero());
     if (p->st != ABN_OK) return;
     if (parse_number(p, v)) return;
     if (at(p, "(")) {
         parse_add(p, v);
         if (!at(p, ")")) fail(p, ABN_SYNTAX);
+        return;
+    }
+    if (at(p, "[")) {
+        /* a vector of one to three elements, each an expression with a real value (UG p.10-6,
+           10-8) */
+        ab_val e[3];
+        int k = 0;
+        do {
+            if (k == 3) {
+                fail(p, ABN_SYNTAX);
+                return;
+            }
+            parse_add(p, &e[k++]);
+        } while (p->st == ABN_OK && at(p, ","));
+        if (p->st == ABN_OK && !at(p, "]")) fail(p, ABN_SYNTAX);
+        if (p->check || p->st != ABN_OK) return;
+        memset(v, 0, sizeof *v);
+        v->kind = AB_VECTOR;
+        v->len = k;
+        for (int i = 0; i < k; i++) {
+            if (e[i].kind != AB_REAL) {
+                fail(p, ABN_DOMAIN);        /* a vector holds real numbers (unit 010) */
+                return;
+            }
+        }
+        v->re = e[0].re;
+        if (k > 1) v->im = e[1].re;
+        if (k > 2) v->p3 = e[2].re;
         return;
     }
     /* a name: the longest that fits; a function name needs its "(" */
@@ -320,7 +358,7 @@ static void parse_prim(parser *p, abn *v)
             p->i++;                     /* the "(" */
             parse_add(p, v);
             if (f->kind == K2) {
-                abn b;
+                ab_val b;
                 if (!at(p, ",")) {
                     fail(p, ABN_SYNTAX);
                     return;
@@ -337,7 +375,7 @@ static void parse_prim(parser *p, abn *v)
                 fail(p, ABN_SYNTAX);
                 return;
             }
-            apply1(p, f->id, v);
+            kop(p, OPS[f->id], NULL, v);
             return;
         }
     }
@@ -347,70 +385,67 @@ static void parse_prim(parser *p, abn *v)
         abn_status st;
         if (p->check || p->st != ABN_OK) return;
         st = ab_indirect(p->c, strncmp(s, IND_I, 3) == 0 ? AB_VAR_IND_I : AB_VAR_IND_J, &x);
-        if (st == ABN_OK && x.kind != AB_REAL) st = ABN_DOMAIN;
         if (st != ABN_OK) fail(p, st);
-        else *v = x.re;
+        else *v = x;
         return;
     }
     if (*s >= 'A' && *s <= 'Z') {
-        const ab_val *x = &p->c->var[*s - 'A'];
         p->i++;
-        if (p->check || p->st != ABN_OK) return;
-        if (x->kind != AB_REAL) fail(p, ABN_DOMAIN);    /* complex equations: a later unit (ours) */
-        else *v = x->re;
+        if (!p->check && p->st == ABN_OK) *v = p->c->var[*s - 'A'];
         return;
     }
     fail(p, ABN_SYNTAX);
 }
 
-static void parse_post(parser *p, abn *v)
+static void parse_post(parser *p, ab_val *v)
 {
     parse_prim(p, v);
-    while (p->st == ABN_OK && at(p, "!")) {
-        abn r;
-        abn_status st;
-        if (p->check) continue;
-        if ((st = fn_fact(&r, v)) != ABN_OK) fail(p, st);
-        else *v = r;
-    }
+    while (p->st == ABN_OK && at(p, "!")) kop(p, AB_FACT, NULL, v);
 }
 
-static void parse_parg(parser *p, abn *v)
+/* Unary minus: the keyboard's CHS of a finished number (UG p.1-15, 9-3; INVALID DATA for a vector,
+   unit 010). */
+static void negate(parser *p, ab_val *v)
+{
+    kop(p, AB_KCHS, NULL, v);
+}
+
+static void parse_parg(parser *p, ab_val *v)
 {
     if (at(p, "-")) {
         parse_parg(p, v);
-        *v = abn_neg(v);
+        negate(p, v);
         return;
     }
     parse_post(p, v);
 }
 
-static void parse_pow(parser *p, abn *v)
+static void parse_pow(parser *p, ab_val *v)
 {
     parse_post(p, v);
     while (p->st == ABN_OK && at(p, "^")) {
-        abn e;
+        ab_val e;
         parse_parg(p, &e);
         binop(p, "^", v, &e);
     }
 }
 
-static void parse_neg(parser *p, abn *v)
+static void parse_neg(parser *p, ab_val *v)
 {
     if (at(p, "-")) {
         parse_neg(p, v);
-        *v = abn_neg(v);
+        negate(p, v);
         return;
     }
     parse_pow(p, v);
 }
 
-static void parse_mul(parser *p, abn *v)
+static void parse_mul(parser *p, ab_val *v)
 {
     parse_neg(p, v);
     while (p->st == ABN_OK) {
         const char *op;
-        abn r;
+        ab_val r;
         if (at(p, "\xc3\x97")) op = "*";
         else if (at(p, "\xc3\xb7")) op = "/";
         else break;
@@ -419,12 +454,12 @@ static void parse_mul(parser *p, abn *v)
     }
 }
 
-static void parse_add(parser *p, abn *v)
+static void parse_add(parser *p, ab_val *v)
 {
     parse_mul(p, v);
     while (p->st == ABN_OK) {
         const char *op;
-        abn r;
+        ab_val r;
         if (at(p, "+")) op = "+";
         else if (at(p, "-")) op = "-";
         else break;
@@ -433,10 +468,15 @@ static void parse_add(parser *p, abn *v)
     }
 }
 
-abn_status eqn_eval(ab_calc *c, const char *text, bool rhs_only, bool check_only, abn *out, int *errpos)
+abn_status eqn_eval(ab_calc *c, const char *text, bool rhs_only, bool check_only, ab_val *out, int *errpos)
 {
-    parser p = {c, text, 0, check_only, ABN_OK, 0};
-    abn l, r;
+    parser p;
+    ab_val l, r;
+    memset(&p, 0, sizeof p);
+    p.c = c;
+    p.s = text;
+    p.check = check_only;
+    p.st = ABN_OK;
     parse_add(&p, &l);
     if (p.st == ABN_OK && at(&p, "=")) {
         parse_add(&p, &r);
@@ -477,6 +517,14 @@ int eqn_vars(const char *text, bool rhs_only, int out[26])
         }
         if (name) continue;
         if (*s == 'E' && s > text && ((s[-1] >= '0' && s[-1] <= '9') || s[-1] == '.')) continue;  /* exponent */
+        {
+            int base, n = (s == text || !((s[-1] >= '0' && s[-1] <= '9') || (s[-1] >= 'A' && s[-1] <= 'F')))
+                              ? based_len(s, &base) : 0;
+            if (n > 0) {                                /* a based number: 1Fh's F is a digit */
+                s += n - 1;
+                continue;
+            }
+        }
         if (*s >= 'A' && *s <= 'Z' && !seen[*s - 'A']) {
             seen[*s - 'A'] = true;
             out[n++] = *s - 'A';

@@ -19,14 +19,14 @@ B14 | 35s p.10-6 x between two vectors is the dot product | EQ:[1,2,3]×[4,5,6] 
 B15 | 35s p.10-6 a number times a vector | EQ:2×[1,2] XEQ | X=[2,4]
 B16 | 35s p.4-17, 10-6 ABS of a vector | EQ:ABS([3,4]) XEQ | X=5
 B17 | 35s p.10-8 [C, REGZ, (J)] typed in Equation mode: [ types a pair, R-down's menu gives REGZ, RCL (J) types (J) | EQN [ RCL:C , REG:Z , RCL:(J) ENTER | %EQ=[C,REGZ,⒥]
-B18 | 35s p.10-8 its value: C, the Z register, the variable J names | 7 STO:C 4 STO:D 4 CHS STO:J 1 ENTER 2 ENTER 3 EQ:[C,REGZ,⒥] XEQ | X=[7,1,4]
+B18 | 35s p.10-8 its value: C (prompted: its push moves the stack), the Z register when evaluated, the variable J names | 7 STO:C 4 STO:D 4 CHS STO:J 1 ENTER 2 ENTER 3 EQN [ RCL:C , REG:Z , RCL:(J) ENTER XEQ RS | X=[7,2,4]
 B19 | 35s p.10-6 a vector at a prompt | EQ:A+[1,1] XEQ [ 2 , 3 RS | X=[3,4] @A=[2,3]
 B20 | 35s p.10-6 vector plus number: INVALID DATA, as on the keyboard | EQ:[1,2]+1 XEQ | ERR %ERR=DOMAIN
 B21 | 35s p.10-6 integrate an equation whose value is [v,0,0]: the first element | FIX4 EQ:[X,0,0] C 0 ENTER 2 EQN INTEG:X | X#2,1E-4
 B22 | 35s p.10-6 integrate a 1-element vector value | FIX4 EQ:[X] C 0 ENTER 2 EQN INTEG:X | X#2,1E-4
 B23 | ours: integrate a value [v,w] with w nonzero: INVALID DATA (p.10-6) | FIX4 EQ:[X,1] C 0 ENTER 2 EQN INTEG:X | ERR %ERR=DOMAIN
 B24 | ours: SOLVE needs a real value: a vector value is INVALID DATA | EQ:[X,0] C 0 STO:X 1 EQN SOLVE:X | ERR %ERR=DOMAIN
-B25 | ours: unary minus of a vector | EQ:-[1,2] XEQ SAVEX CLSTK [ 1 , 2 ENTER CHS | %SAMEX=same
+B25 | ours: unary minus of a vector is the keyboard's CHS of one: INVALID DATA (unit 010) | EQ:-[1,2] XEQ | ERR %ERR=DOMAIN
 B26 | 35s p.11-8 a hex number in an equation (DEC): 1Fh + 1 | EQ:1Fh+1 XEQ | X=32
 B27 | 35s p.11-3, 13-25 a number with no mark is decimal in any base | HEX EQ:10+1 XEQ | X=11
 B28 | 35s p.6-11 a number in another base, the result in the current one | BIN EQ:7o+1 XEQ | X=8
@@ -43,3 +43,10 @@ B38 | 35s p.11-4 a complex argument to a logic function: INVALID DATA | EQ:AND(1
 B39 | ours: % in an equation is %(y,x) = y x / 100, two arguments like %CHG (p.G-2 gives no form) | EQ:%(200,15) XEQ | X=30
 B40 | ours: % typed: the key types %( ) with the cursor inside | EQN PCT 2 0 0 , 1 5 ENTER | %EQ=%(200,15)
 B41 | 35s p.6-16 %CHG is still read as %CHG (the longer name) | EQ:%CHG(50,75) XEQ | X=50
+B42 | 35s p.11-3 an octal number: 17o is 15 | EQ:17o XEQ | X=15
+B43 | 35s p.11-3 a decimal mark: 15d is 15 | HEX EQ:15d XEQ | X=15
+B44 | ours: 12b is no binary number: 12 then the name b, two operands side by side (no implied multiplication) | EQ:12b XEQ | ERR %ERR=SYNTAX
+B45 | ours: a vector holds real numbers (unit 010): a complex element is INVALID DATA | EQ:[1i1,2] XEQ | ERR %ERR=DOMAIN
+B46 | ours: a vector has at most three elements (p.10-1) | EQ:[1,2,3,4] XEQ | ERR %ERR=SYNTAX
+B47 | 35s p.B-5 an equation's value follows stack lift like a recalled number: after CLX it replaces X | 7 ENTER 8 CLX EQ:2+3 XEQ | X=5 Y=7
+B48 | 35s p.9-2 a negative second part, typed with CHS after the i: 1i-2, the keyboard's value | EQN 1 CI 2 CHS ENTER XEQ SAVEX CLSTK 1 CI 2 CHS ENTER | %EQ=1i-2 %SAMEX=same

@@ -70,6 +70,7 @@ test: all
 	./build/vectors work/013-vectors.txt
 	./build/vectors work/014-vectors.txt
 	./build/vectors work/015-vectors.txt
+	./build/vectors work/015b-vectors.txt
 	python3 tests/eqn_fuzz.py 1 2000 > build/eqn_fuzz.txt
 	./build/vectors build/eqn_fuzz.txt
 	python3 tests/prog_fuzz.py 1 1000 > build/prog_fuzz.txt
