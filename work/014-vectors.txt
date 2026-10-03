@@ -43,7 +43,7 @@ M33 | 35s p.D-11 SQRT(X/(X+0.3))-0.5 at 0.1 | 0.1 STO:X EQ:SQRT(X÷(X+0.3))-0.5 
 M34 | 35s p.E-4 Xx EXP(-X) at 1 | 1 STO:X EQ:X×EXP(-X) XEQ RS | X^0.367879441171442321595523770161460867
 M35 | 35s p.7-10 V=(40-H)x(20-H)x4xH at H = 2: ENTER stores 5472 | 2 STO:H EQ:V=(40-H)×(20-H)×4×H ENTER RS | X=5472 @V=5472
 M36 | 35s p.17-2 typing the money equation: nested pairs, CHS types the minus of ^-N | EQN RCL:P * 100 * () 1 - () 1 + RCL:I / 100 > POW CHS RCL:N > / RCL:I + RCL:F * () 1 + RCL:I / 100 > POW CHS RCL:N + RCL:B ENTER | %EQ=P×100×(1-(1+I÷100)^-N)÷I+F×(1+I÷100)^-N+B
-M37 | 35s p.17-4 its value at the guide's solution is about 0 (P -186.88905, I 0.875, N 36, F 0, B 5750) | EQN RCL:P * 100 * () 1 - () 1 + RCL:I / 100 > POW CHS RCL:N > / RCL:I + RCL:F * () 1 + RCL:I / 100 > POW CHS RCL:N + RCL:B ENTER 186.88905 CHS STO:P .875 STO:I 36 STO:N 0 STO:F 5750 STO:B XEQ RS RS RS RS RS | X#0.00000467502796408411126720911,1E-25
+M37 | 35s p.17-4 its value at the guide's solution is about 0 (P -186.88905, I 0.875, N 36, F 0, B 5750) | EQN RCL:P * 100 * () 1 - () 1 + RCL:I / 100 > POW CHS RCL:N > / RCL:I + RCL:F * () 1 + RCL:I / 100 > POW CHS RCL:N + RCL:B ENTER C 186.88905 CHS STO:P .875 STO:I 36 STO:N 0 STO:F 5750 STO:B EQN XEQ RS RS RS RS RS | X#0.00000467502796408411126720911,1E-25
 O01 | ours: left to right within a level: 8/4/2 = 1 | EQ:8÷4÷2 XEQ | X=1
 O02 | ours: 10-3-2 = 5 | EQ:10-3-2 XEQ | X=5
 O03 | ours: powers left to right too: 2^3^2 = 64 | EQ:2^3^2 XEQ | X=64
@@ -58,7 +58,7 @@ O11 | ours: LAST X is untouched by an evaluation (not in p.B-6's list) | 9 SQRT 
 O12 | 35s p.6-14 C cancels the prompt, the variable's value in X | 4 STO:A EQ:A+1 XEQ C | X=4 %STOP=CANCELLED
 O13 | ours: pi in an equation | EQ:2×π XEQ | X=6.283185307179586476925286766559006
 O14 | 35s p.G-12 RND rounds to the display setting | FIX2 EQ:RND(π) XEQ | X=3.14
-O15 | 35s p.6-16/6-17 the renamed functions: ALOG, SQ, INV, EXP, IDIV, RMDR, nPr | EQ:ALOG(2)+SQ(3)+INV(4)+EXP(0)+IDIV(7,2)+RMDR(7,2)+nPr(5,2) XEQ | X=133.25
+O15 | 35s p.6-16/6-17 the renamed functions: ALOG, SQ, INV, EXP, IDIV, RMDR, nPr | EQ:ALOG(2)+SQ(3)+INV(4)+EXP(0)+IDIV(7,2)+RMDR(7,2)+nPr(5,2) XEQ | X=134.25
 O16 | ours: ! is postfix | EQ:5!+1 XEQ | X=121
 O17 | ours: backspace after a function key removes the function and its pair | EQN 2 * SIN BKSP RCL:X ENTER | %EQ=2×X
 O18 | 35s p.6-4, 6-7 the list: new equations go after the one shown; the cursor keys move through it | EQ:1+1 EQ:2+2 EQ:3+3 BST | %EQ=2+2 %EQN=3
@@ -71,3 +71,7 @@ O24 | 35s p.6-4, 6-8 C while typing stores the equation and leaves Equation mode
 O25 | 35s p.6-5 a number with an exponent; CHS after E negates the exponent | EQN 1.5 E 3 CHS + 1 ENTER XEQ | %EQ=1.5E-3+1 X=1.0015
 O26 | ours: the angle mode applies inside an equation | DEG EQ:SIN(30) XEQ | X=0.5
 O27 | ours: a unary minus in a product's operand | 3 STO:A EQ:2×-A XEQ RS | X=-6
+O28 | 35s p.6-14 RPN stack at prompts: a prompt puts the value in X with lift off, a typed number replaces it, R/S enables lift so the values stay | CLSTK 1 STO:A 2 STO:B CLSTK EQ:A+B XEQ 3 RS 4 RS | X=7 Y=4 Z=3 T=0 @A=3 @B=4
+O29 | 35s p.6-14 C at a prompt cancels the evaluation: a later R/S stores nothing | 5 STO:A EQ:A+1 XEQ C 9 RS | @A=5
+O30 | ours: unary minus nests (--A is A) | 3 STO:A EQ:2×--A XEQ RS | X=6
+O31 | 35s p.6-14 R/S keeping the shown values enables lift too, so each stays on the stack | CLSTK 1 STO:A 2 STO:B CLSTK EQ:A+B XEQ RS RS | X=3 Y=2 Z=1 T=0

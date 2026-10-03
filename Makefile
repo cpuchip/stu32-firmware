@@ -8,8 +8,8 @@ INTEL_SRC := third_party/intel-dfp/IntelRDFPMathLib20U5/LIBRARY/src
 INTEL_LIB := build/intel/libbid.a
 BID_FLAGS := -DDECIMAL_CALL_BY_REFERENCE=0 -DDECIMAL_GLOBAL_ROUNDING=0 \
              -DDECIMAL_GLOBAL_EXCEPTION_FLAGS=0
-CORE := core/calc.c core/fmt.c core/fn.c core/bigint.c core/const.c core/xnum.c core/stat.c core/frac.c core/base.c core/cplx.c core/hp.c core/sbig.c core/arena.c
-HDRS := core/abn.h core/calc.h core/fmt.h core/fn.h core/bigint.h core/const.h core/xnum.h core/stat.h core/frac.h core/base.h core/cplx.h core/hp.h core/sbig.h core/bigint_impl.h core/xnum_impl.h core/arena.h
+CORE := core/calc.c core/fmt.c core/fn.c core/bigint.c core/const.c core/xnum.c core/stat.c core/frac.c core/base.c core/cplx.c core/hp.c core/sbig.c core/arena.c core/eqn.c
+HDRS := core/abn.h core/calc.h core/fmt.h core/fn.h core/bigint.h core/const.h core/xnum.h core/stat.h core/frac.h core/base.h core/cplx.h core/hp.h core/sbig.h core/bigint_impl.h core/xnum_impl.h core/arena.h core/eqn.h
 ENGINE := build/abn_intel.o $(INTEL_LIB)
 LIBS := -lm
 
@@ -69,6 +69,8 @@ test: all
 	./build/vectors work/012-vectors.txt
 	./build/vectors work/013-vectors.txt
 	./build/vectors work/014-vectors.txt
+	python3 tests/eqn_fuzz.py 1 2000 > build/eqn_fuzz.txt
+	./build/vectors build/eqn_fuzz.txt
 	python3 tests/prog_fuzz.py 1 1000 > build/prog_fuzz.txt
 	./build/vectors build/prog_fuzz.txt
 	python3 tests/veckey_fuzz.py 1 3000 > build/veckey_fuzz.txt

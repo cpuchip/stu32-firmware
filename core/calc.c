@@ -14,6 +14,7 @@
 #include "base.h"
 #include "arena.h"
 #include "cplx.h"
+#include "eqn.h"
 #include "xnum.h"
 
 /* A real number as a stack value. */
@@ -2005,6 +2006,7 @@ static abn_status cancel_key(ab_calc *c)
         slot_of_id(c, c->stop_var, &sl);
         c->x = load_val(&sl);
         c->stop = AB_STOP_CANCELLED;
+        c->eqn_pending = 0;                     /* an equation's evaluation is abandoned */
         return ABN_OK;
     }
     if (c->stop == AB_STOP_VIEW || c->stop == AB_STOP_PSE) {
@@ -2082,6 +2084,333 @@ static abn_status program_key(ab_calc *c, ab_op op, int arg)
     }
 }
 
+/* ---- equations (unit 014; UG ch.6) ---- */
+
+/* Inserts text as a new equation after the one shown and shows it (UG p.6-4). */
+static abn_status eqn_insert(ab_calc *c, const char *text)
+{
+    int at = c->eqn_cur + 1;
+    if (c->eqn_count >= AB_EQN_MAX || strlen(text) >= AB_EQN_LEN) return ABN_MEMORY_FULL;
+    memmove(c->eqn[at + 1], c->eqn[at], (size_t)(c->eqn_count - at) * AB_EQN_LEN);
+    strcpy(c->eqn[at], text);
+    c->eqn_count++;
+    c->eqn_cur = at;
+    return ABN_OK;
+}
+
+/* Deletes equation i; the one before it shows (UG p.6-9). */
+static void eqn_delete(ab_calc *c, int i)
+{
+    memmove(c->eqn[i], c->eqn[i + 1], (size_t)(c->eqn_count - i - 1) * AB_EQN_LEN);
+    c->eqn_count--;
+    c->eqn_cur = i - 1;
+}
+
+/* ENTER or C while typing stores the text: a new equation after the one shown, or the edited one
+ * replaced; an empty text deletes the entry (UG p.6-4, 6-8). */
+static abn_status eqn_store_typed(ab_calc *c)
+{
+    if (!c->eqn_typing) return ABN_OK;
+    c->eqn_typing = false;
+    if (c->ebuf[0] == '\0') {
+        if (c->eqn_edit >= 0) eqn_delete(c, c->eqn_edit);
+        return ABN_OK;
+    }
+    if (c->eqn_edit >= 0) {
+        strcpy(c->eqn[c->eqn_edit], c->ebuf);
+        c->eqn_cur = c->eqn_edit;
+        return ABN_OK;
+    }
+    return eqn_insert(c, c->ebuf);
+}
+
+abn_status ab_eqn_add(ab_calc *c, const char *text)
+{
+    abn_status st = eqn_insert(c, text);
+    if (st == ABN_OK) {
+        c->eqn_mode = true;
+        c->eqn_typing = false;
+    }
+    return st;
+}
+
+/* The editor: text inserted at the cursor, a code point at a time for moves. */
+static void ed_insert(ab_calc *c, const char *t, int cursor_back)
+{
+    int n = (int)strlen(t), len = (int)strlen(c->ebuf);
+    if (len + n >= AB_EQN_LEN) return;              /* full: the key is ignored (ours) */
+    memmove(c->ebuf + c->ecur + n, c->ebuf + c->ecur, (size_t)(len - c->ecur + 1));
+    memcpy(c->ebuf + c->ecur, t, (size_t)n);
+    c->ecur += n - cursor_back;
+}
+
+static void ed_remove(ab_calc *c, int at, int n)
+{
+    int len = (int)strlen(c->ebuf);
+    memmove(c->ebuf + at, c->ebuf + at + n, (size_t)(len - at - n + 1));
+    if (c->ecur > at) c->ecur = c->ecur >= at + n ? c->ecur - n : at;
+}
+
+static int cp_prev(const char *s, int i)
+{
+    do i--;
+    while (i > 0 && ((unsigned char)s[i] & 0xC0) == 0x80);
+    return i;
+}
+
+static int cp_next(const char *s, int i)
+{
+    if (!s[i]) return i;
+    do i++;
+    while (s[i] && ((unsigned char)s[i] & 0xC0) == 0x80);
+    return i;
+}
+
+static bool is_digit_ch(char ch)
+{
+    return ch >= '0' && ch <= '9';
+}
+
+/* The matching ")" of the "(" at byte i, or -1. */
+static int match_close(const char *s, int i)
+{
+    int depth = 0;
+    for (int k = i; s[k]; k++) {
+        if (s[k] == '(') depth++;
+        else if (s[k] == ')' && --depth == 0) return k;
+    }
+    return -1;
+}
+
+/* Backspace removes the element left of the cursor (UG p.6-3, 6-9): a character, or a function's
+ * name with its "(" (or a bare "("), together with its ")" (ours: a pair goes as one). */
+static void ed_backspace(ab_calc *c)
+{
+    int i = c->ecur;
+    if (i == 0) return;
+    if (c->ebuf[i - 1] == '(') {
+        int nl = eqn_name_before(c->ebuf, i), close = match_close(c->ebuf, i - 1);
+        int start = i - (nl ? nl : 1);
+        if (close >= 0) ed_remove(c, close, 1);
+        ed_remove(c, start, i - start);
+        return;
+    }
+    ed_remove(c, cp_prev(c->ebuf, i), i - cp_prev(c->ebuf, i));
+}
+
+/* CHS (UG p.6-5): while a number is typed, its sign (after E, the exponent's); else a minus. A sign
+ * is toggled: a minus directly before the number, where a minus cannot be a subtraction, goes. */
+static void ed_chs(ab_calc *c)
+{
+    char *b = c->ebuf;
+    int i = c->ecur, j = i;
+    while (j > 0 && (is_digit_ch(b[j - 1]) || b[j - 1] == '.')) j--;
+    if (j == i && i > 0 && b[i - 1] == 'E' && i >= 2 && (is_digit_ch(b[i - 2]) || b[i - 2] == '.')) {
+        ed_insert(c, "-", 0);                       /* E typed, no exponent digit yet */
+        return;
+    }
+    if (j < i) {
+        if (j >= 2 && b[j - 1] == '-' && b[j - 2] == 'E') {
+            ed_remove(c, j - 1, 1);
+            return;
+        }
+        /* a minus before the digits where it is a sign is taken away; else one goes in before them
+           (after E that is the exponent's sign) */
+        if (j >= 1 && b[j - 1] == '-') {
+            int k = j - 1;
+            bool sign = k == 0 || strchr("(,=^+-", b[k - 1]) || ((unsigned char)b[k - 1] == 0x97 || (unsigned char)b[k - 1] == 0xb7);
+            if (sign) {
+                ed_remove(c, k, 1);
+                return;
+            }
+        }
+        int save = c->ecur;
+        c->ecur = j;
+        ed_insert(c, "-", 0);
+        c->ecur = save + 1;
+        return;
+    }
+    ed_insert(c, "-", 0);
+}
+
+/* The text a key types (UG p.6-4 to 6-6, 6-16): infix operators, the function names of p.6-16 with
+ * a pair (the cursor inside), the names that take no argument, and the operands. */
+static const char *eqn_fname(ab_op op)
+{
+    switch (op) {
+    case AB_LN: return "LN"; case AB_LOG: return "LOG"; case AB_EXP: return "EXP"; case AB_TENX: return "ALOG";
+    case AB_SQ: return "SQ"; case AB_SQRT: return "SQRT"; case AB_INV: return "INV"; case AB_IP: return "IP";
+    case AB_FP: return "FP"; case AB_RND: return "RND"; case AB_ABS: return "ABS"; case AB_SGN: return "SGN";
+    case AB_INTG: return "INTG"; case AB_IDIV: return "IDIV"; case AB_RMDR: return "RMDR";
+    case AB_SIN: return "SIN"; case AB_COS: return "COS"; case AB_TAN: return "TAN"; case AB_ASIN: return "ASIN";
+    case AB_ACOS: return "ACOS"; case AB_ATAN: return "ATAN"; case AB_SINH: return "SINH"; case AB_COSH: return "COSH";
+    case AB_TANH: return "TANH"; case AB_ASINH: return "ASINH"; case AB_ACOSH: return "ACOSH"; case AB_ATANH: return "ATANH";
+    case AB_TODEG: return "\xe2\x86\x92" "DEG"; case AB_TORAD: return "\xe2\x86\x92" "RAD";
+    case AB_HMSINV: return "HMS\xe2\x86\x92"; case AB_HMS: return "\xe2\x86\x92" "HMS"; case AB_PCTCHG: return "%CHG";
+    case AB_XROOT: return "XROOT"; case AB_TOL: return "\xe2\x86\x92L"; case AB_TOGAL: return "\xe2\x86\x92GAL";
+    case AB_TOMILE: return "\xe2\x86\x92MILE"; case AB_TOKM: return "\xe2\x86\x92KM"; case AB_NCR: return "nCr";
+    case AB_NPR: return "nPr"; case AB_TOKG: return "\xe2\x86\x92KG"; case AB_TOLB: return "\xe2\x86\x92LB";
+    case AB_TOC: return "\xe2\x86\x92\xc2\xb0" "C"; case AB_TOF: return "\xe2\x86\x92\xc2\xb0" "F";
+    case AB_TOCM: return "\xe2\x86\x92" "CM"; case AB_TOIN: return "\xe2\x86\x92IN"; case AB_SEED: return "SEED";
+    case AB_ARG: return "ARG"; case AB_XHAT: return "x\xcc\x82"; case AB_YHAT: return "\xc5\xb7";
+    default: return NULL;
+    }
+}
+
+static const char *eqn_token(ab_op op)
+{
+    switch (op) {
+    case AB_ADD: return "+"; case AB_SUB: return "-"; case AB_MUL: return "\xc3\x97"; case AB_DIV: return "\xc3\xb7";
+    case AB_POW: return "^"; case AB_KEQ: return "="; case AB_KCOMMA: return ","; case AB_FACT: return "!";
+    case AB_PI: return "\xcf\x80"; case AB_RAND: return "RAND"; case AB_SX: return "sx"; case AB_SY: return "sy";
+    case AB_PSX: return "\xcf\x83x"; case AB_PSY: return "\xcf\x83y"; case AB_XBAR: return "x\xcc\x84";
+    case AB_YBAR: return "\xc8\xb3"; case AB_XWBAR: return "x\xcc\x84w"; case AB_CORR: return "r";
+    case AB_SLOPE: return "m"; case AB_YINT: return "b"; case AB_NSUM: return "n";
+    case AB_SUMX: return "\xce\xa3x"; case AB_SUMY: return "\xce\xa3y"; case AB_SUMX2: return "\xce\xa3x\xc2\xb2";
+    case AB_SUMY2: return "\xce\xa3y\xc2\xb2"; case AB_SUMXY: return "\xce\xa3xy";
+    default: return NULL;
+    }
+}
+
+/* Prompts for the next variable (an INPUT stop: its value in X, lift off; UG p.6-14), or computes
+ * the value: to X, lift enabled, LAST X kept (not in p.B-6's list); an assignment's ENTER also
+ * stores it (p.6-10). An error changes nothing more. */
+static abn_status eqn_step(ab_calc *c)
+{
+    const char *t = c->eqn[c->eqn_cur];
+    int av = eqn_assign_var(t), pos;
+    bool rhs = c->eqn_pending == 1 && av >= 0;
+    abn v;
+    abn_status st;
+    if (c->eqn_next < c->eqn_nvars) {
+        int var = c->eqn_vars[c->eqn_next];
+        place_val(c, c->var[var]);
+        c->lift = false;
+        c->stop = AB_STOP_INPUT;
+        c->stop_var = var;
+        return ABN_OK;
+    }
+    c->eqn_pending = 0;
+    st = eqn_eval(c, t, rhs, false, &v, &pos);
+    if (st != ABN_OK) {
+        c->eqn_errpos = pos;
+        c->stop = AB_STOP_NONE;
+        return st;
+    }
+    if (rhs) c->var[av] = ab_real(v);
+    place_val(c, ab_real(v));
+    c->lift = true;
+    c->stop = AB_STOP_DONE;
+    return ABN_OK;
+}
+
+/* ENTER or XEQ on the equation shown (UG p.6-10 to 6-13): the syntax is checked first (SYNTAX
+ * ERROR, p.6-19), then the variables are prompted for in order of appearance (ENTER on an
+ * assignment: the right side's only), then the value is computed. Equation mode is left: the result
+ * shows and the keys act on it (ours, from p.6-12's keys after the result). */
+static abn_status eqn_evaluate(ab_calc *c, bool enter)
+{
+    const char *t;
+    int av, pos;
+    bool rhs;
+    abn v;
+    abn_status st;
+    if (c->eqn_cur < 0) return ABN_DOMAIN;         /* EQN LIST TOP: nothing to evaluate (ours) */
+    t = c->eqn[c->eqn_cur];
+    av = eqn_assign_var(t);
+    rhs = enter && av >= 0;
+    if ((st = eqn_eval(c, t, rhs, true, &v, &pos)) != ABN_OK) {
+        c->eqn_errpos = pos;
+        return st;
+    }
+    c->eqn_nvars = eqn_vars(t, rhs, c->eqn_vars);
+    c->eqn_next = 0;
+    c->eqn_pending = enter ? 1 : 2;
+    c->eqn_mode = false;
+    return eqn_step(c);
+}
+
+/* A key in Equation mode (UG p.6-3 to 6-9). */
+static abn_status eqn_key(ab_calc *c, ab_op op, int arg)
+{
+    const char *t;
+    abn_status st;
+    switch (op) {
+    case AB_EQN:
+    case AB_CANCEL:                                 /* C stores what is typed and leaves (p.6-4) */
+        st = eqn_store_typed(c);
+        c->eqn_mode = false;
+        return st;
+    case AB_ENTER:
+        if (c->eqn_typing) return eqn_store_typed(c);
+        return eqn_evaluate(c, true);
+    case AB_XEQ:
+        if (arg != AB_TGT_EQN) return ABN_OK;
+        if (c->eqn_typing && (st = eqn_store_typed(c)) != ABN_OK) return st;
+        return eqn_evaluate(c, false);
+    case AB_SST:                                    /* the list wraps through EQN LIST TOP (p.6-7) */
+        if (c->eqn_typing) return ABN_OK;
+        c->eqn_cur = c->eqn_cur + 1 >= c->eqn_count ? -1 : c->eqn_cur + 1;
+        return ABN_OK;
+    case AB_BST:
+        if (c->eqn_typing) return ABN_OK;
+        c->eqn_cur = c->eqn_cur < 0 ? c->eqn_count - 1 : c->eqn_cur - 1;
+        return ABN_OK;
+    case AB_KBKSP:
+        if (c->eqn_typing) ed_backspace(c);
+        else if (c->eqn_cur >= 0) eqn_delete(c, c->eqn_cur);
+        return ABN_OK;
+    case AB_KLEFT:
+    case AB_KRIGHT:
+        if (!c->eqn_typing) {
+            /* on an equation shown: editing starts, > at its start, < at its end (p.6-7, 6-8) */
+            if (c->eqn_cur < 0) return ABN_OK;
+            strcpy(c->ebuf, c->eqn[c->eqn_cur]);
+            c->eqn_typing = true;
+            c->eqn_edit = c->eqn_cur;
+            c->ecur = op == AB_KLEFT ? (int)strlen(c->ebuf) : 0;
+            return ABN_OK;
+        }
+        c->ecur = op == AB_KLEFT ? (c->ecur > 0 ? cp_prev(c->ebuf, c->ecur) : 0) : cp_next(c->ebuf, c->ecur);
+        return ABN_OK;
+    default:
+        break;
+    }
+    /* a key that types: the first one starts a new equation (p.6-4) */
+    if (!(op <= AB_KE || op == AB_KCHS || op == AB_KPAREN || (op == AB_RCL && arg >= 0 && arg < 26) ||
+          eqn_fname(op) || eqn_token(op)))
+        return ABN_OK;                              /* other keys do nothing in Equation mode (ours) */
+    if (!c->eqn_typing) {
+        c->eqn_typing = true;
+        c->eqn_edit = -1;
+        c->ebuf[0] = '\0';
+        c->ecur = 0;
+    }
+    if (op <= AB_K9) {
+        char d[2] = {(char)('0' + (op - AB_K0)), '\0'};
+        ed_insert(c, d, 0);
+    } else if (op == AB_KPOINT) {
+        ed_insert(c, c->ecur > 0 && is_digit_ch(c->ebuf[c->ecur - 1]) ? "." : "0.", 0);   /* .25 shows 0.25 */
+    } else if (op == AB_KE) {
+        ed_insert(c, "E", 0);
+    } else if (op == AB_KCHS) {
+        ed_chs(c);
+    } else if (op == AB_KPAREN) {
+        ed_insert(c, "()", 1);
+    } else if (op == AB_RCL) {
+        char v[2] = {(char)('A' + arg), '\0'};
+        ed_insert(c, v, 0);
+    } else if ((t = eqn_fname(op)) != NULL) {
+        char buf[24];
+        strcpy(buf, t);
+        strcat(buf, "()");
+        ed_insert(c, buf, 1);
+    } else {
+        ed_insert(c, eqn_token(op), 0);
+    }
+    return ABN_OK;
+}
+
 abn_status ab_do(ab_calc *c, ab_op op)
 {
     return ab_do_arg(c, op, 0);
@@ -2131,6 +2460,7 @@ static bool takes_complex(ab_op op)
 abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
 {
     if (c->prgm) return program_key(c, op, arg);
+    if (c->eqn_mode && !c->eqn_pending) return eqn_key(c, op, arg);
     return do_key(c, op, arg);
 }
 
@@ -2412,6 +2742,14 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
     case AB_GTOPOS:
         return prog_goto_pos(c, arg);
     case AB_RS:
+        if (c->eqn_pending) {
+            /* at an equation's prompt: X is stored and the next prompt or the value follows; lift
+               is enabled so the value stays on the stack (UG p.6-14) */
+            c->var[c->stop_var] = c->x;
+            c->lift = true;
+            c->eqn_next++;
+            return eqn_step(c);
+        }
         return prog_resume(c, c->budget);       /* neutral itself (UG p.B-5) */
     case AB_RTN:
         c->pc = AB_PC_TOP;                      /* from the keyboard (ours: the guide does not say) */
@@ -2448,11 +2786,13 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
     case AB_CANCEL:
         return cancel_key(c);
     case AB_EQN:
+        c->eqn_mode = true;                     /* neutral (UG p.B-5) */
+        return ABN_OK;
     case AB_KEQ:
     case AB_KPAREN:
     case AB_KLEFT:
     case AB_KRIGHT:
-        return ABN_OK;                          /* STUB: unit 014 lands after the oracle */
+        return ABN_OK;                          /* only in Equation mode */
     case AB_FN: {
         abn_status st = fn_op(c, arg);          /* FN= enables lift (not in p.B-5's lists) */
         if (st != ABN_OK) return st;
@@ -2600,9 +2940,3 @@ void ab_stop_text(const ab_calc *c, char *buf)
     else snprintf(buf, 32, "%s", NAMES[c->stop]);
 }
 
-abn_status ab_eqn_add(ab_calc *c, const char *text)
-{
-    (void)c;
-    (void)text;
-    return ABN_OK;          /* STUB: unit 014 lands after the oracle */
-}

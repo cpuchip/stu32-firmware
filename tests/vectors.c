@@ -63,6 +63,8 @@ static const struct { const char *name; ab_op op; } NAMED[] = {
 
 /* The last error any key returned in the current vector, for %ERR (unit 012). */
 static abn_status last_err;
+/* X as SAVEX found it, for %SAMEX (unit 014: an equation against the keyboard path). */
+static ab_val saved_x;
 
 static abn_status do1(ab_calc *c, ab_op op, int arg)
 {
@@ -131,6 +133,15 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
                 if (do1(c, TGT[i].op, (v[0] - 'A') * 1000 + line) != ABN_OK) (*errors)++;
                 return 0;
             }
+        }
+        if (strcmp(tok, "RSALL") == 0) {       /* answer every equation prompt with R/S (runner) */
+            while (c->eqn_pending && c->stop == AB_STOP_INPUT)
+                if (do1(c, AB_RS, 0) != ABN_OK) (*errors)++;
+            return 0;
+        }
+        if (strcmp(tok, "SAVEX") == 0) {       /* remember X (a runner token, not a key) */
+            saved_x = c->x;
+            return 0;
         }
         if (strcmp(tok, "XEQ") == 0) {         /* in Equation mode: evaluate the equation shown */
             if (do1(c, AB_XEQ, AB_TGT_EQN) != ABN_OK) (*errors)++;
@@ -364,6 +375,11 @@ int main(int argc, char **argv)
                     snprintf(got, sizeof got, "%s", same ? eq + 1 : "different");
                 } else if (strcmp(ex, "%STOP") == 0) {
                     ab_stop_text(&c, got);
+                } else if (strcmp(ex, "%SAMEX") == 0) {
+                    /* X is exactly what SAVEX remembered */
+                    bool same = c.x.kind == saved_x.kind && abn_cmp(&c.x.re, &saved_x.re) == 0 &&
+                                abn_cmp(&c.x.im, &saved_x.im) == 0;
+                    snprintf(got, sizeof got, "%s", same ? eq + 1 : "different");
                 } else if (strcmp(ex, "%EQ") == 0) {
                     /* the equation shown (unit 014) */
                     snprintf(got, sizeof got, "%s", c.eqn_cur >= 0 ? c.eqn[c.eqn_cur] : "TOP");
