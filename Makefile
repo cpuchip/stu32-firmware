@@ -8,13 +8,13 @@ INTEL_SRC := third_party/intel-dfp/IntelRDFPMathLib20U5/LIBRARY/src
 INTEL_LIB := build/intel/libbid.a
 BID_FLAGS := -DDECIMAL_CALL_BY_REFERENCE=0 -DDECIMAL_GLOBAL_ROUNDING=0 \
              -DDECIMAL_GLOBAL_EXCEPTION_FLAGS=0
-CORE := core/calc.c
-HDRS := core/abn.h core/calc.h
+CORE := core/calc.c core/fmt.c
+HDRS := core/abn.h core/calc.h core/fmt.h
 ENGINE := build/abn_intel.o $(INTEL_LIB)
 LIBS := -lm
 
 .PHONY: all test clean
-all: build/vectors build/abn_test build/diff_test
+all: build/vectors build/fmt_vectors build/abn_test build/diff_test
 
 $(INTEL_LIB):
 	CC="$(CC)" scripts/fetch-intel-dfp.sh
@@ -27,6 +27,9 @@ build/abn_intel.o: core/abn_intel.c core/abn.h $(INTEL_LIB)
 build/vectors: $(CORE) $(HDRS) $(ENGINE) tests/vectors.c tests/norm.h
 	$(CC) $(CFLAGS) -Icore -o $@ $(CORE) tests/vectors.c $(ENGINE) $(LIBS)
 
+build/fmt_vectors: $(CORE) $(HDRS) $(ENGINE) tests/fmt_vectors.c
+	$(CC) $(CFLAGS) -Icore -o $@ $(CORE) tests/fmt_vectors.c $(ENGINE) $(LIBS)
+
 build/abn_test: $(HDRS) $(ENGINE) tests/abn_test.c tests/norm.h tests/cases.h
 	$(CC) $(CFLAGS) -Icore -o $@ tests/abn_test.c $(ENGINE) $(LIBS)
 
@@ -37,6 +40,7 @@ test: all
 	./build/abn_test
 	./build/diff_test
 	./build/vectors work/001-vectors.txt
+	./build/fmt_vectors work/002-vectors.txt
 
 clean:
 	rm -rf build

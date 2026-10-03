@@ -146,3 +146,11 @@ int abn_to_text(const abn *a, char *buf, int size)
     }
     return n;
 }
+
+void abn_digits(const abn *a, bool *neg, char *digits, int *lead)
+{
+    (void)a;
+    *neg = false;
+    digits[0] = '\0';
+    *lead = 0;
+}

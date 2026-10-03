@@ -130,6 +130,41 @@ int main(void)
         check("0 / -5 is not negative zero", text[0] != '-');
     }
 
+    /* Sign, significant digits and the exponent of the leading digit (for the formatter). */
+    {
+        static const struct { const char *in; int neg; const char *digits; int lead; } D[] = {
+            {"149.0987", 0, "1490987", 2},
+            {"-6.6261E-34", 1, "66261", -34},
+            {"1E6", 0, "1", 6},
+            {"100", 0, "1", 2},
+            {"12.3000", 0, "123", 1},
+            {"0", 0, "", 0},
+            {"-0.000062", 1, "62", -5},
+            {"0.3333333333333333333333333333333333", 0, "3333333333333333333333333333333333", -1},
+            {"9.999999999999999999999999999999999E6144", 0, "9999999999999999999999999999999999", 6144},
+            {"1E-6143", 0, "1", -6143},
+        };
+        for (size_t i = 0; i < sizeof D / sizeof D[0]; i++) {
+            char dg[ABN_DIGITS + 1];
+            bool ng = true;
+            int ld = 12345;
+            snprintf(what, sizeof what, "digits of %s", D[i].in);
+            check(what, abn_from_text(&a, D[i].in) == ABN_OK);
+            abn_digits(&a, &ng, dg, &ld);
+            check(what, ng == (D[i].neg != 0) && strcmp(dg, D[i].digits) == 0 && ld == D[i].lead);
+        }
+        abn_from_text(&a, "1");
+        abn_from_text(&b, "3");
+        abn_div(&r, &a, &b);
+        {
+            char dg[ABN_DIGITS + 1];
+            bool ng;
+            int ld;
+            abn_digits(&r, &ng, dg, &ld);
+            check("digits of 1/3", !ng && ld == -1 && strcmp(dg, "3333333333333333333333333333333333") == 0);
+        }
+    }
+
     /* Comparison and negation. */
     abn m5, p3, z = abn_zero();
     abn_from_text(&m5, "-5");

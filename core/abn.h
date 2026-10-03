@@ -46,4 +46,9 @@ abn_status abn_from_text(abn *out, const char *s);
 /* Writes a NUL-terminated text form readable by abn_from_text; returns its length. */
 int abn_to_text(const abn *a, char *buf, int size);
 
+/* The value as a sign, its significant digits and where they sit: digits[0] is the digit
+   at 10^lead, trailing zeros removed, NUL-terminated (room for ABN_DIGITS + 1 bytes).
+   Zero gives an empty string, neg false and lead 0. */
+void abn_digits(const abn *a, bool *neg, char *digits, int *lead);
+
 #endif
