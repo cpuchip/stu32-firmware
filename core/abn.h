@@ -62,6 +62,7 @@ abn abn_from_int(int32_t v);
 abn_status abn_sqrt(abn *out, const abn *a);
 abn_status abn_exp(abn *out, const abn *a);
 abn_status abn_ln(abn *out, const abn *a);
+abn_status abn_log1p(abn *out, const abn *a);  /* ln(1 + a), a > -1 (unit 009) */
 abn_status abn_exp10(abn *out, const abn *a);
 abn_status abn_log10(abn *out, const abn *a);
 abn_status abn_pow(abn *out, const abn *base, const abn *expo);

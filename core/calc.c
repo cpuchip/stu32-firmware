@@ -11,6 +11,7 @@
 #include "stat.h"
 #include "frac.h"
 #include "base.h"
+#include "cplx.h"
 
 /* A real number as a stack value. */
 static ab_val ab_real(abn v)
@@ -66,6 +67,53 @@ static void place_val(ab_calc *c, ab_val v)
 static void place_in_x(ab_calc *c, abn v)
 {
     place_val(c, ab_real(v));
+}
+
+/* ---- complex values (unit 009) ---- */
+
+static bool is_cx(const ab_val *v)
+{
+    return v->kind == AB_COMPLEX;
+}
+
+/* A stack value as a complex number: a real one has imaginary part 0 (unit 009 rule 3). */
+static cplx cx_of(const ab_val *v)
+{
+    cplx z;
+    z.re = v->re;
+    z.im = v->im;
+    return z;
+}
+
+static ab_val ab_cx(cplx z)
+{
+    ab_val r;
+    r.kind = AB_COMPLEX;
+    r.re = z.re;
+    r.im = z.im;
+    return r;
+}
+
+static fn_angle angle_of(const ab_calc *c);
+static abn_status entry_value(const ab_entry *e, abn *out, int base);
+
+/* The complex number being typed, from its first part and the value v of its second: x i y, or
+ * r theta a with a in the angle mode (UG p.9-2, p.4-11; polar entry exact as unit 004's
+ * conversion is, so 1 theta 90 in degrees is 0 i 1). */
+static abn_status complex_entry_value(const ab_calc *c, const abn *v, ab_val *out)
+{
+    abn v1;
+    cplx z;
+    abn_status st;
+    if ((st = entry_value(&c->entry1, &v1, 10)) != ABN_OK) return st;
+    if (c->cpart == 1) {
+        z.re = v1;
+        z.im = *v;
+    } else if ((st = fn_torec(&z.re, &z.im, &v1, v, angle_of(c))) != ABN_OK) {
+        return st;
+    }
+    *out = ab_cx(z);
+    return ABN_OK;
 }
 
 /* ---- number entry (UG p.1-15 to p.1-17) ---- */
@@ -205,8 +253,23 @@ static abn_status entry_key(ab_calc *c, ab_op op)
         /* Backspace erases the last key typed (UG p.1-17). Erasing the E also drops the
          * exponent's sign. Erasing everything leaves 0 with lift disabled, as clear X
          * does (our choice; the guide does not say). */
+        if (c->cpart && e.len == 0) {
+            /* with the second part empty, backspace erases the i (or theta) and the first part is
+               being typed again (ours; the guide does not say) */
+            c->cpart = 0;
+            e = c->entry1;
+            if (e.len == 0) {
+                c->entry.active = false;
+                c->x = ab_real(abn_zero());
+                c->lift = false;
+                return ABN_OK;
+            }
+            e.active = true;
+            c->entry = e;
+            goto value;
+        }
         if (e.len > 0 && e.text[--e.len] == 'E') e.exp_neg = false;
-        if (e.len == 0) {
+        if (e.len == 0 && !c->cpart) {
             c->entry.active = false;
             c->x = ab_real(abn_zero());
             c->lift = false;
@@ -214,17 +277,49 @@ static abn_status entry_key(ab_calc *c, ab_op op)
         }
     }
     abn v;
+    ab_val nv;
 value:
     if (entry_value(&e, &v, c->base) != ABN_OK) return ABN_OK;  /* out of range: key ignored */
+    nv = ab_real(v);
+    if (c->cpart && complex_entry_value(c, &v, &nv) != ABN_OK) return ABN_OK;
     if (!c->entry.active) {
         /* The first key of a number places it in X, lifting if lift is enabled. Digit
          * entry itself leaves the lift flag alone (UG p.B-5). */
-        place_in_x(c, v);
+        place_val(c, nv);
     } else {
-        c->x = ab_real(v);
+        c->x = nv;
     }
     e.active = true;
     c->entry = e;
+    return ABN_OK;
+}
+
+/* The i of x i y or the theta of r theta a (UG p.9-2, p.4-11): what was typed becomes the first
+ * part and the second part starts empty (0). With nothing typed the first part is 0 and the
+ * number arrives in X as any new number does (ours). A second i or theta is ignored (ours). In
+ * HEX, OCT and BIN a complex number cannot be typed (ours): an error, nothing changed. */
+static abn_status complex_key(ab_calc *c, ab_op op)
+{
+    bool was_active = c->entry.active;
+    abn zero = abn_zero();
+    ab_val nv;
+    ab_entry saved = c->entry, saved1 = c->entry1;
+    int saved_part = c->cpart;
+    if (c->base != 10) return ABN_DOMAIN;
+    if (c->cpart) return ABN_OK;
+    if (was_active) c->entry1 = c->entry;
+    else memset(&c->entry1, 0, sizeof c->entry1);
+    c->cpart = op == AB_KI ? 1 : 2;
+    if (complex_entry_value(c, &zero, &nv) != ABN_OK) {
+        c->entry = saved;
+        c->entry1 = saved1;
+        c->cpart = saved_part;
+        return ABN_OK;
+    }
+    memset(&c->entry, 0, sizeof c->entry);
+    c->entry.active = true;
+    if (!was_active) place_val(c, nv);
+    else c->x = nv;
     return ABN_OK;
 }
 
@@ -244,11 +339,36 @@ static fn_angle angle_of(const ab_calc *c)
 
 /* A function of X alone replaces X and saves the old X in LAST X (UG p.B-6); an error leaves
  * the stack and LAST X as they were (ours, unit 003). */
+/* The functions of a complex x (UG p.9-3): 1/z, ln z, e^z, sin z, cos z, tan z (radians whatever
+ * the angle mode: the guide's sin(2 i 3)) and ABS, which is real. LAST X as for real x (UG p.B-6). */
+static abn_status one_complex(ab_calc *c, ab_op op)
+{
+    cplx z = cx_of(&c->x), r;
+    ab_val nv;
+    abn_status st;
+    switch (op) {
+    case AB_INV: st = cx_inv(&r, &z); break;
+    case AB_LN: st = cx_ln(&r, &z); break;
+    case AB_EXP: st = cx_exp(&r, &z); break;
+    case AB_SIN: st = cx_sin(&r, &z); break;
+    case AB_COS: st = cx_cos(&r, &z); break;
+    case AB_TAN: st = cx_tan(&r, &z); break;
+    default: st = cx_abs(&r.re, &z); break;    /* AB_ABS */
+    }
+    if (st != ABN_OK) return st;
+    nv = op == AB_ABS ? ab_real(r.re) : ab_cx(r);
+    c->lastx = c->x;
+    c->x = nv;
+    c->lift = true;
+    return ABN_OK;
+}
+
 static abn_status one_number_fn(ab_calc *c, ab_op op)
 {
     abn r;
     abn_status st;
     fn_angle m = angle_of(c);
+    if (is_cx(&c->x)) return one_complex(c, op);
     switch (op) {
     case AB_EXP: st = fn_exp(&r, &c->x.re); break;
     case AB_LN: st = fn_ln(&r, &c->x.re); break;
@@ -322,10 +442,32 @@ static abn_status percent_fn(ab_calc *c, ab_op op)
     return ABN_OK;
 }
 
+/* z1 op z2 with z1 in Y and z2 in X, either complex, a real one with imaginary part 0; the result
+ * is complex even when its imaginary part is 0 (unit 009 rule 3). */
+static abn_status two_complex(ab_calc *c, ab_op op)
+{
+    cplx a = cx_of(&c->y), b = cx_of(&c->x), r;
+    abn_status st;
+    switch (op) {
+    case AB_ADD: st = cx_add(&r, &a, &b); break;
+    case AB_SUB: st = cx_sub(&r, &a, &b); break;
+    case AB_MUL: st = cx_mul(&r, &a, &b); break;
+    case AB_DIV: st = cx_div(&r, &a, &b); break;
+    default: st = cx_pow(&r, &a, &b); break;   /* AB_POW: y^x */
+    }
+    if (st != ABN_OK) return st;
+    c->lastx = c->x;
+    c->x = ab_cx(r);
+    stack_drop(c);
+    c->lift = true;
+    return ABN_OK;
+}
+
 static abn_status two_number_op(ab_calc *c, ab_op op)
 {
     abn r;
     abn_status st;
+    if (is_cx(&c->x) || is_cx(&c->y)) return two_complex(c, op);
     /* Y op X: the earlier number is on the left (UG p.2-5). */
     switch (op) {
     case AB_ADD: st = abn_add(&r, &c->y.re, &c->x.re); break;
@@ -349,9 +491,11 @@ static abn_status two_number_op(ab_calc *c, ab_op op)
 
 /* ---- storage (unit 005; UG p.3-1 to 3-9, p.14-20 to 14-24) ---- */
 
-/* A storage location: a register, and for an unnamed indirect variable its address. */
+/* A storage location: a lettered variable (which may hold a complex number), or a register that
+ * holds a real (a statistics register or an unnamed indirect variable, with its address). */
 typedef struct {
-    abn *reg;
+    ab_val *val;            /* A..Z, or NULL */
+    abn *reg;               /* otherwise */
     int ind;                /* 0..800 for an unnamed indirect variable, otherwise -1 */
 } slot;
 
@@ -386,17 +530,19 @@ static abn_status resolve(ab_calc *c, int code, bool for_read, slot *out)
 {
     int k;
     out->ind = -1;
+    out->val = NULL;
+    out->reg = NULL;
     if (code >= AB_VAR_A && code < AB_VAR_A + 26) {
-        out->reg = &c->var[code - AB_VAR_A];
+        out->val = &c->var[code - AB_VAR_A];
         return ABN_OK;
     }
     if (code != AB_VAR_IND_I && code != AB_VAR_IND_J) return ABN_DOMAIN;
-    const abn *idx = &c->var[(code == AB_VAR_IND_I ? 'I' : 'J') - 'A'];
-    if (!int_in(idx, -32, AB_IND_MAX, &k)) return ABN_DOMAIN;      /* INVALID (I) */
+    const ab_val *idx = &c->var[(code == AB_VAR_IND_I ? 'I' : 'J') - 'A'];
+    if (is_cx(idx) || !int_in(&idx->re, -32, AB_IND_MAX, &k)) return ABN_DOMAIN;  /* INVALID (I) */
     if (k <= -27) {
         out->reg = &c->stat[-k - 27];
     } else if (k < 0) {
-        out->reg = &c->var[-k - 1];
+        out->val = &c->var[-k - 1];
     } else {
         if (for_read && k > c->ind_top) return ABN_DOMAIN;          /* INVALID (I): undefined */
         out->reg = &c->ind[k];
@@ -419,52 +565,88 @@ static void write_slot(ab_calc *c, const slot *sl, abn v)
     }
 }
 
-static abn_status arith(abn *r, ab_op op, const abn *a, const abn *b)
+/* The value at a location. */
+static ab_val load_val(const slot *sl)
 {
-    switch (op) {
-    case AB_STOADD: case AB_RCLADD: return abn_add(r, a, b);
-    case AB_STOSUB: case AB_RCLSUB: return abn_sub(r, a, b);
-    case AB_STOMUL: case AB_RCLMUL: return abn_mul(r, a, b);
-    default: return abn_div(r, a, b);
+    return sl->val ? *sl->val : ab_real(*sl->reg);
+}
+
+/* Stores v. The registers that hold reals refuse a complex number (ours, unit 009: the guide
+ * shows complex numbers in the lettered variables, UG p.9-2): INVALID DATA, nothing changed. */
+static abn_status store_val(ab_calc *c, const slot *sl, ab_val v)
+{
+    if (sl->val) {
+        *sl->val = v;
+        return ABN_OK;
     }
+    if (is_cx(&v)) return ABN_DOMAIN;
+    write_slot(c, sl, v.re);
+    return ABN_OK;
+}
+
+/* a op b for storage and recall arithmetic; complex when either is (unit 009 rule 3). */
+static abn_status arith(ab_val *r, ab_op op, const ab_val *a, const ab_val *b)
+{
+    abn_status st;
+    if (is_cx(a) || is_cx(b)) {
+        cplx x = cx_of(a), y = cx_of(b), z;
+        switch (op) {
+        case AB_STOADD: case AB_RCLADD: st = cx_add(&z, &x, &y); break;
+        case AB_STOSUB: case AB_RCLSUB: st = cx_sub(&z, &x, &y); break;
+        case AB_STOMUL: case AB_RCLMUL: st = cx_mul(&z, &x, &y); break;
+        default: st = cx_div(&z, &x, &y); break;
+        }
+        if (st == ABN_OK) *r = ab_cx(z);
+        return st;
+    }
+    abn v;
+    switch (op) {
+    case AB_STOADD: case AB_RCLADD: st = abn_add(&v, &a->re, &b->re); break;
+    case AB_STOSUB: case AB_RCLSUB: st = abn_sub(&v, &a->re, &b->re); break;
+    case AB_STOMUL: case AB_RCLMUL: st = abn_mul(&v, &a->re, &b->re); break;
+    default: st = abn_div(&v, &a->re, &b->re); break;
+    }
+    if (st == ABN_OK) *r = ab_real(v);
+    return st;
 }
 
 static abn_status storage_op(ab_calc *c, ab_op op, int code)
 {
     slot sl;
-    abn r;
+    ab_val r, v;
     abn_status st;
     bool reads = op != AB_STO;
     if ((st = resolve(c, code, reads, &sl)) != ABN_OK) return st;
     switch (op) {
     case AB_STO:
         /* STO copies x into the variable; X keeps its value (UG p.3-2). */
-        write_slot(c, &sl, c->x.re);
+        if ((st = store_val(c, &sl, c->x)) != ABN_OK) return st;
         break;
     case AB_RCL:
         /* RCL brings a copy into X like any recalled number (UG p.3-2, p.3-4; unit 005 rule 2). */
-        place_in_x(c, *sl.reg);
+        place_val(c, load_val(&sl));
         break;
     case AB_STOADD: case AB_STOSUB: case AB_STOMUL: case AB_STODIV:
         /* Storage arithmetic: variable = variable op x; the stack is untouched (UG p.3-6) and so
            is LAST X (not in UG p.B-6's list). An error changes nothing (unit 005 rule 3). */
-        if ((st = arith(&r, op, sl.reg, &c->x.re)) != ABN_OK) return st;
-        write_slot(c, &sl, r);
+        v = load_val(&sl);
+        if ((st = arith(&r, op, &v, &c->x)) != ABN_OK) return st;
+        if ((st = store_val(c, &sl, r)) != ABN_OK) return st;
         break;
     case AB_RCLADD: case AB_RCLSUB: case AB_RCLMUL: case AB_RCLDIV:
         /* Recall arithmetic: x = x op variable; only X changes (UG p.3-7), and x is saved in
            LAST X (UG p.B-6). */
-        if ((st = arith(&r, op, &c->x.re, sl.reg)) != ABN_OK) return st;
+        v = load_val(&sl);
+        if ((st = arith(&r, op, &c->x, &v)) != ABN_OK) return st;
         c->lastx = c->x;
-        c->x = ab_real(r);
+        c->x = r;
         break;
-    case AB_XVAR: {
+    case AB_XVAR:
         /* x<>variable swaps them; Y, Z, T are untouched (UG p.3-8). */
-        abn v = *sl.reg;
-        write_slot(c, &sl, c->x.re);
-        c->x = ab_real(v);
+        v = load_val(&sl);
+        if ((st = store_val(c, &sl, c->x)) != ABN_OK) return st;
+        c->x = v;
         break;
-    }
     default:
         /* VIEW shows the variable and changes nothing; it is not among the neutral operations
            of UG p.B-5, so like any other it enables lift (ours, unit 005). */
@@ -485,6 +667,7 @@ static abn_status suffix(ab_calc *c, int base)
     int64_t v;
     abn val;
     if (!c->entry.active) return ABN_OK;
+    if (c->cpart) return ABN_DOMAIN;    /* a suffix reads a real entry (ours, unit 009) */
     if (base != 16 && base != 8 && base != 2 && base != 10) return ABN_DOMAIN;
     memcpy(d, c->entry.text, (size_t)c->entry.len);
     d[c->entry.len] = '\0';
@@ -570,9 +753,44 @@ abn_status ab_do(ab_calc *c, ab_op op)
     return ab_do_arg(c, op, 0);
 }
 
+/* Operations that take x (and y) as numbers. */
+static bool reads_x(ab_op op)
+{
+    return (op >= AB_ADD && op <= AB_PCTCHG && op != AB_PI && op != AB_DEG && op != AB_RAD &&
+            op != AB_GRAD) ||
+           (op >= AB_HMS && op <= AB_TOREC && op != AB_RAND) || op == AB_SIGMAPLUS ||
+           op == AB_SIGMAMINUS || op == AB_XHAT || op == AB_YHAT || op == AB_SETC ||
+           (op >= AB_AND && op <= AB_NOR) || op == AB_ARG;
+}
+
+static bool reads_y(ab_op op)
+{
+    switch (op) {
+    case AB_ADD: case AB_SUB: case AB_MUL: case AB_DIV: case AB_IDIV: case AB_RMDR: case AB_POW:
+    case AB_XROOT: case AB_PCT: case AB_PCTCHG: case AB_NCR: case AB_NPR: case AB_TOPOL:
+    case AB_TOREC: case AB_SIGMAPLUS: case AB_SIGMAMINUS: case AB_AND: case AB_XOR: case AB_OR:
+    case AB_NAND: case AB_NOR:
+        return true;
+    default:
+        return false;
+    }
+}
+
+/* The guide's list of what takes complex numbers (UG p.9-3), in decimal; ABS and ARG give reals. */
+static bool takes_complex(ab_op op)
+{
+    switch (op) {
+    case AB_ADD: case AB_SUB: case AB_MUL: case AB_DIV: case AB_POW: case AB_INV: case AB_LN:
+    case AB_EXP: case AB_SIN: case AB_COS: case AB_TAN: case AB_ABS: case AB_ARG:
+        return true;
+    default:
+        return false;
+    }
+}
+
 abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
 {
-    if (op >= AB_KI) return ABN_OK;         /* STUB: unit 009 lands after the oracle */
+    if (op == AB_KI || op == AB_KTHETA) return complex_key(c, op);
     if (op <= AB_KE || (op >= AB_KA && op <= AB_KF)) return entry_key(c, op);
     if (op == AB_SUF) return suffix(c, arg);
     if ((op == AB_KCHS || op == AB_KBKSP) && c->entry.active) return entry_key(c, op);
@@ -584,6 +802,12 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
         c->entry.active = false;
         c->lift = true;
     }
+    c->cpart = 0;
+
+    /* Any other function given a complex number is INVALID DATA (UG p.9-3, p.F), nothing changed. */
+    if (((reads_x(op) && is_cx(&c->x)) || (reads_y(op) && is_cx(&c->y))) &&
+        !(takes_complex(op) && c->base == 10))
+        return ABN_DOMAIN;
 
     /* In HEX the keys of these functions type digits, and the guide lists them as unavailable
      * (UG p.11-4): an error here, changing nothing. */
@@ -641,9 +865,25 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
         place_val(c, c->lastx);
         break;
     case AB_KCHS:
-        /* Change sign of a completed X (UG p.1-15). */
-        c->x = ab_real(abn_neg(&c->x.re));
+        /* Change sign of a completed X (UG p.1-15); of both parts of a complex one (UG p.9-3). */
+        c->x.re = abn_neg(&c->x.re);
+        c->x.im = abn_neg(&c->x.im);
         break;
+    case AB_ARG: {
+        /* The angle of x i y in the angle mode (UG p.9-3); a real x is x i 0. Saves x in LAST X as
+           ABS does (UG p.B-6). */
+        abn r, th;
+        abn_status st = fn_topol(&r, &th, &c->x.re, &c->x.im, angle_of(c));
+        if (st != ABN_OK) return st;
+        c->lastx = c->x;
+        c->x = ab_real(th);
+        break;
+    }
+    case AB_XIY:
+    case AB_RTA:
+        /* the complex display form; neutral for lift (UG p.9-1, p.B-5) */
+        c->cpolar = op == AB_RTA;
+        return ABN_OK;
     case AB_ADD:
     case AB_SUB:
     case AB_MUL:
@@ -806,7 +1046,7 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
     case AB_CLVARS:
         /* Clear the direct variables A..Z (UG p.3-5); neutral for stack lift (UG p.B-5). The
            unnamed indirect variables have their own clearing (UG p.1-5, a later unit). */
-        for (int i = 0; i < 26; i++) c->var[i] = abn_zero();
+        for (int i = 0; i < 26; i++) c->var[i] = ab_real(abn_zero());
         return ABN_OK;
     case AB_SETFIX:
     case AB_SETSCI:

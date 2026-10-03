@@ -20,5 +20,11 @@ abn_status cx_div(cplx *out, const cplx *a, const cplx *b);
 abn_status cx_inv(cplx *out, const cplx *a);
 cplx cx_neg(const cplx *a);
 abn_status cx_abs(abn *out, const cplx *a);
+abn_status cx_exp(cplx *out, const cplx *z);
+abn_status cx_ln(cplx *out, const cplx *z);
+abn_status cx_sin(cplx *out, const cplx *z);
+abn_status cx_cos(cplx *out, const cplx *z);
+abn_status cx_tan(cplx *out, const cplx *z);
+abn_status cx_pow(cplx *out, const cplx *z1, const cplx *z2);   /* z1^z2 */
 
 #endif

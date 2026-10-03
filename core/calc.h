@@ -101,7 +101,7 @@ typedef struct {
     ab_mode disp_mode;      /* display setting, for RND (unit 004) */
     int disp_n;
     uint64_t rng;           /* random generator state (unit 004) */
-    abn var[26];            /* A..Z (unit 005) */
+    ab_val var[26];         /* A..Z (unit 005); each may hold a complex number (UG p.9-2, unit 009) */
     abn stat[AB_STAT_REGS]; /* the statistics registers, reached through (I)/(J) for now */
     abn ind[AB_IND_MAX + 1];/* unnamed indirect variables */
     int ind_top;            /* highest defined indirect address, -1 if none */
@@ -110,7 +110,9 @@ typedef struct {
     bool flag8, flag9;      /* fraction format flags (UG p.5-6) */
     int base;               /* 10, 16, 8 or 2 (unit 008) */
     bool cpolar;            /* complex numbers shown as r theta a (unit 009) */
-    ab_entry entry;
+    ab_entry entry;         /* the number being typed, or its second part after i or theta */
+    ab_entry entry1;        /* the first part, once i or theta has been pressed */
+    int cpart;              /* 0 a real entry, 1 typing y of x i y, 2 typing a of r theta a */
 } ab_calc;
 
 void ab_init(ab_calc *c);

@@ -211,9 +211,7 @@ int main(int argc, char **argv)
                 /* @A=v: variable A; @#n=v: unnamed indirect variable n (unit 005) */
                 char *eq = strchr(ex, '=');
                 if (eq && ex[1] >= 'A' && ex[1] <= 'Z' && eq == ex + 2) {
-                    var_val.kind = AB_REAL;
-                    var_val.re = c.var[ex[1] - 'A'];
-                    var_val.im = abn_zero();
+                    var_val = c.var[ex[1] - 'A'];
                     rv = &var_val;
                     r = &var_val.re;
                 } else if (eq && ex[1] == '#') {

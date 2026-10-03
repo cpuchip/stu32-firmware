@@ -15,7 +15,7 @@ M08 | 35s p.9-7 1 i 1 + 3 theta 10 + 5 theta 30 (DEG) | DEG RTA 1 CI 1 ENTER 3 C
 M09 | 35s p.4-11 10 theta 30 in DEG is 8.6603 i 5 (r sin 30 exact) | DEG 10 CA 30 ENTER | X^8.66025403784438646763723170752936183i5
 M10 | 35s p.4-12 RC circuit 77.8 theta -36.5 | DEG 77.8 CA 36.5 CHS ENTER | X^62.5400637560195079838922192711640121i-46.2772128092543524063058498682596464
 M11 | 35s p.4-17 ABS of 3 i 4 is real 5; B-6 saves x | 3 CI 4 ABS | X=5 L=3i4
-M12 | 35s p.4-17 ARG in DEG | DEG 3 CI 4 ARG | X^53.1301023541559787031443874409065893
+M12 | 35s p.4-17 ARG in DEG; B-6 saves x | DEG 3 CI 4 ARG | X^53.1301023541559787031443874409065893 L=3i4
 M13 | 35s p.3-2 a variable holds a complex number | 3 CI 4 STO:A CLX RCL:A | X=3i4
 M14 | 35s p.9-2 LAST X holds a complex number | 3 CI 4 ENTER 1 CI 1 + LASTX | X=1i1 Y=4i5
 M15 | 35s p.9-2 ENTER copies the whole number | 3 CI 4 ENTER | X=3i4 Y=3i4
@@ -55,3 +55,8 @@ O33 | ours: ARG in RAD | RAD 1 CI 1 ARG | X^0.7853981633974483096156608458198757
 O34 | ours: ARG exact on the diagonal in DEG | DEG 1 CI 1 ARG | X=45
 O35 | ours: complex integer power exact | 1 CI 1 ENTER 4 POW | X=-4i0
 O36 | ours: a complex number keeps its parts through R-down | 1 CI 2 ENTER 3 RDN RDN RDN RDN | X=3 Y=1i2
+O38 | ours: ln near 1, both parts tiny, keeps its real part (added at green: mutation run) | 1.000000000000000000000000000001 CI 1 E 30 CHS LN | X^1.0E-30i9.99999999999999999999999999999E-31
+O39 | 35s p.B-5 the display form is neutral after a typed number too (added at green: mutation run) | 1 ENTER 2 RTA 3 | X=3 Y=2 Z=1
+O40 | ours: tan far from the axis is i sgn(b) (added at green: mutation run) | 1 CI 200000 CHS TAN | X=0i-1
+O41 | ours: e^z below the range is a range error, as for a real e^x (added at green: mutation run) | 54215 CHS CI 0 EXP | ERR X=-54215i0
+O37 | ours (rule 5): 0^z with Re z = 0 exactly is an error (added at green: the mutation run found the boundary untested) | 0 CI 0 ENTER 0 CI 1 POW | ERR X=0i1 Y=0i0

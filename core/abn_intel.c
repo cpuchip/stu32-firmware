@@ -287,6 +287,12 @@ abn_status abn_ln(abn *out, const abn *a)
     return call1(out, bid128_log, a);
 }
 
+abn_status abn_log1p(abn *out, const abn *a)
+{
+    if (cmp_int(a, -1) <= 0) return ABN_DOMAIN;
+    return call1(out, bid128_log1p, a);
+}
+
 abn_status abn_exp10(abn *out, const abn *a)
 {
     return call1(out, bid128_exp10, a);

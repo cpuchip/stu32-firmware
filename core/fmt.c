@@ -9,9 +9,11 @@
  * 34-digit value on a wider line does not fit the guide's 12-digit display are marked
  * "ours, unit 002".
  */
+#include <stdio.h>
 #include <string.h>
 
 #include "fmt.h"
+#include "fn.h"
 #include "frac.h"
 #include "base.h"
 
@@ -323,8 +325,72 @@ int ab_format_display(const abn *v, const ab_display *d, char *out, int size, in
 }
 
 /* STUB: unit 009 lands after the oracle */
+/* v rounded to 12 significant digits, half away from zero (display rounding). */
+static abn round12(const abn *v)
+{
+    bool neg;
+    char d[ABN_DIGITS + 2], t[ABN_TEXT_MAX];
+    int lead, n;
+    abn r;
+    abn_digits(v, &neg, d, &lead);
+    n = (int)strlen(d);
+    if (n <= 12) return *v;
+    bool up = d[12] >= '5';
+    d[12] = '\0';
+    for (int i = 11; up && i >= 0; i--) {
+        if (d[i] == '9') {
+            d[i] = '0';
+        } else {
+            d[i]++;
+            up = false;
+        }
+    }
+    if (up) {           /* 999999999999|5 carries into a new leading digit */
+        memmove(d + 1, d, 13);
+        d[0] = '1';
+        d[12] = '\0';
+        lead++;
+    }
+    snprintf(t, sizeof t, "%s0.%sE%d", neg ? "-" : "", d, lead + 1);
+    if (abn_from_text(&r, t) != ABN_OK) return *v;
+    return r;
+}
+
+/* A complex number (UG p.9-4 to 9-6): the two parts in the decimal format joined by "i", or in
+ * polar form r and the angle (in the angle mode) joined by the theta glyph, with no spaces; a
+ * negative second part shows its sign right after the glyph. In ALL each part shows at most 12
+ * significant digits (UG p.1-25: 5 theta 53.1301023542). Both parts in full when they fit the
+ * line, otherwise each in half of it (ours). The angle is unit 004's, exact on the axes and
+ * diagonals in degrees and grads. */
 int ab_format_complex(const abn *re, const abn *im, const ab_display *d, char *out, int size)
 {
-    (void)im;
-    return ab_format(re, &d->dec, out, size);
+    static const char THETA[] = "\xce\xb8";     /* U+03B8, one display cell */
+    abn a = *re, b = *im;
+    char ta[160], tb[160];
+    ab_fmt f = d->dec;
+    const char *glyph = d->polar ? THETA : "i";
+    int gl = (int)strlen(glyph), la, lb;
+    out[0] = '\0';
+    if (d->polar) {
+        fn_angle m = d->angle == 1 ? FN_RAD : d->angle == 2 ? FN_GRAD : FN_DEG;
+        if (fn_topol(&a, &b, re, im, m) != ABN_OK) return -1;
+    }
+    if (f.mode == AB_ALL) {
+        a = round12(&a);
+        b = round12(&b);
+    }
+    f.width = 120;
+    la = ab_format(&a, &f, ta, sizeof ta);
+    lb = ab_format(&b, &f, tb, sizeof tb);
+    if (la < 0 || lb < 0 || la + 1 + lb > d->dec.width) {
+        f.width = (d->dec.width - 1) / 2;
+        la = ab_format(&a, &f, ta, sizeof ta);
+        lb = ab_format(&b, &f, tb, sizeof tb);
+        if (la < 0 || lb < 0) return -1;
+    }
+    if (la + gl + lb + 1 > size) return -1;
+    memcpy(out, ta, (size_t)la);
+    memcpy(out + la, glyph, (size_t)gl);
+    memcpy(out + la + gl, tb, (size_t)lb + 1);
+    return la + 1 + lb;
 }

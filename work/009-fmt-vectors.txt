@@ -17,5 +17,8 @@ D12 | 35s p.4-11 | 8.66025403784438646763723170752936183i5 | FIX 4 |  | 8.6603i5
 D13 | 35s p.4-12 | 62.5400637560195079838922192711640121i-46.2772128092543524063058498682596464 | FIX 4 |  | 62.5401i-46.2772
 D14 | ours: 3 i 4 polar in RAD | 3i4 | FIX 4 | polar=rad | 5.0000θ0.9273
 D15 | ours: zero | 0i0 | FIX 4 |  | 0.0000i0.0000
-D16 | ours: too wide for both parts in full: each gets half the line | 0.3333333333333333333333333333333333i0.6666666666666666666666666666666667 | ALL |  | 0.33333333i0.66666667
+D16 | ours: too wide for both parts in full: each gets half the line (ALL in 10 cells goes scientific, unit 002) | 0.3333333333333333333333333333333333i0.6666666666666666666666666666666667 | ALL |  | 3.33333E-1i6.66667E-1
+D18 | 35s p.1-25 3 i 4 in ALL, polar (DEG): each part at most 12 significant digits | 3i4 | ALL | polar=deg | 5θ53.1301023542
+D19 | 35s p.4-12 3 i 4 in FIX 4, polar (DEG) | 3i4 | FIX 4 | polar=deg | 5.0000θ53.1301
+D20 | ours: ALL rounds each part to 12 digits half away from zero, carrying | 9.9999999999995i-0.12345678901249 | ALL |  | 10i-0.123456789012
 D17 | ours: polar of a negative real is theta 180 | -2i0 | FIX 2 | polar=deg | 2.00θ180.00
