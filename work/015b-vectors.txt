@@ -1,0 +1,45 @@
+# Work unit 015 key vectors, part 2: complex, vector and base-n numbers, the logic functions and %
+# in equations. Keyboard twins: SAVEX after the equation, then the same computation keyed (CLSTK
+# first); %SAMEX=same requires X to be what the keys gave, bit for bit. Format as 015-vectors.txt.
+
+B01 | 35s p.9-7/9-8 a complex sum in an equation (DEG): 1i2+3θ10+5θ30 | DEG EQ:1i2+3θ10+5θ30 XEQ SAVEX CLSTK DEG 1 CI 2 ENTER 3 CA 10 + 5 CA 30 + | %SAMEX=same
+B02 | 35s p.9-7 typing complex numbers: i and θ keys type i and θ | EQN 1 CI 2 + 3 CA 10 ENTER | %EQ=1i2+3θ10
+B03 | 35s p.9-7 a prompt takes a complex value | EQ:A×2 XEQ 1 CI 1 RS SAVEX CLSTK 1 CI 1 ENTER 2 * | %SAMEX=same
+B04 | 35s p.9-3, 9-7 EXP of a complex number in an equation (RAD) | RAD EQ:EXP(0i1) XEQ SAVEX CLSTK RAD 0 CI 1 EXP | %SAMEX=same
+B05 | 35s p.9-3 SQRT takes no complex number: INVALID DATA, as on the keyboard | EQ:SQRT(1i1) XEQ | ERR %ERR=DOMAIN
+B06 | 35s p.9-3 a complex power | EQ:(1i1)^2 XEQ SAVEX CLSTK 1 CI 1 ENTER 2 POW | %SAMEX=same
+B07 | 35s p.6-10, 9-7 an equality of complex values: left minus right | EQ:1i1=1 XEQ SAVEX CLSTK 1 CI 1 ENTER 1 - | %SAMEX=same
+B08 | ours: unary minus of a complex number | EQ:-(1i1) XEQ SAVEX CLSTK 1 CI 1 ENTER CHS | %SAMEX=same
+B09 | 35s p.9-3 ABS and ARG of a complex number give reals | DEG EQ:ABS(3i4)+ARG(1i1) XEQ SAVEX CLSTK DEG 3 CI 4 ABS 1 CI 1 ARG + | %SAMEX=same
+B10 | 35s p.B-7 REGX holding a complex number | 1 CI 1 EQ:REGX×2 XEQ SAVEX CLSTK 1 CI 1 ENTER 2 * | %SAMEX=same
+B11 | 35s p.14-23 (I) naming a variable that holds a complex number | 1 CI 1 STO:A 1 CHS STO:I EQ:⒤+1 XEQ SAVEX CLSTK 1 CI 1 ENTER 1 + | %SAMEX=same
+B12 | 35s p.9-7 polar entry in RAD | RAD EQ:2θ1 XEQ SAVEX CLSTK RAD 2 CA 1 | %SAMEX=same
+B13 | 35s p.10-6 vectors add in an equation | EQ:[1,2]+[3,4] XEQ | X=[4,6]
+B14 | 35s p.10-6 x between two vectors is the dot product | EQ:[1,2,3]×[4,5,6] XEQ | X=32
+B15 | 35s p.10-6 a number times a vector | EQ:2×[1,2] XEQ | X=[2,4]
+B16 | 35s p.4-17, 10-6 ABS of a vector | EQ:ABS([3,4]) XEQ | X=5
+B17 | 35s p.10-8 [C, REGZ, (J)] typed in Equation mode: [ types a pair, R-down's menu gives REGZ, RCL (J) types (J) | EQN [ RCL:C , REG:Z , RCL:(J) ENTER | %EQ=[C,REGZ,⒥]
+B18 | 35s p.10-8 its value: C, the Z register, the variable J names | 7 STO:C 4 STO:D 4 CHS STO:J 1 ENTER 2 ENTER 3 EQ:[C,REGZ,⒥] XEQ | X=[7,1,4]
+B19 | 35s p.10-6 a vector at a prompt | EQ:A+[1,1] XEQ [ 2 , 3 RS | X=[3,4] @A=[2,3]
+B20 | 35s p.10-6 vector plus number: INVALID DATA, as on the keyboard | EQ:[1,2]+1 XEQ | ERR %ERR=DOMAIN
+B21 | 35s p.10-6 integrate an equation whose value is [v,0,0]: the first element | FIX4 EQ:[X,0,0] C 0 ENTER 2 EQN INTEG:X | X#2,1E-4
+B22 | 35s p.10-6 integrate a 1-element vector value | FIX4 EQ:[X] C 0 ENTER 2 EQN INTEG:X | X#2,1E-4
+B23 | ours: integrate a value [v,w] with w nonzero: INVALID DATA (p.10-6) | FIX4 EQ:[X,1] C 0 ENTER 2 EQN INTEG:X | ERR %ERR=DOMAIN
+B24 | ours: SOLVE needs a real value: a vector value is INVALID DATA | EQ:[X,0] C 0 STO:X 1 EQN SOLVE:X | ERR %ERR=DOMAIN
+B25 | ours: unary minus of a vector | EQ:-[1,2] XEQ SAVEX CLSTK [ 1 , 2 ENTER CHS | %SAMEX=same
+B26 | 35s p.11-8 a hex number in an equation (DEC): 1Fh + 1 | EQ:1Fh+1 XEQ | X=32
+B27 | 35s p.11-3, 13-25 a number with no mark is decimal in any base | HEX EQ:10+1 XEQ | X=11
+B28 | 35s p.6-11 a number in another base, the result in the current one | BIN EQ:7o+1 XEQ | X=8
+B29 | 35s p.11-4 arithmetic in an equation in HEX is the keyboard's (integers) | HEX EQ:7h÷2h XEQ SAVEX CLSTK HEX 7 ENTER 2 / | %SAMEX=same X=3
+B30 | 35s p.11-2 typing hex digits and a suffix | HEX EQN 1 HF SUF:h + 1 ENTER | %EQ=1Fh+1
+B31 | 35s p.11-4 AND(1100b,1010b)=1000b | BIN EQ:AND(1100b,1010b) XEQ | X=8
+B32 | 35s p.11-4 XOR(1101b,1011b)=110b | BIN EQ:XOR(1101b,1011b) XEQ | X=6
+B33 | 35s p.11-4 OR(1100b,1010b)=1110b | BIN EQ:OR(1100b,1010b) XEQ | X=14
+B34 | 35s p.11-4 NOT(1011b): 36 bits, 32 ones and 0100 | BIN EQ:NOT(1011b) XEQ SAVEX CLSTK BIN 1 0 1 1 NOT | %SAMEX=same
+B35 | 35s p.11-4 NAND(1100b,1010b) | BIN EQ:NAND(1100b,1010b) XEQ SAVEX CLSTK BIN 1 1 0 0 ENTER 1 0 1 0 NAND | %SAMEX=same
+B36 | 35s p.11-4 NOR(1100b,1010b) | BIN EQ:NOR(1100b,1010b) XEQ SAVEX CLSTK BIN 1 1 0 0 ENTER 1 0 1 0 NOR | %SAMEX=same
+B37 | 35s p.11-4 typing a logic function: the LOGIC item types its name and a pair | BIN EQN AND 1 1 0 0 SUF:b , 1 0 1 0 SUF:b ENTER | %EQ=AND(1100b,1010b)
+B38 | 35s p.11-4 a complex argument to a logic function: INVALID DATA | EQ:AND(1i1,1) XEQ | ERR %ERR=DOMAIN
+B39 | ours: % in an equation is %(y,x) = y x / 100, two arguments like %CHG (p.G-2 gives no form) | EQ:%(200,15) XEQ | X=30
+B40 | ours: % typed: the key types %( ) with the cursor inside | EQN PCT 2 0 0 , 1 5 ENTER | %EQ=%(200,15)
+B41 | 35s p.6-16 %CHG is still read as %CHG (the longer name) | EQ:%CHG(50,75) XEQ | X=50
