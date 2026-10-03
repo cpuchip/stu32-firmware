@@ -42,8 +42,9 @@ typedef struct {
 
 void ab_init(ab_calc *c);
 
-/* Performs one operation. On an arithmetic error the stack is left as it was and the
-   error is returned; ABN_OK otherwise. */
+/* Performs one operation. On an arithmetic error (divide by zero, out of range) the four
+   registers and LAST X are left as they were and the error is returned; a number being
+   keyed in is still completed. ABN_OK otherwise. */
 abn_status ab_do(ab_calc *c, ab_op op);
 
 #endif
