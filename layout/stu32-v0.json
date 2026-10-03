@@ -1,0 +1,51 @@
+{
+  "_comment": "STU-32 keyboard layout v0 (docs/keyboard-layout-v0.md), the one source for the key legends and the firmware's keymap. NOT RULED: Michael has not reacted yet. Legends are the short printed forms; a menu legend is drawn boxed. 'w' is width in key units of its row; 'cap' is the cap colour (black, gold, blue).",
+  "rows": [
+    {"name": "soft", "cols": 6, "shift_legends": false, "keys": [
+      {"face": ""}, {"face": ""}, {"face": ""}, {"face": ""}, {"face": ""}, {"face": ""}]},
+    {"name": "1", "cols": 6, "keys": [
+      {"face": "√x", "gold": "x²", "blue": "ABS"},
+      {"face": "eˣ", "gold": "10ˣ", "blue": "EXP", "blue_menu": true},
+      {"face": "LN", "gold": "LOG", "blue": "HYP", "blue_menu": true},
+      {"face": "yˣ", "gold": "ˣ√y", "blue": "POW", "blue_menu": true},
+      {"face": "1/x", "gold": "%", "blue": "%CHG"},
+      {"face": "Σ+", "gold": "Σ−", "blue": "STAT", "blue_menu": true}]},
+    {"name": "2", "cols": 6, "keys": [
+      {"face": "STO", "gold": "VIEW", "blue": "VARS", "blue_menu": true},
+      {"face": "RCL", "gold": "CONST", "gold_menu": true, "blue": "CONV", "blue_menu": true},
+      {"face": "R↓", "gold": "R↑", "blue": "STACK", "blue_menu": true},
+      {"face": "SIN", "gold": "ASIN", "blue": "ANGLE", "blue_menu": true},
+      {"face": "COS", "gold": "ACOS", "blue": "→RAD"},
+      {"face": "TAN", "gold": "ATAN", "blue": "→DEG"}]},
+    {"name": "3", "cols": 6, "keys": [
+      {"face": "ENTER", "w": 2, "gold": "LASTx", "blue": "MODE", "blue_menu": true},
+      {"face": "x↔y", "gold": "TEST", "gold_menu": true, "blue": "BASE", "blue_menu": true},
+      {"face": "+/−", "gold": "ABS", "blue": "CMPLX", "blue_menu": true},
+      {"face": "E", "gold": "π", "blue": "FRAC", "blue_menu": true},
+      {"face": "←", "gold": "CLEAR", "gold_menu": true, "blue": "UNDO"}]},
+    {"name": "4", "cols": 5, "keys": [
+      {"face": "XEQ", "gold": "LBL", "blue": "RTN"},
+      {"face": "7", "gold": "SOLVE", "gold_menu": true, "blue": "GRAPH", "blue_menu": true},
+      {"face": "8", "gold": "∫", "gold_menu": true, "blue": "TABLE", "blue_menu": true},
+      {"face": "9", "gold": "PRGM", "gold_menu": true, "blue": "TUTOR", "blue_menu": true},
+      {"face": "÷", "gold": "INT÷", "blue": "Rmdr"}]},
+    {"name": "5", "cols": 5, "keys": [
+      {"face": "", "cap": "gold"},
+      {"face": "4", "gold": "GTO", "blue": "ISG"},
+      {"face": "5", "gold": "DSE", "blue": "x?0", "blue_menu": true},
+      {"face": "6", "gold": "x?y", "gold_menu": true, "blue": "FLAGS", "blue_menu": true},
+      {"face": "×", "gold": "n!", "blue": "PROB", "blue_menu": true}]},
+    {"name": "6", "cols": 5, "keys": [
+      {"face": "", "cap": "blue"},
+      {"face": "1", "gold": "UNITS", "gold_menu": true, "blue": "MEM", "blue_menu": true},
+      {"face": "2", "gold": "DISP", "gold_menu": true, "blue": "∡MODE", "blue_menu": true},
+      {"face": "3", "gold": "RADIX", "gold_menu": true, "blue": "SETUP", "blue_menu": true},
+      {"face": "−", "gold": "RAND", "blue": "SEED"}]},
+    {"name": "7", "cols": 5, "keys": [
+      {"face": "C", "gold": "OFF", "blue": "SYS", "blue_menu": true},
+      {"face": "0", "gold": "EQN", "gold_menu": true, "blue": "APPS", "blue_menu": true},
+      {"face": ".", "gold": ",", "blue": "→FRAC"},
+      {"face": "R/S", "gold": "PSE", "blue": "SST"},
+      {"face": "+", "gold": "SUMS", "gold_menu": true, "blue": "L.R.", "blue_menu": true}]}
+  ]
+}
