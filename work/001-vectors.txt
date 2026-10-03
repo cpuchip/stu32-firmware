@@ -1,0 +1,60 @@
+# Work unit 001 acceptance vectors. One vector per line:
+#   ID | source (35s User's Guide page) | keys | expectations
+# Each vector starts from a fresh calculator (X = Y = Z = T = 0, LAST X = 0).
+#
+# Key tokens (operations, not physical keys; the keymap is decided elsewhere):
+#   digits 0-9 and '.'  typed one character at a time ("96.704" is six keystrokes)
+#   E      start the exponent        CHS   change sign        BKSP  backspace
+#   ENTER  RDN (roll down)  RUP (roll up)  XY (x exchange y)  LASTX
+#   CLX    clear X                   CLSTK clear the stack
+#   + - * /                          the four operations (Y op X)
+#
+# Expectations: X= Y= Z= T= L= (L is the LAST X register).
+#   "="  exact numeric equality (337.5 equals 337.500; 1E6 equals 1000000)
+#   "~"  equal after rounding both to 12 significant digits (non-terminating results; the
+#        value given is the 34-digit reference computed with Python decimal)
+# Registers not listed are not checked.
+#
+# Where the manual's keystroke glyphs were lost in extraction, keys were read from the rendered
+# page; "keys from description" marks the two vectors whose keys follow the page's own
+# step-by-step description rather than a legible key image.
+
+V01 | p.2-3 R-down once            | 1 ENTER 2 ENTER 3 ENTER 4 RDN                | X=3 Y=2 Z=1 T=4
+V02 | p.2-3 R-down four times      | 1 ENTER 2 ENTER 3 ENTER 4 RDN RDN RDN RDN    | X=4 Y=3 Z=2 T=1
+V03 | p.2-4 R-up once              | 1 ENTER 2 ENTER 3 ENTER 4 RUP                | X=1 Y=4 Z=3 T=2
+V04 | p.2-4 x exchange y           | 1 ENTER 2 ENTER 3 ENTER 4 XY                 | X=3 Y=4 Z=2 T=1
+V05 | p.2-4 x exchange y twice     | 1 ENTER 2 ENTER 3 ENTER 4 XY XY              | X=4 Y=3 Z=2 T=1
+V06 | p.2-6 how ENTER works        | 1 ENTER 2 ENTER 3 ENTER 4 XY XY 5 ENTER 6 +  | X=11 Y=4 Z=3 T=3
+V07 | p.2-7 filling with a constant| 1.5 ENTER ENTER ENTER 100 *                  | X=150 Y=1.5 Z=1.5 T=1.5
+V08 | p.2-7 constant, three days   | 1.5 ENTER ENTER ENTER 100 * * *              | X=337.5 Y=1.5 Z=1.5 T=1.5
+V09 | p.2-7/2-8 correcting entry   | 1 ENTER 2 CLX 3                              | X=3 Y=1
+V10 | p.2-8 then add               | 1 ENTER 2 CLX 3 +                            | X=4
+V11 | p.2-10 wrong function        | 16 ENTER 19 - LASTX + LASTX *                | X=304 L=19
+V12 | p.2-10 wrong first number    | 15 ENTER 19 * 16 LASTX *                     | X=304 Y=285 L=19
+V13 | p.2-10 wrong second number   | 16 ENTER 18 * LASTX / 19 *                   | X=304 L=19
+V14 | p.2-11 reusing LAST X        | 1 ENTER 2 ENTER 96.704 ENTER 52.3947 +       | X=149.0987 Y=2 Z=1 T=1 L=52.3947
+V15 | p.2-11 then LAST X           | 1 ENTER 2 ENTER 96.704 ENTER 52.3947 + LASTX | X=52.3947 Y=149.0987 Z=2 T=1 L=52.3947
+V16 | p.2-11 then divide           | 1 ENTER 2 ENTER 96.704 ENTER 52.3947 + LASTX / | X~2.845682864869920049165278167448234 Y=2 Z=1 T=1 L=52.3947
+V17 | p.2-12 speed of light        | 4.3 ENTER 9.5 E 15 *                         | X=4.085E16 L=9.5E15
+V18 | p.2-12 LAST X reused         | 4.3 ENTER 9.5 E 15 * 8.7 LASTX *             | X=8.265E16 Y=4.085E16
+V19 | p.2-12 (12+3)x7              | 12 ENTER 3 + 7 *                             | X=105
+V20 | p.2-13 2/(3+10) keys from description | 3 ENTER 10 + 2 XY /                 | X~0.1538461538461538461538461538461538
+V21 | p.2-13 4/[14+(7x3)-2] keys from description | 7 ENTER 3 * 14 + 2 - 4 XY /   | X~0.1212121212121212121212121212121212
+V22 | p.2-15/2-16 left to right    | 4 ENTER 14 ENTER 7 ENTER 3 * + 2 - /         | X~0.1212121212121212121212121212121212
+V23 | p.2-13/2-14 (3+4)x(5+6)      | 3 ENTER 4 + 5 ENTER 6 + *                    | X=77
+V24 | p.2-14 exercise, solution 1  | 17 ENTER 12 - 4 * 10 ENTER 5 - XY /          | X=0.25
+V25 | p.2-14 exercise, solution 2  | 10 ENTER 5 - 17 ENTER 12 - 4 * /             | X=0.25
+V26 | p.2-16 exercise              | 14 ENTER 12 + 18 ENTER 12 - * 9 ENTER 7 - /  | X=78
+V27 | p.1-16 small number          | 0.000062 ENTER                               | X=0.000062 Y=0.000062
+V28 | p.1-16 Planck's constant     | 6.6261 E 34 CHS ENTER                        | X=6.6261E-34
+V29 | p.1-16 one million           | 1 E 6 ENTER                                  | X=1000000
+V30 | p.1-15 CHS on a completed X  | 6.6261 E 34 CHS ENTER CHS                    | X=-6.6261E-34 Y=6.6261E-34
+V31 | p.1-17 ENTER then add        | 123 ENTER 4 +                                | X=127
+V32 | p.1-17 backspace in entry    | 123 BKSP ENTER                               | X=12 Y=12
+V33 | p.1-17, B-5 backspace as CLx | 7 ENTER 123 ENTER BKSP 5                     | X=5 Y=123 Z=7
+V34 | B-5 clear stack disables lift| 1 ENTER 2 ENTER 3 CLSTK 5                    | X=5 Y=0 Z=0 T=0
+V35 | B-4 arithmetic enables lift  | 2 ENTER 3 + 4                                | X=4 Y=5
+V36 | decimal, not binary          | 0.1 ENTER 0.2 +                              | X=0.3
+V37 | p.2-5 operand order (Y op X) | 9 ENTER 2 -                                  | X=7
+V38 | p.2-5 operand order (Y op X) | 10 ENTER 4 /                                 | X=2.5
+V39 | p.1-15 CHS during entry      | 5 CHS ENTER 3 +                              | X=-2
