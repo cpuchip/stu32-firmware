@@ -403,7 +403,7 @@ int vectors_run(const char *name, FILE *f)
             const abn *r = rv ? &rv->re : NULL;
             ab_val var_val;
             char orig[96];
-            snprintf(orig, sizeof orig, "%s", ex);
+            snprintf(orig, sizeof orig, "%.*s", (int)sizeof orig - 1, ex);
             if (ex[0] == '@') {
                 /* @A=v: variable A; @#n=v: unnamed indirect variable n (unit 005); any of the
                    comparisons = ~ ^ # after the name (unit 013) */
@@ -461,7 +461,7 @@ int vectors_run(const char *name, FILE *f)
                 char buf[256], *el[4];
                 int n = 0, okv = 1;
                 size_t bl = strlen(ex + 3);
-                snprintf(buf, sizeof buf, "%s", ex + 3);
+                snprintf(buf, sizeof buf, "%.*s", (int)sizeof buf - 1, ex + 3);
                 if (bl == 0 || buf[bl - 1] != ']') {
                     fprintf(stderr, "%s:%d: %s: bad vector '%s'\n", name, lineno, id, ex + 2);
                     return 2;
@@ -513,7 +513,7 @@ int vectors_run(const char *name, FILE *f)
                 if (lr >= sizeof re_s) lr = sizeof re_s - 1;
                 memcpy(re_s, ex + 2, lr);
                 re_s[lr] = '\0';
-                snprintf(im_s, sizeof im_s, "%s", ipos + 1);
+                snprintf(im_s, sizeof im_s, "%.*s", (int)sizeof im_s - 1, ipos + 1);
                 norm wr, wi, gr, gi;
                 char t_re[ABN_TEXT_MAX], t_im[ABN_TEXT_MAX];
                 if (normalize(re_s, &wr) != 0 || normalize(im_s, &wi) != 0) {
