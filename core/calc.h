@@ -37,8 +37,20 @@ typedef enum {
     AB_FACT, AB_NCR, AB_NPR, AB_RAND, AB_SEED,
     AB_IP, AB_FP, AB_INTG, AB_RND, AB_ABS, AB_SGN, AB_TOPOL, AB_TOREC,
     AB_CONST,               /* arg: index from ab_const_index */
-    AB_SETFIX, AB_SETSCI, AB_SETENG, AB_SETALL  /* arg: the digit setting, 0..33 (ALL takes none) */
+    AB_SETFIX, AB_SETSCI, AB_SETENG, AB_SETALL,  /* arg: the digit setting, 0..33 (ALL takes none) */
+    /* unit 005: storage; arg: a variable code (AB_VAR_A .. AB_VAR_Z, AB_VAR_IND_I, AB_VAR_IND_J) */
+    AB_STO, AB_RCL,
+    AB_STOADD, AB_STOSUB, AB_STOMUL, AB_STODIV,
+    AB_RCLADD, AB_RCLSUB, AB_RCLMUL, AB_RCLDIV,
+    AB_XVAR, AB_VIEW,
+    AB_CLVARS               /* no argument */
 } ab_op;
+
+#define AB_VAR_A 0                  /* AB_VAR_A + k is the k-th letter; I and J are letters too */
+#define AB_VAR_IND_I 26             /* (I): the variable or register the number in I names */
+#define AB_VAR_IND_J 27             /* (J) */
+#define AB_STAT_REGS 6              /* n, sum x, sum y, sum x^2, sum y^2, sum xy (UG p.14-22) */
+#define AB_IND_MAX 800              /* unnamed indirect variables 0..800 (UG p.14-22) */
 
 typedef enum { AB_ANGLE_DEG = 0, AB_ANGLE_RAD, AB_ANGLE_GRAD } ab_angle;
 
@@ -60,6 +72,10 @@ typedef struct {
     ab_mode disp_mode;      /* display setting, for RND (unit 004) */
     int disp_n;
     uint64_t rng;           /* random generator state (unit 004) */
+    abn var[26];            /* A..Z (unit 005) */
+    abn stat[AB_STAT_REGS]; /* the statistics registers, reached through (I)/(J) for now */
+    abn ind[AB_IND_MAX + 1];/* unnamed indirect variables */
+    int ind_top;            /* highest defined indirect address, -1 if none */
     ab_entry entry;
 } ab_calc;
 

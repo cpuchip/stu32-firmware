@@ -1,0 +1,48 @@
+# Work unit 005 acceptance vectors: storage registers, storage and recall arithmetic, indirect.
+# Format as unit 004, with the unit 005 key tokens STO:A RCL:A STO+:A STO-:A STO*:A STO/:A RCL+:A
+# RCL-:A RCL*:A RCL/:A XVAR:A VIEW:A (A..Z, or (I) and (J) for indirect) and CLVARS, and two new
+# expectations: "@A=value" is lettered variable A, "@#n=value" is unnamed indirect variable n.
+# M-vectors: the manual's examples (HP 35s User's Guide ch.3 and p.14-21 to 14-24, keys from the
+# rendered pages), in RPN form; the rest are ours. Every value here is exact.
+
+M01 | 35s p.3-1 store 3 in A | 3 STO:A | X=3 @A=3
+M02 | 35s p.3-2/3-3 store and recall Avogadro's number | 6.0221 E 23 STO:A CLX RCL:A | X=6.0221E23 Y=0 @A=6.0221E23
+M03 | 35s p.3-4 recall in RPN, no ENTER needed | 1.75 STO:G 11.5 RCL:G | X=1.75 Y=11.5
+M04 | 35s p.3-6 storage arithmetic: A - x | 15 STO:A 3 STO-:A | X=3 Y=15 @A=12
+M05 | 35s p.3-7 recall arithmetic: x / A | 12 STO:A 3 RCL/:A | X=0.25 Y=12 L=3 @A=12
+M06 | 35s p.3-8 add 1 to D, E, F | 1 STO:D 2 STO:E 3 STO:F 1 STO+:D STO+:E STO+:F | X=1 @D=2 @E=3 @F=4
+M07 | 35s p.3-8 chained recall arithmetic | 2 STO:D 3 STO:E 4 STO:F 3 RCL/:D RCL*:E RCL+:F | X=8.5 L=4.5
+M08 | 35s p.3-9 exchange x with A | 12 STO:A 3 XVAR:A | X=12 Y=12 @A=3
+M09 | 35s p.3-9 and exchange back | 12 STO:A 3 XVAR:A XVAR:A | X=3 @A=12
+M10 | 35s p.B-6 RCL+ saves x in LAST X | 5 STO:A 2 RCL+:A | X=7 L=2
+M11 | 35s p.B-6 RCL then + saves the recalled number | 5 STO:A 2 RCL:A + | X=7 L=5
+M12 | 35s p.14-22 I = -1 addresses A | 5 STO:A 1 CHS STO:I RCL:(I) | X=5
+M13 | 35s p.14-22 J = -26 addresses Z | 26 CHS STO:J 7 STO:(J) | @Z=7
+M14 | 35s p.14-24 the defined range grows to 150, address 170 is invalid | 100 STO:I 12345 STO:(I) 150 STO:I 67890 STO:(I) 100 STO:I 0 STO:(I) 170 STO:I RCL:(I) | ERR X=170 @#150=67890 @#100=0
+M15 | 35s p.14-24 inside the defined range, a never-stored address is 0 | 100 STO:I 1 STO:(I) 50 STO:I RCL:(I) | X=0 Y=50
+M16 | 35s p.14-24 storing 0 in the last one releases the range | 100 STO:I 1 STO:(I) 0 STO:(I) RCL:(I) | ERR X=0
+M17 | 35s p.14-22 an address above 800 is invalid | 801 STO:I RCL:(I) | ERR X=801
+M18 | 35s p.14-22 an address below -32 is invalid | 33 CHS STO:I 5 STO:(I) | ERR X=5
+M19 | 35s p.14-22 address 800 is the top | 800 STO:I 9 STO:(I) RCL:(I) | X=9 @#800=9
+M20 | 35s p.3-4 every variable starts at 0 | RCL:Q | X=0
+M21 | 35s p.3-2 variable X is not the X register | 5 STO:X 7 RCL:X | X=5 Y=7 @X=5
+
+S01 | ours (rule 2): RCL lifts; a typed number survives | 1 ENTER 2 RCL:A | X=0 Y=2 Z=1
+S02 | ours: STO leaves the stack, and the number it completes survives | 1 ENTER 2 STO:A 3 | X=3 Y=2 Z=1 @A=2
+S03 | B-6 STO arithmetic leaves LAST X | 9 SQRT 5 STO:A 2 STO*:A | L=9 @A=10
+S04 | B-6 x<>var leaves LAST X | 9 SQRT 5 STO:A XVAR:A | L=9
+S05 | ours (rule 3): STO / 0 leaves the variable and stack | 5 STO:A 0 STO/:A | ERR X=0 Y=5 @A=5
+S06 | ours: RCL / 0 leaves X and LAST X | 9 SQRT 0 STO:B 5 RCL/:B | ERR X=5 L=9
+S07 | ours (rule 3): STO * out of range leaves the variable | 1 E 5000 STO:A STO*:A | ERR @A=1E5000
+S08 | B-5 CLVARS clears A-Z and is neutral for lift | 5 STO:A 6 STO:Z 1 ENTER CLVARS 3 | X=3 Y=1 @A=0 @Z=0
+S09 | ours: RCL-, STO- are var - x and x - var the right way round | 10 STO:A 3 RCL-:A 4 STO-:A | X=4 Y=-7 @A=6
+S10 | ours: (J) arithmetic | 3 STO:C 3 CHS STO:J 4 STO*:(J) | @C=12
+S11 | ours: x<>(I) with an indirect variable | 7 STO:I 11 STO:(I) 2 XVAR:(I) | X=11 @#7=2
+S12 | ours: the statistics registers are storage (-27 is n) | 27 CHS STO:I 4 STO:(I) CLX RCL:(I) | X=4
+S13 | ours: the 32nd register (-32, sum xy) | 32 CHS STO:I 6 STO:(I) CLX RCL:(I) | X=6
+S14 | ours: a non-integer index is truncated (-2.7 names B) | 2.7 CHS STO:I 8 STO:(I) | @B=8
+S15 | ours: storing 0 above the range allocates nothing | 5 STO:I 1 STO:(I) 9 STO:I 0 STO:(I) 7 STO:I RCL:(I) | ERR X=7
+S16 | ours: STO arithmetic on an undefined address is an error | 300 STO:I 2 STO+:(I) | ERR X=2
+S17 | ours: shrinking stops at the next nonzero | 10 STO:I 1 STO:(I) 20 STO:I 2 STO:(I) 0 STO:(I) 15 STO:I RCL:(I) | ERR X=15
+S18 | ours: and keeps what is below it | 10 STO:I 1 STO:(I) 20 STO:I 2 STO:(I) 0 STO:(I) 10 STO:I RCL:(I) | X=1
+S19 | ours: CLVARS clears I too, so (I) falls back to address 0 | 0 STO:I 4 STO:(I) 3 STO:I CLVARS RCL:(I) | X=4

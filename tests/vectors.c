@@ -54,6 +54,27 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
             return 0;
         }
     }
+    static const struct { const char *prefix; ab_op op; } STORE[] = {
+        {"STO:", AB_STO}, {"RCL:", AB_RCL}, {"STO+:", AB_STOADD}, {"STO-:", AB_STOSUB},
+        {"STO*:", AB_STOMUL}, {"STO/:", AB_STODIV}, {"RCL+:", AB_RCLADD}, {"RCL-:", AB_RCLSUB},
+        {"RCL*:", AB_RCLMUL}, {"RCL/:", AB_RCLDIV}, {"XVAR:", AB_XVAR}, {"VIEW:", AB_VIEW}};
+    for (size_t i = 0; i < sizeof STORE / sizeof STORE[0]; i++) {
+        size_t n = strlen(STORE[i].prefix);
+        if (strncmp(tok, STORE[i].prefix, n) == 0) {
+            const char *v = tok + n;
+            int code;
+            if (v[0] >= 'A' && v[0] <= 'Z' && v[1] == '\0') code = AB_VAR_A + (v[0] - 'A');
+            else if (strcmp(v, "(I)") == 0) code = AB_VAR_IND_I;
+            else if (strcmp(v, "(J)") == 0) code = AB_VAR_IND_J;
+            else return -1;
+            if (ab_do_arg(c, STORE[i].op, code) != ABN_OK) (*errors)++;
+            return 0;
+        }
+    }
+    if (strcmp(tok, "CLVARS") == 0) {
+        if (ab_do(c, AB_CLVARS) != ABN_OK) (*errors)++;
+        return 0;
+    }
     if (strncmp(tok, "CONST:", 6) == 0) {
         int k = ab_const_index(tok + 6);
         if (k < 0) return -1;
@@ -157,6 +178,21 @@ int main(int argc, char **argv)
         for (int k = 0; k < nexp; k++) {
             char *ex = exps[k];
             const abn *r = reg(&c, ex[0]);
+            char orig[64];
+            snprintf(orig, sizeof orig, "%s", ex);
+            if (ex[0] == '@') {
+                /* @A=v: variable A; @#n=v: unnamed indirect variable n (unit 005) */
+                char *eq = strchr(ex, '=');
+                if (eq && ex[1] >= 'A' && ex[1] <= 'Z' && eq == ex + 2) {
+                    r = &c.var[ex[1] - 'A'];
+                } else if (eq && ex[1] == '#') {
+                    int a = atoi(ex + 2);
+                    r = (a >= 0 && a <= AB_IND_MAX) ? &c.ind[a] : NULL;
+                }
+                if (r) {
+                    memmove(ex + 1, eq, strlen(eq) + 1);    /* now "@=v" */
+                }
+            }
             if (!r || (ex[1] != '=' && ex[1] != '~' && ex[1] != '^')) {
                 fprintf(stderr, "%s:%d: %s: bad expectation '%s'\n", argv[1], lineno, id, ex);
                 return 2;
@@ -180,8 +216,7 @@ int main(int argc, char **argv)
                 checks_ok++;
             } else {
                 vec_ok = 0;
-                printf("FAIL %s: %c expected %s%s, got %s\n", id, ex[0],
-                       ex[1] == '=' ? "" : (ex[1] == '~' ? "~" : "^"), ex + 2, got_text);
+                printf("FAIL %s: expected %s, got %s\n", id, orig, got_text);
             }
         }
         vectors++;
