@@ -10,7 +10,7 @@ const char *ab_status_message(abn_status st)
     case ABN_OK: return "";
     case ABN_DIV_ZERO: return "DIVIDE BY 0";                    /* F-1 */
     case ABN_RANGE: return "OVERFLOW";                          /* F-4 */
-    case ABN_BAD_TEXT: return "SYNTAX\nERROR";                  /* F-5 (a number's text: ours) */
+    case ABN_BAD_TEXT: return "SYNTAX ERROR";                   /* F-5 (a number's text: ours) */
     case ABN_DOMAIN: return "INVALID DATA";                     /* F-2 */
     case ABN_INEXACT: return "";                                /* not a message (internal) */
     case ABN_CLAMPED: return "TOO BIG";                         /* F-5 */
@@ -23,7 +23,7 @@ const char *ab_status_message(abn_status st)
     case ABN_NO_ROOT: return "NO ROOT FND";                     /* F-4 */
     case ABN_SELECT_FN: return "SELECT FN";                     /* F-4 */
     case ABN_NESTED: return "SOLVE(SOLVE)";                     /* F-4 (made specific below) */
-    case ABN_SYNTAX: return "SYNTAX\nERROR";                    /* F-5, printed on two lines */
+    case ABN_SYNTAX: return "SYNTAX ERROR";                     /* F-5: one line (its column wraps; #3822) */
     case ABN_INVALID_VAR: return "INVALID VAR";                 /* F-2 */
     case ABN_NO_SOLUTION: return "NO SOLUTION";                 /* F-3 */
     case ABN_MULT_SOLUTION: return "MULT SOLUTION";             /* F-3 */

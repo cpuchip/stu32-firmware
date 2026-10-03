@@ -99,14 +99,10 @@ static void keys(ab_calc *c, const char *s)
     }
 }
 
-/* the face's holes in a message, its line break a blank as the X line draws it */
+/* the face's holes in a message; a line break counts as one, as every message is one line (#3822) */
 static int holes_in(const char *m)
 {
-    char buf[128];
-    snprintf(buf, sizeof buf, "%s", m);
-    for (char *p = buf; *p; p++)
-        if (*p == '\n') *p = ' ';
-    return screen_missing(buf);
+    return screen_missing(m) + (strchr(m, '\n') != NULL);
 }
 
 /* the text of program line i (1-based in the order keyed), "?" for none */
@@ -465,7 +461,7 @@ int main(int argc, char **argv)
     keys(&c, "E 3 ENTER");
     screen_render(&c, &ui, &f);
     expect(text_at(&f, 338, 2, 2, "35", 1), "the 35 mode shown");
-    expect(text_at(&f, 20, 128, 4, "SYNTAX ERROR", 1), "35 mode, E 3 ENTER: SYNTAX ERROR, the break a blank");
+    expect(text_at(&f, 20, 128, 4, "SYNTAX ERROR", 1), "35 mode, E 3 ENTER: SYNTAX ERROR, one line (#3822)");
     expect(dark_in(&f, 2, 142, 10, 14) == 0, "a message: no X letter");
     keys(&c, "ENTER");
     screen_render(&c, &ui, &f);

@@ -51,8 +51,7 @@ MEANING = {
     # the device's own
     "OFF": ("KM_DEVICE", "0", "KM_DEV_OFF", 0),
     "UNDO": ("KM_DEVICE", "0", "KM_DEV_UNDO", 0),
-    # not derivable from the guide or the core: reported, not guessed
-    "→FRAC": ("KM_UNDEFINED", "0", 0, 0),
+    "→FRAC": OP("AB_FDISP"),                     # the Fraction-display toggle, ch.5 (abacus #3822)
 }
 
 

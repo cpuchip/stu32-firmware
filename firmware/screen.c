@@ -397,11 +397,7 @@ void screen_render(const ab_calc *c, const screen_ui *ui, ls027_frame *f)
         line_add(&x, m);
         x_left = true;
     } else if ((m = ab_error_message(c)) != NULL) {
-        char buf[64];                           /* one line here: the guide's line break a blank */
-        snprintf(buf, sizeof buf, "%s", m);
-        for (char *p = buf; *p; p++)
-            if (*p == '\n') *p = ' ';
-        line_add(&x, buf);
+        line_add(&x, m);                        /* every message is one line (#3822) */
         x_left = true;
     } else if (c->entry.active || c->cpart || c->vlen) {
         entry_line(c, ui->radix == ',' ? ',' : '.', &x);
