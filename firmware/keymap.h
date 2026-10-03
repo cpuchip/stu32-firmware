@@ -24,7 +24,7 @@ typedef enum {
     KM_NONE = 0,            /* no key, or no legend in this shift */
     KM_OP,                  /* ab_do_arg(op, arg) */
     KM_PROMPT,              /* op, once its argument is given (prompt says what kind) */
-    KM_MENU,                /* the menu named by the legend */
+    KM_MENU,                /* the menu named by the legend: arg its index for km_menu, -1 not defined */
     KM_SHIFT,               /* arg 1 gold, 2 blue */
     KM_SOFT,                /* soft key arg (0..5) */
     KM_DEVICE,              /* arg: KM_DEV_* */
@@ -46,6 +46,21 @@ enum { KM_FACE = 0, KM_GOLD = 1, KM_BLUE = 2 };
 
 /* The action of key (row * 6 + column) in a shift; a key that does not exist is KM_NONE. */
 const km_action *km_lookup(int key, int shift);
+
+/* The menus, as data beside the legends (abacus #3877; provisional until Michael rules the menus):
+   a menu's six soft keys, each an action like a key's (an op, or an op that asks for its
+   argument); KM_NONE for a soft key with nothing. Only PRGM is defined: PRGM (the program-entry
+   toggle, UG p.G-11), LBL, INPUT, SST, BST, CLPGM, the P4 panel's menu, so the panel, the app and
+   the device agree. Until the menus are ruled, EQN (gold on 0) is the plain Equation-mode toggle
+   (UG p.G-7), a provisional KM_OP the EQN menu's first item will take over. */
+#define KM_SOFT_KEYS 6
+
+typedef struct {
+    const char *name;
+    km_action item[KM_SOFT_KEYS];
+} km_menu;
+
+const km_menu *km_menu_at(int index);   /* NULL when there is no such menu */
 
 /* The letter layer: what each key types while a KM_PROMPT waits for its argument (the P4 panel's
    assignment, abacus #3826, provisional until Michael rules where letters are printed; the 35s

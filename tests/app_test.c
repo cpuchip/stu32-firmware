@@ -252,7 +252,39 @@ int main(void)
     press(&a, "ENTER");
     expect(app_tick(&a, &in, now + APP_QUIET_MS) == APP_SAVE, "a new change: saved again");
 
-    /* menus and soft keys do nothing yet; nothing crashes on any key in any shift */
+    /* the PRGM menu (#3877): GOLD 9 opens it, its soft keys act and close it, C only closes it,
+       another key closes it and acts; GOLD 0 is the Equation-mode toggle (#3867) */
+    ab_init(&c);
+    app_init(&a, &c, now);
+    press(&a, "GOLD 9");
+    app_ui(&a, &ui);
+    expect(ui.soft[0] && !strcmp(ui.soft[0], "PRGM") && ui.soft[5] && !strcmp(ui.soft[5], "CLPGM"),
+           "GOLD 9: the PRGM menu's labels on the soft keys");
+    press(&a, "k:0");
+    app_ui(&a, &ui);
+    expect(c.prgm && !ui.soft[0], "soft key 1 (PRGM): program entry on, the menu closed");
+    press(&a, "GOLD 9 k:1 ltr:A GOLD 9 k:2 ltr:R");
+    {
+        char t[32] = "";
+        ab_prog_line(&c, 0, NULL, t, sizeof t);
+        bool l1 = !strcmp(t, "LBL A");
+        ab_prog_line(&c, 1, NULL, t, sizeof t);
+        expect(l1 && !strcmp(t, "INPUT R") && c.prog_len == 2, "the menu's LBL A and INPUT R recorded");
+    }
+    press(&a, "GOLD 9 C");
+    app_ui(&a, &ui);
+    expect(c.prgm && !ui.soft[0] && c.prog_len == 2, "C closes the menu only: still in program entry, nothing recorded");
+    press(&a, "GOLD 9 5");
+    app_ui(&a, &ui);
+    expect(!ui.soft[0] && c.entry.active, "another key closes the menu and acts: 5 typed");
+    press(&a, "ENTER GOLD 9 k:0");
+    expect(!c.prgm, "soft key 1 again: program entry off");
+    press(&a, "GOLD 0");
+    expect(c.eqn_mode, "GOLD 0: Equation mode on (the provisional toggle)");
+    press(&a, "GOLD 0");
+    expect(!c.eqn_mode, "GOLD 0 again: off");
+
+    /* other menus and the soft keys alone do nothing yet; nothing crashes on any key in any shift */
     ab_init(&c);
     app_init(&a, &c, now);
     for (int s = 0; s < 3; s++)

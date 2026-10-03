@@ -128,3 +128,10 @@ const km_action *km_lookup(int key, int shift)
     if (key < 0 || key >= KB_KEYS || shift < 0 || shift > 2) return &none;
     return &KEYMAP[key][shift];
 }
+
+/* red: the menus' stub, replaced by the generated table in the green commit */
+const km_menu *km_menu_at(int index)
+{
+    (void)index;
+    return (const km_menu *)0;
+}

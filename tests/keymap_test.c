@@ -25,7 +25,7 @@ typedef struct {
 
 #define OPK(r, c, s, op, l) {r, c, s, KM_OP, op, 0, 0, l}
 #define VARK(r, c, s, op, l) {r, c, s, KM_PROMPT, op, 0, KM_ARG_VAR, l}
-#define MENU(r, c, s, l) {r, c, s, KM_MENU, 0, 0, 0, l}
+#define MENU(r, c, s, l) {r, c, s, KM_MENU, 0, -1, 0, l}  /* a menu not defined yet */
 
 static const want W[] = {
     /* row 1 */
@@ -55,7 +55,7 @@ static const want W[] = {
     OPK(4, 0, KM_BLUE, AB_RTN, "RTN"),
     OPK(4, 1, KM_FACE, AB_K7, "7"), MENU(4, 1, KM_GOLD, "SOLVE"), MENU(4, 1, KM_BLUE, "GRAPH"),
     OPK(4, 2, KM_FACE, AB_K8, "8"), MENU(4, 2, KM_GOLD, "\xe2\x88\xab"), MENU(4, 2, KM_BLUE, "TABLE"),
-    OPK(4, 3, KM_FACE, AB_K9, "9"), MENU(4, 3, KM_GOLD, "PRGM"), MENU(4, 3, KM_BLUE, "TUTOR"),
+    OPK(4, 3, KM_FACE, AB_K9, "9"), {4, 3, KM_GOLD, KM_MENU, 0, 0, 0, "PRGM"} /* menu 0 (#3877) */, MENU(4, 3, KM_BLUE, "TUTOR"),
     OPK(4, 4, KM_FACE, AB_DIV, "\xc3\xb7"), OPK(4, 4, KM_GOLD, AB_IDIV, "INT\xc3\xb7"), OPK(4, 4, KM_BLUE, AB_RMDR, "Rmdr"),
     /* row 5 */
     {5, 0, KM_FACE, KM_SHIFT, 0, 1, 0, ""},
@@ -71,7 +71,7 @@ static const want W[] = {
     OPK(6, 4, KM_FACE, AB_SUB, "\xe2\x88\x92"), OPK(6, 4, KM_GOLD, AB_RAND, "RAND"), OPK(6, 4, KM_BLUE, AB_SEED, "SEED"),
     /* row 7 */
     OPK(7, 0, KM_FACE, AB_CANCEL, "C"), {7, 0, KM_GOLD, KM_DEVICE, 0, KM_DEV_OFF, 0, "OFF"}, MENU(7, 0, KM_BLUE, "SYS"),
-    OPK(7, 1, KM_FACE, AB_K0, "0"), MENU(7, 1, KM_GOLD, "EQN"), MENU(7, 1, KM_BLUE, "APPS"),
+    OPK(7, 1, KM_FACE, AB_K0, "0"), OPK(7, 1, KM_GOLD, AB_EQN, "EQN") /* the provisional toggle (#3867) */, MENU(7, 1, KM_BLUE, "APPS"),
     OPK(7, 2, KM_FACE, AB_KPOINT, "."), OPK(7, 2, KM_GOLD, AB_KCOMMA, ","),
     OPK(7, 2, KM_BLUE, AB_FDISP, "\xe2\x86\x92" "FRAC"),    /* the Fraction-display toggle (ch.5; abacus #3822) */
     OPK(7, 3, KM_FACE, AB_RS, "R/S"), OPK(7, 3, KM_GOLD, AB_PSE, "PSE"), OPK(7, 3, KM_BLUE, AB_SST, "SST"),
@@ -139,6 +139,39 @@ int main(void)
             snprintf(m, sizeof m, "key %d shift %d (%s): its argument kind is not its op's", k, s, a->legend);
             expect(ok, m);
         }
+
+    /* the menus (#3877): PRGM's six soft keys; no other menu defined */
+    {
+        const km_menu *pm = km_menu_at(0);
+        expect(pm && !strcmp(pm->name, "PRGM"), "menu 0 is PRGM");
+        expect(km_menu_at(1) == NULL && km_menu_at(-1) == NULL, "only PRGM is defined");
+        if (pm) {
+            static const struct { km_kind kind; int op, prompt; const char *legend; } P[6] = {
+                {KM_OP, AB_PRGM, 0, "PRGM"}, {KM_PROMPT, AB_LBL, KM_ARG_LABEL, "LBL"},
+                {KM_PROMPT, AB_INPUT, KM_ARG_VAR, "INPUT"}, {KM_OP, AB_SST, 0, "SST"},
+                {KM_OP, AB_BST, 0, "BST"}, {KM_OP, AB_CLPGM, 0, "CLPGM"}};
+            for (int i = 0; i < 6; i++) {
+                const km_action *it = &pm->item[i];
+                snprintf(m, sizeof m, "PRGM menu soft key %d: %s", i + 1, P[i].legend);
+                expect(it->kind == P[i].kind && it->op == P[i].op && it->prompt == P[i].prompt && it->legend &&
+                           !strcmp(it->legend, P[i].legend) && screen_missing(it->legend) == 0 && screen_cells(it->legend) <= 5,
+                       m);
+            }
+            /* a prompting item takes its argument in program entry, as a key's does */
+            ab_init(&c);
+            ab_do(&c, AB_PRGM);
+            int before = c.prog_len;
+            ab_do_arg(&c, (ab_op)pm->item[2].op, km_prompt_arg(pm->item[2].prompt, km_letter_of(12)));
+            char t[32] = "";
+            ab_prog_line(&c, c.pc, NULL, t, sizeof t);
+            expect(c.prog_len == before + 1 && !strcmp(t, "INPUT G"), "the menu's INPUT then G: INPUT G");
+        }
+        for (int k = 0; k < KB_KEYS; k++)
+            for (int sh = 0; sh < 3; sh++) {
+                const km_action *a = km_lookup(k, sh);
+                if (a->kind == KM_MENU && a->arg >= 0) expect(km_menu_at(a->arg) != NULL, "a menu key names a defined menu");
+            }
+    }
 
     /* the letter layer, as abacus sent it (#3826): key, then letter or role */
     {
