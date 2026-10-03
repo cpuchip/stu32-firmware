@@ -209,13 +209,16 @@ static int decimals_of(const dec *v)
 }
 
 /* ALL: every significant digit, no trailing zeros, plain if it fits (UG p.1-23). If not,
- * plain rounded to the decimals that fit, trailing zeros removed, provided it still shows
- * at least min(the value's digits, 12) significant digits; else scientific with as many
- * significant digits as fit, trailing zeros removed (ours, unit 002). */
+ * in order (ours, unit 002 and its amendment 1): scientific with every digit; plain rounded
+ * to the decimals that fit (down to none), trailing zeros removed, provided it still shows
+ * at least min(the value's digits, 12) significant digits; scientific with as many
+ * significant digits as fit, trailing zeros removed. Exact forms come before rounded ones. */
 static bool fmt_all(text *t, const dec *v, const ab_fmt *f)
 {
     start(t, f->width);
     if (plain(t, v, decimals_of(v), f)) return true;
+    start(t, f->width);
+    if (scientific(t, v, v->lead, 1, v->n - 1, v->lead, f)) return true;
     int want = v->n < 12 ? v->n : 12;
     for (int q = decimals_of(v); q >= 0; q--) {
         dec r = round_at(v, -q);

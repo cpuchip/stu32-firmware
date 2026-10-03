@@ -121,6 +121,10 @@ def ref_all(v, w, radix, sep):
     s = plain(v, decimals(v), radix, sep)
     if fits(s, w):
         return s
+    ds = coefficient(v)                       # amendment 1: exact scientific comes next
+    s = ("-" if v < 0 else "") + ds[0] + (radix + ds[1:] if len(ds) > 1 else "") + "E" + str(v.adjusted())
+    if fits(s, w):
+        return s
     want = min(len(coefficient(v)), 12)
     for q in range(decimals(v), -1, -1):
         r = round_dec(v, q)
