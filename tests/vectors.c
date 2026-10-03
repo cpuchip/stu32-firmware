@@ -45,6 +45,7 @@ static const struct { const char *name; ab_op op; } NAMED[] = {
     {"ALL", AB_SETALL},
     {"DEC", AB_DEC}, {"HEX", AB_HEX}, {"OCT", AB_OCT}, {"BIN", AB_BIN},
     {"HA", AB_KA}, {"HB", AB_KB}, {"HC", AB_KC}, {"HD", AB_KD}, {"HE", AB_KE_HEX}, {"HF", AB_KF},
+    {"CI", AB_KI}, {"CA", AB_KTHETA}, {"XIY", AB_XIY}, {"RTA", AB_RTA}, {"ARG", AB_ARG},
     {"AND", AB_AND}, {"XOR", AB_XOR}, {"OR", AB_OR}, {"NOT", AB_NOT}, {"NAND", AB_NAND}, {"NOR", AB_NOR},
     {"SIGMA+", AB_SIGMAPLUS}, {"SIGMA-", AB_SIGMAMINUS}, {"CLSIGMA", AB_CLSIGMA},
     {"XBAR", AB_XBAR}, {"YBAR", AB_YBAR}, {"XWBAR", AB_XWBAR}, {"SX", AB_SX}, {"SY", AB_SY},
@@ -125,14 +126,14 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
     return 0;
 }
 
-static const abn *reg(const ab_calc *c, char r)
+static const ab_val *reg(const ab_calc *c, char r)
 {
     switch (r) {
-    case 'X': return &c->x.re;
-    case 'Y': return &c->y.re;
-    case 'Z': return &c->z.re;
-    case 'T': return &c->t.re;
-    case 'L': return &c->lastx.re;
+    case 'X': return &c->x;
+    case 'Y': return &c->y;
+    case 'Z': return &c->z;
+    case 'T': return &c->t;
+    case 'L': return &c->lastx;
     default: return NULL;
     }
 }
@@ -201,17 +202,24 @@ int main(int argc, char **argv)
         }
         for (int k = 0; k < nexp; k++) {
             char *ex = exps[k];
-            const abn *r = reg(&c, ex[0]);
-            char orig[64];
+            const ab_val *rv = reg(&c, ex[0]);
+            const abn *r = rv ? &rv->re : NULL;
+            ab_val var_val;
+            char orig[96];
             snprintf(orig, sizeof orig, "%s", ex);
             if (ex[0] == '@') {
                 /* @A=v: variable A; @#n=v: unnamed indirect variable n (unit 005) */
                 char *eq = strchr(ex, '=');
                 if (eq && ex[1] >= 'A' && ex[1] <= 'Z' && eq == ex + 2) {
-                    r = &c.var[ex[1] - 'A'];
+                    var_val.kind = AB_REAL;
+                    var_val.re = c.var[ex[1] - 'A'];
+                    var_val.im = abn_zero();
+                    rv = &var_val;
+                    r = &var_val.re;
                 } else if (eq && ex[1] == '#') {
                     int a = atoi(ex + 2);
                     r = (a >= 0 && a <= AB_IND_MAX) ? &c.ind[a] : NULL;
+                    rv = NULL;
                 }
                 if (r) {
                     memmove(ex + 1, eq, strlen(eq) + 1);    /* now "@=v" */
@@ -221,6 +229,57 @@ int main(int argc, char **argv)
                 fprintf(stderr, "%s:%d: %s: bad expectation '%s'\n", argv[1], lineno, id, ex);
                 return 2;
             }
+            /* "a i b" is a complex expectation (unit 009): the register must hold a complex number;
+               "=" compares each part exactly, "^" each part within 8 units of the expected
+               value's leading digit (normwise). A real expectation needs a real register. */
+            char *ipos = strchr(ex + 2, 'i');
+            int ok;
+            if (ipos) {
+                char re_s[128], im_s[128];
+                size_t lr = (size_t)(ipos - (ex + 2));
+                if (lr >= sizeof re_s) lr = sizeof re_s - 1;
+                memcpy(re_s, ex + 2, lr);
+                re_s[lr] = '\0';
+                snprintf(im_s, sizeof im_s, "%s", ipos + 1);
+                norm wr, wi, gr, gi;
+                char t_re[ABN_TEXT_MAX], t_im[ABN_TEXT_MAX];
+                if (normalize(re_s, &wr) != 0 || normalize(im_s, &wi) != 0) {
+                    fprintf(stderr, "%s:%d: %s: bad complex '%s'\n", argv[1], lineno, id, ex + 2);
+                    return 2;
+                }
+                ok = rv && rv->kind == AB_COMPLEX;
+                if (ok) {
+                    abn_to_text(&rv->re, t_re, sizeof t_re);
+                    abn_to_text(&rv->im, t_im, sizeof t_im);
+                    ok = normalize(t_re, &gr) == 0 && normalize(t_im, &gi) == 0;
+                }
+                if (ok && ex[1] == '^') {
+                    long lead = wr.zero ? (wi.zero ? 0 : wi.exp) : (wi.zero ? wr.exp : (wr.exp > wi.exp ? wr.exp : wi.exp));
+                    ok = norm_within_unit_exp(&wr, &gr, 8, lead - 33) && norm_within_unit_exp(&wi, &gi, 8, lead - 33);
+                } else if (ok) {
+                    ok = norm_equal(&wr, &gr) && norm_equal(&wi, &gi);
+                }
+                checks++;
+                if (ok) {
+                    checks_ok++;
+                } else {
+                    vec_ok = 0;
+                    char g1[ABN_TEXT_MAX] = "?", g2[ABN_TEXT_MAX] = "?";
+                    if (rv) {
+                        abn_to_text(&rv->re, g1, sizeof g1);
+                        abn_to_text(&rv->im, g2, sizeof g2);
+                    }
+                    printf("FAIL %s: expected %s, got %s %si%s\n", id, orig,
+                           rv && rv->kind == AB_COMPLEX ? "complex" : "real", g1, g2);
+                }
+                continue;
+            }
+            if (rv && rv->kind != AB_REAL) {
+                checks++;
+                vec_ok = 0;
+                printf("FAIL %s: expected real %s, got a complex number\n", id, orig);
+                continue;
+            }
             char got_text[ABN_TEXT_MAX];
             abn_to_text(r, got_text, sizeof got_text);
             norm want, got;
@@ -228,7 +287,7 @@ int main(int argc, char **argv)
                 fprintf(stderr, "%s:%d: %s: bad number '%s'\n", argv[1], lineno, id, ex + 2);
                 return 2;
             }
-            int ok = normalize(got_text, &got) == 0;
+            ok = normalize(got_text, &got) == 0;
             if (ok && ex[1] == '~') {
                 round_norm(&want, 12);
                 round_norm(&got, 12);

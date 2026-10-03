@@ -321,3 +321,10 @@ int ab_format_display(const abn *v, const ab_display *d, char *out, int size, in
     }
     return ab_format(v, &d->dec, out, size);
 }
+
+/* STUB: unit 009 lands after the oracle */
+int ab_format_complex(const abn *re, const abn *im, const ab_display *d, char *out, int size)
+{
+    (void)im;
+    return ab_format(re, &d->dec, out, size);
+}

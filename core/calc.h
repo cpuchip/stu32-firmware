@@ -58,7 +58,12 @@ typedef enum {
     AB_DEC, AB_HEX, AB_OCT, AB_BIN,
     AB_KA, AB_KB, AB_KC, AB_KD, AB_KE_HEX, AB_KF,   /* hex digit keys A-F */
     AB_SUF,                 /* arg: 2, 8, 10 or 16, the base the typed digits are read in */
-    AB_AND, AB_XOR, AB_OR, AB_NOT, AB_NAND, AB_NOR
+    AB_AND, AB_XOR, AB_OR, AB_NOT, AB_NAND, AB_NOR,
+    /* unit 009: complex numbers */
+    AB_KI,                  /* the i between the parts of x i y */
+    AB_KTHETA,              /* the theta between r and a of polar entry */
+    AB_XIY, AB_RTA,         /* the complex display form */
+    AB_ARG
 } ab_op;
 
 #define AB_VAR_A 0                  /* AB_VAR_A + k is the k-th letter; I and J are letters too */
@@ -104,6 +109,7 @@ typedef struct {
     uint32_t frac_c;        /* maximum denominator /c, 2..4095 */
     bool flag8, flag9;      /* fraction format flags (UG p.5-6) */
     int base;               /* 10, 16, 8 or 2 (unit 008) */
+    bool cpolar;            /* complex numbers shown as r theta a (unit 009) */
     ab_entry entry;
 } ab_calc;
 

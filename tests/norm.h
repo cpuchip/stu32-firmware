@@ -101,23 +101,37 @@ static inline int norm_equal(const norm *a, const norm *b)
 /* True when got is within `units` units in the 34th significant digit of want, computed on
  * the digit strings with exact integer arithmetic (no engine, no floating point). A zero
  * want requires an exact zero. */
+static inline int norm_within_unit_exp(const norm *want, const norm *got, int units, long unit);
+
 static inline int norm_within_units(const norm *want, const norm *got, int units)
 {
-    enum { CAP = 240 };
     if (want->zero) return got->zero;
-    if (got->zero) return 0;
-    long unit = want->exp - 33;
-    long wlow = want->exp - (long)strlen(want->dig) + 1;
-    long glow = got->exp - (long)strlen(got->dig) + 1;
-    if (got->exp > want->exp + 2 || got->exp < unit - 2) return 0;
+    return norm_within_unit_exp(want, got, units, want->exp - 33);
+}
+
+/* |got - want| <= units * 10^unit, exactly (a normwise check passes the unit of the whole value). */
+static inline int norm_within_unit_exp(const norm *want, const norm *got, int units, long unit)
+{
+    enum { CAP = 240 };
+    norm zero_ = {1, 0, "", 0};
+    /* a part below a hundredth of the unit cannot matter: treat it as zero */
+    if (!want->zero && want->exp < unit - 2) want = &zero_;
+    if (!got->zero && got->exp < unit - 2) got = &zero_;
+    if (want->zero && got->zero) return 1;
+    long wexp = want->zero ? unit : want->exp, gexp = got->zero ? unit : got->exp;
+    long wlow = want->zero ? unit : want->exp - (long)strlen(want->dig) + 1;
+    long glow = got->zero ? unit : got->exp - (long)strlen(got->dig) + 1;
+    if (gexp > unit + 40 || wexp > unit + 40) return 0;     /* far above the unit: not close */
     long base = unit;
     if (wlow < base) base = wlow;
     if (glow < base) base = glow;
-    long top = (want->exp > got->exp ? want->exp : got->exp) + 2;
+    long top = (wexp > gexp ? wexp : gexp) + 2;
     if (top - base + 1 > CAP) return 0;
     int w[CAP] = {0}, g[CAP] = {0}, d[CAP] = {0};   /* little-endian, position - base */
-    for (size_t i = 0; i < strlen(want->dig); i++) w[want->exp - (long)i - base] = want->dig[i] - '0';
-    for (size_t i = 0; i < strlen(got->dig); i++) g[got->exp - (long)i - base] = got->dig[i] - '0';
+    if (!want->zero)
+        for (size_t i = 0; i < strlen(want->dig); i++) w[want->exp - (long)i - base] = want->dig[i] - '0';
+    if (!got->zero)
+        for (size_t i = 0; i < strlen(got->dig); i++) g[got->exp - (long)i - base] = got->dig[i] - '0';
     int n = (int)(top - base + 1);
     /* |got - want| as a magnitude: same signs subtract, opposite signs add. */
     if (want->neg == got->neg) {

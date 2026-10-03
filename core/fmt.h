@@ -33,6 +33,8 @@ typedef struct {
     unsigned c;             /* maximum denominator, 1..4095 */
     int frac_format;        /* 0 most precise, 1 factors of c, 2 fixed denominator c */
     int base;               /* 10, or 16, 8, 2: the integer part as a word pattern (unit 008) */
+    bool polar;             /* complex numbers as r theta a (unit 009) */
+    int angle;              /* for polar: 0 degrees, 1 radians, 2 grads */
 } ab_display;
 
 /* v as the text of one line under the display setting; *indicator is +1 when |v| lies above the
@@ -40,5 +42,10 @@ typedef struct {
    not fit the width, or whose integer part needs more than 34 digits, falls back to the decimal
    format with no indicator (ours, unit 007). Returns the length, or -1 and "" if nothing fits. */
 int ab_format_display(const abn *v, const ab_display *d, char *out, int size, int *indicator);
+
+/* A complex number re + i im under the display setting: "re i im" or, with polar, "r theta a"
+   (theta as UTF-8), each part in the decimal format (unit 009). Returns the length in display
+   cells (theta is one), or -1 and "" if nothing fits. */
+int ab_format_complex(const abn *re, const abn *im, const ab_display *d, char *out, int size);
 
 #endif

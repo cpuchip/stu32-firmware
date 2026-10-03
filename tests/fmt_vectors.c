@@ -71,6 +71,12 @@ static int parse_options(char *s, ab_display *dsp)
             f->n = f->mode == AB_ALL ? 0 : atoi(m + 3);
             continue;
         }
+        if (strncmp(tok, "polar=", 6) == 0) {
+            /* complex numbers as r theta a in the given angle unit (unit 009) */
+            dsp->polar = true;
+            dsp->angle = strcmp(tok + 6, "rad") == 0 ? 1 : strcmp(tok + 6, "grad") == 0 ? 2 : 0;
+            continue;
+        }
         if (strncmp(tok, "w=", 2) == 0) f->width = atoi(tok + 2);
         else if (strcmp(tok, "radix=.") == 0) f->radix = '.';
         else if (strcmp(tok, "radix=,") == 0) f->radix = ',';
@@ -112,8 +118,19 @@ int main(int argc, char **argv)
             return 2;
         }
         char *id = trim(field[0]), *value = trim(field[2]), *want = trim(field[5]);
-        ab_display dsp = {{AB_ALL, 0, 22, '.', true}, false, 4095, 0, 10};
-        abn v;
+        ab_display dsp = {{AB_ALL, 0, 22, '.', true}, false, 4095, 0, 10, false, 0};
+        abn v, vim;
+        bool cpx = false;
+        /* a value "a i b" is complex (unit 009) */
+        char *ip = strchr(value, 'i');
+        if (ip) {
+            *ip = '\0';
+            cpx = true;
+            if (abn_from_text(&vim, ip + 1) != ABN_OK) {
+                fprintf(stderr, "%s:%d: %s: bad complex value\n", argv[1], lineno, id);
+                return 2;
+            }
+        }
         if (abn_from_text(&v, value) != ABN_OK || parse_mode(trim(field[3]), &dsp) != 0 ||
             parse_options(trim(field[4]), &dsp) != 0) {
             fprintf(stderr, "%s:%d: %s: malformed vector\n", argv[1], lineno, id);
@@ -128,10 +145,11 @@ int main(int argc, char **argv)
         }
         char got[512];
         int ind = 0;
-        int len = ab_format_display(&v, &dsp, got, sizeof got, &ind);
+        int len = cpx ? ab_format_complex(&v, &vim, &dsp, got, sizeof got)
+                      : ab_format_display(&v, &dsp, got, sizeof got, &ind);
         total++;
         /* a base pattern is returned whole (unit 008 rule 6); every other text fits the width */
-        bool fits = dsp.base != 10 || (int)strlen(got) <= dsp.dec.width;
+        bool fits = dsp.base != 10 || (cpx ? len : (int)strlen(got)) <= dsp.dec.width;
         if (len >= 0 && strcmp(got, want) == 0 && fits && ind == want_ind) {
             passed++;
         } else {
