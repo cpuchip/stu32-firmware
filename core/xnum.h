@@ -25,5 +25,7 @@ bool xn_add(xnum *r, const xnum *a, const xnum *b, bool subtract);  /* r must no
 abn_status xn_div_to_abn(abn *out, const xnum *a, const xnum *b);
 /* sqrt(a) correctly rounded, half to even, to the engine's 34 digits; a >= 0 (unit 010). */
 abn_status xn_sqrt_to_abn(abn *out, const xnum *a);
+/* sqrt(a / b) correctly rounded; a / b >= 0, b nonzero (unit 010b). */
+abn_status xn_sqrt_ratio_to_abn(abn *out, const xnum *a, const xnum *b);
 
 #endif

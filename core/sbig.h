@@ -48,5 +48,7 @@ bool sxn_mul(sxnum *r, const sxnum *a, const sxnum *b);
 bool sxn_add(sxnum *r, const sxnum *a, const sxnum *b, bool subtract);
 abn_status sxn_div_to_abn(abn *out, const sxnum *a, const sxnum *b);
 abn_status sxn_sqrt_to_abn(abn *out, const sxnum *a);
+/* sqrt(a / b) correctly rounded; a / b >= 0, b nonzero (unit 010b). */
+abn_status sxn_sqrt_ratio_to_abn(abn *out, const sxnum *a, const sxnum *b);
 
 #endif

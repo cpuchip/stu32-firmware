@@ -2,6 +2,7 @@
 #include "cplx.h"
 #include <string.h>
 
+#include "arena.h"
 #include "hp.h"
 #include "xnum.h"
 
@@ -36,53 +37,85 @@ cplx cx_neg(const cplx *a)
 /* p*q +/- r*s exactly. */
 static bool dot2(xnum *out, const xnum *p, const xnum *q, const xnum *r, const xnum *s, bool subtract)
 {
-    static xnum t1, t2;
-    return xn_mul(&t1, p, q) && xn_mul(&t2, r, s) && xn_add(out, &t1, &t2, subtract);
+    int m = ar_mark();
+    xnum *t1, *t2;
+    bool ok = ar_xn(2, &t1, &t2) && xn_mul(t1, p, q) && xn_mul(t2, r, s) && xn_add(out, t1, t2, subtract);
+    ar_release(m);
+    return ok;
 }
 
-static xnum A, B, C, D, N1, N2, DEN;
+/* The four parts of two complex numbers as exact numbers, and room for the results, taken from the
+ * wide pool (core/arena.h). */
+typedef struct {
+    xnum *A, *B, *C, *D, *N1, *N2, *DEN;
+} quad;
 
-static abn_status load4(const cplx *a, const cplx *b)
+static abn_status load4(quad *q, const cplx *a, const cplx *b)
 {
-    if (!xn_from_abn(&A, &a->re) || !xn_from_abn(&B, &a->im) || !xn_from_abn(&C, &b->re) ||
-        !xn_from_abn(&D, &b->im))
+    if (!ar_xn(7, &q->A, &q->B, &q->C, &q->D, &q->N1, &q->N2, &q->DEN)) return ABN_RANGE;
+    if (!xn_from_abn(q->A, &a->re) || !xn_from_abn(q->B, &a->im) || !xn_from_abn(q->C, &b->re) ||
+        !xn_from_abn(q->D, &b->im))
         return ABN_RANGE;
     return ABN_OK;
 }
 
-static abn_status round_part(abn *out, const xnum *num, const xnum *den)
-{
-    return xn_div_to_abn(out, num, den);
-}
-
 /* (a + bi)(c + di) = (ac - bd) + (ad + bc)i, each part exact, then rounded once. */
-abn_status cx_mul(cplx *out, const cplx *a, const cplx *b)
+static abn_status mul_(cplx *out, const cplx *a, const cplx *b)
 {
-    static xnum one;
+    quad q;
     cplx r;
     abn_status st;
-    if ((st = load4(a, b)) != ABN_OK) return st;
-    xn_set_int(&one, 1);
-    if (!dot2(&N1, &A, &C, &B, &D, true) || !dot2(&N2, &A, &D, &B, &C, false)) return ABN_RANGE;
-    if ((st = round_part(&r.re, &N1, &one)) != ABN_OK) return st;
-    if ((st = round_part(&r.im, &N2, &one)) != ABN_OK) return st;
+    if ((st = load4(&q, a, b)) != ABN_OK) return st;
+    xn_set_int(q.DEN, 1);
+    if (!dot2(q.N1, q.A, q.C, q.B, q.D, true) || !dot2(q.N2, q.A, q.D, q.B, q.C, false)) return ABN_RANGE;
+    if ((st = xn_div_to_abn(&r.re, q.N1, q.DEN)) != ABN_OK) return st;
+    if ((st = xn_div_to_abn(&r.im, q.N2, q.DEN)) != ABN_OK) return st;
     *out = r;
     return ABN_OK;
 }
 
 /* (a + bi)/(c + di) = ((ac + bd) + (bc - ad)i) / (c^2 + d^2), each part exact, rounded once. */
-abn_status cx_div(cplx *out, const cplx *a, const cplx *b)
+static abn_status div_(cplx *out, const cplx *a, const cplx *b)
 {
+    quad q;
     cplx r;
     abn_status st;
-    if ((st = load4(a, b)) != ABN_OK) return st;
-    if (!dot2(&DEN, &C, &C, &D, &D, false)) return ABN_RANGE;
-    if (xn_sign(&DEN) == 0) return ABN_DIV_ZERO;
-    if (!dot2(&N1, &A, &C, &B, &D, false) || !dot2(&N2, &B, &C, &A, &D, true)) return ABN_RANGE;
-    if ((st = round_part(&r.re, &N1, &DEN)) != ABN_OK) return st;
-    if ((st = round_part(&r.im, &N2, &DEN)) != ABN_OK) return st;
+    if ((st = load4(&q, a, b)) != ABN_OK) return st;
+    if (!dot2(q.DEN, q.C, q.C, q.D, q.D, false)) return ABN_RANGE;
+    if (xn_sign(q.DEN) == 0) return ABN_DIV_ZERO;
+    if (!dot2(q.N1, q.A, q.C, q.B, q.D, false) || !dot2(q.N2, q.B, q.C, q.A, q.D, true)) return ABN_RANGE;
+    if ((st = xn_div_to_abn(&r.re, q.N1, q.DEN)) != ABN_OK) return st;
+    if ((st = xn_div_to_abn(&r.im, q.N2, q.DEN)) != ABN_OK) return st;
     *out = r;
     return ABN_OK;
+}
+
+/* |a + bi| = sqrt(a^2 + b^2): the root of the exact sum of squares, correctly rounded (unit 010b;
+ * it was the sum rounded once, then a correctly rounded root). */
+static abn_status abs_(abn *out, const cplx *a)
+{
+    quad q;
+    abn_status st;
+    cplx z = {abn_zero(), abn_zero()};
+    if ((st = load4(&q, a, &z)) != ABN_OK) return st;
+    if (!dot2(q.N1, q.A, q.A, q.B, q.B, false)) return ABN_RANGE;
+    return xn_sqrt_to_abn(out, q.N1);
+}
+
+abn_status cx_mul(cplx *out, const cplx *a, const cplx *b)
+{
+    int m = ar_mark();
+    abn_status st = mul_(out, a, b);
+    ar_release(m);
+    return st;
+}
+
+abn_status cx_div(cplx *out, const cplx *a, const cplx *b)
+{
+    int m = ar_mark();
+    abn_status st = div_(out, a, b);
+    ar_release(m);
+    return st;
 }
 
 abn_status cx_inv(cplx *out, const cplx *a)
@@ -93,19 +126,12 @@ abn_status cx_inv(cplx *out, const cplx *a)
     return cx_div(out, &one, a);
 }
 
-/* |a + bi| = sqrt(a^2 + b^2): the sum of squares exact, rounded once, then a correctly rounded
- * root (within about 1 unit). */
 abn_status cx_abs(abn *out, const cplx *a)
 {
-    static xnum s, one;
-    abn q;
-    abn_status st;
-    cplx z = {abn_zero(), abn_zero()};
-    if ((st = load4(a, &z)) != ABN_OK) return st;
-    xn_set_int(&one, 1);
-    if (!dot2(&s, &A, &A, &B, &B, false)) return ABN_RANGE;
-    if ((st = xn_div_to_abn(&q, &s, &one)) != ABN_OK) return st;
-    return abn_sqrt(out, &q);
+    int m = ar_mark();
+    abn_status st = abs_(out, a);
+    ar_release(m);
+    return st;
 }
 
 /* ---- functions (UG p.9-3: e^z, ln z, sin z, cos z, tan z, z1^z2) ---- */

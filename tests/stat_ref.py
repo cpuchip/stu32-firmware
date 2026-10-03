@@ -55,3 +55,27 @@ def xhat(R, y):
 def sqrt36(q, sign=1):
     v = mp.sqrt(mp.mpf(q.numerator) / mp.mpf(q.denominator)) * sign
     return mp.nstr(v, 36, min_fixed=-30, max_fixed=30).replace('e', 'E')
+
+def sqrt34(q, sign=1):
+    """sqrt(q) for a Fraction q >= 0, correctly rounded to 34 digits (half to even), as text: the
+    integer root of floor(q 10^2s) with a sticky bit, rounded by hand (unit 010b: the core's
+    roots became exact)."""
+    import math
+    if q == 0:
+        return "0"
+    e = int(mp.floor(mp.log10(mp.sqrt(mp.mpf(q.numerator) / mp.mpf(q.denominator)))))
+    s = 40 - e                                   # the root carries about 41 digits
+    if s >= 0:
+        N, Dn = q.numerator * 10 ** (2 * s), q.denominator
+    else:
+        N, Dn = q.numerator, q.denominator * 10 ** (-2 * s)
+    Q, rem = divmod(N, Dn)
+    r = math.isqrt(Q)
+    sticky = rem != 0 or r * r != Q
+    t = str(r)
+    keep, rest = int(t[:34]), t[34:]
+    half = "5" + "0" * (len(rest) - 1)
+    if rest > half or (rest == half and (sticky or keep % 2)):
+        keep += 1
+    v = W.scaleb(D(keep), len(rest) - s)
+    return str(C34.plus(v.copy_negate() if sign < 0 else v))

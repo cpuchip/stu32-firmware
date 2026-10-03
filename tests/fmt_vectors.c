@@ -14,6 +14,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "arena.h"
+
 #include "fmt.h"
 
 #define LINE_MAX_ 4096
@@ -178,5 +180,6 @@ int main(int argc, char **argv)
     }
     fclose(fp);
     printf("%s: %d/%d vectors\n", argv[1], passed, total);
+    if (getenv("AB_ARENA_PEAK")) fprintf(stderr, "arena peak %d\n", ar_peak());   /* unit 010b measurement */
     return passed == total ? 0 : 1;
 }

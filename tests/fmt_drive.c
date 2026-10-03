@@ -4,7 +4,10 @@
  *   output: the text, or <none> when nothing fits
  */
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+
+#include "arena.h"
 
 #include "fmt.h"
 
@@ -26,5 +29,6 @@ int main(void)
         if (ab_format(&v, &f, out, sizeof out) < 0) puts("<none>");
         else puts(out);
     }
+    if (getenv("AB_ARENA_PEAK")) fprintf(stderr, "arena peak %d\n", ar_peak());   /* unit 010b measurement */
     return 0;
 }

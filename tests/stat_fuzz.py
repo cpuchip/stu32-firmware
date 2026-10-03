@@ -50,13 +50,13 @@ for t in range(N):
         if n != 0: emit("XBAR", "X=" + str(r34(mean(R)))); emit("YBAR", "X=" + str(r34(mean(R, True))))
         if sy != 0: emit("XWBAR", "X=" + str(r34(wmean(R))))
         Dx = n * sx2 - sx * sx; Dy = n * sy2 - sy * sy
-        if n > 1 and Dx >= 0: emit("SX", "X^" + sqrt36(var(R)))
-        if n != 0 and Dx >= 0: emit("PSX", "X^" + sqrt36(var(R, pop=True)))
+        if n > 1 and Dx >= 0: emit("SX", "X=" + sqrt34(var(R)))
+        if n != 0 and Dx >= 0: emit("PSX", "X=" + sqrt34(var(R, pop=True)))
         if Dx != 0:
             emit("SLOPE", "X=" + str(r34(slope(R)))); emit("YINT", "X=" + str(r34(yint(R))))
             emit("0 YHAT", "X=" + str(r34(yhat(R, "0"))))
         if Dx > 0 and Dy > 0:
-            c, rr = corr2(R); emit("CORR", "X^" + sqrt36(rr, 1 if c > 0 else -1) if c != 0 else "X=0")
+            c, rr = corr2(R); emit("CORR", "X=" + sqrt34(rr, 1 if c > 0 else -1) if c != 0 else "X=0")
     except ZeroDivisionError:
         pass
 print("\n".join(lines))

@@ -11,6 +11,7 @@
 #include "stat.h"
 #include "frac.h"
 #include "base.h"
+#include "arena.h"
 #include "cplx.h"
 #include "xnum.h"
 
@@ -441,19 +442,28 @@ static ab_op plain_op(ab_op op)
     }
 }
 
-/* The dot product, exact, rounded once (unit 010 rule 3). */
+/* The dot product, exact, rounded once (unit 010 rule 3); its numbers from the wide pool. */
+static abn_status dot_(abn *out, const ab_val *a, const ab_val *b)
+{
+    xnum *sum, *t, *p, *q, *u;
+    if (!ar_xn(5, &sum, &t, &p, &q, &u)) return ABN_RANGE;
+    xn_set_int(sum, 0);
+    for (int i = 0; i < a->len; i++) {
+        if (!xn_from_abn(p, cvel(a, i)) || !xn_from_abn(q, cvel(b, i)) || !xn_mul(t, p, q) ||
+            !xn_add(u, sum, t, false))
+            return ABN_RANGE;
+        *sum = *u;
+    }
+    xn_set_int(u, 1);
+    return xn_div_to_abn(out, sum, u);
+}
+
 static abn_status dot(abn *out, const ab_val *a, const ab_val *b)
 {
-    static xnum sum, t, p, q, u;
-    xn_set_int(&sum, 0);
-    for (int i = 0; i < a->len; i++) {
-        if (!xn_from_abn(&p, cvel(a, i)) || !xn_from_abn(&q, cvel(b, i)) || !xn_mul(&t, &p, &q) ||
-            !xn_add(&u, &sum, &t, false))
-            return ABN_RANGE;
-        sum = u;
-    }
-    xn_set_int(&u, 1);
-    return xn_div_to_abn(out, &sum, &u);
+    int m = ar_mark();
+    abn_status st = dot_(out, a, b);
+    ar_release(m);
+    return st;
 }
 
 /* a op b where a or b is a vector (UG p.10-1 to 10-5): + and - of equal lengths, one rounding per
@@ -515,18 +525,25 @@ static abn_status two_vector(ab_calc *c, ab_op op)
 
 /* ABS of a vector: the correctly rounded root of the exact sum of squares (UG p.10-3, unit 010
  * rule 3). */
+static abn_status vec_abs_(abn *r, const ab_val *v)
+{
+    xnum *sum, *t, *p, *u;
+    if (!ar_xn(4, &sum, &t, &p, &u)) return ABN_RANGE;
+    xn_set_int(sum, 0);
+    for (int i = 0; i < v->len; i++) {
+        if (!xn_from_abn(p, cvel(v, i)) || !xn_mul(t, p, p) || !xn_add(u, sum, t, false)) return ABN_RANGE;
+        *sum = *u;
+    }
+    return xn_sqrt_to_abn(r, sum);
+}
+
 static abn_status vec_abs(ab_calc *c)
 {
-    static xnum sum, t, p, u;
     abn r;
-    abn_status st;
-    xn_set_int(&sum, 0);
-    for (int i = 0; i < c->x.len; i++) {
-        if (!xn_from_abn(&p, cvel(&c->x, i)) || !xn_mul(&t, &p, &p) || !xn_add(&u, &sum, &t, false))
-            return ABN_RANGE;
-        sum = u;
-    }
-    if ((st = xn_sqrt_to_abn(&r, &sum)) != ABN_OK) return st;
+    int m = ar_mark();
+    abn_status st = vec_abs_(&r, &c->x);
+    ar_release(m);
+    if (st != ABN_OK) return st;
     c->lastx = c->x;
     c->x = ab_real(r);
     c->lift = true;

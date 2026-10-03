@@ -18,6 +18,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "arena.h"
+
 #include "calc.h"
 #include "norm.h"
 
@@ -356,5 +358,6 @@ int main(int argc, char **argv)
     fclose(f);
     printf("%s: %d/%d vectors, %d/%d expectations\n", argv[1], vectors_ok, vectors,
            checks_ok, checks);
+    if (getenv("AB_ARENA_PEAK")) fprintf(stderr, "arena peak %d\n", ar_peak());   /* unit 010b measurement */
     return (vectors_ok == vectors && checks_ok == checks) ? 0 : 1;
 }

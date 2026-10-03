@@ -94,11 +94,21 @@ bool BI_(add)(BI_T *r, const BI_T *a, const BI_T *b)
     return true;
 }
 
+/* a += v, in place (no temporary: a 3 KB local would not fit a small task's stack). */
 bool BI_(add_u32)(BI_T *a, uint32_t v)
 {
-    BI_T b;
-    BI_(set)(&b, v);
-    return BI_(add)(a, a, &b);
+    uint64_t carry = v;
+    for (int i = 0; carry && i < a->n; i++) {
+        uint64_t t = (uint64_t)a->l[i] + carry;
+        a->l[i] = (uint32_t)(t % BI_BASE);
+        carry = t / BI_BASE;
+    }
+    while (carry) {
+        if (a->n >= BI_CAP) return false;
+        a->l[a->n++] = (uint32_t)(carry % BI_BASE);
+        carry /= BI_BASE;
+    }
+    return true;
 }
 
 void BI_(sub)(BI_T *r, const BI_T *a, const BI_T *b)
@@ -113,12 +123,22 @@ void BI_(sub)(BI_T *r, const BI_T *a, const BI_T *b)
     BI_(trim_)(r);
 }
 
+/* a -= v in place; false (a unchanged) if a < v. */
 bool BI_(sub_u32)(BI_T *a, uint32_t v)
 {
-    BI_T b;
-    BI_(set)(&b, v);
-    if (BI_(cmp)(a, &b) < 0) return false;
-    BI_(sub)(a, a, &b);
+    uint64_t low = a->n == 0 ? 0 : a->n == 1 ? a->l[0] : (uint64_t)a->l[1] * BI_BASE + a->l[0];
+    if (a->n <= 2 && low < v) return false;
+    int64_t borrow = v;
+    for (int i = 0; borrow && i < a->n; i++) {
+        int64_t t = (int64_t)a->l[i] - borrow;
+        borrow = 0;
+        while (t < 0) {
+            t += BI_BASE;
+            borrow++;
+        }
+        a->l[i] = (uint32_t)t;
+    }
+    BI_(trim_)(a);
     return true;
 }
 
@@ -163,27 +183,35 @@ void BI_(div_pow10)(BI_T *a, int k)
 
 /* Long division one decimal digit at a time: each quotient digit is found by subtracting the
  * divisor at most nine times. Slow for big quotients, but the callers ask for about 45 digits. */
-bool BI_(div)(BI_T *q, const BI_T *n, const BI_T *d, bool *inexact)
+static bool BI_(div_)(BI_T *q, const BI_T *n, const BI_T *d, bool *inexact, BI_T *r)
 {
-    static BI_T r;
     q->n = 0;
-    r.n = 0;
+    r->n = 0;
     for (int i = n->n - 1; i >= 0; i--) {
         uint32_t limb = n->l[i];
         uint32_t pw = 100000000u;
         for (int k = 0; k < 9; k++, pw /= 10) {
             uint32_t digit = (limb / pw) % 10;
-            if (!BI_(mul_u32)(&r, 10) || !BI_(add_u32)(&r, digit)) return false;
+            if (!BI_(mul_u32)(r, 10) || !BI_(add_u32)(r, digit)) return false;
             uint32_t qd = 0;
-            while (BI_(cmp)(&r, d) >= 0) {
-                BI_(sub)(&r, &r, d);
+            while (BI_(cmp)(r, d) >= 0) {
+                BI_(sub)(r, r, d);
                 qd++;
             }
             if (!BI_(mul_u32)(q, 10) || !BI_(add_u32)(q, qd)) return false;
         }
     }
-    *inexact = !BI_(is_zero)(&r);
+    *inexact = !BI_(is_zero)(r);
     return true;
+}
+
+bool BI_(div)(BI_T *q, const BI_T *n, const BI_T *d, bool *inexact)
+{
+    int m = AR_MARK();
+    BI_T *r;
+    bool ok = BI_TAKE(1, &r) && BI_(div_)(q, n, d, inexact, r);
+    AR_RELEASE(m);
+    return ok;
 }
 
 bool BI_(from_digits)(BI_T *a, const char *digits, int zeros)

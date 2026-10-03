@@ -5,7 +5,10 @@
  * NAME: ADD SUB MUL DIV POW (z1^z2), INV EXP LN SIN COS TAN ABS.
  */
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+
+#include "arena.h"
 
 #include "cplx.h"
 
@@ -54,5 +57,6 @@ int main(void)
         abn_to_text(&r.im, y, sizeof y);
         printf("%s %s\n", x, y);
     }
+    if (getenv("AB_ARENA_PEAK")) fprintf(stderr, "arena peak %d\n", ar_peak());   /* unit 010b measurement */
     return 0;
 }

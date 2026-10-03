@@ -8,6 +8,8 @@
 #include <string.h>
 
 #include "fn.h"
+#include "arena.h"
+#include "sbig.h"
 #include "bigint.h"
 
 /* Constants to 34 significant digits, from mpmath at 80 digits (pi also checked against
@@ -378,9 +380,9 @@ static const char PI_71[] = "314159265358979323846264338327950288419716939937510
 
 /* Returns the scale s and fills v with sin (or cos) of b * 10^... as v * 10^-s, or false when b is
  * below 1E-17 of a unit (the caller handles those directly). */
-static bool trigx(bigint *v, int *scale, const abn *b, const angle_unit *u, bool want_cos)
+static bool trigx(sbig *v, int *scale, const abn *b, const angle_unit *u, bool want_cos)
 {
-    static bigint th, th2, term, pos, neg, tmp;
+    static sbig th, th2, term, pos, neg, tmp;    /* at most about 200 digits: short numbers */
     bool bneg;
     char d[ABN_DIGITS + 1];
     int lead, n, s;
@@ -389,45 +391,45 @@ static bool trigx(bigint *v, int *scale, const abn *b, const angle_unit *u, bool
     if (n == 0 || lead < -17) return false;
     s = TRIGX_DIGITS + (lead < 0 ? -lead : 0);
     /* theta * 10^s = digits * 10^(lead - n + 1) * PI_71 * 10^(s - 71) / half */
-    if (!bi_from_digits(&th, d, 0) || !bi_from_digits(&tmp, PI_71, 0) || !bi_mul(&term, &th, &tmp))
+    if (!sb_from_digits(&th, d, 0) || !sb_from_digits(&tmp, PI_71, 0) || !sb_mul(&term, &th, &tmp))
         return false;
     int shift = (lead - n + 1) + s - 71;
     if (shift >= 0) {
-        if (!bi_mul_pow10(&term, shift)) return false;
+        if (!sb_mul_pow10(&term, shift)) return false;
     } else {
-        bi_div_pow10(&term, -shift);
+        sb_div_pow10(&term, -shift);
     }
     {
         uint32_t half = (uint32_t)(u->half[0] - '0') * 100 + (uint32_t)(u->half[1] - '0') * 10 +
                         (uint32_t)(u->half[2] - '0');   /* "180" or "200" */
-        bi_divmod_u32(&term, half);
+        sb_divmod_u32(&term, half);
     }
     th = term;
     /* theta^2 at the same scale */
-    if (!bi_mul(&th2, &th, &th)) return false;
-    bi_div_pow10(&th2, s);
+    if (!sb_mul(&th2, &th, &th)) return false;
+    sb_div_pow10(&th2, s);
     /* sum the alternating series: sin = theta - theta^3/3! + ..., cos = 1 - theta^2/2! + ... */
     if (want_cos) {
-        bi_set(&term, 1);
-        if (!bi_mul_pow10(&term, s)) return false;
+        sb_set(&term, 1);
+        if (!sb_mul_pow10(&term, s)) return false;
     } else {
         term = th;
     }
     pos = term;
     neg.n = 0;
-    for (uint32_t k = want_cos ? 1 : 2, i = 1; !bi_is_zero(&term); k += 2, i++) {
-        if (!bi_mul(&tmp, &term, &th2)) return false;
-        bi_div_pow10(&tmp, s);
-        bi_divmod_u32(&tmp, k);
-        bi_divmod_u32(&tmp, k + 1);
+    for (uint32_t k = want_cos ? 1 : 2, i = 1; !sb_is_zero(&term); k += 2, i++) {
+        if (!sb_mul(&tmp, &term, &th2)) return false;
+        sb_div_pow10(&tmp, s);
+        sb_divmod_u32(&tmp, k);
+        sb_divmod_u32(&tmp, k + 1);
         term = tmp;
         if (i % 2) {
-            if (!bi_add(&neg, &neg, &term)) return false;
+            if (!sb_add(&neg, &neg, &term)) return false;
         } else {
-            if (!bi_add(&pos, &pos, &term)) return false;
+            if (!sb_add(&pos, &pos, &term)) return false;
         }
     }
-    bi_sub(v, &pos, &neg);      /* pos > neg: the sum is positive on [0, pi/4] */
+    sb_sub(v, &pos, &neg);      /* pos > neg: the sum is positive on [0, pi/4] */
     *scale = s;
     return true;
 }
@@ -435,10 +437,10 @@ static bool trigx(bigint *v, int *scale, const abn *b, const angle_unit *u, bool
 /* sin or cos of a reduced angle, correctly rounded, optionally times r (both exact first). */
 static abn_status trig_exactish(abn *out, const abn *a, const angle_unit *u, bool want_cos, const abn *r)
 {
-    static bigint v, rb, prod;
+    static sbig v, rb, prod;
     int scale;
     if (!trigx(&v, &scale, a, u, want_cos)) return ABN_DOMAIN;  /* caller's tiny-angle path */
-    if (!r) return bi_to_abn(out, &v, false, -scale, true);
+    if (!r) return sb_to_abn(out, &v, false, -scale, true);
     bool rneg;
     char d[ABN_DIGITS + 1];
     int lead;
@@ -447,8 +449,8 @@ static abn_status trig_exactish(abn *out, const abn *a, const angle_unit *u, boo
         *out = abn_zero();
         return ABN_OK;
     }
-    if (!bi_from_digits(&rb, d, 0) || !bi_mul(&prod, &v, &rb)) return ABN_RANGE;
-    return bi_to_abn(out, &prod, rneg, (long)lead - (long)strlen(d) + 1 - scale, true);
+    if (!sb_from_digits(&rb, d, 0) || !sb_mul(&prod, &v, &rb)) return ABN_RANGE;
+    return sb_to_abn(out, &prod, rneg, (long)lead - (long)strlen(d) + 1 - scale, true);
 }
 
 /* sin or cos of a in [0, eighth turn], exact at 0 and (degrees) at 30. With the angle as
@@ -571,7 +573,7 @@ static abn_status tan_small(abn *out, const abn *b, const angle_unit *u)
  * 34th digit. */
 static abn_status tan_reduced(abn *out, const abn *a, const angle_unit *u, bool cot)
 {
-    static bigint sv, cv, num, q;
+    static sbig sv, cv, num, q;
     abn eighth = K(u->eighth);
     int s1, s2;
     bool inexact;
@@ -585,12 +587,12 @@ static abn_status tan_reduced(abn *out, const abn *a, const angle_unit *u, bool 
         return ABN_OK;
     }
     if (trigx(&sv, &s1, a, u, false) && trigx(&cv, &s2, a, u, true)) {
-        const bigint *den = cot ? &sv : &cv;
+        const sbig *den = cot ? &sv : &cv;
         num = cot ? cv : sv;
         /* scale the numerator so the quotient carries at least 45 digits, however small it is */
-        int extra = 45 + (bi_ndigits(den) > bi_ndigits(&num) ? bi_ndigits(den) - bi_ndigits(&num) : 0);
-        if (!bi_mul_pow10(&num, extra) || !bi_div(&q, &num, den, &inexact)) return ABN_RANGE;
-        return bi_to_abn(out, &q, false, -extra, true);
+        int extra = 45 + (sb_ndigits(den) > sb_ndigits(&num) ? sb_ndigits(den) - sb_ndigits(&num) : 0);
+        if (!sb_mul_pow10(&num, extra) || !sb_div(&q, &num, den, &inexact)) return ABN_RANGE;
+        return sb_to_abn(out, &q, false, -extra, true);
     }
     if (cot) {
         abn f = K(u->from_rad);
@@ -814,9 +816,9 @@ abn_status fn_torad(abn *out, const abn *x)
 
 /* (a*x + b) / c, correctly rounded, for small integers a, b, c: computed exactly as integers
  * and rounded once (the temperature conversions, whose offset defeats a single operation). */
-static abn_status affine_exact(abn *out, const abn *x, uint32_t a, long b, uint32_t c)
+static abn_status affine_exact_(abn *out, const abn *x, uint32_t a, long b, uint32_t c)
 {
-    static bigint A, B;     /* static: two 3 KB numbers kept off the stack */
+    bigint *A, *B;
     bool neg, bneg = b < 0;
     char d[ABN_DIGITS + 1];
     int lead, n;
@@ -824,33 +826,42 @@ static abn_status affine_exact(abn *out, const abn *x, uint32_t a, long b, uint3
     n = (int)strlen(d);
     long q = (long)lead - n + 1;            /* x = (-1)^neg * digits * 10^q */
     unsigned long ub = (unsigned long)(bneg ? -b : b);
+    if (!ar_bi(2, &A, &B)) return ABN_RANGE;
     if (n == 0) {
-        A.n = 0;
+        A->n = 0;
         q = 0;
-    } else if (!bi_from_digits(&A, d, q > 0 ? (int)q : 0) || !bi_mul_u32(&A, a)) {
+    } else if (!bi_from_digits(A, d, q > 0 ? (int)q : 0) || !bi_mul_u32(A, a)) {
         return ABN_RANGE;
     }
     if (q > 0) q = 0;
-    bi_set(&B, (uint32_t)ub);
-    if (!bi_mul_pow10(&B, (int)-q)) return ABN_RANGE;   /* b on the same scale as a*x */
+    bi_set(B, (uint32_t)ub);
+    if (!bi_mul_pow10(B, (int)-q)) return ABN_RANGE;   /* b on the same scale as a*x */
     bool rneg;
-    if (neg == bneg || A.n == 0) {
-        if (!bi_add(&A, &A, &B)) return ABN_RANGE;
-        rneg = A.n == 0 ? bneg : neg;
-    } else if (bi_cmp(&A, &B) >= 0) {
-        bi_sub(&A, &A, &B);
+    if (neg == bneg || A->n == 0) {
+        if (!bi_add(A, A, B)) return ABN_RANGE;
+        rneg = A->n == 0 ? bneg : neg;
+    } else if (bi_cmp(A, B) >= 0) {
+        bi_sub(A, A, B);
         rneg = neg;
     } else {
-        bi_sub(&A, &B, &A);
+        bi_sub(A, B, A);
         rneg = bneg;
     }
-    if (bi_is_zero(&A)) {
+    if (bi_is_zero(A)) {
         *out = abn_zero();
         return ABN_OK;
     }
-    if (!bi_mul_pow10(&A, 45)) return ABN_RANGE;        /* 45 more digits before dividing */
-    uint32_t rem = bi_divmod_u32(&A, c);
-    return bi_to_abn(out, &A, rneg, q - 45, rem != 0);
+    if (!bi_mul_pow10(A, 45)) return ABN_RANGE;        /* 45 more digits before dividing */
+    uint32_t rem = bi_divmod_u32(A, c);
+    return bi_to_abn(out, A, rneg, q - 45, rem != 0);
+}
+
+static abn_status affine_exact(abn *out, const abn *x, uint32_t a, long b, uint32_t c)
+{
+    int m = ar_mark();
+    abn_status st = affine_exact_(out, x, a, b, c);
+    ar_release(m);
+    return st;
 }
 
 /* Exact definitional factors (ours, unit 004): 1 lb = 0.45359237 kg, 1 in = 2.54 cm, 1 US gal =
@@ -873,16 +884,25 @@ abn_status fn_convert(abn *out, const abn *x, fn_unit u)
 
 /* n! exactly, rounded once. The guide defines x! for non-integers through gamma (UG p.4-15);
  * that is deferred to a later unit, so a non-integer is an error here, as is a negative. */
-abn_status fn_fact(abn *out, const abn *x)
+static abn_status fn_fact_(abn *out, const abn *x)
 {
-    static bigint f;
+    bigint *f;
     int32_t n;
+    if (!ar_bi(1, &f)) return ABN_RANGE;
     if (!abn_is_integer(x) || abn_is_negative(x)) return ABN_DOMAIN;
     if (!small_int(x, &n) || n > FACT_MAX) return ABN_RANGE;
-    bi_set(&f, 1);
+    bi_set(f, 1);
     for (int32_t i = 2; i <= n; i++)
-        if (!bi_mul_u32(&f, (uint32_t)i)) return ABN_RANGE;
-    return bi_to_abn(out, &f, false, 0, false);
+        if (!bi_mul_u32(f, (uint32_t)i)) return ABN_RANGE;
+    return bi_to_abn(out, f, false, 0, false);
+}
+
+abn_status fn_fact(abn *out, const abn *x)
+{
+    int m = ar_mark();
+    abn_status st = fn_fact_(out, x);
+    ar_release(m);
+    return st;
 }
 
 /* n and r must be non-negative integers (UG p.4-15); both as exact bigints. */
@@ -906,57 +926,75 @@ static int32_t small_bi(const bigint *a)
 
 /* Permutations: n (n-1) ... (n-r+1), exactly, rounded once. r > n gives 0 (no arrangements;
  * ours, unit 004). */
-abn_status fn_npr(abn *out, const abn *xn, const abn *xr)
+static abn_status fn_npr_(abn *out, const abn *xn, const abn *xr)
 {
-    static bigint n, rb, p, t, tmp;
-    abn_status st = prob_args(&n, &rb, xn, xr);
+    bigint *n, *rb, *p, *t, *tmp;
+    if (!ar_bi(5, &n, &rb, &p, &t, &tmp)) return ABN_RANGE;
+    abn_status st = prob_args(n, rb, xn, xr);
     if (st != ABN_OK) return st;
-    if (bi_cmp(&rb, &n) > 0) {
+    if (bi_cmp(rb, n) > 0) {
         *out = abn_zero();
         return ABN_OK;
     }
-    int32_t r = small_bi(&rb);
+    int32_t r = small_bi(rb);
     if (r < 0 || r > FACT_MAX) return ABN_RANGE;     /* nPr >= r! */
-    bi_set(&p, 1);
-    t = n;
+    bi_set(p, 1);
+    *t = *n;
     for (int32_t i = 0; i < r; i++) {
-        if (!bi_mul(&tmp, &p, &t)) return ABN_RANGE;
-        p = tmp;
-        if (bi_ndigits(&p) > RESULT_DIGITS_MAX) return ABN_RANGE;
-        bi_sub_u32(&t, 1);
+        if (!bi_mul(tmp, p, t)) return ABN_RANGE;
+        *p = *tmp;
+        if (bi_ndigits(p) > RESULT_DIGITS_MAX) return ABN_RANGE;
+        bi_sub_u32(t, 1);
     }
-    return bi_to_abn(out, &p, false, 0, false);
+    return bi_to_abn(out, p, false, 0, false);
+}
+
+abn_status fn_npr(abn *out, const abn *xn, const abn *xr)
+{
+    int m = ar_mark();
+    abn_status st = fn_npr_(out, xn, xr);
+    ar_release(m);
+    return st;
 }
 
 /* Combinations: with r' = min(r, n - r), the product over i of (n - r' + i) / i, each division
  * exact, then rounded once. r > n gives 0 (ours, unit 004). r' is taken before r is required to
  * be small, so C(10^30, 10^30 - 2) is C(10^30, 2). */
-abn_status fn_ncr(abn *out, const abn *xn, const abn *xr)
+static abn_status fn_ncr_(abn *out, const abn *xn, const abn *xr)
 {
-    static bigint n, rb, c, base, t, tmp;
-    abn_status st = prob_args(&n, &rb, xn, xr);
+    bigint *n, *rb, *c, *base, *t, *tmp;
+    if (!ar_bi(6, &n, &rb, &c, &base, &t, &tmp)) return ABN_RANGE;
+    abn_status st = prob_args(n, rb, xn, xr);
     if (st != ABN_OK) return st;
-    if (bi_cmp(&rb, &n) > 0) {
+    if (bi_cmp(rb, n) > 0) {
         *out = abn_zero();
         return ABN_OK;
     }
-    bi_sub(&base, &n, &rb);                         /* n - r */
-    if (bi_cmp(&base, &rb) < 0) {                   /* use r' = n - r, base = r */
-        tmp = base;
-        base = rb;
-        rb = tmp;
+    bi_sub(base, n, rb);                         /* n - r */
+    if (bi_cmp(base, rb) < 0) {                   /* use r' = n - r, base = r */
+        *tmp = *base;
+        *base = *rb;
+        *rb = *tmp;
     }
-    int32_t r = small_bi(&rb);
+    int32_t r = small_bi(rb);
     if (r < 0 || r > 20500) return ABN_RANGE;   /* C(n, r') >= 2^r' when r' <= n / 2: beyond range */
-    bi_set(&c, 1);
+    bi_set(c, 1);
     for (int32_t i = 1; i <= r; i++) {
-        t = base;
-        if (!bi_add_u32(&t, (uint32_t)i) || !bi_mul(&tmp, &c, &t)) return ABN_RANGE;
-        c = tmp;
-        bi_divmod_u32(&c, (uint32_t)i);             /* exact */
-        if (bi_ndigits(&c) > RESULT_DIGITS_MAX) return ABN_RANGE;
+        *t = *base;
+        if (!bi_add_u32(t, (uint32_t)i) || !bi_mul(tmp, c, t)) return ABN_RANGE;
+        *c = *tmp;
+        bi_divmod_u32(c, (uint32_t)i);             /* exact */
+        if (bi_ndigits(c) > RESULT_DIGITS_MAX) return ABN_RANGE;
     }
-    return bi_to_abn(out, &c, false, 0, false);
+    return bi_to_abn(out, c, false, 0, false);
+}
+
+abn_status fn_ncr(abn *out, const abn *xn, const abn *xr)
+{
+    int m = ar_mark();
+    abn_status st = fn_ncr_(out, xn, xr);
+    ar_release(m);
+    return st;
 }
 
 /* ---- rectangular and polar on X and Y (ours, unit 004) ---- */

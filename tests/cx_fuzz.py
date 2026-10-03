@@ -9,9 +9,9 @@ error, in units of the 34th significant digit of the larger part of the true val
 must be correctly rounded in each part, x, / and 1/z too (each part is formed exactly and
 rounded once). The unit's bar for everything else is 8 units; the functions formed to 50 digits
 and rounded once (e^z, ln z, sin, cos, tan, z1^z2: core/hp.c) are held here to the half unit
-they achieve, so that a lapse in that precision shows (ours); ABS (the engine's root of the
-exactly formed sum of squares) to the unit's 8. Prints the largest error per case and fails if
-any exceeds its bar. Run with `make accuracy`.
+they achieve, so that a lapse in that precision shows (ours); ABS, the correctly rounded root of
+the exact sum of squares (unit 010b), to half a unit too. Prints the largest error per case and
+fails if any exceeds its bar. Run with `make accuracy`.
 """
 import random
 import subprocess
@@ -97,7 +97,7 @@ ONE = {"INV": lambda w: 1 / w if w != 0 else None, "EXP": mp.exp,
        "ABS": lambda w: mp.mpc(abs(w), 0)}
 TWO = {"ADD": lambda a, b, s: a + b, "SUB": lambda a, b, s: a - b, "MUL": lambda a, b, s: a * b,
        "DIV": lambda a, b, s: a / b if b != 0 else None, "POW": pw}
-EXACT = {"ADD", "SUB", "MUL", "DIV", "INV"}
+EXACT = {"ADD", "SUB", "MUL", "DIV", "INV", "ABS"}    # ABS: the exact sum's root (unit 010b)
 
 CASES = []  # (label, name, generator)
 for name in ("ADD", "SUB", "MUL", "DIV"):
@@ -169,7 +169,7 @@ def main():
                 e = 0 if u is None else max(abs(g[0] - truth.real), abs(g[1] - truth.imag)) / u
             if e > worst:
                 worst, at = e, a
-        bar = 8 if name == "ABS" else 0.5 + 1e-9 if name in EXACT else 0.5 + 1e-6
+        bar = 0.5 + 1e-9 if name in EXACT else 0.5 + 1e-6
         ok = worst <= bar and errs == 0
         worst_all &= ok
         print(f"{label:18s} worst {mp.nstr(worst, 4):>10s} units (bar {bar:g}){'' if ok else '  FAIL'}"

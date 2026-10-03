@@ -7,6 +7,7 @@
  * FR_FACTORS round F * c / Q to the nearest integer, halves away from zero. */
 #include <string.h>
 
+#include "arena.h"
 #include "bigint.h"
 #include "frac.h"
 
@@ -20,80 +21,77 @@ static uint32_t gcd32(uint32_t a, uint32_t b)
     return a;
 }
 
-/* |F*d - n*Q| into r and its sign (F*d - n*Q). */
-static int err_of(bigint *r, const bigint *F, const bigint *Q, uint32_t n, uint32_t d)
+/* |F*d - n*Q| into r and its sign (F*d - n*Q); a and b are scratch. */
+static int err_of(bigint *r, const bigint *F, const bigint *Q, uint32_t n, uint32_t d, bigint *a, bigint *b)
 {
-    static bigint a, b;
-    a = *F;
-    b = *Q;
-    bi_mul_u32(&a, d);
-    bi_mul_u32(&b, n);
-    int s = bi_cmp(&a, &b);
-    if (s >= 0) bi_sub(r, &a, &b);
-    else bi_sub(r, &b, &a);
+    *a = *F;
+    *b = *Q;
+    bi_mul_u32(a, d);
+    bi_mul_u32(b, n);
+    int s = bi_cmp(a, b);
+    if (s >= 0) bi_sub(r, a, b);
+    else bi_sub(r, b, a);
     return s;
 }
 
-/* Is n1/d1 strictly closer to F/Q than n2/d2? Ties: smaller denominator, then larger n/d. */
-static bool closer(const bigint *F, const bigint *Q, uint32_t n1, uint32_t d1, uint32_t n2, uint32_t d2)
+/* Is n1/d1 strictly closer to F/Q than n2/d2? Ties: smaller denominator, then larger n/d.
+ * w points to four scratch numbers. */
+static bool closer(const bigint *F, const bigint *Q, uint32_t n1, uint32_t d1, uint32_t n2, uint32_t d2,
+                   bigint *e1, bigint *e2, bigint *a, bigint *b)
 {
-    static bigint e1, e2;
-    err_of(&e1, F, Q, n1, d1);
-    err_of(&e2, F, Q, n2, d2);
-    bi_mul_u32(&e1, d2);       /* |x - n1/d1| = e1 / (Q d1): compare e1 d2 with e2 d1 */
-    bi_mul_u32(&e2, d1);
-    int c = bi_cmp(&e1, &e2);
+    err_of(e1, F, Q, n1, d1, a, b);
+    err_of(e2, F, Q, n2, d2, a, b);
+    bi_mul_u32(e1, d2);        /* |x - n1/d1| = e1 / (Q d1): compare e1 d2 with e2 d1 */
+    bi_mul_u32(e2, d1);
+    int c = bi_cmp(e1, e2);
     if (c != 0) return c < 0;
     if (d1 != d2) return d1 < d2;
     return (uint64_t)n1 * d2 > (uint64_t)n2 * d1;
 }
 
-/* The closest fraction to F/Q (0 <= F < Q) with denominator <= c. */
-static void best_bounded(const bigint *F, const bigint *Q, uint32_t c, uint32_t *n, uint32_t *d)
+/* The closest fraction to F/Q (0 <= F < Q) with denominator <= c; false if the pool is short. */
+static bool best_bounded(const bigint *F, const bigint *Q, uint32_t c, uint32_t *n, uint32_t *d)
 {
-    static bigint p, q, r, a;
+    bigint *p, *q, *r, *a, *aq, *w1, *w2;
     uint64_t h2 = 0, h1 = 1, k2 = 1, k1 = 0;   /* convergents h/k, two back and one back */
     bool inexact;
-    p = *F;
-    q = *Q;
-    if (bi_is_zero(&p)) {
+    if (!ar_bi(7, &p, &q, &r, &a, &aq, &w1, &w2)) return false;
+    *p = *F;
+    *q = *Q;
+    if (bi_is_zero(p)) {
         *n = 0;
         *d = 1;
-        return;
+        return true;
     }
     for (;;) {
         /* a = floor(p / q), capped above c (any larger a overshoots the bound the same way) */
         uint64_t av;
-        bi_div(&a, &p, &q, &inexact);
-        av = (a.n > 1 || (a.n == 1 && a.l[0] > c)) ? (uint64_t)c + 1 : (a.n ? a.l[0] : 0);
+        bi_div(a, p, q, &inexact);
+        av = (a->n > 1 || (a->n == 1 && a->l[0] > c)) ? (uint64_t)c + 1 : (a->n ? a->l[0] : 0);
         uint64_t h = av * h1 + h2, k = av * k1 + k2;
         if (k > c) {
             /* last convergent h1/k1 against the largest semiconvergent within the bound */
             uint64_t t = (c - k2) / k1;
             uint32_t sn = (uint32_t)(t * h1 + h2), sd = (uint32_t)(t * k1 + k2);
-            if (t > 0 && closer(F, Q, sn, sd, (uint32_t)h1, (uint32_t)k1)) {
+            if (t > 0 && closer(F, Q, sn, sd, (uint32_t)h1, (uint32_t)k1, r, aq, w1, w2)) {
                 *n = sn;
                 *d = sd;
             } else {
                 *n = (uint32_t)h1;
                 *d = (uint32_t)k1;
             }
-            return;
+            return true;
         }
         /* (p, q) <- (q, p - a q) */
         if (!inexact) {
             *n = (uint32_t)h;
             *d = (uint32_t)k;
-            return;
+            return true;
         }
-        r = a;
-        {
-            static bigint aq;
-            bi_mul(&aq, &r, &q);
-            bi_sub(&r, &p, &aq);
-        }
-        p = q;
-        q = r;
+        bi_mul(aq, a, q);
+        bi_sub(r, p, aq);
+        *p = *q;
+        *q = *r;
         h2 = h1;
         h1 = h;
         k2 = k1;
@@ -101,37 +99,38 @@ static void best_bounded(const bigint *F, const bigint *Q, uint32_t c, uint32_t 
     }
 }
 
-abn_status fr_approx(fr_result *out, const abn *v, uint32_t c, fr_format f)
+static abn_status fr_approx_(fr_result *out, const abn *v, uint32_t c, fr_format f)
 {
-    static bigint M, Q, I, F, tmp;
+    bigint *M, *Q, *I, *F, *tmp, *w1, *w2;
     bool neg;
     char d[ABN_DIGITS + 1];
     int lead;
     uint32_t n, den;
     bool inexact;
+    if (!ar_bi(7, &M, &Q, &I, &F, &tmp, &w1, &w2)) return ABN_RANGE;
     if (c < 1) c = 1;
     abn_digits(v, &neg, d, &lead);
     out->neg = neg && d[0] != '\0';
     long e = (long)lead - (long)strlen(d) + 1;
     if (lead >= ABN_DIGITS) return ABN_RANGE;          /* more integer digits than the value has */
-    if (!bi_from_digits(&M, d, e > 0 ? (int)e : 0)) return ABN_RANGE;
-    bi_set(&Q, 1);
-    if (e < 0 && !bi_mul_pow10(&Q, (int)-e)) return ABN_RANGE;
-    if (!bi_div(&I, &M, &Q, &inexact)) return ABN_RANGE;
-    if (!bi_mul(&tmp, &I, &Q)) return ABN_RANGE;
-    bi_sub(&F, &M, &tmp);                              /* fraction F / Q in [0, 1) */
+    if (!bi_from_digits(M, d, e > 0 ? (int)e : 0)) return ABN_RANGE;
+    bi_set(Q, 1);
+    if (e < 0 && !bi_mul_pow10(Q, (int)-e)) return ABN_RANGE;
+    if (!bi_div(I, M, Q, &inexact)) return ABN_RANGE;
+    if (!bi_mul(tmp, I, Q)) return ABN_RANGE;
+    bi_sub(F, M, tmp);                                 /* fraction F / Q in [0, 1) */
     if (f == FR_PRECISE) {
-        best_bounded(&F, &Q, c, &n, &den);
+        if (!best_bounded(F, Q, c, &n, &den)) return ABN_RANGE;
     } else {
-        /* k = floor((2 F c + Q) / (2 Q)): the nearest integer to F c / Q, halves up */
-        static bigint num, q2, k;
-        num = F;
-        bi_mul_u32(&num, 2 * c);
-        bi_add(&num, &num, &Q);
-        q2 = Q;
-        bi_mul_u32(&q2, 2);
-        bi_div(&k, &num, &q2, &inexact);
-        n = k.n ? k.l[0] : 0;
+        /* k = floor((2 F c + Q) / (2 Q)): the nearest integer to F c / Q, halves up (M is
+           free again and holds the numerator, tmp twice Q, w1 the quotient) */
+        *M = *F;
+        bi_mul_u32(M, 2 * c);
+        bi_add(M, M, Q);
+        *tmp = *Q;
+        bi_mul_u32(tmp, 2);
+        bi_div(w1, M, tmp, &inexact);
+        n = w1->n ? w1->l[0] : 0;
         den = c;
         if (f == FR_FACTORS && n != 0) {
             uint32_t g = gcd32(n, den);
@@ -140,12 +139,9 @@ abn_status fr_approx(fr_result *out, const abn *v, uint32_t c, fr_format f)
         }
     }
     /* indicator: sign of x - n/den, x = F / Q */
-    {
-        static bigint r;
-        out->indicator = err_of(&r, &F, &Q, n, den) > 0 ? 1 : (bi_is_zero(&r) ? 0 : -1);
-    }
+    out->indicator = err_of(tmp, F, Q, n, den, w1, w2) > 0 ? 1 : (bi_is_zero(tmp) ? 0 : -1);
     if (n == den) {                                    /* rounded up to a whole: carry */
-        bi_add_u32(&I, 1);
+        bi_add_u32(I, 1);
         n = 0;
         if (f != FR_FIXED) den = 1;
     }
@@ -154,18 +150,18 @@ abn_status fr_approx(fr_result *out, const abn *v, uint32_t c, fr_format f)
     /* integer part as text */
     {
         int t = 0;
-        if (I.n == 0) {
+        if (I->n == 0) {
             out->ip[t++] = '0';
         } else {
-            for (int i = I.n - 1; i >= 0; i--) {
+            for (int i = I->n - 1; i >= 0; i--) {
                 char limb[10];
-                uint32_t val = I.l[i];
+                uint32_t val = I->l[i];
                 for (int kk = 8; kk >= 0; kk--) {
                     limb[kk] = (char)('0' + val % 10);
                     val /= 10;
                 }
                 int s = 0;
-                if (i == I.n - 1)
+                if (i == I->n - 1)
                     while (s < 8 && limb[s] == '0') s++;
                 for (; s < 9; s++) out->ip[t++] = limb[s];
             }
@@ -176,25 +172,42 @@ abn_status fr_approx(fr_result *out, const abn *v, uint32_t c, fr_format f)
     return ABN_OK;
 }
 
-abn_status fr_from_parts(abn *out, bool neg, const char *int_digits, const char *num_digits,
-                         const char *den_digits)
+abn_status fr_approx(fr_result *out, const abn *v, uint32_t c, fr_format f)
 {
-    static bigint I, N, Dn, t;
-    static bigint q, num;
+    int m = ar_mark();
+    abn_status st = fr_approx_(out, v, c, f);
+    ar_release(m);
+    return st;
+}
+
+static abn_status fr_from_parts_(abn *out, bool neg, const char *int_digits, const char *num_digits,
+                                 const char *den_digits)
+{
+    bigint *I, *N, *Dn, *t, *q, *num;
     bool inexact;
-    if (!bi_from_digits(&I, int_digits, 0) || !bi_from_digits(&N, num_digits, 0) ||
-        !bi_from_digits(&Dn, den_digits, 0))
+    if (!ar_bi(6, &I, &N, &Dn, &t, &q, &num)) return ABN_RANGE;
+    if (!bi_from_digits(I, int_digits, 0) || !bi_from_digits(N, num_digits, 0) ||
+        !bi_from_digits(Dn, den_digits, 0))
         return ABN_RANGE;
-    if (bi_is_zero(&Dn)) return ABN_DOMAIN;
-    if (!bi_mul(&t, &I, &Dn) || !bi_add(&num, &t, &N)) return ABN_RANGE;   /* I*D + N */
-    if (bi_is_zero(&num)) {
+    if (bi_is_zero(Dn)) return ABN_DOMAIN;
+    if (!bi_mul(t, I, Dn) || !bi_add(num, t, N)) return ABN_RANGE;     /* I*D + N */
+    if (bi_is_zero(num)) {
         *out = abn_zero();
         return ABN_OK;
     }
     /* scale so the quotient carries at least 45 digits, then round once */
-    int extra = 45 + (bi_ndigits(&Dn) > bi_ndigits(&num) ? bi_ndigits(&Dn) - bi_ndigits(&num) : 0);
-    if (!bi_mul_pow10(&num, extra) || !bi_div(&q, &num, &Dn, &inexact)) return ABN_RANGE;
-    return bi_to_abn(out, &q, neg, -extra, inexact);
+    int extra = 45 + (bi_ndigits(Dn) > bi_ndigits(num) ? bi_ndigits(Dn) - bi_ndigits(num) : 0);
+    if (!bi_mul_pow10(num, extra) || !bi_div(q, num, Dn, &inexact)) return ABN_RANGE;
+    return bi_to_abn(out, q, neg, -extra, inexact);
+}
+
+abn_status fr_from_parts(abn *out, bool neg, const char *int_digits, const char *num_digits,
+                         const char *den_digits)
+{
+    int m = ar_mark();
+    abn_status st = fr_from_parts_(out, neg, int_digits, num_digits, den_digits);
+    ar_release(m);
+    return st;
 }
 
 abn_status fr_value(abn *out, const fr_result *r)

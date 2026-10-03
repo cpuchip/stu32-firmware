@@ -8,13 +8,13 @@ INTEL_SRC := third_party/intel-dfp/IntelRDFPMathLib20U5/LIBRARY/src
 INTEL_LIB := build/intel/libbid.a
 BID_FLAGS := -DDECIMAL_CALL_BY_REFERENCE=0 -DDECIMAL_GLOBAL_ROUNDING=0 \
              -DDECIMAL_GLOBAL_EXCEPTION_FLAGS=0
-CORE := core/calc.c core/fmt.c core/fn.c core/bigint.c core/const.c core/xnum.c core/stat.c core/frac.c core/base.c core/cplx.c core/hp.c core/sbig.c
-HDRS := core/abn.h core/calc.h core/fmt.h core/fn.h core/bigint.h core/const.h core/xnum.h core/stat.h core/frac.h core/base.h core/cplx.h core/hp.h core/sbig.h core/bigint_impl.h core/xnum_impl.h
+CORE := core/calc.c core/fmt.c core/fn.c core/bigint.c core/const.c core/xnum.c core/stat.c core/frac.c core/base.c core/cplx.c core/hp.c core/sbig.c core/arena.c
+HDRS := core/abn.h core/calc.h core/fmt.h core/fn.h core/bigint.h core/const.h core/xnum.h core/stat.h core/frac.h core/base.h core/cplx.h core/hp.h core/sbig.h core/bigint_impl.h core/xnum_impl.h core/arena.h
 ENGINE := build/abn_intel.o $(INTEL_LIB)
 LIBS := -lm
 
 .PHONY: all test accuracy clean
-all: build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/abn_test build/diff_test
+all: build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test
 
 $(INTEL_LIB):
 	CC="$(CC)" scripts/fetch-intel-dfp.sh
@@ -30,14 +30,17 @@ build/vectors: $(CORE) $(HDRS) $(ENGINE) tests/vectors.c tests/norm.h
 build/fmt_vectors: $(CORE) $(HDRS) $(ENGINE) tests/fmt_vectors.c
 	$(CC) $(CFLAGS) -Icore -o $@ $(CORE) tests/fmt_vectors.c $(ENGINE) $(LIBS)
 
-build/fmt_drive: core/fmt.c core/fn.c core/frac.c core/bigint.c core/base.c $(HDRS) $(ENGINE) tests/fmt_drive.c
-	$(CC) $(CFLAGS) -Icore -o $@ core/fmt.c core/fn.c core/frac.c core/bigint.c core/base.c tests/fmt_drive.c $(ENGINE) $(LIBS)
+build/fmt_drive: core/fmt.c core/fn.c core/frac.c core/bigint.c core/arena.c core/sbig.c core/base.c $(HDRS) $(ENGINE) tests/fmt_drive.c
+	$(CC) $(CFLAGS) -Icore -o $@ core/fmt.c core/fn.c core/frac.c core/bigint.c core/arena.c core/sbig.c core/base.c tests/fmt_drive.c $(ENGINE) $(LIBS)
 
-build/cx_drive: core/cplx.c core/hp.c core/sbig.c core/xnum.c core/bigint.c $(HDRS) $(ENGINE) tests/cx_drive.c
-	$(CC) $(CFLAGS) -Icore -o $@ core/cplx.c core/hp.c core/sbig.c core/xnum.c core/bigint.c tests/cx_drive.c $(ENGINE) $(LIBS)
+build/cx_drive: core/cplx.c core/hp.c core/sbig.c core/xnum.c core/bigint.c core/arena.c $(HDRS) $(ENGINE) tests/cx_drive.c
+	$(CC) $(CFLAGS) -Icore -o $@ core/cplx.c core/hp.c core/sbig.c core/xnum.c core/bigint.c core/arena.c tests/cx_drive.c $(ENGINE) $(LIBS)
 
-build/fn_drive: core/fn.c core/bigint.c $(HDRS) $(ENGINE) tests/fn_drive.c
-	$(CC) $(CFLAGS) -Icore -o $@ core/fn.c core/bigint.c tests/fn_drive.c $(ENGINE) $(LIBS)
+build/xnum_test: core/xnum.c core/bigint.c core/arena.c $(HDRS) $(ENGINE) tests/xnum_test.c
+	$(CC) $(CFLAGS) -Icore -o $@ core/xnum.c core/bigint.c core/arena.c tests/xnum_test.c $(ENGINE) $(LIBS)
+
+build/fn_drive: core/fn.c core/bigint.c core/arena.c core/sbig.c $(HDRS) $(ENGINE) tests/fn_drive.c
+	$(CC) $(CFLAGS) -Icore -o $@ core/fn.c core/bigint.c core/arena.c core/sbig.c tests/fn_drive.c $(ENGINE) $(LIBS)
 
 build/abn_test: $(HDRS) $(ENGINE) tests/abn_test.c tests/norm.h tests/cases.h
 	$(CC) $(CFLAGS) -Icore -o $@ tests/abn_test.c $(ENGINE) $(LIBS)
@@ -48,6 +51,7 @@ build/diff_test: $(HDRS) $(ENGINE) tests/diff_test.c tests/dref.c tests/dref.h t
 test: all
 	./build/abn_test
 	./build/diff_test
+	./build/xnum_test
 	./build/vectors work/001-vectors.txt
 	./build/vectors work/003-vectors.txt
 	./build/vectors work/004-vectors.txt

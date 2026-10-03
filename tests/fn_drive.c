@@ -9,7 +9,10 @@
  */
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+
+#include "arena.h"
 
 #include "fn.h"
 
@@ -94,5 +97,6 @@ int main(void)
             puts(t);
         }
     }
+    if (getenv("AB_ARENA_PEAK")) fprintf(stderr, "arena peak %d\n", ar_peak());   /* unit 010b measurement */
     return 0;
 }
