@@ -176,7 +176,7 @@ def fval(t, env):
             if r == 0 or r < 1e-300 or r > 1e300:
                 raise ValueError
             return r
-        if a != int(a) or b != int(b) or a < 0 or b < 0 or a > 60:
+        if a != int(a) or b != int(b) or a < 0 or b < 0 or a > 60 or b > a:   # r > n: INVALID DATA (#3778)
             raise ValueError
         return float(math.comb(int(a), int(b)))
     a, b = fval(t[1], env), fval(t[2], env)

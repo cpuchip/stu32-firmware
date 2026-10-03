@@ -165,12 +165,19 @@ CASES.append(("HMSINV", "RAD", lambda: str(R.randint(-9999, 9999)) + "." + "%02d
 CASES.append(("TODEG", "RAD", lambda: logspace(-300, 300, True), lambda x: x * 180 / mp.pi, 8))
 CASES.append(("TORAD", "RAD", lambda: logspace(-300, 300, True), lambda x: x * mp.pi / 180, 8))
 CASES.append(("FACT", "RAD", lambda: str(R.randint(0, 2123)), lambda x: mp.mpf(math.factorial(int(x))), 0.5 + 1e-9))
+def prob_truth(f, y, x):
+    """nCr, nPr: r > n or n >= 10^16 is INVALID DATA (p.F-2, ruled #3778): no true value"""
+    if int(x) > int(y) or int(y) >= 10**16:
+        raise ValueError
+    return mp.mpf(f(int(y), int(x)))
+
+
 TWO += [("NCR", lambda: (str(R.randint(0, 3000)), str(R.randint(0, 1500))),
-         lambda y, x: mp.mpf(math.comb(int(y), int(x))), 0.5 + 1e-9),
+         lambda y, x: prob_truth(math.comb, y, x), 0.5 + 1e-9),
         ("NPR", lambda: (str(R.randint(0, 2500)), str(R.randint(0, 900))),
-         lambda y, x: mp.mpf(math.perm(int(y), int(x))), 0.5 + 1e-9),
+         lambda y, x: prob_truth(math.perm, y, x), 0.5 + 1e-9),
         ("NCR", lambda: (str(R.randint(1, 10**R.randint(10, 33))), str(R.randint(0, 40))),
-         lambda y, x: mp.mpf(math.comb(int(y), int(x))), 0.5 + 1e-9)]
+         lambda y, x: prob_truth(math.comb, y, x), 0.5 + 1e-9)]
 POLAR = []
 for mode in ("DEG", "RAD", "GRAD"):
     k = ANG[mode]

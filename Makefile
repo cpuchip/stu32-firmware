@@ -14,8 +14,8 @@ ENGINE := build/abn_intel.o $(INTEL_LIB)
 LIBS := -lm
 
 .PHONY: all test accuracy clean device-host
-KEYV := $(filter-out work/002-vectors.txt work/016-vectors.txt work/017-vectors.txt,$(filter-out %-fmt-vectors.txt,$(wildcard work/*-vectors.txt)))
-all: build/load_fuzz build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test
+KEYV := $(filter-out work/002-vectors.txt work/016-vectors.txt work/017-vectors.txt work/018-vectors.txt,$(filter-out %-fmt-vectors.txt,$(wildcard work/*-vectors.txt)))
+all: build/keys_test build/ls027_test build/store_test build/load_fuzz build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test
 
 $(INTEL_LIB):
 	CC="$(CC)" scripts/fetch-intel-dfp.sh
@@ -24,6 +24,15 @@ $(INTEL_LIB):
 build/abn_intel.o: core/abn_intel.c core/abn.h $(INTEL_LIB)
 	@mkdir -p build
 	$(CC) $(CFLAGS) $(BID_FLAGS) -isystem $(INTEL_SRC) -c -o $@ core/abn_intel.c
+
+build/keys_test: firmware/keys.c firmware/keys.h tests/keys_test.c
+	$(CC) $(CFLAGS) -Ifirmware -o $@ firmware/keys.c tests/keys_test.c
+
+build/ls027_test: firmware/ls027.c firmware/ls027.h tests/ls027_test.c
+	$(CC) $(CFLAGS) -Ifirmware -o $@ firmware/ls027.c tests/ls027_test.c
+
+build/store_test: $(CORE) $(HDRS) $(ENGINE) firmware/store.c firmware/store.h tests/store_test.c
+	$(CC) $(CFLAGS) -Icore -Ifirmware -o $@ $(CORE) firmware/store.c tests/store_test.c $(ENGINE) $(LIBS)
 
 build/load_fuzz: $(CORE) $(HDRS) $(ENGINE) tests/load_fuzz.c
 	$(CC) $(CFLAGS) -Icore -o $@ $(CORE) tests/load_fuzz.c $(ENGINE) $(LIBS)
@@ -77,8 +86,12 @@ test: all
 	./build/vectors work/015b-vectors.txt
 	./build/vectors work/016-vectors.txt
 	./build/vectors work/017-vectors.txt
+	./build/vectors work/018-vectors.txt
 	./build/vectors tests/golden-v1.txt
 	./build/load_fuzz 20000
+	./build/store_test
+	./build/ls027_test
+	./build/keys_test
 	python3 tests/eqn_fuzz.py 1 2000 > build/eqn_fuzz.txt
 	./build/vectors build/eqn_fuzz.txt
 	python3 tests/prog_fuzz.py 1 1000 > build/prog_fuzz.txt

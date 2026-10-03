@@ -185,6 +185,14 @@ size_t ab_state_save(const ab_calc *c, uint8_t *buf, size_t cap)
     w8(&w, c->lift);
     w8(&w, c->m35);                         /* version 2 */
     w8(&w, c->msg);
+    {
+        int code = op_code((ab_op)c->err_op);   /* version 3: what the message says */
+        w16(&w, (unsigned)(code < 0 ? 0xFFFF : code));
+        wi32(&w, c->err_arg);
+        w8(&w, (unsigned)kind_code(c->err_active));
+        w8(&w, (unsigned)c->err_status);
+        wval(&w, &c->err_x);
+    }
     sec_end(&w, s);
 
     s = sec_begin(&w, T_STACK);
@@ -502,6 +510,8 @@ static bool line_ok(ab_op op, int32_t arg)
     }
 }
 
+static int kind_of(unsigned k);
+
 static void sec_modes(rd *r)
 {
     unsigned angle = r8(r), mode = r8(r), n = r8(r), base = r8(r), fdisp = r8(r), fc = r16(r),
@@ -509,11 +519,25 @@ static void sec_modes(rd *r)
     uint64_t rng = r64(r);
     unsigned yes = r8(r);
     int fn = ri8(r);
-    unsigned lift = r8(r), m35 = 0, msg = 0;
+    unsigned lift = r8(r), m35 = 0, msg = 0, ecode = 0xFFFF, eactive = 0, estatus = 0;
+    int32_t earg = 0;
+    ab_val ex;
+    memset(&ex, 0, sizeof ex);
+    ex.re = ex.im = ex.p3 = abn_zero();
     if (r->version >= 2) {
         m35 = r8(r);
         msg = r8(r);
         need(r, flag_byte(m35) && flag_byte(msg));
+    }
+    if (r->version >= 3) {
+        ecode = r16(r);
+        earg = ri32(r);
+        eactive = r8(r);
+        estatus = r8(r);
+        rval(r, &ex);
+        need(r, (ecode == 0xFFFF || ecode < (unsigned)V1_N) && eactive <= 2 && estatus <= ABN_BAD_IMAGE);
+    } else {
+        msg = 0;                                /* an older image: no message to say */
     }
     need(r, angle <= AB_ANGLE_GRAD && mode <= AB_ALL && n <= AB_FMT_N_MAX && (mode != AB_ALL || n == 0) &&
                 (base == 2 || base == 8 || base == 10 || base == 16) && flag_byte(fdisp) && fc >= 2 &&
@@ -536,6 +560,11 @@ static void sec_modes(rd *r)
     r->c->lift = lift;
     r->c->m35 = m35;
     r->c->msg = msg;
+    r->c->err_op = ecode == 0xFFFF ? -1 : (int)V1_OPS[ecode];
+    r->c->err_arg = earg;
+    r->c->err_active = kind_of(eactive);
+    r->c->err_status = (abn_status)estatus;
+    r->c->err_x = ex;
 }
 
 static void sec_stack(rd *r)

@@ -116,6 +116,18 @@ static ab_val ab_cx(cplx z)
     return r;
 }
 
+/* The failing operation, for the message (unit 018): the first one recorded in a call is the
+ * innermost (a function inside an equation, a program line, the key last). */
+static void err_note(ab_calc *c, int op, int arg, const ab_val *x)
+{
+    if (c->err_set) return;
+    c->err_set = true;
+    c->err_op = op;
+    c->err_arg = arg;
+    c->err_active = c->active;
+    c->err_x = x ? *x : c->x;
+}
+
 /* ---- vectors (unit 010) ---- */
 
 static bool is_vec(const ab_val *v)
@@ -1579,6 +1591,7 @@ static abn_status prog_run_lines(ab_calc *c, long limit, bool sst)
             break;
         }
         if (st != ABN_OK && st != ABN_CLAMPED) {
+            err_note(c, op, arg, NULL);
             c->pc = at;
             c->stop = AB_STOP_ERROR;
             c->stop_line = at;
@@ -2054,7 +2067,10 @@ static abn_status solve_op(ab_calc *c, int code)
 {
     slot sl;
     abn_status st;
-    if (c->active) return ABN_NESTED;
+    if (c->active) {
+        err_note(c, AB_SOLVE, code, NULL);      /* SOLVE(SOLVE) or ∫(SOLVE) (p.F-1, F-4) */
+        return ABN_NESTED;
+    }
     if (c->fn_eqn < 0 && (c->fn < 0 || c->labelpos[c->fn] < 0)) return ABN_SELECT_FN;
     if ((st = resolve(c, code, false, &sl)) != ABN_OK) return st;
     if (!sl.val) return ABN_DOMAIN;             /* not an unnamed or statistics register (p.14-23) */
@@ -2228,7 +2244,10 @@ static abn_status integ_op(ab_calc *c, int code)
 {
     slot sl;
     abn_status st;
-    if (c->active) return ABN_NESTED;
+    if (c->active) {
+        err_note(c, AB_INTEG, code, NULL);      /* SOLVE(∫FN) or ∫(∫FN) */
+        return ABN_NESTED;
+    }
     if (c->fn_eqn < 0 && (c->fn < 0 || c->labelpos[c->fn] < 0)) return ABN_SELECT_FN;
     if ((st = resolve(c, code, false, &sl)) != ABN_OK) return st;
     if (!sl.val) return ABN_DOMAIN;
@@ -2336,7 +2355,10 @@ static abn_status fn_op(ab_calc *c, int arg)
 {
     int t;
     abn_status st;
-    if (c->active) return ABN_NESTED;
+    if (c->active) {
+        err_note(c, AB_FN, arg, NULL);          /* SOLVE ACTIVE or ∫FN ACTIVE */
+        return ABN_NESTED;
+    }
     if (arg == AB_TGT_IND_I || arg == AB_TGT_IND_J) {
         if ((st = ind_target(c, arg, &t)) != ABN_OK) return st;
         arg = t / 1000;                         /* the label (I) names */
@@ -3057,14 +3079,20 @@ static bool takes_complex(ab_op op)
 abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
 {
     abn_status st;
+    ab_val x0 = c->x;
     if (c->msg) {
         c->msg = false;
         if (c->m35) return ABN_OK;
     }
+    c->err_set = false;
     if (c->prgm) st = program_key(c, op, arg);
     else if (c->eqn_mode && !c->eqn_pending) st = eqn_key(c, op, arg);
     else st = do_key(c, op, arg);
-    if (st != ABN_OK && st != ABN_CLAMPED) c->msg = true;
+    if (st != ABN_OK && st != ABN_CLAMPED) {
+        c->msg = true;
+        err_note(c, op, arg, &x0);
+        c->err_status = st;
+    }
     return st;
 }
 
@@ -3080,8 +3108,13 @@ abn_status ab_continue(ab_calc *c)
     if (c->stop != AB_STOP_SLICE) return ABN_OK;
     c->stop = AB_STOP_NONE;
     continuing = true;
+    c->err_set = false;
     st = prog_run(c, c->budget - c->run_lines);
-    if (st != ABN_OK && st != ABN_CLAMPED) c->msg = true;   /* as ab_do_arg (unit 017) */
+    if (st != ABN_OK && st != ABN_CLAMPED) {                /* as ab_do_arg (units 017, 018) */
+        c->msg = true;
+        err_note(c, AB_RS, 0, NULL);
+        c->err_status = st;
+    }
     return st;
 }
 
@@ -3155,6 +3188,7 @@ abn_status ab_eqn_op(ab_calc *c, ab_op op, const ab_val *y, const ab_val *x, ab_
     if (y) c->y = *y;
     if (x) c->x = *x;
     st = do_key(c, op, 0);
+    if (st != ABN_OK && st != ABN_CLAMPED) err_note(c, op, 0, x);   /* inside an equation */
     *out = c->x;
     c->x = sx;
     c->y = sy;

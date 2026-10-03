@@ -217,8 +217,11 @@ abn_status fn_pow(abn *out, const abn *y, const abn *x)
     bool xint = abn_is_integer(x);
     bool yneg = abn_is_negative(y);
     if (abn_is_zero(y)) {
+        /* 0 to the 0th power or to a negative power: INVALID yˣ (UG p.F-3; ruled by abacus #3778,
+           which replaces unit 003's 0^0 = 1) */
         if (abn_is_negative(x)) return ABN_DIV_ZERO;
-        *out = abn_is_zero(x) ? one() : abn_zero();
+        if (abn_is_zero(x)) return ABN_DOMAIN;
+        *out = abn_zero();
         return ABN_OK;
     }
     if (yneg && !xint) return ABN_DOMAIN;
@@ -952,10 +955,9 @@ static abn_status fn_npr_(abn *out, const abn *xn, const abn *xr)
     if (!ar_bi(5, &n, &rb, &p, &t, &tmp)) return ABN_RANGE;
     abn_status st = prob_args(n, rb, xn, xr);
     if (st != ABN_OK) return st;
-    if (bi_cmp(rb, n) > 0) {
-        *out = abn_zero();
-        return ABN_OK;
-    }
+    /* r > n, or n of 10^16 or more: INVALID DATA (UG p.F-2; ruled by abacus #3778, which replaces
+       unit 004's 0 for r > n and its large n) */
+    if (bi_cmp(rb, n) > 0 || bi_ndigits(n) >= 17) return ABN_DOMAIN;
     int32_t r = small_bi(rb);
     if (r < 0 || r > FACT_MAX) return ABN_RANGE;     /* nPr >= r! */
     bi_set(p, 1);
@@ -978,18 +980,14 @@ abn_status fn_npr(abn *out, const abn *xn, const abn *xr)
 }
 
 /* Combinations: with r' = min(r, n - r), the product over i of (n - r' + i) / i, each division
- * exact, then rounded once. r > n gives 0 (ours, unit 004). r' is taken before r is required to
- * be small, so C(10^30, 10^30 - 2) is C(10^30, 2). */
+ * exact, then rounded once. r > n and n >= 10^16 are INVALID DATA (p.F-2, #3778). */
 static abn_status fn_ncr_(abn *out, const abn *xn, const abn *xr)
 {
     bigint *n, *rb, *c, *base, *t, *tmp;
     if (!ar_bi(6, &n, &rb, &c, &base, &t, &tmp)) return ABN_RANGE;
     abn_status st = prob_args(n, rb, xn, xr);
     if (st != ABN_OK) return st;
-    if (bi_cmp(rb, n) > 0) {
-        *out = abn_zero();
-        return ABN_OK;
-    }
+    if (bi_cmp(rb, n) > 0 || bi_ndigits(n) >= 17) return ABN_DOMAIN;   /* as nPr (p.F-2) */
     bi_sub(base, n, rb);                         /* n - r */
     if (bi_cmp(base, rb) < 0) {                   /* use r' = n - r, base = r */
         *tmp = *base;
