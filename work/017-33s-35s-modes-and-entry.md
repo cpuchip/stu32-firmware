@@ -39,14 +39,21 @@ the default."* His observations are the source for this unit's vectors; cite the
    zero error, but doesnt place the 5"). Any key, any error the keyboard caused (an error stop in a
    program too: say if you read the guide otherwise). The core keeps whether a message is showing,
    since it decides what the key does; the device draws it.
-5. **Pending, not yet ruled:** FIX 0 shows a trailing radix mark on the 35s (`-3.`; ours `-3`).
+5. **INT÷ and Rmdr are floored, not truncated (three machines agree; unit 003 ruling 1 is
+   withdrawn).** Michael's 35s, 33s and 50g (IQUOT, IREMAINDER) all give −17 INT÷ 5 = **−4**,
+   −17 Rmdr 5 = **3**, 17 Rmdr −5 = **−3**: the quotient is floor(y/x) and the remainder
+   y − x·floor(y/x) takes the sign of x (for x > 0 it lies in 0 to x−1). The guide shows only
+   58 ÷ 9 (p.4-2, C-4), so ours was a guess (C's truncation). Equations' IDIV and RMDR follow, as
+   they run the same functions. Say whether the floor is taken of the exact quotient (it must be:
+   −17 ÷ 5 is exact here, but a quotient that rounds to an integer in 34 digits must not move it).
+6. **Pending, not yet ruled:** FIX 0 shows a trailing radix mark on the 35s (`-3.`; ours `-3`).
    Michael is checking his 33s; if they agree it becomes a rule with no mode, otherwise it joins
    rule 1's mode. Do not change the formatter until it is ruled.
 
 ## Acceptance and report
 
-Red then green, as before: Michael's sequences as vectors in both modes, the mode across save and
+Red then green, as before: Michael's sequences as vectors in both modes (rules 2 and 5 in both: no mode), the mode across save and
 load, an image from before this unit loading with the 33s default, and every earlier vector file
 still passing in the default mode (say which earlier vectors change and why: unit 001's V42-V44
-should be the only ones). At review: the hidden sets regenerated with the reviewer's model updated
+and 003's negative INT÷/Rmdr vectors should be the only ones). At review: the hidden sets regenerated with the reviewer's model updated
 to these rules, in both modes.
