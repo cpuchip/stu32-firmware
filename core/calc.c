@@ -15,6 +15,7 @@
 #include "arena.h"
 #include "cplx.h"
 #include "eqn.h"
+#include "lin.h"
 #include "xnum.h"
 
 /* A real number as a stack value. */
@@ -26,6 +27,10 @@ static ab_val ab_real(abn v)
     r.re = v;
     return r;
 }
+
+/* The built-in linear solvers as list entries (UG p.6-6, 7-6): locked, never typed. */
+#define EQN_LIN2 "\x01" "2*2 lin. solve"
+#define EQN_LIN3 "\x01" "3*3 lin. solve"
 
 void ab_init(ab_calc *c)
 {
@@ -41,6 +46,11 @@ void ab_init(ab_calc *c)
     c->stop_var = -1;
     c->fn = -1;
     c->eqn_cur = -1;
+    strcpy(c->eqn[0], EQN_LIN2);    /* the list always holds the linear solvers (UG p.6-6, 7-3) */
+    strcpy(c->eqn[1], EQN_LIN3);
+    c->eqn_count = 2;
+    c->peq_line = -1;
+    c->fn_eqn = -1;
     for (int l = 0; l < 26; l++) c->labelpos[l] = -1;
     c->frac_c = 4095;          /* the default maximum denominator (UG p.5-5) */
     c->base = 10;
@@ -804,6 +814,14 @@ static ab_val load_val(const slot *sl)
     return sl->val ? *sl->val : ab_real(*sl->reg);
 }
 
+abn_status ab_indirect(ab_calc *c, int code, ab_val *out)
+{
+    slot sl;
+    abn_status st = resolve(c, code, true, &sl);
+    if (st == ABN_OK) *out = load_val(&sl);
+    return st;
+}
+
 /* Stores v. The registers that hold reals refuse a complex number (ours, unit 009: the guide
  * shows complex numbers in the lettered variables, UG p.9-2): INVALID DATA, nothing changed. */
 static abn_status store_val(ab_calc *c, const slot *sl, ab_val v)
@@ -1107,10 +1125,25 @@ static abn_status prog_insert_lit(ab_calc *c, ab_val v)
     return ABN_OK;
 }
 
+/* An equation as a line (UG p.13-7): its text in the equation-line store. */
+static abn_status prog_insert_eqn(ab_calc *c, const char *text)
+{
+    int slot = -1;
+    for (int i = 0; i < AB_PEQN_MAX && slot < 0; i++)
+        if (!c->peqn_used[i]) slot = i;
+    if (slot < 0 || strlen(text) >= AB_EQN_LEN) return ABN_MEMORY_FULL;
+    abn_status st = prog_insert(c, AB_EQLINE, slot);
+    if (st != ABN_OK) return st;
+    strcpy(c->peqn[slot], text);
+    c->peqn_used[slot] = true;
+    return ABN_OK;
+}
+
 /* Deletes line k; the pointer moves to the line before (UG p.13-20). */
 static void prog_delete(ab_calc *c, int k)
 {
     if (c->prog[k].op == AB_LIT) c->lit_used[c->prog[k].arg] = false;
+    if (c->prog[k].op == AB_EQLINE) c->peqn_used[c->prog[k].arg] = false;
     targets_absolute(c);
     memmove(&c->prog[k], &c->prog[k + 1], (size_t)(c->prog_len - k - 1) * sizeof c->prog[0]);
     c->prog_len--;
@@ -1122,6 +1155,8 @@ static void prog_clear(ab_calc *c)
 {
     c->prog_len = 0;
     memset(c->lit_used, 0, sizeof c->lit_used);
+    memset(c->peqn_used, 0, sizeof c->peqn_used);
+    c->peq_line = -1;
     c->pc = AB_PC_TOP;
     c->rdepth = 0;
     prog_labels(c);
@@ -1243,7 +1278,40 @@ static void slot_of_id(ab_calc *c, int id, slot *sl)
  * line acts as RTN, and execution runs on through a LBL line into the next label (ours: the guide
  * does not say). LBL, RTN, GTO, XEQ, the tests and ISG/DSE enable lift (UG p.B-4, none of them is
  * listed as neutral); STOP and PSE are neutral (p.B-5); PSE's pause is the device's. */
+/* The variables an evaluation of text prompts for, in order of first appearance (UG p.6-11): the
+ * right side's only for an assignment's ENTER (rhs_only), never the unknown or the variable of
+ * integration (p.7-2, 8-3, 15-4). */
+static int eqn_prompt_vars(const ab_calc *c, const char *text, bool rhs_only, int *out)
+{
+    int v[26], n = eqn_vars(text, rhs_only, v), k = 0;
+    for (int i = 0; i < n; i++)
+        if (!(c->susp.kind && v[i] == c->susp.var)) out[k++] = v[i];   /* susp is set while SOLVE runs */
+    return k;
+}
+
+/* Prompts for eqn_vars[eqn_next]: its value in X with lift off, an INPUT stop (UG p.6-14). */
+static void eqn_prompt(ab_calc *c)
+{
+    int var = c->eqn_vars[c->eqn_next];
+    place_val(c, c->var[var]);
+    c->lift = false;
+    c->stop = AB_STOP_INPUT;
+    c->stop_var = var;
+}
+
+static abn_status prog_run_lines(ab_calc *c, long limit);
+
+/* Runs the program from the pointer (UG ch.13, 14); counts the runs in progress, so a SOLVE or
+ * integral knows whether a program line keyed it. */
 static abn_status prog_run(ab_calc *c, long limit)
+{
+    c->running++;
+    abn_status st = prog_run_lines(c, limit);
+    c->running--;
+    return st;
+}
+
+static abn_status prog_run_lines(ab_calc *c, long limit)
 {
     long steps = 0;
     c->stop = AB_STOP_NONE;     /* running: a stop reported earlier no longer applies */
@@ -1320,9 +1388,10 @@ static abn_status prog_run(ab_calc *c, long limit)
                replaces it (UG p.13-13, p.B-5, G-9); R/S stores X and resumes (unit 012) */
             slot sl;
             if ((st = resolve(c, arg, false, &sl)) != ABN_OK) break;
-            if (c->active) {
+            if (c->active && (c->solve_phase != 1 || slot_id(c, &sl) == c->solve_var)) {
                 /* while SOLVE / integrate evaluate (UG p.15-2, 15-8): the unknown's INPUT is
-                   skipped, any other reads the stored value as RCL would (unit 013 brief) */
+                   skipped; any other prompts in the first evaluation only (15-A: each variable once
+                   per SOLVE, unit 015) and later reads the stored value as RCL would */
                 if (slot_id(c, &sl) != c->solve_var) {
                     place_val(c, load_val(&sl));
                     c->lift = true;
@@ -1352,6 +1421,52 @@ static abn_status prog_run(ab_calc *c, long limit)
             c->pc = next;
             return ABN_OK;
         }
+        case AB_EQLINE: {
+            /* an equation line (UG p.13-16, 14-11): with flag 10 set it is shown as a message, like
+               VIEW, the stack untouched (not while SOLVE / integrate evaluate, as VIEW); else it
+               is evaluated and its value put on the stack, after prompts for its variables when
+               flag 11 is set (not the unknown; not in SOLVE's later evaluations), and flag 11 is
+               cleared */
+            const char *t = c->peqn[arg];
+            abn v;
+            int pos;
+            if (ab_flag(c, 10)) {
+                if (c->active) break;
+                c->stop = AB_STOP_MSG;
+                c->stop_line = at;
+                c->stop_var = -2;
+                if (next < c->prog_len && c->prog[next].op == AB_PSE) {
+                    next++;
+                    c->stop = limit == 1 ? AB_STOP_STOP : AB_STOP_PSE;
+                }
+                c->pc = next;
+                return ABN_OK;
+            }
+            if (ab_flag(c, 11) && !c->peq_ready && !(c->active && c->solve_phase != 1)) {
+                if ((st = eqn_eval(c, t, false, true, &v, &pos)) != ABN_OK) {
+                    c->eqn_errpos = pos;
+                    break;
+                }
+                c->eqn_nvars = eqn_prompt_vars(c, t, false, c->eqn_vars);
+                if (c->eqn_nvars > 0) {
+                    c->peq_line = at;
+                    c->eqn_next = 0;
+                    c->pc = at;
+                    eqn_prompt(c);
+                    return ABN_OK;
+                }
+            }
+            c->peq_ready = false;
+            c->peq_line = -1;
+            if ((st = eqn_eval(c, t, false, false, &v, &pos)) != ABN_OK) {
+                c->eqn_errpos = pos;
+                break;
+            }
+            c->flags &= (uint16_t)~(1u << 11);
+            place_val(c, ab_real(v));
+            c->lift = true;
+            break;
+        }
         case AB_TEST:
         case AB_FS: {
             bool t;
@@ -1368,8 +1483,11 @@ static abn_status prog_run(ab_calc *c, long limit)
             if (st == ABN_OK) c->lift = true;
             break;
         case AB_SOLVE:
+        case AB_INTEG:
             st = do_key(c, (ab_op)op, arg);
-            if (st == ABN_NO_ROOT) {
+            if (st == ABN_OK && c->susp.kind && c->stop == AB_STOP_INPUT)
+                return ABN_OK;                  /* its first evaluation prompts (unit 015) */
+            if (op == AB_SOLVE && st == ABN_NO_ROOT) {
                 st = ABN_OK;                    /* no message: the next line is skipped (p.15-6) */
                 skip = true;
             }
@@ -1412,6 +1530,11 @@ static abn_status eval_fn(ab_calc *c, const abn *t, abn *f)
     slot sl;
     abn_status st;
     int pc0 = c->pc, rb0 = c->rbase;
+    if (c->ev_cached && abn_cmp(t, &c->ev_cx) == 0) {
+        c->ev_cached = false;                   /* the first evaluation's (unit 015) */
+        *f = c->ev_cf;
+        return c->ev_cst;
+    }
     slot_of_id(c, c->solve_var, &sl);
     if ((st = store_val(c, &sl, ab_real(*t))) != ABN_OK) return st;
     c->x = ab_real(*t);
@@ -1419,6 +1542,12 @@ static abn_status eval_fn(ab_calc *c, const abn *t, abn *f)
     c->z = ev_z;
     c->t = ev_t;
     c->lift = true;
+    if (c->fn_eqn >= 0) {
+        /* a listed equation as the function (UG p.7-2, 8-3): its value, "=" as "-" */
+        int pos;
+        c->evals++;
+        return eqn_eval(c, c->eqn[c->fn_eqn], false, false, f, &pos);
+    }
     c->rbase = c->rdepth;
     c->pc = c->labelpos[c->fn];
     st = prog_run(c, c->budget);
@@ -1724,54 +1853,96 @@ noroot:
     return ABN_OK;
 }
 
+static abn_status fn_first(ab_calc *c);
+
+/* A SOLVE or integral begins (unit 015): what it will restore or report is kept in c->susp, the
+ * return level it holds is taken (UG p.15-11), and its first evaluation follows. */
+static void susp_begin(ab_calc *c, int kind, int var, int code, ab_val var0)
+{
+    c->susp.kind = kind;
+    c->susp.var = var;
+    c->susp.code = code;
+    c->susp.x = c->x;
+    c->susp.y = c->y;
+    c->susp.z = c->z;
+    c->susp.t = c->t;
+    c->susp.lastx = c->lastx;
+    c->susp.lift = c->lift;
+    c->susp.var0 = var0;
+    c->susp.pc = c->pc;
+    c->susp.rbase = c->rbase;
+    c->susp.rdepth = c->rdepth;
+    c->susp.from_prog = c->running > 0;
+    c->active = kind;
+    c->solve_var = var;
+    c->solve_phase = 1;
+    c->evals = 0;
+    c->ev_cached = false;
+    ev_y = c->y;
+    ev_z = c->z;
+    ev_t = c->t;
+    c->rstack[c->rdepth++] = -1;               /* the level SOLVE / integrate holds */
+}
+
+/* Everything as it was before the SOLVE or integral: an error, or C at a prompt of its first
+ * evaluation. */
+static void susp_abort(ab_calc *c)
+{
+    slot sl;
+    slot_of_id(c, c->susp.var, &sl);
+    if (sl.val) *sl.val = c->susp.var0;
+    c->x = c->susp.x;
+    c->y = c->susp.y;
+    c->z = c->susp.z;
+    c->t = c->susp.t;
+    c->lastx = c->susp.lastx;
+    c->lift = c->susp.lift;
+    c->rdepth = c->susp.rdepth;
+    c->rbase = c->susp.rbase;
+    c->pc = c->susp.pc;
+    c->active = 0;
+    c->solve_phase = 0;
+    c->susp.kind = 0;
+    c->ev_cached = false;
+    c->peq_line = -1;
+    c->peq_ready = false;
+}
+
 /* SOLVE var (UG p.7-2, 7-8, 15-1): the guesses are the variable and X; the root goes to the
  * variable and X, the previous estimate to Y, f at the root to Z; T keeps its value and lift is
  * enabled (ours: the guide does not say; SOLVE is in neither of p.B-5's lists); LAST X is kept
  * (not in p.B-6's list). No root: ABN_NO_ROOT with the same report at the point of least |f| (UG
  * p.7-8); a program skips the next line instead (p.15-6). The search uses one of the 20 return
  * levels (p.15-11). Any other error leaves everything as it was. */
-static abn_status solve_op(ab_calc *c, int code)
+static abn_status solve_finish(ab_calc *c)
 {
     slot sl;
-    abn_status st;
-    ab_val ox = c->x, oy = c->y, oz = c->z, ot = c->t, olx = c->lastx, ovar;
-    bool olift = c->lift;
     solve_out o;
-    if (c->active) return ABN_NESTED;
-    if (c->fn < 0 || c->labelpos[c->fn] < 0) return ABN_SELECT_FN;
-    if ((st = resolve(c, code, false, &sl)) != ABN_OK) return st;
-    if (!sl.val) return ABN_DOMAIN;             /* not an unnamed or statistics register (p.14-23) */
-    if (sl.val->kind != AB_REAL || c->x.kind != AB_REAL) return ABN_DOMAIN;   /* BAD GUESS (p.F-1) */
-    if (c->rdepth >= AB_RTN_DEPTH) return ABN_XEQ_OVERFLOW;
-    ovar = *sl.val;
-    c->active = AB_SOLVE;
-    c->solve_var = slot_id(c, &sl);
-    c->evals = 0;
-    ev_y = oy;
-    ev_z = oz;
-    ev_t = ot;
-    c->rstack[c->rdepth++] = -1;               /* the level SOLVE holds */
-    st = solve_core(c, ovar.re, ox.re, &o);
-    c->rdepth--;
-    c->active = 0;
-    if (st != ABN_OK) {
-        *sl.val = ovar;
-        c->x = ox;
-        c->y = oy;
-        c->z = oz;
-        c->t = ot;
-        c->lastx = olx;
-        c->lift = olift;
-        return st;
-    }
+    abn_status st = solve_core(c, c->susp.var0.re, c->susp.x.re, &o);
+    slot_of_id(c, c->susp.var, &sl);
+    if (st != ABN_OK) return st;
     *sl.val = ab_real(o.x);
     c->x = ab_real(o.x);
     c->y = ab_real(o.prev);
     c->z = ab_real(o.fx);
-    c->t = ot;
-    c->lastx = olx;
+    c->t = c->susp.t;
+    c->lastx = c->susp.lastx;
     c->lift = true;
     return o.found ? ABN_OK : ABN_NO_ROOT;
+}
+
+static abn_status solve_op(ab_calc *c, int code)
+{
+    slot sl;
+    abn_status st;
+    if (c->active) return ABN_NESTED;
+    if (c->fn_eqn < 0 && (c->fn < 0 || c->labelpos[c->fn] < 0)) return ABN_SELECT_FN;
+    if ((st = resolve(c, code, false, &sl)) != ABN_OK) return st;
+    if (!sl.val) return ABN_DOMAIN;             /* not an unnamed or statistics register (p.14-23) */
+    if (sl.val->kind != AB_REAL || c->x.kind != AB_REAL) return ABN_DOMAIN;   /* BAD GUESS (p.F-1) */
+    if (c->rdepth >= AB_RTN_DEPTH) return ABN_XEQ_OVERFLOW;
+    susp_begin(c, AB_SOLVE, slot_id(c, &sl), code, *sl.val);
+    return fn_first(c);
 }
 
 /* Gauss-Kronrod 7-15 on [-1, 1] (A. S. Kronrod, Nodes and Weights of Quadrature Formulas, 1965;
@@ -1868,28 +2039,12 @@ static abn_status gk15(ab_calc *c, const abn *a, const abn *b, abn *res, abn *er
  * is below U / 10, or INTEG_PARTS pieces; Y = U + the error estimate, so it covers the error of
  * the rule as well as that of f's digits. The ends are never evaluated (p.8-5). An error in the
  * function stops the integral (the guide's integrator cannot proceed either), nothing changed. */
-static abn_status integ_op(ab_calc *c, int code)
+static abn_status integ_finish(ab_calc *c)
 {
-    slot sl;
     abn_status st;
-    ab_val ox = c->x, oy = c->y, oz = c->z, ot = c->t, olx = c->lastx, ovar;
-    bool olift = c->lift;
+    ab_val ox = c->susp.x, oy = c->susp.y;
     int n = 1, mode = c->disp_mode, digits = c->disp_n;
     abn tot, err, rab, u, tenth, t;
-    if (c->active) return ABN_NESTED;
-    if (c->fn < 0 || c->labelpos[c->fn] < 0) return ABN_SELECT_FN;
-    if ((st = resolve(c, code, false, &sl)) != ABN_OK) return st;
-    if (!sl.val) return ABN_DOMAIN;
-    if (c->x.kind != AB_REAL || c->y.kind != AB_REAL) return ABN_DOMAIN;
-    if (c->rdepth >= AB_RTN_DEPTH) return ABN_XEQ_OVERFLOW;
-    ovar = *sl.val;
-    c->active = AB_INTEG;
-    c->solve_var = slot_id(c, &sl);
-    c->evals = 0;
-    ev_y = oy;
-    ev_z = oz;
-    ev_t = ot;
-    c->rstack[c->rdepth++] = -1;
     if (mode == AB_ALL) digits = 11;
     abn_from_text(&tenth, "0.1");
     ia[0] = oy.re;
@@ -1934,26 +2089,115 @@ static abn_status integ_op(ab_calc *c, int code)
             n++;
         }
     }
-    c->rdepth--;
-    c->active = 0;
-    *sl.val = ovar;
     if (st == ABN_OK) st = abn_add(&t, &u, &err);
-    if (st != ABN_OK) {
-        c->x = ox;
-        c->y = oy;
-        c->z = oz;
-        c->t = ot;
-        c->lastx = olx;
-        c->lift = olift;
-        return st;
+    if (st != ABN_OK) return st;
+    {
+        slot sl;
+        slot_of_id(c, c->susp.var, &sl);
+        *sl.val = c->susp.var0;
     }
     c->x = ab_real(tot);
     c->y = ab_real(t);
     c->z = ox;
     c->t = oy;
-    c->lastx = olx;
+    c->lastx = c->susp.lastx;
     c->lift = true;
     return ABN_OK;
+}
+
+static abn_status integ_op(ab_calc *c, int code)
+{
+    slot sl;
+    abn_status st;
+    if (c->active) return ABN_NESTED;
+    if (c->fn_eqn < 0 && (c->fn < 0 || c->labelpos[c->fn] < 0)) return ABN_SELECT_FN;
+    if ((st = resolve(c, code, false, &sl)) != ABN_OK) return st;
+    if (!sl.val) return ABN_DOMAIN;
+    if (c->x.kind != AB_REAL || c->y.kind != AB_REAL) return ABN_DOMAIN;
+    if (c->rdepth >= AB_RTN_DEPTH) return ABN_XEQ_OVERFLOW;
+    susp_begin(c, AB_INTEG, slot_id(c, &sl), code, *sl.val);
+    return fn_first(c);
+}
+
+/* The search after the first evaluation (unit 015): SOLVE's or the integral's own, its later
+ * evaluations silent (no prompts: each variable is asked once per SOLVE, UG p.15-2..15-4), then
+ * the results; an error restores everything. The held return level is given back. */
+static abn_status fn_finish(ab_calc *c)
+{
+    abn_status st;
+    int kind = c->susp.kind;
+    c->solve_phase = 2;
+    c->rbase = c->susp.rbase;
+    c->pc = c->susp.pc;
+    c->rdepth = c->susp.rdepth + 1;
+    st = kind == AB_SOLVE ? solve_finish(c) : integ_finish(c);
+    if (st != ABN_OK && st != ABN_NO_ROOT) {
+        susp_abort(c);
+        return st;
+    }
+    c->rdepth = c->susp.rdepth;
+    c->active = 0;
+    c->solve_phase = 0;
+    c->susp.kind = 0;
+    c->ev_cached = false;
+    return st;
+}
+
+/* The first evaluation's end: its value kept for the search's first call, which asks for the same
+ * point; a math error is kept too (SOLVE reads it as an unusable point, the integral stops on it);
+ * any other error ends the SOLVE or integral with everything restored. */
+static abn_status fn_first_done(ab_calc *c, abn_status st)
+{
+    c->rdepth = c->susp.rdepth + 1;
+    c->evals = 1;
+    if (st == ABN_OK && c->x.kind != AB_REAL) st = ABN_DOMAIN;
+    if (st != ABN_OK && !math_error(st)) {
+        susp_abort(c);
+        return st;
+    }
+    c->ev_cf = st == ABN_OK ? c->x.re : abn_zero();
+    c->ev_cst = st;
+    c->ev_cached = true;
+    return fn_finish(c);
+}
+
+/* The first evaluation (unit 015): for the FN= program, a run that may stop at an INPUT or a
+ * flag-11 prompt (each variable asked once, UG p.15-2, 15-4); R/S answers it and the SOLVE or
+ * integral goes on (prog_resume). A listed equation's prompts came before (eqn_solve_key). The
+ * point is the first the search will ask for: SOLVE's first guess, the integral's first node. */
+static abn_status fn_first(ab_calc *c)
+{
+    slot sl;
+    abn_status st;
+    abn x0 = c->susp.var0.re;
+    if (c->fn_eqn >= 0) return fn_finish(c);
+    if (c->susp.kind == AB_INTEG) {
+        abn a = c->susp.y.re, b = c->susp.x.re, cen, h, xi, half;
+        abn_from_text(&half, "0.5");
+        abn_from_text(&xi, GK_X[0]);
+        if ((st = abn_add(&cen, &a, &b)) != ABN_OK || (st = abn_mul(&cen, &cen, &half)) != ABN_OK ||
+            (st = abn_sub(&h, &b, &a)) != ABN_OK || (st = abn_mul(&h, &h, &half)) != ABN_OK ||
+            (st = abn_mul(&h, &h, &xi)) != ABN_OK || (st = abn_add(&x0, &cen, &h)) != ABN_OK) {
+            susp_abort(c);
+            return st;
+        }
+    }
+    slot_of_id(c, c->solve_var, &sl);
+    if ((st = store_val(c, &sl, ab_real(x0))) != ABN_OK) {
+        susp_abort(c);
+        return st;
+    }
+    c->ev_cx = x0;
+    c->x = ab_real(x0);
+    c->y = ev_y;
+    c->z = ev_z;
+    c->t = ev_t;
+    c->lift = true;
+    c->rbase = c->rdepth;
+    c->pc = c->labelpos[c->fn];
+    st = prog_run(c, c->budget);
+    if (st == ABN_OK && c->stop == AB_STOP_INPUT) return ABN_OK;   /* waiting at a prompt */
+    return fn_first_done(c, st);
 }
 
 /* FN= label (UG p.15-1, 15-8): chooses the function; (I)/(J) name a label (p.14-22). Refused while
@@ -1979,7 +2223,17 @@ static abn_status fn_op(ab_calc *c, int arg)
  * prompt stays. A cancelled prompt is asked again (p.13-15). */
 static abn_status prog_resume(ab_calc *c, long limit)
 {
-    if (c->stop == AB_STOP_INPUT && c->pc >= 0) {
+    if (c->stop == AB_STOP_INPUT && c->pc >= 0 && c->peq_line == c->pc) {
+        /* an equation line's flag-11 prompt: the next one, or the line runs again and evaluates */
+        c->var[c->stop_var] = c->x;
+        c->lift = true;
+        if (++c->eqn_next < c->eqn_nvars) {
+            eqn_prompt(c);
+            return ABN_OK;
+        }
+        c->peq_ready = true;
+        c->stop = AB_STOP_STOP;
+    } else if (c->stop == AB_STOP_INPUT && c->pc >= 0) {
         slot sl;
         abn_status st;
         slot_of_id(c, c->stop_var, &sl);
@@ -1989,7 +2243,28 @@ static abn_status prog_resume(ab_calc *c, long limit)
         c->stop = AB_STOP_STOP;
         if (limit == 1) return ABN_OK;      /* SST stores and moves on (p.G-9) */
     }
-    return prog_run(c, limit);
+    abn_status st = prog_run(c, limit);
+    if (c->susp.kind && c->solve_phase == 1 && !(st == ABN_OK && c->stop != AB_STOP_DONE)) {
+        /* a SOLVE's or integral's first evaluation ended after its prompts (unit 015): the search
+           follows; keyed by a program line, the program goes on after it (a failed SOLVE skips
+           the next line, p.15-6) */
+        bool from_prog = c->susp.from_prog;
+        int line = c->susp.pc, kind = c->susp.kind;
+        st = fn_first_done(c, st);
+        if (!from_prog) return st;
+        if (kind == AB_SOLVE && st == ABN_NO_ROOT) {
+            c->pc = line + 2;
+        } else if (st != ABN_OK) {
+            c->pc = line;
+            c->stop = AB_STOP_ERROR;
+            c->stop_line = line;
+            return st;
+        } else {
+            c->pc = line + 1;
+        }
+        return prog_run(c, c->budget);
+    }
+    return st;
 }
 
 /* The C key outside program entry (UG p.13-15, p.B-5): a number being typed is cleared to 0; at
@@ -2001,15 +2276,24 @@ static abn_status cancel_key(ab_calc *c)
         entry_cancel(c);
         return ABN_OK;
     }
+    if (c->stop == AB_STOP_INPUT && c->susp.kind && c->solve_phase == 1) {
+        /* a prompt of a SOLVE's or integral's first evaluation: it is abandoned, everything as
+           before; keyed by a program line, R/S runs that line again (unit 015) */
+        susp_abort(c);
+        c->stop = AB_STOP_CANCELLED;
+        return ABN_OK;
+    }
     if (c->stop == AB_STOP_INPUT) {
         slot sl;
         slot_of_id(c, c->stop_var, &sl);
         c->x = load_val(&sl);
         c->stop = AB_STOP_CANCELLED;
         c->eqn_pending = 0;                     /* an equation's evaluation is abandoned */
+        c->peq_line = -1;                       /* an equation line prompts again (p.13-15) */
+        c->peq_ready = false;
         return ABN_OK;
     }
-    if (c->stop == AB_STOP_VIEW || c->stop == AB_STOP_PSE) {
+    if (c->stop == AB_STOP_VIEW || c->stop == AB_STOP_PSE || c->stop == AB_STOP_MSG) {
         c->stop = AB_STOP_STOP;
         return ABN_OK;
     }
@@ -2018,6 +2302,12 @@ static abn_status cancel_key(ab_calc *c)
     return ABN_OK;
 }
 
+/* the equation editor, below (unit 014) */
+static void ed_backspace(ab_calc *c);
+static int cp_prev(const char *s, int i);
+static int cp_next(const char *s, int i);
+static bool eqn_type(ab_calc *c, ab_op op, int arg);
+
 /* A key in program entry (UG p.13-6, 13-7): keys that build a number build a number line, which
  * any other key ends; the nonprogrammable keys act (p.13-24): moving the pointer, deleting the line
  * shown (backspace, p.13-20), clearing all programs, leaving program entry, and FDISP is refused;
@@ -2025,6 +2315,27 @@ static abn_status cancel_key(ab_calc *c)
 static abn_status program_key(ab_calc *c, ab_op op, int arg)
 {
     abn_status st;
+    if (c->eqn_typing) {
+        /* an equation line being typed (UG p.13-7): ENTER records it (C and EQN too, as in the
+           list, p.6-4); the editor's keys act as in Equation mode; other keys do nothing (ours) */
+        switch (op) {
+        case AB_ENTER:
+        case AB_CANCEL:
+        case AB_EQN:
+            c->eqn_typing = false;
+            return c->ebuf[0] ? prog_insert_eqn(c, c->ebuf) : ABN_OK;
+        case AB_KBKSP:
+            ed_backspace(c);
+            return ABN_OK;
+        case AB_KLEFT:
+        case AB_KRIGHT:
+            c->ecur = op == AB_KLEFT ? (c->ecur > 0 ? cp_prev(c->ebuf, c->ecur) : 0) : cp_next(c->ebuf, c->ecur);
+            return ABN_OK;
+        default:
+            eqn_type(c, op, arg);
+            return ABN_OK;
+        }
+    }
     bool building = op <= AB_KPOINT || op == AB_KE || (op >= AB_KA && op <= AB_KF) || op == AB_KI ||
                     op == AB_KTHETA || op == AB_KCOMMA || op == AB_SUF ||
                     ((op == AB_KCHS || op == AB_KBKSP) && c->entry.active) ||
@@ -2045,6 +2356,12 @@ static abn_status program_key(ab_calc *c, ab_op op, int arg)
     switch (op) {
     case AB_PRGM:
         c->prgm = false;
+        return ABN_OK;
+    case AB_EQN:                                /* starts an equation line (UG p.13-7) */
+        c->eqn_typing = true;
+        c->eqn_edit = -1;
+        c->ebuf[0] = '\0';
+        c->ecur = 0;
         return ABN_OK;
     case AB_KVEC:
         return vector_key(c, op);
@@ -2086,11 +2403,20 @@ static abn_status program_key(ab_calc *c, ab_op op, int arg)
 
 /* ---- equations (unit 014; UG ch.6) ---- */
 
-/* Inserts text as a new equation after the one shown and shows it (UG p.6-4). */
+/* 2 or 3 when entry i is that built-in linear solver, else 0. */
+static int eqn_builtin(const ab_calc *c, int i)
+{
+    if (i < 0 || c->eqn[i][0] != '\x01') return 0;
+    return c->eqn[i][1] == '2' ? 2 : 3;
+}
+
+/* Inserts text as a new equation after the one shown and shows it (UG p.6-4); never between the
+ * two built-ins: after them (p.6-8). */
 static abn_status eqn_insert(ab_calc *c, const char *text)
 {
     int at = c->eqn_cur + 1;
-    if (c->eqn_count >= AB_EQN_MAX || strlen(text) >= AB_EQN_LEN) return ABN_MEMORY_FULL;
+    if (c->eqn_count - 2 >= AB_EQN_MAX || strlen(text) >= AB_EQN_LEN) return ABN_MEMORY_FULL;
+    if (eqn_builtin(c, at - 1) == 2) at++;
     memmove(c->eqn[at + 1], c->eqn[at], (size_t)(c->eqn_count - at) * AB_EQN_LEN);
     strcpy(c->eqn[at], text);
     c->eqn_count++;
@@ -2126,6 +2452,7 @@ static abn_status eqn_store_typed(ab_calc *c)
 
 abn_status ab_eqn_add(ab_calc *c, const char *text)
 {
+    if (c->prgm) return prog_insert_eqn(c, text);   /* in program entry: a line (p.13-7) */
     abn_status st = eqn_insert(c, text);
     if (st == ABN_OK) {
         c->eqn_mode = true;
@@ -2268,9 +2595,14 @@ static const char *eqn_token(ab_op op)
     case AB_SLOPE: return "m"; case AB_YINT: return "b"; case AB_NSUM: return "n";
     case AB_SUMX: return "\xce\xa3x"; case AB_SUMY: return "\xce\xa3y"; case AB_SUMX2: return "\xce\xa3x\xc2\xb2";
     case AB_SUMY2: return "\xce\xa3y\xc2\xb2"; case AB_SUMXY: return "\xce\xa3xy";
+    case AB_KSPACE: return " ";
     default: return NULL;
     }
 }
+
+static abn_status eqn_solve_key(ab_calc *c, ab_op op, int code);
+static abn_status eqn_solve_finish(ab_calc *c);
+static abn_status lin_key(ab_calc *c, int n);
 
 /* Prompts for the next variable (an INPUT stop: its value in X, lift off; UG p.6-14), or computes
  * the value: to X, lift enabled, LAST X kept (not in p.B-6's list); an assignment's ENTER also
@@ -2290,6 +2622,7 @@ static abn_status eqn_step(ab_calc *c)
         c->stop_var = var;
         return ABN_OK;
     }
+    if (c->eqn_pending >= 3) return eqn_solve_finish(c);
     c->eqn_pending = 0;
     st = eqn_eval(c, t, rhs, false, &v, &pos);
     if (st != ABN_OK) {
@@ -2301,6 +2634,97 @@ static abn_status eqn_step(ab_calc *c)
     place_val(c, ab_real(v));
     c->lift = true;
     c->stop = AB_STOP_DONE;
+    return ABN_OK;
+}
+
+/* SOLVE or integrate on the equation shown, from the keyboard (UG p.7-2, 8-3): its variables are
+ * prompted for first, the unknown (or the variable of integration) apart, in order of appearance;
+ * the guesses and limits are the stack as it was when the key was pressed (p.7-11: guesses 10 and
+ * 20 find 15 after the V? prompt), and the prompts' pushes give way to the results. SOLVE for a
+ * variable the equation does not have is INVALID VAR (ours, p.F-2). On a built-in linear solver,
+ * SOLVE prompts for its coefficients, A..F or A..L, and takes no letter; integrate does nothing
+ * (p.7-6). Equation mode is left. */
+static abn_status eqn_solve_key(ab_calc *c, ab_op op, int code)
+{
+    const char *t;
+    int b, pos, v[26], n;
+    abn val;
+    abn_status st;
+    slot sl;
+    if (c->eqn_cur < 0) return ABN_OK;             /* EQN LIST TOP: nothing (ours) */
+    b = eqn_builtin(c, c->eqn_cur);
+    if (b) {
+        if (op != AB_SOLVE) return ABN_OK;
+        c->eqn_nvars = b * (b + 1);
+        for (int i = 0; i < c->eqn_nvars; i++) c->eqn_vars[i] = i;
+    } else {
+        t = c->eqn[c->eqn_cur];
+        if ((st = eqn_eval(c, t, false, true, &val, &pos)) != ABN_OK) {
+            c->eqn_errpos = pos;
+            return st;
+        }
+        if ((st = resolve(c, code, false, &sl)) != ABN_OK) return st;
+        if (!sl.val || sl.val < c->var || sl.val >= c->var + 26) return ABN_DOMAIN;  /* p.14-23 */
+        n = eqn_vars(t, false, v);
+        if (op == AB_SOLVE) {
+            bool found = false;
+            for (int i = 0; i < n; i++) found = found || v[i] == sl.val - c->var;
+            if (!found) return ABN_INVALID_VAR;
+        }
+    }
+    c->susp.kind = b ? AB_SOLVE : op;
+    c->susp.var = b ? -1 : (int)(sl.val - c->var);
+    c->susp.code = code;
+    c->susp.x = c->x;
+    c->susp.y = c->y;
+    c->susp.z = c->z;
+    c->susp.t = c->t;
+    c->susp.lastx = c->lastx;
+    c->susp.lift = c->lift;
+    if (!b) c->eqn_nvars = eqn_prompt_vars(c, c->eqn[c->eqn_cur], false, c->eqn_vars);
+    c->eqn_next = 0;
+    c->eqn_pending = b ? 3 + b : op == AB_SOLVE ? 3 : 4;
+    c->eqn_mode = false;
+    return eqn_step(c);
+}
+
+/* After the prompts: the stack as when the key was pressed, then the SOLVE, the integral, or the
+ * linear system (unit 015). */
+static abn_status eqn_solve_finish(ab_calc *c)
+{
+    int pend = c->eqn_pending, code = c->susp.code;
+    abn_status st;
+    c->eqn_pending = 0;
+    c->x = c->susp.x;
+    c->y = c->susp.y;
+    c->z = c->susp.z;
+    c->t = c->susp.t;
+    c->lastx = c->susp.lastx;
+    c->lift = c->susp.lift;
+    c->susp.kind = 0;
+    if (pend >= 5) return lin_key(c, pend - 3);
+    c->fn_eqn = c->eqn_cur;
+    st = pend == 3 ? solve_op(c, code) : integ_op(c, code);
+    c->fn_eqn = -1;
+    return st;
+}
+
+/* The built-in linear solvers (UG p.7-6, 7-7): the solution in the variables X, Y (Z), and in the
+ * X, Y (Z) registers, the rest of the stack as before, lift enabled, LAST X kept (ours: the guide
+ * shows only X= and y=); NO SOLUTION / MULT SOLUTION change nothing (p.F-3). */
+static abn_status lin_key(ab_calc *c, int n)
+{
+    abn coef[12], sol[3];
+    abn_status st;
+    for (int i = 0; i < n * (n + 1); i++) {
+        if (c->var[i].kind != AB_REAL) return ABN_DOMAIN;
+        coef[i] = c->var[i].re;
+    }
+    if ((st = lin_solve(n, coef, sol)) != ABN_OK) return st;
+    c->var['X' - 'A'] = c->x = ab_real(sol[0]);
+    c->var['Y' - 'A'] = c->y = ab_real(sol[1]);
+    if (n == 3) c->var['Z' - 'A'] = c->z = ab_real(sol[2]);
+    c->lift = true;
     return ABN_OK;
 }
 
@@ -2316,6 +2740,7 @@ static abn_status eqn_evaluate(ab_calc *c, bool enter)
     abn v;
     abn_status st;
     if (c->eqn_cur < 0) return ABN_DOMAIN;         /* EQN LIST TOP: nothing to evaluate (ours) */
+    if (eqn_builtin(c, c->eqn_cur)) return ABN_OK; /* a built-in: ENTER, XEQ do nothing (p.7-6) */
     t = c->eqn[c->eqn_cur];
     av = eqn_assign_var(t);
     rhs = enter && av >= 0;
@@ -2330,56 +2755,14 @@ static abn_status eqn_evaluate(ab_calc *c, bool enter)
     return eqn_step(c);
 }
 
-/* A key in Equation mode (UG p.6-3 to 6-9). */
-static abn_status eqn_key(ab_calc *c, ab_op op, int arg)
+/* A key that types into the equation being edited, starting a new one if none is (UG p.6-4 to 6-6,
+ * 6-16; in program entry the text becomes a line, p.13-7). False when the key does not type. */
+static bool eqn_type(ab_calc *c, ab_op op, int arg)
 {
     const char *t;
-    abn_status st;
-    switch (op) {
-    case AB_EQN:
-    case AB_CANCEL:                                 /* C stores what is typed and leaves (p.6-4) */
-        st = eqn_store_typed(c);
-        c->eqn_mode = false;
-        return st;
-    case AB_ENTER:
-        if (c->eqn_typing) return eqn_store_typed(c);
-        return eqn_evaluate(c, true);
-    case AB_XEQ:
-        if (arg != AB_TGT_EQN) return ABN_OK;
-        if (c->eqn_typing && (st = eqn_store_typed(c)) != ABN_OK) return st;
-        return eqn_evaluate(c, false);
-    case AB_SST:                                    /* the list wraps through EQN LIST TOP (p.6-7) */
-        if (c->eqn_typing) return ABN_OK;
-        c->eqn_cur = c->eqn_cur + 1 >= c->eqn_count ? -1 : c->eqn_cur + 1;
-        return ABN_OK;
-    case AB_BST:
-        if (c->eqn_typing) return ABN_OK;
-        c->eqn_cur = c->eqn_cur < 0 ? c->eqn_count - 1 : c->eqn_cur - 1;
-        return ABN_OK;
-    case AB_KBKSP:
-        if (c->eqn_typing) ed_backspace(c);
-        else if (c->eqn_cur >= 0) eqn_delete(c, c->eqn_cur);
-        return ABN_OK;
-    case AB_KLEFT:
-    case AB_KRIGHT:
-        if (!c->eqn_typing) {
-            /* on an equation shown: editing starts, > at its start, < at its end (p.6-7, 6-8) */
-            if (c->eqn_cur < 0) return ABN_OK;
-            strcpy(c->ebuf, c->eqn[c->eqn_cur]);
-            c->eqn_typing = true;
-            c->eqn_edit = c->eqn_cur;
-            c->ecur = op == AB_KLEFT ? (int)strlen(c->ebuf) : 0;
-            return ABN_OK;
-        }
-        c->ecur = op == AB_KLEFT ? (c->ecur > 0 ? cp_prev(c->ebuf, c->ecur) : 0) : cp_next(c->ebuf, c->ecur);
-        return ABN_OK;
-    default:
-        break;
-    }
-    /* a key that types: the first one starts a new equation (p.6-4) */
-    if (!(op <= AB_KE || op == AB_KCHS || op == AB_KPAREN || (op == AB_RCL && arg >= 0 && arg < 26) ||
-          eqn_fname(op) || eqn_token(op)))
-        return ABN_OK;                              /* other keys do nothing in Equation mode (ours) */
+    if (!(op <= AB_KE || op == AB_KCHS || op == AB_KPAREN || (op == AB_RCL && arg >= 0 && arg <= AB_VAR_IND_J) ||
+          (op == AB_KREG && arg >= 0 && arg < 4) || eqn_fname(op) || eqn_token(op)))
+        return false;
     if (!c->eqn_typing) {
         c->eqn_typing = true;
         c->eqn_edit = -1;
@@ -2397,9 +2780,14 @@ static abn_status eqn_key(ab_calc *c, ab_op op, int arg)
         ed_chs(c);
     } else if (op == AB_KPAREN) {
         ed_insert(c, "()", 1);
+    } else if (op == AB_RCL && arg >= AB_VAR_IND_I) {
+        ed_insert(c, arg == AB_VAR_IND_I ? "\xe2\x92\xa4" : "\xe2\x92\xa5", 0);  /* (I), (J): p.14-23 */
     } else if (op == AB_RCL) {
         char v[2] = {(char)('A' + arg), '\0'};
         ed_insert(c, v, 0);
+    } else if (op == AB_KREG) {
+        static const char *const REG[4] = {"REGX", "REGY", "REGZ", "REGT"};
+        ed_insert(c, REG[arg], 0);
     } else if ((t = eqn_fname(op)) != NULL) {
         char buf[24];
         strcpy(buf, t);
@@ -2408,6 +2796,61 @@ static abn_status eqn_key(ab_calc *c, ab_op op, int arg)
     } else {
         ed_insert(c, eqn_token(op), 0);
     }
+    return true;
+}
+
+/* A key in Equation mode (UG p.6-3 to 6-9). */
+static abn_status eqn_key(ab_calc *c, ab_op op, int arg)
+{
+    abn_status st;
+    switch (op) {
+    case AB_EQN:
+    case AB_CANCEL:                                 /* C stores what is typed and leaves (p.6-4) */
+        st = eqn_store_typed(c);
+        c->eqn_mode = false;
+        return st;
+    case AB_ENTER:
+        if (c->eqn_typing) return eqn_store_typed(c);
+        return eqn_evaluate(c, true);
+    case AB_XEQ:
+        if (arg != AB_TGT_EQN) return ABN_OK;
+        if (c->eqn_typing && (st = eqn_store_typed(c)) != ABN_OK) return st;
+        return eqn_evaluate(c, false);
+    case AB_SOLVE:
+    case AB_INTEG:
+        if (c->eqn_typing && (st = eqn_store_typed(c)) != ABN_OK) return st;
+        return eqn_solve_key(c, op, arg);
+    case AB_SST:                                    /* the list wraps through EQN LIST TOP (p.6-7) */
+        if (c->eqn_typing) return ABN_OK;
+        c->eqn_cur = c->eqn_cur + 1 >= c->eqn_count ? -1 : c->eqn_cur + 1;
+        return ABN_OK;
+    case AB_BST:
+        if (c->eqn_typing) return ABN_OK;
+        c->eqn_cur = c->eqn_cur < 0 ? c->eqn_count - 1 : c->eqn_cur - 1;
+        return ABN_OK;
+    case AB_KBKSP:
+        if (c->eqn_typing) ed_backspace(c);
+        else if (c->eqn_cur >= 0 && !eqn_builtin(c, c->eqn_cur)) eqn_delete(c, c->eqn_cur);
+        return ABN_OK;                              /* the built-ins cannot be cleared (p.6-8) */
+    case AB_KLEFT:
+    case AB_KRIGHT:
+        if (!c->eqn_typing) {
+            /* on an equation shown: editing starts, > at its start, < at its end (p.6-7, 6-8) */
+            if (c->eqn_cur < 0 || eqn_builtin(c, c->eqn_cur)) return ABN_OK;   /* nor edited */
+            strcpy(c->ebuf, c->eqn[c->eqn_cur]);
+            c->eqn_typing = true;
+            c->eqn_edit = c->eqn_cur;
+            c->ecur = op == AB_KLEFT ? (int)strlen(c->ebuf) : 0;
+            return ABN_OK;
+        }
+        c->ecur = op == AB_KLEFT ? (c->ecur > 0 ? cp_prev(c->ebuf, c->ecur) : 0) : cp_next(c->ebuf, c->ecur);
+        return ABN_OK;
+    default:
+        break;
+    }
+    /* a key that types: the first one starts a new equation (p.6-4); other keys do nothing in
+       Equation mode (ours) */
+    eqn_type(c, op, arg);
     return ABN_OK;
 }
 
@@ -2921,7 +3364,7 @@ bool ab_flag(const ab_calc *c, int n)
 void ab_stop_text(const ab_calc *c, char *buf)
 {
     static const char *const NAMES[] = {"NONE", "DONE", "STOP", "INPUT", "VIEW", "PSE", "CANCELLED",
-                                        "ERROR", "BUDGET"};
+                                        "ERROR", "BUDGET", "MSG"};
     static const char *const STATS[] = {"n", "SX", "SY", "SX2", "SY2", "SXY"};
     char v[16] = "";
     int id = c->stop_var;
@@ -2936,7 +3379,8 @@ void ab_stop_text(const ab_calc *c, char *buf)
             snprintf(v, sizeof v, "%s", STATS[-id - 27]);
         }
     }
-    if (named) snprintf(buf, 32, "%s:%s", NAMES[c->stop], v);
+    if (c->stop == AB_STOP_PSE && id == -2) snprintf(buf, 32, "PSE:MSG");   /* a message shown */
+    else if (named) snprintf(buf, 32, "%s:%s", NAMES[c->stop], v);
     else snprintf(buf, 32, "%s", NAMES[c->stop]);
 }
 

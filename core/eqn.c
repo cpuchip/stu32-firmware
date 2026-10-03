@@ -21,7 +21,8 @@ enum {
     F_ACOSH, F_ATANH, F_TODEG, F_TORAD, F_HMSINV, F_HMS, F_PCTCHG, F_XROOT, F_TOL, F_TOGAL,
     F_TOMILE, F_TOKM, F_NCR, F_NPR, F_TOKG, F_TOLB, F_TOC, F_TOF, F_TOCM, F_TOIN, F_SEED, F_ARG,
     F_RAND, F_PI, F_SX, F_SY, F_PSX, F_PSY, F_XBAR, F_YBAR, F_XWBAR, F_XHAT, F_YHAT, F_CORR,
-    F_SLOPE, F_YINT, F_N, F_SUMX, F_SUMY, F_SUMX2, F_SUMY2, F_SUMXY
+    F_SLOPE, F_YINT, F_N, F_SUMX, F_SUMY, F_SUMX2, F_SUMY2, F_SUMXY,
+    F_REGX, F_REGY, F_REGZ, F_REGT
 };
 
 static const fname NAMES[] = {
@@ -44,7 +45,14 @@ static const fname NAMES[] = {
     {"x\xcc\x82", K1, F_XHAT}, {"\xc5\xb7", K1, F_YHAT}, {"r", K0, F_CORR}, {"m", K0, F_SLOPE},
     {"b", K0, F_YINT}, {"n", K0, F_N}, {"\xce\xa3x\xc2\xb2", K0, F_SUMX2}, {"\xce\xa3y\xc2\xb2", K0, F_SUMY2},
     {"\xce\xa3xy", K0, F_SUMXY}, {"\xce\xa3x", K0, F_SUMX}, {"\xce\xa3y", K0, F_SUMY},
+    /* the stack registers, read when the equation is evaluated (UG p.B-7; unit 015) */
+    {"REGX", K0, F_REGX}, {"REGY", K0, F_REGY}, {"REGZ", K0, F_REGZ}, {"REGT", K0, F_REGT},
 };
+
+/* (I) and (J) as one token each, apart from a plain I in parentheses (UG p.14-23): shown as the
+ * guide's single glyph, kept here as U+24A4 and U+24A5 (parenthesized i and j). */
+#define IND_I "\xe2\x92\xa4"
+#define IND_J "\xe2\x92\xa5"
 
 typedef struct {
     ab_calc *c;
@@ -199,6 +207,12 @@ static void apply0(parser *p, int id, abn *v)
     case F_SUMY: *v = R[ST_SY]; break;
     case F_SUMX2: *v = R[ST_SX2]; break;
     case F_SUMY2: *v = R[ST_SY2]; break;
+    case F_REGX: case F_REGY: case F_REGZ: case F_REGT: {
+        const ab_val *r = id == F_REGX ? &p->c->x : id == F_REGY ? &p->c->y : id == F_REGZ ? &p->c->z : &p->c->t;
+        if (r->kind != AB_REAL) st = ABN_DOMAIN;            /* complex in equations: part 2 */
+        else *v = r->re;
+        break;
+    }
     default: *v = R[ST_SXY]; break;
     }
     if (st != ABN_OK) fail(p, st);
@@ -327,6 +341,17 @@ static void parse_prim(parser *p, abn *v)
             return;
         }
     }
+    if (at(p, IND_I) || at(p, IND_J)) {
+        /* the variable or register the number in I (J) names (UG p.14-23) */
+        ab_val x;
+        abn_status st;
+        if (p->check || p->st != ABN_OK) return;
+        st = ab_indirect(p->c, strncmp(s, IND_I, 3) == 0 ? AB_VAR_IND_I : AB_VAR_IND_J, &x);
+        if (st == ABN_OK && x.kind != AB_REAL) st = ABN_DOMAIN;
+        if (st != ABN_OK) fail(p, st);
+        else *v = x.re;
+        return;
+    }
     if (*s >= 'A' && *s <= 'Z') {
         const ab_val *x = &p->c->var[*s - 'A'];
         p->i++;
@@ -440,12 +465,12 @@ int eqn_vars(const char *text, bool rhs_only, int out[26])
         if (eq) s = eq + 1;
     }
     for (; *s; s++) {
-        /* names are skipped: a capital letter starting a function name with its "(" is not a
-           variable */
+        /* names are skipped as the parser reads them: a function name with its "(", a name that
+           takes none (RAND, REGX) anywhere (unit 015: RAND was read as R, A, N, D) */
         bool name = false;
         for (size_t k = 0; k < sizeof NAMES / sizeof NAMES[0] && !name; k++) {
             size_t len = strlen(NAMES[k].name);
-            if (NAMES[k].kind != K0 && strncmp(s, NAMES[k].name, len) == 0 && s[len] == '(') {
+            if (strncmp(s, NAMES[k].name, len) == 0 && (NAMES[k].kind == K0 || s[len] == '(')) {
                 s += len - 1;
                 name = true;
             }

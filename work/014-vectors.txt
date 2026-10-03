@@ -62,7 +62,7 @@ O15 | 35s p.6-16/6-17 the renamed functions: ALOG, SQ, INV, EXP, IDIV, RMDR, nPr
 O16 | ours: ! is postfix | EQ:5!+1 XEQ | X=121
 O17 | ours: backspace after a function key removes the function and its pair | EQN 2 * SIN BKSP RCL:X ENTER | %EQ=2×X
 O18 | 35s p.6-4, 6-7 the list: new equations go after the one shown; the cursor keys move through it | EQ:1+1 EQ:2+2 EQ:3+3 BST | %EQ=2+2 %EQN=3
-O19 | 35s p.6-7 the list wraps: past the last is EQN LIST TOP | EQ:1+1 EQ:2+2 SST | %EQ=TOP
+O19 | 35s p.6-7 the list wraps: past the last (the 3*3 solver after them, p.7-3; unit 015) is EQN LIST TOP | EQ:1+1 EQ:2+2 SST SST SST | %EQ=TOP
 O20 | 35s p.6-9 backspace on a shown equation deletes it | EQ:1+1 EQ:2+2 BKSP | %EQN=1 %EQ=1+1
 O21 | ours (rule 5): the list holds AB_EQN_MAX (64) equations | EQ:0+1 EQ:1+1 EQ:2+1 EQ:3+1 EQ:4+1 EQ:5+1 EQ:6+1 EQ:7+1 EQ:8+1 EQ:9+1 EQ:10+1 EQ:11+1 EQ:12+1 EQ:13+1 EQ:14+1 EQ:15+1 EQ:16+1 EQ:17+1 EQ:18+1 EQ:19+1 EQ:20+1 EQ:21+1 EQ:22+1 EQ:23+1 EQ:24+1 EQ:25+1 EQ:26+1 EQ:27+1 EQ:28+1 EQ:29+1 EQ:30+1 EQ:31+1 EQ:32+1 EQ:33+1 EQ:34+1 EQ:35+1 EQ:36+1 EQ:37+1 EQ:38+1 EQ:39+1 EQ:40+1 EQ:41+1 EQ:42+1 EQ:43+1 EQ:44+1 EQ:45+1 EQ:46+1 EQ:47+1 EQ:48+1 EQ:49+1 EQ:50+1 EQ:51+1 EQ:52+1 EQ:53+1 EQ:54+1 EQ:55+1 EQ:56+1 EQ:57+1 EQ:58+1 EQ:59+1 EQ:60+1 EQ:61+1 EQ:62+1 EQ:63+1 EQ:64+1 | ERR %ERR=MEMORY_FULL %EQN=64
 O22 | ours: a complex variable in an equation is INVALID DATA (complex equations: a later unit) | 1 CI 1 STO:A EQ:A+1 XEQ RS | ERR %ERR=DOMAIN

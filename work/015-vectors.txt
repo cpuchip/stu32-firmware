@@ -80,3 +80,8 @@ O20 | ours: the first evaluation is not repeated (SOLVE x^2 - 4: the same evalua
 O21 | ours: an equation's SOLVE and the same function as a program give the same root | EQ:X^3-2 C 1 STO:X 2 EQN SOLVE:X SAVEX PRGM CLPGM LBL:F RCL:X 3 POW 2 - RTN PRGM 1 STO:X 2 FN=:F SOLVE:X | %SAMEX=same
 O22 | ours: REGX in a listed equation reads the stack when evaluated | 5 EQ:REGX×2 XEQ | X=10
 O23 | ours: the 2*2 solver keeps T (and the stack under its results) as when SOLVE was pressed | 1 ENTER 2 ENTER 3 ENTER 4 EQN SST SOLVE 1 RS 2 RS 5 RS 3 RS 4 RS 11 RS | Z=2 T=1
+O24 | ours: an integral's first evaluation is its first node, not an extra one (x^2 on 0..1: one 15-point rule) | PRGM CLPGM LBL:F RCL:X SQ RTN PRGM FIX4 FN=:F 0 ENTER 1 INTEG:X | X^0.3333333333333333333333333333333333 %EVALS<=15
+O25 | 35s p.14-11, 15-10 a message line while SOLVE evaluates is not shown and not evaluated (VIEW likewise) | PRGM CLPGM LBL:F SF:10 EQ:A×B RCL:X 3 - RTN PRGM 0 STO:X 10 FN=:F SOLVE:X | X=3 %STOP=DONE
+O26 | 35s p.14-11 a flag-11 line prompts again the next time it runs | PRGM CLPGM LBL:E SF:11 EQ:A+B RTN PRGM XEQ:E 1 RS 2 RS XEQ:E | %STOP=INPUT:A
+O27 | 35s p.14-11, 6-14 R/S keeping a flag-11 prompt's value enables lift, so each stays on the stack | PRGM CLPGM LBL:E SF:11 EQ:A+B RTN PRGM 1 STO:A 2 STO:B CLSTK XEQ:E RS RS | X=3 Y=2 Z=1
+O28 | ours: C while typing an equation line records it, as in the list (p.6-4) | PRGM CLPGM EQN 1 + 2 C PRGM | %LINES=1

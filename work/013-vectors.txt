@@ -19,7 +19,7 @@ M12 | 35s p.D-13 ((abs(x)+1)+1E15)^2 - 1E30 (12 digits round it to a false root;
 M13 | 35s p.15-6/15-7 SOLVE (I) inside a program, X = -24 (the guide's 24 is the old numbering): the root, then VIEW | PRGM CLPGM LBL:X 24 CHS GTO:L001 LBL:L STO:I FN=:F SOLVE:(I) VIEW:(I) RTN LBL:F RCL:X SQ RCL:Y + 10 - RTN PRGM 1 STO:Y 1 STO:X XEQ:X | %STOP=VIEW:X @X=-3
 M14 | 35s p.15-6, p.F-4 a programmed SOLVE that finds no root skips the next line, no message | PRGM CLPGM LBL:X 24 CHS GTO:L001 LBL:L STO:I FN=:F SOLVE:(I) VIEW:(I) RTN LBL:F RCL:X SQ RCL:Y + RTN PRGM 1 STO:Y 1 STO:X XEQ:X | %STOP=DONE
 M15 | 35s p.15-2 an INPUT for the unknown is skipped | PRGM CLPGM LBL:F INPUT:X SQ 9 - RTN PRGM 1 STO:X 10 FN=:F SOLVE:X | X=3 %STOP=DONE
-M16 | 35s p.15-2 (unit 013 brief) another INPUT reads the stored value | PRGM CLPGM LBL:F INPUT:Y RCL:X RCL:Y - RTN PRGM 5 STO:Y 1 STO:X 9 FN=:F SOLVE:X | X=5 @Y=5 %STOP=DONE
+M16 | 35s p.15-2, 15-3 another INPUT prompts once, in the first evaluation (unit 015 replaces 013's brief); R/S keeps 5 | PRGM CLPGM LBL:F INPUT:Y RCL:X RCL:Y - RTN PRGM 5 STO:Y 1 STO:X 9 FN=:F SOLVE:X RS | X=5 @Y=5 %STOP=DONE
 M17 | 35s p.7-9 equal guesses are nudged apart | PRGM CLPGM LBL:F RCL:X SQ 9 - RTN PRGM 2 STO:X FN=:F SOLVE:X | X=3 @X=3
 M18 | 35s p.B-4 SOLVE enables lift | PRGM CLPGM LBL:F RCL:X SQ 9 - RTN PRGM 1 STO:X 10 FN=:F SOLVE:X 7 | X=7 Y=3
 M19 | 35s p.F-4 SOLVE with no program chosen: SELECT FN | 1 STO:X 2 SOLVE:X | ERR %ERR=SELECT_FN
