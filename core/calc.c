@@ -375,6 +375,7 @@ abn_status ab_do(ab_calc *c, ab_op op)
 
 abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
 {
+    if (op >= AB_SIGMAPLUS) return ABN_OK;  /* STUB: unit 006 lands after the oracle */
 
     if (op <= AB_KE) return entry_key(c, op);
     if ((op == AB_KCHS || op == AB_KBKSP) && c->entry.active) return entry_key(c, op);

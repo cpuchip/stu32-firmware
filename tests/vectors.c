@@ -43,6 +43,11 @@ static const struct { const char *name; ab_op op; } NAMED[] = {
     {"RAND", AB_RAND}, {"SEED", AB_SEED}, {"IP", AB_IP}, {"FP", AB_FP}, {"INTG", AB_INTG},
     {"RND", AB_RND}, {"ABS", AB_ABS}, {"SGN", AB_SGN}, {"TOPOL", AB_TOPOL}, {"TOREC", AB_TOREC},
     {"ALL", AB_SETALL},
+    {"SIGMA+", AB_SIGMAPLUS}, {"SIGMA-", AB_SIGMAMINUS}, {"CLSIGMA", AB_CLSIGMA},
+    {"XBAR", AB_XBAR}, {"YBAR", AB_YBAR}, {"XWBAR", AB_XWBAR}, {"SX", AB_SX}, {"SY", AB_SY},
+    {"PSX", AB_PSX}, {"PSY", AB_PSY}, {"XHAT", AB_XHAT}, {"YHAT", AB_YHAT}, {"CORR", AB_CORR},
+    {"SLOPE", AB_SLOPE}, {"YINT", AB_YINT}, {"NSUM", AB_NSUM}, {"SUMX", AB_SUMX},
+    {"SUMY", AB_SUMY}, {"SUMX2", AB_SUMX2}, {"SUMY2", AB_SUMY2}, {"SUMXY", AB_SUMXY},
 };
 
 /* Applies one key token. Returns 0, or -1 for an unknown token. */

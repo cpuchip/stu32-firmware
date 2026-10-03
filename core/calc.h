@@ -43,7 +43,12 @@ typedef enum {
     AB_STOADD, AB_STOSUB, AB_STOMUL, AB_STODIV,
     AB_RCLADD, AB_RCLSUB, AB_RCLMUL, AB_RCLDIV,
     AB_XVAR, AB_VIEW,
-    AB_CLVARS               /* no argument */
+    AB_CLVARS,              /* no argument */
+    /* unit 006: statistics */
+    AB_SIGMAPLUS, AB_SIGMAMINUS, AB_CLSIGMA,
+    AB_XBAR, AB_YBAR, AB_XWBAR, AB_SX, AB_SY, AB_PSX, AB_PSY,
+    AB_XHAT, AB_YHAT, AB_CORR, AB_SLOPE, AB_YINT,
+    AB_NSUM, AB_SUMX, AB_SUMY, AB_SUMX2, AB_SUMY2, AB_SUMXY
 } ab_op;
 
 #define AB_VAR_A 0                  /* AB_VAR_A + k is the k-th letter; I and J are letters too */

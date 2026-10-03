@@ -8,8 +8,8 @@ INTEL_SRC := third_party/intel-dfp/IntelRDFPMathLib20U5/LIBRARY/src
 INTEL_LIB := build/intel/libbid.a
 BID_FLAGS := -DDECIMAL_CALL_BY_REFERENCE=0 -DDECIMAL_GLOBAL_ROUNDING=0 \
              -DDECIMAL_GLOBAL_EXCEPTION_FLAGS=0
-CORE := core/calc.c core/fmt.c core/fn.c core/bigint.c core/const.c
-HDRS := core/abn.h core/calc.h core/fmt.h core/fn.h core/bigint.h core/const.h
+CORE := core/calc.c core/fmt.c core/fn.c core/bigint.c core/const.c core/xnum.c core/stat.c
+HDRS := core/abn.h core/calc.h core/fmt.h core/fn.h core/bigint.h core/const.h core/xnum.h core/stat.h
 ENGINE := build/abn_intel.o $(INTEL_LIB)
 LIBS := -lm
 
@@ -49,6 +49,7 @@ test: all
 	./build/vectors work/003-vectors.txt
 	./build/vectors work/004-vectors.txt
 	./build/vectors work/005-vectors.txt
+	./build/vectors work/006-vectors.txt
 	./build/fmt_vectors work/002-vectors.txt
 	python3 tests/fmt_fuzz.py build/fmt_drive 20000
 
