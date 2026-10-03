@@ -17,55 +17,59 @@ LIBS := -lm
 KEYV := $(filter-out work/002-vectors.txt work/016-vectors.txt work/017-vectors.txt work/018-vectors.txt,$(filter-out %-fmt-vectors.txt,$(wildcard work/*-vectors.txt)))
 all: build/power_test build/screen_test build/keys_test build/ls027_test build/store_test build/load_fuzz build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test
 
+# every build/ target is order-only on the directory: a fresh clone has none (abacus #3803)
+build:
+	mkdir -p build
+
 $(INTEL_LIB):
 	CC="$(CC)" scripts/fetch-intel-dfp.sh
 
 # The library's headers are its own; -isystem keeps our warning flags off them.
-build/abn_intel.o: core/abn_intel.c core/abn.h $(INTEL_LIB)
+build/abn_intel.o: core/abn_intel.c core/abn.h $(INTEL_LIB) | build
 	@mkdir -p build
 	$(CC) $(CFLAGS) $(BID_FLAGS) -isystem $(INTEL_SRC) -c -o $@ core/abn_intel.c
 
-build/power_test: firmware/gauge.c firmware/gauge.h firmware/power.c firmware/power.h firmware/pins.c firmware/pins.h tests/power_test.c
+build/power_test: firmware/gauge.c firmware/gauge.h firmware/power.c firmware/power.h firmware/pins.c firmware/pins.h tests/power_test.c | build
 	$(CC) $(CFLAGS) -Ifirmware -o $@ firmware/gauge.c firmware/power.c firmware/pins.c tests/power_test.c
 
 SCREEN := firmware/screen.c firmware/font5x7.c
-build/screen_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) firmware/screen.h firmware/font5x7.h firmware/ls027.h tests/screen_test.c
+build/screen_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) firmware/screen.h firmware/font5x7.h firmware/ls027.h tests/screen_test.c | build
 	$(CC) $(CFLAGS) -Icore -Ifirmware -o $@ $(CORE) $(SCREEN) tests/screen_test.c $(ENGINE) $(LIBS)
 
-build/keys_test: firmware/keys.c firmware/keys.h tests/keys_test.c
+build/keys_test: firmware/keys.c firmware/keys.h tests/keys_test.c | build
 	$(CC) $(CFLAGS) -Ifirmware -o $@ firmware/keys.c tests/keys_test.c
 
-build/ls027_test: firmware/ls027.c firmware/ls027.h tests/ls027_test.c
+build/ls027_test: firmware/ls027.c firmware/ls027.h tests/ls027_test.c | build
 	$(CC) $(CFLAGS) -Ifirmware -o $@ firmware/ls027.c tests/ls027_test.c
 
-build/store_test: $(CORE) $(HDRS) $(ENGINE) firmware/store.c firmware/store.h tests/store_test.c
+build/store_test: $(CORE) $(HDRS) $(ENGINE) firmware/store.c firmware/store.h tests/store_test.c | build
 	$(CC) $(CFLAGS) -Icore -Ifirmware -o $@ $(CORE) firmware/store.c tests/store_test.c $(ENGINE) $(LIBS)
 
-build/load_fuzz: $(CORE) $(HDRS) $(ENGINE) tests/load_fuzz.c
+build/load_fuzz: $(CORE) $(HDRS) $(ENGINE) tests/load_fuzz.c | build
 	$(CC) $(CFLAGS) -Icore -o $@ $(CORE) tests/load_fuzz.c $(ENGINE) $(LIBS)
 
-build/vectors: $(CORE) $(HDRS) $(ENGINE) tests/vectors.c tests/norm.h
+build/vectors: $(CORE) $(HDRS) $(ENGINE) tests/vectors.c tests/norm.h | build
 	$(CC) $(CFLAGS) -Icore -o $@ $(CORE) tests/vectors.c $(ENGINE) $(LIBS)
 
-build/fmt_vectors: $(CORE) $(HDRS) $(ENGINE) tests/fmt_vectors.c
+build/fmt_vectors: $(CORE) $(HDRS) $(ENGINE) tests/fmt_vectors.c | build
 	$(CC) $(CFLAGS) -Icore -o $@ $(CORE) tests/fmt_vectors.c $(ENGINE) $(LIBS)
 
-build/fmt_drive: core/fmt.c core/fn.c core/frac.c core/bigint.c core/arena.c core/sbig.c core/base.c $(HDRS) $(ENGINE) tests/fmt_drive.c
+build/fmt_drive: core/fmt.c core/fn.c core/frac.c core/bigint.c core/arena.c core/sbig.c core/base.c $(HDRS) $(ENGINE) tests/fmt_drive.c | build
 	$(CC) $(CFLAGS) -Icore -o $@ core/fmt.c core/fn.c core/frac.c core/bigint.c core/arena.c core/sbig.c core/base.c tests/fmt_drive.c $(ENGINE) $(LIBS)
 
-build/cx_drive: core/cplx.c core/hp.c core/sbig.c core/xnum.c core/bigint.c core/arena.c $(HDRS) $(ENGINE) tests/cx_drive.c
+build/cx_drive: core/cplx.c core/hp.c core/sbig.c core/xnum.c core/bigint.c core/arena.c $(HDRS) $(ENGINE) tests/cx_drive.c | build
 	$(CC) $(CFLAGS) -Icore -o $@ core/cplx.c core/hp.c core/sbig.c core/xnum.c core/bigint.c core/arena.c tests/cx_drive.c $(ENGINE) $(LIBS)
 
-build/xnum_test: core/xnum.c core/bigint.c core/arena.c $(HDRS) $(ENGINE) tests/xnum_test.c
+build/xnum_test: core/xnum.c core/bigint.c core/arena.c $(HDRS) $(ENGINE) tests/xnum_test.c | build
 	$(CC) $(CFLAGS) -Icore -o $@ core/xnum.c core/bigint.c core/arena.c tests/xnum_test.c $(ENGINE) $(LIBS)
 
-build/fn_drive: core/fn.c core/bigint.c core/arena.c core/sbig.c $(HDRS) $(ENGINE) tests/fn_drive.c
+build/fn_drive: core/fn.c core/bigint.c core/arena.c core/sbig.c $(HDRS) $(ENGINE) tests/fn_drive.c | build
 	$(CC) $(CFLAGS) -Icore -o $@ core/fn.c core/bigint.c core/arena.c core/sbig.c tests/fn_drive.c $(ENGINE) $(LIBS)
 
-build/abn_test: $(HDRS) $(ENGINE) tests/abn_test.c tests/norm.h tests/cases.h
+build/abn_test: $(HDRS) $(ENGINE) tests/abn_test.c tests/norm.h tests/cases.h | build
 	$(CC) $(CFLAGS) -Icore -o $@ tests/abn_test.c $(ENGINE) $(LIBS)
 
-build/diff_test: $(HDRS) $(ENGINE) tests/diff_test.c tests/dref.c tests/dref.h tests/norm.h tests/cases.h
+build/diff_test: $(HDRS) $(ENGINE) tests/diff_test.c tests/dref.c tests/dref.h tests/norm.h tests/cases.h | build
 	$(CC) $(CFLAGS) -Icore -Itests -o $@ tests/diff_test.c tests/dref.c $(ENGINE) $(LIBS)
 
 test: all
@@ -135,18 +139,18 @@ accuracy: build/fn_drive build/cx_drive build/vectors
 # The on-chip test app (tests/device), built and run on the host: the same runners and bundle
 # the chip gets. The bundle is compiled without -Wpedantic (its string literals are long).
 DEVICE_RUNNERS := tests/vectors.c tests/fmt_vectors.c tests/diff_test.c tests/dref.c
-build/device/bundle.c: tests/device/bundle.py $(wildcard work/*-vectors.txt) tests/eqn_fuzz.py tests/prog_fuzz.py tests/veckey_fuzz.py
+build/device/bundle.c: tests/device/bundle.py $(wildcard work/*-vectors.txt) tests/eqn_fuzz.py tests/prog_fuzz.py tests/veckey_fuzz.py | build
 	@mkdir -p build/device
 	python3 tests/device/bundle.py $@
-build/device/bundle.o: build/device/bundle.c tests/device/main/bundle.h
+build/device/bundle.o: build/device/bundle.c tests/device/main/bundle.h | build
 	$(CC) -std=c11 -O0 -Itests/device/main -c -o $@ $<
-build/device/abn_test.o: tests/abn_test.c tests/norm.h tests/cases.h core/abn.h
+build/device/abn_test.o: tests/abn_test.c tests/norm.h tests/cases.h core/abn.h | build
 	@mkdir -p build/device
 	$(CC) $(CFLAGS) -DAB_DEVICE -Dmain=abn_test_main -Icore -Itests -c -o $@ $<
-build/device/xnum_test.o: tests/xnum_test.c $(HDRS)
+build/device/xnum_test.o: tests/xnum_test.c $(HDRS) | build
 	@mkdir -p build/device
 	$(CC) $(CFLAGS) -DAB_DEVICE -Dmain=xnum_test_main -Icore -Itests -c -o $@ $<
-build/device_host: tests/device/main/device_main.c $(DEVICE_RUNNERS) $(CORE) $(HDRS) $(ENGINE) build/device/bundle.o build/device/abn_test.o build/device/xnum_test.o
+build/device_host: tests/device/main/device_main.c $(DEVICE_RUNNERS) $(CORE) $(HDRS) $(ENGINE) build/device/bundle.o build/device/abn_test.o build/device/xnum_test.o | build
 	$(CC) $(CFLAGS) -DAB_DEVICE -Icore -Itests -Itests/device/main -o $@ tests/device/main/device_main.c $(DEVICE_RUNNERS) $(CORE) build/device/bundle.o build/device/abn_test.o build/device/xnum_test.o $(ENGINE) $(LIBS)
 device-host: build/device_host
 	./build/device_host
