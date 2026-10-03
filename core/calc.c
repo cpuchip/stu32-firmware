@@ -38,6 +38,7 @@ void ab_init(ab_calc *c)
     c->pc = AB_PC_TOP;          /* program memory empty, the pointer at PRGM TOP (unit 011) */
     c->budget = AB_RUN_BUDGET;
     c->stop_var = -1;
+    c->fn = -1;
     for (int l = 0; l < 26; l++) c->labelpos[l] = -1;
     c->frac_c = 4095;          /* the default maximum denominator (UG p.5-5) */
     c->base = 10;
@@ -1847,6 +1848,10 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
         return ABN_OK;                          /* only in programs (UG p.G-9) */
     case AB_CANCEL:
         return cancel_key(c);
+    case AB_FN:
+    case AB_SOLVE:
+    case AB_INTEG:
+        return ABN_OK;                          /* STUB: unit 013 lands after the oracle */
     case AB_LIT:
         return ABN_DOMAIN;
     case AB_SETC: {

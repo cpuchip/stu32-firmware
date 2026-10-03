@@ -37,7 +37,10 @@ typedef enum {
     ABN_DUP_LABEL,          /* a label that already exists (UG p.13-4, p.F-1) */
     ABN_MEMORY_FULL,        /* program memory full (UG p.F-3; capacity ours) */
     ABN_NONPROGRAMMABLE,    /* a key refused in program entry (UG p.13-24) */
-    ABN_BUDGET              /* a program ran AB_RUN_BUDGET lines without stopping (ours) */
+    ABN_BUDGET,             /* a program ran AB_RUN_BUDGET lines without stopping (ours) */
+    ABN_NO_ROOT,            /* SOLVE found no root: the stack holds its report (UG p.7-8; unit 013) */
+    ABN_SELECT_FN,          /* SOLVE or integrate with no program chosen by FN= (UG p.F-4) */
+    ABN_NESTED              /* SOLVE, integrate or FN= while a SOLVE or integral runs (UG p.15-11) */
 } abn_status;
 
 abn abn_zero(void);

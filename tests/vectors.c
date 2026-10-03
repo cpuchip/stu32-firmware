@@ -72,7 +72,8 @@ static abn_status do1(ab_calc *c, ab_op op, int arg)
 
 static const char *const STATUS_NAMES[] = {"OK", "DIV_ZERO", "RANGE", "BAD_TEXT", "DOMAIN", "INEXACT",
                                            "CLAMPED", "NONEXISTENT", "XEQ_OVERFLOW", "DUP_LABEL",
-                                           "MEMORY_FULL", "NONPROGRAMMABLE", "BUDGET"};
+                                           "MEMORY_FULL", "NONPROGRAMMABLE", "BUDGET", "NO_ROOT",
+                                           "SELECT_FN", "NESTED"};
 
 /* Applies one key token. Returns 0, or -1 for an unknown token. */
 static int apply_token(ab_calc *c, const char *tok, int *errors)
@@ -87,7 +88,7 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
         {"STO:", AB_STO}, {"RCL:", AB_RCL}, {"STO+:", AB_STOADD}, {"STO-:", AB_STOSUB},
         {"STO*:", AB_STOMUL}, {"STO/:", AB_STODIV}, {"RCL+:", AB_RCLADD}, {"RCL-:", AB_RCLSUB},
         {"RCL*:", AB_RCLMUL}, {"RCL/:", AB_RCLDIV}, {"XVAR:", AB_XVAR}, {"VIEW:", AB_VIEW},
-        {"INPUT:", AB_INPUT}};
+        {"INPUT:", AB_INPUT}, {"SOLVE:", AB_SOLVE}, {"INTEG:", AB_INTEG}};
     for (size_t i = 0; i < sizeof STORE / sizeof STORE[0]; i++) {
         size_t n = strlen(STORE[i].prefix);
         if (strncmp(tok, STORE[i].prefix, n) == 0) {
@@ -129,6 +130,16 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
                 if (do1(c, TGT[i].op, (v[0] - 'A') * 1000 + line) != ABN_OK) (*errors)++;
                 return 0;
             }
+        }
+        if (strncmp(tok, "FN=:", 4) == 0) {
+            const char *v = tok + 4;
+            int a;
+            if (strcmp(v, "(I)") == 0) a = AB_TGT_IND_I;
+            else if (strcmp(v, "(J)") == 0) a = AB_TGT_IND_J;
+            else if (v[0] >= 'A' && v[0] <= 'Z' && !v[1]) a = v[0] - 'A';
+            else return -1;
+            if (do1(c, AB_FN, a) != ABN_OK) (*errors)++;
+            return 0;
         }
         if (strcmp(tok, "GTO..") == 0) {
             if (do1(c, AB_GTOPOS, AB_PC_TOP) != ABN_OK) (*errors)++;
@@ -322,6 +333,16 @@ int main(int argc, char **argv)
                 } else if (strcmp(ex, "%ERR") == 0) {
                     snprintf(got, sizeof got, "%s", (unsigned)last_err < sizeof STATUS_NAMES / sizeof STATUS_NAMES[0]
                                                          ? STATUS_NAMES[last_err] : "?");
+                } else if (strcmp(ex, "%COVER") == 0) {
+                    /* the uncertainty in Y covers the true error of X: |x - v| <= y (unit 013) */
+                    abn v, d;
+                    bool okc = abn_from_text(&v, eq + 1) == ABN_OK && c.x.kind == AB_REAL &&
+                               abn_sub(&d, &c.x.re, &v) == ABN_OK;
+                    d = abn_abs(&d);
+                    snprintf(got, sizeof got, "%s", okc && abn_cmp(&d, &c.y.re) <= 0 ? eq + 1 : "not covered");
+                } else if (strncmp(ex, "%EVALS<", 7) == 0) {
+                    /* "%EVALS<=n" is written %EVALS<=n: the evaluations used, at most n */
+                    snprintf(got, sizeof got, "%s", c.evals <= atol(eq + 1) ? eq + 1 : "more");
                 } else if (strcmp(ex, "%STOP") == 0) {
                     ab_stop_text(&c, got);
                 } else if (strcmp(ex, "%LINES") == 0) {
@@ -349,8 +370,9 @@ int main(int argc, char **argv)
             char orig[96];
             snprintf(orig, sizeof orig, "%s", ex);
             if (ex[0] == '@') {
-                /* @A=v: variable A; @#n=v: unnamed indirect variable n (unit 005) */
-                char *eq = strchr(ex, '=');
+                /* @A=v: variable A; @#n=v: unnamed indirect variable n (unit 005); any of the
+                   comparisons = ~ ^ # after the name (unit 013) */
+                char *eq = ex[1] == '#' ? strchr(ex, '=') : strpbrk(ex + 1, "=~^#");
                 if (eq && ex[1] >= 'A' && ex[1] <= 'Z' && eq == ex + 2) {
                     var_val = c.var[ex[1] - 'A'];
                     rv = &var_val;
@@ -363,6 +385,35 @@ int main(int argc, char **argv)
                 if (r) {
                     memmove(ex + 1, eq, strlen(eq) + 1);    /* now "@=v" */
                 }
+            }
+            if (r && ex[1] == '#') {
+                /* "X#v,t": |x - v| <= t (unit 013: results judged against a tolerance) */
+                char vs[128], *comma = strchr(ex + 2, ',');
+                char gt[ABN_TEXT_MAX];
+                abn want, tol, d, got;
+                if (!comma || (size_t)(comma - ex - 2) >= sizeof vs) {
+                    fprintf(stderr, "%s:%d: %s: bad expectation '%s'\n", argv[1], lineno, id, ex);
+                    return 2;
+                }
+                memcpy(vs, ex + 2, (size_t)(comma - ex - 2));
+                vs[comma - ex - 2] = '\0';
+                bool okt = rv && rv->kind == AB_REAL && abn_from_text(&want, vs) == ABN_OK &&
+                           abn_from_text(&tol, comma + 1) == ABN_OK;
+                if (okt) {
+                    got = *r;
+                    okt = abn_sub(&d, &got, &want) == ABN_OK;
+                    d = abn_abs(&d);
+                    okt = okt && abn_cmp(&d, &tol) <= 0;
+                }
+                checks++;
+                if (okt) {
+                    checks_ok++;
+                } else {
+                    vec_ok = 0;
+                    abn_to_text(r, gt, sizeof gt);
+                    printf("FAIL %s: expected %s, got %s\n", id, orig, gt);
+                }
+                continue;
             }
             if (!r || (ex[1] != '=' && ex[1] != '~' && ex[1] != '^')) {
                 fprintf(stderr, "%s:%d: %s: bad expectation '%s'\n", argv[1], lineno, id, ex);

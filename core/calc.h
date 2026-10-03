@@ -84,7 +84,11 @@ typedef enum {
     AB_LIT,                 /* internal: a program line holding a typed number (not a key) */
     /* unit 012: programs, part 2 */
     AB_INPUT,               /* arg: a variable code */
-    AB_CANCEL               /* the C key: clears a number being typed, else cancels a prompt */
+    AB_CANCEL,              /* the C key: clears a number being typed, else cancels a prompt */
+    /* unit 013: SOLVE and integrate on programmed functions */
+    AB_FN,                  /* FN= label: arg 0..25, or AB_TGT_IND_I / J */
+    AB_SOLVE,               /* arg: a variable code (the unknown) */
+    AB_INTEG                /* integrate: arg the variable of integration; limits in Y, X */
 } ab_op;
 
 /* Why the last run stopped (unit 012 rule 1): the device draws it; the core never waits. */
@@ -182,6 +186,11 @@ typedef struct {
     int stop_var;           /* INPUT / VIEW / PSE: the variable (A..Z 0..25, or -27..-32, or
                                1000 + an unnamed address); -1 for none */
     int stop_line;          /* the line an error stopped at */
+    int fn;                 /* FN=: the label chosen (0..25), -1 none (unit 013) */
+    int active;             /* 0, or AB_SOLVE / AB_INTEG while its function is being evaluated */
+    int solve_var;          /* the unknown (or variable of integration) as a stop_var id */
+    int rbase;              /* return depth that counts as the top level of the current run */
+    long evals;             /* function evaluations used by the last SOLVE or integral */
 } ab_calc;
 
 void ab_init(ab_calc *c);
