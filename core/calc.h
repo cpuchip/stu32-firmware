@@ -53,7 +53,12 @@ typedef enum {
     AB_FDISP,               /* toggle Fraction-display mode */
     AB_SETC,                /* /c from x (1 recalls it) */
     AB_RCLC,                /* recall /c (ours: a separate token) */
-    AB_SF, AB_CF            /* set / clear flag arg (7, 8 or 9 in this unit) */
+    AB_SF, AB_CF,           /* set / clear flag arg (7, 8 or 9 in this unit) */
+    /* unit 008: bases and logic */
+    AB_DEC, AB_HEX, AB_OCT, AB_BIN,
+    AB_KA, AB_KB, AB_KC, AB_KD, AB_KE_HEX, AB_KF,   /* hex digit keys A-F */
+    AB_SUF,                 /* arg: 2, 8, 10 or 16, the base the typed digits are read in */
+    AB_AND, AB_XOR, AB_OR, AB_NOT, AB_NAND, AB_NOR
 } ab_op;
 
 #define AB_VAR_A 0                  /* AB_VAR_A + k is the k-th letter; I and J are letters too */
@@ -90,6 +95,7 @@ typedef struct {
     bool fdisp;             /* Fraction-display mode (flag 7; unit 007) */
     uint32_t frac_c;        /* maximum denominator /c, 2..4095 */
     bool flag8, flag9;      /* fraction format flags (UG p.5-6) */
+    int base;               /* 10, 16, 8 or 2 (unit 008) */
     ab_entry entry;
 } ab_calc;
 

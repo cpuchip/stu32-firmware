@@ -32,6 +32,7 @@ typedef struct {
     bool fdisp;             /* Fraction-display mode */
     unsigned c;             /* maximum denominator, 1..4095 */
     int frac_format;        /* 0 most precise, 1 factors of c, 2 fixed denominator c */
+    int base;               /* 10, or 16, 8, 2: the integer part as a word pattern (unit 008) */
 } ab_display;
 
 /* v as the text of one line under the display setting; *indicator is +1 when |v| lies above the

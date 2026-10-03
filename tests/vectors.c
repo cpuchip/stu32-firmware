@@ -43,6 +43,9 @@ static const struct { const char *name; ab_op op; } NAMED[] = {
     {"RAND", AB_RAND}, {"SEED", AB_SEED}, {"IP", AB_IP}, {"FP", AB_FP}, {"INTG", AB_INTG},
     {"RND", AB_RND}, {"ABS", AB_ABS}, {"SGN", AB_SGN}, {"TOPOL", AB_TOPOL}, {"TOREC", AB_TOREC},
     {"ALL", AB_SETALL},
+    {"DEC", AB_DEC}, {"HEX", AB_HEX}, {"OCT", AB_OCT}, {"BIN", AB_BIN},
+    {"HA", AB_KA}, {"HB", AB_KB}, {"HC", AB_KC}, {"HD", AB_KD}, {"HE", AB_KE_HEX}, {"HF", AB_KF},
+    {"AND", AB_AND}, {"XOR", AB_XOR}, {"OR", AB_OR}, {"NOT", AB_NOT}, {"NAND", AB_NAND}, {"NOR", AB_NOR},
     {"SIGMA+", AB_SIGMAPLUS}, {"SIGMA-", AB_SIGMAMINUS}, {"CLSIGMA", AB_CLSIGMA},
     {"XBAR", AB_XBAR}, {"YBAR", AB_YBAR}, {"XWBAR", AB_XWBAR}, {"SX", AB_SX}, {"SY", AB_SY},
     {"PSX", AB_PSX}, {"PSY", AB_PSY}, {"XHAT", AB_XHAT}, {"YHAT", AB_YHAT}, {"CORR", AB_CORR},
@@ -85,6 +88,12 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
             if (ab_do_arg(c, FRACT[i].op, FRACT[i].arg) != ABN_OK) (*errors)++;
             return 0;
         }
+    }
+    if (strncmp(tok, "SUF:", 4) == 0) {
+        int b = tok[4] == 'b' ? 2 : tok[4] == 'o' ? 8 : tok[4] == 'd' ? 10 : tok[4] == 'h' ? 16 : 0;
+        if (!b || tok[5]) return -1;
+        if (ab_do_arg(c, AB_SUF, b) != ABN_OK) (*errors)++;
+        return 0;
     }
     if (strcmp(tok, "CLVARS") == 0) {
         if (ab_do(c, AB_CLVARS) != ABN_OK) (*errors)++;

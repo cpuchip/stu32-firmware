@@ -21,6 +21,7 @@ void ab_init(ab_calc *c)
     c->disp_n = 0;
     c->ind_top = -1;
     c->frac_c = 4095;          /* the default maximum denominator (UG p.5-5) */
+    c->base = 10;
     {
         abn zero = abn_zero();
         fn_seed(&c->rng, &zero);    /* a fixed start: the core has no clock */
@@ -435,6 +436,7 @@ abn_status ab_do(ab_calc *c, ab_op op)
 
 abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
 {
+    if (op >= AB_DEC) return ABN_OK;        /* STUB: unit 008 lands after the oracle */
 
     if (op <= AB_KE) return entry_key(c, op);
     if ((op == AB_KCHS || op == AB_KBKSP) && c->entry.active) return entry_key(c, op);

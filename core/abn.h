@@ -28,7 +28,9 @@ typedef enum {
     ABN_RANGE,              /* result outside the normal range above */
     ABN_BAD_TEXT,           /* text is not a number */
     ABN_DOMAIN,             /* argument outside the function's real domain */
-    ABN_INEXACT             /* abn_mul_exact only: the product needed rounding */
+    ABN_INEXACT,            /* abn_mul_exact only: the product needed rounding */
+    ABN_CLAMPED             /* base modes: the result was replaced by the nearest end of the word
+                               range and the operation completed (unit 008 rule 3) */
 } abn_status;
 
 abn abn_zero(void);

@@ -31,6 +31,12 @@ static int parse_mode(char *s, ab_display *dsp)
     char name[8], kind[4] = "P";
     int n = 0, got = sscanf(s, "%7s %d %3s", name, &n, kind);
     if (got < 1) return -1;
+    if (strcmp(name, "BASE") == 0) {
+        /* BASE 16|8|2|10: the base display (unit 008) */
+        if (got < 2 || (n != 16 && n != 8 && n != 2 && n != 10)) return -1;
+        dsp->base = n;
+        return 0;
+    }
     if (strcmp(name, "FRAC") == 0) {
         /* FRAC c P|F|X: Fraction display, /c, most precise / factors / fixed (unit 007) */
         if (got < 2 || n < 1) return -1;
@@ -105,7 +111,7 @@ int main(int argc, char **argv)
             return 2;
         }
         char *id = trim(field[0]), *value = trim(field[2]), *want = trim(field[5]);
-        ab_display dsp = {{AB_ALL, 0, 22, '.', true}, false, 4095, 0};
+        ab_display dsp = {{AB_ALL, 0, 22, '.', true}, false, 4095, 0, 10};
         abn v;
         if (abn_from_text(&v, value) != ABN_OK || parse_mode(trim(field[3]), &dsp) != 0 ||
             parse_options(trim(field[4]), &dsp) != 0) {

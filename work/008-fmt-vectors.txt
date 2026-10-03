@@ -1,0 +1,31 @@
+# Work unit 008 formatting vectors: the base display. Format as unit 002, with the mode "BASE n"
+# (16, 8, 2, or 10). The integer part as a 36-bit two's complement pattern, no leading zeros, with
+# its suffix (UG p.11-2, p.11-6). Values from Python integers.
+
+B01 | 35s ch.11 (p.11-2 to 11-7) | 125 | BASE 16 | | 7Dh
+B02 | 35s ch.11 (p.11-2 to 11-7) | 125 | BASE 8 | | 175o
+B03 | 35s ch.11 (p.11-2 to 11-7) | 125 | BASE 2 | | 1111101b
+B04 | 35s ch.11 (p.11-2 to 11-7) | 9471 | BASE 16 | | 24FFh
+B05 | 35s ch.11 (p.11-2 to 11-7) | 9471 | BASE 2 | | 10010011111111b
+B06 | 35s ch.11 (p.11-2 to 11-7) | -546 | BASE 16 | | FFFFFFDDEh
+B07 | 35s ch.11 (p.11-2 to 11-7) | -546 | BASE 2 | | 111111111111111111111111110111011110b
+B08 | 35s ch.11 (p.11-2 to 11-7) | 4041 | BASE 16 | | FC9h
+B09 | 35s ch.11 (p.11-2 to 11-7) | 4041 | BASE 8 | | 7711o
+B10 | 35s ch.11 (p.11-2 to 11-7) | 1818 | BASE 8 | | 3432o
+B11 | 35s ch.11 (p.11-2 to 11-7) | 12 | BASE 8 | | 14o
+B12 | 35s ch.11 (p.11-2 to 11-7) | 1516 | BASE 2 | | 10111101100b
+B13 | 35s ch.11 (p.11-2 to 11-7) | 1516 | BASE 16 | | 5ECh
+B14 | 35s ch.11 (p.11-2 to 11-7) | 34359738367 | BASE 16 | | 7FFFFFFFFh
+B15 | 35s ch.11 (p.11-2 to 11-7) | 34359738367 | BASE 8 | | 377777777777o
+B16 | 35s ch.11 (p.11-2 to 11-7) | 34359738367 | BASE 2 | | 11111111111111111111111111111111111b
+B17 | 35s ch.11 (p.11-2 to 11-7) | -34359738368 | BASE 16 | | 800000000h
+B18 | 35s ch.11 (p.11-2 to 11-7) | -34359738368 | BASE 8 | | 400000000000o
+B19 | 35s ch.11 (p.11-2 to 11-7) | -34359738368 | BASE 2 | | 100000000000000000000000000000000000b
+B20 | 35s ch.11 (p.11-2 to 11-7) | -12 | BASE 2 | | 111111111111111111111111111111110100b
+B21 | 35s ch.11 (p.11-2 to 11-7) | -9 | BASE 2 | | 111111111111111111111111111111110111b
+B22 | 35s ch.11 (p.11-2 to 11-7) | -15 | BASE 2 | | 111111111111111111111111111111110001b
+B23 | ours: the integer part of a non-integer | 125.99 | BASE 16 | | 7Dh
+B24 | ours: a negative non-integer truncates toward zero | -2.5 | BASE 16 | | FFFFFFFFEh
+B25 | ours: zero | 0 | BASE 2 | | 0b
+B26 | ours: beyond the range, the decimal format | 1E20 | BASE 16 | | 1E20
+B27 | ours: DEC is the decimal display | 125.99 | BASE 10 | | 125.99
