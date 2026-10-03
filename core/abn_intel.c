@@ -180,3 +180,163 @@ void abn_digits(const abn *a, bool *neg, char *digits, int *lead)
     }
     *lead = (int)(e + len - 1);
 }
+
+/* ---- unit 003: exact helpers and functions ---- */
+
+bool abn_is_negative(const abn *a)
+{
+    return !abn_is_zero(a) && bid128_isSigned(to_bid(a));
+}
+
+abn abn_abs(const abn *a)
+{
+    return abn_is_negative(a) ? abn_neg(a) : *a;
+}
+
+abn abn_from_int(int32_t v)
+{
+    return from_bid(bid128_from_int32(v));
+}
+
+bool abn_is_integer(const abn *a)
+{
+    _IDEC_flags fl = 0;
+    BID_UINT128 x = to_bid(a);
+    BID_UINT128 r = bid128_round_integral_zero(x, &fl);
+    return bid128_quiet_equal(x, r, &fl) != 0;
+}
+
+abn_status abn_mul_exact(abn *out, const abn *a, const abn *b)
+{
+    _IDEC_flags fl = 0;
+    BID_UINT128 r = bid128_mul(to_bid(a), to_bid(b), RND, &fl);
+    if (fl & BID_INEXACT_EXCEPTION) return ABN_INEXACT;
+    return accept(out, r, fl);
+}
+
+abn_status abn_idiv(abn *out, const abn *a, const abn *b)
+{
+    /* Dividing with rounding toward zero never carries the quotient past an integer, so
+       truncating that is the true integer quotient whenever it fits 34 digits. */
+    _IDEC_flags fl = 0;
+    if (abn_is_zero(b)) return ABN_DIV_ZERO;
+    BID_UINT128 q = bid128_div(to_bid(a), to_bid(b), BID_ROUNDING_TO_ZERO, &fl);
+    q = bid128_round_integral_zero(q, &fl);
+    return accept(out, q, fl & ~BID_INEXACT_EXCEPTION);
+}
+
+abn_status abn_fmod(abn *out, const abn *a, const abn *b)
+{
+    _IDEC_flags fl = 0;
+    if (abn_is_zero(b)) return ABN_DIV_ZERO;
+    BID_UINT128 r = bid128_fmod(to_bid(a), to_bid(b), &fl);
+    if (bid128_isZero(r)) {
+        *out = abn_zero();
+        return ABN_OK;
+    }
+    if (bid128_isSubnormal(r)) return ABN_RANGE;
+    if (!bid128_isFinite(r)) return ABN_RANGE;
+    *out = from_bid(r);
+    return ABN_OK;
+}
+
+abn_status abn_pow10(abn *out, int32_t n)
+{
+    _IDEC_flags fl = 0;
+    BID_UINT128 r = bid128_scalbn(bid128_from_int32(1), n, RND, &fl);
+    return accept(out, r, fl);
+}
+
+abn_status abn_fma(abn *out, const abn *a, const abn *b, const abn *c)
+{
+    _IDEC_flags fl = 0;
+    BID_UINT128 r = bid128_fma(to_bid(a), to_bid(b), to_bid(c), RND, &fl);
+    return accept(out, r, fl);
+}
+
+typedef BID_UINT128 (*bid_fn1)(BID_UINT128, _IDEC_round, _IDEC_flags *);
+
+static abn_status call1(abn *out, bid_fn1 f, const abn *a)
+{
+    _IDEC_flags fl = 0;
+    BID_UINT128 r = f(to_bid(a), RND, &fl);
+    return accept(out, r, fl);
+}
+
+/* Compares a with a small integer. */
+static int cmp_int(const abn *a, int v)
+{
+    abn b = abn_from_int(v);
+    return abn_cmp(a, &b);
+}
+
+abn_status abn_sqrt(abn *out, const abn *a)
+{
+    if (abn_is_negative(a)) return ABN_DOMAIN;
+    return call1(out, bid128_sqrt, a);
+}
+
+abn_status abn_exp(abn *out, const abn *a)
+{
+    return call1(out, bid128_exp, a);
+}
+
+abn_status abn_ln(abn *out, const abn *a)
+{
+    if (abn_is_zero(a) || abn_is_negative(a)) return ABN_DOMAIN;
+    return call1(out, bid128_log, a);
+}
+
+abn_status abn_exp10(abn *out, const abn *a)
+{
+    return call1(out, bid128_exp10, a);
+}
+
+abn_status abn_log10(abn *out, const abn *a)
+{
+    if (abn_is_zero(a) || abn_is_negative(a)) return ABN_DOMAIN;
+    return call1(out, bid128_log10, a);
+}
+
+abn_status abn_pow(abn *out, const abn *base, const abn *expo)
+{
+    _IDEC_flags fl = 0;
+    BID_UINT128 r = bid128_pow(to_bid(base), to_bid(expo), RND, &fl);
+    if (fl & BID_ZERO_DIVIDE_EXCEPTION) return ABN_DIV_ZERO;
+    if (fl & BID_INVALID_EXCEPTION) return ABN_DOMAIN;
+    return accept(out, r, fl);
+}
+
+abn_status abn_sin(abn *out, const abn *a) { return call1(out, bid128_sin, a); }
+abn_status abn_cos(abn *out, const abn *a) { return call1(out, bid128_cos, a); }
+abn_status abn_tan(abn *out, const abn *a) { return call1(out, bid128_tan, a); }
+
+abn_status abn_asin(abn *out, const abn *a)
+{
+    if (cmp_int(a, 1) > 0 || cmp_int(a, -1) < 0) return ABN_DOMAIN;
+    return call1(out, bid128_asin, a);
+}
+
+abn_status abn_acos(abn *out, const abn *a)
+{
+    if (cmp_int(a, 1) > 0 || cmp_int(a, -1) < 0) return ABN_DOMAIN;
+    return call1(out, bid128_acos, a);
+}
+
+abn_status abn_atan(abn *out, const abn *a) { return call1(out, bid128_atan, a); }
+abn_status abn_sinh(abn *out, const abn *a) { return call1(out, bid128_sinh, a); }
+abn_status abn_cosh(abn *out, const abn *a) { return call1(out, bid128_cosh, a); }
+abn_status abn_tanh(abn *out, const abn *a) { return call1(out, bid128_tanh, a); }
+abn_status abn_asinh(abn *out, const abn *a) { return call1(out, bid128_asinh, a); }
+
+abn_status abn_acosh(abn *out, const abn *a)
+{
+    if (cmp_int(a, 1) < 0) return ABN_DOMAIN;
+    return call1(out, bid128_acosh, a);
+}
+
+abn_status abn_atanh(abn *out, const abn *a)
+{
+    if (cmp_int(a, 1) >= 0 || cmp_int(a, -1) <= 0) return ABN_DOMAIN;
+    return call1(out, bid128_atanh, a);
+}

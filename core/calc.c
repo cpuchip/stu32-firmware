@@ -6,12 +6,14 @@
 #include <string.h>
 
 #include "calc.h"
+#include "fn.h"
 
 void ab_init(ab_calc *c)
 {
     memset(c, 0, sizeof *c);
     c->x = c->y = c->z = c->t = c->lastx = abn_zero();
     c->lift = true;             /* a cleared calculator has stack lift enabled (UG p.B-4) */
+    c->angle = AB_ANGLE_DEG;    /* and is in degrees (UG p.B-4) */
 }
 
 /* The stack lifts: T is lost, Z to T, Y to Z, X to Y; X keeps its value (UG p.2-5). */
@@ -132,6 +134,59 @@ static abn_status entry_key(ab_calc *c, ab_op op)
 
 /* ---- operations ---- */
 
+static fn_angle angle_of(const ab_calc *c)
+{
+    return c->angle == AB_ANGLE_RAD ? FN_RAD : (c->angle == AB_ANGLE_GRAD ? FN_GRAD : FN_DEG);
+}
+
+/* A function of X alone replaces X and saves the old X in LAST X (UG p.B-6); an error leaves
+ * the stack and LAST X as they were (ours, unit 003). */
+static abn_status one_number_fn(ab_calc *c, ab_op op)
+{
+    abn r;
+    abn_status st;
+    fn_angle m = angle_of(c);
+    switch (op) {
+    case AB_EXP: st = fn_exp(&r, &c->x); break;
+    case AB_LN: st = fn_ln(&r, &c->x); break;
+    case AB_TENX: st = fn_tenx(&r, &c->x); break;
+    case AB_LOG: st = fn_log(&r, &c->x); break;
+    case AB_SQ: st = fn_sq(&r, &c->x); break;
+    case AB_SQRT: st = fn_sqrt(&r, &c->x); break;
+    case AB_INV: st = fn_inv(&r, &c->x); break;
+    case AB_SIN: st = fn_sin(&r, &c->x, m); break;
+    case AB_COS: st = fn_cos(&r, &c->x, m); break;
+    case AB_TAN: st = fn_tan(&r, &c->x, m); break;
+    case AB_ASIN: st = fn_asin(&r, &c->x, m); break;
+    case AB_ACOS: st = fn_acos(&r, &c->x, m); break;
+    case AB_ATAN: st = fn_atan(&r, &c->x, m); break;
+    case AB_SINH: st = fn_sinh(&r, &c->x); break;
+    case AB_COSH: st = fn_cosh(&r, &c->x); break;
+    case AB_TANH: st = fn_tanh(&r, &c->x); break;
+    case AB_ASINH: st = fn_asinh(&r, &c->x); break;
+    case AB_ACOSH: st = fn_acosh(&r, &c->x); break;
+    default: st = fn_atanh(&r, &c->x); break;
+    }
+    if (st != ABN_OK) return st;
+    c->lastx = c->x;
+    c->x = r;
+    c->lift = true;
+    return ABN_OK;
+}
+
+/* Percent and percent change give their result in X and keep the base number in Y: the stack
+ * does not drop (UG p.4-6). Both save x in LAST X (UG p.B-6). */
+static abn_status percent_fn(ab_calc *c, ab_op op)
+{
+    abn r;
+    abn_status st = op == AB_PCT ? fn_pct(&r, &c->y, &c->x) : fn_pctchg(&r, &c->y, &c->x);
+    if (st != ABN_OK) return st;
+    c->lastx = c->x;
+    c->x = r;
+    c->lift = true;
+    return ABN_OK;
+}
+
 static abn_status two_number_op(ab_calc *c, ab_op op)
 {
     abn r;
@@ -141,10 +196,14 @@ static abn_status two_number_op(ab_calc *c, ab_op op)
     case AB_ADD: st = abn_add(&r, &c->y, &c->x); break;
     case AB_SUB: st = abn_sub(&r, &c->y, &c->x); break;
     case AB_MUL: st = abn_mul(&r, &c->y, &c->x); break;
-    default: st = abn_div(&r, &c->y, &c->x); break;
+    case AB_DIV: st = abn_div(&r, &c->y, &c->x); break;
+    case AB_POW: st = fn_pow(&r, &c->y, &c->x); break;        /* y^x (UG p.4-2) */
+    case AB_XROOT: st = fn_xroot(&r, &c->y, &c->x); break;    /* x-th root of y (UG p.4-3) */
+    case AB_IDIV: st = fn_idiv(&r, &c->y, &c->x); break;      /* INT÷ (UG p.4-2) */
+    default: st = fn_rmdr(&r, &c->y, &c->x); break;           /* Rmdr (UG p.4-2) */
     }
     if (st != ABN_OK) return st;    /* the stack stays as it was */
-    c->lastx = c->x;                /* the four operations save x in LAST X (UG p.B-6) */
+    c->lastx = c->x;                /* these operations save x in LAST X (UG p.B-6) */
     c->x = r;
     stack_drop(c);
     c->lift = true;
@@ -221,7 +280,29 @@ abn_status ab_do(ab_calc *c, ab_op op)
     case AB_SUB:
     case AB_MUL:
     case AB_DIV:
+    case AB_POW:
+    case AB_XROOT:
+    case AB_IDIV:
+    case AB_RMDR:
         return two_number_op(c, op);
+    case AB_PCT:
+    case AB_PCTCHG:
+        return percent_fn(c, op);
+    case AB_PI:
+        /* Pi arrives like a recalled number (UG p.4-3). */
+        place_in_x(c, fn_pi());
+        break;
+    case AB_DEG:
+    case AB_RAD:
+    case AB_GRAD:
+        /* Angle modes change no number and leave stack lift as it was (UG p.4-4, p.B-5). */
+        c->angle = op == AB_DEG ? AB_ANGLE_DEG : (op == AB_RAD ? AB_ANGLE_RAD : AB_ANGLE_GRAD);
+        return ABN_OK;
+    case AB_EXP: case AB_LN: case AB_TENX: case AB_LOG:
+    case AB_SQ: case AB_SQRT: case AB_INV:
+    case AB_SIN: case AB_COS: case AB_TAN: case AB_ASIN: case AB_ACOS: case AB_ATAN:
+    case AB_SINH: case AB_COSH: case AB_TANH: case AB_ASINH: case AB_ACOSH: case AB_ATANH:
+        return one_number_fn(c, op);
     default:
         return ABN_OK;
     }

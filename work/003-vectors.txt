@@ -4,7 +4,8 @@
 #   "ERR"      at least one operation returned an error
 # T01-T15 are the reviewer's starters (work/003-real-functions.md). M-vectors are the manual's own
 # examples (HP 35s User's Guide ch.4, keys read from the rendered pages), the rest are ours.
-# "^" values: mpmath 1.4.1 at 60 digits on the exact decimal argument; where keys chain several
+# "^" values: mpmath 1.4.1 at 150 digits on the exact decimal argument (60 digits lose about 34 to
+# cancellation near 90 degrees, A31); where keys chain several
 # operations, each intermediate was rounded to 34 digits (Python decimal, ROUND_HALF_EVEN) first.
 # Generator: soroban's scratch gen003.py (not committed; values are reproducible from the keys).
 
@@ -80,7 +81,7 @@ A27 | ours: tan 100 gon is an error | GRAD 100 TAN | ERR X=100
 A28 | ours: irrational stays irrational | DEG 45 SIN | X^0.707106781186547524400844362104849039
 A29 | ours: irrational stays irrational | DEG 60 SIN | X^0.866025403784438646763723170752936183
 A30 | ours: tiny angle keeps relative accuracy | DEG 1 E 20 CHS SIN | X^0.000000000000000000000174532925199432957692369076848861271
-A31 | ours: just off an exact angle | DEG 89.99999999999999999999999999999999 COS | X^0.000000000000000000000000000000000174532925199432957692369077087727045
+A31 | ours: just off an exact angle | DEG 89.99999999999999999999999999999999 COS | X^0.000000000000000000000000000000000174532925199432957692369076848861271
 A32 | ours: GRAD irrational | GRAD 33 TAN | X^0.570389929673294886984294436716517134
 A33 | ours: DEG inverse irrational | DEG 0.3 ASIN | X^17.4576031237220922902460457924449418
 A34 | ours: GRAD inverse irrational | GRAD 0.5 ASIN | X^33.3333333333333333333333333333333333
@@ -127,3 +128,14 @@ S03 | two-number functions drop the stack | 7 ENTER 8 ENTER 2 ENTER 3 POW | X=8 
 S04 | one-number functions leave Y alone | 5 ENTER 16 SQRT | X=4 Y=5
 S05 | PCT does not drop | 1 ENTER 200 ENTER 10 PCT | X=20 Y=200 Z=1
 S06 | B-5 angle keys keep X | 45 RAD DEG TAN | X=1
+
+# --- added after the mutation pass: each pins a behaviour no vector above could see
+G01 | B-4 default angle mode is degrees | 30 SIN | X=0.5
+G02 | ours: INT÷ truncates (17/3 = 5.67) | 17 ENTER 3 IDIV | X=5
+G03 | ours: Rmdr of 17 by 3 | 17 ENTER 3 RMDR | X=2
+G04 | B-5 angle keys leave lift enabled | 1 ENTER 2 + DEG 3 | X=3 Y=3
+G05 | B-5 angle keys leave lift disabled | 1 ENTER DEG 3 | X=3 Y=1 Z=0
+G06 | ours: tan near 90 deg (cot series) | DEG 89.999942 TAN | X^987858.267466599136519295236691645732
+G07 | ours: tan near -300 gon (cot series) | GRAD 300.00000000000063829014 CHS TAN | X^99738305900758.7588734388178812734417
+G08 | ours: integer power, engine pow off by 102 units | 1.13316166382609728735531007259851 ENTER 56 CHS POW | X^0.000911286819814156751869023900884181592
+G09 | ours: root with a small non-integer index | 6.843849 E 297 CHS ENTER 0.090854 XROOT | X^1.63257675639744280921475361599265167E-3260

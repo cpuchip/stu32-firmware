@@ -8,13 +8,13 @@ INTEL_SRC := third_party/intel-dfp/IntelRDFPMathLib20U5/LIBRARY/src
 INTEL_LIB := build/intel/libbid.a
 BID_FLAGS := -DDECIMAL_CALL_BY_REFERENCE=0 -DDECIMAL_GLOBAL_ROUNDING=0 \
              -DDECIMAL_GLOBAL_EXCEPTION_FLAGS=0
-CORE := core/calc.c core/fmt.c
-HDRS := core/abn.h core/calc.h core/fmt.h
+CORE := core/calc.c core/fmt.c core/fn.c
+HDRS := core/abn.h core/calc.h core/fmt.h core/fn.h
 ENGINE := build/abn_intel.o $(INTEL_LIB)
 LIBS := -lm
 
-.PHONY: all test clean
-all: build/vectors build/fmt_vectors build/fmt_drive build/abn_test build/diff_test
+.PHONY: all test accuracy clean
+all: build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/abn_test build/diff_test
 
 $(INTEL_LIB):
 	CC="$(CC)" scripts/fetch-intel-dfp.sh
@@ -33,6 +33,9 @@ build/fmt_vectors: $(CORE) $(HDRS) $(ENGINE) tests/fmt_vectors.c
 build/fmt_drive: core/fmt.c $(HDRS) $(ENGINE) tests/fmt_drive.c
 	$(CC) $(CFLAGS) -Icore -o $@ core/fmt.c tests/fmt_drive.c $(ENGINE) $(LIBS)
 
+build/fn_drive: core/fn.c $(HDRS) $(ENGINE) tests/fn_drive.c
+	$(CC) $(CFLAGS) -Icore -o $@ core/fn.c tests/fn_drive.c $(ENGINE) $(LIBS)
+
 build/abn_test: $(HDRS) $(ENGINE) tests/abn_test.c tests/norm.h tests/cases.h
 	$(CC) $(CFLAGS) -Icore -o $@ tests/abn_test.c $(ENGINE) $(LIBS)
 
@@ -46,6 +49,10 @@ test: all
 	./build/vectors work/003-vectors.txt
 	./build/fmt_vectors work/002-vectors.txt
 	python3 tests/fmt_fuzz.py build/fmt_drive 20000
+
+# Needs mpmath (not part of `make test`): every unit 003 function against mpmath at 150 digits.
+accuracy: build/fn_drive
+	python3 tests/fn_fuzz.py build/fn_drive
 
 clean:
 	rm -rf build
