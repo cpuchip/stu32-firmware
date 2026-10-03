@@ -15,7 +15,7 @@ LIBS := -lm
 
 .PHONY: all test accuracy clean device-host
 KEYV := $(filter-out work/002-vectors.txt work/016-vectors.txt work/017-vectors.txt work/018-vectors.txt,$(filter-out %-fmt-vectors.txt,$(wildcard work/*-vectors.txt)))
-all: build/keys_test build/ls027_test build/store_test build/load_fuzz build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test
+all: build/power_test build/screen_test build/keys_test build/ls027_test build/store_test build/load_fuzz build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test
 
 $(INTEL_LIB):
 	CC="$(CC)" scripts/fetch-intel-dfp.sh
@@ -24,6 +24,13 @@ $(INTEL_LIB):
 build/abn_intel.o: core/abn_intel.c core/abn.h $(INTEL_LIB)
 	@mkdir -p build
 	$(CC) $(CFLAGS) $(BID_FLAGS) -isystem $(INTEL_SRC) -c -o $@ core/abn_intel.c
+
+build/power_test: firmware/gauge.c firmware/gauge.h firmware/power.c firmware/power.h firmware/pins.c firmware/pins.h tests/power_test.c
+	$(CC) $(CFLAGS) -Ifirmware -o $@ firmware/gauge.c firmware/power.c firmware/pins.c tests/power_test.c
+
+SCREEN := firmware/screen.c firmware/font5x7.c
+build/screen_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) firmware/screen.h firmware/font5x7.h firmware/ls027.h tests/screen_test.c
+	$(CC) $(CFLAGS) -Icore -Ifirmware -o $@ $(CORE) $(SCREEN) tests/screen_test.c $(ENGINE) $(LIBS)
 
 build/keys_test: firmware/keys.c firmware/keys.h tests/keys_test.c
 	$(CC) $(CFLAGS) -Ifirmware -o $@ firmware/keys.c tests/keys_test.c
@@ -92,6 +99,10 @@ test: all
 	./build/store_test
 	./build/ls027_test
 	./build/keys_test
+	./build/power_test
+	@mkdir -p build/frames
+	./build/screen_test tests/frames
+	python3 scripts/gen_font.py --check
 	python3 tests/eqn_fuzz.py 1 2000 > build/eqn_fuzz.txt
 	./build/vectors build/eqn_fuzz.txt
 	python3 tests/prog_fuzz.py 1 1000 > build/prog_fuzz.txt
