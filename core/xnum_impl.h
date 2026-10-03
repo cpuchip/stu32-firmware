@@ -85,3 +85,43 @@ abn_status XN_(div_to_abn)(abn *out, const XN_T *a, const XN_T *b)
     if (!BI_(mul_pow10)(&num, extra) || !BI_(div)(&q, &num, &b->m, &inexact)) return ABN_RANGE;
     return BI_(to_abn)(out, &q, a->neg != b->neg, a->e - b->e - extra, inexact);
 }
+
+/* floor(sqrt(n)) by Newton's method on integers, from a start above the root: each step
+ * x <- (x + n / x) / 2 decreases until it would not, and then x is the floor (Cohen, A Course in
+ * Computational Algebraic Number Theory, algorithm 1.7.1). */
+static bool XN_(isqrt_)(BI_T *r, const BI_T *n)
+{
+    static BI_T x, q;
+    bool inexact;
+    if (BI_(is_zero)(n)) {
+        r->n = 0;
+        return true;
+    }
+    BI_(set)(&x, 1);
+    if (!BI_(mul_pow10)(&x, (BI_(ndigits)(n) + 1) / 2)) return false;     /* 10^ceil(d/2) > sqrt(n) */
+    for (;;) {
+        if (!BI_(div)(&q, n, &x, &inexact) || !BI_(add)(&q, &q, &x)) return false;
+        BI_(divmod_u32)(&q, 2);
+        if (BI_(cmp)(&q, &x) >= 0) break;
+        x = q;
+    }
+    *r = x;
+    return true;
+}
+
+abn_status XN_(sqrt_to_abn)(abn *out, const XN_T *a)
+{
+    static BI_T n, r, sq;
+    if (a->neg && !BI_(is_zero)(&a->m)) return ABN_DOMAIN;
+    if (BI_(is_zero)(&a->m)) {
+        *out = abn_zero();
+        return ABN_OK;
+    }
+    /* n = m 10^k with e - k even and at least 76 digits, so the root has 38 or more */
+    int k = 76 - BI_(ndigits)(&a->m);
+    if (k < 0) k = 0;
+    if (((a->e - k) % 2 + 2) % 2) k++;
+    n = a->m;
+    if (!BI_(mul_pow10)(&n, k) || !XN_(isqrt_)(&r, &n) || !BI_(mul)(&sq, &r, &r)) return ABN_RANGE;
+    return BI_(to_abn)(out, &r, false, (a->e - k) / 2, BI_(cmp)(&sq, &n) != 0);
+}

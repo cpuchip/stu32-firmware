@@ -395,8 +395,44 @@ int ab_format_complex(const abn *re, const abn *im, const ab_display *d, char *o
     return la + 1 + lb;
 }
 
+/* A vector (UG p.10-2 to 10-4): "[", the elements in the decimal format separated by ",", "]",
+ * with no spaces. In ALL each element shows at most 12 significant digits, as a complex part does
+ * (ours, from UG p.1-25). Ours too: with the radix a comma the elements are separated by ";", and
+ * no thousands separators are shown inside a vector, so the text is never ambiguous. All
+ * elements in full when they fit the line, otherwise each in an equal share of it. */
 int ab_format_vector(const abn *el, int n, const ab_display *d, char *out, int size)
 {
-    (void)n;
-    return ab_format(&el[0], &d->dec, out, size);     /* STUB: unit 010 lands after the oracle */
+    char t[3][160];
+    int l[3], len = 0;
+    ab_fmt f = d->dec;
+    abn v[3];
+    char sep = f.radix == ',' ? ';' : ',';
+    out[0] = '\0';
+    if (n < 1 || n > 3) return -1;
+    f.separator = false;
+    f.width = 120;
+    for (int i = 0; i < n; i++) {
+        v[i] = f.mode == AB_ALL ? round12(&el[i]) : el[i];
+        if ((l[i] = ab_format(&v[i], &f, t[i], sizeof t[i])) < 0) return -1;
+        len += l[i];
+    }
+    if (len + n + 1 > d->dec.width) {
+        f.width = (d->dec.width - n - 1) / n;
+        len = 0;
+        for (int i = 0; i < n; i++) {
+            if ((l[i] = ab_format(&v[i], &f, t[i], sizeof t[i])) < 0) return -1;
+            len += l[i];
+        }
+    }
+    if (len + n + 2 > size) return -1;
+    int k = 0;
+    out[k++] = '[';
+    for (int i = 0; i < n; i++) {
+        if (i) out[k++] = sep;
+        memcpy(out + k, t[i], (size_t)l[i]);
+        k += l[i];
+    }
+    out[k++] = ']';
+    out[k] = '\0';
+    return k;
 }

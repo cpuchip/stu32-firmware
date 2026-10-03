@@ -12,6 +12,7 @@
 #include "frac.h"
 #include "base.h"
 #include "cplx.h"
+#include "xnum.h"
 
 /* A real number as a stack value. */
 static ab_val ab_real(abn v)
@@ -95,8 +96,47 @@ static ab_val ab_cx(cplx z)
     return r;
 }
 
+/* ---- vectors (unit 010) ---- */
+
+static bool is_vec(const ab_val *v)
+{
+    return v->kind == AB_VECTOR;
+}
+
+/* Element i (0..2) of a vector: parts 1 to 3 of the register (UG p.2-2). */
+static abn *vel(ab_val *v, int i)
+{
+    return i == 0 ? &v->re : i == 1 ? &v->im : &v->p3;
+}
+
+static const abn *cvel(const ab_val *v, int i)
+{
+    return i == 0 ? &v->re : i == 1 ? &v->im : &v->p3;
+}
+
+static ab_val ab_vec(int n)
+{
+    ab_val r;
+    memset(&r, 0, sizeof r);
+    r.kind = AB_VECTOR;
+    r.len = n;
+    return r;
+}
+
 static fn_angle angle_of(const ab_calc *c);
 static abn_status entry_value(const ab_entry *e, abn *out, int base);
+
+/* The vector being typed: its finished elements and the value v of the one being typed. */
+static abn_status vector_entry_value(const ab_calc *c, const abn *v, ab_val *out)
+{
+    ab_val r = ab_vec(c->vlen);
+    abn_status st;
+    for (int i = 0; i < c->vlen - 1; i++)
+        if ((st = entry_value(&c->ventry[i], vel(&r, i), 10)) != ABN_OK) return st;
+    *vel(&r, c->vlen - 1) = *v;
+    *out = r;
+    return ABN_OK;
+}
 
 /* The complex number being typed, from its first part and the value v of its second: x i y, or
  * r theta a with a in the angle mode (UG p.9-2, p.4-11; polar entry exact as unit 004's
@@ -254,6 +294,23 @@ static abn_status entry_key(ab_calc *c, ab_op op)
         /* Backspace erases the last key typed (UG p.1-17). Erasing the E also drops the
          * exponent's sign. Erasing everything leaves 0 with lift disabled, as clear X
          * does (our choice; the guide does not say). */
+        if (c->vlen && e.len == 0) {
+            /* with the element empty, backspace erases the comma before it, or with the first
+               element empty the bracket: X is 0 and lift is disabled, as clearing an entry does
+               (ours; the guide does not say) */
+            if (c->vlen == 1) {
+                c->vlen = 0;
+                c->entry.active = false;
+                c->x = ab_real(abn_zero());
+                c->lift = false;
+                return ABN_OK;
+            }
+            c->vlen--;
+            e = c->ventry[c->vlen - 1];
+            e.active = true;
+            c->entry = e;
+            goto value;
+        }
         if (c->cpart && e.len == 0) {
             /* with the second part empty, backspace erases the i (or theta) and the first part is
                being typed again (ours; the guide does not say) */
@@ -270,7 +327,7 @@ static abn_status entry_key(ab_calc *c, ab_op op)
             goto value;
         }
         if (e.len > 0 && e.text[--e.len] == 'E') e.exp_neg = false;
-        if (e.len == 0 && !c->cpart) {
+        if (e.len == 0 && !c->cpart && !c->vlen) {
             c->entry.active = false;
             c->x = ab_real(abn_zero());
             c->lift = false;
@@ -283,6 +340,7 @@ value:
     if (entry_value(&e, &v, c->base) != ABN_OK) return ABN_OK;  /* out of range: key ignored */
     nv = ab_real(v);
     if (c->cpart && complex_entry_value(c, &v, &nv) != ABN_OK) return ABN_OK;
+    if (c->vlen && vector_entry_value(c, &v, &nv) != ABN_OK) return ABN_OK;
     if (!c->entry.active) {
         /* The first key of a number places it in X, lifting if lift is enabled. Digit
          * entry itself leaves the lift flag alone (UG p.B-5). */
@@ -306,7 +364,7 @@ static abn_status complex_key(ab_calc *c, ab_op op)
     ab_val nv;
     ab_entry saved = c->entry, saved1 = c->entry1;
     int saved_part = c->cpart;
-    if (c->base != 10) return ABN_DOMAIN;
+    if (c->base != 10 || c->vlen) return ABN_DOMAIN;    /* a vector holds no complex number (ours) */
     if (c->cpart) return ABN_OK;
     if (was_active) c->entry1 = c->entry;
     else memset(&c->entry1, 0, sizeof c->entry1);
@@ -321,6 +379,37 @@ static abn_status complex_key(ab_calc *c, ab_op op)
     c->entry.active = true;
     if (!was_active) place_val(c, nv);
     else c->x = nv;
+    return ABN_OK;
+}
+
+/* [ ] begins a vector and , starts its next element (UG p.10-1). [ during a number being typed
+ * completes it, and the vector arrives as any new number does; a second [ is ignored, as is a
+ * comma outside a vector or after the third element (the guide allows three, p.10-1) (ours).
+ * Inside a complex number, or in HEX, OCT and BIN, [ is an error (ours). */
+static abn_status vector_key(ab_calc *c, ab_op op)
+{
+    abn zero = abn_zero();
+    ab_val nv;
+    if (op == AB_KVEC) {
+        if (c->vlen) return ABN_OK;
+        if (c->cpart || c->base != 10) return ABN_DOMAIN;
+        if (c->entry.active) {
+            c->entry.active = false;
+            c->lift = true;
+        }
+        memset(&c->entry, 0, sizeof c->entry);
+        c->entry.active = true;
+        c->vlen = 1;
+        nv = ab_vec(1);
+        place_val(c, nv);
+        return ABN_OK;
+    }
+    if (!c->vlen || c->vlen == 3) return ABN_OK;
+    c->ventry[c->vlen - 1] = c->entry;
+    memset(&c->entry, 0, sizeof c->entry);
+    c->entry.active = true;
+    c->vlen++;
+    if (vector_entry_value(c, &zero, &nv) == ABN_OK) c->x = nv;
     return ABN_OK;
 }
 
@@ -340,6 +429,110 @@ static fn_angle angle_of(const ab_calc *c)
 
 /* A function of X alone replaces X and saves the old X in LAST X (UG p.B-6); an error leaves
  * the stack and LAST X as they were (ours, unit 003). */
+/* The operation a storage or recall arithmetic key performs. */
+static ab_op plain_op(ab_op op)
+{
+    switch (op) {
+    case AB_STOADD: case AB_RCLADD: return AB_ADD;
+    case AB_STOSUB: case AB_RCLSUB: return AB_SUB;
+    case AB_STOMUL: case AB_RCLMUL: return AB_MUL;
+    case AB_STODIV: case AB_RCLDIV: return AB_DIV;
+    default: return op;
+    }
+}
+
+/* The dot product, exact, rounded once (unit 010 rule 3). */
+static abn_status dot(abn *out, const ab_val *a, const ab_val *b)
+{
+    static xnum sum, t, p, q, u;
+    xn_set_int(&sum, 0);
+    for (int i = 0; i < a->len; i++) {
+        if (!xn_from_abn(&p, cvel(a, i)) || !xn_from_abn(&q, cvel(b, i)) || !xn_mul(&t, &p, &q) ||
+            !xn_add(&u, &sum, &t, false))
+            return ABN_RANGE;
+        sum = u;
+    }
+    xn_set_int(&u, 1);
+    return xn_div_to_abn(out, &sum, &u);
+}
+
+/* a op b where a or b is a vector (UG p.10-1 to 10-5): + and - of equal lengths, one rounding per
+ * element; x of two equal lengths is the dot product (UG p.10-4), of a vector and a number scales
+ * it (either order: ours for the number first); / of a vector by a number. Anything else, a
+ * complex number included, is INVALID DATA (UG p.10-1, unit 010 rule 2); / by 0 is an error
+ * (rule 4). An element out of range changes nothing (rule 4). */
+static abn_status vec_arith(ab_val *r, ab_op op, const ab_val *a, const ab_val *b)
+{
+    ab_val v;
+    abn_status st = ABN_OK;
+    if (a->kind == AB_COMPLEX || b->kind == AB_COMPLEX) return ABN_DOMAIN;
+    switch (op) {
+    case AB_ADD:
+    case AB_SUB:
+        if (!is_vec(a) || !is_vec(b) || a->len != b->len) return ABN_DOMAIN;
+        v = ab_vec(a->len);
+        for (int i = 0; i < a->len && st == ABN_OK; i++)
+            st = op == AB_ADD ? abn_add(vel(&v, i), cvel(a, i), cvel(b, i))
+                              : abn_sub(vel(&v, i), cvel(a, i), cvel(b, i));
+        break;
+    case AB_MUL:
+        if (is_vec(a) && is_vec(b)) {
+            if (a->len != b->len) return ABN_DOMAIN;
+            v = ab_real(abn_zero());
+            st = dot(&v.re, a, b);
+            break;
+        }
+        {
+            const ab_val *w = is_vec(a) ? a : b, *k = is_vec(a) ? b : a;
+            v = ab_vec(w->len);
+            for (int i = 0; i < w->len && st == ABN_OK; i++) st = abn_mul(vel(&v, i), cvel(w, i), &k->re);
+        }
+        break;
+    default:    /* AB_DIV */
+        if (is_vec(b)) return ABN_DOMAIN;           /* so a is the vector */
+        if (abn_is_zero(&b->re)) return ABN_DIV_ZERO;
+        v = ab_vec(a->len);
+        for (int i = 0; i < a->len && st == ABN_OK; i++) st = abn_div(vel(&v, i), cvel(a, i), &b->re);
+        break;
+    }
+    if (st != ABN_OK) return st;
+    *r = v;
+    return ABN_OK;
+}
+
+/* x op y with a vector in either; LAST X and the drop as for real arithmetic (UG p.B-6). */
+static abn_status two_vector(ab_calc *c, ab_op op)
+{
+    ab_val r;
+    abn_status st = vec_arith(&r, op, &c->y, &c->x);
+    if (st != ABN_OK) return st;
+    c->lastx = c->x;
+    c->x = r;
+    stack_drop(c);
+    c->lift = true;
+    return ABN_OK;
+}
+
+/* ABS of a vector: the correctly rounded root of the exact sum of squares (UG p.10-3, unit 010
+ * rule 3). */
+static abn_status vec_abs(ab_calc *c)
+{
+    static xnum sum, t, p, u;
+    abn r;
+    abn_status st;
+    xn_set_int(&sum, 0);
+    for (int i = 0; i < c->x.len; i++) {
+        if (!xn_from_abn(&p, cvel(&c->x, i)) || !xn_mul(&t, &p, &p) || !xn_add(&u, &sum, &t, false))
+            return ABN_RANGE;
+        sum = u;
+    }
+    if ((st = xn_sqrt_to_abn(&r, &sum)) != ABN_OK) return st;
+    c->lastx = c->x;
+    c->x = ab_real(r);
+    c->lift = true;
+    return ABN_OK;
+}
+
 /* The functions of a complex x (UG p.9-3): 1/z, ln z, e^z, sin z, cos z, tan z (radians whatever
  * the angle mode: the guide's sin(2 i 3)) and ABS, which is real. LAST X as for real x (UG p.B-6). */
 static abn_status one_complex(ab_calc *c, ab_op op)
@@ -369,6 +562,7 @@ static abn_status one_number_fn(ab_calc *c, ab_op op)
     abn r;
     abn_status st;
     fn_angle m = angle_of(c);
+    if (is_vec(&c->x)) return vec_abs(c);     /* the only function the guard lets through */
     if (is_cx(&c->x)) return one_complex(c, op);
     switch (op) {
     case AB_EXP: st = fn_exp(&r, &c->x.re); break;
@@ -468,6 +662,7 @@ static abn_status two_number_op(ab_calc *c, ab_op op)
 {
     abn r;
     abn_status st;
+    if (is_vec(&c->x) || is_vec(&c->y)) return two_vector(c, op);
     if (is_cx(&c->x) || is_cx(&c->y)) return two_complex(c, op);
     /* Y op X: the earlier number is on the left (UG p.2-5). */
     switch (op) {
@@ -539,7 +734,7 @@ static abn_status resolve(ab_calc *c, int code, bool for_read, slot *out)
     }
     if (code != AB_VAR_IND_I && code != AB_VAR_IND_J) return ABN_DOMAIN;
     const ab_val *idx = &c->var[(code == AB_VAR_IND_I ? 'I' : 'J') - 'A'];
-    if (is_cx(idx) || !int_in(&idx->re, -32, AB_IND_MAX, &k)) return ABN_DOMAIN;  /* INVALID (I) */
+    if (idx->kind != AB_REAL || !int_in(&idx->re, -32, AB_IND_MAX, &k)) return ABN_DOMAIN;  /* INVALID (I) */
     if (k <= -27) {
         out->reg = &c->stat[-k - 27];
     } else if (k < 0) {
@@ -580,7 +775,7 @@ static abn_status store_val(ab_calc *c, const slot *sl, ab_val v)
         *sl->val = v;
         return ABN_OK;
     }
-    if (is_cx(&v)) return ABN_DOMAIN;
+    if (v.kind != AB_REAL) return ABN_DOMAIN;
     write_slot(c, sl, v.re);
     return ABN_OK;
 }
@@ -589,6 +784,7 @@ static abn_status store_val(ab_calc *c, const slot *sl, ab_val v)
 static abn_status arith(ab_val *r, ab_op op, const ab_val *a, const ab_val *b)
 {
     abn_status st;
+    if (is_vec(a) || is_vec(b)) return vec_arith(r, plain_op(op), a, b);
     if (is_cx(a) || is_cx(b)) {
         cplx x = cx_of(a), y = cx_of(b), z;
         switch (op) {
@@ -668,7 +864,7 @@ static abn_status suffix(ab_calc *c, int base)
     int64_t v;
     abn val;
     if (!c->entry.active) return ABN_OK;
-    if (c->cpart) return ABN_DOMAIN;    /* a suffix reads a real entry (ours, unit 009) */
+    if (c->cpart || c->vlen) return ABN_DOMAIN;    /* a suffix reads a real entry (ours, units 009, 010) */
     if (base != 16 && base != 8 && base != 2 && base != 10) return ABN_DOMAIN;
     memcpy(d, c->entry.text, (size_t)c->entry.len);
     d[c->entry.len] = '\0';
@@ -777,6 +973,12 @@ static bool reads_y(ab_op op)
     }
 }
 
+/* What takes a vector (UG p.10-1 to 10-5): +, -, x, / (vec_arith sorts out which pairs), ABS. */
+static bool takes_vector(ab_op op)
+{
+    return op == AB_ADD || op == AB_SUB || op == AB_MUL || op == AB_DIV || op == AB_ABS;
+}
+
 /* The guide's list of what takes complex numbers (UG p.9-3), in decimal; ABS and ARG give reals. */
 static bool takes_complex(ab_op op)
 {
@@ -792,7 +994,7 @@ static bool takes_complex(ab_op op)
 abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
 {
     if (op == AB_KI || op == AB_KTHETA) return complex_key(c, op);
-    if (op == AB_KVEC || op == AB_KCOMMA) return ABN_OK;   /* STUB: unit 010 lands after the oracle */
+    if (op == AB_KVEC || op == AB_KCOMMA) return vector_key(c, op);
     if (op <= AB_KE || (op >= AB_KA && op <= AB_KF)) return entry_key(c, op);
     if (op == AB_SUF) return suffix(c, arg);
     if ((op == AB_KCHS || op == AB_KBKSP) && c->entry.active) return entry_key(c, op);
@@ -805,10 +1007,15 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
         c->lift = true;
     }
     c->cpart = 0;
+    c->vlen = 0;
 
-    /* Any other function given a complex number is INVALID DATA (UG p.9-3, p.F), nothing changed. */
+    /* Any other function given a complex number (UG p.9-3, p.F) or a vector (UG ch.10, unit 010
+       rule 2) is INVALID DATA, nothing changed. */
     if (((reads_x(op) && is_cx(&c->x)) || (reads_y(op) && is_cx(&c->y))) &&
         !(takes_complex(op) && c->base == 10))
+        return ABN_DOMAIN;
+    if (((reads_x(op) && is_vec(&c->x)) || (reads_y(op) && is_vec(&c->y))) &&
+        !(takes_vector(op) && c->base == 10))
         return ABN_DOMAIN;
 
     /* In HEX the keys of these functions type digits, and the guide lists them as unavailable
@@ -867,7 +1074,9 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
         place_val(c, c->lastx);
         break;
     case AB_KCHS:
-        /* Change sign of a completed X (UG p.1-15); of both parts of a complex one (UG p.9-3). */
+        /* Change sign of a completed X (UG p.1-15); of both parts of a complex one (UG p.9-3).
+           The guide lists no sign change for a vector: INVALID DATA (unit 010 rule 2). */
+        if (is_vec(&c->x)) return ABN_DOMAIN;
         c->x.re = abn_neg(&c->x.re);
         c->x.im = abn_neg(&c->x.im);
         break;

@@ -25,8 +25,8 @@ M19 | 35s p.11-4 logic on a vector: INVALID DATA | [ 1 , 2 ENTER 1 AND | ERR X=1
 M20 | 35s p.F statistics reject a vector: INVALID DATA | [ 1 , 2 SIGMA+ | ERR X=[1,2]
 O01 | ours: 3-D sum, one rounding per element | [ 1 , 2 , 3 ENTER [ 0.1 , 0.2 , 0.3 + | X=[1.1,2.2,3.3]
 O02 | ours: division correctly rounded per element | [ 1 , 2 ENTER 3 / | X=[0.3333333333333333333333333333333333,0.6666666666666666666666666666666667]
-O03 | ours (rule 3): the dot product is exact before its one rounding | [ 1 E 20 , 1 , 1 E 20 CHS ENTER [ 1 , 1 , 1 * | X=1
-O04 | ours (rule 3): a dot product rounded once | [ 0.1234567890123456789012345678901234 , 3 ENTER [ 3 , 0.1000000000000000000000000000000001 * | X=0.6703703670370370367037037036703705
+O03 | ours (rule 3): the dot product is exact before its one rounding | [ 1 E 20 , 1 , 1 CHS E 20 ENTER [ 1 , 1 , 1 * | X=1
+O04 | ours (rule 3): a dot product rounded once (typed without the leading 0: it would count as one of the 34 digits, unit 001) | [ .1234567890123456789012345678901234 , 3 ENTER [ 3 , .1000000000000000000000000000000001 * | X=0.6703703670370370367037037036703705
 O05 | ours: ABS of a Pythagorean 3-D vector | [ 2 , 3 , 6 ABS | X=7
 O06 | ours (rule 3): ABS correctly rounded | [ 1 , 1 ABS | X=1.414213562373095048801688724209698
 O07 | ours (rule 3): ABS where rounding the sum of squares first would be one unit off | [ 3.718324588177956732429184138590386 , 4.646046906600203 E 15 CHS ABS | X=3.718324588177956732429184138593289
@@ -61,3 +61,5 @@ O35 | ours: the dot product of 3-D vectors | [ 1 , 2 , 3 ENTER [ 4 , 5 , 6 * | X
 O36 | ours: scalar times a 3-D vector, exact per element | [ 1.5 , 2.5 , 3.5 ENTER 2 * | X=[3,5,7]
 O37 | ours: ARG of a vector is INVALID DATA | [ 1 , 1 ARG | ERR X=[1,1]
 O38 | ours: RCL arithmetic, dot product with a vector variable | [ 1 , 2 STO:B CLX [ 3 , 4 RCL*:B | X=11 L=[3,4]
+O39 | ours (rule 3): ABS where the digits past the 34th are 5000 and only the remainder decides (added at green: the mutation run, found by the fuzz) | [ 4.52841970519706827 E 17 CHS , 3.3 E 1 , 4.689544059 CHS E 2 ABS | X=470.1140657468376097748038921424929
+O40 | ours (rule 3): a dot product whose products would each lose a digit (added at green: the mutation run) | [ 1.000000000000000000000000000000001 , 1 ENTER [ 1.000000000000000000000000000000001 , 1 CHS * | X=2.000000000000000000000000000000001E-33

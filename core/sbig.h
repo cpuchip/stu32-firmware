@@ -47,5 +47,6 @@ int sxn_sign(const sxnum *a);
 bool sxn_mul(sxnum *r, const sxnum *a, const sxnum *b);
 bool sxn_add(sxnum *r, const sxnum *a, const sxnum *b, bool subtract);
 abn_status sxn_div_to_abn(abn *out, const sxnum *a, const sxnum *b);
+abn_status sxn_sqrt_to_abn(abn *out, const sxnum *a);
 
 #endif

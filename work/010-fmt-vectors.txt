@@ -15,3 +15,4 @@ D10 | ours: too wide: each element gets an equal share of the line | [0.33333333
 D11 | ours: with the radix a comma, elements are separated by a semicolon | [1.5,-2.2] | FIX 1 | radix=, | [1,5;-2,2]
 D12 | ours: no thousands separators inside a vector | [12345.5,1] | FIX 1 |  | [12345.5,1.0]
 D13 | ours: 3-D in FIX 2 | [1,-2.555,3] | FIX 2 |  | [1.00,-2.56,3.00]
+D14 | ours: ALL shows at most 12 digits of an element (added at green: the mutation run) | [0.1234567890123456789,2] | ALL |  | [0.123456789012,2]
