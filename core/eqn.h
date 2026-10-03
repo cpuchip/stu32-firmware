@@ -4,8 +4,9 @@
  * exponent; two points make a fraction a.b.c as at the keyboard), + - × ÷ ^ = ( ) , and !, the
  * function names of p.6-16 followed by "(", and the names without arguments (π, RAND, the
  * statistics). The grammar follows p.6-15's precedence table; where it is silent (ours): left to
- * right within each level, ^ included; unary minus also as an operand of × ÷ and of ^ (p.17-2's
- * ^-N); ! postfix; no implied multiplication; one = at the top level only.
+ * right within each level, ^ included; unary minus may begin any operand of + - × ÷ (B+-A,
+ * A--B, 2×-A) and the exponent of ^ (p.17-2's ^-N); ! postfix; no implied multiplication; one =
+ * at the top level only.
  *
  *   eq   := add [ "=" add ]
  *   add  := mul { ("+" | "-") mul }
