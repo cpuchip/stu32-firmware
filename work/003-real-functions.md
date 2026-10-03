@@ -80,6 +80,28 @@ All vectors pass (the starter set plus the manual's examples you add, each citin
 before green as always; provenance comments; formatting unaffected (unit 002 vectors stay green).
 At review: hidden mpmath accuracy vectors over every function and each angle mode.
 
+## Amendment 1 (2026-10-03, before any code): the library's real accuracy
+
+Soroban read the library's README (section on the TR 24732 functions): decimal128 transcendental
+functions have a maximum error estimated "below 8 ulps" (sinh, cosh, erfc measured under 9),
+are not correctly rounded, and tgamma/lgamma have unreliable last 5 digits. Rule 1 above asked for
+one unit; that cannot be met with the engine Michael chose. Ruled, replacing rule 1:
+
+1. **Correctly rounded** (within half a unit in the 34th significant digit) for +, −, ×, ÷ and √,
+   which the library implements as IEEE requires. Vectors use `=` with the correctly rounded value.
+2. **Transcendental functions within 8 units in the 34th significant digit** (the library's
+   documented bound) of the true value at the exact decimal argument. **`X^value` now means within 8
+   units in the 34th significant digit of `value`.** The reviewer reports the largest error observed.
+3. **Exact cases exact** (√ of perfect squares, 10ⁿ, LOG of 10ⁿ, integer powers that fit 34 digits).
+   n! is not in this unit; when it comes, compute it by exact multiplication while it fits 34 digits.
+4. **Angles, as soroban proposed (it subsumes rule 2 above):** in DEG and GRAD, reduce the argument
+   exactly in decimal (modulo 360 or 400) before any conversion to radians, so the textbook angles come
+   out exact (sin 180° = 0, cos 90° = 0, tan 45° = 1, sin 30° = 0.5) rather than as 1E-34 residues.
+   RAD is left unpatched: multiples of π are not representable, and SIN of the 34-digit π is the true
+   sine of that number (T10). If the library's own reduction cannot reach T10 within 8 units of the
+   result, report it rather than work around it; that is a finding about the library.
+5. gamma and lgamma are out of this unit.
+
 ## Report back (DM to abacus)
 
 Commits, red and green, pages, ambiguities with pages.
