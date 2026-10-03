@@ -1012,6 +1012,7 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
 {
     if (op == AB_KI || op == AB_KTHETA) return complex_key(c, op);
     if (op == AB_KVEC || op == AB_KCOMMA) return vector_key(c, op);
+    if (op >= AB_PRGM) return ABN_OK;                   /* STUB: unit 011 lands after the oracle */
     if (op <= AB_KE || (op >= AB_KA && op <= AB_KF)) return entry_key(c, op);
     if (op == AB_SUF) return suffix(c, arg);
     if ((op == AB_KCHS || op == AB_KBKSP) && c->entry.active) return entry_key(c, op);
@@ -1310,4 +1311,27 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
     /* Every operation not listed as disabling or neutral enables lift (UG p.B-4). */
     c->lift = true;
     return ABN_OK;
+}
+
+/* ---- program memory queries (unit 011) ---- */
+
+void ab_prog_addr(const ab_calc *c, int i, char *buf)
+{
+    (void)c;
+    (void)i;
+    strcpy(buf, "TOP");     /* STUB: unit 011 lands after the oracle */
+}
+
+int ab_prog_find(const ab_calc *c, const char *addr)
+{
+    (void)c;
+    (void)addr;
+    return -1;              /* STUB */
+}
+
+bool ab_flag(const ab_calc *c, int n)
+{
+    (void)c;
+    (void)n;
+    return false;           /* STUB */
 }

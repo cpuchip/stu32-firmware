@@ -66,14 +66,37 @@ typedef enum {
     AB_ARG,
     /* unit 010: vectors */
     AB_KVEC,                /* [ ]: begins a vector */
-    AB_KCOMMA               /* , : the next element */
+    AB_KCOMMA,              /* , : the next element */
+    /* unit 011: keystroke programs. A target (XEQ, GTO, GTOPOS) is label * 1000 + line, the label
+       0..25 for A..Z, the line 1..999 (0: the label's first line); GTOPOS -1 is PRGM TOP. */
+    AB_PRGM,                /* program entry on or off (nonprogrammable) */
+    AB_LBL,                 /* arg: the label 0..25 */
+    AB_RTN,
+    AB_XEQ, AB_GTO,         /* arg: a target */
+    AB_GTOPOS,              /* GTO . label nnn / GTO . . : moves the pointer (nonprogrammable) */
+    AB_RS,                  /* R/S: runs from the pointer; in program entry it records STOP */
+    AB_PSE,
+    AB_SST, AB_BST,         /* one line down (outside program entry: executes it) / one line up */
+    AB_CLPGM,               /* clear all programs (nonprogrammable) */
+    AB_TEST,                /* arg: AB_TEST_* relation, + 6 for the tests against 0 */
+    AB_FS,                  /* FS? arg: a flag 0..11 */
+    AB_ISG, AB_DSE,         /* arg: a variable code */
+    AB_LIT                  /* internal: a program line holding a typed number (not a key) */
 } ab_op;
+
+enum { AB_TEST_NE = 0, AB_TEST_LE, AB_TEST_LT, AB_TEST_GT, AB_TEST_GE, AB_TEST_EQ };   /* UG p.14-7 order */
 
 #define AB_VAR_A 0                  /* AB_VAR_A + k is the k-th letter; I and J are letters too */
 #define AB_VAR_IND_I 26             /* (I): the variable or register the number in I names */
 #define AB_VAR_IND_J 27             /* (J) */
 #define AB_STAT_REGS 6              /* n, sum x, sum y, sum x^2, sum y^2, sum xy (UG p.14-22) */
 #define AB_IND_MAX 800              /* unnamed indirect variables 0..800 (UG p.14-22) */
+#define AB_PROG_LINES 4000          /* program memory, lines (ours, unit 011 rule 4) */
+#define AB_PROG_LITS 500            /* of which typed numbers (each holds a whole stack value) */
+#define AB_LABEL_LINES 999          /* lines a label may own: the address form A001..A999 (UG p.13-4) */
+#define AB_RTN_DEPTH 20             /* nested subroutines below the top level (UG p.14-2) */
+#define AB_RUN_BUDGET 10000000L     /* lines one run may execute (ours, unit 011 rule 2) */
+#define AB_PC_TOP (-1)              /* the program pointer at PRGM TOP */
 
 typedef enum { AB_ANGLE_DEG = 0, AB_ANGLE_RAD, AB_ANGLE_GRAD } ab_angle;
 
@@ -122,6 +145,18 @@ typedef struct {
     int cpart;              /* 0 a real entry, 1 typing y of x i y, 2 typing a of r theta a */
     ab_entry ventry[2];     /* a vector's finished elements while the next is typed (unit 010) */
     int vlen;               /* 0, or the elements of the vector being typed, 1..3 */
+    /* unit 011: program memory (UG ch.13, 14) */
+    struct { uint16_t op; int32_t arg; } prog[AB_PROG_LINES];   /* AB_LIT: arg indexes lit[] */
+    int prog_len;
+    ab_val lit[AB_PROG_LITS];
+    bool lit_used[AB_PROG_LITS];
+    int pc;                 /* the program pointer: a line index, or AB_PC_TOP */
+    int rstack[AB_RTN_DEPTH];   /* return addresses of the subroutines being run */
+    int rdepth;
+    bool prgm;              /* program entry */
+    uint16_t flags;         /* flags 0..6, 10, 11 (7, 8, 9 are fdisp, flag8, flag9) */
+    bool yes;               /* the last test's answer, shown as YES / NO from the keyboard */
+    long budget;            /* lines a run may execute: AB_RUN_BUDGET unless a device changes it */
 } ab_calc;
 
 void ab_init(ab_calc *c);
@@ -136,6 +171,13 @@ abn_status ab_do(ab_calc *c, ab_op op);
 /* An operation that takes an argument: AB_CONST (a constant's index) and AB_FIX, AB_SCI, AB_ENG
    (the digit setting). ab_do(c, op) is ab_do_arg(c, op, 0). */
 abn_status ab_do_arg(ab_calc *c, ab_op op, int arg);
+
+/* Program memory, for displays and tests (unit 011). The address of line i ("A005", "0003" for a
+   line before any label, "TOP" for AB_PC_TOP) into buf (at least 8 bytes); the index of the line
+   with address `addr`, or -1; a flag's state. */
+void ab_prog_addr(const ab_calc *c, int i, char *buf);
+int ab_prog_find(const ab_calc *c, const char *addr);
+bool ab_flag(const ab_calc *c, int n);
 
 /* The index of the constant named `name` (see core/const.c), or -1. */
 int ab_const_index(const char *name);

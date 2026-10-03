@@ -23,7 +23,7 @@
 #include "calc.h"
 #include "norm.h"
 
-#define LINE_MAX_ 2048
+#define LINE_MAX_ 16384
 static const struct { const char *name; ab_op op; } NAMED[] = {
     {"E", AB_KE}, {"CHS", AB_KCHS}, {"BKSP", AB_KBKSP}, {"ENTER", AB_ENTER},
     {"RDN", AB_RDN}, {"RUP", AB_RUP}, {"XY", AB_XY}, {"LASTX", AB_LASTX},
@@ -49,6 +49,8 @@ static const struct { const char *name; ab_op op; } NAMED[] = {
     {"HA", AB_KA}, {"HB", AB_KB}, {"HC", AB_KC}, {"HD", AB_KD}, {"HE", AB_KE_HEX}, {"HF", AB_KF},
     {"CI", AB_KI}, {"CA", AB_KTHETA}, {"XIY", AB_XIY}, {"RTA", AB_RTA}, {"ARG", AB_ARG},
     {"[", AB_KVEC}, {",", AB_KCOMMA},
+    {"PRGM", AB_PRGM}, {"RTN", AB_RTN}, {"RS", AB_RS}, {"PSE", AB_PSE}, {"SST", AB_SST},
+    {"BST", AB_BST}, {"CLPGM", AB_CLPGM},
     {"AND", AB_AND}, {"XOR", AB_XOR}, {"OR", AB_OR}, {"NOT", AB_NOT}, {"NAND", AB_NAND}, {"NOR", AB_NOR},
     {"SIGMA+", AB_SIGMAPLUS}, {"SIGMA-", AB_SIGMAMINUS}, {"CLSIGMA", AB_CLSIGMA},
     {"XBAR", AB_XBAR}, {"YBAR", AB_YBAR}, {"XWBAR", AB_XWBAR}, {"SX", AB_SX}, {"SY", AB_SY},
@@ -84,13 +86,75 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
         }
     }
     static const struct { const char *name; ab_op op; int arg; } FRACT[] = {
-        {"FDISP", AB_FDISP, 0}, {"/C", AB_SETC, 0}, {"RCL/C", AB_RCLC, 0},
-        {"SF:7", AB_SF, 7}, {"CF:7", AB_CF, 7}, {"SF:8", AB_SF, 8}, {"CF:8", AB_CF, 8},
-        {"SF:9", AB_SF, 9}, {"CF:9", AB_CF, 9}};
+        {"FDISP", AB_FDISP, 0}, {"/C", AB_SETC, 0}, {"RCL/C", AB_RCLC, 0}};
     for (size_t i = 0; i < sizeof FRACT / sizeof FRACT[0]; i++) {
         if (strcmp(tok, FRACT[i].name) == 0) {
             if (ab_do_arg(c, FRACT[i].op, FRACT[i].arg) != ABN_OK) (*errors)++;
             return 0;
+        }
+    }
+    /* unit 011: program keys. LBL:A; XEQ:A or XEQ:A005; GTO:A or GTO:A005; GTO.:A005 (the
+       pointer-only form); GTO.. (PRGM TOP); SF:n CF:n FS?:n; ISG:A DSE:(I); X<Y? X=0? etc. */
+    {
+        static const struct { const char *prefix; ab_op op; } TGT[] = {
+            {"XEQ:", AB_XEQ}, {"GTO.:", AB_GTOPOS}, {"GTO:", AB_GTO}};
+        for (size_t i = 0; i < sizeof TGT / sizeof TGT[0]; i++) {
+            size_t n = strlen(TGT[i].prefix);
+            if (strncmp(tok, TGT[i].prefix, n) == 0) {
+                const char *v = tok + n;
+                if (v[0] < 'A' || v[0] > 'Z') return -1;
+                int line = v[1] ? atoi(v + 1) : 0;
+                if (v[1] && (strlen(v + 1) != 3 || line < 1)) return -1;
+                if (ab_do_arg(c, TGT[i].op, (v[0] - 'A') * 1000 + line) != ABN_OK) (*errors)++;
+                return 0;
+            }
+        }
+        if (strcmp(tok, "GTO..") == 0) {
+            if (ab_do_arg(c, AB_GTOPOS, AB_PC_TOP) != ABN_OK) (*errors)++;
+            return 0;
+        }
+        if (strncmp(tok, "LBL:", 4) == 0) {
+            if (tok[4] < 'A' || tok[4] > 'Z' || tok[5]) return -1;
+            if (ab_do_arg(c, AB_LBL, tok[4] - 'A') != ABN_OK) (*errors)++;
+            return 0;
+        }
+        static const struct { const char *prefix; ab_op op; } FLG[] = {
+            {"SF:", AB_SF}, {"CF:", AB_CF}, {"FS?:", AB_FS}};
+        for (size_t i = 0; i < sizeof FLG / sizeof FLG[0]; i++) {
+            size_t n = strlen(FLG[i].prefix);
+            if (strncmp(tok, FLG[i].prefix, n) == 0 && isdigit((unsigned char)tok[n])) {
+                if (ab_do_arg(c, FLG[i].op, atoi(tok + n)) != ABN_OK) (*errors)++;
+                return 0;
+            }
+        }
+        static const struct { const char *prefix; ab_op op; } LOOP[] = {{"ISG:", AB_ISG}, {"DSE:", AB_DSE}};
+        for (size_t i = 0; i < 2; i++) {
+            if (strncmp(tok, LOOP[i].prefix, 4) == 0) {
+                const char *v = tok + 4;
+                int code;
+                if (v[0] >= 'A' && v[0] <= 'Z' && v[1] == '\0') code = AB_VAR_A + (v[0] - 'A');
+                else if (strcmp(v, "(I)") == 0) code = AB_VAR_IND_I;
+                else if (strcmp(v, "(J)") == 0) code = AB_VAR_IND_J;
+                else return -1;
+                if (ab_do_arg(c, LOOP[i].op, code) != ABN_OK) (*errors)++;
+                return 0;
+            }
+        }
+        static const char *const REL[] = {"!=", "<=", "<", ">", ">=", "="};
+        if (tok[0] == 'X' && strlen(tok) >= 4 && tok[strlen(tok) - 1] == '?') {
+            char rel[4] = "";
+            char other = tok[strlen(tok) - 2];
+            size_t rl = strlen(tok) - 3;
+            if (rl < 1 || rl > 2 || (other != 'Y' && other != '0')) return -1;
+            memcpy(rel, tok + 1, rl);
+            rel[rl] = '\0';
+            for (int r = 0; r < 6; r++) {
+                if (strcmp(rel, REL[r]) == 0) {
+                    if (ab_do_arg(c, AB_TEST, r + (other == '0' ? 6 : 0)) != ABN_OK) (*errors)++;
+                    return 0;
+                }
+            }
+            return -1;
         }
     }
     if (strncmp(tok, "SUF:", 4) == 0) {
@@ -205,6 +269,44 @@ int main(int argc, char **argv)
         }
         for (int k = 0; k < nexp; k++) {
             char *ex = exps[k];
+            if (ex[0] == '%') {
+                /* program state (unit 011): %PC=A005 or TOP; %GO:A004=A003 (that line's target);
+                   %LINES=n; %YES=0|1 (the last test); %Fn=0|1 (flag n) */
+                char *eq = strchr(ex, '=');
+                char got[32] = "?";
+                if (!eq) {
+                    fprintf(stderr, "%s:%d: %s: bad expectation '%s'\n", argv[1], lineno, id, ex);
+                    return 2;
+                }
+                *eq = '\0';
+                if (strcmp(ex, "%PC") == 0) {
+                    ab_prog_addr(&c, c.pc, got);
+                } else if (strncmp(ex, "%GO:", 4) == 0) {
+                    int i = ab_prog_find(&c, ex + 4);
+                    if (i >= 0 && (c.prog[i].op == AB_XEQ || c.prog[i].op == AB_GTO)) {
+                        int a = c.prog[i].arg;
+                        if (a / 1000 >= 26) snprintf(got, sizeof got, "NONE");
+                        else snprintf(got, sizeof got, "%c%03d", 'A' + a / 1000, a % 1000);
+                    }
+                } else if (strcmp(ex, "%LINES") == 0) {
+                    snprintf(got, sizeof got, "%d", c.prog_len);
+                } else if (strcmp(ex, "%YES") == 0) {
+                    snprintf(got, sizeof got, "%d", c.yes ? 1 : 0);
+                } else if (ex[1] == 'F' && isdigit((unsigned char)ex[2])) {
+                    snprintf(got, sizeof got, "%d", ab_flag(&c, atoi(ex + 2)) ? 1 : 0);
+                } else {
+                    fprintf(stderr, "%s:%d: %s: bad expectation '%s'\n", argv[1], lineno, id, ex);
+                    return 2;
+                }
+                checks++;
+                if (strcmp(got, eq + 1) == 0) {
+                    checks_ok++;
+                } else {
+                    vec_ok = 0;
+                    printf("FAIL %s: expected %s=%s, got %s\n", id, ex, eq + 1, got);
+                }
+                continue;
+            }
             const ab_val *rv = reg(&c, ex[0]);
             const abn *r = rv ? &rv->re : NULL;
             ab_val var_val;

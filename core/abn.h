@@ -30,7 +30,14 @@ typedef enum {
     ABN_DOMAIN,             /* argument outside the function's real domain */
     ABN_INEXACT,            /* abn_mul_exact only: the product needed rounding */
     ABN_CLAMPED             /* base modes: the result was replaced by the nearest end of the word
-                               range and the operation completed (unit 008 rule 3) */
+                               range and the operation completed (unit 008 rule 3) */,
+    /* calculator conditions (unit 011): the engine never returns these */
+    ABN_NONEXISTENT,        /* GTO or XEQ to a label or line that does not exist (UG p.F-3) */
+    ABN_XEQ_OVERFLOW,       /* a 21st nested XEQ (UG p.14-3, p.F-5) */
+    ABN_DUP_LABEL,          /* a label that already exists (UG p.13-4, p.F-1) */
+    ABN_MEMORY_FULL,        /* program memory full (UG p.F-3; capacity ours) */
+    ABN_NONPROGRAMMABLE,    /* a key refused in program entry (UG p.13-24) */
+    ABN_BUDGET              /* a program ran AB_RUN_BUDGET lines without stopping (ours) */
 } abn_status;
 
 abn abn_zero(void);
