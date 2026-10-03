@@ -8,6 +8,7 @@
 #include "calc.h"
 #include "fn.h"
 #include "const.h"
+#include "stat.h"
 
 void ab_init(ab_calc *c)
 {
@@ -375,7 +376,6 @@ abn_status ab_do(ab_calc *c, ab_op op)
 
 abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
 {
-    if (op >= AB_SIGMAPLUS) return ABN_OK;  /* STUB: unit 006 lands after the oracle */
 
     if (op <= AB_KE) return entry_key(c, op);
     if ((op == AB_KCHS || op == AB_KBKSP) && c->entry.active) return entry_key(c, op);
@@ -490,6 +490,60 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
     case AB_RCLADD: case AB_RCLSUB: case AB_RCLMUL: case AB_RCLDIV:
     case AB_XVAR: case AB_VIEW:
         return storage_op(c, op, arg);
+    case AB_SIGMAPLUS:
+    case AB_SIGMAMINUS: {
+        /* Sigma+ / Sigma- add or remove the pair (x in X, y in Y; UG p.12-2): X becomes n, Y keeps
+           y, x goes to LAST X (UG p.12-3, p.B-6) and lift is disabled (UG p.B-5). All six
+           registers change or none does (ours, unit 006 rule 2). */
+        abn_status st = st_accumulate(c->stat, &c->x, &c->y, op == AB_SIGMAMINUS);
+        if (st != ABN_OK) return st;
+        c->lastx = c->x;
+        c->x = c->stat[ST_N];
+        c->lift = false;
+        return ABN_OK;
+    }
+    case AB_CLSIGMA:
+        /* Clear the six statistics registers; neutral for lift (UG p.12-2, p.B-5). */
+        for (int i = 0; i < AB_STAT_REGS; i++) c->stat[i] = abn_zero();
+        return ABN_OK;
+    case AB_XHAT:
+    case AB_YHAT: {
+        /* x-hat of the y in X, y-hat of the x in X (UG p.12-8); the input goes to LAST X
+           (UG p.B-6). */
+        abn r;
+        abn_status st = op == AB_XHAT ? st_xhat(&r, c->stat, &c->x) : st_yhat(&r, c->stat, &c->x);
+        if (st != ABN_OK) return st;
+        c->lastx = c->x;
+        c->x = r;
+        break;
+    }
+    case AB_XBAR: case AB_YBAR: case AB_XWBAR: case AB_SX: case AB_SY: case AB_PSX: case AB_PSY:
+    case AB_CORR: case AB_SLOPE: case AB_YINT: {
+        /* A statistic arrives like a recalled number, one value in X (unit 006 rule 1: the guide
+           is silent on lift); LAST X is untouched (not in UG p.B-6). STAT ERROR cases change
+           nothing. */
+        abn r;
+        abn_status st;
+        switch (op) {
+        case AB_XBAR: st = st_mean(&r, c->stat, false); break;
+        case AB_YBAR: st = st_mean(&r, c->stat, true); break;
+        case AB_XWBAR: st = st_wmean(&r, c->stat); break;
+        case AB_SX: st = st_sdev(&r, c->stat, false, false); break;
+        case AB_SY: st = st_sdev(&r, c->stat, true, false); break;
+        case AB_PSX: st = st_sdev(&r, c->stat, false, true); break;
+        case AB_PSY: st = st_sdev(&r, c->stat, true, true); break;
+        case AB_CORR: st = st_corr(&r, c->stat); break;
+        case AB_SLOPE: st = st_slope(&r, c->stat); break;
+        default: st = st_yint(&r, c->stat); break;
+        }
+        if (st != ABN_OK) return st;
+        place_in_x(c, r);
+        break;
+    }
+    case AB_NSUM: case AB_SUMX: case AB_SUMY: case AB_SUMX2: case AB_SUMY2: case AB_SUMXY:
+        /* The summation registers, recalled (UG p.12-11). */
+        place_in_x(c, c->stat[op - AB_NSUM]);
+        break;
     case AB_CLVARS:
         /* Clear the direct variables A..Z (UG p.3-5); neutral for stack lift (UG p.B-5). The
            unnamed indirect variables have their own clearing (UG p.1-5, a later unit). */

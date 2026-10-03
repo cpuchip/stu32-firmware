@@ -53,9 +53,12 @@ test: all
 	./build/fmt_vectors work/002-vectors.txt
 	python3 tests/fmt_fuzz.py build/fmt_drive 20000
 
-# Needs mpmath (not part of `make test`): every unit 003 function against mpmath at 150 digits.
-accuracy: build/fn_drive
+# Needs mpmath (not part of `make test`): the unit 003/004 functions against mpmath at 150 digits,
+# and random statistics data sets against the exact reference.
+accuracy: build/fn_drive build/vectors
 	python3 tests/fn_fuzz.py build/fn_drive
+	python3 tests/stat_fuzz.py 1 1500 > build/stat_fuzz.txt
+	./build/vectors build/stat_fuzz.txt
 
 clean:
 	rm -rf build

@@ -1,0 +1,57 @@
+"""stat_ref: unit 006 reference (soroban), for tests/stat_fuzz.py: replays rule 2's roundings with Python
+decimal and evaluates rule 3 exactly with Fraction (needs mpmath for the square roots)."""
+from decimal import Decimal as D, Context, ROUND_HALF_EVEN
+from fractions import Fraction as F
+import mpmath as mp
+mp.mp.dps = 150
+C34 = Context(prec=34, rounding=ROUND_HALF_EVEN, Emax=6144, Emin=-6143)
+W = Context(prec=400, rounding=ROUND_HALF_EVEN)
+
+def r34(q):
+    """A Fraction (or Decimal) rounded once to 34 digits."""
+    if isinstance(q, F):
+        n, d = q.numerator, q.denominator
+        return C34.divide(D(n), D(d)) if False else C34.plus(W.divide(D(n), D(d))) if d != 1 else C34.plus(D(n))
+    return C34.plus(q)
+
+class Reg:
+    def __init__(self):
+        self.r = [D(0)] * 6          # n, sx, sy, sx2, sy2, sxy
+    def acc(self, x, y, remove=False):
+        x, y = D(x), D(y)
+        s = -1 if remove else 1
+        n, sx, sy, sx2, sy2, sxy = self.r
+        # every product in the wide context: Decimal's default context would round to 28 digits
+        m = lambda *a: W.multiply(W.multiply(a[0], a[1]), a[2]) if len(a) == 3 else W.multiply(a[0], a[1])
+        S = D(s)
+        self.r = [C34.plus(W.add(n, S)), C34.plus(W.add(sx, m(S, x))), C34.plus(W.add(sy, m(S, y))),
+                  C34.plus(W.add(sx2, m(S, x, x))), C34.plus(W.add(sy2, m(S, y, y))), C34.plus(W.add(sxy, m(S, x, y)))]
+    def fr(self):
+        return [F(v) for v in self.r]
+
+def mean(R, y=False):
+    n, sx, sy, *_ = R.fr(); return (sy if y else sx) / n
+def wmean(R):
+    n, sx, sy, sx2, sy2, sxy = R.fr(); return sxy / sy
+def var(R, y=False, pop=False):
+    n, sx, sy, sx2, sy2, sxy = R.fr()
+    s, s2 = (sy, sy2) if y else (sx, sx2)
+    num = n * s2 - s * s
+    return num / (n * n if pop else n * (n - 1))
+def slope(R):
+    n, sx, sy, sx2, sy2, sxy = R.fr(); return (n * sxy - sx * sy) / (n * sx2 - sx * sx)
+def yint(R):
+    n, sx, sy, sx2, sy2, sxy = R.fr(); return (sy * sx2 - sx * sxy) / (n * sx2 - sx * sx)
+def corr2(R):
+    n, sx, sy, sx2, sy2, sxy = R.fr()
+    c = n * sxy - sx * sy
+    return c, c * c / ((n * sx2 - sx * sx) * (n * sy2 - sy * sy))
+def yhat(R, x):
+    n, sx, sy, sx2, sy2, sxy = R.fr(); x = F(D(x))
+    return (x * (n * sxy - sx * sy) + (sy * sx2 - sx * sxy)) / (n * sx2 - sx * sx)
+def xhat(R, y):
+    n, sx, sy, sx2, sy2, sxy = R.fr(); y = F(D(y))
+    return (y * (n * sx2 - sx * sx) - (sy * sx2 - sx * sxy)) / (n * sxy - sx * sy)
+def sqrt36(q, sign=1):
+    v = mp.sqrt(mp.mpf(q.numerator) / mp.mpf(q.denominator)) * sign
+    return mp.nstr(v, 36, min_fixed=-30, max_fixed=30).replace('e', 'E')
