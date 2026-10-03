@@ -159,7 +159,19 @@ int main(void)
     for (int i = 0; i < 20; i++) app_tick(&a, &in, now += 10);
     expect(a.running && x_of(&c) > 0, "after 20 ticks: still running, X counting");
     press(&a, "5");
-    expect(a.running, "a digit during a run: ignored");
+    for (int i = 0; i < 5; i++) app_tick(&a, &in, now += 10);
+    expect(a.running, "a digit during a run: ignored, the run goes on");
+    {
+        /* a long run is activity and is not saved under: 11 minutes of it, no key */
+        bool off = false, saved = false;
+        for (int i = 0; i < 660; i++) {
+            app_action r = app_tick(&a, &in, now += 1000);
+            off |= r == APP_OFF;
+            saved |= r == APP_SAVE;
+        }
+        expect(a.running && !off, "11 minutes of a run with no key: still on (a run is activity)");
+        expect(!saved, "no save while a run goes on");
+    }
     press(&a, "R/S");
     run_out(&a, &in);
     expect(!a.running && c.stop == AB_STOP_STOP, "R/S interrupts the run (UG p.13-19)");
@@ -171,6 +183,20 @@ int main(void)
     press(&a, "C");
     run_out(&a, &in);
     expect(!a.running && x_of(&c) > x1, "C interrupts too, and the run had gone on");
+
+    /* in program entry XEQ records a line: no busy callback; a label prompt ignores (I) */
+    ab_init(&c);
+    app_init(&a, &c, now);
+    a.busy = on_busy;
+    busy_calls = 0;
+    ab_do(&c, AB_PRGM);
+    press(&a, "GOLD XEQ ltr:A XEQ ltr:A");
+    expect(busy_calls == 0 && c.prog_len == 2, "program entry: XEQ A recorded, no busy callback");
+    press(&a, "GOLD XEQ 3");                        /* key 39 is (I): no label */
+    expect(a.prompt_op == AB_LBL && c.prog_len == 2, "LBL then (I): ignored, the prompt stays open");
+    press(&a, "ltr:B");
+    expect(a.prompt_op < 0 && c.prog_len == 3, "then B: LBL B");
+    ab_do(&c, AB_PRGM);
 
     /* a run that ends by itself gives what the unsliced run gives: LBL B, 1000, STO N, DSE N,
        GTO B004, RTN (about 2,000 lines: ten slices) */

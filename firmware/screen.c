@@ -396,6 +396,9 @@ void screen_render(const ab_calc *c, const screen_ui *ui, ls027_frame *f)
     if (ui->busy && (m = ab_busy_message((ab_op)ui->busy)) != NULL) {
         line_add(&x, m);
         x_left = true;
+    } else if (ui->prompt) {                    /* an op waiting for its argument (app.h) */
+        line_add(&x, ui->prompt);
+        x_left = true;
     } else if ((m = ab_error_message(c)) != NULL) {
         line_add(&x, m);                        /* every message is one line (#3822) */
         x_left = true;
