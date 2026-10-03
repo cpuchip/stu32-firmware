@@ -15,7 +15,7 @@ LIBS := -lm
 
 .PHONY: all test accuracy clean device-host
 KEYV := $(filter-out work/002-vectors.txt work/016-vectors.txt work/017-vectors.txt work/018-vectors.txt,$(filter-out %-fmt-vectors.txt,$(wildcard work/*-vectors.txt)))
-all: build/power_test build/screen_test build/keys_test build/ls027_test build/store_test build/load_fuzz build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test
+all: build/keymap_test build/power_test build/screen_test build/keys_test build/ls027_test build/store_test build/load_fuzz build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test
 
 # every build/ target is order-only on the directory: a fresh clone has none (abacus #3803)
 build:
@@ -29,10 +29,13 @@ build/abn_intel.o: core/abn_intel.c core/abn.h $(INTEL_LIB) | build
 	@mkdir -p build
 	$(CC) $(CFLAGS) $(BID_FLAGS) -isystem $(INTEL_SRC) -c -o $@ core/abn_intel.c
 
+SCREEN := firmware/screen.c firmware/font5x7.c
+build/keymap_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) firmware/keymap.c firmware/keymap.h firmware/keys.c firmware/keys.h firmware/screen.h tests/keymap_test.c | build
+	$(CC) $(CFLAGS) -Icore -Ifirmware -o $@ $(CORE) $(SCREEN) firmware/keymap.c firmware/keys.c tests/keymap_test.c $(ENGINE) $(LIBS)
+
 build/power_test: firmware/gauge.c firmware/gauge.h firmware/power.c firmware/power.h firmware/pins.c firmware/pins.h tests/power_test.c | build
 	$(CC) $(CFLAGS) -Ifirmware -o $@ firmware/gauge.c firmware/power.c firmware/pins.c tests/power_test.c
 
-SCREEN := firmware/screen.c firmware/font5x7.c
 build/screen_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) firmware/screen.h firmware/font5x7.h firmware/ls027.h tests/screen_test.c | build
 	$(CC) $(CFLAGS) -Icore -Ifirmware -o $@ $(CORE) $(SCREEN) tests/screen_test.c $(ENGINE) $(LIBS)
 
@@ -104,6 +107,8 @@ test: all
 	./build/ls027_test
 	./build/keys_test
 	./build/power_test
+	./build/keymap_test
+	python3 scripts/gen_keymap.py --check
 	@mkdir -p build/frames
 	./build/screen_test tests/frames
 	python3 scripts/gen_font.py --check
