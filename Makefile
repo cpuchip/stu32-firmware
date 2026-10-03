@@ -15,7 +15,7 @@ LIBS := -lm
 
 .PHONY: all test accuracy clean device-host
 KEYV := $(filter-out work/002-vectors.txt work/016-vectors.txt work/017-vectors.txt work/018-vectors.txt,$(filter-out %-fmt-vectors.txt,$(wildcard work/*-vectors.txt)))
-all: build/app_test build/keymap_test build/power_test build/screen_test build/keys_test build/ls027_test build/store_test build/load_fuzz build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test
+all: build/standin_test build/app_test build/keymap_test build/power_test build/screen_test build/keys_test build/ls027_test build/store_test build/load_fuzz build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test
 
 # every build/ target is order-only on the directory: a fresh clone has none (abacus #3803)
 build:
@@ -36,6 +36,9 @@ build/keymap_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) firmware/keymap.c firmwar
 APP := firmware/app.c firmware/keymap.c firmware/keys.c firmware/power.c
 build/app_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) $(APP) firmware/app.h firmware/keymap.h firmware/power.h firmware/screen.h tests/app_test.c | build
 	$(CC) $(CFLAGS) -Icore -Ifirmware -o $@ $(CORE) $(SCREEN) $(APP) tests/app_test.c $(ENGINE) $(LIBS)
+
+build/standin_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) $(APP) firmware/standin.c firmware/standin.h firmware/app.h firmware/keymap.h firmware/screen.h tests/standin_test.c | build
+	$(CC) $(CFLAGS) -Icore -Ifirmware -o $@ $(CORE) $(SCREEN) $(APP) firmware/standin.c tests/standin_test.c $(ENGINE) $(LIBS)
 
 build/power_test: firmware/gauge.c firmware/gauge.h firmware/power.c firmware/power.h firmware/pins.c firmware/pins.h tests/power_test.c | build
 	$(CC) $(CFLAGS) -Ifirmware -o $@ firmware/gauge.c firmware/power.c firmware/pins.c tests/power_test.c
@@ -113,6 +116,8 @@ test: all
 	./build/power_test
 	./build/keymap_test
 	./build/app_test
+	@mkdir -p build/standin
+	./build/standin_test tests/frames/standin.crc
 	python3 scripts/gen_keymap.py --check
 	@mkdir -p build/frames
 	./build/screen_test tests/frames
