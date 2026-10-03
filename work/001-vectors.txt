@@ -58,3 +58,16 @@ V36 | decimal, not binary          | 0.1 ENTER 0.2 +                            
 V37 | p.2-5 operand order (Y op X) | 9 ENTER 2 -                                  | X=7
 V38 | p.2-5 operand order (Y op X) | 10 ENTER 4 /                                 | X=2.5
 V39 | p.1-15 CHS during entry      | 5 CHS ENTER 3 +                              | X=-2
+
+# --- Amendment 2 (2026-10-03): the reviewer's rulings on soroban's questions. Rulings 1-3 are
+# provisional until checked on Michael's real HP 35s; see the unit's "Amendment 2" section.
+V40 | ruling 1: a completed typed number survives a recall | 3 ENTER 4 * 1 ENTER 2 LASTX | X=4 Y=2 Z=1 T=12
+V41 | ruling 1: after CLX too                             | 3 ENTER 4 * CLX 2 LASTX     | X=4 Y=2
+V42 | ruling 2: backspace removes keys, not CHS presses    | 12 CHS BKSP ENTER           | X=-1 Y=-1
+V43 | ruling 2: erasing every key ends entry, lift off     | 7 ENTER 1 CHS BKSP 5        | X=5 Y=7
+V44 | ruling 3: E with no mantissa digit is ignored        | 7 ENTER E 6                 | X=6 Y=7
+V45 | ruling 4: CHS on a completed X enables lift (B-4)    | 5 ENTER CHS 3               | X=3 Y=-5 Z=5
+V46 | ruling 5: 34 mantissa digits, the 35th ignored       | 12345678901234567890123456789012345 ENTER | X=1234567890123456789012345678901234
+V47 | ruling 5: 4 exponent digits, the 5th ignored         | 1 E 12345 ENTER             | X=1E1234
+V48 | ruling 5: a key that would leave the range is ignored| 1 E 6145 ENTER              | X=1E614
+V49 | ruling 5: dividing by zero leaves the stack alone    | 3 ENTER 4 * 1 ENTER 0 /     | ERR X=0 Y=1 Z=12 L=4
