@@ -188,24 +188,31 @@ abn_status cx_exp(cplx *out, const cplx *z)
     return round_parts(out, &pr, &pi_);
 }
 
-/* ln z = ln |z| + i arg z, arg in (-pi, pi] (principal; unit 009 rule 5). ln |z| is half the log
- * of s = a^2 + b^2, formed exactly, with s - 1 exact too so that a z close to the unit circle
- * keeps its small real part. */
+/* s = a^2 + b^2 and t = s - 1 into (hs, ht), to 80 digits: each square exact (at most 68
+ * digits), and the sum exact unless one square lies wholly below the other's 80th digit, which
+ * then cannot matter to ln |z| beside arg z (a part is 34 digits, so a != 1 means |a - 1| >= 1e-33).
+ * t near 0 is formed from the exact squares, so a z close to the unit circle keeps its small real
+ * part. */
+static hp hs, ht;
+static abn_status sum_squares(const cplx *z)
+{
+    static hp one;
+    hp_set_int(&one, 1);
+    if (!hp_from_abn(&ha, &z->re) || !hp_from_abn(&hb, &z->im) || !hp_mul(&e1, &ha, &ha, 80) ||
+        !hp_mul(&e2, &hb, &hb, 80) || !hp_add(&hs, &e1, &e2, false, 80) || !hp_add(&ht, &hs, &one, true, 80))
+        return ABN_RANGE;
+    return ABN_OK;
+}
+
+/* ln z = ln |z| + i arg z, arg in (-pi, pi] (principal; unit 009 rule 5): ln |z| is half the log of
+ * a^2 + b^2. */
 abn_status cx_ln(cplx *out, const cplx *z)
 {
-    static xnum s, t, one;
-    cplx zero = {abn_zero(), abn_zero()};
+    abn_status st;
     if (abn_is_zero(&z->re) && abn_is_zero(&z->im)) return ABN_DOMAIN;
     if (!hp_atan2(&pi_, &z->im, &z->re, HP_WORK)) return ABN_RANGE;
-    xn_set_int(&one, 1);
-    if (load4(z, &zero) != ABN_OK) return ABN_RANGE;
-    if (!dot2(&s, &A, &A, &B, &B, false) || !xn_add(&t, &s, &one, true)) {
-        /* parts too far apart for the exact sum: the smaller square is beyond the kept digits */
-        if (!hp_mul(&e1, &A, &A, HP_WORK + 10) || !hp_mul(&e2, &B, &B, HP_WORK + 10) ||
-            !hp_add(&s, &e1, &e2, false, HP_WORK + 10) || !hp_add(&t, &s, &one, true, HP_WORK + 10))
-            return ABN_RANGE;
-    }
-    if (!hp_ln(&e3, &s, &t, HP_WORK + 2)) return ABN_RANGE;
+    if ((st = sum_squares(z)) != ABN_OK) return st;
+    if (!hp_ln(&e3, &hs, &ht, HP_WORK + 2)) return ABN_RANGE;
     hp_set_int(&e4, 5);
     e4.e = -1;
     if (!hp_mul(&pr, &e3, &e4, HP_WORK + 2)) return ABN_RANGE;
@@ -302,47 +309,29 @@ abn_status cx_tan(cplx *out, const cplx *z)
     return round_parts(out, &pr, &pi_);
 }
 
-/* x trimmed to at most 60 significant digits (truncated): the working precision of a long
- * integer power. */
-static void trim60(xnum *x)
+/* (p + qi)(r + si) into (u + vi) to 60 digits (exact when the true parts have at most 60). */
+static bool xcmul(hp *u, hp *v, const hp *p, const hp *q, const hp *r, const hp *s)
 {
-    int nd = bi_ndigits(&x->m);
-    if (nd > 60) {
-        bi_div_pow10(&x->m, nd - 60);
-        x->e += nd - 60;
-    }
+    static hp t1, t2;
+    return hp_mul(&t1, p, r, 120) && hp_mul(&t2, q, s, 120) && hp_add(u, &t1, &t2, true, 60) &&
+           hp_mul(&t1, p, s, 120) && hp_mul(&t2, q, r, 120) && hp_add(v, &t1, &t2, false, 60);
 }
 
-/* (p + qi)(r + si) into (u + vi), exactly, then trimmed. */
-static bool xcmul(xnum *u, xnum *v, const xnum *p, const xnum *q, const xnum *r, const xnum *s)
-{
-    if (!dot2(u, p, r, q, s, true) || !dot2(v, p, s, q, r, false)) return false;
-    trim60(u);
-    trim60(v);
-    return true;
-}
-
-/* z^n for an integer n, |n| < 2^31, by repeated squaring on exact numbers trimmed to 60 digits
- * (exact whenever the true power has at most 60 digits in each part), rounded once at the end;
- * for n < 0 the reciprocal of the 60-digit power, rounded once. */
+/* z^n for an integer n, |n| < 2^31, by repeated squaring to 60 digits (exact whenever the true
+ * power has at most 60 digits in each part), rounded once at the end; for n < 0 the reciprocal
+ * of the 60-digit power, to 60 digits, rounded once. */
 static abn_status cx_powi(cplx *out, const cplx *z, long n)
 {
-    static xnum pr, pi, br, bi, tr, ti, den, one;
-    cplx zero = {abn_zero(), abn_zero()};
+    static hp pr2, pi2, br, bi, tr, ti, den, t1, t2;
     unsigned long m = n < 0 ? (unsigned long)-n : (unsigned long)n;
-    abn_status st;
-    cplx r;
-    if ((st = load4(z, &zero)) != ABN_OK) return st;
-    br = A;
-    bi = B;
-    xn_set_int(&pr, 1);
-    xn_set_int(&pi, 0);
-    xn_set_int(&one, 1);
+    if (!hp_from_abn(&br, &z->re) || !hp_from_abn(&bi, &z->im)) return ABN_RANGE;
+    hp_set_int(&pr2, 1);
+    hp_set_int(&pi2, 0);
     while (m) {
         if (m & 1) {
-            if (!xcmul(&tr, &ti, &pr, &pi, &br, &bi)) return ABN_RANGE;
-            pr = tr;
-            pi = ti;
+            if (!xcmul(&tr, &ti, &pr2, &pi2, &br, &bi)) return ABN_RANGE;
+            pr2 = tr;
+            pi2 = ti;
         }
         m >>= 1;
         if (m) {
@@ -351,35 +340,26 @@ static abn_status cx_powi(cplx *out, const cplx *z, long n)
             bi = ti;
         }
     }
-    if (n >= 0) {
-        if ((st = xn_div_to_abn(&r.re, &pr, &one)) != ABN_OK) return st;
-        if ((st = xn_div_to_abn(&r.im, &pi, &one)) != ABN_OK) return st;
-    } else {
+    if (n < 0) {
         /* 1/(p + qi) = (p - qi) / (p^2 + q^2) */
-        if (!dot2(&den, &pr, &pr, &pi, &pi, false)) return ABN_RANGE;
-        if (xn_sign(&den) == 0) return ABN_DIV_ZERO;
-        pi.neg = !pi.neg && xn_sign(&pi) != 0;
-        if ((st = xn_div_to_abn(&r.re, &pr, &den)) != ABN_OK) return st;
-        if ((st = xn_div_to_abn(&r.im, &pi, &den)) != ABN_OK) return st;
+        if (!hp_mul(&t1, &pr2, &pr2, 120) || !hp_mul(&t2, &pi2, &pi2, 120) || !hp_add(&den, &t1, &t2, false, 120))
+            return ABN_RANGE;
+        if (hp_is_zero(&den)) return ABN_DIV_ZERO;
+        hp_neg(&pi2);
+        if (!hp_div(&tr, &pr2, &den, 60) || !hp_div(&ti, &pi2, &den, 60)) return ABN_RANGE;
+        pr2 = tr;
+        pi2 = ti;
     }
-    *out = r;
-    return ABN_OK;
+    return round_parts(out, &pr2, &pi2);
 }
 
 /* ln z1 to p digits into (e5, e6). */
 static abn_status ln_hp(const cplx *z, int p)
 {
-    static xnum s, t, one;
-    cplx zero = {abn_zero(), abn_zero()};
+    abn_status st;
     if (!hp_atan2(&e6, &z->im, &z->re, p)) return ABN_RANGE;
-    xn_set_int(&one, 1);
-    if (load4(z, &zero) != ABN_OK) return ABN_RANGE;
-    if (!dot2(&s, &A, &A, &B, &B, false) || !xn_add(&t, &s, &one, true)) {
-        if (!hp_mul(&e1, &A, &A, p + 10) || !hp_mul(&e2, &B, &B, p + 10) ||
-            !hp_add(&s, &e1, &e2, false, p + 10) || !hp_add(&t, &s, &one, true, p + 10))
-            return ABN_RANGE;
-    }
-    if (!hp_ln(&e3, &s, &t, p)) return ABN_RANGE;
+    if ((st = sum_squares(z)) != ABN_OK) return st;
+    if (!hp_ln(&e3, &hs, &ht, p)) return ABN_RANGE;
     hp_set_int(&e4, 5);
     e4.e = -1;
     if (!hp_mul(&e5, &e3, &e4, p)) return ABN_RANGE;

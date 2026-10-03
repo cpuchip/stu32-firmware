@@ -81,17 +81,22 @@ def C(p):
     return mp.mpc(mp.mpf(p[0]), mp.mpf(p[1]))
 
 
-def pw(a, b):
+def pw(a, b, args):
     if a == 0:
         return mp.mpc(0) if b.real > 0 else None
-    return mp.exp(b * mp.log(a))
+    # w = b ln a must be right far past its units: the operands are rebuilt from their decimal
+    # text at the higher precision (an mpf made at 150 digits from "1.7" is off by 1e-150, which
+    # |w| ~ 1e140 magnifies into the 10th digit)
+    with mp.workdps(200 + 2 * max(0, int(mp.log10(abs(b) + 1)))):
+        a, b = C(args[:2]), C(args[2:])
+        return +mp.exp(b * mp.log(a))
 
 
 ONE = {"INV": lambda w: 1 / w if w != 0 else None, "EXP": mp.exp,
        "LN": lambda w: mp.log(w) if w != 0 else None, "SIN": mp.sin, "COS": mp.cos, "TAN": mp.tan,
        "ABS": lambda w: mp.mpc(abs(w), 0)}
-TWO = {"ADD": lambda a, b: a + b, "SUB": lambda a, b: a - b, "MUL": lambda a, b: a * b,
-       "DIV": lambda a, b: a / b if b != 0 else None, "POW": pw}
+TWO = {"ADD": lambda a, b, s: a + b, "SUB": lambda a, b, s: a - b, "MUL": lambda a, b, s: a * b,
+       "DIV": lambda a, b, s: a / b if b != 0 else None, "POW": pw}
 EXACT = {"ADD", "SUB", "MUL", "DIV", "INV"}
 
 CASES = []  # (label, name, generator)
@@ -112,7 +117,8 @@ CASES += [("INV", "INV", lambda: z()), ("ABS", "ABS", lambda: z()),
           ("POW big integer", "POW", lambda: (num(0.9, 1.1), num(-0.1, 0.1), str(R.randint(-100000, 100000)), "0")),
           ("POW real", "POW", lambda: z(-5, 5) + (num(-6, 6), "0")),
           ("POW complex", "POW", lambda: z(-5, 5) + z(-3, 3)),
-          ("POW real base", "POW", lambda: (num(-20, 20), "0") + z(-3, 3))]
+          ("POW real base", "POW", lambda: (num(-20, 20), "0") + z(-3, 3)),
+          ("POW huge w", "POW", lambda: z(-3, 3) + ("0", num(1, 10) + "E" + str(R.randint(20, 150))))]
 
 
 def unit_of(w):
@@ -132,7 +138,7 @@ def main():
             if name in ONE:
                 truth = ONE[name](C(a))
             else:
-                truth = TWO[name](C(a[:2]), C(a[2:]))
+                truth = TWO[name](C(a[:2]), C(a[2:]), a)
             if truth is not None and abs(truth) != 0:
                 m = max(abs(truth.real), abs(truth.imag))
                 if m > mp.mpf("9.99e6144") or m < mp.mpf("1e-6143"):

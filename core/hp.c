@@ -15,32 +15,32 @@ static const char LN10_241[] =
 
 void hp_set_int(hp *r, int v)
 {
-    xn_set_int(r, v);
+    sxn_set_int(r, v);
 }
 
 bool hp_from_abn(hp *r, const abn *x)
 {
-    return xn_from_abn(r, x);
+    return sxn_from_abn(r, x);
 }
 
 bool hp_is_zero(const hp *x)
 {
-    return bi_is_zero(&x->m);
+    return sb_is_zero(&x->m);
 }
 
 long hp_lead(const hp *x)
 {
-    return x->e + bi_ndigits(&x->m) - 1;
+    return x->e + sb_ndigits(&x->m) - 1;
 }
 
 void hp_trim(hp *x, int p)
 {
-    int n = bi_ndigits(&x->m);
+    int n = sb_ndigits(&x->m);
     if (n > p) {
-        bi_div_pow10(&x->m, n - p);
+        sb_div_pow10(&x->m, n - p);
         x->e += n - p;
     }
-    if (bi_is_zero(&x->m)) {
+    if (sb_is_zero(&x->m)) {
         x->neg = false;
         x->e = 0;
     }
@@ -53,7 +53,7 @@ void hp_neg(hp *x)
 
 bool hp_mul(hp *r, const hp *a, const hp *b, int p)
 {
-    if (!xn_mul(r, a, b)) return false;
+    if (!sxn_mul(r, a, b)) return false;
     hp_trim(r, p);
     return true;
 }
@@ -75,24 +75,24 @@ bool hp_add(hp *r, const hp *a, const hp *b, bool subtract, int p)
             return true;
         }
     }
-    if (!xn_add(r, a, b, subtract)) return false;
+    if (!sxn_add(r, a, b, subtract)) return false;
     hp_trim(r, p);
     return true;
 }
 
 bool hp_div(hp *r, const hp *a, const hp *b, int p)
 {
-    static bigint num;
+    static sbig num;
     bool inexact;
     if (hp_is_zero(b)) return false;
     if (hp_is_zero(a)) {
         hp_set_int(r, 0);
         return true;
     }
-    int k = p + 2 + bi_ndigits(&b->m) - bi_ndigits(&a->m);
+    int k = p + 2 + sb_ndigits(&b->m) - sb_ndigits(&a->m);
     if (k < 0) k = 0;
     num = a->m;
-    if (!bi_mul_pow10(&num, k) || !bi_div(&r->m, &num, &b->m, &inexact)) return false;
+    if (!sb_mul_pow10(&num, k) || !sb_div(&r->m, &num, &b->m, &inexact)) return false;
     r->e = a->e - b->e - k;
     r->neg = a->neg != b->neg;
     hp_trim(r, p);
@@ -103,12 +103,12 @@ bool hp_div(hp *r, const hp *a, const hp *b, int p)
 static bool div_u32(hp *r, const hp *a, uint32_t d, int p)
 {
     *r = *a;
-    int k = p + 12 - bi_ndigits(&r->m);
+    int k = p + 12 - sb_ndigits(&r->m);
     if (k > 0) {
-        if (!bi_mul_pow10(&r->m, k)) return false;
+        if (!sb_mul_pow10(&r->m, k)) return false;
         r->e -= k;
     }
-    bi_divmod_u32(&r->m, d);
+    sb_divmod_u32(&r->m, d);
     hp_trim(r, p);
     return true;
 }
@@ -119,7 +119,7 @@ abn_status hp_round(abn *out, const hp *x)
         *out = abn_zero();
         return ABN_OK;
     }
-    return bi_to_abn(out, &x->m, x->neg, x->e, false);
+    return sb_to_abn(out, &x->m, x->neg, x->e, false);
 }
 
 /* A stored constant to p digits (at most 241). */
@@ -131,7 +131,7 @@ static bool constant(hp *r, const char *digits, int p)
     buf[n] = '\0';
     r->neg = false;
     r->e = -(long)(n - 1);
-    return bi_from_digits(&r->m, buf, 0);
+    return sb_from_digits(&r->m, buf, 0);
 }
 
 bool hp_pi(hp *r, int p)
@@ -145,19 +145,19 @@ static bool nearest_int(hp *k, const hp *q, uint32_t *low)
     *k = *q;
     if (k->e < 0) {
         long drop = -k->e - 1;
-        if (drop >= bi_ndigits(&k->m)) {
+        if (drop >= sb_ndigits(&k->m)) {
             hp_set_int(k, 0);
         } else {
-            bi_div_pow10(&k->m, (int)drop);
-            uint32_t d = bi_divmod_u32(&k->m, 10);
-            if (d >= 5 && !bi_add_u32(&k->m, 1)) return false;
+            sb_div_pow10(&k->m, (int)drop);
+            uint32_t d = sb_divmod_u32(&k->m, 10);
+            if (d >= 5 && !sb_add_u32(&k->m, 1)) return false;
         }
         k->e = 0;
     } else if (k->e > 0) {
-        if (!bi_mul_pow10(&k->m, (int)k->e)) return false;
+        if (!sb_mul_pow10(&k->m, (int)k->e)) return false;
         k->e = 0;
     }
-    if (bi_is_zero(&k->m)) k->neg = false;
+    if (sb_is_zero(&k->m)) k->neg = false;
     *low = k->m.n ? k->m.l[0] : 0;
     return true;
 }
@@ -196,7 +196,7 @@ bool hp_exp(hp *r, const hp *x, int p)
     /* x = k ln 10 + y with |y| <= ln 10 / 2; e^x = 10^k e^y. k has at most 7 digits. */
     if (!constant(&ln10, LN10_241, w + 8) || !hp_div(&q, x, &ln10, 14) || !nearest_int(&k, &q, &low))
         return false;
-    if (!xn_mul(&t, &k, &ln10) || !hp_add(&y, x, &t, true, w)) return false;
+    if (!sxn_mul(&t, &k, &ln10) || !hp_add(&y, x, &t, true, w)) return false;
     long kl = (long)(k.m.n > 1 ? k.m.l[1] * 1000000000L : 0) + (long)low;
     if (k.neg) kl = -kl;
     if (hp_is_zero(&y)) {
@@ -251,7 +251,7 @@ bool hp_sincos(hp *s, hp *c, const hp *x, int p)
         if (need > 238) return false;
         if (!constant(&pi, PI_241, (int)need) || !div_u32(&pih, &pi, 2, (int)need + 2)) return false;
         if (!hp_div(&q, x, &pih, (int)(lx > 0 ? lx : 0) + 8) || !nearest_int(&k, &q, &low)) return false;
-        if (!xn_mul(&t, &k, &pih) || !xn_add(&r, x, &t, true)) return false;
+        if (!sxn_mul(&t, &k, &pih) || !sxn_add(&r, x, &t, true)) return false;
         /* with k = 0 nothing was subtracted and r is x, exact */
         if (hp_is_zero(&k) || hp_is_zero(&r) || hp_lead(&r) >= -4 || pass == 1) break;
         need += -hp_lead(&r);

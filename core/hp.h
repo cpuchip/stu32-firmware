@@ -1,20 +1,20 @@
 /* hp: decimal numbers to a chosen number of significant digits (up to HP_PMAX), for functions
  * that must be formed beyond the engine's 34 digits and rounded once (the complex functions,
- * unit 009). A value is an xnum (core/xnum.c) truncated after each operation to the working
+ * unit 009). A value is a short xnum (core/sbig.h) truncated after each operation to the working
  * precision p; the exponent is unbounded, so intermediate values may lie far outside the
  * engine's range. Each operation returns false when a result would not fit; callers report a
- * range error. Results must not alias arguments. Each hp is about 3 KB: callers keep them static.
+ * range error. Results must not alias arguments. Each hp is about 300 bytes.
  */
 #ifndef HP_H
 #define HP_H
 
 #include <stdbool.h>
 
-#include "xnum.h"
+#include "sbig.h"
 
 #define HP_PMAX 220             /* pi and ln 10 are held to 241 digits */
 
-typedef xnum hp;
+typedef sxnum hp;
 
 void hp_set_int(hp *r, int v);
 bool hp_from_abn(hp *r, const abn *x);

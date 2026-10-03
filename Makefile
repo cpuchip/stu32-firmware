@@ -8,8 +8,8 @@ INTEL_SRC := third_party/intel-dfp/IntelRDFPMathLib20U5/LIBRARY/src
 INTEL_LIB := build/intel/libbid.a
 BID_FLAGS := -DDECIMAL_CALL_BY_REFERENCE=0 -DDECIMAL_GLOBAL_ROUNDING=0 \
              -DDECIMAL_GLOBAL_EXCEPTION_FLAGS=0
-CORE := core/calc.c core/fmt.c core/fn.c core/bigint.c core/const.c core/xnum.c core/stat.c core/frac.c core/base.c core/cplx.c core/hp.c
-HDRS := core/abn.h core/calc.h core/fmt.h core/fn.h core/bigint.h core/const.h core/xnum.h core/stat.h core/frac.h core/base.h core/cplx.h core/hp.h
+CORE := core/calc.c core/fmt.c core/fn.c core/bigint.c core/const.c core/xnum.c core/stat.c core/frac.c core/base.c core/cplx.c core/hp.c core/sbig.c
+HDRS := core/abn.h core/calc.h core/fmt.h core/fn.h core/bigint.h core/const.h core/xnum.h core/stat.h core/frac.h core/base.h core/cplx.h core/hp.h core/sbig.h core/bigint_impl.h core/xnum_impl.h
 ENGINE := build/abn_intel.o $(INTEL_LIB)
 LIBS := -lm
 
@@ -33,8 +33,8 @@ build/fmt_vectors: $(CORE) $(HDRS) $(ENGINE) tests/fmt_vectors.c
 build/fmt_drive: core/fmt.c core/fn.c core/frac.c core/bigint.c core/base.c $(HDRS) $(ENGINE) tests/fmt_drive.c
 	$(CC) $(CFLAGS) -Icore -o $@ core/fmt.c core/fn.c core/frac.c core/bigint.c core/base.c tests/fmt_drive.c $(ENGINE) $(LIBS)
 
-build/cx_drive: core/cplx.c core/hp.c core/xnum.c core/bigint.c $(HDRS) $(ENGINE) tests/cx_drive.c
-	$(CC) $(CFLAGS) -Icore -o $@ core/cplx.c core/hp.c core/xnum.c core/bigint.c tests/cx_drive.c $(ENGINE) $(LIBS)
+build/cx_drive: core/cplx.c core/hp.c core/sbig.c core/xnum.c core/bigint.c $(HDRS) $(ENGINE) tests/cx_drive.c
+	$(CC) $(CFLAGS) -Icore -o $@ core/cplx.c core/hp.c core/sbig.c core/xnum.c core/bigint.c tests/cx_drive.c $(ENGINE) $(LIBS)
 
 build/fn_drive: core/fn.c core/bigint.c $(HDRS) $(ENGINE) tests/fn_drive.c
 	$(CC) $(CFLAGS) -Icore -o $@ core/fn.c core/bigint.c tests/fn_drive.c $(ENGINE) $(LIBS)

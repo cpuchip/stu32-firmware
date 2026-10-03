@@ -59,4 +59,6 @@ O38 | ours: ln near 1, both parts tiny, keeps its real part (added at green: mut
 O39 | 35s p.B-5 the display form is neutral after a typed number too (added at green: mutation run) | 1 ENTER 2 RTA 3 | X=3 Y=2 Z=1
 O40 | ours: tan far from the axis is i sgn(b) (added at green: mutation run) | 1 CI 200000 CHS TAN | X=0i-1
 O41 | ours: e^z below the range is a range error, as for a real e^x (added at green: mutation run) | 54215 CHS CI 0 EXP | ERR X=-54215i0
+O42 | ruled (abacus, unit 009 review): ARG of 0 i 0 is 0, the atan2 convention | 0 CI 0 ARG | X=0 L=0i0
+O43 | ours: 2^(i 10^100) keeps its accuracy, w carried 45 digits past its units (mpmath at 600 and 900 digits agree) | 2 ENTER 0 CI 1 E 100 POW | X^-0.937080888983868554800379160539599618i0.349112313591489661475948449649491559
 O37 | ours (rule 5): 0^z with Re z = 0 exactly is an error (added at green: the mutation run found the boundary untested) | 0 CI 0 ENTER 0 CI 1 POW | ERR X=0i1 Y=0i0
