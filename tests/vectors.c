@@ -6,7 +6,9 @@
  * Numbers in expectations are compared by this file's own normalizer (sign, significant
  * digits, exponent of the leading digit), not by the engine's parser, so a parser bug
  * cannot hide itself. "=" is exact equality; "~" compares after rounding both sides to
- * 12 significant digits (half away from zero, on the digit strings).
+ * 12 significant digits (half away from zero, on the digit strings). The expectation
+ * ERR means at least one operation in the vector must return an error; without it, any
+ * error fails the vector.
  *
  * Exit status: 0 when every expectation passes, 1 when any fails, 2 on a malformed file.
  */
@@ -106,9 +108,20 @@ int main(int argc, char **argv)
             }
         }
 
-        int vec_ok = (op_errors == 0);
-        if (op_errors) printf("FAIL %s: %d operation(s) returned an error\n", id, op_errors);
+        int want_error = 0;
+        char *exps[64];
+        int nexp = 0;
         for (char *ex = strtok(expect, " \t"); ex; ex = strtok(NULL, " \t")) {
+            if (strcmp(ex, "ERR") == 0) want_error = 1;
+            else if (nexp < 64) exps[nexp++] = ex;
+        }
+        int vec_ok = want_error ? (op_errors > 0) : (op_errors == 0);
+        if (!vec_ok) {
+            if (want_error) printf("FAIL %s: expected an error, none returned\n", id);
+            else printf("FAIL %s: %d operation(s) returned an error\n", id, op_errors);
+        }
+        for (int k = 0; k < nexp; k++) {
+            char *ex = exps[k];
             const abn *r = reg(&c, ex[0]);
             if (!r || (ex[1] != '=' && ex[1] != '~')) {
                 fprintf(stderr, "%s:%d: %s: bad expectation '%s'\n", argv[1], lineno, id, ex);

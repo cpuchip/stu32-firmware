@@ -156,8 +156,13 @@ abn_status ab_do(ab_calc *c, ab_op op)
     if (op <= AB_KE) return entry_key(c, op);
     if ((op == AB_KCHS || op == AB_KBKSP) && c->entry.active) return entry_key(c, op);
 
-    /* Every other key completes the number being entered (UG p.1-17). */
-    c->entry.active = false;
+    /* Every other key completes the number being entered (UG p.1-17). A completed typed
+     * number enables lift before the operation acts, so a recall after `1 ENTER 2` keeps
+     * the 2 (work unit 001, amendment 2, ruling 1; the guide does not show this case). */
+    if (c->entry.active) {
+        c->entry.active = false;
+        c->lift = true;
+    }
 
     switch (op) {
     case AB_KBKSP:  /* with no entry in progress backspace acts as clear X (UG p.1-17) */
