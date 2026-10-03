@@ -13,7 +13,7 @@ HDRS := core/abn.h core/calc.h core/fmt.h core/fn.h core/bigint.h core/const.h c
 ENGINE := build/abn_intel.o $(INTEL_LIB)
 LIBS := -lm
 
-.PHONY: all test accuracy clean
+.PHONY: all test accuracy clean device-host
 all: build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test
 
 $(INTEL_LIB):
@@ -93,6 +93,25 @@ accuracy: build/fn_drive build/cx_drive build/vectors
 	./build/fmt_vectors build/frac_fuzz.txt
 	python3 tests/base_fuzz.py 1 5000 > build/base_fuzz.txt
 	./build/vectors build/base_fuzz.txt
+
+# The on-chip test app (tests/device), built and run on the host: the same runners and bundle
+# the chip gets. The bundle is compiled without -Wpedantic (its string literals are long).
+DEVICE_RUNNERS := tests/vectors.c tests/fmt_vectors.c tests/diff_test.c tests/dref.c
+build/device/bundle.c: tests/device/bundle.py $(wildcard work/*-vectors.txt) tests/eqn_fuzz.py tests/prog_fuzz.py tests/veckey_fuzz.py
+	@mkdir -p build/device
+	python3 tests/device/bundle.py $@
+build/device/bundle.o: build/device/bundle.c tests/device/main/bundle.h
+	$(CC) -std=c11 -O0 -Itests/device/main -c -o $@ $<
+build/device/abn_test.o: tests/abn_test.c tests/norm.h tests/cases.h core/abn.h
+	@mkdir -p build/device
+	$(CC) $(CFLAGS) -DAB_DEVICE -Dmain=abn_test_main -Icore -Itests -c -o $@ $<
+build/device/xnum_test.o: tests/xnum_test.c $(HDRS)
+	@mkdir -p build/device
+	$(CC) $(CFLAGS) -DAB_DEVICE -Dmain=xnum_test_main -Icore -Itests -c -o $@ $<
+build/device_host: tests/device/main/device_main.c $(DEVICE_RUNNERS) $(CORE) $(HDRS) $(ENGINE) build/device/bundle.o build/device/abn_test.o build/device/xnum_test.o
+	$(CC) $(CFLAGS) -DAB_DEVICE -Icore -Itests -Itests/device/main -o $@ tests/device/main/device_main.c $(DEVICE_RUNNERS) $(CORE) build/device/bundle.o build/device/abn_test.o build/device/xnum_test.o $(ENGINE) $(LIBS)
+device-host: build/device_host
+	./build/device_host
 
 clean:
 	rm -rf build

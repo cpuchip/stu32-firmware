@@ -2,7 +2,10 @@
 # Fetches the Intel Decimal Floating-Point Math Library from Intel's distribution at
 # netlib (and nowhere else), verifies the pinned size and sha256, and builds libbid.a.
 #
-#   scripts/fetch-intel-dfp.sh            -> build/intel/libbid.a, headers in third_party/
+#   scripts/fetch-intel-dfp.sh                  -> build/intel/libbid.a, headers in third_party/
+#   TARGET=esp32s3 scripts/fetch-intel-dfp.sh   -> build/intel-esp32s3/libbid.a (also esp32c6),
+#                                                  cross-built in its own tree with the ESP-IDF
+#                                                  toolchain on PATH (tests/device/run.sh)
 #
 # Ruled 2026-10-03 (work unit 001 amendment). BSD-3-Clause; the notice is kept in
 # third_party/LICENSE.intel-dfp.txt. The source is not committed: this script and its hash
@@ -18,10 +21,22 @@ OPTS=(CALL_BY_REF=0 GLOBAL_RND=0 GLOBAL_FLAGS=0 UNCHANGED_BINARY_FLAGS=0)
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DEST="$ROOT/third_party/intel-dfp"
 TARBALL="$DEST/IntelRDFPMathLib20U5.tar.gz"
-SRC="$DEST/IntelRDFPMathLib20U5"
-CC="${CC:-cc}"
+TARGET="${TARGET:-}"
+# A cross build (abacus's recipe, #3719): the library's 32-bit configuration and its Linux
+# conventions, fenv.h included for the rounding-mode calls, each target's code model.
+case "$TARGET" in
+"")      CROSS=(); TREE="$DEST"; OUT="$ROOT/build/intel"; CC="${CC:-cc}" ;;
+esp32s3) CC=xtensa-esp32s3-elf-gcc; TREE="$DEST/$TARGET"; OUT="$ROOT/build/intel-$TARGET"
+         CROSS=(CC_NAME=gcc "AR_CMD=xtensa-esp32s3-elf-ar rv" CFLAGS_ARCH=-Dia32 CFLAGS_OS=-DLINUX
+                "CFLAGS_OPT=-O2 -mlongcalls" "CFLAGS_AUX=-include fenv.h") ;;
+esp32c6) CC=riscv32-esp-elf-gcc; TREE="$DEST/$TARGET"; OUT="$ROOT/build/intel-$TARGET"
+         CROSS=(CC_NAME=gcc "AR_CMD=riscv32-esp-elf-ar rv" CFLAGS_ARCH=-Dia32 CFLAGS_OS=-DLINUX
+                "CFLAGS_OPT=-O2 -march=rv32imac_zicsr_zifencei -mabi=ilp32" "CFLAGS_AUX=-include fenv.h") ;;
+*)       echo "fetch-intel-dfp: unknown TARGET '$TARGET' (esp32s3, esp32c6)" >&2; exit 2 ;;
+esac
+SRC="$TREE/IntelRDFPMathLib20U5"
 
-mkdir -p "$DEST" "$ROOT/build/intel"
+mkdir -p "$DEST" "$TREE" "$OUT"
 if [ ! -f "$TARBALL" ]; then
     curl -fsS -o "$TARBALL.part" "$URL"
     mv "$TARBALL.part" "$TARBALL"
@@ -35,7 +50,7 @@ if [ "$got_size" != "$SIZE" ] || [ "$got_sha" != "$SHA256" ]; then
     exit 1
 fi
 if [ ! -d "$SRC" ]; then
-    tar -xzf "$TARBALL" -C "$DEST"
+    tar -xzf "$TARBALL" -C "$TREE"
 fi
 # The trig functions' argument-reduction table (295 KB, one copy each in sin, cos and tan) is
 # only read, but is declared without const, so a firmware build would place it in RAM. Made
@@ -46,6 +61,6 @@ for f in sin cos tan; do
     grep -q '^static const BID_UINT384 bid_decimal128_moduli\[\] =' "$SRC/LIBRARY/src/bid128_$f.c" || {
         echo "fetch-intel-dfp: bid128_$f.c: moduli table not found for the const patch" >&2; exit 1; }
 done
-make -s -C "$SRC/LIBRARY" -j"$(nproc 2>/dev/null || echo 4)" CC="$CC" "${OPTS[@]}" >/dev/null
-cp "$SRC/LIBRARY/libbid.a" "$ROOT/build/intel/libbid.a"
-echo "fetch-intel-dfp: verified $SHA256, built build/intel/libbid.a"
+make -s -C "$SRC/LIBRARY" -j"$(nproc 2>/dev/null || echo 4)" CC="$CC" "${OPTS[@]}" "${CROSS[@]}" >/dev/null
+cp "$SRC/LIBRARY/libbid.a" "$OUT/libbid.a"
+echo "fetch-intel-dfp: verified $SHA256, built ${OUT#"$ROOT"/}/libbid.a"

@@ -89,17 +89,10 @@ static int parse_options(char *s, ab_display *dsp)
     return 0;
 }
 
-int main(int argc, char **argv)
+/* Runs one format-vectors file from fp (the caller opens and closes it). Returns 0 when all
+ * pass, 1 on a failure, 2 on a malformed file. */
+int fmt_vectors_run(const char *name, FILE *fp)
 {
-    if (argc != 2) {
-        fprintf(stderr, "usage: %s VECTORS_FILE\n", argv[0]);
-        return 2;
-    }
-    FILE *fp = fopen(argv[1], "r");
-    if (!fp) {
-        perror(argv[1]);
-        return 2;
-    }
     char line[LINE_MAX_];
     int lineno = 0, total = 0, passed = 0;
     while (fgets(line, sizeof line, fp)) {
@@ -116,7 +109,7 @@ int main(int argc, char **argv)
             p = bar + 1;
         }
         if (nf != 6) {
-            fprintf(stderr, "%s:%d: expected 6 fields\n", argv[1], lineno);
+            fprintf(stderr, "%s:%d: expected 6 fields\n", name, lineno);
             return 2;
         }
         char *id = trim(field[0]), *value = trim(field[2]), *want = trim(field[5]);
@@ -129,13 +122,13 @@ int main(int argc, char **argv)
         if (value[0] == '[') {
             size_t vl = strlen(value);
             if (vl < 3 || value[vl - 1] != ']') {
-                fprintf(stderr, "%s:%d: %s: bad vector value\n", argv[1], lineno, id);
+                fprintf(stderr, "%s:%d: %s: bad vector value\n", name, lineno, id);
                 return 2;
             }
             value[vl - 1] = '\0';
             for (char *q = strtok(value + 1, ","); q; q = strtok(NULL, ",")) {
                 if (vn == 3 || abn_from_text(&vel[vn++], q) != ABN_OK) {
-                    fprintf(stderr, "%s:%d: %s: bad vector value\n", argv[1], lineno, id);
+                    fprintf(stderr, "%s:%d: %s: bad vector value\n", name, lineno, id);
                     return 2;
                 }
             }
@@ -147,13 +140,13 @@ int main(int argc, char **argv)
             *ip = '\0';
             cpx = true;
             if (abn_from_text(&vim, ip + 1) != ABN_OK) {
-                fprintf(stderr, "%s:%d: %s: bad complex value\n", argv[1], lineno, id);
+                fprintf(stderr, "%s:%d: %s: bad complex value\n", name, lineno, id);
                 return 2;
             }
         }
         if (abn_from_text(&v, value) != ABN_OK || parse_mode(trim(field[3]), &dsp) != 0 ||
             parse_options(trim(field[4]), &dsp) != 0) {
-            fprintf(stderr, "%s:%d: %s: malformed vector\n", argv[1], lineno, id);
+            fprintf(stderr, "%s:%d: %s: malformed vector\n", name, lineno, id);
             return 2;
         }
         /* an expected text may end in " ^" (above) or " v" (below): the accuracy indicator */
@@ -178,8 +171,25 @@ int main(int argc, char **argv)
                    want_ind > 0 ? " ^" : want_ind < 0 ? " v" : "", got, ind > 0 ? " ^" : ind < 0 ? " v" : "", len);
         }
     }
-    fclose(fp);
-    printf("%s: %d/%d vectors\n", argv[1], passed, total);
+    printf("%s: %d/%d vectors\n", name, passed, total);
     if (getenv("AB_ARENA_PEAK")) fprintf(stderr, "arena peak %d\n", ar_peak());   /* unit 010b measurement */
     return passed == total ? 0 : 1;
 }
+
+#ifndef AB_DEVICE
+int main(int argc, char **argv)
+{
+    if (argc != 2) {
+        fprintf(stderr, "usage: %s VECTORS_FILE\n", argv[0]);
+        return 2;
+    }
+    FILE *fp = fopen(argv[1], "r");
+    if (!fp) {
+        perror(argv[1]);
+        return 2;
+    }
+    int r = fmt_vectors_run(argv[1], fp);
+    fclose(fp);
+    return r;
+}
+#endif

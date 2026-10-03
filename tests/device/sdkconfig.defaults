@@ -1,0 +1,7 @@
+# The on-chip test: one long CPU-bound task, so the task watchdog is off; -O2 like the host;
+# a 4 MB flash layout with one large app partition (the library and the bundle are big).
+CONFIG_ESP_TASK_WDT_INIT=n
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y

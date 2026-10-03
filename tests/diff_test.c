@@ -48,10 +48,11 @@ static int same(const char *x, const char *y)
     return normalize(x, &a) == 0 && normalize(y, &b) == 0 && norm_equal(&a, &b);
 }
 
-int main(int argc, char **argv)
+/* The reference's own cases, then count random operations (seed 0 keeps the default stream).
+ * Returns 0 when all agree. */
+int diff_test_run(long count, uint64_t seed)
 {
-    long count = argc > 1 ? atol(argv[1]) : 200000;
-    if (argc > 2) rng_state = strtoull(argv[2], NULL, 0) | 1;
+    if (seed) rng_state = seed | 1;
     int failures = 0;
 
     for (size_t i = 0; i < NCASES; i++) {
@@ -129,3 +130,12 @@ int main(int argc, char **argv)
            NCASES, agreed, count);
     return failures ? 1 : 0;
 }
+
+#ifndef AB_DEVICE
+int main(int argc, char **argv)
+{
+    long count = argc > 1 ? atol(argv[1]) : 200000;
+    uint64_t seed = argc > 2 ? strtoull(argv[2], NULL, 0) : 0;
+    return diff_test_run(count, seed);
+}
+#endif

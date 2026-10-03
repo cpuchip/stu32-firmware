@@ -269,17 +269,10 @@ static char *trim(char *s)
     return s;
 }
 
-int main(int argc, char **argv)
+/* Runs one vectors file from f (opened by the caller, who closes it); name labels the report.
+ * Returns 0 when every vector passes, 1 on a failure, 2 on a malformed file. */
+int vectors_run(const char *name, FILE *f)
 {
-    if (argc != 2) {
-        fprintf(stderr, "usage: %s VECTORS_FILE\n", argv[0]);
-        return 2;
-    }
-    FILE *f = fopen(argv[1], "r");
-    if (!f) {
-        perror(argv[1]);
-        return 2;
-    }
     char line[LINE_MAX_];
     int lineno = 0, vectors = 0, vectors_ok = 0, checks = 0, checks_ok = 0;
     while (fgets(line, sizeof line, f)) {
@@ -296,12 +289,12 @@ int main(int argc, char **argv)
             p = bar + 1;
         }
         if (nf != 4) {
-            fprintf(stderr, "%s:%d: expected 4 fields\n", argv[1], lineno);
+            fprintf(stderr, "%s:%d: expected 4 fields\n", name, lineno);
             return 2;
         }
         char *id = trim(field[0]), *keys = trim(field[2]), *expect = trim(field[3]);
 
-        ab_calc c;
+        static ab_calc c;                   /* 92 KB: off the stack, for a device task */
         ab_init(&c);
         int op_errors = 0;
         bool holdpse = false;
@@ -312,7 +305,7 @@ int main(int argc, char **argv)
                 continue;
             }
             if (apply_token(&c, tok, &op_errors) != 0) {
-                fprintf(stderr, "%s:%d: %s: unknown key token '%s'\n", argv[1], lineno, id, tok);
+                fprintf(stderr, "%s:%d: %s: unknown key token '%s'\n", name, lineno, id, tok);
                 return 2;
             }
             /* a PSE stop resumes by itself after the device's pause (unit 012 rule 1): the runner
@@ -339,9 +332,9 @@ int main(int argc, char **argv)
                 /* program state (unit 011): %PC=A005 or TOP; %GO:A004=A003 (that line's target);
                    %LINES=n; %YES=0|1 (the last test); %Fn=0|1 (flag n) */
                 char *eq = strchr(ex, '=');
-                char got[128] = "?";
+                char got[AB_EQN_LEN + 8] = "?";   /* the longest text compared: an equation */
                 if (!eq) {
-                    fprintf(stderr, "%s:%d: %s: bad expectation '%s'\n", argv[1], lineno, id, ex);
+                    fprintf(stderr, "%s:%d: %s: bad expectation '%s'\n", name, lineno, id, ex);
                     return 2;
                 }
                 *eq = '\0';
@@ -394,7 +387,7 @@ int main(int argc, char **argv)
                 } else if (ex[1] == 'F' && isdigit((unsigned char)ex[2])) {
                     snprintf(got, sizeof got, "%d", ab_flag(&c, atoi(ex + 2)) ? 1 : 0);
                 } else {
-                    fprintf(stderr, "%s:%d: %s: bad expectation '%s'\n", argv[1], lineno, id, ex);
+                    fprintf(stderr, "%s:%d: %s: bad expectation '%s'\n", name, lineno, id, ex);
                     return 2;
                 }
                 checks++;
@@ -434,7 +427,7 @@ int main(int argc, char **argv)
                 char gt[ABN_TEXT_MAX];
                 abn want, tol, d, got;
                 if (!comma || (size_t)(comma - ex - 2) >= sizeof vs) {
-                    fprintf(stderr, "%s:%d: %s: bad expectation '%s'\n", argv[1], lineno, id, ex);
+                    fprintf(stderr, "%s:%d: %s: bad expectation '%s'\n", name, lineno, id, ex);
                     return 2;
                 }
                 memcpy(vs, ex + 2, (size_t)(comma - ex - 2));
@@ -458,7 +451,7 @@ int main(int argc, char **argv)
                 continue;
             }
             if (!r || (ex[1] != '=' && ex[1] != '~' && ex[1] != '^')) {
-                fprintf(stderr, "%s:%d: %s: bad expectation '%s'\n", argv[1], lineno, id, ex);
+                fprintf(stderr, "%s:%d: %s: bad expectation '%s'\n", name, lineno, id, ex);
                 return 2;
             }
             /* "[a,b,c]" is a vector expectation (unit 010): the register must hold a vector of that
@@ -470,13 +463,13 @@ int main(int argc, char **argv)
                 size_t bl = strlen(ex + 3);
                 snprintf(buf, sizeof buf, "%s", ex + 3);
                 if (bl == 0 || buf[bl - 1] != ']') {
-                    fprintf(stderr, "%s:%d: %s: bad vector '%s'\n", argv[1], lineno, id, ex + 2);
+                    fprintf(stderr, "%s:%d: %s: bad vector '%s'\n", name, lineno, id, ex + 2);
                     return 2;
                 }
                 buf[bl - 1] = '\0';
                 for (char *q = strtok(buf, ","); q && n < 4; q = strtok(NULL, ",")) el[n++] = q;
                 if (n < 1 || n > 3) {
-                    fprintf(stderr, "%s:%d: %s: bad vector '%s'\n", argv[1], lineno, id, ex + 2);
+                    fprintf(stderr, "%s:%d: %s: bad vector '%s'\n", name, lineno, id, ex + 2);
                     return 2;
                 }
                 okv = rv && rv->kind == AB_VECTOR && rv->len == n;
@@ -485,7 +478,7 @@ int main(int argc, char **argv)
                     char gt[ABN_TEXT_MAX];
                     norm w, gv;
                     if (normalize(el[j], &w) != 0) {
-                        fprintf(stderr, "%s:%d: %s: bad element '%s'\n", argv[1], lineno, id, el[j]);
+                        fprintf(stderr, "%s:%d: %s: bad element '%s'\n", name, lineno, id, el[j]);
                         return 2;
                     }
                     abn_to_text(g, gt, sizeof gt);
@@ -524,7 +517,7 @@ int main(int argc, char **argv)
                 norm wr, wi, gr, gi;
                 char t_re[ABN_TEXT_MAX], t_im[ABN_TEXT_MAX];
                 if (normalize(re_s, &wr) != 0 || normalize(im_s, &wi) != 0) {
-                    fprintf(stderr, "%s:%d: %s: bad complex '%s'\n", argv[1], lineno, id, ex + 2);
+                    fprintf(stderr, "%s:%d: %s: bad complex '%s'\n", name, lineno, id, ex + 2);
                     return 2;
                 }
                 ok = rv && rv->kind == AB_COMPLEX;
@@ -565,7 +558,7 @@ int main(int argc, char **argv)
             abn_to_text(r, got_text, sizeof got_text);
             norm want, got;
             if (normalize(ex + 2, &want) != 0) {
-                fprintf(stderr, "%s:%d: %s: bad number '%s'\n", argv[1], lineno, id, ex + 2);
+                fprintf(stderr, "%s:%d: %s: bad number '%s'\n", name, lineno, id, ex + 2);
                 return 2;
             }
             ok = normalize(got_text, &got) == 0;
@@ -587,9 +580,26 @@ int main(int argc, char **argv)
         if (vec_ok) vectors_ok++;
         if (getenv("AB_EVALS")) fprintf(stderr, "%s evals %ld\n", id, c.evals);   /* unit 013 report */
     }
-    fclose(f);
-    printf("%s: %d/%d vectors, %d/%d expectations\n", argv[1], vectors_ok, vectors,
+    printf("%s: %d/%d vectors, %d/%d expectations\n", name, vectors_ok, vectors,
            checks_ok, checks);
     if (getenv("AB_ARENA_PEAK")) fprintf(stderr, "arena peak %d\n", ar_peak());   /* unit 010b measurement */
     return (vectors_ok == vectors && checks_ok == checks) ? 0 : 1;
 }
+
+#ifndef AB_DEVICE
+int main(int argc, char **argv)
+{
+    if (argc != 2) {
+        fprintf(stderr, "usage: %s VECTORS_FILE\n", argv[0]);
+        return 2;
+    }
+    FILE *f = fopen(argv[1], "r");
+    if (!f) {
+        perror(argv[1]);
+        return 2;
+    }
+    int r = vectors_run(argv[1], f);
+    fclose(f);
+    return r;
+}
+#endif

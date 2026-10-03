@@ -1,0 +1,2 @@
+# The 4.3" board's console is UART0 through its USB-UART bridge (the IDF default).
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
