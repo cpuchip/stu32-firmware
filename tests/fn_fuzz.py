@@ -72,7 +72,7 @@ for name, f, gen in [
 for name, f, gen in [("SQRT", mp.sqrt, lambda: logspace(-300, 300)),
                      ("SQ", lambda x: x * x, lambda: logspace(-300, 300, True)),
                      ("INV", lambda x: 1 / x, lambda: logspace(-300, 300, True))]:
-    CASES.append((name, "RAD", gen, f, 0.5))
+    CASES.append((name, "RAD", gen, f, 0.5 + 1e-9))   # exact ties round to even: 0.5 exactly
 for mode in ("DEG", "RAD", "GRAD"):
     k = ANG[mode]
     if mode == "RAD":
@@ -100,6 +100,47 @@ TWO = [("POW", lambda: (logspace(-20, 20), num(-50, 50)), lambda y, x: mp.power(
        ("PCTCHG", lambda: (logspace(-30, 30, True), logspace(-30, 30, True)), lambda y, x: (x - y) / y * 100, 8)]   # three roundings: within 8 units
 
 
+import math
+
+
+def hms_truth(x):
+    """Exact H.MMSSss of decimal hours x (Decimal arithmetic at 200 digits)."""
+    d = Decimal(x)
+    a = d.copy_abs()
+    h = int(a)
+    rem = (a - h) * 60
+    m = int(rem)
+    sec = (rem - m) * 60
+    r = h + Decimal(m) / 100 + sec / 10000
+    return mp.mpf(str(r.copy_negate() if d < 0 else r))
+
+
+def hmsinv_truth(x):
+    d = Decimal(x)
+    a = d.copy_abs()
+    h = int(a)
+    f = (a - h) * 100
+    mm = int(f)
+    ss = (f - mm) * 100
+    r = (h * 3600 + mm * 60 + ss) / 3600
+    return mp.mpf(str(r.copy_negate() if d < 0 else r))
+
+
+EXACT_UNITS = {"TOKG": ("*", "0.45359237"), "TOLB": ("/", "0.45359237"), "TOCM": ("*", "2.54"),
+               "TOIN": ("/", "2.54"), "TOL": ("*", "3.785411784"), "TOGAL": ("/", "3.785411784"),
+               "TOKM": ("*", "1.609344"), "TOMILE": ("/", "1.609344")}
+
+
+def unit_truth(name, x):
+    d = Decimal(x)
+    if name == "TOC":
+        return mp.mpf(str((5 * d - 160) / 9))
+    if name == "TOF":
+        return mp.mpf(str((9 * d + 160) / 5))
+    op, k = EXACT_UNITS[name]
+    return mp.mpf(str(d * Decimal(k) if op == "*" else d / Decimal(k)))
+
+
 def units(got, truth):
     if truth == 0:
         return mp.mpf(0) if got == 0 else mp.inf
@@ -109,6 +150,31 @@ def units(got, truth):
     return abs(got - truth) / mp.mpf(10) ** (e - 33)
 
 
+# unit 004: conversions correctly rounded; factorial, nCr, nPr exact then rounded once
+for name in ("TOKG", "TOLB", "TOC", "TOF", "TOCM", "TOIN", "TOL", "TOGAL", "TOKM", "TOMILE"):
+    CASES.append((name, "RAD", lambda: logspace(-300, 300, True), ("unit", name), 0.5 + 1e-9))
+CASES.append(("HMS", "RAD", lambda: num(-1e6, 1e6), ("hms",), 8))
+CASES.append(("HMS", "RAD", lambda: logspace(-20, 20, True), ("hms",), 8))
+CASES.append(("HMSINV", "RAD", lambda: str(R.randint(-9999, 9999)) + "." + "%02d%02d" % (R.randint(0, 59), R.randint(0, 59)) + str(R.randint(0, 10**R.randint(0, 25))), ("hmsinv",), 8))
+CASES.append(("TODEG", "RAD", lambda: logspace(-300, 300, True), lambda x: x * 180 / mp.pi, 8))
+CASES.append(("TORAD", "RAD", lambda: logspace(-300, 300, True), lambda x: x * mp.pi / 180, 8))
+CASES.append(("FACT", "RAD", lambda: str(R.randint(0, 2123)), lambda x: mp.mpf(math.factorial(int(x))), 0.5 + 1e-9))
+TWO += [("NCR", lambda: (str(R.randint(0, 3000)), str(R.randint(0, 1500))),
+         lambda y, x: mp.mpf(math.comb(int(y), int(x))), 0.5 + 1e-9),
+        ("NPR", lambda: (str(R.randint(0, 2500)), str(R.randint(0, 900))),
+         lambda y, x: mp.mpf(math.perm(int(y), int(x))), 0.5 + 1e-9),
+        ("NCR", lambda: (str(R.randint(1, 10**R.randint(10, 33))), str(R.randint(0, 40))),
+         lambda y, x: mp.mpf(math.comb(int(y), int(x))), 0.5 + 1e-9)]
+POLAR = []
+for mode in ("DEG", "RAD", "GRAD"):
+    k = ANG[mode]
+    POLAR.append(("TOPOL", mode, lambda: (logspace(-50, 50, True), logspace(-50, 50, True)),
+                  lambda x, y, k=k: (mp.hypot(x, y), mp.atan2(y, x) / k)))
+    POLAR.append(("TOREC", mode, lambda: (logspace(-50, 50), num(-720, 720)),
+                  lambda r, t, k=k, mode=mode: (r * (mp.cos(t * k) if mode == "RAD" else exact_trig("COS", mp.nstr(t, 40), TURN[mode])),
+                                                 r * (mp.sin(t * k) if mode == "RAD" else exact_trig("SIN", mp.nstr(t, 40), TURN[mode])))))
+
+
 def main():
     drive = sys.argv[1]
     lines, meta = [], []
@@ -116,7 +182,13 @@ def main():
         for _ in range(N):
             x = gen()
             lines.append(f"{name} {mode} {x}")
-            if isinstance(f, tuple):
+            if isinstance(f, tuple) and f[0] == "unit":
+                meta.append((name, mode, bar, lambda x=x, f=f: unit_truth(f[1], x), x))
+            elif isinstance(f, tuple) and f[0] == "hms":
+                meta.append((name, mode, bar, lambda x=x: hms_truth(x), x))
+            elif isinstance(f, tuple) and f[0] == "hmsinv":
+                meta.append((name, mode, bar, lambda x=x: hmsinv_truth(x), x))
+            elif isinstance(f, tuple):
                 meta.append((name, mode, bar, lambda x=x, f=f: exact_trig(f[1], x, f[2]), x))
             else:
                 meta.append((name, mode, bar, lambda x=x, f=f: f(mp.mpf(x)), x))
@@ -125,8 +197,25 @@ def main():
             y, x = gen()
             lines.append(f"{name} RAD {x} {y}")
             meta.append((name, "-", bar, lambda x=x, y=y, f=f: f(mp.mpf(y), mp.mpf(x)), f"{y} {x}"))
-    out = subprocess.run([drive], input="\n".join(lines) + "\n", capture_output=True, text=True,
+    npolar = 0
+    for name, mode, gen, f in POLAR:
+        for _ in range(N):
+            a, b = gen()
+            lines.append(f"{name} {mode} {a} {b}")
+            for part in (0, 1):
+                meta.append((name + ("-r" if part == 0 else "-t") if name == "TOPOL" else name + ("-x" if part == 0 else "-y"),
+                             mode, 8, lambda a=a, b=b, f=f, part=part: f(mp.mpf(a), mp.mpf(b))[part], f"{a} {b}"))
+            npolar += 1
+    raw = subprocess.run([drive], input="\n".join(lines) + "\n", capture_output=True, text=True,
                          check=True).stdout.splitlines()
+    out = []
+    for line in raw:
+        if " " in line and not line.startswith("ERR"):
+            out.extend(line.split())
+        elif line.startswith("ERR") and len(out) + 1 < len(meta) and meta[len(out)][0][:5] in ("TOPOL", "TOREC"):
+            out.extend([line, line])
+        else:
+            out.append(line)
     worst, bad = {}, 0
     for (name, mode, bar, truth, arg), got in zip(meta, out):
         key = (name, mode)
@@ -156,7 +245,7 @@ def main():
                 print(f"OVER {name} {mode} {arg}: {float(u):.2f} units (bar {bar})")
     for (name, mode), (u, arg) in sorted(worst.items()):
         print(f"{name:6s} {mode:4s} max {float(u):6.3f} units   (at {arg})")
-    print(f"fn_fuzz: {len(lines)} cases, {bad} over the bar or wrong in kind")
+    print(f"fn_fuzz: {len(meta)} checks, {bad} over the bar or wrong in kind")
     return 1 if bad else 0
 
 

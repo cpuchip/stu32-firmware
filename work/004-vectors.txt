@@ -138,8 +138,17 @@ D10 | B-5 display settings leave lift alone | 1 ENTER FIX2 3 | X=3 Y=1 Z=0
 D11 | B-6 RND saves x in LAST X | FIX2 3.14159 RND | X=3.14 L=3.14159
 G01 | ours: RAND is in [0, 1) | RAND INTG | X=0
 G02 | 35s p.4-15 RAND is greater than 0 | RAND SGN | X=1
-G03 | ours: same seed, same number | 7 SEED RAND 7 SEED RAND - | X=0
-G04 | ours: same seed, same sequence | 42 SEED RAND RAND 42 SEED RAND RAND - XY RDN - | X=0
+G03 | ours: same seed, same number | 7 SEED CLX RAND 7 SEED CLX RAND - | X=0
+G04 | ours: same seed, same second number | 42 SEED CLX RAND CLX RAND 42 SEED CLX RAND CLX RAND - | X=0
 G05 | ours: SEED leaves X in place | 5 SEED | X=5
 G06 | ours: seed 0 is a seed too (no clock in the core) | 0 SEED RAND INTG | X=0
 G07 | ours: RAND lifts like a recalled number | 1 ENTER 2 RAND INTG | X=0 Y=2 Z=1
+
+# --- added after the mutation pass: each pins a behaviour no vector above could see
+P16 | ours: digits past the 39th decide the rounding (35-39 are 50000) | 361 ENTER 57 NCR | X=1.384520595152795204564827300758677E+67
+P17 | ours: C(n, n-2) with huge n is C(n, 2) | 1 E 30 ENTER 1 E 30 ENTER 2 - NCR | X=4.999999999999999999999999999995000E+59
+Q11 | ours: second quadrant | 150 ENTER 2 TOREC | X^-1.73205080756887729352744634150587237 Y=1
+Q12 | ours: third quadrant | 225 ENTER 2 TOREC | X^-1.41421356237309504880168872420969808 Y^-1.41421356237309504880168872420969808
+G08 | ours: ten draws all in [0, 1) | RAND INTG RAND INTG + RAND INTG + RAND INTG + RAND INTG + RAND INTG + RAND INTG + RAND INTG + RAND INTG + RAND INTG + | X=0
+G09 | ours: different seeds, different numbers | 1 SEED CLX RAND 2 SEED CLX RAND - ABS SGN | X=1
+D12 | B-5 display settings leave lift enabled | 1 ENTER 2 + FIX2 3 | X=3 Y=3

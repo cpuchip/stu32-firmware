@@ -76,6 +76,12 @@ abn_status abn_asinh(abn *out, const abn *a);
 abn_status abn_acosh(abn *out, const abn *a);
 abn_status abn_atanh(abn *out, const abn *a);
 
+/* unit 004 */
+abn_status abn_trunc(abn *out, const abn *a);           /* integer part, toward zero (exact) */
+abn_status abn_floor(abn *out, const abn *a);           /* greatest integer <= a (exact) */
+abn_status abn_hypot(abn *out, const abn *x, const abn *y);
+abn_status abn_atan2(abn *out, const abn *y, const abn *x);    /* radians, in (-pi, pi] */
+
 /* Text form: [-|+]digits[.digits][E|e[-|+]digits], at least one mantissa digit. More than
    ABN_DIGITS significant digits round half to even. */
 abn_status abn_from_text(abn *out, const char *s);

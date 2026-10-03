@@ -340,3 +340,33 @@ abn_status abn_atanh(abn *out, const abn *a)
     if (cmp_int(a, 1) >= 0 || cmp_int(a, -1) <= 0) return ABN_DOMAIN;
     return call1(out, bid128_atanh, a);
 }
+
+/* ---- unit 004 ---- */
+
+abn_status abn_trunc(abn *out, const abn *a)
+{
+    _IDEC_flags fl = 0;
+    BID_UINT128 r = bid128_round_integral_zero(to_bid(a), &fl);
+    return accept(out, r, fl & ~BID_INEXACT_EXCEPTION);
+}
+
+abn_status abn_floor(abn *out, const abn *a)
+{
+    _IDEC_flags fl = 0;
+    BID_UINT128 r = bid128_round_integral_negative(to_bid(a), &fl);
+    return accept(out, r, fl & ~BID_INEXACT_EXCEPTION);
+}
+
+abn_status abn_hypot(abn *out, const abn *x, const abn *y)
+{
+    _IDEC_flags fl = 0;
+    BID_UINT128 r = bid128_hypot(to_bid(x), to_bid(y), RND, &fl);
+    return accept(out, r, fl);
+}
+
+abn_status abn_atan2(abn *out, const abn *y, const abn *x)
+{
+    _IDEC_flags fl = 0;
+    BID_UINT128 r = bid128_atan2(to_bid(y), to_bid(x), RND, &fl);
+    return accept(out, r, fl);
+}

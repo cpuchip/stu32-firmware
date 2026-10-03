@@ -8,6 +8,7 @@
 #define FN_H
 
 #include "abn.h"
+#include "fmt.h"
 
 typedef enum { FN_DEG = 0, FN_RAD, FN_GRAD } fn_angle;
 
@@ -40,5 +41,31 @@ abn_status fn_tanh(abn *out, const abn *x);
 abn_status fn_asinh(abn *out, const abn *x);
 abn_status fn_acosh(abn *out, const abn *x);
 abn_status fn_atanh(abn *out, const abn *x);
+
+/* unit 004 */
+abn_status fn_ip(abn *out, const abn *x);
+abn_status fn_fp(abn *out, const abn *x);
+abn_status fn_intg(abn *out, const abn *x);
+abn_status fn_abs(abn *out, const abn *x);
+abn_status fn_sgn(abn *out, const abn *x);
+abn_status fn_rnd(abn *out, const abn *x, ab_mode mode, int n);
+abn_status fn_hms(abn *out, const abn *x);
+abn_status fn_hmsinv(abn *out, const abn *x);
+abn_status fn_todeg(abn *out, const abn *x);
+abn_status fn_torad(abn *out, const abn *x);
+
+typedef enum { FN_TOKG, FN_TOLB, FN_TOC, FN_TOF, FN_TOCM, FN_TOIN, FN_TOL, FN_TOGAL, FN_TOKM, FN_TOMILE } fn_unit;
+abn_status fn_convert(abn *out, const abn *x, fn_unit u);
+
+abn_status fn_fact(abn *out, const abn *x);
+abn_status fn_ncr(abn *out, const abn *n, const abn *r);
+abn_status fn_npr(abn *out, const abn *n, const abn *r);
+
+/* x, y to r, theta (theta in the angle mode, in (-half turn, half turn]) and back. */
+abn_status fn_topol(abn *r, abn *theta, const abn *x, const abn *y, fn_angle m);
+abn_status fn_torec(abn *x, abn *y, const abn *r, const abn *theta, fn_angle m);
+
+void fn_seed(uint64_t *state, const abn *x);
+abn fn_rand(uint64_t *state);
 
 #endif

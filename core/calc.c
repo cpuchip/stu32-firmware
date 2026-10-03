@@ -7,6 +7,7 @@
 
 #include "calc.h"
 #include "fn.h"
+#include "const.h"
 
 void ab_init(ab_calc *c)
 {
@@ -14,6 +15,12 @@ void ab_init(ab_calc *c)
     c->x = c->y = c->z = c->t = c->lastx = abn_zero();
     c->lift = true;             /* a cleared calculator has stack lift enabled (UG p.B-4) */
     c->angle = AB_ANGLE_DEG;    /* and is in degrees (UG p.B-4) */
+    c->disp_mode = AB_ALL;      /* ALL is the default display (ours, unit 002) */
+    c->disp_n = 0;
+    {
+        abn zero = abn_zero();
+        fn_seed(&c->rng, &zero);    /* a fixed start: the core has no clock */
+    }
 }
 
 /* The stack lifts: T is lost, Z to T, Y to Z, X to Y; X keeps its value (UG p.2-5). */
@@ -165,7 +172,28 @@ static abn_status one_number_fn(ab_calc *c, ab_op op)
     case AB_TANH: st = fn_tanh(&r, &c->x); break;
     case AB_ASINH: st = fn_asinh(&r, &c->x); break;
     case AB_ACOSH: st = fn_acosh(&r, &c->x); break;
-    default: st = fn_atanh(&r, &c->x); break;
+    case AB_ATANH: st = fn_atanh(&r, &c->x); break;
+    case AB_HMS: st = fn_hms(&r, &c->x); break;           /* UG p.4-13 */
+    case AB_HMSINV: st = fn_hmsinv(&r, &c->x); break;
+    case AB_TODEG: st = fn_todeg(&r, &c->x); break;       /* UG p.4-13, p.4-14 */
+    case AB_TORAD: st = fn_torad(&r, &c->x); break;
+    case AB_TOKG: st = fn_convert(&r, &c->x, FN_TOKG); break;     /* UG p.4-14 */
+    case AB_TOLB: st = fn_convert(&r, &c->x, FN_TOLB); break;
+    case AB_TOC: st = fn_convert(&r, &c->x, FN_TOC); break;
+    case AB_TOF: st = fn_convert(&r, &c->x, FN_TOF); break;
+    case AB_TOCM: st = fn_convert(&r, &c->x, FN_TOCM); break;
+    case AB_TOIN: st = fn_convert(&r, &c->x, FN_TOIN); break;
+    case AB_TOL: st = fn_convert(&r, &c->x, FN_TOL); break;
+    case AB_TOGAL: st = fn_convert(&r, &c->x, FN_TOGAL); break;
+    case AB_TOKM: st = fn_convert(&r, &c->x, FN_TOKM); break;
+    case AB_TOMILE: st = fn_convert(&r, &c->x, FN_TOMILE); break;
+    case AB_FACT: st = fn_fact(&r, &c->x); break;         /* UG p.4-15 */
+    case AB_IP: st = fn_ip(&r, &c->x); break;             /* UG p.4-17, p.4-18 */
+    case AB_FP: st = fn_fp(&r, &c->x); break;
+    case AB_INTG: st = fn_intg(&r, &c->x); break;
+    case AB_ABS: st = fn_abs(&r, &c->x); break;
+    case AB_SGN: st = fn_sgn(&r, &c->x); break;
+    default: st = fn_rnd(&r, &c->x, c->disp_mode, c->disp_n); break;     /* AB_RND */
     }
     if (st != ABN_OK) return st;
     c->lastx = c->x;
@@ -200,6 +228,8 @@ static abn_status two_number_op(ab_calc *c, ab_op op)
     case AB_POW: st = fn_pow(&r, &c->y, &c->x); break;        /* y^x (UG p.4-2) */
     case AB_XROOT: st = fn_xroot(&r, &c->y, &c->x); break;    /* x-th root of y (UG p.4-3) */
     case AB_IDIV: st = fn_idiv(&r, &c->y, &c->x); break;      /* INT÷ (UG p.4-2) */
+    case AB_NCR: st = fn_ncr(&r, &c->y, &c->x); break;        /* n in Y, r in X (UG p.4-16) */
+    case AB_NPR: st = fn_npr(&r, &c->y, &c->x); break;
     default: st = fn_rmdr(&r, &c->y, &c->x); break;           /* Rmdr (UG p.4-2) */
     }
     if (st != ABN_OK) return st;    /* the stack stays as it was */
@@ -210,12 +240,6 @@ static abn_status two_number_op(ab_calc *c, ab_op op)
     return ABN_OK;
 }
 
-int ab_const_index(const char *name)
-{
-    (void)name;
-    return 0;   /* STUB */
-}
-
 abn_status ab_do(ab_calc *c, ab_op op)
 {
     return ab_do_arg(c, op, 0);
@@ -223,8 +247,7 @@ abn_status ab_do(ab_calc *c, ab_op op)
 
 abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
 {
-    (void)arg;
-    if (op >= AB_HMS) return ABN_OK;    /* STUB: unit 004 operations land after the oracle */
+
     if (op <= AB_KE) return entry_key(c, op);
     if ((op == AB_KCHS || op == AB_KBKSP) && c->entry.active) return entry_key(c, op);
 
@@ -297,7 +320,51 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
     case AB_XROOT:
     case AB_IDIV:
     case AB_RMDR:
+    case AB_NCR:
+    case AB_NPR:
         return two_number_op(c, op);
+    case AB_HMS: case AB_HMSINV: case AB_TODEG: case AB_TORAD:
+    case AB_TOKG: case AB_TOLB: case AB_TOC: case AB_TOF: case AB_TOCM: case AB_TOIN:
+    case AB_TOL: case AB_TOGAL: case AB_TOKM: case AB_TOMILE:
+    case AB_FACT: case AB_IP: case AB_FP: case AB_INTG: case AB_ABS: case AB_SGN: case AB_RND:
+        return one_number_fn(c, op);
+    case AB_TOPOL:
+    case AB_TOREC: {
+        /* Two numbers in, two out: x and y in X and Y become r and theta, or back (ours, unit
+           004). LAST X keeps the old x, as for the other conversions (UG p.B-6). */
+        abn a, b;
+        abn_status st = op == AB_TOPOL ? fn_topol(&a, &b, &c->x, &c->y, angle_of(c))
+                                       : fn_torec(&a, &b, &c->x, &c->y, angle_of(c));
+        if (st != ABN_OK) return st;
+        c->lastx = c->x;
+        c->x = a;
+        c->y = b;
+        break;
+    }
+    case AB_RAND:
+        /* RAND arrives like a recalled number (UG p.4-15). */
+        place_in_x(c, fn_rand(&c->rng));
+        break;
+    case AB_SEED:
+        /* SEED takes x as the seed and leaves the stack as it is (UG p.4-15; ours: X stays). */
+        fn_seed(&c->rng, &c->x);
+        break;
+    case AB_CONST: {
+        abn v;
+        abn_status st = ab_const_value(&v, arg);
+        if (st != ABN_OK) return st;
+        place_in_x(c, v);   /* a constant arrives like a recalled number (UG p.4-8) */
+        break;
+    }
+    case AB_SETFIX:
+    case AB_SETSCI:
+    case AB_SETENG:
+    case AB_SETALL:
+        /* Display settings change no number and leave stack lift alone (UG p.1-21, p.B-5). */
+        if (arg < 0 || arg > AB_FMT_N_MAX) return ABN_DOMAIN;
+        c->disp_mode = op == AB_SETFIX ? AB_FIX : op == AB_SETSCI ? AB_SCI : op == AB_SETENG ? AB_ENG : AB_ALL;
+        c->disp_n = op == AB_SETALL ? 0 : arg;
+        return ABN_OK;
     case AB_PCT:
     case AB_PCTCHG:
         return percent_fn(c, op);
