@@ -30,7 +30,11 @@ size_t ab_state_save(const ab_calc *c, uint8_t *buf, size_t cap);
 
 /* Replaces the state with the image's, keeping the device's settings. ABN_BAD_IMAGE, nothing
    changed, for a wrong checksum, a truncated image, a version from the future or any field out
-   of range: every byte is checked before anything is written. */
+   of range: every byte is checked before anything is written.
+
+   The device: at first boot (no image) and after a refused load, call ab_memory_clear and show
+   MEMORY CLEAR (UG p.B-3), not ab_init. ab_init keeps unit 002's ALL display so the earlier
+   vectors keep their meaning; MEMORY CLEAR's default is FIX 4 (p.B-4). Ruled by abacus, #3734. */
 abn_status ab_state_load(ab_calc *c, const uint8_t *buf, size_t len);
 
 /* CRC-32 of n bytes (for tests: a golden image's identity). */
