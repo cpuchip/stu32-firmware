@@ -55,5 +55,10 @@ const font_glyph *screen_glyph(uint32_t cp);    /* NULL when the face has none *
 extern long screen_missed;                      /* hollow boxes drawn so far (a test reads it) */
 int screen_cells(const char *s);                /* cells in UTF-8 text: a combining mark takes none */
 int screen_missing(const char *s);              /* of those, the ones the face lacks */
+/* For drawing elsewhere (the stand-in's keys): text as cells (a combining mark folded into its
+   letter), and a cell as 8 rows of 5 bits, bit 4 the left column: row 0 is the mark's own row
+   above the glyph, rows 1..7 the glyph (a hollow box when the face lacks it). */
+int screen_decode(const char *s, uint32_t *cells, int max);
+void screen_cell_bitmap(uint32_t cell, uint8_t rows[8]);
 
 #endif

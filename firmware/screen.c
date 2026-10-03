@@ -158,6 +158,25 @@ static int draw_cps(ls027_frame *f, int x, int y, int scale, const uint32_t *cp,
     return n;
 }
 
+int screen_decode(const char *s, uint32_t *cells, int max)
+{
+    int n = 0;
+    while (*s && n < max) cells[n++] = next_cell(&s);
+    return n;
+}
+
+void screen_cell_bitmap(uint32_t cell, uint8_t rows[8])
+{
+    const font_glyph *g = screen_glyph(cell & CP_MASK);
+    memset(rows, 0, 8);
+    if (!g) screen_missed++;
+    for (int r = 0; r < 7; r++) rows[r + 1] = g ? g->rows[r] : (uint8_t)(r == 0 || r == 6 ? 0x1F : 0x11);
+    if (cell >> MARK_SHIFT) {                   /* the mark a row above the glyph's rows, as drawn */
+        const font_glyph *m = screen_glyph((cell >> MARK_SHIFT) + 0x02FF);
+        for (int r = 0; m && r < 7; r++) rows[r] |= m->rows[r];
+    }
+}
+
 int screen_text(ls027_frame *f, int x, int y, int scale, const char *s, bool dark)
 {
     int n = 0;
