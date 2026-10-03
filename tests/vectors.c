@@ -93,6 +93,11 @@ static bool img_save(const ab_calc *c)
 static ab_calc calc;            /* 106 KB: off the stack, and the only one on a device */
 
 #ifdef AB_DEVICE
+/* A file the vectors name, from the device's flash bundle (tests/device/main/device_main.c). */
+bool device_file(const char *path, const uint8_t **data, size_t *len);
+#endif
+
+#ifdef AB_DEVICE
 /* The runner's calculator, for the device test's other steps (a device has room for one). */
 ab_calc *vectors_calc(void)
 {
@@ -201,6 +206,20 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
             }
             return 0;
         }
+#ifdef AB_DEVICE
+        if (strncmp(tok, "LOADFILE:", 9) == 0) {
+            /* on a device the file is in the flash bundle (tests/device) */
+            const uint8_t *data;
+            size_t n;
+            if (!device_file(tok + 9, &data, &n)) return -1;
+            abn_status st = ab_state_load(c, data, n);
+            if (st != ABN_OK) {
+                last_err = st;
+                (*errors)++;
+            }
+            return 0;
+        }
+#endif
         if (strncmp(tok, "SAVEFILE:", 9) == 0 || strncmp(tok, "LOADFILE:", 9) == 0) {
             FILE *f = fopen(tok + 9, tok[0] == 'S' ? "wb" : "rb");
             if (!f) return -1;

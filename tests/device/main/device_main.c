@@ -7,6 +7,7 @@
  * flash's reset misses nothing. Built on the host (make device-host) it runs at once: the same
  * code, proven before it meets a chip. fmt_fuzz is left out: it needs a Python loop. */
 #define _POSIX_C_SOURCE 200809L
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -46,6 +47,18 @@ static int64_t now_us(void)
 /* Unit 016: load the image and save it again, n times each, and report the time per call; the
    saved image must load and save to the same bytes (a newer core writes the newer version). */
 ab_calc *vectors_calc(void);
+
+/* A file the vectors load (LOADFILE:), from the bundle. */
+bool device_file(const char *path, const uint8_t **data, size_t *len)
+{
+    for (unsigned i = 0; i < BUNDLE_COUNT; i++)
+        if (strcmp(BUNDLE[i].name, path) == 0) {
+            *data = (const uint8_t *)BUNDLE[i].text;
+            *len = BUNDLE[i].len;
+            return true;
+        }
+    return false;
+}
 
 static int time_image(const bundle_file *b)
 {
