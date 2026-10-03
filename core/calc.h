@@ -113,8 +113,10 @@ typedef enum {
     AB_STOP_CANCELLED,      /* a prompt cancelled with C: R/S prompts again (UG p.13-15) */
     AB_STOP_ERROR,          /* an error at stop_line (the pointer is there) */
     AB_STOP_BUDGET,         /* AB_RUN_BUDGET lines without stopping */
-    AB_STOP_MSG             /* showing an equation line as a message, flag 10 set: the line at
+    AB_STOP_MSG,            /* showing an equation line as a message, flag 10 set: the line at
                                stop_line (R/S resumes after it; UG p.13-16, 14-11) */
+    AB_STOP_SLICE           /* the device's slice of lines ran out (unit 016): ab_continue goes
+                               on as if nothing had happened; ab_interrupt makes it a STOP */
 } ab_stop;
 
 enum { AB_TEST_NE = 0, AB_TEST_LE, AB_TEST_LT, AB_TEST_GT, AB_TEST_GE, AB_TEST_EQ };   /* UG p.14-7 order */
@@ -245,6 +247,13 @@ typedef struct {
         int pc, rbase, rdepth;  /* where the run that keyed it stood */
         bool from_prog;     /* keyed by a program line at pc */
     } susp;
+    ab_val ev_y, ev_z, ev_t;    /* the stack each SOLVE / integrate evaluation starts from */
+    /* unit 016: the device's view of a run */
+    long slice;             /* lines a program run may take per call before AB_STOP_SLICE; 0 none */
+    long run_lines;         /* lines the current run has taken, against budget, across slices */
+    volatile bool intr;     /* set by ab_interrupt while a run is in progress (C or R/S pressed) */
+    long intr_after;        /* for tests: an interrupt arriving after this many more lines or
+                               equation evaluations (0: none), as a device's would mid-call */
 } ab_calc;
 
 void ab_init(ab_calc *c);
@@ -281,6 +290,21 @@ abn_status ab_indirect(ab_calc *c, int code, ab_val *out);
    base mark (2, 8, 10 or 16) read as the keyboard reads typed digits (UG p.11-3). */
 abn_status ab_eqn_op(ab_calc *c, ab_op op, const ab_val *y, const ab_val *x, ab_val *out);
 abn_status ab_eqn_based(const char *digits, int n, int base, abn *out);
+
+/* Unit 016: CLEAR ALL and MEMORY CLEAR as UG p.B-4's table has them. ab_init is MEMORY CLEAR,
+   with the device fields (budget, slice) at their defaults. */
+void ab_clear_all(ab_calc *c);
+void ab_memory_clear(ab_calc *c);
+
+/* Unit 016, for the device. ab_continue goes on after AB_STOP_SLICE. ab_interrupt is C or R/S
+   pressed during a run (UG p.13-19): safe to call from an interrupt handler while a call runs (it
+   sets a flag the run reads between lines and between SOLVE / integrate evaluations); at a slice
+   stop it makes the stop a STOP at once. */
+abn_status ab_continue(ab_calc *c);
+void ab_interrupt(ab_calc *c);
+
+/* Rebuilds the label table after program memory is replaced (state loading). */
+void ab_prog_relabel(ab_calc *c);
 
 /* The index of the constant named `name` (see core/const.c), or -1. */
 int ab_const_index(const char *name);

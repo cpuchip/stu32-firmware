@@ -44,7 +44,10 @@ typedef enum {
     ABN_SYNTAX,             /* an equation that does not parse (SYNTAX ERROR, UG p.6-19; unit 014) */
     ABN_INVALID_VAR,        /* SOLVE for a variable the equation does not have (INVALID VAR, p.F-2) */
     ABN_NO_SOLUTION,        /* a linear system with no solution (NO SOLUTION, p.F-3) */
-    ABN_MULT_SOLUTION       /* a linear system with many solutions (MULT SOLUTION, p.F-3) */
+    ABN_MULT_SOLUTION,      /* a linear system with many solutions (MULT SOLUTION, p.F-3) */
+    ABN_INTERRUPTED,        /* a SOLVE or integral stopped by C or R/S (INTERRUPTED, unit 016) */
+    ABN_BAD_IMAGE           /* a state image that cannot be loaded: the device clears memory
+                               (MEMORY CLEAR, UG p.B-3; unit 016) */
 } abn_status;
 
 abn abn_zero(void);
@@ -102,6 +105,9 @@ abn_status abn_atan2(abn *out, const abn *y, const abn *x);    /* radians, in (-
 /* Text form: [-|+]digits[.digits][E|e[-|+]digits], at least one mantissa digit. More than
    ABN_DIGITS significant digits round half to even. */
 abn_status abn_from_text(abn *out, const char *s);
+/* As abn_from_text, but a zero keeps the sign and exponent written (abn_from_text gives every zero
+   as abn_zero()): for state images, which must give back exactly the number saved (unit 016). */
+abn_status abn_from_text_exact(abn *out, const char *s);
 /* Writes a NUL-terminated text form readable by abn_from_text; returns its length. */
 int abn_to_text(const abn *a, char *buf, int size);
 

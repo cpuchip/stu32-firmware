@@ -3452,3 +3452,31 @@ void ab_stop_text(const ab_calc *c, char *buf)
     else snprintf(buf, 32, "%s", NAMES[c->stop]);
 }
 
+
+/* ---- unit 016 (red stubs: the behaviour arrives with the green commit) ---- */
+
+void ab_clear_all(ab_calc *c)
+{
+    (void)c;
+}
+
+void ab_memory_clear(ab_calc *c)
+{
+    (void)c;
+}
+
+abn_status ab_continue(ab_calc *c)
+{
+    (void)c;
+    return ABN_OK;
+}
+
+void ab_interrupt(ab_calc *c)
+{
+    (void)c;
+}
+
+void ab_prog_relabel(ab_calc *c)
+{
+    (void)c;
+}

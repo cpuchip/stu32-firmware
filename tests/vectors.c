@@ -22,6 +22,7 @@
 #include "arena.h"
 
 #include "calc.h"
+#include "state.h"
 #include "norm.h"
 
 #define LINE_MAX_ 16384
@@ -66,9 +67,38 @@ static abn_status last_err;
 /* X as SAVEX found it, for %SAMEX (unit 014: an equation against the keyboard path). */
 static ab_val saved_x;
 
+/* Unit 016's harness switches: AB_SAVELOAD=1 saves and loads after every key (and checks that
+   save, load, save gives the same bytes); AB_SLICE=n runs every program in slices of n lines. */
+static int env_saveload;
+static long env_slice;
+static uint8_t *img;            /* the image SAVE made (grown as needed: a device has little RAM) */
+static size_t img_len, img_cap;
+static uint8_t *mark;           /* a second image, MARK's, for %SAMEMARK */
+static size_t mark_len;
+
+static bool img_save(const ab_calc *c)
+{
+    size_t n = ab_state_save(c, NULL, 0);
+    if (n == 0) return false;
+    if (n > img_cap) {
+        uint8_t *b = realloc(img, n);
+        if (!b) return false;
+        img = b;
+        img_cap = n;
+    }
+    img_len = ab_state_save(c, img, img_cap);
+    return img_len == n;
+}
+
 static abn_status do1(ab_calc *c, ab_op op, int arg)
 {
     abn_status st = ab_do_arg(c, op, arg);
+    while (env_slice > 0 && c->stop == AB_STOP_SLICE) {
+        /* the device's loop; with AB_SAVELOAD too, a save and load at every slice stop (a device
+           that sleeps mid-run) */
+        if (env_saveload && img_save(c) && ab_state_load(c, img, img_len) != ABN_OK) return ABN_BAD_IMAGE;
+        st = ab_continue(c);
+    }
     if (st != ABN_OK) last_err = st;
     return st;
 }
@@ -77,7 +107,8 @@ static const char *const STATUS_NAMES[] = {"OK", "DIV_ZERO", "RANGE", "BAD_TEXT"
                                            "CLAMPED", "NONEXISTENT", "XEQ_OVERFLOW", "DUP_LABEL",
                                            "MEMORY_FULL", "NONPROGRAMMABLE", "BUDGET", "NO_ROOT",
                                            "SELECT_FN", "NESTED", "SYNTAX", "INVALID_VAR",
-                                           "NO_SOLUTION", "MULT_SOLUTION"};
+                                           "NO_SOLUTION", "MULT_SOLUTION", "INTERRUPTED",
+                                           "BAD_IMAGE"};
 
 /* Applies one key token. Returns 0, or -1 for an unknown token. */
 static int apply_token(ab_calc *c, const char *tok, int *errors)
@@ -138,6 +169,114 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
         if (strncmp(tok, "REG:", 4) == 0 && tok[4] && strchr("XYZT", tok[4]) && !tok[5]) {
             /* in an equation: R-down's menu, the register chosen (unit 015) */
             if (do1(c, AB_KREG, (int)(strchr("XYZT", tok[4]) - "XYZT")) != ABN_OK) (*errors)++;
+            return 0;
+        }
+        /* unit 016: the state image and the device's calls */
+        if (strcmp(tok, "SAVE") == 0) {
+            if (!img_save(c)) (*errors)++;
+            return 0;
+        }
+        if (strcmp(tok, "MARK") == 0) {
+            size_t n = ab_state_save(c, NULL, 0);
+            free(mark);
+            mark = malloc(n ? n : 1);
+            mark_len = mark ? ab_state_save(c, mark, n) : 0;
+            return 0;
+        }
+        if (strcmp(tok, "LOAD") == 0) {
+            abn_status st = ab_state_load(c, img, img_len);
+            if (st != ABN_OK) {
+                last_err = st;
+                (*errors)++;
+            }
+            return 0;
+        }
+        if (strncmp(tok, "SAVEFILE:", 9) == 0 || strncmp(tok, "LOADFILE:", 9) == 0) {
+            FILE *f = fopen(tok + 9, tok[0] == 'S' ? "wb" : "rb");
+            if (!f) return -1;
+            if (tok[0] == 'S') {
+                if (!img_save(c) || fwrite(img, 1, img_len, f) != img_len) (*errors)++;
+            } else {
+                long n;
+                fseek(f, 0, SEEK_END);
+                n = ftell(f);
+                fseek(f, 0, SEEK_SET);
+                if (n <= 0 || (size_t)n > img_cap) {
+                    uint8_t *b = realloc(img, (size_t)(n > 0 ? n : 1));
+                    if (!b) return -1;
+                    img = b;
+                    img_cap = (size_t)(n > 0 ? n : 1);
+                }
+                img_len = fread(img, 1, (size_t)(n > 0 ? n : 0), f);
+                abn_status st = ab_state_load(c, img, img_len);
+                if (st != ABN_OK) {
+                    last_err = st;
+                    (*errors)++;
+                }
+            }
+            fclose(f);
+            return 0;
+        }
+        if (strncmp(tok, "CORRUPT:", 8) == 0) {    /* flip a bit of byte k (no image: nothing) */
+            if (img_len) img[(size_t)atol(tok + 8) % img_len] ^= 0x01;
+            return 0;
+        }
+        if (strncmp(tok, "TRUNC:", 6) == 0) {
+            size_t n = (size_t)atol(tok + 6);
+            if (n < img_len) img_len = n;
+            return 0;
+        }
+        if (strncmp(tok, "IMGVER:", 7) == 0) {   /* another version, CRC redone */
+            unsigned v = (unsigned)atoi(tok + 7);
+            if (img_len < 6) return 0;
+            img[4] = (uint8_t)v;
+            img[5] = (uint8_t)(v >> 8);
+            goto fixcrc;
+        }
+        if (strcmp(tok, "FIXCRC") == 0) {     /* the checksum made right again */
+            if (img_len < 4) return 0;
+        fixcrc: {
+                uint32_t k = ab_crc32(img, img_len - 4);
+                for (int i = 0; i < 4; i++) img[img_len - 4 + (size_t)i] = (uint8_t)(k >> (8 * i));
+            }
+            return 0;
+        }
+        if (strncmp(tok, "SETBYTE:", 8) == 0) {    /* SETBYTE:offset:value */
+            char *colon = strchr(tok + 8, ':');
+            if (!colon) return -1;
+            if (img_len) img[(size_t)atol(tok + 8) % img_len] = (uint8_t)atoi(colon + 1);
+            return 0;
+        }
+        if (strncmp(tok, "BUDGET:", 7) == 0) {  /* the device's budget of lines per run */
+            c->budget = atol(tok + 7);
+            return 0;
+        }
+        if (strncmp(tok, "SLICE:", 6) == 0) {
+            c->slice = atol(tok + 6);
+            return 0;
+        }
+        if (strcmp(tok, "CONT") == 0) {
+            abn_status st = ab_continue(c);
+            if (st != ABN_OK) {
+                last_err = st;
+                (*errors)++;
+            }
+            return 0;
+        }
+        if (strcmp(tok, "INTERRUPT") == 0) {
+            ab_interrupt(c);
+            return 0;
+        }
+        if (strncmp(tok, "INTR:", 5) == 0) {   /* an interrupt arriving after n lines (tests) */
+            c->intr_after = atol(tok + 5);
+            return 0;
+        }
+        if (strcmp(tok, "CLALL") == 0) {
+            ab_clear_all(c);
+            return 0;
+        }
+        if (strcmp(tok, "MEMCLR") == 0) {
+            ab_memory_clear(c);
             return 0;
         }
         if (strcmp(tok, "SOLVE") == 0) {      /* SOLVE with no letter: a built-in solver shown */
@@ -283,6 +422,8 @@ static char *trim(char *s)
  * Returns 0 when every vector passes, 1 on a failure, 2 on a malformed file. */
 int vectors_run(const char *name, FILE *f)
 {
+    env_saveload = getenv("AB_SAVELOAD") != NULL;
+    env_slice = getenv("AB_SLICE") ? atol(getenv("AB_SLICE")) : 0;
     char line[LINE_MAX_];
     int lineno = 0, vectors = 0, vectors_ok = 0, checks = 0, checks_ok = 0;
     while (fgets(line, sizeof line, f)) {
@@ -306,6 +447,7 @@ int vectors_run(const char *name, FILE *f)
 
         static ab_calc c;                   /* 92 KB: off the stack, for a device task */
         ab_init(&c);
+        c.slice = env_slice;
         int op_errors = 0;
         bool holdpse = false;
         last_err = ABN_OK;
@@ -322,8 +464,34 @@ int vectors_run(const char *name, FILE *f)
                plays the device */
             while (!holdpse && c.stop == AB_STOP_PSE)
                 if (do1(&c, AB_RS, 0) != ABN_OK) op_errors++;
+            if (env_saveload) {
+                /* save, load, save: the same bytes, and the loaded calculator goes on (unit 016) */
+                size_t n1;
+                static uint8_t *b2;
+                static size_t c2;
+                if (!img_save(&c)) {
+                    fprintf(stderr, "%s:%d: %s: save failed after '%s'\n", name, lineno, id, tok);
+                    op_errors += 1000;
+                } else if (ab_state_load(&c, img, img_len) != ABN_OK) {
+                    fprintf(stderr, "%s:%d: %s: load refused its own image after '%s'\n", name, lineno, id, tok);
+                    op_errors += 1000;
+                } else {
+                    n1 = ab_state_save(&c, NULL, 0);
+                    if (n1 > c2) {
+                        free(b2);
+                        b2 = malloc(n1);
+                        c2 = b2 ? n1 : 0;
+                    }
+                    if (!b2 || ab_state_save(&c, b2, c2) != img_len || memcmp(b2, img, img_len) != 0) {
+                        fprintf(stderr, "%s:%d: %s: save, load, save differ after '%s'\n", name, lineno, id, tok);
+                        op_errors += 1000;
+                    }
+                }
+            }
         }
 
+        if (getenv("AB_IMGCRC") && img_save(&c))   /* the final state's identity, for comparisons */
+            fprintf(stderr, "%s %08lX\n", id, (unsigned long)ab_crc32(img, img_len));
         int want_error = 0;
         char *exps[64];
         int nexp = 0;
@@ -382,6 +550,25 @@ int vectors_run(const char *name, FILE *f)
                     /* X is exactly what SAVEX remembered */
                     bool same = c.x.kind == saved_x.kind && abn_cmp(&c.x.re, &saved_x.re) == 0 &&
                                 abn_cmp(&c.x.im, &saved_x.im) == 0;
+                    snprintf(got, sizeof got, "%s", same ? eq + 1 : "different");
+                } else if (strcmp(ex, "%IMAGE") == 0) {
+                    /* the CRC-32 of the image SAVE made, in hex (unit 016) */
+                    snprintf(got, sizeof got, "%08lX", img_len ? (unsigned long)ab_crc32(img, img_len) : 0ul);
+                } else if (strcmp(ex, "%IMGLEN") == 0) {
+                    snprintf(got, sizeof got, "%lu", (unsigned long)img_len);
+                } else if (strcmp(ex, "%SAMEIMG") == 0) {
+                    /* saving now gives the bytes SAVE gave */
+                    size_t n = ab_state_save(&c, NULL, 0);
+                    uint8_t *b = malloc(n ? n : 1);
+                    bool same = b && ab_state_save(&c, b, n) == img_len && memcmp(b, img, img_len) == 0;
+                    free(b);
+                    snprintf(got, sizeof got, "%s", same ? eq + 1 : "different");
+                } else if (strcmp(ex, "%SAMEMARK") == 0) {
+                    /* saving now gives the bytes MARK gave */
+                    size_t n = ab_state_save(&c, NULL, 0);
+                    uint8_t *b = malloc(n ? n : 1);
+                    bool same = b && mark && ab_state_save(&c, b, n) == mark_len && memcmp(b, mark, mark_len) == 0;
+                    free(b);
                     snprintf(got, sizeof got, "%s", same ? eq + 1 : "different");
                 } else if (strcmp(ex, "%MSG") == 0) {
                     /* the equation line shown as a message (flag 10, unit 015); blanks written _ */
