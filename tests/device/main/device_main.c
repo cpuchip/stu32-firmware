@@ -45,9 +45,12 @@ static int64_t now_us(void)
 
 /* Unit 016: load the image and save it again, n times each, and report the time per call; the
    saved bytes must be the image's. */
+ab_calc *vectors_calc(void);
+
 static int time_image(const bundle_file *b)
 {
-    static ab_calc c;
+    ab_calc *cp = vectors_calc();
+#define c (*cp)
     static uint8_t out[4096];
     int64_t t0, t1, t2;
     const int n = 200;
@@ -63,6 +66,7 @@ static int time_image(const bundle_file *b)
     printf("%s: %u bytes; load %.0f us, save %.0f us\n", b->name, (unsigned)b->len,
            (double)(t1 - t0) / n, (double)(t2 - t1) / n);
     return len == b->len && memcmp(out, b->text, len) == 0 ? 0 : 1;
+#undef c
 }
 
 static int run_file(const bundle_file *b)

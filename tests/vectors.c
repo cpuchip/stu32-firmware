@@ -90,6 +90,16 @@ static bool img_save(const ab_calc *c)
     return img_len == n;
 }
 
+static ab_calc calc;            /* 106 KB: off the stack, and the only one on a device */
+
+#ifdef AB_DEVICE
+/* The runner's calculator, for the device test's other steps (a device has room for one). */
+ab_calc *vectors_calc(void)
+{
+    return &calc;
+}
+#endif
+
 static abn_status do1(ab_calc *c, ab_op op, int arg)
 {
     abn_status st = ab_do_arg(c, op, arg);
@@ -445,7 +455,8 @@ int vectors_run(const char *name, FILE *f)
         }
         char *id = trim(field[0]), *keys = trim(field[2]), *expect = trim(field[3]);
 
-        static ab_calc c;                   /* 92 KB: off the stack, for a device task */
+        ab_calc *cp = &calc;
+#define c (*cp)
         ab_init(&c);
         c.slice = env_slice;
         int op_errors = 0;
@@ -789,6 +800,7 @@ int vectors_run(const char *name, FILE *f)
         if (vec_ok) vectors_ok++;
         if (getenv("AB_EVALS")) fprintf(stderr, "%s evals %ld\n", id, c.evals);   /* unit 013 report */
     }
+#undef c
     printf("%s: %d/%d vectors, %d/%d expectations\n", name, vectors_ok, vectors,
            checks_ok, checks);
     if (getenv("AB_ARENA_PEAK")) fprintf(stderr, "arena peak %d\n", ar_peak());   /* unit 010b measurement */
