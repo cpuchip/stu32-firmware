@@ -1,0 +1,63 @@
+# Work unit 002 acceptance vectors: number formatting. One vector per line:
+#   ID | source | value | MODE n | options | expected text
+# value: an exact decimal (the number held in a register). MODE: FIX, SCI, ENG or ALL (n is the
+# digit setting; ALL takes none). options: w=<width in characters> (default 22), radix=. or ,
+# (default .), sep=on|off (thousands separator, default on; it is ',' with radix '.' and '.' with
+# radix ','). expected: the exact characters, compared as strings.
+# "35s" sources are HP 35s User's Guide pages; "ours" marks a rule this unit defines where the
+# 35s's 12-digit, 14-character display does not carry over.
+
+# --- the manual's own examples
+D01 | 35s p.1-25 FIX 4               | 58.5                    | FIX 4 |               | 58.5000
+D02 | 35s p.1-25 SCI 2               | 58.5                    | SCI 2 |               | 5.85E1
+D03 | 35s p.1-25 ENG 2               | 58.5                    | ENG 2 |               | 58.5E0
+D04 | 35s p.1-23 ENG 4               | 123460                  | ENG 4 |               | 123.46E3
+D05 | 35s p.1-23 ENG 4 of zero       | 0                       | ENG 4 |               | 0.0000E0
+D06 | 35s p.1-22 SCI 4               | 123456                  | SCI 4 |               | 1.2346E5
+D07 | 35s p.1-21 FIX 4, separators   | 123456.7089             | FIX 4 |               | 123,456.7089
+D08 | 35s p.1-16 FIX 4 rounds        | 0.000062                | FIX 4 |               | 0.0001
+D09 | 35s p.1-16 FIX 4 too small     | 0.000042                | FIX 4 |               | 4.2000E-5
+D10 | 35s p.1-24 ALL, separators     | 12345678.9              | ALL   |               | 12,345,678.9
+D11 | 35s p.1-24 radix comma         | 12345678.9              | ALL   | radix=,       | 12.345.678,9
+D12 | 35s p.1-24 no separator        | 12345678.9              | ALL   | sep=off       | 12345678.9
+D13 | 35s p.1-24 comma, no separator | 12345678.9              | ALL   | radix=, sep=off | 12345678,9
+D14 | 35s p.1-25 FIX 4 of 14.87...   | 14.8745632019           | FIX 4 |               | 14.8746
+D15 | 35s p.2-12 FIX 4, large        | 4.085E16                | FIX 4 |               | 4.0850E16
+D16 | 35s p.2-11 FIX 4               | 2.845682864869920049165278167448234 | FIX 4 |   | 2.8457
+
+# --- rounding and carries (display rounding: half away from zero, provisional)
+D17 | ours: SCI carry                | 9.996                   | SCI 2 |               | 1.00E1
+D18 | ours: ENG carry to next group  | 999.6                   | ENG 2 |               | 1.00E3
+D19 | ours: half rounds away         | 0.125                   | FIX 2 |               | 0.13
+D20 | ours: half rounds away, neg    | -2.5                    | FIX 0 |               | -3
+D21 | ours: FIX carry grows a digit  | 99.995                  | FIX 2 |               | 100.00
+D22 | ours: FIX carry, negative      | -99.995                 | FIX 2 |               | -100.00
+D23 | ours: ENG 0, one digit         | 123456                  | ENG 0 |               | 100E3
+D24 | ours: ENG negative exponent    | 0.00012346              | ENG 3 |               | 123.5E-6
+D25 | ours: zero                     | 0                       | FIX 4 |               | 0.0000
+D26 | ours: zero                     | 0                       | SCI 4 |               | 0.0000E0
+D27 | ours: zero                     | 0                       | ALL   |               | 0
+
+# --- the exponent is never cut off; the mantissa gives way (ours)
+D28 | ours: SCI 11 on a narrow line  | -6.6261E-34             | SCI 11 | w=14         | -6.6261000E-34
+D29 | ours: SCI on a narrow line     | 1.234567890123456789E-100 | SCI 11 | w=14       | 1.2345679E-100
+D30 | ours: top of the range         | 1E6144                  | ALL   | w=14          | 1E6144
+D31 | ours: bottom of the range      | -1E-6143                | SCI 4 | w=14          | -1.0000E-6143
+D32 | ours: FIX falls to SCI to fit  | 1E6144                  | FIX 4 |               | 1.0000E6144
+D33 | ours: FIX fits a narrow line   | 1234.5                  | FIX 2 | w=8           | 1,234.50
+D34 | ours: FIX 33                   | 1.5                     | FIX 33 | w=40         | 1.500000000000000000000000000000000
+
+# --- ALL (ours): plain while it can show min(the value's digits, 12) significant digits,
+# rounded to the width with trailing zeros removed; otherwise scientific, trailing zeros removed
+D35 | ours: ALL, one third, w=22     | 0.3333333333333333333333333333333333 | ALL |     | 0.33333333333333333333
+D36 | ours: ALL, two thirds, w=22    | 0.6666666666666666666666666666666667 | ALL |     | 0.66666666666666666667
+D37 | ours: ALL, one third, w=14     | 0.3333333333333333333333333333333333 | ALL | w=14 | 0.333333333333
+D38 | ours: ALL rounds up to 10      | 9.99999999999999999999  | ALL   | w=14          | 10
+D39 | ours: ALL tiny goes scientific | 1E-30                   | ALL   |               | 1E-30
+D40 | ours: ALL wide integer         | 123456789012345678901234567890 | ALL |          | 1.23456789012345679E29
+D41 | ours: ALL plain when it fits   | 4.085E16                | ALL   |               | 40,850,000,000,000,000
+D42 | ours: ALL short values         | 0.5                     | ALL   |               | 0.5
+D43 | ours: ALL integer, no radix    | 100                     | ALL   |               | 100
+D44 | ours: ALL negative small       | -0.001234               | ALL   |               | -0.001234
+D45 | ours: ALL too few digits left  | 0.000123456789012345678 | ALL   | w=14          | 1.23456789E-4
+D46 | ours: ALL integer too wide     | -123456789012.5         | ALL   | w=14          | -1.23456789E11
