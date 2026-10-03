@@ -3,7 +3,10 @@
 
 #include "arena.h"
 
-static xnum pool[AB_ARENA_WIDE];
+#ifndef AB_POOL_ATTR
+#define AB_POOL_ATTR                /* a device may place the pool: the stand-in puts it in PSRAM */
+#endif
+static xnum pool[AB_ARENA_WIDE] AB_POOL_ATTR;
 static int top, peak;
 
 int ar_mark(void)

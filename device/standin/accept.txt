@@ -1,0 +1,66 @@
+# The stand-in's acceptance over its console (unit 018): the calculator runs from its keys, a
+# program runs in slices and stops on a key, the state survives a restart, a wiped store comes up
+# as MEMORY CLEAR. Keys by number (keys.h: row * 6 + column): 1 37, 2 38, 3 39, 0 43, ENTER 18,
+# + 46, STO 12, RCL 13, XEQ 24, GOLD 30, 4 31, R/S 45, C 42; letters: A 6, G 12.
+wait STANDIN READY 30
+send WIPE
+expect wipe: both slots erased
+send RESTART
+expect load: no image: MEMORY CLEAR 30
+wait STANDIN READY 30
+# arithmetic
+send K38
+send K18
+send K39
+send K46
+send X
+expect X=5 stop
+# STO G, then 2 RCL x... no: STO + G (G = 10), RCL G
+send K12
+send K12
+send X
+expect prompt=-
+send K12
+send K46
+send K12
+send K42
+send K13
+send K12
+send X
+expect X=10 stop
+# a program from the keys: LBL A, 1, +, GTO A (program entry by the console until the keys get it)
+send PRGM
+expect prgm=1
+send K30
+send K24
+send K6
+send K37
+send K46
+send K30
+send K31
+send K6
+send PRGM
+expect prgm=0
+send X
+expect lines=4
+# run it in slices; R/S stops it
+send K43
+send K24
+send K6
+expect run: started
+sleep 3
+send X
+expect running=1
+send K45
+expect run: stopped (STOP) 5
+send X
+expect running=0
+# the state across a restart
+send SAVE
+expect save:
+send RESTART
+expect load:
+expect bytes ok 30
+wait STANDIN READY 30
+send X
+expect lines=4

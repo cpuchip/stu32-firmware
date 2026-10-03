@@ -1,0 +1,17 @@
+# Waveshare ESP32-S3-Touch-LCD-4.3: 8 MB flash, 8 MB octal PSRAM (measured 2026-10-03), console
+# on UART0 through the board's CH343.
+CONFIG_IDF_TARGET="esp32s3"
+CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_MODE_OCT=y
+CONFIG_SPIRAM_SPEED_80M=y
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+# The bounce-buffer fill (si_line) keeps drawing while the store writes flash
+CONFIG_LCD_RGB_ISR_IRAM_SAFE=y
+# A long SOLVE is one call (unit 016): the calc task may hold the CPU for a while
+CONFIG_ESP_TASK_WDT_INIT=n
+# the core's arena pool in PSRAM (main/pool_attr.h)
+CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY=y
