@@ -285,6 +285,10 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
             ab_clear_all(c);
             return 0;
         }
+        if (strcmp(tok, "MODE33") == 0 || strcmp(tok, "MODE35") == 0) {   /* unit 017 */
+            if (do1(c, AB_MODEL, tok[5] == '3' ? 33 : 35) != ABN_OK) (*errors)++;
+            return 0;
+        }
         if (strcmp(tok, "MEMCLR") == 0) {
             ab_memory_clear(c);
             return 0;

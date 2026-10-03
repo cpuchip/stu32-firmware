@@ -97,8 +97,10 @@ typedef enum {
     /* unit 015 */
     AB_EQLINE,              /* an equation as a program line: arg indexes peqn[] (UG p.13-7) */
     AB_KSPACE,              /* SPACE: a blank in an equation (UG p.G-13) */
-    AB_KREG                 /* in an equation, R-down's menu choice: arg 0..3 types REGX..REGT
+    AB_KREG,                /* in an equation, R-down's menu choice: arg 0..3 types REGX..REGT
                                (UG p.B-7) */
+    /* unit 017 */
+    AB_MODEL                /* the 33s/35s mode: arg 33 or 35 (a device menu; not a program line) */
 } ab_op;
 
 /* Why the last run stopped (unit 012 rule 1): the device draws it; the core never waits. */
@@ -151,6 +153,9 @@ typedef struct {
     char text[AB_ENTRY_TEXT];   /* keys typed: digits, '.', 'E' */
     int len;
     bool mant_neg, exp_neg;
+    int back;                   /* keys after the insertion point: 0 (typing at the end) but after
+                                   the 35s's SYNTAX ERROR for E with no mantissa, which puts the
+                                   point at the start (unit 017) */
 } ab_entry;
 
 /* What a stack level holds: a real number, a complex number (unit 009) or a vector of 1 to 3
@@ -254,6 +259,10 @@ typedef struct {
     volatile bool intr;     /* set by ab_interrupt while a run is in progress (C or R/S pressed) */
     long intr_after;        /* for tests: an interrupt arriving after this many more lines or
                                equation evaluations (0: none), as a device's would mid-call */
+    /* unit 017: where Michael's 33s and 35s differ, both are modes, the 33s the default */
+    bool m35;               /* the 35s's behaviour (abacus decisions section 22) */
+    bool msg;               /* an error message is showing: the key after it acts (33s) or only
+                               clears it (35s) */
 } ab_calc;
 
 void ab_init(ab_calc *c);

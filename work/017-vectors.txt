@@ -1,0 +1,43 @@
+# Work unit 017 key vectors: the 33s/35s mode (MODE33 / MODE35; 33s by default) and entry as
+# Michael's own HP 33s and HP 35s do it, observed 2026-10-03 (abacus docs/evidence/
+# 2026-10-03-35s-field-results.md): backspace after CHS, E with no mantissa, the key after an
+# error, INT÷ and Rmdr floored. Format as unit 016.
+
+R01 | ours (rule 1): the 33s behaviour is the default | E 3 ENTER | X=1000
+R02 | ours (rule 1): MEMORY CLEAR restores the 33s default | MODE35 MEMCLR E 3 ENTER | X=1000
+R03 | ours (rule 1): CLEAR ALL keeps the mode, as the other modes (p.B-4) | MODE35 CLALL E 3 ENTER | ERR %ERR=SYNTAX
+R04 | ours (rule 1): the mode is saved and loaded | MODE35 SAVE MEMCLR LOAD E 3 ENTER | ERR %ERR=SYNTAX
+R05 | ours (rule 1, unit 016 rule 2): an image from before this unit loads with the 33s default | LOADFILE:tests/golden-v1.img C E 3 ENTER | X=1000
+R06 | ours (rule 1): the mode is not a program line | PRGM MODE35 | ERR %ERR=NONPROGRAMMABLE %LINES=0
+B01 | Michael's 33s and 35s, 2026-10-03: 1 ENTER 5 +/- backspace shows -, then 3: X = -3, Y = 1 (33s mode) | 1 ENTER 5 CHS BKSP 3 | X=-3 Y=1
+B02 | Michael's 33s and 35s, 2026-10-03: 1 ENTER 5 +/- backspace shows -, then 3: X = -3, Y = 1 (35s mode) | MODE35 1 ENTER 5 CHS BKSP 3 | X=-3 Y=1
+B03 | ours (rule 2, proposed): a second backspace on the lone minus ends entry, X 0, lift off | 1 ENTER 5 CHS BKSP BKSP 7 | X=7 Y=1
+B04 | ours (rule 2): backspace without CHS still ends entry when nothing is left (unit 001 ruling 2 kept there) | 7 ENTER 1 BKSP 5 | X=5 Y=7
+B05 | ours (rule 2): CHS then backspace of the only digit, a digit after: the sign kept | 12 CHS BKSP ENTER | X=-1 Y=-1
+E01 | Michael's 33s, 2026-10-03: E 3 ENTER gives X: 1000 (E starts the number as if 1 were typed) | E 3 ENTER | X=1000 Y=1000
+E02 | Michael's 33s, 2026-10-03: E 6 after 7 ENTER (unit 001 ruling 3, E ignored, withdrawn) | 7 ENTER E 6 | X=1000000 Y=7
+E03 | Michael's 35s, 2026-10-03: E 3 ENTER is SYNTAX ERROR, the stack unchanged | MODE35 7 ENTER E 3 ENTER | ERR %ERR=SYNTAX Y=7 Z=0
+E04 | Michael's 35s, 2026-10-03: ENTER again drops back to the entry _E3 with the cursor at its start: a 2 goes before the E | MODE35 E 3 ENTER ENTER 2 ENTER | X=2000 Y=2000
+E05 | Michael's 35s, 2026-10-03: digits typed then go before the E, in order | MODE35 E 3 ENTER ENTER 1 2 ENTER | X=12000
+E06 | Michael's 35s, 2026-10-03: ENTER twice more without a digit: SYNTAX ERROR again | MODE35 E 3 ENTER ENTER ENTER | ERR %ERR=SYNTAX
+E07 | ours (rule 3): in the 35s mode an operation ending the entry is refused the same way | MODE35 5 ENTER E 3 + | ERR %ERR=SYNTAX Y=5
+E08 | ours (rule 3): E after a digit is unchanged in both modes | MODE35 2 E 3 ENTER | X=2000
+K01 | Michael's 33s, 2026-10-03: 1 ENTER 0 / 5: 5 clears the error and goes to X, the stack 0, 1, 0, 5 | 1 ENTER 0 / 5 | ERR X=5 Y=0 Z=1 T=0
+K02 | Michael's 35s, 2026-10-03: 1 ENTER 0 / 5: 5 only clears the divide by zero error | MODE35 1 ENTER 0 / 5 | ERR X=0 Y=1 Z=0
+K03 | ours (rule 4): the 35s key after that acts | MODE35 1 ENTER 0 / 5 7 | ERR X=7 Y=0 Z=1
+K04 | 35s p.F-1 (rule 4): in the 35s mode an operation key only clears the message | MODE35 4 ENTER 0 / SQRT | ERR X=0 Y=4
+K05 | ours (rule 4): an error stop in a program shows a message too: the 35s key only clears it | MODE35 PRGM CLPGM LBL:E 1 ENTER 0 / RTN PRGM XEQ:E 5 | ERR X=0 %STOP=ERROR
+K06 | ours (rule 4): in the 33s mode the key after a program's error stop acts | PRGM CLPGM LBL:E 1 ENTER 0 / RTN PRGM XEQ:E 5 | ERR X=5
+K07 | ours (rule 4): the message is part of the state: saved and loaded | MODE35 1 ENTER 0 / SAVE MEMCLR LOAD 5 | ERR X=0 Y=1
+K08 | ours (rule 4): a key that succeeds leaves no message: the 35s key after it acts | MODE35 4 SQRT 5 | X=5 Y=2
+D01 | Michael's 35s, 33s and 50g, 2026-10-03: -17 INT÷ 5 = -4 | 17 CHS ENTER 5 IDIV | X=-4
+D02 | Michael's 35s, 33s and 50g, 2026-10-03: -17 Rmdr 5 = 3 | 17 CHS ENTER 5 RMDR | X=3
+D03 | Michael's 35s, 33s and 50g, 2026-10-03: 17 Rmdr -5 = -3 (the divisor's sign) | 17 ENTER 5 CHS RMDR | X=-3
+D04 | ours (rule 5, floor): 17 INT÷ -5 = -4 | 17 ENTER 5 CHS IDIV | X=-4
+D05 | ours (rule 5, floor): -17 Rmdr -5 = -2 | 17 CHS ENTER 5 CHS RMDR | X=-2
+D06 | 35s p.4-2 58 INT÷ 9 = 6 and Rmdr 4 unchanged | 58 ENTER 9 IDIV 58 ENTER 9 RMDR | X=4 Y=6
+D07 | ours (rule 5): the floor of the exact quotient: -6.000...001 / 3 is just below -2, though it rounds to -2 | 6.000000000000000000000000000000001 CHS ENTER 3 IDIV | X=-3
+D08 | ours (rule 5): its remainder, exact | 6.000000000000000000000000000000001 CHS ENTER 3 RMDR | X=2.999999999999999999999999999999999
+D09 | ours (rule 5): an exact quotient is not moved: -15 INT÷ 5 = -3, Rmdr 0 | 15 CHS ENTER 5 IDIV 15 CHS ENTER 5 RMDR | X=0 Y=-3
+D10 | 35s p.6-16 (rule 5): equations' IDIV and RMDR are the keys' | EQ:IDIV(-17,5)×10+RMDR(17,-5) XEQ | X=-43
+D11 | ours (rule 5): in both modes | MODE35 17 CHS ENTER 5 IDIV | X=-4
