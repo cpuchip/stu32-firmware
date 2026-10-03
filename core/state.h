@@ -21,7 +21,8 @@
 
 #include "calc.h"
 
-#define AB_STATE_VERSION 1
+#define AB_STATE_VERSION 2      /* 2 (unit 017): the 33s/35s mode, the message, entries'
+                                   insertion points; a version-1 image gives them their defaults */
 
 /* Writes the image into buf when it fits in cap; returns its length either way (call with cap 0
    to size the buffer). 0 if the calculator is in the middle of a run (it never is between calls). */

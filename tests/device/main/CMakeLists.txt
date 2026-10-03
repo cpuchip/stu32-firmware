@@ -27,7 +27,7 @@ if(NOT EXISTS "${BID_LIB}")
 endif()
 
 target_include_directories(${COMPONENT_LIB} SYSTEM PRIVATE "${BID_INC}")
-target_compile_definitions(${COMPONENT_LIB} PRIVATE AB_DEVICE TEST_STACK=65536
+target_compile_definitions(${COMPONENT_LIB} PRIVATE AB_DEVICE TEST_STACK=40960
     DECIMAL_CALL_BY_REFERENCE=0 DECIMAL_GLOBAL_ROUNDING=0 DECIMAL_GLOBAL_EXCEPTION_FLAGS=0)
 set_source_files_properties("${REPO}/tests/abn_test.c" PROPERTIES COMPILE_DEFINITIONS "main=abn_test_main")
 set_source_files_properties("${REPO}/tests/xnum_test.c" PROPERTIES COMPILE_DEFINITIONS "main=xnum_test_main")

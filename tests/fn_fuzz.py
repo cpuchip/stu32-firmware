@@ -97,7 +97,13 @@ TWO = [("POW", lambda: (logspace(-20, 20), num(-50, 50)), lambda y, x: mp.power(
         lambda y, x: mp.root(y, int(x)) if x > 0 else 1 / mp.root(y, -int(x)), 8),
        ("XROOT", lambda: (logspace(-300, 300), num(-20, 20, 6)), lambda y, x: mp.power(y, 1 / x), 8),
        ("PCT", lambda: (logspace(-100, 100, True), logspace(-100, 100, True)), lambda y, x: y * x / 100, 0.5 + 1e-9),
-       ("PCTCHG", lambda: (logspace(-30, 30, True), logspace(-30, 30, True)), lambda y, x: (x - y) / y * 100, 8)]   # three roundings: within 8 units
+       ("PCTCHG", lambda: (logspace(-30, 30, True), logspace(-30, 30, True)), lambda y, x: (x - y) / y * 100, 8),   # three roundings: within 8 units
+       # floored, the remainder with the divisor's sign (unit 017 rule 5): exact, so correctly rounded
+       ("IDIV", lambda: (str(R.randint(-10**12, 10**12)), str(R.choice([-1, 1]) * R.randint(1, 10**6))),
+        lambda y, x: mp.floor(y / x), 0.5 + 1e-9),
+       ("RMDR", lambda: (str(R.randint(-10**12, 10**12)), str(R.choice([-1, 1]) * R.randint(1, 10**6))),
+        lambda y, x: y - x * mp.floor(y / x), 0.5 + 1e-9),
+       ("RMDR", lambda: (num(-1000, 1000, 8), num(-50, 50, 6)), lambda y, x: y - x * mp.floor(y / x), 0.5 + 1e-9)]
 
 
 import math
@@ -237,7 +243,7 @@ def main():
             continue
         u = units(mp.mpf(got.replace("E", "e")), mp.re(t))
         w = worst.get(key, (0, ""))
-        if u > w[0]:
+        if key not in worst or u > w[0]:        # an exact case still gets its line
             worst[key] = (u, arg)
         if u > bar:
             bad += 1

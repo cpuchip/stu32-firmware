@@ -168,7 +168,7 @@ def fval(t, env):
         if t[1] in ("IDIV", "RMDR"):
             if a != int(a) or b != int(b) or b == 0:
                 raise ValueError
-            return float(int(a / b)) if t[1] == "IDIV" else math.fmod(a, b)
+            return float(a // b) if t[1] == "IDIV" else float(a % b)   # floored (unit 017 rule 5)
         if t[1] == "XROOT":
             if a == 0 or b < 0:
                 raise ValueError

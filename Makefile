@@ -14,7 +14,7 @@ ENGINE := build/abn_intel.o $(INTEL_LIB)
 LIBS := -lm
 
 .PHONY: all test accuracy clean device-host
-KEYV := $(filter-out work/002-vectors.txt work/016-vectors.txt,$(filter-out %-fmt-vectors.txt,$(wildcard work/*-vectors.txt)))
+KEYV := $(filter-out work/002-vectors.txt work/016-vectors.txt work/017-vectors.txt,$(filter-out %-fmt-vectors.txt,$(wildcard work/*-vectors.txt)))
 all: build/load_fuzz build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test
 
 $(INTEL_LIB):
@@ -76,6 +76,7 @@ test: all
 	./build/vectors work/015-vectors.txt
 	./build/vectors work/015b-vectors.txt
 	./build/vectors work/016-vectors.txt
+	./build/vectors work/017-vectors.txt
 	./build/vectors tests/golden-v1.txt
 	./build/load_fuzz 20000
 	python3 tests/eqn_fuzz.py 1 2000 > build/eqn_fuzz.txt

@@ -129,6 +129,7 @@ static void wentry(wr *w, const ab_entry *e)
     wbytes(w, e->text, (size_t)e->len);
     w8(w, e->mant_neg);
     w8(w, e->exp_neg);
+    w8(w, (unsigned)e->back);               /* version 2 */
 }
 
 /* A section: its tag, a size patched in once the payload is written. */
@@ -182,6 +183,8 @@ size_t ab_state_save(const ab_calc *c, uint8_t *buf, size_t cap)
     w8(&w, c->yes);
     w8(&w, (unsigned)(uint8_t)(int8_t)c->fn);
     w8(&w, c->lift);
+    w8(&w, c->m35);                         /* version 2 */
+    w8(&w, c->msg);
     sec_end(&w, s);
 
     s = sec_begin(&w, T_STACK);
@@ -328,6 +331,7 @@ typedef struct {
     /* what later sections are checked against */
     int prog_len, eqn_count;
     bool builtin[AB_EQN_MAX + 2];
+    unsigned version;       /* the image's: fields a version lacks keep their defaults */
 } rd;
 
 static unsigned r8(rd *r)
@@ -451,6 +455,10 @@ static void rentry(rd *r, ab_entry *out)
     }
     e.mant_neg = r8(r) != 0;
     e.exp_neg = r8(r) != 0;
+    if (r->version >= 2) {
+        e.back = (int)r8(r);
+        need(r, e.back <= e.len);
+    }
     if (!r->bad && out) *out = e;
 }
 
@@ -501,7 +509,12 @@ static void sec_modes(rd *r)
     uint64_t rng = r64(r);
     unsigned yes = r8(r);
     int fn = ri8(r);
-    unsigned lift = r8(r);
+    unsigned lift = r8(r), m35 = 0, msg = 0;
+    if (r->version >= 2) {
+        m35 = r8(r);
+        msg = r8(r);
+        need(r, flag_byte(m35) && flag_byte(msg));
+    }
     need(r, angle <= AB_ANGLE_GRAD && mode <= AB_ALL && n <= AB_FMT_N_MAX && (mode != AB_ALL || n == 0) &&
                 (base == 2 || base == 8 || base == 10 || base == 16) && flag_byte(fdisp) && fc >= 2 &&
                 fc <= 4095 && flag_byte(f8) && flag_byte(f9) && flag_byte(cpolar) && (flags & ~0x0C7Fu) == 0 &&
@@ -521,6 +534,8 @@ static void sec_modes(rd *r)
     r->c->yes = yes;
     r->c->fn = fn;
     r->c->lift = lift;
+    r->c->m35 = m35;
+    r->c->msg = msg;
 }
 
 static void sec_stack(rd *r)
@@ -796,7 +811,8 @@ static bool parse(rd *r)
     uint32_t total;
     if (r->len < 16 || memcmp(r->p, "ABSI", 4) != 0) return false;
     r->pos = 4;
-    if (r16(r) > AB_STATE_VERSION || r16(r) != 0) return false;   /* a future version: refused */
+    r->version = r16(r);
+    if (r->version < 1 || r->version > AB_STATE_VERSION || r16(r) != 0) return false;  /* future: refused */
     total = r32(r);
     if (total != r->len) return false;
     if (ab_crc32(r->p, r->len - 4) != (uint32_t)(r->p[r->len - 4] | r->p[r->len - 3] << 8 |

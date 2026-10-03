@@ -274,14 +274,34 @@ abn_status fn_xroot(abn *out, const abn *y, const abn *x)
 
 /* ---- quotient, remainder, percent (UG p.4-2, p.4-6, p.4-7) ---- */
 
+/* INT÷ and Rmdr are floored (unit 017 rule 5: Michael's 35s, 33s and 50g give -17 INT÷ 5 = -4,
+ * -17 Rmdr 5 = 3, 17 Rmdr -5 = -3; the guide shows only 58 ÷ 9, p.4-2): the quotient is
+ * floor(y / x) and the remainder y - x floor(y / x) takes x's sign. The floor is of the exact
+ * quotient: the truncated remainder is exact, and when it is not 0 and its sign is not x's, the
+ * quotient is one less and the remainder is x more. */
+static bool floor_adjust(const abn *r, const abn *x)
+{
+    return !abn_is_zero(r) && abn_is_negative(r) != abn_is_negative(x);
+}
+
 abn_status fn_idiv(abn *out, const abn *y, const abn *x)
 {
-    return abn_idiv(out, y, x);     /* truncated toward zero (pending a ruling for negatives) */
+    abn q, r, one = abn_from_int(1);
+    abn_status st;
+    if ((st = abn_idiv(&q, y, x)) != ABN_OK || (st = abn_fmod(&r, y, x)) != ABN_OK) return st;
+    if (floor_adjust(&r, x)) return abn_sub(out, &q, &one);
+    *out = q;
+    return ABN_OK;
 }
 
 abn_status fn_rmdr(abn *out, const abn *y, const abn *x)
 {
-    return abn_fmod(out, y, x);     /* sign of y (pending a ruling for negatives) */
+    abn r;
+    abn_status st;
+    if ((st = abn_fmod(&r, y, x)) != ABN_OK) return st;
+    if (floor_adjust(&r, x)) return abn_add(out, &r, x);
+    *out = r;
+    return ABN_OK;
 }
 
 abn_status fn_pct(abn *out, const abn *y, const abn *x)

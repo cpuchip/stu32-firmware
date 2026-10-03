@@ -221,6 +221,26 @@ static int count_digits(const ab_entry *e, bool exponent)
 
 /* The value the keys typed so far stand for. A mantissa with no digit yet reads as 0, and
  * an exponent with no digit yet as E0. */
+/* Puts a key's character at the insertion point (the end, but after the 35s's SYNTAX ERROR for E
+ * with no mantissa: the start, unit 017). */
+static void put_ch(ab_entry *e, char ch)
+{
+    int at = e->len - e->back;
+    memmove(e->text + at + 1, e->text + at, (size_t)(e->len - at));
+    e->text[at] = ch;
+    e->len++;
+}
+
+/* E typed with no mantissa digit before it, in the 35s mode (unit 017 rule 3). */
+static bool no_mantissa(const ab_entry *e)
+{
+    for (int i = 0; i < e->len; i++) {
+        if (e->text[i] == 'E') return true;
+        if (e->text[i] != '.') return false;
+    }
+    return false;
+}
+
 static int count_char(const ab_entry *e, char ch)
 {
     int n = 0;
@@ -306,29 +326,35 @@ static abn_status entry_key(ab_calc *c, ab_op op)
         if (dv >= c->base) return ABN_OK;
         if (dv >= 10) {
             /* hex digits are kept in lower case so that 'E' always means the exponent */
-            e.text[e.len++] = (char)('a' + dv - 10);
+            put_ch(&e, (char)('a' + dv - 10));
             goto value;
         }
     }
     if (op <= AB_K9) {
         /* in a base mode the range, not a digit count, limits entry: up to a word's binary
            digits (a 35-digit binary number is the largest positive word, UG p.11-7) */
-        int limit = c->base != 10 ? AB_WORD_BITS : in_exp ? AB_ENTRY_EXP : AB_ENTRY_MANT;
-        if (count_digits(&e, in_exp) >= limit) return ABN_OK;
+        bool exp_part = in_exp && e.back == 0;  /* typing before the E: the mantissa (unit 017) */
+        int limit = c->base != 10 ? AB_WORD_BITS : exp_part ? AB_ENTRY_EXP : AB_ENTRY_MANT;
+        if (count_digits(&e, exp_part) >= limit) return ABN_OK;
         /* a denominator never starts with 0 (ours, unit 007): the key is ignored */
         if (op == AB_K0 && points == 2 && e.text[e.len - 1] == '.') return ABN_OK;
-        e.text[e.len++] = (char)('0' + (op - AB_K0));
+        put_ch(&e, (char)('0' + (op - AB_K0)));
     } else if (op == AB_KPOINT) {
         /* the second point starts a fraction's denominator (UG p.5-1); a third is ignored, as is
            a point in the exponent (ours, unit 007) */
         if (in_exp || points >= 2) return ABN_OK;
-        e.text[e.len++] = '.';
+        put_ch(&e, '.');
     } else if (op == AB_KE) {
-        /* E starts the exponent of the mantissa typed so far (UG p.1-16). With no
-         * mantissa the guide gives no meaning (it keys 1 E 6 for a million): ignored. A
-         * fraction has no exponent (ours, unit 007): ignored too. */
-        if (in_exp || points == 2 || count_digits(&e, false) == 0) return ABN_OK;
-        e.text[e.len++] = 'E';
+        /* E starts the exponent of the mantissa typed so far (UG p.1-16). With nothing typed
+         * (unit 017 rule 3, Michael's machines): the 33s starts the number as if 1 had been
+         * typed (E 3 is 1000); the 35s takes the E alone, and ending the entry is then SYNTAX
+         * ERROR (do_key). A fraction has no exponent (ours, unit 007): ignored. */
+        if (in_exp || points == 2) return ABN_OK;
+        if (count_digits(&e, false) == 0) {
+            if (e.len != 0) return ABN_OK;      /* a point alone: ignored, as before */
+            if (!c->m35) put_ch(&e, '1');
+        }
+        put_ch(&e, 'E');
     } else if (op == AB_KCHS) {
         /* During entry, change sign applies to the part being typed: the exponent once E
          * has been pressed, the mantissa before (UG p.1-15, p.1-16). */
@@ -365,10 +391,22 @@ static abn_status entry_key(ab_calc *c, ab_op op)
             c->entry = e;
             goto value;
         }
-        if (e.len > 0 && e.text[--e.len] == 'E') e.exp_neg = false;
-        if (e.len == 0 && !c->cpart && !c->vlen) {
-            entry_cancel(c);
-            return ABN_OK;
+        {
+            /* the key before the insertion point goes (at the start, nothing does) */
+            int at = e.len - e.back;
+            bool removed = at > 0;
+            if (removed) {
+                if (e.text[at - 1] == 'E') e.exp_neg = false;
+                memmove(e.text + at - 1, e.text + at, (size_t)(e.len - at));
+                e.len--;
+            }
+            /* erasing the last digit of a negative number leaves its sign, and entry goes on
+               (unit 017 rule 2, Michael's 33s and 35s: 1 ENTER 5 +/- backspace shows -); with
+               nothing left at all, or the lone sign erased, entry ends with X 0 and lift off */
+            if (e.len == 0 && !c->cpart && !c->vlen && !(removed && e.mant_neg)) {
+                entry_cancel(c);
+                return ABN_OK;
+            }
         }
     }
     abn v;
@@ -2439,6 +2477,11 @@ static abn_status program_key(ab_calc *c, ab_op op, int arg)
     }
     if (c->entry.active) {
         ab_val v = c->plit;
+        if (c->m35 && !c->cpart && !c->vlen && no_mantissa(&c->entry)) {
+            c->entry.back = c->entry.len;       /* as in do_key (unit 017 rule 3) */
+            return ABN_SYNTAX;
+        }
+        c->entry.back = 0;
         c->entry.active = false;
         c->cpart = 0;
         c->vlen = 0;
@@ -2471,6 +2514,7 @@ static abn_status program_key(ab_calc *c, ab_op op, int arg)
         prog_clear(c);
         return ABN_OK;
     case AB_FDISP:
+    case AB_MODEL:                          /* a device menu setting, ours (unit 017) */
         return ABN_NONPROGRAMMABLE;
     case AB_LIT:
         return ABN_DOMAIN;
@@ -3006,11 +3050,22 @@ static bool takes_complex(ab_op op)
     }
 }
 
+/* An error message shows until the next key (unit 017 rule 4, Michael's machines): on the 33s
+ * that key clears it and acts; on the 35s it only clears it (also 35s p.F-1). Any error a key
+ * causes leaves a message, a program's error stop included; ABN_CLAMPED (a base-mode result
+ * clamped to the word) is a completed operation, not a message. */
 abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
 {
-    if (c->prgm) return program_key(c, op, arg);
-    if (c->eqn_mode && !c->eqn_pending) return eqn_key(c, op, arg);
-    return do_key(c, op, arg);
+    abn_status st;
+    if (c->msg) {
+        c->msg = false;
+        if (c->m35) return ABN_OK;
+    }
+    if (c->prgm) st = program_key(c, op, arg);
+    else if (c->eqn_mode && !c->eqn_pending) st = eqn_key(c, op, arg);
+    else st = do_key(c, op, arg);
+    if (st != ABN_OK && st != ABN_CLAMPED) c->msg = true;
+    return st;
 }
 
 void ab_interrupt(ab_calc *c)
@@ -3021,10 +3076,13 @@ void ab_interrupt(ab_calc *c)
 
 abn_status ab_continue(ab_calc *c)
 {
+    abn_status st;
     if (c->stop != AB_STOP_SLICE) return ABN_OK;
     c->stop = AB_STOP_NONE;
     continuing = true;
-    return prog_run(c, c->budget - c->run_lines);
+    st = prog_run(c, c->budget - c->run_lines);
+    if (st != ABN_OK && st != ABN_CLAMPED) c->msg = true;   /* as ab_do_arg (unit 017) */
+    return st;
 }
 
 void ab_prog_relabel(ab_calc *c)
@@ -3120,7 +3178,14 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
      * number enables lift before the operation acts, so a recall after `1 ENTER 2` keeps
      * the 2 (work unit 001, amendment 2, ruling 1; the guide does not show this case). */
     if (c->entry.active) {
+        if (c->m35 && !c->cpart && !c->vlen && no_mantissa(&c->entry)) {
+            /* the 35s (unit 017 rule 3): SYNTAX ERROR, nothing done, the text kept for editing
+               with the insertion point at its start */
+            c->entry.back = c->entry.len;
+            return ABN_SYNTAX;
+        }
         c->entry.active = false;
+        c->entry.back = 0;
         c->lift = true;
     }
     c->cpart = 0;
@@ -3479,6 +3544,12 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
         /* /c recalled like any number (ours, unit 007: the guide recalls with 1 /c) */
         place_in_x(c, abn_from_int((int32_t)c->frac_c));
         break;
+    case AB_MODEL:
+        /* the 33s or the 35s behaviour where Michael's machines differ (unit 017 rule 1);
+           neutral for lift, as the other mode settings (UG p.B-5) */
+        if (arg != 33 && arg != 35) return ABN_DOMAIN;
+        c->m35 = arg == 35;
+        return ABN_OK;
     case AB_CLVARS:
         /* Clear the direct variables A..Z (UG p.3-5); neutral for stack lift (UG p.B-5). The
            unnamed indirect variables have their own clearing (UG p.1-5, a later unit). */

@@ -11,7 +11,7 @@ Stdlib only; run from anywhere."""
 import os, subprocess, sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-KEY = ["001", "003", "004", "005", "006", "007", "008", "009", "010", "011", "012", "013", "014", "015", "015b", "016"]
+KEY = ["001", "003", "004", "005", "006", "007", "008", "009", "010", "011", "012", "013", "014", "015", "015b", "016", "017"]
 FMT = ["007-fmt", "008-fmt", "009-fmt", "010-fmt", "002"]
 FUZZ = [("eqn_fuzz", 2000), ("prog_fuzz", 1000), ("veckey_fuzz", 3000)]
 

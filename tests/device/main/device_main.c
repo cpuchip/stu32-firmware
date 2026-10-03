@@ -44,7 +44,7 @@ static int64_t now_us(void)
 #endif
 
 /* Unit 016: load the image and save it again, n times each, and report the time per call; the
-   saved bytes must be the image's. */
+   saved image must load and save to the same bytes (a newer core writes the newer version). */
 ab_calc *vectors_calc(void);
 
 static int time_image(const bundle_file *b)
@@ -65,7 +65,13 @@ static int time_image(const bundle_file *b)
     t2 = now_us();
     printf("%s: %u bytes; load %.0f us, save %.0f us\n", b->name, (unsigned)b->len,
            (double)(t1 - t0) / n, (double)(t2 - t1) / n);
-    return len == b->len && memcmp(out, b->text, len) == 0 ? 0 : 1;
+    {
+        static uint8_t again[4096];
+        size_t n2;
+        if (len == 0 || len > sizeof out || ab_state_load(&c, out, len) != ABN_OK) return 1;
+        n2 = ab_state_save(&c, again, sizeof again);
+        return n2 == len && memcmp(again, out, len) == 0 ? 0 : 1;
+    }
 #undef c
 }
 
@@ -139,7 +145,9 @@ void app_main(void)
         }
         vTaskDelay(pdMS_TO_TICKS(100));
     }
-    xTaskCreate(test_task, "abacus_test", TEST_STACK, NULL, 5, NULL);
+    if (xTaskCreate(test_task, "abacus_test", TEST_STACK, NULL, 5, NULL) != pdPASS)
+        printf("DEVICE FAIL: no room for the test task's %u-byte stack (heap free %u)\nDEVICE DONE\n",
+               (unsigned)TEST_STACK, (unsigned)esp_get_free_heap_size());
 }
 #else
 int main(void)

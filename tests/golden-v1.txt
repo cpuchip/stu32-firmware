@@ -7,5 +7,5 @@ G01 | unit 016 golden image: loads, stopped at INPUT C | LOADFILE:tests/golden-v
 G02 | its program resumes: C = 6 gives 7 over 36 | LOADFILE:tests/golden-v1.img 6 RS | X=7 Y=36 %STOP=DONE
 G03 | its modes: RAD and FIX 3 (RND of pi) | LOADFILE:tests/golden-v1.img C PI RND | X=3.142
 G04 | its statistics, indirect variable and complex variable | LOADFILE:tests/golden-v1.img C NSUM 5 STO:I RCL:(I) RCL:A | X=1i2 Y=9 Z=5
-G05 | saving it again gives its bytes | LOADFILE:tests/golden-v1.img | %SAMEIMG=same
+G05 | saved again (in the current version) and loaded, the same calculator | LOADFILE:tests/golden-v1.img SAVE LOAD | %SAMEIMG=same
 G06 | its equations, the pointer at the last one typed | LOADFILE:tests/golden-v1.img C EQN BST | %EQ=A+B×C
