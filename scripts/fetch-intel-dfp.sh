@@ -37,6 +37,15 @@ fi
 if [ ! -d "$SRC" ]; then
     tar -xzf "$TARBALL" -C "$DEST"
 fi
+# The trig functions' argument-reduction table (295 KB, one copy each in sin, cos and tan) is
+# only read, but is declared without const, so a firmware build would place it in RAM. Made
+# const here so it goes to flash; any write to it would now fail to compile. Idempotent.
+for f in sin cos tan; do
+    sed -i 's/^static BID_UINT384 bid_decimal128_moduli\[\] =/static const BID_UINT384 bid_decimal128_moduli[] =/' \
+        "$SRC/LIBRARY/src/bid128_$f.c"
+    grep -q '^static const BID_UINT384 bid_decimal128_moduli\[\] =' "$SRC/LIBRARY/src/bid128_$f.c" || {
+        echo "fetch-intel-dfp: bid128_$f.c: moduli table not found for the const patch" >&2; exit 1; }
+done
 make -s -C "$SRC/LIBRARY" -j"$(nproc 2>/dev/null || echo 4)" CC="$CC" "${OPTS[@]}" >/dev/null
 cp "$SRC/LIBRARY/libbid.a" "$ROOT/build/intel/libbid.a"
 echo "fetch-intel-dfp: verified $SHA256, built build/intel/libbid.a"
