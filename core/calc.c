@@ -14,6 +14,7 @@
 #include "base.h"
 #include "arena.h"
 #include "cplx.h"
+#include "state.h"
 #include "eqn.h"
 #include "lin.h"
 #include "xnum.h"
@@ -1153,6 +1154,8 @@ static void targets_symbolic(ab_calc *c, int k, bool inserted)
 static abn_status prog_insert(ab_calc *c, int op, int32_t arg)
 {
     int k = c->pc + 1;
+    /* only a line the state image may hold, so a saved program always loads back (unit 018) */
+    if (op != AB_LIT && op != AB_EQLINE && !ab_line_ok((ab_op)op, arg)) return ABN_DOMAIN;
     if (c->prog_len >= AB_PROG_LINES) return ABN_MEMORY_FULL;
     if (op != AB_LBL) {
         int l = c->pc < 0 ? -1 : prog_owner(c, c->pc);
@@ -2539,6 +2542,7 @@ static abn_status program_key(ab_calc *c, ab_op op, int arg)
     case AB_MODEL:                          /* a device menu setting, ours (unit 017) */
         return ABN_NONPROGRAMMABLE;
     case AB_LIT:
+    case AB_EQLINE:                         /* internal: lines, never keys (unit 018 found it) */
         return ABN_DOMAIN;
     case AB_LBL:
         if (arg < 0 || arg >= 26) return ABN_DOMAIN;
@@ -2553,6 +2557,10 @@ static abn_status program_key(ab_calc *c, ab_op op, int arg)
     case AB_CANCEL:                         /* C leaves program entry (UG p.13-7) */
         c->prgm = false;
         return ABN_OK;
+    case AB_KEQ: case AB_KPAREN: case AB_KLEFT: case AB_KRIGHT: case AB_KSPACE: case AB_KREG:
+        return ABN_OK;                      /* Equation mode's keys: no line, as they do nothing
+                                               outside it (ours, unit 018; an older image's such
+                                               line still loads) */
     default:
         return prog_insert(c, op, arg);
     }
@@ -3545,6 +3553,7 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
     case AB_INTEG:
         return integ_op(c, arg);
     case AB_LIT:
+    case AB_EQLINE:
         return ABN_DOMAIN;
     case AB_SETC: {
         /* /c from |IP(x)| (UG p.5-5): 1 recalls the maximum denominator into X; 0 or anything

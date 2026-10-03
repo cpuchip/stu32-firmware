@@ -590,6 +590,32 @@ int main(int argc, char **argv)
     ab_do(&c, AB_BIN);
     keys(&c, "1 0 ENTER");
     expect_line(&c, 1, "10b", "13-25, BIN");
+    /* (I) and (J) as arguments, an equation line (13-9: C004 is pi*R^2*H), a typed number as typed
+       under FIX 4 (14-19 lists 1.01) */
+    ab_init(&c);
+    ab_memory_clear(&c);                        /* FIX 4 */
+    keys(&c, "PRGM");
+    ab_do_arg(&c, AB_LBL, 'C' - 'A');
+    ab_do_arg(&c, AB_STO, AB_VAR_IND_I);
+    ab_do_arg(&c, AB_RCLMUL, AB_VAR_IND_J);
+    ab_do_arg(&c, AB_XEQ, AB_TGT_IND_I);
+    ab_eqn_add(&c, "\xcf\x80\xc3\x97R^2\xc3\x97H");
+    keys(&c, "1 . 0 1 ENTER");
+    expect_line(&c, 1, "STO (I)", "14-21");
+    expect_line(&c, 2, "RCL\xc3\x97 (J)", "14-21");
+    expect_line(&c, 3, "XEQ (I)", "14-21");
+    expect_line(&c, 4, "\xcf\x80\xc3\x97R^2\xc3\x97H", "13-9");
+    expect_line(&c, 6, "ENTER", "the ENTER that ended the number");
+    ab_do(&c, AB_BST);                          /* the pointer back on the number */
+    screen_render(&c, &ui, &f);
+    expect(text_at(&f, 20, 128, 4, "C006 1.01", 1) && dark_in(&f, 20 + 9 * 24, 128, LS027_W - 20 - 9 * 24, 28) == 0,
+           "14-19: a typed number lists as typed under FIX 4 (1.01, nothing after)");
+    ui.radix = ',';
+    screen_render(&c, &ui, &f);
+    expect(text_at(&f, 20, 128, 4, "C006 1,01", 1), "a typed number listed with the device's radix mark");
+    ui.radix = '.';
+    expect_line(&c, 0, "LBL C", "13-9");
+
     /* the tests, in the menu's order (14-7) */
     ab_init(&c);
     keys(&c, "PRGM");

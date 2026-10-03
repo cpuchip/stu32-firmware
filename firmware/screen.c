@@ -72,6 +72,29 @@ static uint32_t next_cp(const char **s)
     return cp;
 }
 
+/* One cell: a code point, with a combining mark after it (U+0300..036F) carried in bits 24..30
+   as mark - U+02FF, so it is drawn over its letter and takes no cell of its own. */
+#define MARK_SHIFT 24
+#define CP_MASK 0xFFFFFFu
+
+static bool combining(uint32_t cp)
+{
+    return cp >= 0x0300 && cp <= 0x036F;
+}
+
+static uint32_t next_cell(const char **s)
+{
+    uint32_t cp = next_cp(s);
+    while (**s) {
+        const char *t = *s;
+        uint32_t m = next_cp(&t);
+        if (!combining(m)) break;
+        if (!(cp >> MARK_SHIFT)) cp |= (m - 0x02FF) << MARK_SHIFT;   /* the first mark; others dropped */
+        *s = t;
+    }
+    return cp;
+}
+
 const font_glyph *screen_glyph(uint32_t cp)
 {
     int lo = 0, hi = FONT5X7_COUNT - 1;
@@ -88,7 +111,7 @@ int screen_cells(const char *s)
 {
     int n = 0;
     while (*s) {
-        next_cp(&s);
+        next_cell(&s);
         n++;
     }
     return n;
@@ -97,13 +120,23 @@ int screen_cells(const char *s)
 int screen_missing(const char *s)
 {
     int n = 0;
-    while (*s) n += screen_glyph(next_cp(&s)) == NULL;
+    while (*s) n += screen_glyph(next_cp(&s)) == NULL;     /* marks too: each needs its glyph */
     return n;
 }
 
 long screen_missed;
 
-static void draw_cp(ls027_frame *f, int x, int y, int scale, uint32_t cp, bool dark)
+static void draw_glyph(ls027_frame *f, int x, int y, int scale, uint32_t cp, bool dark);
+
+static void draw_cp(ls027_frame *f, int x, int y, int scale, uint32_t cell, bool dark)
+{
+    draw_glyph(f, x, y, scale, cell & CP_MASK, dark);
+    /* a mark one row above its glyph's own rows, so a row stays clear between it and a lowercase
+       letter (a hat on y touching it read as 9) */
+    if (cell >> MARK_SHIFT) draw_glyph(f, x, y - scale, scale, (cell >> MARK_SHIFT) + 0x02FF, dark);
+}
+
+static void draw_glyph(ls027_frame *f, int x, int y, int scale, uint32_t cp, bool dark)
 {
     const font_glyph *g = screen_glyph(cp);
     if (!g) {                                   /* the face lacks it: a hollow box */
@@ -128,7 +161,7 @@ static int draw_cps(ls027_frame *f, int x, int y, int scale, const uint32_t *cp,
 int screen_text(ls027_frame *f, int x, int y, int scale, const char *s, bool dark)
 {
     int n = 0;
-    while (*s) draw_cp(f, x + n++ * 6 * scale, y, scale, next_cp(&s), dark);
+    while (*s) draw_cp(f, x + n++ * 6 * scale, y, scale, next_cell(&s), dark);
     return n;
 }
 
@@ -142,7 +175,7 @@ typedef struct {
 
 static void line_add(line *l, const char *s)
 {
-    while (*s && l->n < LINE_MAX_CP) l->cp[l->n++] = next_cp(&s);
+    while (*s && l->n < LINE_MAX_CP) l->cp[l->n++] = next_cell(&s);
 }
 
 static void line_add_cp(line *l, uint32_t cp)
@@ -283,7 +316,7 @@ static void eqn_line(const char *s, int cur, line *l)
     const char *p = s;
     while (*p) {
         if (cur >= 0 && p - s == cur) line_cursor(l);
-        line_add_cp(l, next_cp(&p));
+        line_add_cp(l, next_cell(&p));
     }
     if (cur >= 0 && p - s <= cur) line_cursor(l);
 }
@@ -373,10 +406,20 @@ void screen_render(const ab_calc *c, const screen_ui *ui, ls027_frame *f)
     } else if (c->entry.active || c->cpart || c->vlen) {
         entry_line(c, ui->radix == ',' ? ',' : '.', &x);
         x_left = x_letter = true;
-    } else if (c->prgm) {
-        char a[16];
+    } else if (c->prgm) {                       /* the pointer's address and its line (list.c) */
+        char a[16], t[AB_EQN_LEN];
         ab_prog_addr(c, c->pc, a);
-        line_add(&x, strcmp(a, "TOP") == 0 ? "PRGM TOP" : a);
+        if (strcmp(a, "TOP") == 0) {
+            line_add(&x, "PRGM TOP");
+        } else {
+            ab_display d = display_of(c, ui, FMT_WIDE);
+            d.dec.mode = AB_ALL;                /* a typed number as typed: 14-19 lists 1.01 under FIX 4 */
+            d.fdisp = false;
+            ab_prog_line(c, c->pc, &d, t, sizeof t);
+            line_add(&x, a);
+            line_add_cp(&x, ' ');
+            line_add(&x, t);
+        }
         x_left = true;
     } else if (c->eqn_mode && c->eqn_typing) {
         eqn_line(c->ebuf, c->ecur, &x);

@@ -480,7 +480,7 @@ static bool id_ok(int id, bool allow_none)
 }
 
 /* An operation program entry records as a line, and its argument (see program_key). */
-static bool line_ok(ab_op op, int32_t arg)
+bool ab_line_ok(ab_op op, int32_t arg)
 {
     switch (op) {
     case AB_PRGM: case AB_KVEC: case AB_KCOMMA: case AB_GTOPOS: case AB_SST: case AB_BST: case AB_KBKSP:
@@ -642,7 +642,7 @@ static void sec_prog(rd *r)
             eqs++;
         } else {
             int32_t arg = ri32(r);
-            need(r, line_ok(op, arg));
+            need(r, ab_line_ok(op, arg));
             if (op == AB_LBL && !r->bad) {
                 need(r, !seen[arg]);                /* one line per label (UG p.13-4) */
                 seen[arg] = true;

@@ -12,7 +12,7 @@
  *   X            scale 4 when it fits 15 cells, else 3, else 2 (a window around the cursor)
  *   rows 206..   the six soft keys' labels, each in a box over its key
  * What the X line shows, first that applies: the op running (SOLVING ...), the error message,
- * the number being typed (with its cursor), in program entry the pointer's address, in Equation
+ * the number being typed (with its cursor), in program entry the pointer's address and line, in Equation
  * mode the equation being typed or shown, else X. A prompt (INPUT A?) or a VIEW (A=) takes the
  * Y line. */
 #ifndef SCREEN_H
@@ -51,7 +51,7 @@ int screen_text(ls027_frame *f, int x, int y, int scale, const char *s, bool dar
 
 const font_glyph *screen_glyph(uint32_t cp);    /* NULL when the face has none */
 extern long screen_missed;                      /* hollow boxes drawn so far (a test reads it) */
-int screen_cells(const char *s);                /* code points in UTF-8 text */
+int screen_cells(const char *s);                /* cells in UTF-8 text: a combining mark takes none */
 int screen_missing(const char *s);              /* of those, the ones the face lacks */
 
 #endif
