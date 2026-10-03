@@ -60,12 +60,26 @@ static const struct { const char *name; ab_op op; } NAMED[] = {
     {"SUMY", AB_SUMY}, {"SUMX2", AB_SUMX2}, {"SUMY2", AB_SUMY2}, {"SUMXY", AB_SUMXY},
 };
 
+/* The last error any key returned in the current vector, for %ERR (unit 012). */
+static abn_status last_err;
+
+static abn_status do1(ab_calc *c, ab_op op, int arg)
+{
+    abn_status st = ab_do_arg(c, op, arg);
+    if (st != ABN_OK) last_err = st;
+    return st;
+}
+
+static const char *const STATUS_NAMES[] = {"OK", "DIV_ZERO", "RANGE", "BAD_TEXT", "DOMAIN", "INEXACT",
+                                           "CLAMPED", "NONEXISTENT", "XEQ_OVERFLOW", "DUP_LABEL",
+                                           "MEMORY_FULL", "NONPROGRAMMABLE", "BUDGET"};
+
 /* Applies one key token. Returns 0, or -1 for an unknown token. */
 static int apply_token(ab_calc *c, const char *tok, int *errors)
 {
     for (size_t i = 0; i < sizeof NAMED / sizeof NAMED[0]; i++) {
         if (strcmp(tok, NAMED[i].name) == 0) {
-            if (ab_do(c, NAMED[i].op) != ABN_OK) (*errors)++;
+            if (do1(c, NAMED[i].op, 0) != ABN_OK) (*errors)++;
             return 0;
         }
     }
@@ -83,7 +97,7 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
             else if (strcmp(v, "(I)") == 0) code = AB_VAR_IND_I;
             else if (strcmp(v, "(J)") == 0) code = AB_VAR_IND_J;
             else return -1;
-            if (ab_do_arg(c, STORE[i].op, code) != ABN_OK) (*errors)++;
+            if (do1(c, STORE[i].op, code) != ABN_OK) (*errors)++;
             return 0;
         }
     }
@@ -91,7 +105,7 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
         {"FDISP", AB_FDISP, 0}, {"/C", AB_SETC, 0}, {"RCL/C", AB_RCLC, 0}};
     for (size_t i = 0; i < sizeof FRACT / sizeof FRACT[0]; i++) {
         if (strcmp(tok, FRACT[i].name) == 0) {
-            if (ab_do_arg(c, FRACT[i].op, FRACT[i].arg) != ABN_OK) (*errors)++;
+            if (do1(c, FRACT[i].op, FRACT[i].arg) != ABN_OK) (*errors)++;
             return 0;
         }
     }
@@ -106,23 +120,23 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
                 const char *v = tok + n;
                 if (strcmp(v, "(I)") == 0 || strcmp(v, "(J)") == 0) {
                     /* XEQ (I), GTO (I): the label the index names (unit 012) */
-                    if (ab_do_arg(c, TGT[i].op, v[1] == 'I' ? AB_TGT_IND_I : AB_TGT_IND_J) != ABN_OK) (*errors)++;
+                    if (do1(c, TGT[i].op, v[1] == 'I' ? AB_TGT_IND_I : AB_TGT_IND_J) != ABN_OK) (*errors)++;
                     return 0;
                 }
                 if (v[0] < 'A' || v[0] > 'Z') return -1;
                 int line = v[1] ? atoi(v + 1) : 0;
                 if (v[1] && (strlen(v + 1) != 3 || line < 1)) return -1;
-                if (ab_do_arg(c, TGT[i].op, (v[0] - 'A') * 1000 + line) != ABN_OK) (*errors)++;
+                if (do1(c, TGT[i].op, (v[0] - 'A') * 1000 + line) != ABN_OK) (*errors)++;
                 return 0;
             }
         }
         if (strcmp(tok, "GTO..") == 0) {
-            if (ab_do_arg(c, AB_GTOPOS, AB_PC_TOP) != ABN_OK) (*errors)++;
+            if (do1(c, AB_GTOPOS, AB_PC_TOP) != ABN_OK) (*errors)++;
             return 0;
         }
         if (strncmp(tok, "LBL:", 4) == 0) {
             if (tok[4] < 'A' || tok[4] > 'Z' || tok[5]) return -1;
-            if (ab_do_arg(c, AB_LBL, tok[4] - 'A') != ABN_OK) (*errors)++;
+            if (do1(c, AB_LBL, tok[4] - 'A') != ABN_OK) (*errors)++;
             return 0;
         }
         static const struct { const char *prefix; ab_op op; } FLG[] = {
@@ -130,7 +144,7 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
         for (size_t i = 0; i < sizeof FLG / sizeof FLG[0]; i++) {
             size_t n = strlen(FLG[i].prefix);
             if (strncmp(tok, FLG[i].prefix, n) == 0 && isdigit((unsigned char)tok[n])) {
-                if (ab_do_arg(c, FLG[i].op, atoi(tok + n)) != ABN_OK) (*errors)++;
+                if (do1(c, FLG[i].op, atoi(tok + n)) != ABN_OK) (*errors)++;
                 return 0;
             }
         }
@@ -143,7 +157,7 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
                 else if (strcmp(v, "(I)") == 0) code = AB_VAR_IND_I;
                 else if (strcmp(v, "(J)") == 0) code = AB_VAR_IND_J;
                 else return -1;
-                if (ab_do_arg(c, LOOP[i].op, code) != ABN_OK) (*errors)++;
+                if (do1(c, LOOP[i].op, code) != ABN_OK) (*errors)++;
                 return 0;
             }
         }
@@ -157,7 +171,7 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
             rel[rl] = '\0';
             for (int r = 0; r < 6; r++) {
                 if (strcmp(rel, REL[r]) == 0) {
-                    if (ab_do_arg(c, AB_TEST, r + (other == '0' ? 6 : 0)) != ABN_OK) (*errors)++;
+                    if (do1(c, AB_TEST, r + (other == '0' ? 6 : 0)) != ABN_OK) (*errors)++;
                     return 0;
                 }
             }
@@ -167,17 +181,17 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
     if (strncmp(tok, "SUF:", 4) == 0) {
         int b = tok[4] == 'b' ? 2 : tok[4] == 'o' ? 8 : tok[4] == 'd' ? 10 : tok[4] == 'h' ? 16 : 0;
         if (!b || tok[5]) return -1;
-        if (ab_do_arg(c, AB_SUF, b) != ABN_OK) (*errors)++;
+        if (do1(c, AB_SUF, b) != ABN_OK) (*errors)++;
         return 0;
     }
     if (strcmp(tok, "CLVARS") == 0) {
-        if (ab_do(c, AB_CLVARS) != ABN_OK) (*errors)++;
+        if (do1(c, AB_CLVARS, 0) != ABN_OK) (*errors)++;
         return 0;
     }
     if (strncmp(tok, "CONST:", 6) == 0) {
         int k = ab_const_index(tok + 6);
         if (k < 0) return -1;
-        if (ab_do_arg(c, AB_CONST, k) != ABN_OK) (*errors)++;
+        if (do1(c, AB_CONST, k) != ABN_OK) (*errors)++;
         return 0;
     }
     static const struct { const char *prefix; ab_op op; } SETTING[] = {
@@ -187,7 +201,7 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
         if (strncmp(tok, SETTING[i].prefix, n) == 0 && isdigit((unsigned char)tok[n])) {
             int digits = atoi(tok + n);
             if (digits > AB_FMT_N_MAX) return -1;
-            if (ab_do_arg(c, SETTING[i].op, digits) != ABN_OK) (*errors)++;
+            if (do1(c, SETTING[i].op, digits) != ABN_OK) (*errors)++;
             return 0;
         }
     }
@@ -195,7 +209,7 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
         if (!isdigit((unsigned char)*p) && *p != '.') return -1;
     for (const char *p = tok; *p; p++) {
         ab_op op = (*p == '.') ? AB_KPOINT : (ab_op)(AB_K0 + (*p - '0'));
-        if (ab_do(c, op) != ABN_OK) (*errors)++;
+        if (do1(c, op, 0) != ABN_OK) (*errors)++;
     }
     return 0;
 }
@@ -256,6 +270,7 @@ int main(int argc, char **argv)
         ab_init(&c);
         int op_errors = 0;
         bool holdpse = false;
+        last_err = ABN_OK;
         for (char *tok = strtok(keys, " \t"); tok; tok = strtok(NULL, " \t")) {
             if (strcmp(tok, "HOLDPSE") == 0) {
                 holdpse = true;         /* see the PSE stops instead of resuming them */
@@ -268,7 +283,7 @@ int main(int argc, char **argv)
             /* a PSE stop resumes by itself after the device's pause (unit 012 rule 1): the runner
                plays the device */
             while (!holdpse && c.stop == AB_STOP_PSE)
-                if (ab_do(&c, AB_RS) != ABN_OK) op_errors++;
+                if (do1(&c, AB_RS, 0) != ABN_OK) op_errors++;
         }
 
         int want_error = 0;
@@ -304,6 +319,9 @@ int main(int argc, char **argv)
                         if (a / 1000 >= 26) snprintf(got, sizeof got, "NONE");
                         else snprintf(got, sizeof got, "%c%03d", 'A' + a / 1000, a % 1000);
                     }
+                } else if (strcmp(ex, "%ERR") == 0) {
+                    snprintf(got, sizeof got, "%s", (unsigned)last_err < sizeof STATUS_NAMES / sizeof STATUS_NAMES[0]
+                                                         ? STATUS_NAMES[last_err] : "?");
                 } else if (strcmp(ex, "%STOP") == 0) {
                     ab_stop_text(&c, got);
                 } else if (strcmp(ex, "%LINES") == 0) {

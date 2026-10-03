@@ -3,6 +3,7 @@
  * Behaviour is written from the user's guide's description of the stack, cited by page
  * (UG p.N), in our own words.
  */
+#include <stdio.h>
 #include <string.h>
 
 #include "calc.h"
@@ -36,6 +37,7 @@ void ab_init(ab_calc *c)
     c->ind_top = -1;
     c->pc = AB_PC_TOP;          /* program memory empty, the pointer at PRGM TOP (unit 011) */
     c->budget = AB_RUN_BUDGET;
+    c->stop_var = -1;
     for (int l = 0; l < 26; l++) c->labelpos[l] = -1;
     c->frac_c = 4095;          /* the default maximum denominator (UG p.5-5) */
     c->base = 10;
@@ -1028,15 +1030,17 @@ static bool is_jump(int op)
 }
 
 /* Edits keep each GTO and XEQ on the line it aims at (UG p.13-7): before the edit every target
- * that resolves becomes its line index (stored as -2 - index); after it, shifted by the edit,
+ * that resolves becomes its line index (stored as ABS_BASE - index); after it, shifted by the edit,
  * it becomes label and line again. A target whose line was deleted has none (ours). A target that
  * did not resolve (a label not yet keyed) stays as written and resolves when it runs. */
+#define ABS_BASE (-1000000)     /* far from the indirect targets AB_TGT_IND_I/J */
+
 static void targets_absolute(ab_calc *c)
 {
     for (int i = 0; i < c->prog_len; i++) {
         if (!is_jump(c->prog[i].op)) continue;
         int j = prog_target(c, c->prog[i].arg);
-        if (j >= 0) c->prog[i].arg = -2 - j;
+        if (j >= 0) c->prog[i].arg = ABS_BASE - j;
     }
 }
 
@@ -1044,8 +1048,8 @@ static void targets_symbolic(ab_calc *c, int k, bool inserted)
 {
     prog_labels(c);
     for (int i = 0; i < c->prog_len; i++) {
-        if (!is_jump(c->prog[i].op) || c->prog[i].arg >= 0) continue;
-        int j = -2 - c->prog[i].arg;
+        if (!is_jump(c->prog[i].op) || c->prog[i].arg > ABS_BASE) continue;
+        int j = ABS_BASE - c->prog[i].arg;
         if (inserted) {
             if (j >= k) j++;
         } else if (j == k) {
@@ -1128,6 +1132,7 @@ static abn_status prog_goto_pos(ab_calc *c, int arg)
     if (arg != AB_PC_TOP && i < 0) return ABN_NONEXISTENT;
     c->pc = i;
     c->rdepth = 0;
+    c->stop = AB_STOP_NONE;
     return ABN_OK;
 }
 
@@ -1186,6 +1191,47 @@ static abn_status loop_op(ab_calc *c, int op, int code, bool *skip)
     return store_val(c, &sl, v);
 }
 
+/* XEQ (I), GTO (I) and the J forms (ours: p.14-23 lists neither; on p.14-22's numbering -1..-26
+ * are labels A..Z): the index outside -32..800 is INVALID (I) (p.14-22); one naming a register
+ * or variable rather than a label is NONEXISTENT, the guide's error for a missing label (ours). */
+static abn_status ind_target(const ab_calc *c, int arg, int *tgt)
+{
+    int k;
+    if (arg != AB_TGT_IND_I && arg != AB_TGT_IND_J) {
+        *tgt = arg;
+        return ABN_OK;
+    }
+    const ab_val *idx = &c->var[(arg == AB_TGT_IND_I ? 'I' : 'J') - 'A'];
+    if (idx->kind != AB_REAL || !int_in(&idx->re, -32, AB_IND_MAX, &k)) return ABN_DOMAIN;
+    if (k < -26 || k > -1) return ABN_NONEXISTENT;
+    *tgt = (-k - 1) * 1000 + 1;
+    return ABN_OK;
+}
+
+/* The variable a code names, as a stop_var id: A..Z 0..25, the statistics registers -27..-32,
+ * an unnamed variable 1000 + its address (so INPUT (I) and VIEW (I) show what I names, p.14-22). */
+static int slot_id(const ab_calc *c, const slot *sl)
+{
+    if (sl->val) return (int)(sl->val - c->var);
+    if (sl->ind >= 0) return 1000 + sl->ind;
+    return -27 - (int)(sl->reg - c->stat);
+}
+
+static void slot_of_id(ab_calc *c, int id, slot *sl)
+{
+    sl->val = NULL;
+    sl->reg = NULL;
+    sl->ind = -1;
+    if (id >= 0 && id < 26) {
+        sl->val = &c->var[id];
+    } else if (id >= 1000) {
+        sl->ind = id - 1000;
+        sl->reg = &c->ind[sl->ind];
+    } else {
+        sl->reg = &c->stat[-id - 27];
+    }
+}
+
 /* Runs from the pointer for at most `limit` lines (ours, unit 011 rule 2). A line is one core
  * operation, done exactly as from the keyboard (rule 3); a typed-number line arrives as a typed
  * number does and enables lift (the stack as typed; unit 001 ruling 1). It ends at a top-level RTN
@@ -1197,6 +1243,7 @@ static abn_status loop_op(ab_calc *c, int op, int code, bool *skip)
 static abn_status prog_run(ab_calc *c, long limit)
 {
     long steps = 0;
+    c->stop = AB_STOP_NONE;     /* running: a stop reported earlier no longer applies */
     if (c->pc == AB_PC_TOP) {
         if (c->prog_len == 0) return ABN_OK;
         c->pc = 0;
@@ -1209,6 +1256,7 @@ static abn_status prog_run(ab_calc *c, long limit)
             }
             c->pc = AB_PC_TOP;
             c->lift = true;
+            c->stop = AB_STOP_DONE;
             return ABN_OK;
         }
         int at = c->pc, next = at + 1, op = c->prog[at].op;
@@ -1231,10 +1279,13 @@ static abn_status prog_run(ab_calc *c, long limit)
                 break;
             }
             c->pc = AB_PC_TOP;
+            c->stop = AB_STOP_DONE;
             return ABN_OK;
         case AB_XEQ:
         case AB_GTO: {
-            int i = prog_target(c, arg);
+            int t, i;
+            if ((st = ind_target(c, arg, &t)) != ABN_OK) break;
+            i = prog_target(c, t);
             if (i < 0) {
                 st = ABN_NONEXISTENT;
                 break;
@@ -1252,9 +1303,40 @@ static abn_status prog_run(ab_calc *c, long limit)
         }
         case AB_RS:                             /* STOP */
             c->pc = next;
+            c->stop = AB_STOP_STOP;
             return ABN_OK;
-        case AB_PSE:
-            break;
+        case AB_PSE:                            /* shows X for the device's pause (p.13-19) */
+            c->pc = next;
+            c->stop = limit == 1 ? AB_STOP_STOP : AB_STOP_PSE;
+            c->stop_var = -1;
+            return ABN_OK;
+        case AB_INPUT: {
+            /* recalls the variable to X and prompts; lift is off while waiting so a typed reply
+               replaces it (UG p.13-13, p.B-5, G-9); R/S stores X and resumes (unit 012) */
+            slot sl;
+            if ((st = resolve(c, arg, false, &sl)) != ABN_OK) break;
+            place_val(c, load_val(&sl));
+            c->lift = false;
+            c->pc = at;
+            c->stop = AB_STOP_INPUT;
+            c->stop_var = slot_id(c, &sl);
+            return ABN_OK;
+        }
+        case AB_VIEW: {
+            /* shows the variable, X untouched, and stops; followed by PSE it is shown through the
+               pause and the run goes on, one step when single-stepping (UG p.13-15, 13-18) */
+            slot sl;
+            if ((st = resolve(c, arg, true, &sl)) != ABN_OK) break;
+            c->lift = true;
+            c->stop_var = slot_id(c, &sl);
+            c->stop = AB_STOP_VIEW;
+            if (next < c->prog_len && c->prog[next].op == AB_PSE) {
+                next++;
+                c->stop = limit == 1 ? AB_STOP_STOP : AB_STOP_PSE;
+            }
+            c->pc = next;
+            return ABN_OK;
+        }
         case AB_TEST:
         case AB_FS: {
             bool t;
@@ -1276,11 +1358,62 @@ static abn_status prog_run(ab_calc *c, long limit)
         }
         if (st != ABN_OK && st != ABN_CLAMPED) {
             c->pc = at;
+            c->stop = AB_STOP_ERROR;
+            c->stop_line = at;
             return st;
         }
         c->pc = skip ? next + 1 : next;
     }
-    return limit == 1 ? ABN_OK : ABN_BUDGET;
+    if (limit == 1) {
+        c->stop = AB_STOP_STOP;
+        return ABN_OK;
+    }
+    c->stop = AB_STOP_BUDGET;
+    return ABN_BUDGET;
+}
+
+/* R/S, or SST (limit 1), resuming a stopped program: at an INPUT prompt X is stored in the
+ * variable first and the run goes on after the INPUT line, lift enabled (UG p.13-13, p.B-5); a
+ * reply the variable cannot hold (a complex number for an unnamed variable) is an error and the
+ * prompt stays. A cancelled prompt is asked again (p.13-15). */
+static abn_status prog_resume(ab_calc *c, long limit)
+{
+    if (c->stop == AB_STOP_INPUT && c->pc >= 0) {
+        slot sl;
+        abn_status st;
+        slot_of_id(c, c->stop_var, &sl);
+        if ((st = store_val(c, &sl, c->x)) != ABN_OK) return st;
+        c->lift = true;
+        c->pc++;
+        c->stop = AB_STOP_STOP;
+        if (limit == 1) return ABN_OK;      /* SST stores and moves on (p.G-9) */
+    }
+    return prog_run(c, limit);
+}
+
+/* The C key outside program entry (UG p.13-15, p.B-5): a number being typed is cleared to 0; at
+ * an INPUT prompt, the prompt is cancelled with the variable's value in X; at a VIEW or PSE
+ * display, the display goes; otherwise it acts as clear X. */
+static abn_status cancel_key(ab_calc *c)
+{
+    if (c->entry.active) {
+        entry_cancel(c);
+        return ABN_OK;
+    }
+    if (c->stop == AB_STOP_INPUT) {
+        slot sl;
+        slot_of_id(c, c->stop_var, &sl);
+        c->x = load_val(&sl);
+        c->stop = AB_STOP_CANCELLED;
+        return ABN_OK;
+    }
+    if (c->stop == AB_STOP_VIEW || c->stop == AB_STOP_PSE) {
+        c->stop = AB_STOP_STOP;
+        return ABN_OK;
+    }
+    c->x = ab_real(abn_zero());
+    c->lift = false;
+    return ABN_OK;
 }
 
 /* A key in program entry (UG p.13-6, 13-7): keys that build a number build a number line, which
@@ -1331,18 +1464,19 @@ static abn_status program_key(ab_calc *c, ab_op op, int arg)
         return ABN_NONPROGRAMMABLE;
     case AB_LIT:
         return ABN_DOMAIN;
-    case AB_INPUT:
-    case AB_CANCEL:
-        return ABN_OK;                          /* STUB: unit 012 lands after the oracle */
     case AB_LBL:
         if (arg < 0 || arg >= 26) return ABN_DOMAIN;
         if (c->labelpos[arg] >= 0) return ABN_DUP_LABEL;
         return prog_insert(c, AB_LBL, arg);
     case AB_XEQ:
     case AB_GTO:
+        if (arg == AB_TGT_IND_I || arg == AB_TGT_IND_J) return prog_insert(c, op, arg);
         if (arg < 0 || arg / 1000 >= 26) return ABN_DOMAIN;
         if (arg % 1000 == 0) arg += 1;      /* XEQ A is XEQ A001 (UG p.13-10) */
         return prog_insert(c, op, arg);
+    case AB_CANCEL:                         /* C leaves program entry (UG p.13-7) */
+        c->prgm = false;
+        return ABN_OK;
     default:
         return prog_insert(c, op, arg);
     }
@@ -1407,6 +1541,7 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
     if (op <= AB_KE || (op >= AB_KA && op <= AB_KF)) return entry_key(c, op);
     if (op == AB_SUF) return suffix(c, arg);
     if ((op == AB_KCHS || op == AB_KBKSP) && c->entry.active) return entry_key(c, op);
+    if (op == AB_CANCEL) return cancel_key(c);     /* before any completion: C clears an entry */
 
     /* Every other key completes the number being entered (UG p.1-17). A completed typed
      * number enables lift before the operation acts, so a recall after `1 ENTER 2` keeps
@@ -1447,6 +1582,14 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
         c->lift = false;
         return ABN_OK;
     case AB_ENTER:
+        if (c->stop == AB_STOP_VIEW) {
+            /* at a program's VIEW, ENTER copies the value shown to X (UG p.13-15) */
+            slot sl;
+            slot_of_id(c, c->stop_var, &sl);
+            place_val(c, load_val(&sl));
+            c->stop = AB_STOP_STOP;
+            break;
+        }
         /* ENTER lifts the stack, copying X into Y, and disables lift so the next number
          * writes over the copy left in X (UG p.2-6, p.B-5). */
         stack_lift(c);
@@ -1644,30 +1787,38 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
         return ABN_OK;
     case AB_XEQ: {
         /* XEQ label (nnn): runs from that line (UG p.13-10) with an empty return stack */
-        int i = prog_target(c, arg);
+        int t, i;
+        abn_status st = ind_target(c, arg, &t);
+        if (st != ABN_OK) return st;
+        i = prog_target(c, t);
         if (i < 0) return ABN_NONEXISTENT;
         c->rdepth = 0;
+        c->stop = AB_STOP_NONE;
         c->pc = i;
         c->lift = true;
         return prog_run(c, c->budget);
     }
     case AB_GTO: {
-        int i = prog_target(c, arg);            /* the pointer only (UG p.13-22) */
+        int t, i;                               /* the pointer only (UG p.13-22) */
+        abn_status st = ind_target(c, arg, &t);
+        if (st != ABN_OK) return st;
+        i = prog_target(c, t);
         if (i < 0) return ABN_NONEXISTENT;
         c->pc = i;
         c->rdepth = 0;
+        c->stop = AB_STOP_NONE;
         break;
     }
     case AB_GTOPOS:
         return prog_goto_pos(c, arg);
     case AB_RS:
-        return prog_run(c, c->budget);          /* neutral itself (UG p.B-5) */
+        return prog_resume(c, c->budget);       /* neutral itself (UG p.B-5) */
     case AB_RTN:
         c->pc = AB_PC_TOP;                      /* from the keyboard (ours: the guide does not say) */
         c->rdepth = 0;
         break;
     case AB_SST:
-        return prog_run(c, 1);                  /* executes the line (UG p.13-11) */
+        return prog_resume(c, 1);               /* executes the line (UG p.13-11) */
     case AB_BST:
         c->pc = c->pc < 0 ? c->prog_len - 1 : c->pc - 1;
         return ABN_OK;
@@ -1692,6 +1843,10 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
         if (st != ABN_OK) return st;
         break;
     }
+    case AB_INPUT:
+        return ABN_OK;                          /* only in programs (UG p.G-9) */
+    case AB_CANCEL:
+        return cancel_key(c);
     case AB_LIT:
         return ABN_DOMAIN;
     case AB_SETC: {
@@ -1810,6 +1965,22 @@ bool ab_flag(const ab_calc *c, int n)
 
 void ab_stop_text(const ab_calc *c, char *buf)
 {
-    (void)c;
-    strcpy(buf, "NONE");    /* STUB: unit 012 lands after the oracle */
+    static const char *const NAMES[] = {"NONE", "DONE", "STOP", "INPUT", "VIEW", "PSE", "CANCELLED",
+                                        "ERROR", "BUDGET"};
+    static const char *const STATS[] = {"n", "SX", "SY", "SX2", "SY2", "SXY"};
+    char v[16] = "";
+    int id = c->stop_var;
+    bool named = c->stop == AB_STOP_INPUT || c->stop == AB_STOP_VIEW || (c->stop == AB_STOP_PSE && id != -1);
+    if (named) {
+        if (id >= 0 && id < 26) {
+            v[0] = (char)('A' + id);
+            v[1] = '\0';
+        } else if (id >= 1000) {
+            snprintf(v, sizeof v, "#%d", id - 1000);
+        } else if (id <= -27 && id >= -32) {
+            snprintf(v, sizeof v, "%s", STATS[-id - 27]);
+        }
+    }
+    if (named) snprintf(buf, 32, "%s:%s", NAMES[c->stop], v);
+    else snprintf(buf, 32, "%s", NAMES[c->stop]);
 }
