@@ -39,6 +39,7 @@ void ab_init(ab_calc *c)
     c->budget = AB_RUN_BUDGET;
     c->stop_var = -1;
     c->fn = -1;
+    c->eqn_cur = -1;
     for (int l = 0; l < 26; l++) c->labelpos[l] = -1;
     c->frac_c = 4095;          /* the default maximum denominator (UG p.5-5) */
     c->base = 10;
@@ -2446,6 +2447,12 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
         return ABN_OK;                          /* only in programs (UG p.G-9) */
     case AB_CANCEL:
         return cancel_key(c);
+    case AB_EQN:
+    case AB_KEQ:
+    case AB_KPAREN:
+    case AB_KLEFT:
+    case AB_KRIGHT:
+        return ABN_OK;                          /* STUB: unit 014 lands after the oracle */
     case AB_FN: {
         abn_status st = fn_op(c, arg);          /* FN= enables lift (not in p.B-5's lists) */
         if (st != ABN_OK) return st;
@@ -2591,4 +2598,11 @@ void ab_stop_text(const ab_calc *c, char *buf)
     }
     if (named) snprintf(buf, 32, "%s:%s", NAMES[c->stop], v);
     else snprintf(buf, 32, "%s", NAMES[c->stop]);
+}
+
+abn_status ab_eqn_add(ab_calc *c, const char *text)
+{
+    (void)c;
+    (void)text;
+    return ABN_OK;          /* STUB: unit 014 lands after the oracle */
 }

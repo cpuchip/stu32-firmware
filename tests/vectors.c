@@ -52,6 +52,7 @@ static const struct { const char *name; ab_op op; } NAMED[] = {
     {"[", AB_KVEC}, {",", AB_KCOMMA},
     {"PRGM", AB_PRGM}, {"RTN", AB_RTN}, {"RS", AB_RS}, {"PSE", AB_PSE}, {"SST", AB_SST},
     {"BST", AB_BST}, {"CLPGM", AB_CLPGM}, {"C", AB_CANCEL},
+    {"EQN", AB_EQN}, {"=", AB_KEQ}, {"()", AB_KPAREN}, {"<", AB_KLEFT}, {">", AB_KRIGHT},
     {"AND", AB_AND}, {"XOR", AB_XOR}, {"OR", AB_OR}, {"NOT", AB_NOT}, {"NAND", AB_NAND}, {"NOR", AB_NOR},
     {"SIGMA+", AB_SIGMAPLUS}, {"SIGMA-", AB_SIGMAMINUS}, {"CLSIGMA", AB_CLSIGMA},
     {"XBAR", AB_XBAR}, {"YBAR", AB_YBAR}, {"XWBAR", AB_XWBAR}, {"SX", AB_SX}, {"SY", AB_SY},
@@ -73,7 +74,7 @@ static abn_status do1(ab_calc *c, ab_op op, int arg)
 static const char *const STATUS_NAMES[] = {"OK", "DIV_ZERO", "RANGE", "BAD_TEXT", "DOMAIN", "INEXACT",
                                            "CLAMPED", "NONEXISTENT", "XEQ_OVERFLOW", "DUP_LABEL",
                                            "MEMORY_FULL", "NONPROGRAMMABLE", "BUDGET", "NO_ROOT",
-                                           "SELECT_FN", "NESTED"};
+                                           "SELECT_FN", "NESTED", "SYNTAX"};
 
 /* Applies one key token. Returns 0, or -1 for an unknown token. */
 static int apply_token(ab_calc *c, const char *tok, int *errors)
@@ -130,6 +131,18 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
                 if (do1(c, TGT[i].op, (v[0] - 'A') * 1000 + line) != ABN_OK) (*errors)++;
                 return 0;
             }
+        }
+        if (strcmp(tok, "XEQ") == 0) {         /* in Equation mode: evaluate the equation shown */
+            if (do1(c, AB_XEQ, AB_TGT_EQN) != ABN_OK) (*errors)++;
+            return 0;
+        }
+        if (strncmp(tok, "EQ:", 3) == 0) {     /* an equation's text, added to the list (unit 014) */
+            abn_status st = ab_eqn_add(c, tok + 3);
+            if (st != ABN_OK) {
+                (*errors)++;
+                last_err = st;
+            }
+            return 0;
         }
         if (strncmp(tok, "FN=:", 4) == 0) {
             const char *v = tok + 4;
@@ -351,6 +364,13 @@ int main(int argc, char **argv)
                     snprintf(got, sizeof got, "%s", same ? eq + 1 : "different");
                 } else if (strcmp(ex, "%STOP") == 0) {
                     ab_stop_text(&c, got);
+                } else if (strcmp(ex, "%EQ") == 0) {
+                    /* the equation shown (unit 014) */
+                    snprintf(got, sizeof got, "%s", c.eqn_cur >= 0 ? c.eqn[c.eqn_cur] : "TOP");
+                } else if (strcmp(ex, "%EQN") == 0) {
+                    snprintf(got, sizeof got, "%d", c.eqn_count);
+                } else if (strcmp(ex, "%ERRPOS") == 0) {
+                    snprintf(got, sizeof got, "%d", c.eqn_errpos);
                 } else if (strcmp(ex, "%LINES") == 0) {
                     snprintf(got, sizeof got, "%d", c.prog_len);
                 } else if (strcmp(ex, "%YES") == 0) {

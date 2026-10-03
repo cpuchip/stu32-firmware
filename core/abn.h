@@ -40,7 +40,8 @@ typedef enum {
     ABN_BUDGET,             /* a program ran AB_RUN_BUDGET lines without stopping (ours) */
     ABN_NO_ROOT,            /* SOLVE found no root: the stack holds its report (UG p.7-8; unit 013) */
     ABN_SELECT_FN,          /* SOLVE or integrate with no program chosen by FN= (UG p.F-4) */
-    ABN_NESTED              /* SOLVE, integrate or FN= while a SOLVE or integral runs (UG p.15-11) */
+    ABN_NESTED,             /* SOLVE, integrate or FN= while a SOLVE or integral runs (UG p.15-11) */
+    ABN_SYNTAX              /* an equation that does not parse (SYNTAX ERROR, UG p.6-19; unit 014) */
 } abn_status;
 
 abn abn_zero(void);

@@ -1,0 +1,73 @@
+# Work unit 014 key vectors: equations, part 1. Format as unit 013. EQN toggles Equation mode; in it
+# the keys type: RCL:v a variable, = the = key, () a pair, < and > the cursor, function keys NAME(),
+# CHS a minus (or a number's sign); ENTER stores what is typed, and on a shown equation evaluates it
+# (storing an assignment's right side); XEQ evaluates; BST/SST move through the list; BKSP deletes.
+# EQ:text adds an equation's text directly (the text is the guide's: x and / as × and ÷, pi as π).
+# %EQ= the equation shown (TOP at EQN LIST TOP), %EQN= the count, %ERRPOS= a syntax error's place.
+# Prompts are INPUT stops, answered with RS. Expected values: the same chain of single roundings
+# at 34 digits (the guide's 6-12/6-13 figures are its 12-digit chain).
+
+M01 | 35s p.6-2 typing V=0.25xpixD^2xL: RCL types a variable, = is the = key, .25 shows 0.25, y^x types ^ | EQN RCL:V = .25 * PI * RCL:D POW 2 * RCL:L ENTER | %EQ=V=0.25×π×D^2×L %EQN=1
+M02 | 35s p.6-2/6-3 ENTER on an assignment prompts for the right side's variables, D first | EQN RCL:V = .25 * PI * RCL:D POW 2 * RCL:L ENTER ENTER | %STOP=INPUT:D
+M03 | 35s p.6-3 D = 2 1/2 (a fraction at the prompt), then L | EQN RCL:V = .25 * PI * RCL:D POW 2 * RCL:L ENTER ENTER 2.1.2 RS | %STOP=INPUT:L @D=2.5
+M04 | 35s p.6-3 L = 16: V = 78.5398, stored in V | EQN RCL:V = .25 * PI * RCL:D POW 2 * RCL:L ENTER ENTER 2.1.2 RS 16 RS | X=78.53981633974483096156608458198758 @V=78.53981633974483096156608458198758 @L=16 %STOP=DONE
+M05 | 35s p.6-6 typing R=2xCx(T-A)+25: ( ) types a pair, > steps out | EQN RCL:R = 2 * RCL:C * () RCL:T - RCL:A > + 25 ENTER | %EQ=R=2×C×(T-A)+25
+M06 | 35s p.6-9 editing: < puts the cursor at the end, three backspaces remove 5, 2, + | EQN RCL:R = 2 * RCL:C * () RCL:T - RCL:A > + 25 ENTER C EQN < BKSP BKSP BKSP ENTER | %EQ=R=2×C×(T-A) %EQN=1
+M07 | 35s p.6-12 ENTER with D = 35, L = 20 x 1000: V = 19,242,255.0033 at 12 digits (34 here) | 2.5 STO:D 16 STO:L EQ:V=0.25×π×D^2×L ENTER 35 RS 20 ENTER 1000 * RS | X=19242255.00323748358558369072258696 @V=19242255.00323748358558369072258696 @D=35 @L=20000
+M08 | 35s p.6-13 XEQ prompts for every variable (V, D, L) and stores nothing but them: -553,705.7051 at 12 digits | 35 STO:D 20000 STO:L 19242255.00323748358558369072258696 STO:V EQ:V=0.25×π×D^2×L XEQ RS 35.5 RS RS | X=-553705.70519520105827904089630301 @V=19242255.00323748358558369072258696 @D=35.5
+M09 | 35s p.6-15 precedence: AxB^3=C is a x (b^3) = c (2, 3, 4) | 2 STO:A 3 STO:B 4 STO:C EQ:A×B^3=C XEQ RS RS RS | X=50
+M10 | 35s p.6-15 (AxB)^3=C | 2 STO:A 3 STO:B 4 STO:C EQ:(A×B)^3=C XEQ RS RS RS | X=212
+M11 | 35s p.6-15 A+B/C=12 is a + (b/c) | 2 STO:A 3 STO:B 4 STO:C EQ:A+B÷C=12 XEQ RS RS RS | X=-9.25
+M12 | 35s p.6-15 (A+B)/C=12 | 2 STO:A 3 STO:B 4 STO:C EQ:(A+B)÷C=12 XEQ RS RS RS | X=-10.75
+M13 | 35s p.6-15 %CHG(T+12,A-6)^2 squares the %CHG (T 8, A 46: %CHG(20,40) = 100) | 8 STO:T 46 STO:A EQ:%CHG(T+12,A-6)^2 XEQ RS RS | X=10000
+M14 | 35s p.6-16 XROOT(3,-8): the index first, the radicand second (RPN's order reversed) | EQ:XROOT(3,-8) XEQ | X=-2
+M15 | 35s p.6-16 nCr(28,4): RPN's Y, X order kept | EQ:nCr(28,4) XEQ | X=20475
+M16 | 35s p.6-17 %CHG(-X,-2) is valid (X = 3) | 3 STO:X EQ:%CHG(-X,-2) XEQ RS | X^-33.3333333333333333333333333333333333
+M17 | 35s p.6-17 %CHG(X,(-Y)) is valid (X 4, Y 2) | 4 STO:X 2 STO:Y EQ:%CHG(X,(-Y)) XEQ RS RS | X=-150
+M18 | 35s p.6-17/6-18 the trapezoid perimeter (DEG; A 2 B 5 H 1, 30 and 45 degrees) | DEG 2 STO:A 5 STO:B 1 STO:H 30 STO:T 45 STO:F EQ:P=A+B+H×(1÷SIN(T)+1÷SIN(F)) ENTER RS RS RS RS RS | X=10.41421356237309504880168872420970 @P=10.41421356237309504880168872420970
+M19 | 35s p.6-18 the same with INV | DEG 2 STO:A 5 STO:B 1 STO:H 30 STO:T 45 STO:F EQ:P=A+B+H×(INV(SIN(T))+INV(SIN(F))) ENTER RS RS RS RS RS | X=10.41421356237309504880168872420970
+M20 | 35s p.6-18/6-19 the polygon area (RAD: the guide does not say) N = 6, D = 1 | RAD 6 STO:N 1 STO:D EQ:A=0.25×N×D^2×COS(π÷N)÷SIN(π÷N) ENTER RS RS | X^2.59807621135331594029116951225880863
+M21 | 35s p.6-19 SYNTAX ERROR is found when evaluating, the cursor at the first error | EQ:2×(3+ XEQ | ERR %ERR=SYNTAX %ERRPOS=5
+M22 | 35s p.6-19, p.13-16 a message is stored, and is a syntax error when evaluated | EQ:VOL+AREA? XEQ | ERR %ERR=SYNTAX %EQ=VOL+AREA?
+M23 | 35s p.7-3 D=VxT+0.5xGxT^2 with V 0, T 5, G 9.8: ENTER stores D = 122.5 | 0 STO:V 5 STO:T 9.8 STO:G EQ:D=V×T+0.5×G×T^2 ENTER RS RS RS | X=122.5 @D=122.5
+M24 | 35s p.7-4 PxV=NxRxT is an equality: its value is the difference | 0.06 STO:P 2 STO:V 0.005 STO:N 0.0821 STO:R 297.1 STO:T EQ:P×V=N×R×T XEQ RS RS RS RS RS | X=-0.00195955
+M25 | 35s p.13-17 the cylinder's volume as an expression, R 2.5 H 8: 157.0796 | 2.5 STO:R 8 STO:H EQ:π×R^2×H XEQ RS RS | X=157.0796326794896619231321691639751
+M26 | 35s p.13-17 its surface 2xpixRx(R+H): 164.9336 | 2.5 STO:R 8 STO:H EQ:2×π×R×(R+H) XEQ RS RS | X=164.9336143134641450192887776221740
+M27 | 35s p.6-15 power before unary minus: -A^2 is -(A^2) | 3 STO:A EQ:-A^2 XEQ RS | X=-9
+M28 | 35s p.17-2 a negated exponent: 2^-3 | EQ:2^-3 XEQ | X=0.125
+M29 | 35s p.8-5 typing SIN(X)/X: SIN types SIN( ) with the cursor inside, > steps out | EQN SIN RCL:X > / RCL:X ENTER | %EQ=SIN(X)÷X
+M30 | 35s p.8-5 its value at 2 (RAD) | RAD 2 STO:X EQ:SIN(X)÷X XEQ RS | X^0.454648713412840847698009932955872421
+M31 | 35s p.D-6 IP(X)=1.5 at 2.7 | 2.7 STO:X EQ:IP(X)=1.5 XEQ RS | X=0.5
+M32 | 35s p.D-10 10-INV(X) at 4 | 4 STO:X EQ:10-INV(X) XEQ RS | X=9.75
+M33 | 35s p.D-11 SQRT(X/(X+0.3))-0.5 at 0.1 | 0.1 STO:X EQ:SQRT(X÷(X+0.3))-0.5 XEQ RS | X=0
+M34 | 35s p.E-4 Xx EXP(-X) at 1 | 1 STO:X EQ:X×EXP(-X) XEQ RS | X^0.367879441171442321595523770161460867
+M35 | 35s p.7-10 V=(40-H)x(20-H)x4xH at H = 2: ENTER stores 5472 | 2 STO:H EQ:V=(40-H)×(20-H)×4×H ENTER RS | X=5472 @V=5472
+M36 | 35s p.17-2 typing the money equation: nested pairs, CHS types the minus of ^-N | EQN RCL:P * 100 * () 1 - () 1 + RCL:I / 100 > POW CHS RCL:N > / RCL:I + RCL:F * () 1 + RCL:I / 100 > POW CHS RCL:N + RCL:B ENTER | %EQ=P×100×(1-(1+I÷100)^-N)÷I+F×(1+I÷100)^-N+B
+M37 | 35s p.17-4 its value at the guide's solution is about 0 (P -186.88905, I 0.875, N 36, F 0, B 5750) | EQN RCL:P * 100 * () 1 - () 1 + RCL:I / 100 > POW CHS RCL:N > / RCL:I + RCL:F * () 1 + RCL:I / 100 > POW CHS RCL:N + RCL:B ENTER 186.88905 CHS STO:P .875 STO:I 36 STO:N 0 STO:F 5750 STO:B XEQ RS RS RS RS RS | X#0.00000467502796408411126720911,1E-25
+O01 | ours: left to right within a level: 8/4/2 = 1 | EQ:8÷4÷2 XEQ | X=1
+O02 | ours: 10-3-2 = 5 | EQ:10-3-2 XEQ | X=5
+O03 | ours: powers left to right too: 2^3^2 = 64 | EQ:2^3^2 XEQ | X=64
+O04 | ours: no implied multiplication: 2A is a syntax error (the guide shows none) | EQ:2A XEQ | ERR %ERR=SYNTAX %ERRPOS=1
+O05 | ours: two letters side by side are a syntax error | EQ:AB XEQ | ERR %ERR=SYNTAX %ERRPOS=1
+O06 | ours: a second = is a syntax error | EQ:A=B=C XEQ | ERR %ERR=SYNTAX %ERRPOS=3
+O07 | 35s p.F-1 1/0 inside an equation: DIVIDE BY 0, nothing changed | 7 EQ:1÷0 XEQ | ERR %ERR=DIV_ZERO X=7
+O08 | 35s p.6-10 XEQ on an assignment gives the difference and stores nothing | 2 STO:B EQ:A=B+1 XEQ RS RS | X=-3 @A=0
+O09 | 35s p.6-10 ENTER on it stores the right side | 2 STO:B EQ:A=B+1 ENTER RS | X=3 @A=3
+O10 | 35s p.6-14 each prompt's value stays on the stack (R/S re-enables lift) | 2 STO:A 3 STO:B EQ:A+B XEQ RS RS | X=5 Y=3 Z=2
+O11 | ours: LAST X is untouched by an evaluation (not in p.B-6's list) | 9 SQRT EQ:2×3 XEQ | X=6 L=9
+O12 | 35s p.6-14 C cancels the prompt, the variable's value in X | 4 STO:A EQ:A+1 XEQ C | X=4 %STOP=CANCELLED
+O13 | ours: pi in an equation | EQ:2×π XEQ | X=6.283185307179586476925286766559006
+O14 | 35s p.G-12 RND rounds to the display setting | FIX2 EQ:RND(π) XEQ | X=3.14
+O15 | 35s p.6-16/6-17 the renamed functions: ALOG, SQ, INV, EXP, IDIV, RMDR, nPr | EQ:ALOG(2)+SQ(3)+INV(4)+EXP(0)+IDIV(7,2)+RMDR(7,2)+nPr(5,2) XEQ | X=133.25
+O16 | ours: ! is postfix | EQ:5!+1 XEQ | X=121
+O17 | ours: backspace after a function key removes the function and its pair | EQN 2 * SIN BKSP RCL:X ENTER | %EQ=2×X
+O18 | 35s p.6-4, 6-7 the list: new equations go after the one shown; the cursor keys move through it | EQ:1+1 EQ:2+2 EQ:3+3 BST | %EQ=2+2 %EQN=3
+O19 | 35s p.6-7 the list wraps: past the last is EQN LIST TOP | EQ:1+1 EQ:2+2 SST | %EQ=TOP
+O20 | 35s p.6-9 backspace on a shown equation deletes it | EQ:1+1 EQ:2+2 BKSP | %EQN=1 %EQ=1+1
+O21 | ours (rule 5): the list holds AB_EQN_MAX (64) equations | EQ:0+1 EQ:1+1 EQ:2+1 EQ:3+1 EQ:4+1 EQ:5+1 EQ:6+1 EQ:7+1 EQ:8+1 EQ:9+1 EQ:10+1 EQ:11+1 EQ:12+1 EQ:13+1 EQ:14+1 EQ:15+1 EQ:16+1 EQ:17+1 EQ:18+1 EQ:19+1 EQ:20+1 EQ:21+1 EQ:22+1 EQ:23+1 EQ:24+1 EQ:25+1 EQ:26+1 EQ:27+1 EQ:28+1 EQ:29+1 EQ:30+1 EQ:31+1 EQ:32+1 EQ:33+1 EQ:34+1 EQ:35+1 EQ:36+1 EQ:37+1 EQ:38+1 EQ:39+1 EQ:40+1 EQ:41+1 EQ:42+1 EQ:43+1 EQ:44+1 EQ:45+1 EQ:46+1 EQ:47+1 EQ:48+1 EQ:49+1 EQ:50+1 EQ:51+1 EQ:52+1 EQ:53+1 EQ:54+1 EQ:55+1 EQ:56+1 EQ:57+1 EQ:58+1 EQ:59+1 EQ:60+1 EQ:61+1 EQ:62+1 EQ:63+1 EQ:64+1 | ERR %ERR=MEMORY_FULL %EQN=64
+O22 | ours: a complex variable in an equation is INVALID DATA (complex equations: a later unit) | 1 CI 1 STO:A EQ:A+1 XEQ RS | ERR %ERR=DOMAIN
+O23 | 35s p.B-4 a variable never stored is 0 | EQ:Q+1 XEQ RS | X=1
+O24 | 35s p.6-4, 6-8 C while typing stores the equation and leaves Equation mode | EQN 1 + 2 C | %EQ=1+2 %EQN=1
+O25 | 35s p.6-5 a number with an exponent; CHS after E negates the exponent | EQN 1.5 E 3 CHS + 1 ENTER XEQ | %EQ=1.5E-3+1 X=1.0015
+O26 | ours: the angle mode applies inside an equation | DEG EQ:SIN(30) XEQ | X=0.5
+O27 | ours: a unary minus in a product's operand | 3 STO:A EQ:2×-A XEQ RS | X=-6

@@ -88,7 +88,12 @@ typedef enum {
     /* unit 013: SOLVE and integrate on programmed functions */
     AB_FN,                  /* FN= label: arg 0..25, or AB_TGT_IND_I / J */
     AB_SOLVE,               /* arg: a variable code (the unknown) */
-    AB_INTEG                /* integrate: arg the variable of integration; limits in Y, X */
+    AB_INTEG,               /* integrate: arg the variable of integration; limits in Y, X */
+    /* unit 014: equations */
+    AB_EQN,                 /* Equation mode on or off */
+    AB_KEQ,                 /* the = key (types = in an equation) */
+    AB_KPAREN,              /* the ( ) key (types a pair, the cursor inside) */
+    AB_KLEFT, AB_KRIGHT     /* the cursor keys < and > in an equation */
 } ab_op;
 
 /* Why the last run stopped (unit 012 rule 1): the device draws it; the core never waits. */
@@ -120,6 +125,9 @@ enum { AB_TEST_NE = 0, AB_TEST_LE, AB_TEST_LT, AB_TEST_GT, AB_TEST_GE, AB_TEST_E
 #define AB_PC_TOP (-1)              /* the program pointer at PRGM TOP */
 #define AB_TGT_IND_I (-2)           /* XEQ (I), GTO (I): the label numbered by I (unit 012) */
 #define AB_TGT_IND_J (-3)
+#define AB_TGT_EQN (-5)             /* XEQ in Equation mode: evaluate the equation shown (unit 014) */
+#define AB_EQN_MAX 64               /* equations in the list (ours, unit 014 rule 5) */
+#define AB_EQN_LEN 192              /* bytes of one equation's text (UTF-8, as the guide shows it) */
 
 typedef enum { AB_ANGLE_DEG = 0, AB_ANGLE_RAD, AB_ANGLE_GRAD } ab_angle;
 
@@ -191,6 +199,19 @@ typedef struct {
     int solve_var;          /* the unknown (or variable of integration) as a stop_var id */
     int rbase;              /* return depth that counts as the top level of the current run */
     long evals;             /* function evaluations used by the last SOLVE or integral */
+    /* unit 014: the equation list and Equation mode */
+    char eqn[AB_EQN_MAX][AB_EQN_LEN];
+    int eqn_count;
+    int eqn_cur;            /* the equation shown, -1 at EQN LIST TOP */
+    bool eqn_mode;          /* Equation mode */
+    bool eqn_typing;        /* an equation is being typed or edited */
+    int eqn_edit;           /* the index being edited, or -1 for a new equation */
+    char ebuf[AB_EQN_LEN];  /* the text being typed */
+    int ecur;               /* the cursor: a byte offset into ebuf */
+    int eqn_errpos;         /* SYNTAX ERROR: the character offset of the first error */
+    int eqn_pending;        /* evaluating with prompts: 1 ENTER, 2 XEQ, 0 none */
+    int eqn_vars[26];       /* the variables to prompt for, in order */
+    int eqn_nvars, eqn_next;
 } ab_calc;
 
 void ab_init(ab_calc *c);
@@ -215,6 +236,9 @@ bool ab_flag(const ab_calc *c, int n);
 /* The stop state as text, for tests: DONE, STOP, INPUT:R, VIEW:V, PSE, PSE:V, CANCELLED, ERROR,
    BUDGET, NONE (an unnamed variable as #n). */
 void ab_stop_text(const ab_calc *c, char *buf);
+/* Adds an equation's text after the one shown and shows it (for tests and a device's editor; the
+   keys build the same text, unit 014). Returns ABN_MEMORY_FULL when the list is full. */
+abn_status ab_eqn_add(ab_calc *c, const char *text);
 
 /* The index of the constant named `name` (see core/const.c), or -1. */
 int ab_const_index(const char *name);
