@@ -228,6 +228,16 @@ int main(void)
         ab_do_arg(&c, km_arith_op(AB_STO, km_letter_of(46)->value), km_prompt_arg(KM_ARG_VAR, km_letter_of(39)));
         ab_prog_line(&c, c.pc, NULL, t, sizeof t);
         expect(strcmp(t, "STO+ (I)") == 0, "STO, +, then key 39 ((I)): STO+ (I)");
+        ab_do_arg(&c, AB_STO, km_prompt_arg(KM_ARG_VAR, km_letter_of(43)));
+        ab_prog_line(&c, c.pc, NULL, t, sizeof t);
+        expect(strcmp(t, "STO (J)") == 0, "STO then key 43 ((J)): STO (J)");
+        ab_do_arg(&c, AB_LBL, km_prompt_arg(KM_ARG_LABEL, km_letter_of(12)));
+        ab_do_arg(&c, AB_XEQ, km_prompt_arg(KM_ARG_TARGET, km_letter_of(12)));
+        ab_prog_line(&c, c.pc, NULL, t, sizeof t);
+        expect(strcmp(t, "XEQ G001") == 0, "XEQ then key 12: XEQ G001 (a label's first line, UG p.13-10)");
+        ab_do_arg(&c, AB_GTO, km_prompt_arg(KM_ARG_TARGET, km_letter_of(39)));
+        ab_prog_line(&c, c.pc, NULL, t, sizeof t);
+        expect(strcmp(t, "GTO (I)") == 0, "GTO then key 39: GTO (I)");
         snprintf(m, sizeof m, "letter-layer arguments taken: %d", lines);
         expect(lines == 26 * 8 + 2 * 7, m);
     }

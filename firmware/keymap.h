@@ -8,7 +8,13 @@
  * variable, a label or a target, typed on the keys that follow), a menu (its contents are the
  * soft keys'; not defined yet: the layout is not ruled), a shift, a soft key, or something the
  * device does itself (OFF, UNDO). A legend the generator has no meaning for is KM_UNDEFINED, and
- * the test lists them. */
+ * the test lists them.
+ *
+ * Reading the table, the same on the device and in the app (ruled by abacus with tally, #3827):
+ * - KM_NONE in a shift column means the key has no separate legend there: its face action applies.
+ * - A soft key does its action in any shift, and the shift clears.
+ * - A shift key pressed while that shift is armed cancels it (UG p.1-2); the other shift switches
+ *   to it (abacus #3824). */
 #ifndef KEYMAP_H
 #define KEYMAP_H
 

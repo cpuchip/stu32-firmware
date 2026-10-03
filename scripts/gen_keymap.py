@@ -54,6 +54,35 @@ MEANING = {
     "→FRAC": OP("AB_FDISP"),                     # the Fraction-display toggle, ch.5 (abacus #3822)
 }
 
+# The letter layer (abacus #3826, the P4 panel's assignment; provisional until Michael rules where
+# letters are printed): key number -> a letter, or a role. Data only: a printed legend later
+# changes this table and nothing else. Keys not listed type nothing.
+LETTERS = {
+    6: "A", 7: "B", 8: "C", 9: "D", 10: "E", 11: "F", 12: "G", 13: "H", 14: "I", 15: "J", 16: "K", 17: "L",
+    18: "M", 19: "N", 20: "O", 21: "P", 22: "Q", 24: "R", 25: "S", 26: "T", 27: "U", 31: "V", 32: "W",
+    33: "X", 37: "Y", 38: "Z",
+    39: "(I)", 43: "(J)", 42: "ESC",
+    46: "+", 40: "-", 34: "*", 28: "/",         # STO + ... as on the 35s (UG p.3-6, 3-7)
+}
+ARITH = {"+": "AB_ADD", "-": "AB_SUB", "*": "AB_MUL", "/": "AB_DIV"}
+
+
+def letter_cell(what):
+    if len(what) == 1 and "A" <= what <= "Z":
+        return f"{{KL_LETTER, {ord(what) - ord('A')}}}"
+    if what in ARITH:
+        return f"{{KL_ARITH, {ARITH[what]}}}"
+    return {"(I)": "{KL_IND_I, 0}", "(J)": "{KL_IND_J, 0}", "ESC": "{KL_ESC, 0}"}[what]
+
+
+def check_letters(acts):
+    letters = [w for w in LETTERS.values() if len(w) == 1 and "A" <= w <= "Z"]
+    if sorted(letters) != [chr(ord("A") + i) for i in range(26)]:
+        sys.exit("gen_keymap: the letter layer must give A..Z once each")
+    for k in LETTERS:
+        if k not in acts or acts[k][0][0] in ("KM_NONE", "KM_SOFT"):
+            sys.exit(f"gen_keymap: the letter layer names key {k}, which is not a lettered key")
+
 
 def cstr(s):
     """a C string literal; after a hex escape, a hex digit starts a new literal ("\\x92" "DEG")"""
@@ -107,7 +136,39 @@ def emit():
         acts = acts_by_key.get(k, none)
         cells = ", ".join(f"{{{kind}, {op}, {arg}, {prompt}, {cstr(legend)}}}" for kind, op, arg, prompt, legend in acts)
         lines.append(f"    [{k}] = {{{cells}}},")
+    check_letters(acts_by_key)
+    lines += ["};", "", "static const km_letter LETTER[KB_KEYS] = {"]
+    for k in sorted(LETTERS):
+        lines.append(f"    [{k}] = {letter_cell(LETTERS[k])},")
     lines += ["};", "",
+              "const km_letter *km_letter_of(int key)",
+              "{",
+              "    static const km_letter none = {KL_NONE, 0};",
+              "    return key < 0 || key >= KB_KEYS ? &none : &LETTER[key];",
+              "}", "",
+              "int km_arith_op(int op, int arith)",
+              "{",
+              "    int i = arith == AB_ADD ? 0 : arith == AB_SUB ? 1 : arith == AB_MUL ? 2 : arith == AB_DIV ? 3 : -1;",
+              "    if (i < 0) return -1;",
+              "    if (op == AB_STO) return AB_STOADD + i;     /* STOADD..STODIV and RCLADD..RCLDIV are in order */",
+              "    if (op == AB_RCL) return AB_RCLADD + i;",
+              "    return -1;",
+              "}", "",
+              "int km_prompt_arg(int prompt, const km_letter *l)",
+              "{",
+              "    switch (prompt) {",
+              "    case KM_ARG_VAR:",
+              "        return l->kind == KL_LETTER ? AB_VAR_A + l->value : l->kind == KL_IND_I ? AB_VAR_IND_I",
+              "               : l->kind == KL_IND_J ? AB_VAR_IND_J : -1;",
+              "    case KM_ARG_LABEL:",
+              "        return l->kind == KL_LETTER ? l->value : -1;",
+              "    case KM_ARG_TARGET:                         /* a label's first line (UG p.13-10), or (I) / (J) */",
+              "        return l->kind == KL_LETTER ? l->value * 1000 : l->kind == KL_IND_I ? AB_TGT_IND_I",
+              "               : l->kind == KL_IND_J ? AB_TGT_IND_J : -1;",
+              "    default:",
+              "        return -1;",
+              "    }",
+              "}", "",
               "const km_action *km_lookup(int key, int shift)",
               "{",
               "    static const km_action none = {KM_NONE, 0, 0, 0, \"\"};",

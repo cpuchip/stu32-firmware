@@ -55,29 +55,76 @@ static const km_action KEYMAP[KB_KEYS][3] = {
     [47] = {{KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}},
 };
 
-const km_action *km_lookup(int key, int shift)
-{
-    static const km_action none = {KM_NONE, 0, 0, 0, ""};
-    if (key < 0 || key >= KB_KEYS || shift < 0 || shift > 2) return &none;
-    return &KEYMAP[key][shift];
-}
+static const km_letter LETTER[KB_KEYS] = {
+    [6] = {KL_LETTER, 0},
+    [7] = {KL_LETTER, 1},
+    [8] = {KL_LETTER, 2},
+    [9] = {KL_LETTER, 3},
+    [10] = {KL_LETTER, 4},
+    [11] = {KL_LETTER, 5},
+    [12] = {KL_LETTER, 6},
+    [13] = {KL_LETTER, 7},
+    [14] = {KL_LETTER, 8},
+    [15] = {KL_LETTER, 9},
+    [16] = {KL_LETTER, 10},
+    [17] = {KL_LETTER, 11},
+    [18] = {KL_LETTER, 12},
+    [19] = {KL_LETTER, 13},
+    [20] = {KL_LETTER, 14},
+    [21] = {KL_LETTER, 15},
+    [22] = {KL_LETTER, 16},
+    [24] = {KL_LETTER, 17},
+    [25] = {KL_LETTER, 18},
+    [26] = {KL_LETTER, 19},
+    [27] = {KL_LETTER, 20},
+    [28] = {KL_ARITH, AB_DIV},
+    [31] = {KL_LETTER, 21},
+    [32] = {KL_LETTER, 22},
+    [33] = {KL_LETTER, 23},
+    [34] = {KL_ARITH, AB_MUL},
+    [37] = {KL_LETTER, 24},
+    [38] = {KL_LETTER, 25},
+    [39] = {KL_IND_I, 0},
+    [40] = {KL_ARITH, AB_SUB},
+    [42] = {KL_ESC, 0},
+    [43] = {KL_IND_J, 0},
+    [46] = {KL_ARITH, AB_ADD},
+};
 
-/* red: the letter layer's stubs, replaced by the generated table in the green commit */
 const km_letter *km_letter_of(int key)
 {
     static const km_letter none = {KL_NONE, 0};
-    (void)key;
-    return &none;
+    return key < 0 || key >= KB_KEYS ? &none : &LETTER[key];
 }
 
 int km_arith_op(int op, int arith)
 {
-    (void)op; (void)arith;
+    int i = arith == AB_ADD ? 0 : arith == AB_SUB ? 1 : arith == AB_MUL ? 2 : arith == AB_DIV ? 3 : -1;
+    if (i < 0) return -1;
+    if (op == AB_STO) return AB_STOADD + i;     /* STOADD..STODIV and RCLADD..RCLDIV are in order */
+    if (op == AB_RCL) return AB_RCLADD + i;
     return -1;
 }
 
 int km_prompt_arg(int prompt, const km_letter *l)
 {
-    (void)prompt; (void)l;
-    return -1;
+    switch (prompt) {
+    case KM_ARG_VAR:
+        return l->kind == KL_LETTER ? AB_VAR_A + l->value : l->kind == KL_IND_I ? AB_VAR_IND_I
+               : l->kind == KL_IND_J ? AB_VAR_IND_J : -1;
+    case KM_ARG_LABEL:
+        return l->kind == KL_LETTER ? l->value : -1;
+    case KM_ARG_TARGET:                         /* a label's first line (UG p.13-10), or (I) / (J) */
+        return l->kind == KL_LETTER ? l->value * 1000 : l->kind == KL_IND_I ? AB_TGT_IND_I
+               : l->kind == KL_IND_J ? AB_TGT_IND_J : -1;
+    default:
+        return -1;
+    }
+}
+
+const km_action *km_lookup(int key, int shift)
+{
+    static const km_action none = {KM_NONE, 0, 0, 0, ""};
+    if (key < 0 || key >= KB_KEYS || shift < 0 || shift > 2) return &none;
+    return &KEYMAP[key][shift];
 }
