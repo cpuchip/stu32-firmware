@@ -5,7 +5,8 @@
 
 The list mirrors the Makefile's test target: the key-vector files, the format-vector files,
 and the three fuzz files, generated here by the same commands and seeds as make test.
---small halves the fuzz counts, for a part whose flash cannot hold the full set.
+--small cuts the fuzz counts to a tenth, for a part whose flash cannot hold the full set (the
+ESP32-C6FH4's 4 MB: the decimal library alone is 3.4 MB).
 Stdlib only; run from anywhere."""
 import os, subprocess, sys
 
@@ -46,7 +47,7 @@ def main():
     for k in KEY:
         files.append((f"work/{k}-vectors.txt", 0, open(os.path.join(ROOT, f"work/{k}-vectors.txt"), "rb").read()))
     for name, count in FUZZ:
-        n = count // 2 if small else count
+        n = count // 10 if small else count
         text = subprocess.run([sys.executable, os.path.join(ROOT, f"tests/{name}.py"), "1", str(n)],
                               check=True, capture_output=True).stdout
         files.append((f"{name} 1 {n}", 0, text))

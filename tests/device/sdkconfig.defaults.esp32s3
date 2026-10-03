@@ -1,2 +1,5 @@
-# The 4.3" board's console is UART0 through its USB-UART bridge (the IDF default).
+# The 4.3" board's console is UART0 through its USB-UART bridge (the IDF default). Its module has
+# 8 MB of flash (esptool flash_id, 2026-10-03), so the app gets an 8 MB layout.
 CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions-8mb.csv"
