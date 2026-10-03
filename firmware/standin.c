@@ -148,7 +148,12 @@ void si_draw_keys(uint8_t *img, const si_keys_state *s)
             }
             continue;
         }
-        if (shift_key && !held) fill(img, x + 3, y + 3, w - 6, 6, shift_colour);   /* a band of its colour */
+        if (shift_key) {                        /* a band of its colour, and its name (#3865) */
+            const char *name = face->arg == 1 ? "GOLD" : "BLUE";
+            if (!held) fill(img, x + 3, y + 3, w - 6, 6, shift_colour);
+            text(img, x + (w - text_width(name, 2)) / 2, y + 24, 2, name, held ? SI_BG : SI_FACE);
+            continue;
+        }
         const km_action *g = km_lookup(k, KM_GOLD), *b = km_lookup(k, KM_BLUE);
         if (g->legend[0]) text(img, x + 5, y + 6, 1, g->legend, SI_GOLD);
         if (b->legend[0]) text(img, x + w - 5 - text_width(b->legend, 1), y + 6, 1, b->legend, SI_BLUE);
