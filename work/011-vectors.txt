@@ -48,7 +48,7 @@ M39 | 35s p.14-7, p.F-2 a test on a complex number is INVALID DATA | 1 CI 1 ENTE
 M40 | 35s p.14-9 flag 7 is Fraction display (unit 007) | SF:7 | %F7=1
 O01 | ours (rule 2): an endless loop stops at the step budget | PRGM LBL:A GTO:A001 PRGM XEQ:A | ERR
 O02 | ours: running into the next label carries on (labels are only marks) | PRGM LBL:A 1 LBL:B 2 + RTN PRGM XEQ:A | X=3
-O03 | 35s p.B-5 R/S is neutral for lift (no program: it ends at once) | 1 ENTER RS 5 | X=5 Y=1
+O03 | 35s p.B-5 R/S is neutral for lift (no program: it ends at once) | 1 ENTER RS 5 | X=5 Y=1 Z=0
 O04 | ours: ISG from the keyboard with a negative counter | 5.00002 CHS STO:A ISG:A | @A=-3.00002
 O05 | 35s p.14-18 DSE with a final value and a step: 10.00203 becomes 7.00203 | 10.00203 STO:A DSE:A | @A=7.00203
 O06 | 35s p.14-19 a complex counter uses its real part (the imaginary part kept: ours) | 1.005 CI 2 STO:A ISG:A | @A=2.005i2
@@ -70,12 +70,14 @@ O21 | 35s p.13-20 deleting a line moves the pointer to the one before | PRGM LBL
 O22 | 35s p.13-6 a new line goes after the one shown; at PRGM TOP before all | PRGM LBL:A SQ GTO.. SQRT PRGM | %PC=0001 %LINES=3
 O23 | ours: a number line followed by ENTER and a number (the stack as typed) | PRGM LBL:A 1 ENTER 2 + RTN PRGM 9 XEQ:A | X=3 Y=9
 O24 | ours: a number line lifts after a completed result | PRGM LBL:A 2 RTN PRGM 5 XEQ:A | X=2 Y=5
-O25 | ours: a program's error leaves the stack as the failing line found it | PRGM LBL:A 3 0 / RTN PRGM XEQ:A | ERR X=0 Y=3 %PC=A004
+O25 | ours: a program's error leaves the stack as the failing line found it | PRGM LBL:A 3 ENTER 0 / RTN PRGM XEQ:A | ERR X=0 Y=3 %PC=A005
 O26 | ours: XEQ of a label's line beyond its end is NONEXISTENT | PRGM LBL:A RTN PRGM XEQ:A005 | ERR
 O27 | 35s p.14-18 ISG with no final value: 0 to 1 skips (1 > 0) | PRGM LBL:A ISG:N 5 RTN PRGM 9 XEQ:A | @N=1 X=9
 O28 | 35s p.14-18 ISG below the final value does not skip | PRGM LBL:A ISG:N 5 RTN PRGM 0.003 STO:N CLX XEQ:A | @N=1.003 X=5
 O29 | ours: ISG on a vector counter uses its first element | [ 1.002 , 7 STO:A ISG:A | @A=[2.002,7]
 O30 | ours: the program pointer survives leaving program entry | PRGM LBL:A SQ SQRT GTO.:A002 PRGM | %PC=A002
+O31 | ours: XEQ from the keyboard starts with an empty return stack (no stale return after a STOP in a subroutine) | PRGM LBL:A XEQ:B001 7 RTN LBL:B 1 RS 2 RTN LBL:C 5 RTN PRGM XEQ:A XEQ:C | X=5 %PC=TOP
+O32 | 35s p.13-10 XEQ B keyed in a program is stored as XEQ B001 (keyed last, B already there) | PRGM LBL:B RTN GTO.. LBL:A XEQ:B PRGM | %GO:A002=B001
 T01 | 35s p.14-7 x!=y? with x=2, y=3: do if true | PRGM LBL:A X!=Y? GTO:A006 0 RTN 1 RTN PRGM 3 ENTER 2 XEQ:A | X=1
 T02 | 35s p.14-7 x!=0? with x=-1: do if true | PRGM LBL:A X!=0? GTO:A006 0 RTN 1 RTN PRGM 1 CHS XEQ:A | X=1
 T03 | 35s p.14-7 x!=y? with x=2, y=2: do if true | PRGM LBL:A X!=Y? GTO:A006 0 RTN 1 RTN PRGM 2 ENTER 2 XEQ:A | X=0

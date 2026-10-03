@@ -154,6 +154,8 @@ typedef struct {
     int rstack[AB_RTN_DEPTH];   /* return addresses of the subroutines being run */
     int rdepth;
     bool prgm;              /* program entry */
+    ab_val plit;            /* in program entry, the number being keyed as a line */
+    int labelpos[26];       /* the line of each label, -1 if none (rebuilt after each edit) */
     uint16_t flags;         /* flags 0..6, 10, 11 (7, 8, 9 are fdisp, flag8, flag9) */
     bool yes;               /* the last test's answer, shown as YES / NO from the keyboard */
     long budget;            /* lines a run may execute: AB_RUN_BUDGET unless a device changes it */

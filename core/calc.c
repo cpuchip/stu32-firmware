@@ -34,6 +34,9 @@ void ab_init(ab_calc *c)
     c->disp_mode = AB_ALL;      /* ALL is the default display (ours, unit 002) */
     c->disp_n = 0;
     c->ind_top = -1;
+    c->pc = AB_PC_TOP;          /* program memory empty, the pointer at PRGM TOP (unit 011) */
+    c->budget = AB_RUN_BUDGET;
+    for (int l = 0; l < 26; l++) c->labelpos[l] = -1;
     c->frac_c = 4095;          /* the default maximum denominator (UG p.5-5) */
     c->base = 10;
     {
@@ -159,6 +162,30 @@ static abn_status complex_entry_value(const ab_calc *c, const abn *v, ab_val *ou
 }
 
 /* ---- number entry (UG p.1-15 to p.1-17) ---- */
+
+/* Where a number being typed goes: into X, the first key placing it as a new number; in program
+ * entry, into the line being keyed instead (unit 011). */
+static void entry_put(ab_calc *c, ab_val nv, bool first)
+{
+    if (c->prgm) {
+        c->plit = nv;
+        return;
+    }
+    if (first) place_val(c, nv);
+    else c->x = nv;
+}
+
+/* Backspace erased the whole number: X is 0 with lift disabled, as clear X does (our choice; the
+ * guide does not say); in program entry nothing is keyed. */
+static void entry_cancel(ab_calc *c)
+{
+    c->entry.active = false;
+    c->vlen = 0;
+    c->cpart = 0;
+    if (c->prgm) return;
+    c->x = ab_real(abn_zero());
+    c->lift = false;
+}
 
 static bool has_char(const ab_entry *e, char ch)
 {
@@ -300,10 +327,7 @@ static abn_status entry_key(ab_calc *c, ab_op op)
                element empty the bracket: X is 0 and lift is disabled, as clearing an entry does
                (ours; the guide does not say) */
             if (c->vlen == 1) {
-                c->vlen = 0;
-                c->entry.active = false;
-                c->x = ab_real(abn_zero());
-                c->lift = false;
+                entry_cancel(c);
                 return ABN_OK;
             }
             c->vlen--;
@@ -318,9 +342,7 @@ static abn_status entry_key(ab_calc *c, ab_op op)
             c->cpart = 0;
             e = c->entry1;
             if (e.len == 0) {
-                c->entry.active = false;
-                c->x = ab_real(abn_zero());
-                c->lift = false;
+                entry_cancel(c);
                 return ABN_OK;
             }
             e.active = true;
@@ -329,9 +351,7 @@ static abn_status entry_key(ab_calc *c, ab_op op)
         }
         if (e.len > 0 && e.text[--e.len] == 'E') e.exp_neg = false;
         if (e.len == 0 && !c->cpart && !c->vlen) {
-            c->entry.active = false;
-            c->x = ab_real(abn_zero());
-            c->lift = false;
+            entry_cancel(c);
             return ABN_OK;
         }
     }
@@ -342,13 +362,9 @@ value:
     nv = ab_real(v);
     if (c->cpart && complex_entry_value(c, &v, &nv) != ABN_OK) return ABN_OK;
     if (c->vlen && vector_entry_value(c, &v, &nv) != ABN_OK) return ABN_OK;
-    if (!c->entry.active) {
-        /* The first key of a number places it in X, lifting if lift is enabled. Digit
-         * entry itself leaves the lift flag alone (UG p.B-5). */
-        place_val(c, nv);
-    } else {
-        c->x = nv;
-    }
+    /* The first key of a number places it in X, lifting if lift is enabled. Digit entry itself
+     * leaves the lift flag alone (UG p.B-5). */
+    entry_put(c, nv, !c->entry.active);
     e.active = true;
     c->entry = e;
     return ABN_OK;
@@ -378,8 +394,7 @@ static abn_status complex_key(ab_calc *c, ab_op op)
     }
     memset(&c->entry, 0, sizeof c->entry);
     c->entry.active = true;
-    if (!was_active) place_val(c, nv);
-    else c->x = nv;
+    entry_put(c, nv, !was_active);
     return ABN_OK;
 }
 
@@ -402,7 +417,7 @@ static abn_status vector_key(ab_calc *c, ab_op op)
         c->entry.active = true;
         c->vlen = 1;
         nv = ab_vec(1);
-        place_val(c, nv);
+        entry_put(c, nv, true);
         return ABN_OK;
     }
     if (!c->vlen || c->vlen == 3) return ABN_OK;
@@ -410,7 +425,7 @@ static abn_status vector_key(ab_calc *c, ab_op op)
     memset(&c->entry, 0, sizeof c->entry);
     c->entry.active = true;
     c->vlen++;
-    if (vector_entry_value(c, &zero, &nv) == ABN_OK) c->x = nv;
+    if (vector_entry_value(c, &zero, &nv) == ABN_OK) entry_put(c, nv, false);
     return ABN_OK;
 }
 
@@ -962,6 +977,374 @@ static abn_status logic(ab_calc *c, ab_op op)
     return clamped ? ABN_CLAMPED : ABN_OK;
 }
 
+/* ---- keystroke programs (unit 011; UG ch.13, 14) ---- */
+
+#define TGT_NONE (26 * 1000)    /* a GTO or XEQ whose target line was deleted (ours) */
+
+static abn_status do_key(ab_calc *c, ab_op op, int arg);
+
+static void prog_labels(ab_calc *c)
+{
+    for (int l = 0; l < 26; l++) c->labelpos[l] = -1;
+    for (int i = 0; i < c->prog_len; i++)
+        if (c->prog[i].op == AB_LBL) c->labelpos[c->prog[i].arg] = i;
+}
+
+/* The label owning line i, the last LBL at or above it (UG p.13-23), or -1 above every label. */
+static int prog_owner(const ab_calc *c, int i)
+{
+    int best = -1, pos = -1;
+    for (int l = 0; l < 26; l++)
+        if (c->labelpos[l] >= 0 && c->labelpos[l] <= i && c->labelpos[l] > pos) {
+            pos = c->labelpos[l];
+            best = l;
+        }
+    return best;
+}
+
+/* One past the last line owned by the label (or the unlabeled lines) starting at pos. */
+static int prog_label_end(const ab_calc *c, int pos)
+{
+    int end = c->prog_len;
+    for (int l = 0; l < 26; l++)
+        if (c->labelpos[l] > pos && c->labelpos[l] < end) end = c->labelpos[l];
+    return end;
+}
+
+/* A target's line: label * 1000 + line (line 0: the label's first), or -1 when the label or that
+ * line does not exist (NONEXISTENT, UG p.F-3). */
+static int prog_target(const ab_calc *c, int t)
+{
+    int l = t / 1000, n = t % 1000;
+    if (t < 0 || l >= 26 || c->labelpos[l] < 0) return -1;
+    if (n == 0) n = 1;
+    int i = c->labelpos[l] + n - 1;
+    return i < prog_label_end(c, c->labelpos[l]) ? i : -1;
+}
+
+static bool is_jump(int op)
+{
+    return op == AB_XEQ || op == AB_GTO;
+}
+
+/* Edits keep each GTO and XEQ on the line it aims at (UG p.13-7): before the edit every target
+ * that resolves becomes its line index (stored as -2 - index); after it, shifted by the edit,
+ * it becomes label and line again. A target whose line was deleted has none (ours). A target that
+ * did not resolve (a label not yet keyed) stays as written and resolves when it runs. */
+static void targets_absolute(ab_calc *c)
+{
+    for (int i = 0; i < c->prog_len; i++) {
+        if (!is_jump(c->prog[i].op)) continue;
+        int j = prog_target(c, c->prog[i].arg);
+        if (j >= 0) c->prog[i].arg = -2 - j;
+    }
+}
+
+static void targets_symbolic(ab_calc *c, int k, bool inserted)
+{
+    prog_labels(c);
+    for (int i = 0; i < c->prog_len; i++) {
+        if (!is_jump(c->prog[i].op) || c->prog[i].arg >= 0) continue;
+        int j = -2 - c->prog[i].arg;
+        if (inserted) {
+            if (j >= k) j++;
+        } else if (j == k) {
+            c->prog[i].arg = TGT_NONE;
+            continue;
+        } else if (j > k) {
+            j--;
+        }
+        int l = prog_owner(c, j);
+        c->prog[i].arg = l < 0 ? TGT_NONE : l * 1000 + (j - c->labelpos[l] + 1);
+    }
+}
+
+/* Records a line after the one shown, at PRGM TOP before all (UG p.13-6). A label owns at most
+ * AB_LABEL_LINES lines, the address form A001..A999 (UG p.13-4; past it MEMORY FULL, ours). */
+static abn_status prog_insert(ab_calc *c, int op, int32_t arg)
+{
+    int k = c->pc + 1;
+    if (c->prog_len >= AB_PROG_LINES) return ABN_MEMORY_FULL;
+    if (op != AB_LBL) {
+        int l = c->pc < 0 ? -1 : prog_owner(c, c->pc);
+        int pos = l < 0 ? 0 : c->labelpos[l];
+        int end = l < 0 ? (c->prog_len ? prog_label_end(c, -1) : 0) : prog_label_end(c, pos);
+        if (l < 0) {
+            end = c->prog_len;
+            for (int m = 0; m < 26; m++)
+                if (c->labelpos[m] >= 0 && c->labelpos[m] < end) end = c->labelpos[m];
+        }
+        if (end - pos >= AB_LABEL_LINES) return ABN_MEMORY_FULL;
+    }
+    targets_absolute(c);
+    memmove(&c->prog[k + 1], &c->prog[k], (size_t)(c->prog_len - k) * sizeof c->prog[0]);
+    c->prog[k].op = (uint16_t)op;
+    c->prog[k].arg = arg;
+    c->prog_len++;
+    targets_symbolic(c, k, true);
+    c->pc = k;
+    return ABN_OK;
+}
+
+/* A typed number as a line: its value in the literal pool. */
+static abn_status prog_insert_lit(ab_calc *c, ab_val v)
+{
+    int slot = -1;
+    for (int i = 0; i < AB_PROG_LITS && slot < 0; i++)
+        if (!c->lit_used[i]) slot = i;
+    if (slot < 0) return ABN_MEMORY_FULL;
+    abn_status st = prog_insert(c, AB_LIT, slot);
+    if (st != ABN_OK) return st;
+    c->lit[slot] = v;
+    c->lit_used[slot] = true;
+    return ABN_OK;
+}
+
+/* Deletes line k; the pointer moves to the line before (UG p.13-20). */
+static void prog_delete(ab_calc *c, int k)
+{
+    if (c->prog[k].op == AB_LIT) c->lit_used[c->prog[k].arg] = false;
+    targets_absolute(c);
+    memmove(&c->prog[k], &c->prog[k + 1], (size_t)(c->prog_len - k - 1) * sizeof c->prog[0]);
+    c->prog_len--;
+    targets_symbolic(c, k, false);
+    c->pc = k - 1;
+}
+
+static void prog_clear(ab_calc *c)
+{
+    c->prog_len = 0;
+    memset(c->lit_used, 0, sizeof c->lit_used);
+    c->pc = AB_PC_TOP;
+    c->rdepth = 0;
+    prog_labels(c);
+}
+
+/* GTO . label nnn and GTO . . : the pointer only (UG p.14-6; neutral, p.B-5). Like any GTO from the
+ * keyboard it ends what R/S could resume (UG p.13-19), so the return stack is emptied (ours). */
+static abn_status prog_goto_pos(ab_calc *c, int arg)
+{
+    int i = arg == AB_PC_TOP ? AB_PC_TOP : prog_target(c, arg);
+    if (arg != AB_PC_TOP && i < 0) return ABN_NONEXISTENT;
+    c->pc = i;
+    c->rdepth = 0;
+    return ABN_OK;
+}
+
+/* x?y, x?0 (UG p.14-7: the X and Y registers; complex or vector operands are INVALID DATA) and
+ * FS? (UG p.14-12). */
+static abn_status prog_test(ab_calc *c, int op, int arg, bool *t)
+{
+    if (arg < 0 || arg > 11) return ABN_DOMAIN;
+    if (op == AB_FS) {
+        *t = ab_flag(c, arg);
+        return ABN_OK;
+    }
+    abn zero = abn_zero();
+    bool vs0 = arg >= 6;
+    if (c->x.kind != AB_REAL || (!vs0 && c->y.kind != AB_REAL)) return ABN_DOMAIN;
+    int r = abn_cmp(&c->x.re, vs0 ? &zero : &c->y.re);
+    switch (arg % 6) {
+    case AB_TEST_NE: *t = r != 0; break;
+    case AB_TEST_LE: *t = r <= 0; break;
+    case AB_TEST_LT: *t = r < 0; break;
+    case AB_TEST_GT: *t = r > 0; break;
+    case AB_TEST_GE: *t = r >= 0; break;
+    default: *t = r == 0; break;
+    }
+    return ABN_OK;
+}
+
+/* ISG and DSE on the loop-control number +-ccccccc.fffii (UG p.14-18, 14-19): the counter is the
+ * integer part with the number's sign, fff the first three decimals (the final value), ii the
+ * next two (the step; 00 or left out is 1). ISG adds ii and skips when the new counter exceeds
+ * fff; DSE subtracts ii and skips when it is at most fff. The fraction is written back unchanged
+ * (digits past ii too: ours), with the new counter's sign (a counter reaching 0 is positive:
+ * ours). A complex or vector number uses its real part or first element (UG p.14-19), the other
+ * parts kept (ours). All exact. */
+static abn_status loop_op(ab_calc *c, int op, int code, bool *skip)
+{
+    slot sl;
+    abn_status st;
+    if ((st = resolve(c, code, true, &sl)) != ABN_OK) return st;
+    ab_val v = load_val(&sl);
+    abn *p = &v.re;
+    bool neg = abn_is_negative(p);
+    abn a = abn_abs(p), ip, frac, t, fff, f5, ii, cnt, nw, absn;
+    abn k100 = abn_from_int(100), k1000 = abn_from_int(1000), k100000 = abn_from_int(100000);
+    if ((st = abn_trunc(&ip, &a)) != ABN_OK || (st = abn_sub(&frac, &a, &ip)) != ABN_OK) return st;
+    if ((st = abn_mul(&t, &frac, &k1000)) != ABN_OK || (st = abn_trunc(&fff, &t)) != ABN_OK) return st;
+    if ((st = abn_mul(&t, &frac, &k100000)) != ABN_OK || (st = abn_trunc(&f5, &t)) != ABN_OK) return st;
+    if ((st = abn_mul(&t, &fff, &k100)) != ABN_OK || (st = abn_sub(&ii, &f5, &t)) != ABN_OK) return st;
+    if (abn_is_zero(&ii)) ii = abn_from_int(1);
+    cnt = neg ? abn_neg(&ip) : ip;
+    if ((st = op == AB_ISG ? abn_add(&nw, &cnt, &ii) : abn_sub(&nw, &cnt, &ii)) != ABN_OK) return st;
+    *skip = op == AB_ISG ? abn_cmp(&nw, &fff) > 0 : abn_cmp(&nw, &fff) <= 0;
+    absn = abn_abs(&nw);
+    if ((st = abn_add(&t, &absn, &frac)) != ABN_OK) return st;
+    *p = abn_is_negative(&nw) ? abn_neg(&t) : t;
+    return store_val(c, &sl, v);
+}
+
+/* Runs from the pointer for at most `limit` lines (ours, unit 011 rule 2). A line is one core
+ * operation, done exactly as from the keyboard (rule 3); a typed-number line arrives as a typed
+ * number does and enables lift (the stack as typed; unit 001 ruling 1). It ends at a top-level RTN
+ * (pointer at PRGM TOP, UG p.13-4), a STOP (pointer after it, p.13-19), an error (pointer at the
+ * failing line, p.13-19, so R/S retries it: ours), or the budget (ABN_BUDGET). Running off the last
+ * line acts as RTN, and execution runs on through a LBL line into the next label (ours: the guide
+ * does not say). LBL, RTN, GTO, XEQ, the tests and ISG/DSE enable lift (UG p.B-4, none of them is
+ * listed as neutral); STOP and PSE are neutral (p.B-5); PSE's pause is the device's. */
+static abn_status prog_run(ab_calc *c, long limit)
+{
+    long steps = 0;
+    if (c->pc == AB_PC_TOP) {
+        if (c->prog_len == 0) return ABN_OK;
+        c->pc = 0;
+    }
+    while (steps < limit) {
+        if (c->pc < 0 || c->pc >= c->prog_len) {
+            if (c->rdepth) {
+                c->pc = c->rstack[--c->rdepth];
+                continue;
+            }
+            c->pc = AB_PC_TOP;
+            c->lift = true;
+            return ABN_OK;
+        }
+        int at = c->pc, next = at + 1, op = c->prog[at].op;
+        int32_t arg = c->prog[at].arg;
+        abn_status st = ABN_OK;
+        bool skip = false;
+        steps++;
+        switch (op) {
+        case AB_LIT:
+            place_val(c, c->lit[arg]);
+            c->lift = true;
+            break;
+        case AB_LBL:
+            c->lift = true;
+            break;
+        case AB_RTN:
+            c->lift = true;
+            if (c->rdepth) {
+                next = c->rstack[--c->rdepth];
+                break;
+            }
+            c->pc = AB_PC_TOP;
+            return ABN_OK;
+        case AB_XEQ:
+        case AB_GTO: {
+            int i = prog_target(c, arg);
+            if (i < 0) {
+                st = ABN_NONEXISTENT;
+                break;
+            }
+            if (op == AB_XEQ) {
+                if (c->rdepth == AB_RTN_DEPTH) {
+                    st = ABN_XEQ_OVERFLOW;      /* a 21st nested XEQ (UG p.14-3) */
+                    break;
+                }
+                c->rstack[c->rdepth++] = next;
+            }
+            next = i;
+            c->lift = true;
+            break;
+        }
+        case AB_RS:                             /* STOP */
+            c->pc = next;
+            return ABN_OK;
+        case AB_PSE:
+            break;
+        case AB_TEST:
+        case AB_FS: {
+            bool t;
+            st = prog_test(c, op, arg, &t);
+            if (st == ABN_OK) {
+                skip = !t;                      /* do if true (UG p.14-6) */
+                c->lift = true;
+            }
+            break;
+        }
+        case AB_ISG:
+        case AB_DSE:
+            st = loop_op(c, op, arg, &skip);
+            if (st == ABN_OK) c->lift = true;
+            break;
+        default:
+            st = do_key(c, (ab_op)op, arg);
+            break;
+        }
+        if (st != ABN_OK && st != ABN_CLAMPED) {
+            c->pc = at;
+            return st;
+        }
+        c->pc = skip ? next + 1 : next;
+    }
+    return limit == 1 ? ABN_OK : ABN_BUDGET;
+}
+
+/* A key in program entry (UG p.13-6, 13-7): keys that build a number build a number line, which
+ * any other key ends; the nonprogrammable keys act (p.13-24): moving the pointer, deleting the line
+ * shown (backspace, p.13-20), clearing all programs, leaving program entry, and FDISP is refused;
+ * every other key is recorded as a line. */
+static abn_status program_key(ab_calc *c, ab_op op, int arg)
+{
+    abn_status st;
+    bool building = op <= AB_KPOINT || op == AB_KE || (op >= AB_KA && op <= AB_KF) || op == AB_KI ||
+                    op == AB_KTHETA || op == AB_KCOMMA || op == AB_SUF ||
+                    ((op == AB_KCHS || op == AB_KBKSP) && c->entry.active) ||
+                    (op == AB_KVEC && (!c->entry.active || c->vlen));
+    if (building) {
+        if (op == AB_KI || op == AB_KTHETA) return complex_key(c, op);
+        if (op == AB_KVEC || op == AB_KCOMMA) return vector_key(c, op);
+        if (op == AB_SUF) return suffix(c, arg);
+        return entry_key(c, op);
+    }
+    if (c->entry.active) {
+        ab_val v = c->plit;
+        c->entry.active = false;
+        c->cpart = 0;
+        c->vlen = 0;
+        if ((st = prog_insert_lit(c, v)) != ABN_OK) return st;
+    }
+    switch (op) {
+    case AB_PRGM:
+        c->prgm = false;
+        return ABN_OK;
+    case AB_KVEC:
+        return vector_key(c, op);
+    case AB_GTOPOS:
+        return prog_goto_pos(c, arg);
+    case AB_SST:                                /* the list is circular (UG p.13-21) */
+        c->pc = c->pc + 1 >= c->prog_len ? AB_PC_TOP : c->pc + 1;
+        return ABN_OK;
+    case AB_BST:
+        c->pc = c->pc < 0 ? c->prog_len - 1 : c->pc - 1;
+        return ABN_OK;
+    case AB_KBKSP:
+        if (c->pc >= 0) prog_delete(c, c->pc);
+        return ABN_OK;
+    case AB_CLPGM:
+        prog_clear(c);
+        return ABN_OK;
+    case AB_FDISP:
+        return ABN_NONPROGRAMMABLE;
+    case AB_LIT:
+        return ABN_DOMAIN;
+    case AB_LBL:
+        if (arg < 0 || arg >= 26) return ABN_DOMAIN;
+        if (c->labelpos[arg] >= 0) return ABN_DUP_LABEL;
+        return prog_insert(c, AB_LBL, arg);
+    case AB_XEQ:
+    case AB_GTO:
+        if (arg < 0 || arg / 1000 >= 26) return ABN_DOMAIN;
+        if (arg % 1000 == 0) arg += 1;      /* XEQ A is XEQ A001 (UG p.13-10) */
+        return prog_insert(c, op, arg);
+    default:
+        return prog_insert(c, op, arg);
+    }
+}
+
 abn_status ab_do(ab_calc *c, ab_op op)
 {
     return ab_do_arg(c, op, 0);
@@ -1010,9 +1393,14 @@ static bool takes_complex(ab_op op)
 
 abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
 {
+    if (c->prgm) return program_key(c, op, arg);
+    return do_key(c, op, arg);
+}
+
+static abn_status do_key(ab_calc *c, ab_op op, int arg)
+{
     if (op == AB_KI || op == AB_KTHETA) return complex_key(c, op);
     if (op == AB_KVEC || op == AB_KCOMMA) return vector_key(c, op);
-    if (op >= AB_PRGM) return ABN_OK;                   /* STUB: unit 011 lands after the oracle */
     if (op <= AB_KE || (op >= AB_KA && op <= AB_KF)) return entry_key(c, op);
     if (op == AB_SUF) return suffix(c, arg);
     if ((op == AB_KCHS || op == AB_KBKSP) && c->entry.active) return entry_key(c, op);
@@ -1238,8 +1626,71 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
         if (arg == 7) c->fdisp = op == AB_SF;
         else if (arg == 8) c->flag8 = op == AB_SF;
         else if (arg == 9) c->flag9 = op == AB_SF;
-        else return ABN_DOMAIN;
+        else if (arg >= 0 && arg <= 11) {
+            /* flags 0-4 the user's, 5, 6, 10, 11 system flags (UG p.14-9 to 14-12) kept for the
+               units that give them meaning (unit 011) */
+            if (op == AB_SF) c->flags = (uint16_t)(c->flags | (1u << arg));
+            else c->flags = (uint16_t)(c->flags & ~(1u << arg));
+        } else {
+            return ABN_DOMAIN;
+        }
         break;
+    /* ---- keystroke programs from the keyboard (unit 011) ---- */
+    case AB_PRGM:
+        c->prgm = true;                         /* neutral (UG p.B-5) */
+        return ABN_OK;
+    case AB_XEQ: {
+        /* XEQ label (nnn): runs from that line (UG p.13-10) with an empty return stack */
+        int i = prog_target(c, arg);
+        if (i < 0) return ABN_NONEXISTENT;
+        c->rdepth = 0;
+        c->pc = i;
+        c->lift = true;
+        return prog_run(c, c->budget);
+    }
+    case AB_GTO: {
+        int i = prog_target(c, arg);            /* the pointer only (UG p.13-22) */
+        if (i < 0) return ABN_NONEXISTENT;
+        c->pc = i;
+        c->rdepth = 0;
+        break;
+    }
+    case AB_GTOPOS:
+        return prog_goto_pos(c, arg);
+    case AB_RS:
+        return prog_run(c, c->budget);          /* neutral itself (UG p.B-5) */
+    case AB_RTN:
+        c->pc = AB_PC_TOP;                      /* from the keyboard (ours: the guide does not say) */
+        c->rdepth = 0;
+        break;
+    case AB_SST:
+        return prog_run(c, 1);                  /* executes the line (UG p.13-11) */
+    case AB_BST:
+        c->pc = c->pc < 0 ? c->prog_len - 1 : c->pc - 1;
+        return ABN_OK;
+    case AB_LBL:
+    case AB_PSE:
+        return ABN_OK;                          /* only in programs (UG p.G-10, G-11) */
+    case AB_CLPGM:
+        prog_clear(c);
+        return ABN_OK;
+    case AB_TEST:
+    case AB_FS: {
+        bool t;
+        abn_status st = prog_test(c, op, arg, &t);
+        if (st != ABN_OK) return st;
+        c->yes = t;                             /* YES / NO (UG p.14-7) */
+        break;
+    }
+    case AB_ISG:
+    case AB_DSE: {
+        bool skip;
+        abn_status st = loop_op(c, op, arg, &skip);
+        if (st != ABN_OK) return st;
+        break;
+    }
+    case AB_LIT:
+        return ABN_DOMAIN;
     case AB_SETC: {
         /* /c from |IP(x)| (UG p.5-5): 1 recalls the maximum denominator into X; 0 or anything
            above 4095 resets it to 4095; otherwise it is set. Setting turns Fraction display on.
@@ -1317,21 +1768,39 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
 
 void ab_prog_addr(const ab_calc *c, int i, char *buf)
 {
-    (void)c;
-    (void)i;
-    strcpy(buf, "TOP");     /* STUB: unit 011 lands after the oracle */
+    if (i < 0 || i >= c->prog_len) {
+        strcpy(buf, "TOP");
+        return;
+    }
+    int l = prog_owner(c, i);
+    int n = l < 0 ? i + 1 : i - c->labelpos[l] + 1;
+    if (l < 0) {
+        buf[0] = (char)('0' + n / 1000 % 10);
+        buf[1] = (char)('0' + n / 100 % 10);
+    } else {
+        buf[0] = (char)('A' + l);
+        buf[1] = (char)('0' + n / 100 % 10);
+    }
+    buf[2] = (char)('0' + n / 10 % 10);
+    buf[3] = (char)('0' + n % 10);
+    buf[4] = '\0';
 }
 
 int ab_prog_find(const ab_calc *c, const char *addr)
 {
-    (void)c;
-    (void)addr;
-    return -1;              /* STUB */
+    if (strlen(addr) != 4) return -1;
+    if (addr[0] >= 'A' && addr[0] <= 'Z') {
+        int n = (addr[1] - '0') * 100 + (addr[2] - '0') * 10 + (addr[3] - '0');
+        return n < 1 ? -1 : prog_target(c, (addr[0] - 'A') * 1000 + n);
+    }
+    int n = (addr[0] - '0') * 1000 + (addr[1] - '0') * 100 + (addr[2] - '0') * 10 + (addr[3] - '0');
+    return n >= 1 && n <= c->prog_len && prog_owner(c, n - 1) < 0 ? n - 1 : -1;
 }
 
 bool ab_flag(const ab_calc *c, int n)
 {
-    (void)c;
-    (void)n;
-    return false;           /* STUB */
+    if (n == 7) return c->fdisp;
+    if (n == 8) return c->flag8;
+    if (n == 9) return c->flag9;
+    return n >= 0 && n <= 11 && (c->flags >> n) & 1u;
 }
