@@ -104,7 +104,7 @@ accuracy: build/fn_drive build/cx_drive build/vectors
 	python3 tests/base_fuzz.py 1 5000 > build/base_fuzz.txt
 	./build/vectors build/base_fuzz.txt
 	# unit 016: every key-vector file with a save and load after every key, and run in slices
-	for f in $(KEYV); do AB_SAVELOAD=1 ./build/vectors $$f || exit 1; done
+	for f in $(KEYV) work/016-vectors.txt work/017-vectors.txt; do AB_SAVELOAD=1 ./build/vectors $$f || exit 1; done
 	for n in 1 7 1000; do for f in $(KEYV); do AB_SLICE=$$n ./build/vectors $$f || exit 1; done; done
 	./build/load_fuzz 100000 7
 

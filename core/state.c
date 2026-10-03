@@ -854,8 +854,11 @@ abn_status ab_state_load(ab_calc *c, const uint8_t *buf, size_t len)
     r.p = buf;
     r.len = len;
     if (!buf || !parse(&r)) return ABN_BAD_IMAGE;
-    /* every byte has passed: from MEMORY CLEAR, the image's state */
+    /* every byte has passed: from MEMORY CLEAR, the image's state (an interrupt the device or a
+       test has pending is the device's, as its budget and slice are: kept) */
+    long intr_after = c->intr_after;
     ab_memory_clear(c);
+    c->intr_after = intr_after;
     c->prog_len = 0;
     memset(&r, 0, sizeof r);
     r.p = buf;

@@ -9,8 +9,9 @@
  *
  *   "ABSI" version:u16 0:u16 length:u32 { tag:u16 size:u32 payload } crc:u32
  *
- * Left out, with why: the device's settings (budget, slice: the device sets them, they survive a
- * load); the interrupt flag and run nesting (nothing runs between calls); the arena, the small
+ * Left out, with why: the device's settings (budget, slice, and a test's pending interrupt count:
+ * the device sets them, they survive a load); the interrupt flag and run nesting (nothing runs
+ * between calls); the arena, the small
  * pools and the integral's work arrays (scratch inside one call); the label table, the literal and
  * equation-line stores' slot numbers (rebuilt from the lines). */
 #ifndef STATE_H

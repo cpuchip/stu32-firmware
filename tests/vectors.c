@@ -76,18 +76,33 @@ static size_t img_len, img_cap;
 static uint8_t *mark;           /* a second image, MARK's, for %SAMEMARK */
 static size_t mark_len;
 
-static bool img_save(const ab_calc *c)
+static uint8_t *himg;           /* the harness switches' own image, apart from SAVE's (abacus's
+                                   016/017 review: sharing one let the switch overwrite SAVE's) */
+static size_t himg_len, himg_cap;
+
+static bool buf_save(const ab_calc *c, uint8_t **buf, size_t *len, size_t *cap)
 {
     size_t n = ab_state_save(c, NULL, 0);
     if (n == 0) return false;
-    if (n > img_cap) {
-        uint8_t *b = realloc(img, n);
+    if (n > *cap) {
+        uint8_t *b = realloc(*buf, n);
         if (!b) return false;
-        img = b;
-        img_cap = n;
+        *buf = b;
+        *cap = n;
     }
-    img_len = ab_state_save(c, img, img_cap);
-    return img_len == n;
+    *len = ab_state_save(c, *buf, *cap);
+    return *len == n;
+}
+
+static bool img_save(const ab_calc *c)
+{
+    return buf_save(c, &img, &img_len, &img_cap);
+}
+
+/* The harness's save and load: its own buffer. */
+static bool harness_saveload(ab_calc *c)
+{
+    return buf_save(c, &himg, &himg_len, &himg_cap) && ab_state_load(c, himg, himg_len) == ABN_OK;
 }
 
 static ab_calc calc;            /* 106 KB: off the stack, and the only one on a device */
@@ -111,7 +126,7 @@ static abn_status do1(ab_calc *c, ab_op op, int arg)
     while (env_slice > 0 && c->stop == AB_STOP_SLICE) {
         /* the device's loop; with AB_SAVELOAD too, a save and load at every slice stop (a device
            that sleeps mid-run) */
-        if (env_saveload && img_save(c) && ab_state_load(c, img, img_len) != ABN_OK) return ABN_BAD_IMAGE;
+        if (env_saveload && !harness_saveload(c)) return ABN_BAD_IMAGE;
         st = ab_continue(c);
     }
     if (st != ABN_OK) last_err = st;
@@ -507,10 +522,10 @@ int vectors_run(const char *name, FILE *f)
                 size_t n1;
                 static uint8_t *b2;
                 static size_t c2;
-                if (!img_save(&c)) {
+                if (!buf_save(&c, &himg, &himg_len, &himg_cap)) {
                     fprintf(stderr, "%s:%d: %s: save failed after '%s'\n", name, lineno, id, tok);
                     op_errors += 1000;
-                } else if (ab_state_load(&c, img, img_len) != ABN_OK) {
+                } else if (ab_state_load(&c, himg, himg_len) != ABN_OK) {
                     fprintf(stderr, "%s:%d: %s: load refused its own image after '%s'\n", name, lineno, id, tok);
                     op_errors += 1000;
                 } else {
@@ -520,7 +535,7 @@ int vectors_run(const char *name, FILE *f)
                         b2 = malloc(n1);
                         c2 = b2 ? n1 : 0;
                     }
-                    if (!b2 || ab_state_save(&c, b2, c2) != img_len || memcmp(b2, img, img_len) != 0) {
+                    if (!b2 || ab_state_save(&c, b2, c2) != himg_len || memcmp(b2, himg, himg_len) != 0) {
                         fprintf(stderr, "%s:%d: %s: save, load, save differ after '%s'\n", name, lineno, id, tok);
                         op_errors += 1000;
                     }
@@ -528,8 +543,8 @@ int vectors_run(const char *name, FILE *f)
             }
         }
 
-        if (getenv("AB_IMGCRC") && img_save(&c))   /* the final state's identity, for comparisons */
-            fprintf(stderr, "%s %08lX\n", id, (unsigned long)ab_crc32(img, img_len));
+        if (getenv("AB_IMGCRC") && buf_save(&c, &himg, &himg_len, &himg_cap))   /* the final state's identity */
+            fprintf(stderr, "%s %08lX\n", id, (unsigned long)ab_crc32(himg, himg_len));
         int want_error = 0;
         char *exps[64];
         int nexp = 0;
