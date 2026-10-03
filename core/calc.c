@@ -10,6 +10,7 @@
 #include "const.h"
 #include "stat.h"
 #include "frac.h"
+#include "base.h"
 
 void ab_init(ab_calc *c)
 {
@@ -79,8 +80,23 @@ static int count_char(const ab_entry *e, char ch)
     return n;
 }
 
-static abn_status entry_value(const ab_entry *e, abn *out)
+static abn_status entry_value(const ab_entry *e, abn *out, int base)
 {
+    /* In HEX, OCT or BIN the keys are an integer's digits in that base (UG p.11-3); a value past
+     * the largest word cannot be typed (UG p.11-7): the key is refused by the caller. */
+    if (base != 10) {
+        int64_t v;
+        char d[AB_ENTRY_TEXT];
+        memcpy(d, e->text, (size_t)e->len);
+        d[e->len] = '\0';
+        if (e->len == 0) {
+            *out = abn_zero();
+            return ABN_OK;
+        }
+        if (!base_parse(d, base, &v)) return ABN_RANGE;
+        *out = base_from_word(e->mant_neg ? -v : v);
+        return ABN_OK;
+    }
     /* A second point makes the entry a fraction: integer . numerator . denominator (UG p.5-1),
      * the exact rational rounded once (unit 007 rule 2). With no denominator digit yet, the
      * number is the decimal typed so far (ours, unit 007). */
@@ -135,8 +151,21 @@ static abn_status entry_key(ab_calc *c, ab_op op)
     }
     bool in_exp = has_char(&e, 'E');
     int points = count_char(&e, '.');
+    if (c->base != 10 && (op == AB_KPOINT || op == AB_KE)) return ABN_OK;  /* integers only (ours) */
+    if (op <= AB_K9 || (op >= AB_KA && op <= AB_KF)) {
+        /* a digit outside the base is ignored, and A-F are digits only in HEX (ours, unit 008) */
+        int dv = op <= AB_K9 ? (int)(op - AB_K0) : 10 + (int)(op - AB_KA);
+        if (dv >= c->base) return ABN_OK;
+        if (dv >= 10) {
+            /* hex digits are kept in lower case so that 'E' always means the exponent */
+            e.text[e.len++] = (char)('a' + dv - 10);
+            goto value;
+        }
+    }
     if (op <= AB_K9) {
-        int limit = in_exp ? AB_ENTRY_EXP : AB_ENTRY_MANT;
+        /* in a base mode the range, not a digit count, limits entry: up to a word's binary
+           digits (a 35-digit binary number is the largest positive word, UG p.11-7) */
+        int limit = c->base != 10 ? AB_WORD_BITS : in_exp ? AB_ENTRY_EXP : AB_ENTRY_MANT;
         if (count_digits(&e, in_exp) >= limit) return ABN_OK;
         /* a denominator never starts with 0 (ours, unit 007): the key is ignored */
         if (op == AB_K0 && points == 2 && e.text[e.len - 1] == '.') return ABN_OK;
@@ -170,7 +199,8 @@ static abn_status entry_key(ab_calc *c, ab_op op)
         }
     }
     abn v;
-    if (entry_value(&e, &v) != ABN_OK) return ABN_OK;  /* out of range: key ignored */
+value:
+    if (entry_value(&e, &v, c->base) != ABN_OK) return ABN_OK;  /* out of range: key ignored */
     if (!c->entry.active) {
         /* The first key of a number places it in X, lifting if lift is enabled. Digit
          * entry itself leaves the lift flag alone (UG p.B-5). */
@@ -429,6 +459,97 @@ static abn_status storage_op(ab_calc *c, ab_op op, int code)
     return ABN_OK;
 }
 
+/* ---- bases and logic (unit 008; UG ch.11) ---- */
+
+/* A suffix rereads the digits being typed in its base and ends digit entry without ENTER
+ * (UG p.11-3). A digit too big for that base is INVALID DATA (UG p.F) and the entry stays as it
+ * was. With no entry in progress it does nothing (ours). */
+static abn_status suffix(ab_calc *c, int base)
+{
+    char d[AB_ENTRY_TEXT];
+    int64_t v;
+    abn val;
+    if (!c->entry.active) return ABN_OK;
+    if (base != 16 && base != 8 && base != 2 && base != 10) return ABN_DOMAIN;
+    memcpy(d, c->entry.text, (size_t)c->entry.len);
+    d[c->entry.len] = '\0';
+    if (base == 10) {
+        for (int i = 0; i < c->entry.len; i++)
+            if (d[i] >= 'a' && d[i] <= 'f') return ABN_DOMAIN;
+        if (entry_value(&c->entry, &val, 10) != ABN_OK) return ABN_DOMAIN;
+    } else {
+        if (strchr(d, '.') || strchr(d, 'E') || !base_parse(d, base, &v)) return ABN_DOMAIN;
+        val = base_from_word(c->entry.mant_neg ? -v : v);
+    }
+    c->x = val;
+    c->entry.active = false;
+    c->lift = true;
+    return ABN_OK;
+}
+
+/* a * b clamped to the word's range, without overflowing the 64-bit product. */
+static int64_t mul_clamp(int64_t a, int64_t b, bool *clamped)
+{
+    if (a == 0 || b == 0) return 0;
+    int64_t aa = a < 0 ? -a : a, bb = b < 0 ? -b : b;
+    if (aa > (int64_t)1 << 37 || bb > ((int64_t)1 << 62) / aa) {
+        *clamped = true;
+        return (a < 0) != (b < 0) ? base_min() : base_max();
+    }
+    return base_clamp(a * b, clamped);
+}
+
+/* + - * / in HEX, OCT, BIN: on the integer parts, the result truncated toward zero (UG p.11-4,
+ * 11-5; toward zero is ours). An operand or result beyond the range is replaced by the nearest
+ * end and the operation completes, reported as ABN_CLAMPED (UG p.11-7; ours, unit 008 rule 3). */
+static abn_status base_arith(ab_calc *c, ab_op op)
+{
+    int64_t a, b, r;
+    bool clamped = false;
+    abn_status st;
+    if ((st = base_to_word(&c->y, &a, &clamped)) != ABN_OK) return st;
+    if ((st = base_to_word(&c->x, &b, &clamped)) != ABN_OK) return st;
+    switch (op) {
+    case AB_ADD: r = base_clamp(a + b, &clamped); break;
+    case AB_SUB: r = base_clamp(a - b, &clamped); break;
+    case AB_MUL: r = mul_clamp(a, b, &clamped); break;
+    default:
+        if (b == 0) return ABN_DIV_ZERO;
+        r = base_clamp(a / b, &clamped);
+        break;
+    }
+    c->lastx = c->x;
+    c->x = base_from_word(r);
+    stack_drop(c);
+    c->lift = true;
+    return clamped ? ABN_CLAMPED : ABN_OK;
+}
+
+/* AND XOR OR NAND NOR on Y and X, NOT on X: the integer patterns of the word, the signed result
+ * (UG p.11-4). A non-integer argument is INVALID DATA (UG p.F-2); one beyond the range is first
+ * replaced as for arithmetic, and reported. LAST X is untouched (not in UG p.B-6). */
+static abn_status logic(ab_calc *c, ab_op op)
+{
+    int64_t a = 0, b, r;
+    bool clamped = false;
+    abn_status st;
+    if (!abn_is_integer(&c->x) || (op != AB_NOT && !abn_is_integer(&c->y))) return ABN_DOMAIN;
+    if ((st = base_to_word(&c->x, &b, &clamped)) != ABN_OK) return st;
+    if (op == AB_NOT) {
+        r = base_not(b);
+        c->x = base_from_word(r);
+    } else {
+        if ((st = base_to_word(&c->y, &a, &clamped)) != ABN_OK) return st;
+        base_logic bl = op == AB_AND ? BL_AND : op == AB_OR ? BL_OR : op == AB_XOR ? BL_XOR
+                      : op == AB_NAND ? BL_NAND : BL_NOR;
+        r = base_logic2(bl, a, b);
+        c->x = base_from_word(r);
+        stack_drop(c);
+    }
+    c->lift = true;
+    return clamped ? ABN_CLAMPED : ABN_OK;
+}
+
 abn_status ab_do(ab_calc *c, ab_op op)
 {
     return ab_do_arg(c, op, 0);
@@ -436,9 +557,8 @@ abn_status ab_do(ab_calc *c, ab_op op)
 
 abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
 {
-    if (op >= AB_DEC) return ABN_OK;        /* STUB: unit 008 lands after the oracle */
-
-    if (op <= AB_KE) return entry_key(c, op);
+    if (op <= AB_KE || (op >= AB_KA && op <= AB_KF)) return entry_key(c, op);
+    if (op == AB_SUF) return suffix(c, arg);
     if ((op == AB_KCHS || op == AB_KBKSP) && c->entry.active) return entry_key(c, op);
 
     /* Every other key completes the number being entered (UG p.1-17). A completed typed
@@ -448,6 +568,12 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
         c->entry.active = false;
         c->lift = true;
     }
+
+    /* In HEX the keys of these functions type digits, and the guide lists them as unavailable
+     * (UG p.11-4): an error here, changing nothing. */
+    if (c->base == 16 && (op == AB_SQRT || op == AB_EXP || op == AB_LN || op == AB_POW ||
+                          op == AB_INV || op == AB_SIGMAPLUS))
+        return ABN_DOMAIN;
 
     switch (op) {
     case AB_KBKSP:  /* with no entry in progress backspace acts as clear X (UG p.1-17) */
@@ -506,6 +632,8 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
     case AB_SUB:
     case AB_MUL:
     case AB_DIV:
+        if (c->base != 10) return base_arith(c, op);
+        return two_number_op(c, op);
     case AB_POW:
     case AB_XROOT:
     case AB_IDIV:
@@ -605,6 +733,15 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
         /* The summation registers, recalled (UG p.12-11). */
         place_in_x(c, c->stat[op - AB_NSUM]);
         break;
+    case AB_DEC:
+    case AB_HEX:
+    case AB_OCT:
+    case AB_BIN:
+        /* the base mode changes only the display; neutral for lift (UG p.11-2, p.B-5) */
+        c->base = op == AB_DEC ? 10 : op == AB_HEX ? 16 : op == AB_OCT ? 8 : 2;
+        return ABN_OK;
+    case AB_AND: case AB_XOR: case AB_OR: case AB_NOT: case AB_NAND: case AB_NOR:
+        return logic(c, op);
     case AB_FDISP:
         /* Fraction-display mode on or off; neutral for lift (UG p.5-1, p.B-5) */
         c->fdisp = !c->fdisp;

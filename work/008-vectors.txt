@@ -49,3 +49,8 @@ O19 | ours: logic works in DEC on integers | 12 ENTER 10 XOR | X=6
 O20 | ours: NOT of the most negative word | 34359738368 CHS NOT | X=34359738367
 O21 | ours: a suffix in another mode types that base | OCT 12 SUF:h ENTER | X=18
 O22 | ours: suffix d types decimal in HEX | HEX 12 SUF:d ENTER | X=12
+
+# --- added after debugging: the hex digit E and the exponent E are different keys
+G01 | ours: HEX digit E reread by a suffix (it was refused as an exponent) | HEX HE 9 HA SUF:h | X=3738
+G02 | ours: a decimal with an exponent cannot be reread in a base (entry kept) | 1 E 5 SUF:h | ERR X=100000
+G03 | 35s p.11-7 the largest positive word typed in binary (35 ones; it was cut at 34 digits) | BIN 11111111111111111111111111111111111 SUF:b | X=34359738367

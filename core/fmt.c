@@ -13,6 +13,7 @@
 
 #include "fmt.h"
 #include "frac.h"
+#include "base.h"
 
 #define MAXD (ABN_DIGITS + 2)
 #define TEXT_CAP 256        /* longest text built; widths beyond it are capped */
@@ -274,6 +275,14 @@ int ab_format(const abn *value, const ab_fmt *f, char *out, int size)
 int ab_format_display(const abn *v, const ab_display *d, char *out, int size, int *indicator)
 {
     *indicator = 0;
+    if (d->base == 16 || d->base == 8 || d->base == 2) {
+        /* a base mode shows the integer part as a word pattern (UG p.11-2), whole: windowing a
+           long pattern is the display's job (ours, unit 008 rule 6); beyond the word's range,
+           the decimal format (ours) */
+        int n = base_format(v, d->base, out, size);
+        if (n >= 0) return n;
+        return ab_format(v, &d->dec, out, size);
+    }
     if (d->fdisp) {
         fr_result r;
         fr_format f = d->frac_format == 1 ? FR_FACTORS : d->frac_format == 2 ? FR_FIXED : FR_PRECISE;

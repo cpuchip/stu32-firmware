@@ -27,7 +27,7 @@ int64_t base_max(void);
    zeros, with its suffix h, o or b (UG p.11-2, p.11-6). Returns -1 when x is beyond the range. */
 int base_format(const abn *x, int base, char *out, int size);
 
-/* Parses digits ('0'-'9', 'A'-'F') in the given base as a non-negative integer; false if a digit
+/* Parses digits ('0'-'9', 'A'-'F' or 'a'-'f') in the given base as a non-negative integer; false if a digit
    is not valid in the base or the value exceeds the largest positive word. */
 bool base_parse(const char *digits, int base, int64_t *v);
 

@@ -101,7 +101,9 @@ bool base_parse(const char *digits, int base, int64_t *v)
     uint64_t r = 0;
     if (!*digits) return false;
     for (const char *p = digits; *p; p++) {
-        int d = (*p >= '0' && *p <= '9') ? *p - '0' : (*p >= 'A' && *p <= 'F') ? *p - 'A' + 10 : 99;
+        int d = (*p >= '0' && *p <= '9') ? *p - '0'
+              : (*p >= 'A' && *p <= 'F') ? *p - 'A' + 10
+              : (*p >= 'a' && *p <= 'f') ? *p - 'a' + 10 : 99;
         if (d >= base) return false;
         r = r * (uint64_t)base + (uint64_t)d;
         if (r > (uint64_t)base_max()) return false;

@@ -103,7 +103,9 @@ void ab_init(ab_calc *c);
 
 /* Performs one operation. On an arithmetic error (divide by zero, out of range) the four
    registers and LAST X are left as they were and the error is returned; a number being
-   keyed in is still completed. ABN_OK otherwise. */
+   keyed in is still completed. ABN_OK otherwise. The one exception is ABN_CLAMPED (base modes,
+   unit 008): the result was replaced by the nearest end of the word range, and the operation
+   completed with it. */
 abn_status ab_do(ab_calc *c, ab_op op);
 
 /* An operation that takes an argument: AB_CONST (a constant's index) and AB_FIX, AB_SCI, AB_ENG

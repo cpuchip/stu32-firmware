@@ -9,6 +9,7 @@
  * Exit status: 0 when every vector passes, 1 when any fails, 2 on a malformed file.
  */
 #include <ctype.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -129,7 +130,9 @@ int main(int argc, char **argv)
         int ind = 0;
         int len = ab_format_display(&v, &dsp, got, sizeof got, &ind);
         total++;
-        if (len >= 0 && strcmp(got, want) == 0 && (int)strlen(got) <= dsp.dec.width && ind == want_ind) {
+        /* a base pattern is returned whole (unit 008 rule 6); every other text fits the width */
+        bool fits = dsp.base != 10 || (int)strlen(got) <= dsp.dec.width;
+        if (len >= 0 && strcmp(got, want) == 0 && fits && ind == want_ind) {
             passed++;
         } else {
             printf("FAIL %s: expected \"%s\"%s, got \"%s\"%s (returned %d)\n", id, want,
