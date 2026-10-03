@@ -12,10 +12,20 @@
 #include "frac.h"
 #include "base.h"
 
+/* A real number as a stack value. */
+static ab_val ab_real(abn v)
+{
+    ab_val r;
+    r.kind = AB_REAL;
+    r.re = v;
+    r.im = abn_zero();
+    return r;
+}
+
 void ab_init(ab_calc *c)
 {
     memset(c, 0, sizeof *c);
-    c->x = c->y = c->z = c->t = c->lastx = abn_zero();
+    c->x = c->y = c->z = c->t = c->lastx = ab_real(abn_zero());
     c->lift = true;             /* a cleared calculator has stack lift enabled (UG p.B-4) */
     c->angle = AB_ANGLE_DEG;    /* and is in degrees (UG p.B-4) */
     c->disp_mode = AB_ALL;      /* ALL is the default display (ours, unit 002) */
@@ -47,10 +57,15 @@ static void stack_drop(ab_calc *c)
 
 /* A number arrives in X: if stack lift is enabled the stack lifts first; otherwise the
  * number writes over X (UG p.B-4, p.B-5). */
-static void place_in_x(ab_calc *c, abn v)
+static void place_val(ab_calc *c, ab_val v)
 {
     if (c->lift) stack_lift(c);
     c->x = v;
+}
+
+static void place_in_x(ab_calc *c, abn v)
+{
+    place_val(c, ab_real(v));
 }
 
 /* ---- number entry (UG p.1-15 to p.1-17) ---- */
@@ -193,7 +208,7 @@ static abn_status entry_key(ab_calc *c, ab_op op)
         if (e.len > 0 && e.text[--e.len] == 'E') e.exp_neg = false;
         if (e.len == 0) {
             c->entry.active = false;
-            c->x = abn_zero();
+            c->x = ab_real(abn_zero());
             c->lift = false;
             return ABN_OK;
         }
@@ -206,7 +221,7 @@ value:
          * entry itself leaves the lift flag alone (UG p.B-5). */
         place_in_x(c, v);
     } else {
-        c->x = v;
+        c->x = ab_real(v);
     }
     e.active = true;
     c->entry = e;
@@ -235,61 +250,61 @@ static abn_status one_number_fn(ab_calc *c, ab_op op)
     abn_status st;
     fn_angle m = angle_of(c);
     switch (op) {
-    case AB_EXP: st = fn_exp(&r, &c->x); break;
-    case AB_LN: st = fn_ln(&r, &c->x); break;
-    case AB_TENX: st = fn_tenx(&r, &c->x); break;
-    case AB_LOG: st = fn_log(&r, &c->x); break;
-    case AB_SQ: st = fn_sq(&r, &c->x); break;
-    case AB_SQRT: st = fn_sqrt(&r, &c->x); break;
-    case AB_INV: st = fn_inv(&r, &c->x); break;
-    case AB_SIN: st = fn_sin(&r, &c->x, m); break;
-    case AB_COS: st = fn_cos(&r, &c->x, m); break;
-    case AB_TAN: st = fn_tan(&r, &c->x, m); break;
-    case AB_ASIN: st = fn_asin(&r, &c->x, m); break;
-    case AB_ACOS: st = fn_acos(&r, &c->x, m); break;
-    case AB_ATAN: st = fn_atan(&r, &c->x, m); break;
-    case AB_SINH: st = fn_sinh(&r, &c->x); break;
-    case AB_COSH: st = fn_cosh(&r, &c->x); break;
-    case AB_TANH: st = fn_tanh(&r, &c->x); break;
-    case AB_ASINH: st = fn_asinh(&r, &c->x); break;
-    case AB_ACOSH: st = fn_acosh(&r, &c->x); break;
-    case AB_ATANH: st = fn_atanh(&r, &c->x); break;
-    case AB_HMS: st = fn_hms(&r, &c->x); break;           /* UG p.4-13 */
-    case AB_HMSINV: st = fn_hmsinv(&r, &c->x); break;
-    case AB_TODEG: st = fn_todeg(&r, &c->x); break;       /* UG p.4-13, p.4-14 */
-    case AB_TORAD: st = fn_torad(&r, &c->x); break;
-    case AB_TOKG: st = fn_convert(&r, &c->x, FN_TOKG); break;     /* UG p.4-14 */
-    case AB_TOLB: st = fn_convert(&r, &c->x, FN_TOLB); break;
-    case AB_TOC: st = fn_convert(&r, &c->x, FN_TOC); break;
-    case AB_TOF: st = fn_convert(&r, &c->x, FN_TOF); break;
-    case AB_TOCM: st = fn_convert(&r, &c->x, FN_TOCM); break;
-    case AB_TOIN: st = fn_convert(&r, &c->x, FN_TOIN); break;
-    case AB_TOL: st = fn_convert(&r, &c->x, FN_TOL); break;
-    case AB_TOGAL: st = fn_convert(&r, &c->x, FN_TOGAL); break;
-    case AB_TOKM: st = fn_convert(&r, &c->x, FN_TOKM); break;
-    case AB_TOMILE: st = fn_convert(&r, &c->x, FN_TOMILE); break;
-    case AB_FACT: st = fn_fact(&r, &c->x); break;         /* UG p.4-15 */
-    case AB_IP: st = fn_ip(&r, &c->x); break;             /* UG p.4-17, p.4-18 */
-    case AB_FP: st = fn_fp(&r, &c->x); break;
-    case AB_INTG: st = fn_intg(&r, &c->x); break;
-    case AB_ABS: st = fn_abs(&r, &c->x); break;
-    case AB_SGN: st = fn_sgn(&r, &c->x); break;
+    case AB_EXP: st = fn_exp(&r, &c->x.re); break;
+    case AB_LN: st = fn_ln(&r, &c->x.re); break;
+    case AB_TENX: st = fn_tenx(&r, &c->x.re); break;
+    case AB_LOG: st = fn_log(&r, &c->x.re); break;
+    case AB_SQ: st = fn_sq(&r, &c->x.re); break;
+    case AB_SQRT: st = fn_sqrt(&r, &c->x.re); break;
+    case AB_INV: st = fn_inv(&r, &c->x.re); break;
+    case AB_SIN: st = fn_sin(&r, &c->x.re, m); break;
+    case AB_COS: st = fn_cos(&r, &c->x.re, m); break;
+    case AB_TAN: st = fn_tan(&r, &c->x.re, m); break;
+    case AB_ASIN: st = fn_asin(&r, &c->x.re, m); break;
+    case AB_ACOS: st = fn_acos(&r, &c->x.re, m); break;
+    case AB_ATAN: st = fn_atan(&r, &c->x.re, m); break;
+    case AB_SINH: st = fn_sinh(&r, &c->x.re); break;
+    case AB_COSH: st = fn_cosh(&r, &c->x.re); break;
+    case AB_TANH: st = fn_tanh(&r, &c->x.re); break;
+    case AB_ASINH: st = fn_asinh(&r, &c->x.re); break;
+    case AB_ACOSH: st = fn_acosh(&r, &c->x.re); break;
+    case AB_ATANH: st = fn_atanh(&r, &c->x.re); break;
+    case AB_HMS: st = fn_hms(&r, &c->x.re); break;           /* UG p.4-13 */
+    case AB_HMSINV: st = fn_hmsinv(&r, &c->x.re); break;
+    case AB_TODEG: st = fn_todeg(&r, &c->x.re); break;       /* UG p.4-13, p.4-14 */
+    case AB_TORAD: st = fn_torad(&r, &c->x.re); break;
+    case AB_TOKG: st = fn_convert(&r, &c->x.re, FN_TOKG); break;     /* UG p.4-14 */
+    case AB_TOLB: st = fn_convert(&r, &c->x.re, FN_TOLB); break;
+    case AB_TOC: st = fn_convert(&r, &c->x.re, FN_TOC); break;
+    case AB_TOF: st = fn_convert(&r, &c->x.re, FN_TOF); break;
+    case AB_TOCM: st = fn_convert(&r, &c->x.re, FN_TOCM); break;
+    case AB_TOIN: st = fn_convert(&r, &c->x.re, FN_TOIN); break;
+    case AB_TOL: st = fn_convert(&r, &c->x.re, FN_TOL); break;
+    case AB_TOGAL: st = fn_convert(&r, &c->x.re, FN_TOGAL); break;
+    case AB_TOKM: st = fn_convert(&r, &c->x.re, FN_TOKM); break;
+    case AB_TOMILE: st = fn_convert(&r, &c->x.re, FN_TOMILE); break;
+    case AB_FACT: st = fn_fact(&r, &c->x.re); break;         /* UG p.4-15 */
+    case AB_IP: st = fn_ip(&r, &c->x.re); break;             /* UG p.4-17, p.4-18 */
+    case AB_FP: st = fn_fp(&r, &c->x.re); break;
+    case AB_INTG: st = fn_intg(&r, &c->x.re); break;
+    case AB_ABS: st = fn_abs(&r, &c->x.re); break;
+    case AB_SGN: st = fn_sgn(&r, &c->x.re); break;
     default:    /* AB_RND */
         if (c->fdisp) {
             /* RND in Fraction-display mode: x becomes the shown fraction, rounded once (UG p.5-8,
                unit 007 rule 6); beyond fractions, as the decimal format */
             fr_result fr;
-            if (fr_approx(&fr, &c->x, c->frac_c, frac_format_of(c)) == ABN_OK) {
+            if (fr_approx(&fr, &c->x.re, c->frac_c, frac_format_of(c)) == ABN_OK) {
                 st = fr_value(&r, &fr);
                 break;
             }
         }
-        st = fn_rnd(&r, &c->x, c->disp_mode, c->disp_n);
+        st = fn_rnd(&r, &c->x.re, c->disp_mode, c->disp_n);
         break;
     }
     if (st != ABN_OK) return st;
     c->lastx = c->x;
-    c->x = r;
+    c->x = ab_real(r);
     c->lift = true;
     return ABN_OK;
 }
@@ -299,10 +314,10 @@ static abn_status one_number_fn(ab_calc *c, ab_op op)
 static abn_status percent_fn(ab_calc *c, ab_op op)
 {
     abn r;
-    abn_status st = op == AB_PCT ? fn_pct(&r, &c->y, &c->x) : fn_pctchg(&r, &c->y, &c->x);
+    abn_status st = op == AB_PCT ? fn_pct(&r, &c->y.re, &c->x.re) : fn_pctchg(&r, &c->y.re, &c->x.re);
     if (st != ABN_OK) return st;
     c->lastx = c->x;
-    c->x = r;
+    c->x = ab_real(r);
     c->lift = true;
     return ABN_OK;
 }
@@ -313,20 +328,20 @@ static abn_status two_number_op(ab_calc *c, ab_op op)
     abn_status st;
     /* Y op X: the earlier number is on the left (UG p.2-5). */
     switch (op) {
-    case AB_ADD: st = abn_add(&r, &c->y, &c->x); break;
-    case AB_SUB: st = abn_sub(&r, &c->y, &c->x); break;
-    case AB_MUL: st = abn_mul(&r, &c->y, &c->x); break;
-    case AB_DIV: st = abn_div(&r, &c->y, &c->x); break;
-    case AB_POW: st = fn_pow(&r, &c->y, &c->x); break;        /* y^x (UG p.4-2) */
-    case AB_XROOT: st = fn_xroot(&r, &c->y, &c->x); break;    /* x-th root of y (UG p.4-3) */
-    case AB_IDIV: st = fn_idiv(&r, &c->y, &c->x); break;      /* INT÷ (UG p.4-2) */
-    case AB_NCR: st = fn_ncr(&r, &c->y, &c->x); break;        /* n in Y, r in X (UG p.4-16) */
-    case AB_NPR: st = fn_npr(&r, &c->y, &c->x); break;
-    default: st = fn_rmdr(&r, &c->y, &c->x); break;           /* Rmdr (UG p.4-2) */
+    case AB_ADD: st = abn_add(&r, &c->y.re, &c->x.re); break;
+    case AB_SUB: st = abn_sub(&r, &c->y.re, &c->x.re); break;
+    case AB_MUL: st = abn_mul(&r, &c->y.re, &c->x.re); break;
+    case AB_DIV: st = abn_div(&r, &c->y.re, &c->x.re); break;
+    case AB_POW: st = fn_pow(&r, &c->y.re, &c->x.re); break;        /* y^x (UG p.4-2) */
+    case AB_XROOT: st = fn_xroot(&r, &c->y.re, &c->x.re); break;    /* x-th root of y (UG p.4-3) */
+    case AB_IDIV: st = fn_idiv(&r, &c->y.re, &c->x.re); break;      /* INT÷ (UG p.4-2) */
+    case AB_NCR: st = fn_ncr(&r, &c->y.re, &c->x.re); break;        /* n in Y, r in X (UG p.4-16) */
+    case AB_NPR: st = fn_npr(&r, &c->y.re, &c->x.re); break;
+    default: st = fn_rmdr(&r, &c->y.re, &c->x.re); break;           /* Rmdr (UG p.4-2) */
     }
     if (st != ABN_OK) return st;    /* the stack stays as it was */
     c->lastx = c->x;                /* these operations save x in LAST X (UG p.B-6) */
-    c->x = r;
+    c->x = ab_real(r);
     stack_drop(c);
     c->lift = true;
     return ABN_OK;
@@ -424,7 +439,7 @@ static abn_status storage_op(ab_calc *c, ab_op op, int code)
     switch (op) {
     case AB_STO:
         /* STO copies x into the variable; X keeps its value (UG p.3-2). */
-        write_slot(c, &sl, c->x);
+        write_slot(c, &sl, c->x.re);
         break;
     case AB_RCL:
         /* RCL brings a copy into X like any recalled number (UG p.3-2, p.3-4; unit 005 rule 2). */
@@ -433,21 +448,21 @@ static abn_status storage_op(ab_calc *c, ab_op op, int code)
     case AB_STOADD: case AB_STOSUB: case AB_STOMUL: case AB_STODIV:
         /* Storage arithmetic: variable = variable op x; the stack is untouched (UG p.3-6) and so
            is LAST X (not in UG p.B-6's list). An error changes nothing (unit 005 rule 3). */
-        if ((st = arith(&r, op, sl.reg, &c->x)) != ABN_OK) return st;
+        if ((st = arith(&r, op, sl.reg, &c->x.re)) != ABN_OK) return st;
         write_slot(c, &sl, r);
         break;
     case AB_RCLADD: case AB_RCLSUB: case AB_RCLMUL: case AB_RCLDIV:
         /* Recall arithmetic: x = x op variable; only X changes (UG p.3-7), and x is saved in
            LAST X (UG p.B-6). */
-        if ((st = arith(&r, op, &c->x, sl.reg)) != ABN_OK) return st;
+        if ((st = arith(&r, op, &c->x.re, sl.reg)) != ABN_OK) return st;
         c->lastx = c->x;
-        c->x = r;
+        c->x = ab_real(r);
         break;
     case AB_XVAR: {
         /* x<>variable swaps them; Y, Z, T are untouched (UG p.3-8). */
         abn v = *sl.reg;
-        write_slot(c, &sl, c->x);
-        c->x = v;
+        write_slot(c, &sl, c->x.re);
+        c->x = ab_real(v);
         break;
     }
     default:
@@ -481,7 +496,7 @@ static abn_status suffix(ab_calc *c, int base)
         if (strchr(d, '.') || strchr(d, 'E') || !base_parse(d, base, &v)) return ABN_DOMAIN;
         val = base_from_word(c->entry.mant_neg ? -v : v);
     }
-    c->x = val;
+    c->x = ab_real(val);
     c->entry.active = false;
     c->lift = true;
     return ABN_OK;
@@ -507,8 +522,8 @@ static abn_status base_arith(ab_calc *c, ab_op op)
     int64_t a, b, r;
     bool clamped = false;
     abn_status st;
-    if ((st = base_to_word(&c->y, &a, &clamped)) != ABN_OK) return st;
-    if ((st = base_to_word(&c->x, &b, &clamped)) != ABN_OK) return st;
+    if ((st = base_to_word(&c->y.re, &a, &clamped)) != ABN_OK) return st;
+    if ((st = base_to_word(&c->x.re, &b, &clamped)) != ABN_OK) return st;
     switch (op) {
     case AB_ADD: r = base_clamp(a + b, &clamped); break;
     case AB_SUB: r = base_clamp(a - b, &clamped); break;
@@ -519,7 +534,7 @@ static abn_status base_arith(ab_calc *c, ab_op op)
         break;
     }
     c->lastx = c->x;
-    c->x = base_from_word(r);
+    c->x = ab_real(base_from_word(r));
     stack_drop(c);
     c->lift = true;
     return clamped ? ABN_CLAMPED : ABN_OK;
@@ -533,17 +548,17 @@ static abn_status logic(ab_calc *c, ab_op op)
     int64_t a = 0, b, r;
     bool clamped = false;
     abn_status st;
-    if (!abn_is_integer(&c->x) || (op != AB_NOT && !abn_is_integer(&c->y))) return ABN_DOMAIN;
-    if ((st = base_to_word(&c->x, &b, &clamped)) != ABN_OK) return st;
+    if (!abn_is_integer(&c->x.re) || (op != AB_NOT && !abn_is_integer(&c->y.re))) return ABN_DOMAIN;
+    if ((st = base_to_word(&c->x.re, &b, &clamped)) != ABN_OK) return st;
     if (op == AB_NOT) {
         r = base_not(b);
-        c->x = base_from_word(r);
+        c->x = ab_real(base_from_word(r));
     } else {
-        if ((st = base_to_word(&c->y, &a, &clamped)) != ABN_OK) return st;
+        if ((st = base_to_word(&c->y.re, &a, &clamped)) != ABN_OK) return st;
         base_logic bl = op == AB_AND ? BL_AND : op == AB_OR ? BL_OR : op == AB_XOR ? BL_XOR
                       : op == AB_NAND ? BL_NAND : BL_NOR;
         r = base_logic2(bl, a, b);
-        c->x = base_from_word(r);
+        c->x = ab_real(base_from_word(r));
         stack_drop(c);
     }
     c->lift = true;
@@ -580,12 +595,12 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
     case AB_CLX:
         /* Clear X puts 0 in X and disables lift, so the next number replaces it
          * (UG p.2-7, p.B-5). */
-        c->x = abn_zero();
+        c->x = ab_real(abn_zero());
         c->lift = false;
         return ABN_OK;
     case AB_CLSTK:
         /* Clear the stack: all four registers to 0, lift disabled (UG p.2-7, p.B-5). */
-        c->x = c->y = c->z = c->t = abn_zero();
+        c->x = c->y = c->z = c->t = ab_real(abn_zero());
         c->lift = false;
         return ABN_OK;
     case AB_ENTER:
@@ -596,7 +611,7 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
         return ABN_OK;
     case AB_RDN: {
         /* Roll down: Y to X, Z to Y, T to Z, X to T (UG p.2-3). */
-        abn x = c->x;
+        ab_val x = c->x;
         c->x = c->y;
         c->y = c->z;
         c->z = c->t;
@@ -605,7 +620,7 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
     }
     case AB_RUP: {
         /* Roll up: X to Y, Y to Z, Z to T, T to X (UG p.2-4). */
-        abn t = c->t;
+        ab_val t = c->t;
         c->t = c->z;
         c->z = c->y;
         c->y = c->x;
@@ -614,7 +629,7 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
     }
     case AB_XY: {
         /* Exchange X and Y; Z and T are untouched (UG p.2-4). */
-        abn x = c->x;
+        ab_val x = c->x;
         c->x = c->y;
         c->y = x;
         break;
@@ -622,11 +637,11 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
     case AB_LASTX:
         /* LAST X brings back the number X held before the last numeric operation; it
          * arrives like any new number, and the LAST X register keeps it (UG p.2-8, p.2-11). */
-        place_in_x(c, c->lastx);
+        place_val(c, c->lastx);
         break;
     case AB_KCHS:
         /* Change sign of a completed X (UG p.1-15). */
-        c->x = abn_neg(&c->x);
+        c->x = ab_real(abn_neg(&c->x.re));
         break;
     case AB_ADD:
     case AB_SUB:
@@ -651,12 +666,12 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
         /* Two numbers in, two out: x and y in X and Y become r and theta, or back (ours, unit
            004). LAST X keeps the old x, as for the other conversions (UG p.B-6). */
         abn a, b;
-        abn_status st = op == AB_TOPOL ? fn_topol(&a, &b, &c->x, &c->y, angle_of(c))
-                                       : fn_torec(&a, &b, &c->x, &c->y, angle_of(c));
+        abn_status st = op == AB_TOPOL ? fn_topol(&a, &b, &c->x.re, &c->y.re, angle_of(c))
+                                       : fn_torec(&a, &b, &c->x.re, &c->y.re, angle_of(c));
         if (st != ABN_OK) return st;
         c->lastx = c->x;
-        c->x = a;
-        c->y = b;
+        c->x = ab_real(a);
+        c->y = ab_real(b);
         break;
     }
     case AB_RAND:
@@ -665,7 +680,7 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
         break;
     case AB_SEED:
         /* SEED takes x as the seed and leaves the stack as it is (UG p.4-15; ours: X stays). */
-        fn_seed(&c->rng, &c->x);
+        fn_seed(&c->rng, &c->x.re);
         break;
     case AB_CONST: {
         abn v;
@@ -684,10 +699,10 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
         /* Sigma+ / Sigma- add or remove the pair (x in X, y in Y; UG p.12-2): X becomes n, Y keeps
            y, x goes to LAST X (UG p.12-3, p.B-6) and lift is disabled (UG p.B-5). All six
            registers change or none does (ours, unit 006 rule 2). */
-        abn_status st = st_accumulate(c->stat, &c->x, &c->y, op == AB_SIGMAMINUS);
+        abn_status st = st_accumulate(c->stat, &c->x.re, &c->y.re, op == AB_SIGMAMINUS);
         if (st != ABN_OK) return st;
         c->lastx = c->x;
-        c->x = c->stat[ST_N];
+        c->x = ab_real(c->stat[ST_N]);
         c->lift = false;
         return ABN_OK;
     }
@@ -700,10 +715,10 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
         /* x-hat of the y in X, y-hat of the x in X (UG p.12-8); the input goes to LAST X
            (UG p.B-6). */
         abn r;
-        abn_status st = op == AB_XHAT ? st_xhat(&r, c->stat, &c->x) : st_yhat(&r, c->stat, &c->x);
+        abn_status st = op == AB_XHAT ? st_xhat(&r, c->stat, &c->x.re) : st_yhat(&r, c->stat, &c->x.re);
         if (st != ABN_OK) return st;
         c->lastx = c->x;
-        c->x = r;
+        c->x = ab_real(r);
         break;
     }
     case AB_XBAR: case AB_YBAR: case AB_XWBAR: case AB_SX: case AB_SY: case AB_PSX: case AB_PSY:
@@ -761,10 +776,10 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
            LAST X is untouched. After setting, X keeps the number and lift is disabled, so the
            next number replaces it (ours, unit 007: the guide's examples show Y = 0 there). */
         abn t, big = abn_from_int(4095), one = abn_from_int(1);
-        if (abn_trunc(&t, &c->x) != ABN_OK) return ABN_DOMAIN;
+        if (abn_trunc(&t, &c->x.re) != ABN_OK) return ABN_DOMAIN;
         t = abn_abs(&t);
         if (abn_cmp(&t, &one) == 0) {
-            c->x = abn_from_int((int32_t)c->frac_c);
+            c->x = ab_real(abn_from_int((int32_t)c->frac_c));
             break;
         }
         if (abn_is_zero(&t) || abn_cmp(&t, &big) > 0) {

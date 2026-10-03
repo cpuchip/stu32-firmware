@@ -80,9 +80,17 @@ typedef struct {
     bool mant_neg, exp_neg;
 } ab_entry;
 
+/* What a stack level holds (unit 009): a real number or a complex number; unit 010 adds vectors. */
+typedef enum { AB_REAL = 0, AB_COMPLEX } ab_kind;
+
 typedef struct {
-    abn x, y, z, t;
-    abn lastx;
+    ab_kind kind;
+    abn re, im;             /* a real number is re, with im zero */
+} ab_val;
+
+typedef struct {
+    ab_val x, y, z, t;
+    ab_val lastx;
     bool lift;              /* stack lift enabled */
     ab_angle angle;         /* angular mode for trigonometry */
     ab_mode disp_mode;      /* display setting, for RND (unit 004) */

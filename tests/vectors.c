@@ -128,11 +128,11 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
 static const abn *reg(const ab_calc *c, char r)
 {
     switch (r) {
-    case 'X': return &c->x;
-    case 'Y': return &c->y;
-    case 'Z': return &c->z;
-    case 'T': return &c->t;
-    case 'L': return &c->lastx;
+    case 'X': return &c->x.re;
+    case 'Y': return &c->y.re;
+    case 'Z': return &c->z.re;
+    case 'T': return &c->t.re;
+    case 'L': return &c->lastx.re;
     default: return NULL;
     }
 }
