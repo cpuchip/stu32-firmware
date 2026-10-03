@@ -274,6 +274,11 @@ typedef struct {
 
 void ab_init(ab_calc *c);
 
+/* Unit 018: line i's text as program entry shows it (UG Appendix G's names; list.c), a typed
+   number in the display d gives (NULL: ALL in the current base). Returns its length in bytes, or
+   -1 and "?" for no such line. */
+int ab_prog_line(const ab_calc *c, int i, const ab_display *d, char *out, int size);
+
 /* Performs one operation. On an arithmetic error (divide by zero, out of range) the four
    registers and LAST X are left as they were and the error is returned; a number being
    keyed in is still completed. ABN_OK otherwise. The one exception is ABN_CLAMPED (base modes,

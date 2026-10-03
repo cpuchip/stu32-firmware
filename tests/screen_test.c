@@ -109,6 +109,22 @@ static int holes_in(const char *m)
     return screen_missing(buf);
 }
 
+/* the text of program line i (1-based in the order keyed), "?" for none */
+static const char *line_text(const ab_calc *c, int i)
+{
+    static char buf[AB_EQN_LEN + 8];
+    if (ab_prog_line(c, i, NULL, buf, sizeof buf) < 0) snprintf(buf, sizeof buf, "?");
+    return buf;
+}
+
+static void expect_line(const ab_calc *c, int i, const char *want, const char *what)
+{
+    char m[256];
+    const char *got = line_text(c, i);
+    snprintf(m, sizeof m, "%s: line %d reads '%s', the guide '%s'", what, i + 1, got, want);
+    expect(strcmp(got, want) == 0, m);
+}
+
 /* ---- the frames ---- */
 
 static void be32(uint8_t *p, uint32_t v)
@@ -267,6 +283,20 @@ int main(int argc, char **argv)
            "theta, sigma, squared, integral, superscript x, root, pi, divide, times");
     /* UTF-8: code points counted, a malformed byte taken alone */
     expect(screen_cells("a\xce\xb8\xe2\x88\xab") == 3, "UTF-8 counted by code point");
+    expect(screen_cells("x\xcc\x84w y\xcc\x82") == 4, "a combining mark takes no cell");
+    screen_clear(&f);
+    screen_text(&f, 10, 10, 1, "y\xcc\x82", 1);
+    expect(dark_in(&f, 10, 9, 5, 2) > 0 && dark_in(&f, 10, 11, 5, 1) == 0,
+           "y-hat: the hat one row above the glyph's rows, a clear row before the y");
+    {
+        /* the y itself is unchanged under its hat: its rows 2..6 as the face draws them */
+        const font_glyph *gy = screen_glyph('y');
+        int same = gy != NULL;
+        for (int r = 2; gy && r < 7; r++)
+            for (int col = 0; col < 5; col++)
+                if (px(&f, 10 + col, 10 + r) != (gy->rows[r] >> (4 - col) & 1)) same = 0;
+        expect(same, "y-hat: the y's own rows unchanged");
+    }
     expect(screen_cells("\xce" "A") == 2, "a broken sequence: its lead byte alone");
     expect(screen_missing("\xe4\xb8\x80") == 1, "a code point the face lacks");
 
@@ -509,6 +539,108 @@ int main(int argc, char **argv)
     expect(dark_in(&f, 368, 4, 26, 10) == 0, "empty: none");
     screen_ui_default(&ui);
 
+    /* ---- program lines as program entry lists them (UG Appendix G, ch.13-14 listings) ---- */
+    ab_init(&c);
+    keys(&c, "PRGM");
+    ab_do_arg(&c, AB_LBL, 0);
+    ab_do(&c, AB_SQ);
+    ab_do(&c, AB_PI);
+    ab_do(&c, AB_MUL);
+    ab_do(&c, AB_RTN);
+    expect(c.prog_len == 5, "13-8's area program keyed: five lines");
+    expect_line(&c, 0, "LBL A", "13-8");
+    expect_line(&c, 1, "x\xc2\xb2", "13-8");
+    expect_line(&c, 2, "\xcf\x80", "13-8");
+    expect_line(&c, 3, "\xc3\x97", "13-8");
+    expect_line(&c, 4, "RTN", "13-8");
+    screen_render(&c, &ui, &f);
+    expect(text_at(&f, 20, 128, 4, "A005 RTN", 1), "PRGM: the pointer's address and its line");
+    ab_init(&c);
+    keys(&c, "PRGM");
+    ab_do_arg(&c, AB_LBL, 'Q' - 'A');
+    ab_do_arg(&c, AB_INPUT, 'R' - 'A');
+    ab_do_arg(&c, AB_STOADD, 'X' - 'A');
+    ab_do_arg(&c, AB_RCLSUB, 'B' - 'A');
+    ab_do_arg(&c, AB_FS, 0);
+    ab_do_arg(&c, AB_TEST, AB_TEST_LT);
+    ab_do(&c, AB_SQRT);
+    ab_do_arg(&c, AB_VIEW, 'X' - 'A');
+    ab_do_arg(&c, AB_DSE, 'A' - 'A');
+    ab_do_arg(&c, AB_XEQ, ('Q' - 'A') * 1000 + 1);
+    ab_do_arg(&c, AB_GTO, ('Q' - 'A') * 1000 + 4);
+    ab_do(&c, AB_BIN);
+    expect_line(&c, 1, "INPUT R", "13-13");
+    expect_line(&c, 2, "STO+ X", "14-8 (T010)");
+    expect_line(&c, 3, "RCL- B", "14-17");
+    expect_line(&c, 4, "FS? 0", "14-13");
+    expect_line(&c, 5, "x<y?", "14-8");
+    expect_line(&c, 6, "\xe2\x88\x9ax", "14-3");
+    expect_line(&c, 7, "VIEW X", "13-17");
+    expect_line(&c, 8, "DSE A", "14-17");
+    expect_line(&c, 9, "XEQ Q001", "14-3");
+    expect_line(&c, 10, "GTO Q004", "14-5");
+    expect_line(&c, 11, "BIN", "13-25");
+    /* a typed number in the base shown: 10 with DEC set, 10b with BIN set (13-25) */
+    ab_init(&c);
+    keys(&c, "PRGM 1 0 ENTER");
+    expect_line(&c, 0, "10", "13-25, DEC");
+    ab_init(&c);
+    ab_do(&c, AB_BIN);                          /* BIN set, then program entry: BIN, 10 */
+    keys(&c, "PRGM");
+    ab_do(&c, AB_BIN);
+    keys(&c, "1 0 ENTER");
+    expect_line(&c, 1, "10b", "13-25, BIN");
+    /* the tests, in the menu's order (14-7) */
+    ab_init(&c);
+    keys(&c, "PRGM");
+    for (int t = 0; t < 12; t++) ab_do_arg(&c, AB_TEST, t);
+    {
+        static const char *const T[12] = {"x\xe2\x89\xa0y?", "x\xe2\x89\xa4y?", "x<y?", "x>y?", "x\xe2\x89\xa5y?", "x=y?",
+                                          "x\xe2\x89\xa0" "0?", "x\xe2\x89\xa4" "0?", "x<0?", "x>0?", "x\xe2\x89\xa5" "0?", "x=0?"};
+        for (int t = 0; t < 12; t++) expect_line(&c, t, T[t], "14-7's tests");
+    }
+    /* every op the core takes as a line has a name the face can draw */
+    {
+        static const int ARGS[] = {0, 1, 4, 'Z' - 'A', AB_VAR_IND_I, AB_VAR_IND_J, 1001, AB_TGT_IND_I, 40, -1, 26000};
+        static uint8_t img[1 << 16];
+        int lines = 0, named = 0, kept = 0;
+        for (int op = 0; op <= AB_MODEL; op++)
+            for (int a = 0; a < 11; a++) {
+                ab_init(&c);
+                keys(&c, "PRGM");
+                ab_do_arg(&c, AB_LBL, 1);       /* B, for a target B001 */
+                int before = c.prog_len;
+                ab_do_arg(&c, (ab_op)op, ARGS[a]);
+                if (c.prog_len <= before || c.pc < 0) continue;
+                lines++;
+                char got[AB_EQN_LEN + 8], m[160];
+                int n = ab_prog_line(&c, c.pc, NULL, got, sizeof got);
+                /* "?" alone, or as an argument, is the mark of a line with no name */
+                bool ok = n > 0 && strcmp(got, "?") != 0 && !strstr(got, " ?") && screen_missing(got) == 0;
+                named += ok;
+                if (!ok) {
+                    snprintf(m, sizeof m, "op %d arg %d: a line with no drawable name ('%.40s')", op, ARGS[a], got);
+                    expect(0, m);
+                }
+                /* and the core loads what it recorded: a line its own image refuses would cost a
+                   MEMORY CLEAR at the next load */
+                size_t n2 = ab_state_save(&c, img, sizeof img);
+                bool back = n2 > 0 && n2 <= sizeof img && ab_state_load(&c, img, n2) == ABN_OK;
+                kept += back;
+                if (!back) {
+                    snprintf(m, sizeof m, "op %d arg %d: the line '%.40s' recorded, its image refused", op, ARGS[a], got);
+                    expect(0, m);
+                }
+            }
+        char m[80];
+        snprintf(m, sizeof m, "lines keyed %d, all named", lines);
+        expect(lines > 100 && named == lines, m);
+        snprintf(m, sizeof m, "lines keyed %d, all loaded back", lines);
+        expect(kept == lines, m);
+    }
+    expect(ab_prog_line(&c, -1, NULL, (char[8]){0}, 8) == -1 && ab_prog_line(&c, 99999, NULL, (char[8]){0}, 8) == -1,
+           "no such line: -1");
+
     /* ---- the frames ---- */
     screen_missed = 0;
     ab_init(&c);
@@ -581,6 +713,15 @@ int main(int argc, char **argv)
         ui.battery = 100;
     }
     frame("19-soft-keys", &c, &ui);
+    screen_ui_default(&ui);
+    ab_init(&c);
+    keys(&c, "PRGM");
+    ab_do_arg(&c, AB_LBL, 'S' - 'A');
+    ab_do(&c, AB_SIGMAPLUS);
+    ab_do(&c, AB_PSX);
+    ab_do(&c, AB_XWBAR);
+    ab_do(&c, AB_YHAT);
+    frame("20-listing-marks", &c, &ui);
     expect(screen_missed == 0, "a frame drew a character the face lacks");
 
     printf("screen_test: %d/%d checks, %d/%d frames %s %s\n", checks - bad, checks, frames_ok, frames,

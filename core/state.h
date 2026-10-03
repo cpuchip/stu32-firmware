@@ -39,6 +39,10 @@ size_t ab_state_save(const ab_calc *c, uint8_t *buf, size_t cap);
    vectors keep their meaning; MEMORY CLEAR's default is FIX 4 (p.B-4). Ruled by abacus, #3734. */
 abn_status ab_state_load(ab_calc *c, const uint8_t *buf, size_t len);
 
+/* Whether a line (op, arg) is one an image may hold (unit 018). Program entry records only these,
+   so the core never writes an image it would refuse; AB_LIT and AB_EQLINE (pool lines) are false. */
+bool ab_line_ok(ab_op op, int32_t arg);
+
 /* CRC-32 of n bytes (for tests: a golden image's identity). */
 uint32_t ab_crc32(const uint8_t *p, size_t n);
 
