@@ -249,6 +249,15 @@ static void on_busy(void *ctx, int op)
     render(op);
 }
 
+/* the composed colour at a screen pixel, as the RGB interrupt sends it (for checking by console) */
+static uint16_t pixel_at(int x, int y)
+{
+    static uint16_t line[SI_W];
+    si_view v = {&fb[front], keys_img, x2};
+    si_line(&v, y, line);
+    return line[x];
+}
+
 static void dump(void)
 {
     char x[96];
@@ -261,6 +270,8 @@ static void dump(void)
     printf("state: X=%s stop=%s lines=%d prgm=%d running=%d shift=%d prompt=%s msg=%s heap=%u stack-free=%u\n", x, stop,
            calc->prog_len, calc->prgm, app.running, app.shift, app.prompt_op >= 0 ? app.prompt_text : "-", m ? m : "-",
            (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL), (unsigned)uxTaskGetStackHighWaterMark(NULL));
+    printf("pixels: gold key %04X, blue key %04X (gold %04X, blue %04X, key %04X)\n", pixel_at(440, 345),
+           pixel_at(440, 405), SI_PALETTE[SI_GOLD], SI_PALETTE[SI_BLUE], SI_PALETTE[SI_KEY]);
 }
 
 /* ---- the tasks ---- */
