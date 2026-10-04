@@ -105,7 +105,9 @@ gauge's empty threshold, or about 3.3 V).
 Piezo volume (Michael asked, 2026-10-04): the driver takes a level as well as a frequency. With a
 low-side switch, the square wave's fundamental scales as sin(π·duty): 50% duty is loudest, 10% is
 about -10 dB, 5% about -16 dB. So a few steps (for example 50 / 20 / 8 / 3% and off) make a volume
-setting with no board change. Driving away from the part's resonance (about 7.5 kHz for the
-PKMCS0909) is a second, coarser control. Where the setting lives (SETUP, or a mode) waits for the
+setting with no board change. Driving away from the part's rated frequency is a second, coarser
+control. ~~about 7.5 kHz for the PKMCS0909~~ Corrected 2026-10-04 by the pass 6 review: the PKMCS0909E4000 is
+rated at **4 kHz** (65 dB min; its LCSC listing reads "4kHz 65dB"). The 7.5 kHz came from a curve I didn't read
+myself. Tones near 4 kHz are the loud ones. Where the setting lives (SETUP, or a mode) waits for the
 menu ruling, so build the levels only. This is unverified until a piezo is on a bench: measure the
 steps with a phone's SPL meter when Rev A arrives.
