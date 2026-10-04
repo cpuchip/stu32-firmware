@@ -1,0 +1,16 @@
+# Unit 003's functions at tiny arguments (found in the review of unit 021): below about 1E-3000 the
+# library underflows inside (x squared) and reported a range error where the result is in range.
+# Each result is the first term of its series, correctly rounded. Format as work/003-vectors.txt.
+
+T01 | ours: 10^x of a tiny x is 1 | 1 E 5000 CHS TENX | X=1
+T02 | ours: sinh x of a tiny x is x | 1 E 6000 CHS SINH | X=1E-6000
+T03 | ours: sinh of a tiny negative | 1 CHS E 6000 CHS SINH | X=-1E-6000
+T04 | ours: cosh x of a tiny x is 1 | 1 E 6000 CHS COSH | X=1
+T05 | ours: tanh x of a tiny x is x | 1 E 6000 CHS TANH | X=1E-6000
+T06 | ours: asinh x of a tiny x is x | 1 E 6000 CHS ASINH | X=1E-6000
+T07 | ours: atan x of a tiny x is x (radians) | RAD 1 E 6000 CHS ATAN | X=1E-6000
+T08 | ours: asin x of a tiny x is x (radians) | RAD 1 E 6000 CHS ASIN | X=1E-6000
+T09 | ours: acos x of a tiny x is pi/2 | RAD 1 E 6000 CHS ACOS | X^1.570796326794896619231321691639751E+0
+T10 | ours: acos of a tiny x in degrees is 90 exactly | 1 E 6000 CHS ACOS | X=90
+T11 | ours: asin of a tiny x in degrees | 1 E 6000 CHS ASIN | X^5.729577951308232087679815481410517E-5999
+T12 | ours: acos of a tiny x in grads is 100 exactly | GRAD 1 E 6000 CHS ACOS | X=100

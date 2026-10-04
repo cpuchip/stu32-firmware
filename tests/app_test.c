@@ -440,12 +440,67 @@ int main(void)
         press(&a, "BLUE \xe2\x86\x90");
         expect(img_crc(&c) == before, "UNDO after the run: the state before XEQ");
 
+        /* a run over several slices is still one key (the program counts A down from 300: 600
+           lines, three slices of APP_SLICE_LINES) */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        app_undo_buffers(&a, u0, u1, sizeof u0);
+        press(&a, "GOLD 9 k:0 GOLD XEQ ltr:D GOLD 5 ltr:A GOLD 4 ltr:D BLUE XEQ GOLD 9 k:0 3 0 0 STO ltr:A 7");
+        before = img_crc(&c);
+        press(&a, "XEQ ltr:D");
+        expect(a.running, "XEQ D runs on in slices");
+        int ticks = 0;
+        while (a.running && ticks < 100) {
+            app_tick(&a, &in, now);
+            ticks++;
+        }
+        expect(!a.running && ticks >= 2 && var_of(&c, 'A') == 0, "the countdown ran over several slices");
+        press(&a, "BLUE \xe2\x86\x90");
+        expect(img_crc(&c) == before, "UNDO after a run in slices: the state before XEQ");
+
         /* with no buffers UNDO does nothing */
         app_init(&a, &c, now);
         before = img_crc(&c);
         press(&a, "BLUE \xe2\x86\x90");
         expect(img_crc(&c) == before, "no undo buffers: UNDO does nothing");
     }
+
+    /* the review of 021: on the 35s a key with a message showing only clears it (unit 017 rule 4),
+       and that holds for a key that would open a menu or a prompt, so an op a menu confirms is
+       never swallowed by the message */
+    ab_init(&c);
+    app_init(&a, &c, now);
+    ab_do_arg(&c, AB_MODEL, 35);
+    press(&a, "4 STO ltr:A 1 ENTER 0 \xc3\xb7");
+    expect(c.msg, "35s: 1 / 0 leaves its message");
+    press(&a, "GOLD \xe2\x86\x90");
+    app_ui(&a, &ui);
+    expect(!c.msg && !ui.soft[0], "35s: GOLD then the CLEAR key only clears the message");
+    press(&a, "GOLD \xe2\x86\x90 k:4 k:0");
+    expect(var_of(&c, 'A') == 0, "then CLEAR ALL clears");
+    press(&a, "1 ENTER 0 \xc3\xb7 STO");
+    app_ui(&a, &ui);
+    expect(!c.msg && !ui.prompt, "35s: STO with a message showing only clears it");
+    ab_do_arg(&c, AB_MODEL, 33);
+    press(&a, "4 STO ltr:A 1 ENTER 0 \xc3\xb7 GOLD \xe2\x86\x90 k:4 k:0");
+    expect(var_of(&c, 'A') == 0 && !c.msg, "33s: the message goes and CLEAR ALL acts");
+
+    /* in Equation mode CLEAR's F5 is EQN (UG p.1-5: CLR EQN?) */
+    ab_init(&c);
+    app_init(&a, &c, now);
+    press(&a, "5 STO ltr:A");
+    ab_do(&c, AB_EQN);
+    ab_do(&c, AB_KEQ);
+    ab_do(&c, AB_ENTER);
+    expect(c.eqn_mode && c.eqn_count == 3, "an equation keyed in Equation mode");
+    press(&a, "GOLD \xe2\x86\x90");
+    app_ui(&a, &ui);
+    expect(ui.soft[4] && !strcmp(ui.soft[4], "EQN"), "in Equation mode F5 is EQN");
+    press(&a, "k:4");
+    app_ui(&a, &ui);
+    expect(ui.prompt && !strcmp(ui.prompt, "CLR EQN?"), "EQN: CLR EQN?");
+    press(&a, "k:0");
+    expect(c.eqn_count == 2 && var_of(&c, 'A') == 5, "Y: the equations cleared, the built-in solvers and the data kept");
 
     /* unit 021: CLVARx asks for a three-digit address (UG p.1-5), from the digit keys */
     ab_init(&c);

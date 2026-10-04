@@ -62,7 +62,7 @@ static const struct { const char *name; ab_op op; } NAMED[] = {
     {"SLOPE", AB_SLOPE}, {"YINT", AB_YINT}, {"NSUM", AB_NSUM}, {"SUMX", AB_SUMX},
     {"SUMY", AB_SUMY}, {"SUMX2", AB_SUMX2}, {"SUMY2", AB_SUMY2}, {"SUMXY", AB_SUMXY},
     {"EXPM1", AB_EXPM1}, {"LN1P", AB_LN1P}, {"TWOX", AB_TWOX}, {"LOG2", AB_LOG2},
-    {"CLALL", AB_CLALL},
+    {"CLALL", AB_CLALL}, {"CLEQN", AB_CLEQN},
 };
 
 /* The last error any key returned in the current vector, for %ERR (unit 012). */

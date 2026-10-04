@@ -23,3 +23,8 @@ S18 | ours: e^x - 1 far below: -1 | 1 CHS E 8 EXPM1 | X=-1
 S19 | ours: e^x - 1 too large is the range error | 1 E 5 EXPM1 | ERR %ERR=RANGE
 S20 | ours: CLEAR ALL acts in Equation mode too (no silent no-op after CLR ALL? is answered) | 5 STO:A EQN CLALL | @A=0 %EQ=TOP
 S21 | ours: CLEAR ALL acts while an equation is typed, and leaves Equation mode | 5 STO:A EQN RCL:A CLALL 2 ENTER 3 + | @A=0 X=5
+S22 | review of 021: 2^x of a tiny x is 1, not a range error | 1.5 E 6140 CHS TWOX | X=1
+S23 | 35s p.1-5 in Equation mode CLEAR's F5 is EQN: CLR EQN? clears the equations, data kept | 5 STO:A EQ:A+1 C EQ:B+2 C CLEQN | %EQN=0 @A=5 %EQ=TOP
+S24 | 35s p.6-6 CLR EQN keeps the two built-in solvers, as CLEAR ALL does | EQ:A+1 C CLEQN EQN SST | %EQ=2*2_lin._solve
+S25 | ours: CLR EQN is not a program line | PRGM CLEQN | ERR %ERR=NONPROGRAMMABLE %LINES=0
+S26 | ours: CLR EQN acts in Equation mode, where the menu offers it | EQ:A+1 C EQN CLEQN | %EQN=0
