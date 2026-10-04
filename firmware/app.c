@@ -20,6 +20,7 @@ void app_init(app_state *a, ab_calc *c, uint32_t now_ms)
 static void prompt_close(app_state *a)
 {
     a->prompt_op = -1;
+    a->prompt_tens = false;
     a->prompt_text[0] = '\0';
 }
 
@@ -28,14 +29,15 @@ static void prompt_open(app_state *a, int op, int kind)
 {
     static const char *const ARITH[4] = {"+", "-", "\xc3\x97", "\xc3\xb7"};
     const char *name = op == AB_STO ? "STO" : op == AB_RCL ? "RCL" : op == AB_VIEW ? "VIEW" : op == AB_ISG ? "ISG"
-                       : op == AB_DSE ? "DSE" : op == AB_LBL ? "LBL" : op == AB_XEQ ? "XEQ" : op == AB_GTO ? "GTO" : "";
+                       : op == AB_DSE ? "DSE" : op == AB_LBL ? "LBL" : op == AB_XEQ ? "XEQ" : op == AB_GTO ? "GTO"
+                       : op == AB_SETFIX ? "FIX" : op == AB_SETSCI ? "SCI" : op == AB_SETENG ? "ENG" : "";
     char buf[12] = "";
     if (op >= AB_STOADD && op <= AB_STODIV) snprintf(buf, sizeof buf, "STO%s", ARITH[op - AB_STOADD]);
     else if (op >= AB_RCLADD && op <= AB_RCLDIV) snprintf(buf, sizeof buf, "RCL%s", ARITH[op - AB_RCLADD]);
     else snprintf(buf, sizeof buf, "%s", name);
     a->prompt_op = op;
     a->prompt_kind = kind;
-    snprintf(a->prompt_text, sizeof a->prompt_text, "%s _", buf);
+    snprintf(a->prompt_text, sizeof a->prompt_text, a->prompt_tens ? "%s 1_" : "%s _", buf);
 }
 
 /* An op from the keys: the busy callback first when it may take long, and a run that has not
@@ -64,6 +66,19 @@ void app_key(app_state *a, int key, uint32_t now_ms)
 
     if (a->running) {                           /* only C and R/S, which interrupt (UG p.13-19) */
         if (face->kind == KM_OP && (face->op == AB_CANCEL || face->op == AB_RS)) ab_interrupt(a->c);
+        return;
+    }
+    if (a->prompt_op >= 0 && a->prompt_kind == KM_ARG_DIGITS) {    /* a digit setting */
+        if (face->kind == KM_OP && face->op >= AB_K0 && face->op <= AB_K9) {
+            int op = a->prompt_op, n = (a->prompt_tens ? 10 : 0) + face->op - AB_K0;
+            prompt_close(a);
+            do_op(a, op, n);
+        } else if (face->kind == KM_OP && face->op == AB_KPOINT && !a->prompt_tens) {
+            a->prompt_tens = true;              /* 10-19 next */
+            prompt_open(a, a->prompt_op, a->prompt_kind);
+        } else if (face->kind == KM_OP && face->op == AB_CANCEL) {
+            prompt_close(a);
+        }
         return;
     }
     if (a->prompt_op >= 0) {                    /* the letter layer */

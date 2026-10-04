@@ -43,7 +43,7 @@ static const km_action KEYMAP[KB_KEYS][3] = {
     [35] = {{KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}},
     [36] = {{KM_SHIFT, 0, 2, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}},
     [37] = {{KM_OP, AB_K1, 0, 0, "1"}, {KM_MENU, 0, -1, 0, "UNITS"}, {KM_MENU, 0, -1, 0, "MEM"}},
-    [38] = {{KM_OP, AB_K2, 0, 0, "2"}, {KM_MENU, 0, -1, 0, "DISP"}, {KM_MENU, 0, -1, 0, "\xe2\x88\xa1MODE"}},
+    [38] = {{KM_OP, AB_K2, 0, 0, "2"}, {KM_MENU, 0, 1, 0, "DISP"}, {KM_MENU, 0, -1, 0, "\xe2\x88\xa1MODE"}},
     [39] = {{KM_OP, AB_K3, 0, 0, "3"}, {KM_MENU, 0, -1, 0, "RADIX"}, {KM_MENU, 0, -1, 0, "SETUP"}},
     [40] = {{KM_OP, AB_SUB, 0, 0, "\xe2\x88\x92"}, {KM_OP, AB_RAND, 0, 0, "RAND"}, {KM_OP, AB_SEED, 0, 0, "SEED"}},
     [41] = {{KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}},
@@ -57,6 +57,7 @@ static const km_action KEYMAP[KB_KEYS][3] = {
 
 static const km_menu MENUS[] = {
     {"PRGM", {{KM_OP, AB_PRGM, 0, 0, "PRGM"}, {KM_PROMPT, AB_LBL, 0, KM_ARG_LABEL, "LBL"}, {KM_PROMPT, AB_INPUT, 0, KM_ARG_VAR, "INPUT"}, {KM_OP, AB_SST, 0, 0, "SST"}, {KM_OP, AB_BST, 0, 0, "BST"}, {KM_OP, AB_CLPGM, 0, 0, "CLPGM"}}},
+    {"DISP", {{KM_PROMPT, AB_SETFIX, 0, KM_ARG_DIGITS, "FIX"}, {KM_PROMPT, AB_SETSCI, 0, KM_ARG_DIGITS, "SCI"}, {KM_PROMPT, AB_SETENG, 0, KM_ARG_DIGITS, "ENG"}, {KM_OP, AB_SETALL, 0, 0, "ALL"}, {KM_OP, AB_XIY, 0, 0, "xiy"}, {KM_OP, AB_RTA, 0, 0, "r\xce\xb8" "a"}}},
 };
 
 const km_menu *km_menu_at(int index)

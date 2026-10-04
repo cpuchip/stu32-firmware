@@ -61,6 +61,11 @@ MENUS = [
     ("PRGM", [("PRGM", "KM_OP", "AB_PRGM", 0, 0), ("LBL", "KM_PROMPT", "AB_LBL", 0, "KM_ARG_LABEL"),
               ("INPUT", "KM_PROMPT", "AB_INPUT", 0, "KM_ARG_VAR"), ("SST", "KM_OP", "AB_SST", 0, 0),
               ("BST", "KM_OP", "AB_BST", 0, 0), ("CLPGM", "KM_OP", "AB_CLPGM", 0, 0)]),
+    # Michael, #3901: FIX, SCI, ENG then a digit setting (UG p.1-21), ALL; xiy and rθa provisional
+    ("DISP", [("FIX", "KM_PROMPT", "AB_SETFIX", 0, "KM_ARG_DIGITS"),
+              ("SCI", "KM_PROMPT", "AB_SETSCI", 0, "KM_ARG_DIGITS"),
+              ("ENG", "KM_PROMPT", "AB_SETENG", 0, "KM_ARG_DIGITS"), ("ALL", "KM_OP", "AB_SETALL", 0, 0),
+              ("xiy", "KM_OP", "AB_XIY", 0, 0), ("r\u03b8a", "KM_OP", "AB_RTA", 0, 0)]),
 ]
 # Menu legends that act as plain ops until their menu is ruled (abacus #3867): the EQN menu's
 # first item will take this over.

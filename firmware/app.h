@@ -15,6 +15,9 @@
  * - Power (power.h): keys are activity, a run is activity; app_tick says when to turn off.
  * - Saving (store.h, by the device): after a change, once APP_QUIET_MS pass with no key and no run
  *   (ours: few writes to flash), and always before turning off.
+ * - A digit prompt (DISP's FIX, SCI, ENG; Michael #3901) reads the digit keys: a digit completes
+ *   it, the point then a digit gives 10-19 (the guide's .0 and .1 for 10 and 11, UG p.1-21,
+ *   extended), C cancels it, other keys do nothing.
  * - Menus (keymap.h's MENUS; only PRGM is defined, abacus #3877): a menu key opens its menu and
  *   its labels go to the soft keys; a soft key does its item and closes it; C only closes it
  *   (ours: in program entry C would otherwise leave it); any other key closes it and acts.
@@ -45,6 +48,7 @@ typedef struct {
     int prompt_op;          /* the op waiting for its argument, -1 none */
     int prompt_kind;        /* KM_ARG_* */
     char prompt_text[16];   /* what the X line shows meanwhile: "STO _" */
+    bool prompt_tens;       /* a digit prompt has had its point: the next digit is 10-19 */
     int menu;               /* the menu open on the soft keys (km_menu_at), -1 none */
     bool running;           /* a run in slices */
     int busy_op;            /* the op that started it, for ab_busy_message */
