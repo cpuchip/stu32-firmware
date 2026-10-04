@@ -838,6 +838,13 @@ int main(void)
         ab_init(&c);
         app_init(&a, &c, now);
         press(&a, "1 2 3 4 5 6 7 8 . 9 ENTER");
+        {   /* the default groups, as both machines do (abacus #3965; UG p.1-23, p.B-3) */
+            app_ui(&a, &ui);
+            ab_fmt f = {AB_ALL, 0, 40, ui.radix, ui.separator};
+            char t[48];
+            ab_format(&c.x.re, &f, t, sizeof t);
+            expect(!strcmp(t, "12,345,678.9"), "a new state groups by default: 12,345,678.9");
+        }
         for (size_t i = 0; i < sizeof R / sizeof R[0]; i++) {
             press(&a, R[i].keys);
             app_ui(&a, &ui);

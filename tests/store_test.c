@@ -101,8 +101,8 @@ static int settings_checks(void)
     memset(s2.mem, 0xFF, sizeof s2.mem);
     s2.budget = -1;
     dev_settings_default(&def);
-    CHECK(def.radix == '.' && def.group == 0 && def.off_min == 10 && def.vol == 4 && def.beep,
-          "the defaults: radix '.', no grouping, 10 minutes, the loudest level, BEEP on");
+    CHECK(def.radix == '.' && def.group == 1 && def.off_min == 10 && def.vol == 4 && def.beep,
+          "the defaults: radix '.', grouping 1,000 (abacus #3965: UG p.1-23, p.B-3), 10 minutes, the loudest level, BEEP on");
     ab_init(&c);
     ab_do(&c, AB_K7);
     ab_do(&c, AB_ENTER);
