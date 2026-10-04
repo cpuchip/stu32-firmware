@@ -11,7 +11,7 @@
 void dev_settings_default(dev_settings *s)
 {
     s->radix = '.';
-    s->group = 0;
+    s->group = 1;               /* 1,000: both machines group by default (UG p.1-23, p.B-3; #3965) */
     s->off_min = 10;
     s->vol = PIEZO_LEVELS - 1;
     s->beep = true;

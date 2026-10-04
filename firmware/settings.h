@@ -31,7 +31,8 @@ typedef struct {
     bool beep;              /* the buzzer's uses on or off as a whole */
 } dev_settings;
 
-/* radix '.', no grouping, 10 minutes, the loudest level, BEEP on (unit 022 rule 3) */
+/* radix '.', grouping 1,000, 10 minutes, the loudest level, BEEP on (unit 022 rule 3, with
+   abacus #3965: the 35s groups by default, p.1-23 and p.B-3, and the 33s always does) */
 void dev_settings_default(dev_settings *s);
 
 /* The core's image of c followed by the record of s, into buf when it fits in cap; returns the
