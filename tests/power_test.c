@@ -1,10 +1,12 @@
 /* power_test: the fuel gauge driver against a model of the part, the power policy, and the boot
  * levels of Rev A's outputs (unit 018 scope 5). The model is the datasheet's register behaviour
  * (gauge.h): 16-bit words high byte first, an 8-bit write ignored, a NACK at any other address. */
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "gauge.h"
+#include "piezo.h"
 #include "pins.h"
 #include "power.h"
 
@@ -181,6 +183,26 @@ int main(void)
         expect(!pwr_radio_allowed(3299999), "below 3.3 V: no radio (the reserve for the save)");
         expect(pwr_radio_allowed(4200000), "a full cell: allowed");
         expect(!pwr_radio_allowed(0), "the cell not read (0): no radio");
+    }
+
+    /* the piezo's volume (abacus 2b8e52d): the fundamental scales as sin(pi * duty), so the levels'
+       duties give off, about -16, -10, -3 and 0 dB */
+    {
+        static const double want_db[PIEZO_LEVELS] = {0, -16.1, -10.2, -3.0, 0.0};
+        double prev = -1e9;
+        expect(piezo_duty(0, 10) == 0, "level 0: off");
+        for (int lv = 1; lv < PIEZO_LEVELS; lv++) {
+            uint32_t d = piezo_duty(lv, 10);
+            double duty = d / 1024.0, db = 20 * log10(sin(3.14159265358979323846 * duty));   /* pi */
+            char m[96];
+            snprintf(m, sizeof m, "level %d: %.1f dB (duty %u/1024), want %.1f", lv, db, (unsigned)d, want_db[lv]);
+            expect(d > 0 && d <= 512 && fabs(db - want_db[lv]) < 0.5, m);
+            expect(db > prev, "each level louder than the one below");
+            prev = db;
+        }
+        expect(piezo_duty(PIEZO_LEVELS - 1, 10) == 512, "the loudest: a square wave, half of 10 bits");
+        expect(piezo_duty(PIEZO_LEVELS - 1, 13) == 4096, "the duty follows the resolution");
+        expect(piezo_duty(-1, 10) == 0 && piezo_duty(PIEZO_LEVELS, 10) == 0, "a level out of range: off");
     }
 
     printf("power_test: %d/%d checks\n", checks - bad, checks);
