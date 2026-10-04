@@ -460,6 +460,21 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
         line_add(xl, ui->prompt);
         k->x_left = true;
         k->xk = SCREEN_PROMPT;
+    } else if (c->viewing) {                    /* a keyboard VIEW: Variable=Value (UG p.3-4) */
+        char name[16];
+        ab_val v;
+        memset(&v, 0, sizeof v);
+        v.kind = AB_REAL;
+        int id = c->view_id;
+        if (id >= 0 && id < 26) v = c->var[id];
+        else if (id >= 1000 && id - 1000 <= AB_IND_MAX) v.re = c->ind[id - 1000];
+        else if (id <= -27 && id >= -32) v.re = c->stat[-id - 27];
+        var_name(id, name, sizeof name);
+        line_add(xl, name);
+        line_add_cp(xl, '=');
+        val_line(&v, c, ui, xl, &unused);
+        k->x_left = true;
+        k->xk = SCREEN_VIEW;
     } else if ((m = ab_error_message(c)) != NULL) {
         line_add(xl, m);                        /* every message is one line (#3822) */
         k->x_left = true;

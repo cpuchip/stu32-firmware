@@ -931,6 +931,8 @@ static abn_status arith(ab_val *r, ab_op op, const ab_val *a, const ab_val *b)
     return st;
 }
 
+static int slot_id(const ab_calc *c, const slot *sl);
+
 static abn_status storage_op(ab_calc *c, ab_op op, int code)
 {
     slot sl;
@@ -970,7 +972,10 @@ static abn_status storage_op(ab_calc *c, ab_op op, int code)
         break;
     default:
         /* VIEW shows the variable and changes nothing; it is not among the neutral operations
-           of UG p.B-5, so like any other it enables lift (ours, unit 005). */
+           of UG p.B-5, so like any other it enables lift (ours, unit 005). The display, Variable=
+           Value, stays until the next key (UG p.3-4; abacus #3979). */
+        c->viewing = true;
+        c->view_id = slot_id(c, &sl);
         break;
     }
     c->lift = true;
@@ -3105,6 +3110,12 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
     if (c->msg) {
         c->msg = false;
         if (c->m35) return ABN_OK;
+    }
+    if (c->viewing) {
+        /* a keyboard VIEW's display: C or backspace only clears it (UG p.3-4, 3-6); any other key
+           clears it and acts (abacus #3979) */
+        c->viewing = false;
+        if (op == AB_CANCEL || op == AB_KBKSP) return ABN_OK;
     }
     c->err_set = false;
     /* CLEAR ALL and CLR EQN act in Equation mode too (unit 021: never a silent no-op once the
