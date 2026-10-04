@@ -232,6 +232,25 @@ int main(int argc, char **argv)
             snprintf(m, sizeof m, "shift key %d: its name in the face area (%s)", k, held ? "held, dark" : "light");
             expect(n > 40, m);
         }
+        /* a shift held: its legends stay lit, everything else dims (as the 10" panel does; Michael,
+           #3901): with GOLD held, a key's gold legend is gold, its face, blue legend and letter dim */
+        ks = (si_keys_state){1, false, -1};
+        si_draw_keys(keys, &ks);
+        si_key_rect(6, &x, &y, &w, &h);                 /* sqrt x: gold x^2, blue ABS, letter A */
+        expect(count(keys, x, y, w / 2, 20, SI_GOLD) > 0, "GOLD held: the gold legend stays gold");
+        expect(count(keys, x, y, w, h, SI_BLUE) == 0, "GOLD held: no blue on the key (dimmed)");
+        expect(count(keys, x, y + 22, w, 30, SI_FACE) == 0 && count(keys, x, y + 22, w, 30, SI_DIM) > 0,
+               "GOLD held: the face legend dimmed");
+        expect(count(keys, x + w - 14, y + h - 14, 12, 12, SI_LETTER) == 0, "GOLD held: the letter dimmed");
+        ks.shift = 2;
+        si_draw_keys(keys, &ks);
+        expect(count(keys, x + w / 2, y, w - w / 2, 20, SI_BLUE) > 0 && count(keys, x, y, w, h, SI_GOLD) == 0,
+               "BLUE held: the blue legend lit, the gold dimmed");
+        ks.shift = 0;
+        si_draw_keys(keys, &ks);
+        expect(count(keys, x, y + 22, w, 30, SI_FACE) > 0 && count(keys, x, y, w, h, SI_DIM) == 0,
+               "no shift: nothing dimmed");
+
         /* the letter layer while a prompt waits: each lettered key shows its letter large */
         ks = (si_keys_state){0, true, -1};
         si_draw_keys(keys, &ks);

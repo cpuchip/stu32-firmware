@@ -31,6 +31,7 @@
 
 enum {                                          /* the palette (si_line's colours) */
     SI_BG = 0, SI_KEY, SI_KEY_DOWN, SI_FACE, SI_GOLD, SI_BLUE, SI_LETTER, SI_EDGE, SI_LCD_DARK, SI_LCD_LIGHT,
+    SI_DIM,                                     /* a legend not available in the shift held */
     SI_COLOURS
 };
 
