@@ -74,9 +74,20 @@ const char *ab_const_name(int i)
     return (i >= 0 && i < ab_const_count()) ? CONSTANTS[i].name : NULL;
 }
 
+/* The symbols as the guide's CONST table prints them (UG p.4-8, 4-9, read from the rendered pages),
+ * in CONSTANTS' order; subscripts as plain digits, and p lowercase where the guide's display face
+ * draws it like P (abacus #3958). */
+static const char *const SYMBOL[] = {
+    "c", "g", "G", "Vm", "NA", "R\xe2\x88\x9e", "eV", "me", "mp", "mn",
+    "m\xce\xbc", "k", "h", "\xc4\xa7", "\xce\xa6" "0", "a0", "\xce\xb5" "0", "R", "F", "u",
+    "\xce\xbc" "0", "\xce\xbc" "B", "\xce\xbc" "N", "\xce\xbcp", "\xce\xbc" "e", "\xce\xbcn",
+    "\xce\xbc\xce\xbc", "re", "Z0", "\xce\xbb" "c", "\xce\xbb" "cn", "\xce\xbb" "cp",
+    "\xce\xb1", "\xcf\x83", "t", "atm", "\xce\xb3p", "C1", "C2", "G0", "e",
+};
+
 const char *ab_const_symbol(int i)
 {
-    return ab_const_name(i);
+    return i >= 0 && i < ab_const_count() && i < (int)(sizeof SYMBOL / sizeof SYMBOL[0]) ? SYMBOL[i] : NULL;
 }
 
 abn_status ab_const_value(abn *out, int i)

@@ -87,9 +87,10 @@ MENUS = [
                     ("", "KM_NONE", "0", 0, 0), ("", "KM_NONE", "0", 0, 0)]),
     # unit 019's draft order (CLSTK second: the forum's complaint), with unit 021's two items: ALL
     # asks first (UG p.1-5, CLR ALL? Y N), CLVARx takes a three-digit address (UG p.1-5)
-    ("CLEAR", [("CLx", "KM_OP", "AB_CLX", 0, 0), ("CLSTK", "KM_OP", "AB_CLSTK", 0, 0),
-               ("CLVARS", "KM_OP", "AB_CLVARS", 0, 0), ("CL\u03a3", "KM_OP", "AB_CLSIGMA", 0, 0),
-               ("ALL", "KM_CONFIRM", "AB_CLALL", 0, 0), ("CLVARx", "KM_PROMPT", "AB_CLVARX", 0, "KM_ARG_ADDR")]),
+    # abacus #3958: the 35s's option names, the title supplying CL (UG p.1-5), STK kept second
+    ("CLEAR", [("x", "KM_OP", "AB_CLX", 0, 0), ("STK", "KM_OP", "AB_CLSTK", 0, 0),
+               ("VARS", "KM_OP", "AB_CLVARS", 0, 0), ("\u03a3", "KM_OP", "AB_CLSIGMA", 0, 0),
+               ("ALL", "KM_CONFIRM", "AB_CLALL", 0, 0), ("VARx", "KM_PROMPT", "AB_CLVARX", 0, "KM_ARG_ADDR")]),
     # unit 019 (abacus's draft v1, provisional): built exactly as drafted, F1-F6 in order
     ("HYP", [o("SINH", "AB_SINH"), o("COSH", "AB_COSH"), o("TANH", "AB_TANH"), o("ASINH", "AB_ASINH"),
              o("ACOSH", "AB_ACOSH"), o("ATANH", "AB_ATANH")]),
@@ -110,21 +111,24 @@ MENUS = [
     ("TEST", [t("x=y?", 5), t("x\u2260y?", 0), t("x=0?", 11), t("x\u22600?", 6), p("FS?", "AB_FS", "KM_ARG_DIGITS"),
               t("x<y?", 2)]),
     ("BASE", [o("DEC", "AB_DEC"), o("HEX", "AB_HEX"), o("OCT", "AB_OCT"), o("BIN", "AB_BIN"),
-              ("LOGIC\u25b8", "KM_MENU", "0", "LOGIC", 0), ("SUFFIX\u25b8", "KM_MENU", "0", "SUFFIX", 0)]),
+              ("LOGIC", "KM_MENU", "0", "LOGIC", 0), ("SUFX", "KM_MENU", "0", "SUFFIX", 0)]),   # boxed as submenus
     ("LOGIC", [o("AND", "AB_AND"), o("OR", "AB_OR"), o("XOR", "AB_XOR"), o("NOT", "AB_NOT"), o("NAND", "AB_NAND"),
                o("NOR", "AB_NOR")]),
     ("SUFFIX", [o("d", "AB_SUF", 10), o("h", "AB_SUF", 16), o("o", "AB_SUF", 8), o("b", "AB_SUF", 2), NONE, NONE]),
     ("CMPLX", [o("i", "AB_KI"), o("\u03b8", "AB_KTHETA"), o("ARG", "AB_ARG"), o("[", "AB_KVEC"), NONE, NONE]),
     # the three formats are one core op each, both flags at once (rule 2; UG p.5-6)
-    ("FRAC", [o("FDISP", "AB_FDISP"), o("/c", "AB_SETC"), o("RCL/c", "AB_RCLC"), o("precise", "AB_FRACFMT", 0),
-              o("factors", "AB_FRACFMT", 1), o("fixed", "AB_FRACFMT", 2)]),
+    ("FRAC", [o("FDISP", "AB_FDISP"), o("/c", "AB_SETC"), o("RCL/c", "AB_RCLC"), o("PREC", "AB_FRACFMT", 0),
+              o("FCTR", "AB_FRACFMT", 1), o("FIXED", "AB_FRACFMT", 2)]),
+    # abacus #3958: EXP as drafted, LN(1+x) shortened to fit five cells (ours)
+    ("EXP", [o("2\u02e3", "AB_TWOX"), o("LOG\u2082", "AB_LOG2"), o("e\u02e3\u22121", "AB_EXPM1"), o("LN1+x", "AB_LN1P"),
+             NONE, NONE]),
     ("CONV", [o("\u2192kg", "AB_TOKG"), o("\u2192lb", "AB_TOLB"), o("\u2192\u00b0C", "AB_TOC"),
               o("\u2192\u00b0F", "AB_TOF"), o("\u2192cm", "AB_TOCM"), o("\u2192in", "AB_TOIN")]),
     ("UNITS", [o("\u2192l", "AB_TOL"), o("\u2192gal", "AB_TOGAL"), o("\u2192km", "AB_TOKM"),
                o("\u2192mile", "AB_TOMILE"), NONE, NONE]),
     ("ANGLE", [o("\u2192POL", "AB_TOPOL"), o("\u2192REC", "AB_TOREC"), o("\u2192HMS", "AB_HMS"),
                o("HMS\u2192", "AB_HMSINV"), o("\u2192DEG", "AB_TODEG"), o("\u2192RAD", "AB_TORAD")]),
-    ("VARS", [p("x\u2194", "AB_XVAR", "KM_ARG_VAR"), p("VIEW", "AB_VIEW", "KM_ARG_VAR"), o("CLVARS", "AB_CLVARS"),
+    ("VARS", [p("x\u2194", "AB_XVAR", "KM_ARG_VAR"), p("VIEW", "AB_VIEW", "KM_ARG_VAR"), o("CLR", "AB_CLVARS"),
               NONE, NONE, NONE]),
     ("STACK", [o("CLSTK", "AB_CLSTK"), o("LASTx", "AB_LASTX"), o("R\u2191", "AB_RUP"), o("x\u2194y", "AB_XY"),
                NONE, NONE]),
@@ -138,7 +142,7 @@ MENUS = [
     ("EQN LIST", [o("\u25b2", "AB_BST"), o("\u25bc", "AB_SST"), o("EDIT", "AB_KRIGHT"), o("NEW", "AB_EQTOP"),
                   NONE, o("EXIT", "AB_EQN")]),
     ("EQN TYPE", [o("\u25c0", "AB_KLEFT"), o("\u25b6", "AB_KRIGHT"), o("( )", "AB_KPAREN"), o("=", "AB_KEQ"),
-                  o("SPC", "AB_KSPACE"), ("REG\u25b8", "KM_MENU", "0", "REG", 0)]),
+                  o("SPC", "AB_KSPACE"), ("REG", "KM_MENU", "0", "REG", 0)]),
     ("REG", [o("REGX", "AB_KREG", 0), o("REGY", "AB_KREG", 1), o("REGZ", "AB_KREG", 2), o("REGT", "AB_KREG", 3),
              NONE, NONE]),
     # unit 022 (provisional homes): the device's settings (settings.h). RADIX: the mark and the

@@ -380,12 +380,13 @@ void app_ui(const app_state *a, screen_ui *ui)
         const km_action *it = &mn->item[i];
         if (mn->paged && i < 5) {               /* CONST's page: its constants by name */
             int k = a->menu_page * 5 + i;
-            ui->soft[i] = k < ab_const_count() ? ab_const_name(k) : NULL;
+            ui->soft[i] = k < ab_const_count() ? ab_const_symbol(k) : NULL;     /* by symbol (#3958) */
             continue;
         }
         bool all = it->kind == KM_CONFIRM && it->op == AB_CLALL;
         ui->soft[i] = all && a->c->prgm ? "PGM" : all && a->c->eqn_mode ? "EQN" : it->legend;
         ui->soft_on[i] = it->kind == KM_OP && it->op == AB_MODEL && it->arg == (a->c->m35 ? 35 : 33);
+        ui->soft_sub[i] = it->kind == KM_MENU;  /* a submenu: its box marked (#3958) */
         if (it->kind == KM_DEVICE) {            /* the settings in effect (unit 022) */
             static char off[8], vol[8];
             switch (it->arg) {

@@ -727,7 +727,7 @@ int main(void)
     /* unit 020: in Equation mode the soft keys are the editor's bar (the list's, or typing's) */
     {
         static const char *const LIST[6] = {"\xe2\x96\xb2", "\xe2\x96\xbc", "EDIT", "NEW", NULL, "EXIT"};
-        static const char *const TYPE[6] = {"\xe2\x97\x80", "\xe2\x96\xb6", "( )", "=", "SPC", "REG\xe2\x96\xb8"};
+        static const char *const TYPE[6] = {"\xe2\x97\x80", "\xe2\x96\xb6", "( )", "=", "SPC", "REG"};   /* REG boxed (#3958) */
         bool ok;
         ab_init(&c);
         app_init(&a, &c, now);
@@ -741,7 +741,7 @@ int main(void)
         app_ui(&a, &ui);
         ok = c.eqn_typing;
         for (int i = 0; i < 6; i++) ok = ok && ui.soft[i] && !strcmp(ui.soft[i], TYPE[i]);
-        expect(ok, "typing: the bar \xe2\x97\x80 \xe2\x96\xb6 ( ) = SPC REG\xe2\x96\xb8");
+        expect(ok && ui.soft_sub[5] && !ui.soft_sub[4], "typing: the bar \xe2\x97\x80 \xe2\x96\xb6 ( ) = SPC REG, REG boxed as a submenu");
         press(&a, "k:3 . 2 5 \xc3\x97 GOLD E \xc3\x97 RCL ltr:D y\xcb\xa3 2 \xc3\x97 RCL ltr:L ENTER");
         expect(!c.eqn_typing && c.eqn_cur >= 0 && !strcmp(c.eqn[c.eqn_cur], "V=0.25\xc3\x97\xcf\x80\xc3\x97" "D^2\xc3\x97L"),
                "V=0.25\xc3\x97\xcf\x80\xc3\x97" "D^2\xc3\x97L typed from the keys, = from the bar");

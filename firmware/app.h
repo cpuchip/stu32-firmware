@@ -74,7 +74,7 @@ typedef struct {
     int shift;              /* 0, 1 gold, 2 blue */
     int prompt_op;          /* the op waiting for its argument, -1 none */
     int prompt_kind;        /* KM_ARG_* */
-    char prompt_text[16];   /* what the X line shows meanwhile: "STO _" */
+    char prompt_text[24];   /* what the X line shows meanwhile: "STO _" */
     bool prompt_tens;       /* a digit prompt has had its point: the next digit is 10-19 */
     int prompt_n, prompt_val;   /* an address prompt's digits so far, and their value */
     int confirm_op;         /* the op a yes/no prompt waits to do (CLR ALL?), -1 none */

@@ -399,6 +399,8 @@ static void soft_band(ls027_frame *f, const screen_ui *ui)
         bool on = ui->soft_on[k];               /* the setting in effect: drawn inverted (unit 019) */
         frame_box(f, x, SOFT_Y, 64, 30);
         if (on) screen_fill(f, x, SOFT_Y, 64, 30, true);
+        if (ui->soft_sub[k]) screen_fill(f, x, SOFT_Y, 64, 4, !on);   /* a submenu: a thick top edge, clear of
+                                                                        any label (five cells fill the width) */
         line l = {.n = 0, .cursor = -1};
         line_add(&l, s);
         draw_cps(f, x + (64 - span(n, 2)) / 2, SOFT_Y + 8, 2, l.cp, n, !on);
