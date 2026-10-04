@@ -2547,6 +2547,7 @@ static abn_status program_key(ab_calc *c, ab_op op, int arg)
     case AB_CLALL:                          /* in program entry the menu offers CLPGM in its place
                                                (UG p.1-5) */
     case AB_FRACFMT:                        /* a device menu setting, as FDISP (unit 019) */
+    case AB_CLEQN:                          /* as CLPGM, a clearing that is not a line */
         return ABN_NONPROGRAMMABLE;
     case AB_CLVARX:
         if (arg < 0 || arg > AB_IND_MAX) return ABN_DOMAIN;
@@ -3103,10 +3104,10 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
         if (c->m35) return ABN_OK;
     }
     c->err_set = false;
-    /* CLEAR ALL acts in Equation mode too, ending it (unit 021: never a silent no-op once the
-       device has asked CLR ALL?) */
+    /* CLEAR ALL and CLR EQN act in Equation mode too (unit 021: never a silent no-op once the
+       device has asked CLR ALL? or CLR EQN?) */
     if (c->prgm) st = program_key(c, op, arg);
-    else if (c->eqn_mode && !c->eqn_pending && op != AB_CLALL) st = eqn_key(c, op, arg);
+    else if (c->eqn_mode && !c->eqn_pending && op != AB_CLALL && op != AB_CLEQN) st = eqn_key(c, op, arg);
     else st = do_key(c, op, arg);
     if (st != ABN_OK && st != ABN_CLAMPED) {
         c->msg = true;
@@ -3625,6 +3626,27 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
            first (UG p.1-5) */
         ab_clear_all(c);
         return ABN_OK;
+    case AB_CLEQN: {
+        /* Clear the equations (UG p.1-5: CLEAR's EQN in Equation mode, CLR EQN?), the built-in
+           solvers kept as CLEAR ALL keeps them (UG p.6-6); EQN LIST TOP; FN= kept only on a
+           built-in. Neutral for lift (ours: it clears no number). */
+        int n = 0, fn = -1;
+        for (int i = 0; i < c->eqn_count; i++) {
+            if (c->eqn[i][0] != '\x01') continue;
+            if (i == c->fn_eqn) fn = n;
+            if (n != i) strcpy(c->eqn[n], c->eqn[i]);
+            n++;
+        }
+        c->eqn_count = n;
+        c->fn_eqn = fn;
+        c->eqn_cur = -1;
+        c->eqn_typing = false;
+        c->eqn_edit = -1;
+        c->ebuf[0] = '\0';
+        c->ecur = 0;
+        c->eqn_pending = c->eqn_nvars = c->eqn_next = 0;
+        return ABN_OK;
+    }
     case AB_FRACFMT:
         /* The fraction format as its two flags at once (UG p.5-6; unit 019 rule 2): precise
            clears 8; factors sets 8 and clears 9; fixed sets both. A display setting, so neutral

@@ -112,6 +112,15 @@ void app_key(app_state *a, int key, uint32_t now_ms)
         if (face->kind == KM_OP && (face->op == AB_CANCEL || face->op == AB_RS)) ab_interrupt(a->c);
         return;
     }
+    if (a->c->msg && a->c->m35 && face->kind != KM_SHIFT) {
+        /* the 35s: a key with a message showing only clears it (UG p.F-1, unit 017 rule 4), a
+           key that would open a menu or a prompt too, so no op a menu confirms is spent on it
+           (unit 021's review); not an undo point, so UNDO still goes back before the error */
+        a->c->msg = false;
+        a->shift = 0;
+        a->dirty = true;
+        return;
+    }
     if (a->confirm_op >= 0) {                   /* CLR ALL? Y N: soft key 1 is yes; any other key
                                                    only cancels (UG p.1-5) */
         int op = a->confirm_op;
@@ -219,8 +228,9 @@ static void do_action(app_state *a, const km_action *act)
             a->menu_page = 0;
         }
         break;
-    case KM_CONFIRM:                            /* in program entry ALL is PGM (UG p.1-5) */
-        a->confirm_op = act->op == AB_CLALL && a->c->prgm ? AB_CLPGM : act->op;
+    case KM_CONFIRM:                            /* ALL is PGM in program entry, EQN in Equation
+                                                   mode (UG p.1-5) */
+        a->confirm_op = act->op != AB_CLALL ? act->op : a->c->prgm ? AB_CLPGM : a->c->eqn_mode ? AB_CLEQN : AB_CLALL;
         break;
     case KM_DEVICE:
         if (act->arg == KM_DEV_OFF) a->off = true;
@@ -274,7 +284,7 @@ void app_ui(const app_state *a, screen_ui *ui)
     ui->busy = a->running ? a->busy_op : 0;
     ui->prompt = a->prompt_op >= 0 ? a->prompt_text : NULL;
     if (a->confirm_op >= 0) {
-        ui->prompt = a->confirm_op == AB_CLPGM ? "CLR PGMS?" : "CLR ALL?";
+        ui->prompt = a->confirm_op == AB_CLPGM ? "CLR PGMS?" : a->confirm_op == AB_CLEQN ? "CLR EQN?" : "CLR ALL?";
         ui->soft[0] = "Y";
         ui->soft[1] = "N";
         return;
@@ -287,7 +297,8 @@ void app_ui(const app_state *a, screen_ui *ui)
             ui->soft[i] = k < ab_const_count() ? ab_const_name(k) : NULL;
             continue;
         }
-        ui->soft[i] = it->kind == KM_CONFIRM && it->op == AB_CLALL && a->c->prgm ? "PGM" : it->legend;
+        bool all = it->kind == KM_CONFIRM && it->op == AB_CLALL;
+        ui->soft[i] = all && a->c->prgm ? "PGM" : all && a->c->eqn_mode ? "EQN" : it->legend;
         ui->soft_on[i] = it->kind == KM_OP && it->op == AB_MODEL && it->arg == (a->c->m35 ? 35 : 33);
     }
 }

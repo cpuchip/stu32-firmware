@@ -194,6 +194,23 @@ for name, f, gens in [
         CASES.append((name, "RAD", gen, f, 8))
 
 
+# unit 021's review: tiny arguments, where the engine underflows inside (below about 1E-3000)
+def tiny_arg():
+    return logspace(-6140, -2900, True)
+
+
+for name, f in [("EXP", mp.exp), ("TENX", lambda x: mp.power(10, x)), ("TWOX", lambda x: mp.power(2, x)),
+                ("SINH", mp.sinh), ("COSH", mp.cosh), ("TANH", mp.tanh), ("ASINH", mp.asinh),
+                ("ATANH", mp.atanh), ("EXPM1", mp.expm1), ("LN1P", mp.log1p)]:
+    CASES.append((name, "RAD", tiny_arg, f, 8))
+for mode in ("DEG", "RAD", "GRAD"):
+    k = ANG[mode]
+    for fname, f in (("ASIN", mp.asin), ("ACOS", mp.acos), ("ATAN", mp.atan)):
+        CASES.append((fname, mode, tiny_arg, lambda x, f=f, k=k: f(x) / k, 8))
+    for fname, f in (("SIN", mp.sin), ("COS", mp.cos), ("TAN", mp.tan)):
+        CASES.append((fname, mode, tiny_arg, lambda x, f=f, k=k: f(x * k), 8))
+
+
 def prob_truth(f, y, x):
     """nCr, nPr: r > n or n >= 10^16 is INVALID DATA (p.F-2, ruled #3778): no true value"""
     if int(x) > int(y) or int(y) >= 10**16:

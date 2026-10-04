@@ -27,8 +27,11 @@
  * - An address prompt (CLVARx, unit 021; UG p.1-5's three placeholders) reads three digit keys,
  *   "CLVAR___" filling as they come; the third completes it, backspace takes one back, C cancels,
  *   other keys do nothing.
- * - A yes/no prompt (CLEAR ALL, unit 021; UG p.1-5's CLR ALL? Y N; in program entry the item is
- *   PGM, CLR PGMS?): soft key 1 is yes, and any other key, a shift included, only cancels.
+ * - A yes/no prompt (CLEAR ALL, unit 021; UG p.1-5's CLR ALL? Y N; the item is PGM, CLR PGMS?,
+ *   in program entry and EQN, CLR EQN?, in Equation mode): soft key 1 is yes, and any other key,
+ *   a shift included, only cancels.
+ * - On the 35s a key with a message showing only clears it, whatever it would have done (a menu
+ *   or a prompt included), as the core does for the keys it sees (unit 017 rule 4).
  * - UNDO (unit 021, ours): before each key that reaches the core (VIEW excepted: it changes
  *   nothing) the state image is kept, and UNDO swaps it with the state, so a second UNDO puts it
  *   back. A run is one key. Shifts, menus and prompts opening are not undo points. The device gives

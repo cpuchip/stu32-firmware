@@ -56,6 +56,19 @@ static bool small_int(const abn *x, int32_t *v)
     return true;
 }
 
+/* Below 1E-40 a function's series has its first term alone to far beyond 34 digits (the next term
+ * is x squared smaller), and the engine underflows inside below about 1E-3000 (x squared), so the
+ * functions below take that term themselves (found in unit 021's review). */
+static bool tiny(const abn *x)
+{
+    bool neg;
+    char d[ABN_DIGITS + 1];
+    int lead;
+    if (abn_is_zero(x)) return false;
+    abn_digits(x, &neg, d, &lead);
+    return lead < -40;
+}
+
 /* An odd integer: x mod 2 is +-1. */
 static bool is_odd_integer(const abn *x)
 {
@@ -194,6 +207,10 @@ abn_status fn_tenx(abn *out, const abn *x)
 {
     int32_t n;
     if (small_int(x, &n)) return abn_pow10(out, n);    /* 10^n exactly */
+    if (tiny(x)) {                                      /* 1 + x ln 10: 1 */
+        *out = one();
+        return ABN_OK;
+    }
     return abn_exp10(out, x);
 }
 
@@ -249,32 +266,33 @@ abn_status fn_ln1p(abn *out, const abn *x)
     return hp_round(out, &r);
 }
 
+/* 2^x: exact on the integer powers that fit; otherwise e^(x ln 2) in hp, rounded once (the engine's
+ * pow underflowed inside for a tiny x, unit 021's review). */
 abn_status fn_twox(abn *out, const abn *x)
 {
-    abn two = abn_from_int(2);
-    return fn_pow(out, &two, x);    /* exact on the integer powers that fit */
+    static hp hx, one, two, l2, t, r;
+    abn two_ = abn_from_int(2);
+    if (abn_is_integer(x)) return fn_pow(out, &two_, x);
+    hp_set_int(&one, 1);
+    hp_set_int(&two, 2);
+    if (!hp_from_abn(&hx, x) || !hp_ln(&l2, &two, &one, FN_HP + 5) || !hp_mul(&t, &hx, &l2, FN_HP + 5) ||
+        !hp_exp(&r, &t, FN_HP))
+        return ABN_RANGE;           /* |x ln 2| >= 10^7: beyond the range either way */
+    return hp_round(out, &r);
 }
 
-/* log2 x, x > 0 (as LOG). A power of two exact in 34 digits gives its power exactly. */
+/* log2 x, x > 0 (as LOG). A power of two comes out as its power exactly: ln x / ln 2 is within
+ * 10^-48 of the integer, which rounds to it. */
 abn_status fn_log2(abn *out, const abn *x)
 {
     static hp hx, t, one, two, l, l2, r;
-    abn res, h, n, p, two_ = abn_from_int(2), half = K("0.5");
-    int32_t k;
     if (abn_is_zero(x) || abn_is_negative(x)) return ABN_DOMAIN;
     hp_set_int(&one, 1);
     hp_set_int(&two, 2);
     if (!hp_from_abn(&hx, x) || !hp_add(&t, &hx, &one, true, HP_PMAX) || !hp_ln(&l, &hx, &t, FN_HP + 5) ||
         !hp_ln(&l2, &two, &one, FN_HP + 5) || !hp_div(&r, &l, &l2, FN_HP))
         return ABN_RANGE;
-    abn_status st = hp_round(&res, &r);
-    if (st != ABN_OK) return st;
-    /* 2^k is exact in 34 digits for -48 <= k <= 112 */
-    if (abn_add(&h, &res, &half) == ABN_OK && fn_intg(&n, &h) == ABN_OK && small_int(&n, &k) && k >= -48 &&
-        k <= 112 && fn_pow(&p, &two_, &n) == ABN_OK && abn_cmp(&p, x) == 0)
-        res = n;
-    *out = res;
-    return ABN_OK;
+    return hp_round(out, &r);
 }
 
 /* y^x (UG p.4-2). A negative base needs an integer power, zero to a negative power is
@@ -720,10 +738,11 @@ static const exact_angle ACOS_EXACT[] = {
 static const exact_angle ATAN_EXACT[] = {{"0", "0", "0"}, {"1", "45", "50"}, {"-1", "-45", "-50"}};
 
 static abn_status inverse(abn *out, const abn *x, fn_angle m, abn_status (*f)(abn *, const abn *),
-                          const exact_angle *table, int count)
+                          const exact_angle *table, int count, bool odd)
 {
-    abn r, k;
+    abn r, k, z = abn_zero();
     abn_status st;
+    if (tiny(x) && !odd) x = &z;        /* acos of a tiny x: acos 0 (pi/2 - x rounds to it) */
     if (m != FN_RAD) {
         for (int i = 0; i < count; i++) {
             const char *v = m == FN_DEG ? table[i].deg : table[i].grad;
@@ -734,7 +753,8 @@ static abn_status inverse(abn *out, const abn *x, fn_angle m, abn_status (*f)(ab
             }
         }
     }
-    if ((st = f(&r, x)) != ABN_OK) return st;
+    if (tiny(x)) r = *x;                /* asin, atan: x itself */
+    else if ((st = f(&r, x)) != ABN_OK) return st;
     if (m == FN_RAD) {
         *out = r;
         return ABN_OK;
@@ -745,27 +765,44 @@ static abn_status inverse(abn *out, const abn *x, fn_angle m, abn_status (*f)(ab
 
 abn_status fn_asin(abn *out, const abn *x, fn_angle m)
 {
-    return inverse(out, x, m, abn_asin, ASIN_EXACT, (int)(sizeof ASIN_EXACT / sizeof ASIN_EXACT[0]));
+    return inverse(out, x, m, abn_asin, ASIN_EXACT, (int)(sizeof ASIN_EXACT / sizeof ASIN_EXACT[0]), true);
 }
 
 abn_status fn_acos(abn *out, const abn *x, fn_angle m)
 {
-    return inverse(out, x, m, abn_acos, ACOS_EXACT, (int)(sizeof ACOS_EXACT / sizeof ACOS_EXACT[0]));
+    return inverse(out, x, m, abn_acos, ACOS_EXACT, (int)(sizeof ACOS_EXACT / sizeof ACOS_EXACT[0]), false);
 }
 
 abn_status fn_atan(abn *out, const abn *x, fn_angle m)
 {
-    return inverse(out, x, m, abn_atan, ATAN_EXACT, (int)(sizeof ATAN_EXACT / sizeof ATAN_EXACT[0]));
+    return inverse(out, x, m, abn_atan, ATAN_EXACT, (int)(sizeof ATAN_EXACT / sizeof ATAN_EXACT[0]), true);
 }
 
 /* ---- hyperbolic (UG p.4-6) ---- */
 
-abn_status fn_sinh(abn *out, const abn *x) { return abn_sinh(out, x); }
-abn_status fn_cosh(abn *out, const abn *x) { return abn_cosh(out, x); }
-abn_status fn_tanh(abn *out, const abn *x) { return abn_tanh(out, x); }
-abn_status fn_asinh(abn *out, const abn *x) { return abn_asinh(out, x); }
+/* the odd ones of a tiny x are x, cosh is 1 (see tiny) */
+static abn_status odd_fn(abn *out, const abn *x, abn_status (*f)(abn *, const abn *))
+{
+    if (tiny(x)) {
+        *out = *x;
+        return ABN_OK;
+    }
+    return f(out, x);
+}
+
+abn_status fn_sinh(abn *out, const abn *x) { return odd_fn(out, x, abn_sinh); }
+abn_status fn_cosh(abn *out, const abn *x)
+{
+    if (tiny(x)) {
+        *out = one();
+        return ABN_OK;
+    }
+    return abn_cosh(out, x);
+}
+abn_status fn_tanh(abn *out, const abn *x) { return odd_fn(out, x, abn_tanh); }
+abn_status fn_asinh(abn *out, const abn *x) { return odd_fn(out, x, abn_asinh); }
 abn_status fn_acosh(abn *out, const abn *x) { return abn_acosh(out, x); }
-abn_status fn_atanh(abn *out, const abn *x) { return abn_atanh(out, x); }
+abn_status fn_atanh(abn *out, const abn *x) { return odd_fn(out, x, abn_atanh); }
 
 /* ======================================================================================== */
 /* unit 004: parts of numbers, RND, H.MMSS, conversions, probability, rect/polar, RAND        */
