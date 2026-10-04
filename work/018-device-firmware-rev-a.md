@@ -88,3 +88,11 @@ two-calculator state in PSRAM before turning it on.
 
 Host-testable now: the scan with key 42 from a separate input (the simulated matrix plus one GPIO),
 and the sleep configuration's wake mask, a pure function of the pin table.
+
+Power, from the 3.3 V regulator's margins (abacus with draftsman #3924/#3925; facts §6): the
+RT9080 is adequate, not generous.
+- Cap Wi-Fi TX power while on USB. Sustained full-power TX at OUT = V_BAT + 225 mV reaches the
+  TSOT-23-5's 0.43 W rating.
+- Keep the radio off below about V_BAT 3.5 V (from the gauge). TX peaks brown the module out below
+  3.2-3.35 V.
+- Bring-up check on Rev A: a sustained-TX soak with the LDO's case temperature measured.
