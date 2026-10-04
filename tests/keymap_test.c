@@ -66,7 +66,7 @@ static const want W[] = {
     /* row 6 */
     {6, 0, KM_FACE, KM_SHIFT, 0, 2, 0, ""},
     OPK(6, 1, KM_FACE, AB_K1, "1"), MENU(6, 1, KM_GOLD, "UNITS"), MENU(6, 1, KM_BLUE, "MEM"),
-    OPK(6, 2, KM_FACE, AB_K2, "2"), {6, 2, KM_GOLD, KM_MENU, 0, 1, 0, "DISP"} /* menu 1 (#3901) */, MENU(6, 2, KM_BLUE, "\xe2\x88\xa1MODE"),
+    OPK(6, 2, KM_FACE, AB_K2, "2"), {6, 2, KM_GOLD, KM_MENU, 0, 1, 0, "DISP"} /* menu 1 (#3901) */, {6, 2, KM_BLUE, KM_MENU, 0, 2, 0, "\xe2\x88\xa1MODE"} /* menu 2 (decision 33) */,
     OPK(6, 3, KM_FACE, AB_K3, "3"), MENU(6, 3, KM_GOLD, "RADIX"), MENU(6, 3, KM_BLUE, "SETUP"),
     OPK(6, 4, KM_FACE, AB_SUB, "\xe2\x88\x92"), OPK(6, 4, KM_GOLD, AB_RAND, "RAND"), OPK(6, 4, KM_BLUE, AB_SEED, "SEED"),
     /* row 7 */
@@ -146,7 +146,17 @@ int main(void)
         expect(pm && !strcmp(pm->name, "PRGM"), "menu 0 is PRGM");
         const km_menu *dm = km_menu_at(1);
         expect(dm && !strcmp(dm->name, "DISP"), "menu 1 is DISP (#3901)");
-        expect(km_menu_at(2) == NULL && km_menu_at(-1) == NULL, "only PRGM and DISP are defined");
+        const km_menu *am = km_menu_at(2);
+        expect(am && !strcmp(am->name, "\xe2\x88\xa1MODE"), "menu 2 is the angle mode (decision 33)");
+        if (am) {
+            expect(am->item[0].kind == KM_OP && am->item[0].op == AB_DEG && !strcmp(am->item[0].legend, "DEG") &&
+                       am->item[1].kind == KM_OP && am->item[1].op == AB_RAD && !strcmp(am->item[1].legend, "RAD") &&
+                       am->item[2].kind == KM_OP && am->item[2].op == AB_GRAD && !strcmp(am->item[2].legend, "GRAD"),
+                   "the angle-mode menu: DEG, RAD, GRAD");
+            expect(am->item[3].kind == KM_NONE && am->item[4].kind == KM_NONE && am->item[5].kind == KM_NONE &&
+                       am->item[3].legend && am->item[5].legend, "its soft keys 4-6 empty");
+        }
+        expect(km_menu_at(3) == NULL && km_menu_at(-1) == NULL, "only PRGM, DISP and the angle mode are defined");
         if (dm) {
             static const struct { km_kind kind; int op, prompt; const char *legend; } D[6] = {
                 {KM_PROMPT, AB_SETFIX, KM_ARG_DIGITS, "FIX"}, {KM_PROMPT, AB_SETSCI, KM_ARG_DIGITS, "SCI"},

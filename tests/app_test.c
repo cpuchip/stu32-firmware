@@ -323,6 +323,22 @@ int main(void)
     }
     ab_do(&c, AB_PRGM);
 
+    /* the angle-mode menu (decision 33): BLUE 2, then DEG, RAD or GRAD; an empty soft key closes it */
+    ab_init(&c);
+    app_init(&a, &c, now);
+    press(&a, "BLUE 2");
+    app_ui(&a, &ui);
+    expect(ui.soft[1] && !strcmp(ui.soft[1], "RAD") && (!ui.soft[3] || !ui.soft[3][0]), "BLUE 2: DEG RAD GRAD on the soft keys");
+    press(&a, "k:1");
+    expect(c.angle == AB_ANGLE_RAD, "RAD");
+    press(&a, "BLUE 2 k:2");
+    expect(c.angle == AB_ANGLE_GRAD, "GRAD");
+    press(&a, "BLUE 2 k:4");
+    app_ui(&a, &ui);
+    expect(c.angle == AB_ANGLE_GRAD && !ui.soft[0], "an empty soft key: nothing, the menu closed");
+    press(&a, "BLUE 2 k:0");
+    expect(c.angle == AB_ANGLE_DEG, "DEG");
+
     /* other menus and the soft keys alone do nothing yet; nothing crashes on any key in any shift */
     ab_init(&c);
     app_init(&a, &c, now);
