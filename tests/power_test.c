@@ -191,6 +191,7 @@ int main(void)
         static const double want_db[PIEZO_LEVELS] = {0, -16.1, -10.2, -3.0, 0.0};
         double prev = -1e9;
         expect(piezo_duty(0, 10) == 0, "level 0: off");
+        expect(PIEZO_HZ == 4000, "the tones at the piezo's rated 4 kHz (PKMCS0909E4000; abacus #4073)");
         for (int lv = 1; lv < PIEZO_LEVELS; lv++) {
             uint32_t d = piezo_duty(lv, 10);
             double duty = d / 1024.0, db = 20 * log10(sin(3.14159265358979323846 * duty));   /* pi */

@@ -8,6 +8,7 @@
 #include <stdint.h>
 
 #define PIEZO_LEVELS 5          /* 0 off, 1 -16 dB, 2 -10 dB, 3 -3 dB, 4 loudest */
+#define PIEZO_HZ 2000           /* the tones' frequency */
 
 /* The duty for a level, out of 2^bits (LEDC's resolution); 0 for off or a level out of range. */
 uint32_t piezo_duty(int level, int bits);
