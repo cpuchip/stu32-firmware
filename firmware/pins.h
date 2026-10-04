@@ -4,6 +4,7 @@
 #define PINS_H
 
 #include <stdbool.h>
+#include <stdint.h>
 
 /* the key matrix (keys.h): rows are RTC GPIOs so a key can wake the chip */
 #define PIN_ROWS {1, 2, 4, 5, 6, 7, 8, 9}
@@ -20,6 +21,11 @@
 #define PIN_SCL 41
 #define PIN_CHG_N 42            /* input: low while the battery charges (open drain, pulled up) */
 #define PIN_PGOOD_N 47          /* input: low while a valid input source is present */
+/* Rev A pass 6 (abacus decision 34): C (ON) on IO0, active low on its 10k pull-up, off the
+   matrix; it alone wakes the chip from deep sleep (EXT1 ANY_LOW). A piezo on IO46 through a
+   low-side MOSFET, driven by LEDC; IO46 is a strapping pin, untouched until after boot. */
+#define PIN_ON 0
+#define PIN_PIEZO 46
 #define PIN_EN1 3
 #define PIN_EN2 48
 
@@ -32,5 +38,8 @@ typedef struct {
 /* Every output and its first level, in the order they are set. */
 extern const pin_boot PIN_BOOT[];
 extern const int PIN_BOOT_COUNT;
+
+/* The pins that wake the chip from deep sleep, as an EXT1 mask (bit n for IOn). */
+uint64_t pin_wake_mask(void);
 
 #endif

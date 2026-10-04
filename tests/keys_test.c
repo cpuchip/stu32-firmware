@@ -9,9 +9,16 @@
 typedef struct {
     bool closed[KB_KEYS];
     int col;
+    bool on_wire;           /* Rev A pass 6: the ON switch on its own pin (IO0), not in the matrix */
+    bool stray_r7c0;        /* a contact at the matrix's old ON position, which must be ignored then */
 } matrix;
 
 static void drive(void *ctx, int col) { ((matrix *)ctx)->col = col; }
+
+static bool rd_on(void *ctx)
+{
+    return ((matrix *)ctx)->closed[KB_ON_KEY];
+}
 
 static uint8_t rd(void *ctx)
 {
@@ -19,7 +26,9 @@ static uint8_t rd(void *ctx)
     uint8_t rows = 0;
     if (m->col < 0) return 0;
     for (int r = 0; r < KB_ROWS; r++)
-        if (m->closed[r * KB_COLS + m->col]) rows |= (uint8_t)(1u << r);
+        if (m->closed[r * KB_COLS + m->col] && !(m->on_wire && r * KB_COLS + m->col == KB_ON_KEY))
+            rows |= (uint8_t)(1u << r);
+    if (m->stray_r7c0 && m->col == KB_ON_KEY % KB_COLS) rows |= (uint8_t)(1u << (KB_ON_KEY / KB_COLS));
     return rows;
 }
 
@@ -33,7 +42,7 @@ static void expect(bool ok, const char *what, int a, int b)
 int main(void)
 {
     static matrix m;
-    kb_io io = {&m, drive, rd};
+    kb_io io = {&m, drive, rd, NULL};      /* ON in the matrix: the wiring before Rev A pass 6 */
     kb_state k;
     int keys = 0, pairs = 0, bounces = 0;
     /* every key alone: one event, the right number, none repeated while held */
@@ -114,6 +123,61 @@ int main(void)
     for (int t = 0; t < 30; t++) kb_scan(&k, &io);
     expect(kb_next(&k) == -1, "a tap shorter than the debounce is no key", 3, 0);
     expect(keys == 43, "the layout has 43 keys", keys, 0);
+
+    /* Rev A pass 6 (abacus decision 34): C (ON, key 42) on its own input, IO0, debounced like the
+       matrix keys; the matrix's row 7 column 0 is no longer a key */
+    {
+        kb_io io_on = {&m, drive, rd, rd_on};
+        int on_pairs = 0;
+        kb_init(&k);
+        memset(&m, 0, sizeof m);
+        m.on_wire = true;
+        m.closed[KB_ON_KEY] = true;
+        for (int t = 0; t < 50; t++) kb_scan(&k, &io_on);
+        expect(kb_next(&k) == KB_ON_KEY && kb_next(&k) == -1, "ON from its own input: one event", KB_ON_KEY, 0);
+        m.closed[KB_ON_KEY] = false;
+        for (int t = 0; t < 50; t++) kb_scan(&k, &io_on);
+        expect(kb_next(&k) == -1, "ON released: no event", KB_ON_KEY, 0);
+        kb_init(&k);
+        memset(&m, 0, sizeof m);
+        m.on_wire = true;
+        m.closed[KB_ON_KEY] = true;
+        for (int t = 0; t < KB_DEBOUNCE - 1; t++) kb_scan(&k, &io_on);
+        m.closed[KB_ON_KEY] = false;
+        for (int t = 0; t < 30; t++) kb_scan(&k, &io_on);
+        expect(kb_next(&k) == -1, "ON tapped shorter than the debounce: no key", KB_ON_KEY, 0);
+        /* with every matrix key, both orders: two events in order */
+        for (int b = 0; b < KB_KEYS; b++) {
+            if (b == KB_ON_KEY || !kb_exists(b / KB_COLS, b % KB_COLS)) continue;
+            for (int order = 0; order < 2; order++) {
+                int first = order ? b : KB_ON_KEY, second = order ? KB_ON_KEY : b;
+                kb_init(&k);
+                memset(&m, 0, sizeof m);
+                m.on_wire = true;
+                m.closed[first] = true;
+                for (int t = 0; t < 20; t++) kb_scan(&k, &io_on);
+                m.closed[second] = true;
+                for (int t = 0; t < 20; t++) kb_scan(&k, &io_on);
+                expect(kb_next(&k) == first && kb_next(&k) == second && kb_next(&k) == -1, "ON with a matrix key", first,
+                       second);
+                on_pairs++;
+            }
+        }
+        expect(on_pairs == 2 * 42, "ON paired with each of the 42 matrix keys, both orders", on_pairs, 0);
+        /* a stray contact at the matrix's old ON position is ignored */
+        kb_init(&k);
+        memset(&m, 0, sizeof m);
+        m.on_wire = true;
+        m.stray_r7c0 = true;
+        for (int t = 0; t < 50; t++) kb_scan(&k, &io_on);
+        expect(kb_next(&k) == -1 && !k.down[KB_ON_KEY], "row 7 column 0 of the matrix: not a key now", 0, 0);
+        /* and without its own input, ON is still the matrix's (the old wiring) */
+        kb_init(&k);
+        memset(&m, 0, sizeof m);
+        m.stray_r7c0 = true;
+        for (int t = 0; t < 50; t++) kb_scan(&k, &io);
+        expect(kb_next(&k) == KB_ON_KEY, "no ON input: key 42 from the matrix as before", 0, 0);
+    }
     printf("keys_test: %d keys alone, %d pairs, %d bounce patterns, rectangle, short tap: %s\n", keys, pairs, bounces,
            bad ? "FAIL" : "all as expected");
     return bad ? 1 : 0;

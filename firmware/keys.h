@@ -24,6 +24,8 @@ typedef struct {
     void *ctx;
     void (*drive)(void *ctx, int col);  /* drive column col low and release the others; -1 all */
     uint8_t (*read)(void *ctx);         /* the rows: bit r set when ROWr reads low (pressed) */
+    bool (*read_on)(void *ctx);         /* Rev A pass 6 (decision 34): C (ON, key 42) on its own pin,
+                                           IO0, true when pressed; NULL: key 42 is in the matrix */
 } kb_io;
 
 typedef struct {

@@ -161,6 +161,35 @@ int main(void)
         for (size_t i = 0; i < sizeof cols / sizeof cols[0]; i++) expect(!seen[cols[i]], "a column driven at boot");
     }
 
+    /* Rev A pass 6 (decision 34): C on IO0 wakes the chip alone (EXT1 ANY_LOW on an RTC GPIO); IO0
+       and the piezo's IO46 (a strapping pin that must read 0 at reset) are not driven at boot */
+    {
+        uint64_t mask = pin_wake_mask();
+        expect(mask == (1ull << PIN_ON) && PIN_ON == 0, "the wake mask: IO0 alone");
+        expect((mask >> 22) == 0, "the wake pins are RTC GPIOs (IO0-IO21, facts 2.5)");
+        expect(PIN_PIEZO == 46, "the piezo on IO46");
+        for (int i = 0; i < PIN_BOOT_COUNT; i++) {
+            expect(PIN_BOOT[i].pin != PIN_ON, "IO0 (C) not driven at boot: its pull-up holds it");
+            expect(PIN_BOOT[i].pin != PIN_PIEZO, "IO46 untouched until after boot (a strapping pin)");
+        }
+    }
+    /* the radio, from the regulator's margins (#3924/#3925, facts section 6): off below about
+       V_BAT 3.5 V; its TX power capped while on USB */
+    {
+        pwr_inputs on_cell = {true, true, 50, false}, on_usb = {true, false, 50, false};
+        pwr_radio r;
+        r = pwr_radio_rule(&on_cell, 3500000);
+        expect(r.allowed && !r.cap_tx, "3.5 V on the cell: the radio allowed, uncapped");
+        r = pwr_radio_rule(&on_cell, 3499999);
+        expect(!r.allowed, "below 3.5 V: no radio (TX peaks brown the module out below 3.2-3.35 V)");
+        r = pwr_radio_rule(&on_usb, 4100000);
+        expect(r.allowed && r.cap_tx, "on USB: allowed, TX capped (the LDO at its 0.43 W rating)");
+        r = pwr_radio_rule(&on_usb, 3400000);
+        expect(!r.allowed, "on USB but the cell low: still no radio");
+        r = pwr_radio_rule(&on_cell, 0);
+        expect(!r.allowed, "the cell not read (0): no radio");
+    }
+
     printf("power_test: %d/%d checks\n", checks - bad, checks);
     return bad != 0;
 }

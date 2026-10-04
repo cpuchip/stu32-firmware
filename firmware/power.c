@@ -30,3 +30,12 @@ bool pwr_external(const pwr_inputs *in)
 {
     return !in->pgood_n;
 }
+
+/* red: decision 34's stub, replaced in the green commit */
+pwr_radio pwr_radio_rule(const pwr_inputs *in, uint32_t vbat_uv)
+{
+    (void)in;
+    (void)vbat_uv;
+    pwr_radio r = {false, false};
+    return r;
+}

@@ -12,3 +12,9 @@ const pin_boot PIN_BOOT[] = {
     {PIN_EN1, true, "charger input limit USB500"},
 };
 const int PIN_BOOT_COUNT = (int)(sizeof PIN_BOOT / sizeof PIN_BOOT[0]);
+
+/* red: decision 34's stub, replaced in the green commit */
+uint64_t pin_wake_mask(void)
+{
+    return 0;
+}

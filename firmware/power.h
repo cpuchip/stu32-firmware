@@ -31,6 +31,20 @@ typedef struct {
     uint32_t last_ms;       /* the last activity, on a clock that may wrap */
 } pwr_state;
 
+/* The radio (Rev A has none in use yet; the rule for when it does, from the 3.3 V regulator's
+   margins, abacus #3924/#3925, facts section 6): off below about V_BAT 3.5 V, where TX peaks brown
+   the module out (3.2-3.35 V); allowed above, with its TX power capped while on USB, where
+   sustained full-power TX reaches the LDO's 0.43 W rating. The cap's value is set by Rev A's
+   bring-up soak (the LDO's case temperature under sustained TX), not here. */
+#define PWR_RADIO_MIN_UV 3500000u
+
+typedef struct {
+    bool allowed;
+    bool cap_tx;
+} pwr_radio;
+
+pwr_radio pwr_radio_rule(const pwr_inputs *in, uint32_t vbat_uv);
+
 void pwr_init(pwr_state *p, uint32_t now_ms);
 void pwr_activity(pwr_state *p, uint32_t now_ms);
 pwr_action pwr_check(pwr_state *p, const pwr_inputs *in, uint32_t now_ms);
