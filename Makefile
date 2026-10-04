@@ -106,6 +106,7 @@ test: all
 	./build/vectors work/015-vectors.txt
 	./build/vectors work/015b-vectors.txt
 	./build/vectors work/016-vectors.txt
+	AB_SAVELOAD=1 AB_STORE=1 ./build/vectors work/016-vectors.txt
 	./build/vectors work/017-vectors.txt
 	./build/vectors work/018-vectors.txt
 	./build/vectors work/021-vectors.txt
