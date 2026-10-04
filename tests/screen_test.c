@@ -823,9 +823,9 @@ int main(int argc, char **argv)
         expect(pg.x.kind == SCREEN_EQN && !strcmp(pg.x.text, "EQN LIST TOP") && pg.status.eqn, "text: EQN LIST TOP, EQN on");
         /* the status band */
         ab_init(&c);
-        keys(&c, "RAD HEX PRGM");
-        ab_do_arg(&c, AB_SF, 1);
+        ab_do_arg(&c, AB_SF, 1);                /* before PRGM, where SF would be a line */
         ab_do_arg(&c, AB_SF, 3);
+        keys(&c, "RAD HEX PRGM");
         ui.shift = 1;
         ui.battery = 80;
         screen_lines(&c, &ui, &pg);

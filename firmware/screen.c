@@ -190,16 +190,39 @@ typedef struct {
     uint32_t cp[LINE_MAX_CP];
     int n;
     int cursor;                 /* the cell the cursor is in, -1 none */
+    char u8[SCREEN_TEXT_MAX];   /* the same cells as UTF-8, for screen_lines */
+    int ulen;
 } line;
+
+static void u8_add(line *l, const char *b, int n)
+{
+    if (l->ulen + n >= SCREEN_TEXT_MAX) return;
+    memcpy(l->u8 + l->ulen, b, (size_t)n);
+    l->ulen += n;
+    l->u8[l->ulen] = '\0';
+}
 
 static void line_add(line *l, const char *s)
 {
-    while (*s && l->n < LINE_MAX_CP) l->cp[l->n++] = next_cell(&s);
+    while (*s && l->n < LINE_MAX_CP) {
+        const char *b = s;
+        l->cp[l->n++] = next_cell(&s);
+        u8_add(l, b, (int)(s - b));
+    }
 }
 
 static void line_add_cp(line *l, uint32_t cp)
 {
-    if (l->n < LINE_MAX_CP) l->cp[l->n++] = cp;
+    char b[4];
+    int n = cp < 0x80 ? 1 : cp < 0x800 ? 2 : cp < 0x10000 ? 3 : 4;
+    if (l->n >= LINE_MAX_CP) return;
+    l->cp[l->n++] = cp;
+    if (n == 1) b[0] = (char)cp;
+    else if (n == 2) b[0] = (char)(0xC0 | cp >> 6), b[1] = (char)(0x80 | (cp & 0x3F));
+    else if (n == 3) b[0] = (char)(0xE0 | cp >> 12), b[1] = (char)(0x80 | (cp >> 6 & 0x3F)), b[2] = (char)(0x80 | (cp & 0x3F));
+    else b[0] = (char)(0xF0 | cp >> 18), b[1] = (char)(0x80 | (cp >> 12 & 0x3F)), b[2] = (char)(0x80 | (cp >> 6 & 0x3F)),
+         b[3] = (char)(0x80 | (cp & 0x3F));
+    u8_add(l, b, n);
 }
 
 static void line_cursor(line *l)
@@ -407,92 +430,162 @@ static void soft_band(ls027_frame *f, const screen_ui *ui)
     }
 }
 
-void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
-{
-    (void)c;
-    (void)ui;
-    memset(out, 0, sizeof *out);
-}
+/* What screen_render draws and screen_lines tells: the four lines, how each is drawn, and the
+   fraction indicator for the status band. */
+typedef struct {
+    line x, y, z, t;
+    screen_kind xk, yk;
+    bool x_left, x_letter, prompt;
+    int ind;
+} composed;
 
-void screen_render(const ab_calc *c, const screen_ui *ui, ls027_frame *f)
+static composed comp;           /* compose's result, shared by screen_render and screen_lines (one at a time:
+                                   about 8 KB, kept off the stack) */
+
+static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
 {
-    screen_clear(f);
-    int ind = 0, unused;
-    line x = {.n = 0, .cursor = -1};
-    bool x_left = false, x_letter = false, prompt = false;
+    int unused;
     const char *m;
-
+    line *xl = &k->x;
+    memset(k, 0, sizeof *k);
+    k->x.cursor = k->y.cursor = k->z.cursor = k->t.cursor = -1;
+    k->xk = SCREEN_VALUE;
+    k->yk = SCREEN_VALUE;
     /* the X line, first that applies (screen.h) */
     if (ui->busy && (m = ab_busy_message((ab_op)ui->busy)) != NULL) {
-        line_add(&x, m);
-        x_left = true;
+        line_add(xl, m);
+        k->x_left = true;
+        k->xk = SCREEN_MESSAGE;
     } else if (ui->prompt) {                    /* an op waiting for its argument (app.h) */
-        line_add(&x, ui->prompt);
-        x_left = true;
+        line_add(xl, ui->prompt);
+        k->x_left = true;
+        k->xk = SCREEN_PROMPT;
     } else if ((m = ab_error_message(c)) != NULL) {
-        line_add(&x, m);                        /* every message is one line (#3822) */
-        x_left = true;
+        line_add(xl, m);                        /* every message is one line (#3822) */
+        k->x_left = true;
+        k->xk = SCREEN_MESSAGE;
     } else if (c->entry.active || c->cpart || c->vlen) {
-        entry_line(c, ui->radix == ',' ? ',' : '.', &x);
-        x_left = x_letter = true;
+        entry_line(c, ui->radix == ',' ? ',' : '.', xl);
+        k->x_left = k->x_letter = true;
+        k->xk = SCREEN_ENTRY;
     } else if (c->prgm) {                       /* the pointer's address and its line (list.c) */
         char a[16], t[AB_EQN_LEN];
         ab_prog_addr(c, c->pc, a);
+        k->xk = SCREEN_PROGRAM;
         if (strcmp(a, "TOP") == 0) {
-            line_add(&x, "PRGM TOP");
+            line_add(xl, "PRGM TOP");
         } else {
             ab_display d = display_of(c, ui, FMT_WIDE);
             d.dec.mode = AB_ALL;                /* a typed number as typed: 14-19 lists 1.01 under FIX 4 */
             d.fdisp = false;
             ab_prog_line(c, c->pc, &d, t, sizeof t);
-            line_add(&x, a);
-            line_add_cp(&x, ' ');
-            line_add(&x, t);
+            line_add(xl, a);
+            line_add_cp(xl, ' ');
+            line_add(xl, t);
         }
-        x_left = true;
+        k->x_left = true;
     } else if (c->eqn_mode && c->eqn_typing) {
-        eqn_line(c->ebuf, c->ecur, &x);
-        x_left = true;
+        eqn_line(c->ebuf, c->ecur, xl);
+        k->x_left = true;
+        k->xk = SCREEN_EQN;
     } else if (c->eqn_mode) {
-        if (c->eqn_cur < 0) line_add(&x, "EQN LIST TOP");
-        else eqn_line(c->eqn[c->eqn_cur], -1, &x);
-        x_left = true;
+        if (c->eqn_cur < 0) line_add(xl, "EQN LIST TOP");
+        else eqn_line(c->eqn[c->eqn_cur], -1, xl);
+        k->x_left = true;
+        k->xk = SCREEN_EQN;
     } else {
-        val_line(&c->x, c, ui, &x, &ind);
-        x_letter = true;
+        val_line(&c->x, c, ui, xl, &k->ind);
+        k->x_letter = true;
     }
 
     /* the Y line: a prompt or a VIEW takes it */
-    line y = {.n = 0, .cursor = -1};
     char name[16];
     if (c->stop == AB_STOP_INPUT) {
         var_name(c->stop_var, name, sizeof name);
-        line_add(&y, name);
-        line_add_cp(&y, '?');
-        prompt = true;
+        line_add(&k->y, name);
+        line_add_cp(&k->y, '?');
+        k->prompt = true;
     } else if ((c->stop == AB_STOP_VIEW || (c->stop == AB_STOP_PSE && c->stop_var != -1 && c->stop_var != -2)) &&
                c->stop_var >= 0 && c->stop_var < 26) {
         var_name(c->stop_var, name, sizeof name);
-        line_add(&y, name);
-        line_add_cp(&y, '=');
-        val_line(&c->var[c->stop_var], c, ui, &y, &unused);
-        prompt = true;
+        line_add(&k->y, name);
+        line_add_cp(&k->y, '=');
+        val_line(&c->var[c->stop_var], c, ui, &k->y, &unused);
+        k->prompt = true;
     } else {
-        val_line(&c->y, c, ui, &y, &unused);
+        val_line(&c->y, c, ui, &k->y, &unused);
     }
+    if (k->prompt) k->yk = SCREEN_PROMPT;
+    val_line(&c->z, c, ui, &k->z, &unused);
+    val_line(&c->t, c, ui, &k->t, &unused);
+}
 
-    line z = {.n = 0, .cursor = -1}, t = {.n = 0, .cursor = -1};
-    val_line(&c->z, c, ui, &z, &unused);
-    val_line(&c->t, c, ui, &t, &unused);
+static void page_line(screen_line *o, const line *l, screen_kind kind, bool left, const char *label)
+{
+    snprintf(o->text, sizeof o->text, "%s", l->u8);
+    o->cursor = l->cursor;
+    o->kind = kind;
+    o->left = left;
+    o->label = label;
+}
 
-    status_band(f, c, ui, ind);
+void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
+{
+    composed *k = &comp;
+    screen_status *st = &out->status;
+    compose(c, ui, k);
+    memset(out, 0, sizeof *out);
+    page_line(&out->t, &k->t, SCREEN_VALUE, false, "T");
+    page_line(&out->z, &k->z, SCREEN_VALUE, false, "Z");
+    page_line(&out->y, &k->y, k->yk, k->prompt, k->prompt ? NULL : "Y");
+    page_line(&out->x, &k->x, k->xk, k->x_left, k->x_letter ? "X" : NULL);
+    /* the status band, as status_band draws it */
+    st->shift = ui->shift == 1 || ui->shift == 2 ? ui->shift : 0;
+    st->angle = c->angle == AB_ANGLE_RAD ? "RAD" : c->angle == AB_ANGLE_GRAD ? "GRAD" : NULL;
+    st->base = c->base == 16 ? "HEX" : c->base == 8 ? "OCT" : c->base == 2 ? "BIN" : NULL;
+    st->prgm = c->prgm;
+    st->eqn = c->eqn_mode;
+    st->frac = k->ind > 0 ? 1 : k->ind < 0 ? -1 : 0;
+    int nf = 0;
+    for (int n = 0; n <= 4; n++)
+        if (ab_flag(c, n)) st->flags[nf++] = (char)('0' + n);
+    st->model = c->m35 ? "35" : "33";
+    st->battery = ui->battery;
+    st->charging = ui->charging;
+    const char *parts[8];
+    int np = 0;
+    if (st->shift) parts[np++] = st->shift == 1 ? "GOLD" : "BLUE";
+    if (st->angle) parts[np++] = st->angle;
+    if (st->base) parts[np++] = st->base;
+    if (st->prgm) parts[np++] = "PRGM";
+    if (st->eqn) parts[np++] = "EQN";
+    if (st->frac) parts[np++] = st->frac > 0 ? "\xe2\x96\xb2" : "\xe2\x96\xbc";
+    if (nf) parts[np++] = st->flags;
+    parts[np++] = st->model;
+    for (int i = 0; i < np; i++) {
+        size_t len = strlen(st->text);
+        snprintf(st->text + len, sizeof st->text - len, "%s%s", i ? " " : "", parts[i]);
+    }
+    for (int i = 0; i < SCREEN_SOFT; i++) {
+        out->soft[i] = ui->soft[i];
+        out->soft_on[i] = ui->soft_on[i];
+        out->soft_sub[i] = ui->soft_sub[i];
+    }
+}
+
+void screen_render(const ab_calc *c, const screen_ui *ui, ls027_frame *f)
+{
+    composed *k = &comp;
+    screen_clear(f);
+    compose(c, ui, k);
+    status_band(f, c, ui, k->ind);
     draw_label(f, BOT_T, "T");
-    draw_line(f, BOT_T, 2, &t, false);
+    draw_line(f, BOT_T, 2, &k->t, false);
     draw_label(f, BOT_Z, "Z");
-    draw_line(f, BOT_Z, 2, &z, false);
-    if (!prompt) draw_label(f, BOT_Y, "Y");
-    draw_line(f, BOT_Y, prompt ? 3 : 2, &y, prompt);
-    if (x_letter) draw_label(f, BOT_X, "X");     /* only when the line is X */
-    draw_line(f, BOT_X, 4, &x, x_left);
+    draw_line(f, BOT_Z, 2, &k->z, false);
+    if (!k->prompt) draw_label(f, BOT_Y, "Y");
+    draw_line(f, BOT_Y, k->prompt ? 3 : 2, &k->y, k->prompt);
+    if (k->x_letter) draw_label(f, BOT_X, "X");     /* only when the line is X */
+    draw_line(f, BOT_X, 4, &k->x, k->x_left);
     soft_band(f, ui);
 }
