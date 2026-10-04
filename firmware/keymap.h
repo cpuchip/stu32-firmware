@@ -31,7 +31,8 @@ typedef enum {
     KM_UNDEFINED            /* a legend with no meaning yet (reported, not guessed) */
 } km_kind;
 
-enum { KM_ARG_VAR = 1, KM_ARG_LABEL, KM_ARG_TARGET };   /* what a KM_PROMPT asks for */
+enum { KM_ARG_VAR = 1, KM_ARG_LABEL, KM_ARG_TARGET,     /* what a KM_PROMPT asks for */
+       KM_ARG_DIGITS };                                 /* a digit setting, from the digit keys (app.h) */
 enum { KM_DEV_OFF = 1, KM_DEV_UNDO };
 
 typedef struct {
@@ -47,12 +48,15 @@ enum { KM_FACE = 0, KM_GOLD = 1, KM_BLUE = 2 };
 /* The action of key (row * 6 + column) in a shift; a key that does not exist is KM_NONE. */
 const km_action *km_lookup(int key, int shift);
 
-/* The menus, as data beside the legends (abacus #3877; provisional until Michael rules the menus):
-   a menu's six soft keys, each an action like a key's (an op, or an op that asks for its
-   argument); KM_NONE for a soft key with nothing. Only PRGM is defined: PRGM (the program-entry
-   toggle, UG p.G-11), LBL, INPUT, SST, BST, CLPGM, the P4 panel's menu, so the panel, the app and
-   the device agree. Until the menus are ruled, EQN (gold on 0) is the plain Equation-mode toggle
-   (UG p.G-7), a provisional KM_OP the EQN menu's first item will take over. */
+/* The menus, as data beside the legends (provisional until Michael rules the menus): a menu's six
+   soft keys, each an action like a key's (an op, or an op that asks for its argument); KM_NONE for a
+   soft key with nothing. Two are defined:
+   - PRGM (abacus #3877): PRGM (the program-entry toggle, UG p.G-11), LBL, INPUT, SST, BST, CLPGM,
+     the P4 panel's menu, so the panel, the app and the device agree;
+   - DISP (Michael, #3901): FIX, SCI, ENG, each then a digit setting (UG p.1-21's "FIX_" prompt),
+     ALL, and the complex display forms xiy and rθa (provisional picks).
+   Until the menus are ruled, EQN (gold on 0) is the plain Equation-mode toggle (UG p.G-7), a
+   provisional KM_OP the EQN menu's first item will take over. */
 #define KM_SOFT_KEYS 6
 
 typedef struct {

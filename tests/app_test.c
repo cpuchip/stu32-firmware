@@ -284,6 +284,45 @@ int main(void)
     press(&a, "GOLD 0");
     expect(!c.eqn_mode, "GOLD 0 again: off");
 
+    /* the DISP menu (Michael, #3901): FIX, SCI, ENG then a digit setting (UG p.1-21's FIX_ prompt;
+       . then a digit is 10-19, extending the guide's .0 and .1), ALL, xiy, rθa */
+    ab_init(&c);
+    app_init(&a, &c, now);
+    press(&a, "GOLD 2");
+    app_ui(&a, &ui);
+    expect(ui.soft[0] && !strcmp(ui.soft[0], "FIX") && ui.soft[3] && !strcmp(ui.soft[3], "ALL"),
+           "GOLD 2: the DISP menu's labels");
+    press(&a, "k:0");
+    app_ui(&a, &ui);
+    expect(ui.prompt && !strcmp(ui.prompt, "FIX _"), "FIX waits for its digit: 'FIX _'");
+    press(&a, "STO");
+    expect(a.prompt_op == AB_SETFIX, "a digit prompt ignores other keys (STO)");
+    press(&a, "4");
+    expect(c.disp_mode == AB_FIX && c.disp_n == 4 && a.prompt_op < 0, "FIX 4");
+    press(&a, "GOLD 2 k:1 .");
+    app_ui(&a, &ui);
+    expect(ui.prompt && !strcmp(ui.prompt, "SCI 1_"), "SCI . waits for the second digit: 'SCI 1_'");
+    press(&a, "2");
+    expect(c.disp_mode == AB_SCI && c.disp_n == 12, "SCI . 2: SCI 12");
+    press(&a, "GOLD 2 k:2 C");
+    expect(c.disp_mode == AB_SCI && c.disp_n == 12 && a.prompt_op < 0, "ENG then C: cancelled, SCI 12 kept");
+    press(&a, "GOLD 2 k:2 0");
+    expect(c.disp_mode == AB_ENG && c.disp_n == 0, "ENG 0");
+    press(&a, "GOLD 2 k:3");
+    expect(c.disp_mode == AB_ALL, "ALL");
+    press(&a, "GOLD 2 k:5");
+    expect(c.cpolar, "r\xce\xb8" "a: complex numbers in polar form");
+    press(&a, "GOLD 2 k:4");
+    expect(!c.cpolar, "xiy: back to rectangular");
+    ab_do(&c, AB_PRGM);
+    press(&a, "GOLD 2 k:0 7");
+    {
+        char t[32] = "";
+        ab_prog_line(&c, c.pc, NULL, t, sizeof t);
+        expect(!strcmp(t, "FIX 7"), "in program entry: the line FIX 7");
+    }
+    ab_do(&c, AB_PRGM);
+
     /* other menus and the soft keys alone do nothing yet; nothing crashes on any key in any shift */
     ab_init(&c);
     app_init(&a, &c, now);

@@ -66,7 +66,7 @@ static const want W[] = {
     /* row 6 */
     {6, 0, KM_FACE, KM_SHIFT, 0, 2, 0, ""},
     OPK(6, 1, KM_FACE, AB_K1, "1"), MENU(6, 1, KM_GOLD, "UNITS"), MENU(6, 1, KM_BLUE, "MEM"),
-    OPK(6, 2, KM_FACE, AB_K2, "2"), MENU(6, 2, KM_GOLD, "DISP"), MENU(6, 2, KM_BLUE, "\xe2\x88\xa1MODE"),
+    OPK(6, 2, KM_FACE, AB_K2, "2"), {6, 2, KM_GOLD, KM_MENU, 0, 1, 0, "DISP"} /* menu 1 (#3901) */, MENU(6, 2, KM_BLUE, "\xe2\x88\xa1MODE"),
     OPK(6, 3, KM_FACE, AB_K3, "3"), MENU(6, 3, KM_GOLD, "RADIX"), MENU(6, 3, KM_BLUE, "SETUP"),
     OPK(6, 4, KM_FACE, AB_SUB, "\xe2\x88\x92"), OPK(6, 4, KM_GOLD, AB_RAND, "RAND"), OPK(6, 4, KM_BLUE, AB_SEED, "SEED"),
     /* row 7 */
@@ -144,7 +144,21 @@ int main(void)
     {
         const km_menu *pm = km_menu_at(0);
         expect(pm && !strcmp(pm->name, "PRGM"), "menu 0 is PRGM");
-        expect(km_menu_at(1) == NULL && km_menu_at(-1) == NULL, "only PRGM is defined");
+        const km_menu *dm = km_menu_at(1);
+        expect(dm && !strcmp(dm->name, "DISP"), "menu 1 is DISP (#3901)");
+        expect(km_menu_at(2) == NULL && km_menu_at(-1) == NULL, "only PRGM and DISP are defined");
+        if (dm) {
+            static const struct { km_kind kind; int op, prompt; const char *legend; } D[6] = {
+                {KM_PROMPT, AB_SETFIX, KM_ARG_DIGITS, "FIX"}, {KM_PROMPT, AB_SETSCI, KM_ARG_DIGITS, "SCI"},
+                {KM_PROMPT, AB_SETENG, KM_ARG_DIGITS, "ENG"}, {KM_OP, AB_SETALL, 0, "ALL"},
+                {KM_OP, AB_XIY, 0, "xiy"}, {KM_OP, AB_RTA, 0, "r\xce\xb8" "a"}};
+            for (int i = 0; i < 6; i++) {
+                const km_action *it = &dm->item[i];
+                snprintf(m, sizeof m, "DISP menu soft key %d: %s", i + 1, D[i].legend);
+                expect(it->kind == D[i].kind && it->op == D[i].op && it->prompt == D[i].prompt && it->legend &&
+                           !strcmp(it->legend, D[i].legend) && screen_missing(it->legend) == 0, m);
+            }
+        }
         if (pm) {
             static const struct { km_kind kind; int op, prompt; const char *legend; } P[6] = {
                 {KM_OP, AB_PRGM, 0, "PRGM"}, {KM_PROMPT, AB_LBL, KM_ARG_LABEL, "LBL"},
