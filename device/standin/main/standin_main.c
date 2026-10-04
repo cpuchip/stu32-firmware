@@ -48,7 +48,7 @@
 #define EXIO_LCD_RST (1u << 3)
 #define GT911_ADDR 0x5D
 
-enum { EV_KEY = 0, EV_OP, EV_DUMP, EV_SAVE, EV_WIPE, EV_RESTART, EV_TOUCHED };
+enum { EV_KEY = 0, EV_OP, EV_DUMP, EV_SAVE, EV_WIPE, EV_RESTART, EV_TOUCHED, EV_BENCH };
 
 typedef struct {
     int kind, a, b;                     /* EV_KEY: a the key; EV_OP: a core op a with argument b */
@@ -274,6 +274,40 @@ static void dump(void)
            pixel_at(440, 405), SI_PALETTE[SI_GOLD], SI_PALETTE[SI_BLUE], SI_PALETTE[SI_KEY]);
 }
 
+/* BENCH: what PSRAM costs and gives (decision 34's ECC question: measure before turning it on). A
+   second calculator in PSRAM, as Rev A's two-calculator state would be; a 2,000-line program run in
+   it (its arena pool in PSRAM too); 200 saves and loads of the state image in PSRAM. */
+static void bench(void)
+{
+    ab_calc *c2 = heap_caps_calloc(1, sizeof *c2, MALLOC_CAP_SPIRAM);
+    if (!c2) {
+        printf("bench: no room for a second calculator\n");
+        return;
+    }
+    ab_init(c2);
+    ab_do(c2, AB_PRGM);
+    ab_do_arg(c2, AB_LBL, 1);
+    ab_do(c2, AB_K1); ab_do(c2, AB_K0); ab_do(c2, AB_K0); ab_do(c2, AB_K0);
+    ab_do_arg(c2, AB_STO, 'N' - 'A');
+    ab_do_arg(c2, AB_DSE, 'N' - 'A');
+    ab_do_arg(c2, AB_GTO, 1 * 1000 + 4);
+    ab_do(c2, AB_RTN);
+    ab_do(c2, AB_PRGM);
+    int64_t t0 = esp_timer_get_time();
+    ab_do_arg(c2, AB_XEQ, 1 * 1000);
+    int64_t t1 = esp_timer_get_time();
+    size_t n = 0;
+    for (int i = 0; i < 200; i++) n = ab_state_save(c2, image, IMAGE_CAP);
+    int64_t t2 = esp_timer_get_time();
+    for (int i = 0; i < 200 && n; i++) ab_state_load(c2, image, n);
+    int64_t t3 = esp_timer_get_time();
+    printf("bench: program %lld us (lines %ld), save %lld us, load %lld us (%u bytes); PSRAM total %u free %u; calc %u bytes\n",
+           (long long)(t1 - t0), c2->run_lines, (long long)(t2 - t1) / 200, (long long)(t3 - t2) / 200, (unsigned)n,
+           (unsigned)heap_caps_get_total_size(MALLOC_CAP_SPIRAM), (unsigned)heap_caps_get_free_size(MALLOC_CAP_SPIRAM),
+           (unsigned)sizeof *c2);
+    heap_caps_free(c2);
+}
+
 /* ---- the tasks ---- */
 
 /* A key from the touch panel or the console. C or R/S during a run interrupt it here and now
@@ -343,6 +377,7 @@ static void console_task(void *arg)
         else if (!strcmp(line, "SAVE")) e.kind = EV_SAVE;
         else if (!strcmp(line, "WIPE")) e.kind = EV_WIPE;
         else if (!strcmp(line, "RESTART")) e.kind = EV_RESTART;
+        else if (!strcmp(line, "BENCH")) e.kind = EV_BENCH;
         if (e.kind >= 0) xQueueSend(events, &e, portMAX_DELAY);
         else if (line[0]) printf("console: ? %s\n", line);
     }
@@ -378,6 +413,8 @@ static void calc_task(void *arg)
         } else if (got && ev.kind == EV_WIPE) {
             printf("wipe: %s\n", flash.ctx && esp_partition_erase_range(flash.ctx, 0, 2 * flash.slot_size) == ESP_OK
                                      ? "both slots erased" : "FAILED");
+        } else if (got && ev.kind == EV_BENCH) {
+            bench();
         } else if (got && ev.kind == EV_RESTART) {
             fflush(stdout);
             esp_restart();
