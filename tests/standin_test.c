@@ -189,7 +189,7 @@ int main(int argc, char **argv)
 
     /* the keys as drawn: each legend where the layout puts it, in its colour */
     {
-        si_keys_state ks = {0, false, -1};
+        si_keys_state ks = {0, false, -1, false};
         screen_missed = 0;
         si_draw_keys(keys, &ks);
         expect(screen_missed == 0, "every legend drawn from the face");
@@ -234,7 +234,7 @@ int main(int argc, char **argv)
         }
         /* a shift held: its legends stay lit, everything else dims (as the 10" panel does; Michael,
            #3901): with GOLD held, a key's gold legend is gold, its face, blue legend and letter dim */
-        ks = (si_keys_state){1, false, -1};
+        ks = (si_keys_state){1, false, -1, false};
         si_draw_keys(keys, &ks);
         si_key_rect(6, &x, &y, &w, &h);                 /* sqrt x: gold x^2, blue ABS, letter A */
         expect(count(keys, x, y, w / 2, 20, SI_GOLD) > 0, "GOLD held: the gold legend stays gold");
@@ -252,7 +252,7 @@ int main(int argc, char **argv)
                "no shift: nothing dimmed");
 
         /* the letter layer while a prompt waits: each lettered key shows its letter large */
-        ks = (si_keys_state){0, true, -1};
+        ks = (si_keys_state){0, true, -1, false};
         si_draw_keys(keys, &ks);
         si_key_rect(12, &x, &y, &w, &h);                /* G */
         expect(count(keys, x, y + 10, w, 40, SI_LETTER) > 60, "the letter layer: G large on its key");
@@ -262,7 +262,7 @@ int main(int argc, char **argv)
     /* the lines: the frame at x1 on the left, the keys on the right; x2 over everything */
     {
         static uint16_t line[SI_W];
-        si_keys_state ks = {0, false, -1};
+        si_keys_state ks = {0, false, -1, false};
         si_draw_keys(keys, &ks);
         memset(&frame, 0, sizeof frame);
         frame.px[0][0] = 0x01;                          /* pixel (0, 0) dark */
@@ -289,11 +289,29 @@ int main(int argc, char **argv)
         expect(line[799] == SI_PALETTE[SI_LCD_DARK] && line[797] == SI_PALETTE[SI_LCD_LIGHT], "x2: frame pixel (399,239) at the corner");
     }
 
+    /* HEX: keys 6-11 show A-F on their faces (UG p.11-1's shortcuts; abacus #3962), the rest unchanged */
+    {
+        static uint8_t plain[SI_IMG_BYTES], hex[SI_IMG_BYTES];
+        si_keys_state ks = {0, false, -1, false};
+        si_draw_keys(plain, &ks);
+        ks.hex = true;
+        si_draw_keys(hex, &ks);
+        int changed = 0, others = 0;
+        for (int k = 0; k < KB_KEYS; k++) {
+            int x, y, w, h;
+            if (!si_key_rect(k, &x, &y, &w, &h)) continue;
+            bool differs = count(plain, x, y + 16, w, 24, SI_FACE) != count(hex, x, y + 16, w, 24, SI_FACE);
+            if (k >= 6 && k <= 11) changed += differs;
+            else others += differs;
+        }
+        expect(changed == 6 && others == 0, "HEX: the six faces A-F change, no other");
+    }
+
     /* the screens, for review by eye */
     {
         static app_state a;
         screen_ui ui;
-        si_keys_state ks = {0, false, -1};
+        si_keys_state ks = {0, false, -1, false};
         ab_init(&c);
         app_init(&a, &c, 0);
         app_key(&a, 6 * KB_COLS + 1, 10);               /* 1 */
@@ -310,10 +328,10 @@ int main(int argc, char **argv)
         app_key(&a, 2 * KB_COLS + 0, 40);               /* STO: a prompt */
         app_ui(&a, &ui);
         screen_render(&c, &ui, &frame);
-        ks = (si_keys_state){0, true, 12};
+        ks = (si_keys_state){0, true, 12, false};
         si_draw_keys(keys, &ks);
         shot("03-letter-layer", &v);
-        ks = (si_keys_state){0, false, -1};
+        ks = (si_keys_state){0, false, -1, false};
         si_draw_keys(keys, &ks);
         v.x2 = true;
         shot("04-x2-view", &v);

@@ -880,6 +880,40 @@ int main(void)
         expect(a.dirty, "a settings change is saved (dirty)");
     }
 
+    /* abacus #3962: in HEX the unshifted keys 6-11 type A-F (UG p.11-1's shortcuts); shifted they keep
+       their functions */
+    ab_init(&c);
+    app_init(&a, &c, now);
+    press(&a, "BLUE x\xe2\x86\x94y k:1 \xe2\x88\x9ax ENTER e\xcb\xa3 +");
+    expect(c.base == 16 && x_of(&c) == 21, "HEX: A ENTER B + is 21 (15 hex)");
+    press(&a, "C 3 GOLD \xe2\x88\x9ax");
+    expect(x_of(&c) == 9, "HEX: gold on the A key is still x squared");
+    press(&a, "C LN y\xcb\xa3 1/x \xce\xa3+");
+    expect(x_of(&c) == 0xCDEF, "HEX: C D E F from LN, y^x, 1/x, Sigma+");
+    press(&a, "BLUE x\xe2\x86\x94y k:0 C 4 \xe2\x88\x9ax");
+    expect(c.base == 10 && x_of(&c) == 2, "DEC again: the key is the square root");
+
+    /* abacus #3962: PSE pauses about 1 s, then the program goes on by itself (UG p.13-19); C or R/S in the
+       pause stops it, and R/S then resumes */
+    ab_init(&c);
+    app_init(&a, &c, now);
+    press(&a, "GOLD 9 k:0 GOLD XEQ ltr:P 5 GOLD R/S 6 BLUE XEQ GOLD 9 k:0 XEQ ltr:P");
+    expect(c.stop == AB_STOP_PSE && x_of(&c) == 5, "XEQ P: the pause, showing 5");
+    app_tick(&a, &in, now + 500);
+    expect(c.stop == AB_STOP_PSE, "half a second on: still pausing");
+    run_out(&a, &in);
+    app_tick(&a, &in, now + 1100);
+    run_out(&a, &in);
+    expect(c.stop == AB_STOP_DONE && x_of(&c) == 6, "after the pause the program goes on to its end");
+    press(&a, "XEQ ltr:P");
+    expect(c.stop == AB_STOP_PSE, "again: the pause");
+    press(&a, "C");
+    app_tick(&a, &in, now + 3000);
+    expect(c.stop == AB_STOP_PSE && x_of(&c) == 5, "C in the pause stops it: no going on");
+    press(&a, "R/S");
+    run_out(&a, &in);
+    expect(c.stop == AB_STOP_DONE && x_of(&c) == 6, "R/S then resumes it");
+
     /* other menus and the soft keys alone do nothing yet; nothing crashes on any key in any shift */
     ab_init(&c);
     app_init(&a, &c, now);

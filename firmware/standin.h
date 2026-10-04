@@ -39,6 +39,7 @@ typedef struct {
     int shift;                                  /* 0, 1 gold, 2 blue: the shift held (its key lit) */
     bool letters;                               /* a prompt waits: the letter layer */
     int down;                                   /* the key held, -1 none */
+    bool hex;                                   /* HEX: keys 6-11 show A-F on their faces (UG p.11-1) */
 } si_keys_state;
 
 typedef struct {
