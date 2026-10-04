@@ -66,16 +66,32 @@ MENUS = [
 # first item will take this over.
 MENU_AS_OP = {"EQN": OP("AB_EQN")}
 
-# The letter layer (abacus #3826, the P4 panel's assignment; provisional until Michael rules where
-# letters are printed): key number -> a letter, or a role. Data only: a printed legend later
-# changes this table and nothing else. Keys not listed type nothing.
+# The letter layer. The letters are the layout's own (each lettered key's "letter" field in
+# stu32-v0.json, printed on the keycaps, decision 25, abacus #3887); LETTERS is the check: the
+# generator stops if the two disagree, so the caps, the keymap and the app read one assignment.
+# The roles are not printed, so they live here. Keys with neither type nothing.
 LETTERS = {
     6: "A", 7: "B", 8: "C", 9: "D", 10: "E", 11: "F", 12: "G", 13: "H", 14: "I", 15: "J", 16: "K", 17: "L",
     18: "M", 19: "N", 20: "O", 21: "P", 22: "Q", 24: "R", 25: "S", 26: "T", 27: "U", 31: "V", 32: "W",
     33: "X", 37: "Y", 38: "Z",
+}
+ROLES = {
     39: "(I)", 43: "(J)", 42: "ESC",
     46: "+", 40: "-", 34: "*", 28: "/",         # STO + ... as on the 35s (UG p.3-6, 3-7)
 }
+
+
+def layout_letters():
+    layout = json.load(open(LAYOUT, encoding="utf-8"))
+    out = {}
+    for r, row in enumerate(layout["rows"]):
+        for col, key in enumerate(row["keys"]):
+            if "letter" in key:
+                out[r * 6 + col] = key["letter"]
+    if out != LETTERS:
+        diff = sorted(set(out.items()) ^ set(LETTERS.items()))
+        sys.exit(f"gen_keymap: the layout's letters and LETTERS disagree: {diff}")
+    return {**out, **ROLES}
 ARITH = {"+": "AB_ADD", "-": "AB_SUB", "*": "AB_MUL", "/": "AB_DIV"}
 
 
@@ -87,11 +103,11 @@ def letter_cell(what):
     return {"(I)": "{KL_IND_I, 0}", "(J)": "{KL_IND_J, 0}", "ESC": "{KL_ESC, 0}"}[what]
 
 
-def check_letters(acts):
-    letters = [w for w in LETTERS.values() if len(w) == 1 and "A" <= w <= "Z"]
+def check_letters(acts, layer):
+    letters = [w for w in layer.values() if len(w) == 1 and "A" <= w <= "Z"]
     if sorted(letters) != [chr(ord("A") + i) for i in range(26)]:
         sys.exit("gen_keymap: the letter layer must give A..Z once each")
-    for k in LETTERS:
+    for k in layer:
         if k not in acts or acts[k][0][0] in ("KM_NONE", "KM_SOFT"):
             sys.exit(f"gen_keymap: the letter layer names key {k}, which is not a lettered key")
 
@@ -152,7 +168,8 @@ def emit():
         acts = acts_by_key.get(k, none)
         cells = ", ".join(f"{{{kind}, {op}, {arg}, {prompt}, {cstr(legend)}}}" for kind, op, arg, prompt, legend in acts)
         lines.append(f"    [{k}] = {{{cells}}},")
-    check_letters(acts_by_key)
+    layer = layout_letters()
+    check_letters(acts_by_key, layer)
     lines += ["};", "", "static const km_menu MENUS[] = {"]
     for name, items in MENUS:
         if len(items) != 6:
@@ -164,8 +181,8 @@ def emit():
               "{",
               "    return index >= 0 && index < (int)(sizeof MENUS / sizeof MENUS[0]) ? &MENUS[index] : (const km_menu *)0;",
               "}", "", "static const km_letter LETTER[KB_KEYS] = {"]
-    for k in sorted(LETTERS):
-        lines.append(f"    [{k}] = {letter_cell(LETTERS[k])},")
+    for k in sorted(layer):
+        lines.append(f"    [{k}] = {letter_cell(layer[k])},")
     lines += ["};", "",
               "const km_letter *km_letter_of(int key)",
               "{",
