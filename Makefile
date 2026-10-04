@@ -13,7 +13,9 @@ HDRS := core/abn.h core/calc.h core/fmt.h core/fn.h core/bigint.h core/const.h c
 ENGINE := build/abn_intel.o $(INTEL_LIB)
 LIBS := -lm
 
-.PHONY: all test accuracy clean device-host
+.PHONY: all test accuracy all-checks clean device-host
+# make accuracy needs a python with mpmath: make all-checks PYTHON=...
+PYTHON ?= python3
 KEYV := $(filter-out work/002-vectors.txt work/016-vectors.txt work/017-vectors.txt work/018-vectors.txt,$(filter-out %-fmt-vectors.txt,$(wildcard work/*-vectors.txt))) tests/021-soroban.txt tests/019-soroban.txt tests/003-soroban.txt tests/018-soroban.txt
 all: build/standin_test build/app_test build/keymap_test build/power_test build/screen_test build/keys_test build/ls027_test build/store_test build/load_fuzz build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test
 
@@ -139,18 +141,27 @@ test: all
 
 # Needs mpmath (not part of `make test`): the unit 003/004 functions against mpmath at 150 digits,
 # random statistics data sets, fractions and base operations, against exact references.
+# Every check, as CI would run them: make test, then make accuracy (abacus #3984: a change that only
+# accuracy's loops catch slipped past make test, ac8ad8f). Refuses to run without mpmath, since the
+# fuzzers would otherwise skip and pass quietly.
+all-checks:
+	@$(PYTHON) -c "import mpmath" 2>/dev/null || { echo "all-checks: $(PYTHON) has no mpmath (make all-checks PYTHON=...)"; exit 1; }
+	$(MAKE) test
+	$(MAKE) accuracy PYTHON=$(PYTHON)
+	@echo "all-checks: make test and make accuracy passed"
+
 accuracy: build/fn_drive build/cx_drive build/vectors
-	python3 tests/fn_fuzz.py build/fn_drive
-	python3 tests/cx_fuzz.py build/cx_drive
-	python3 tests/cxkey_fuzz.py 1 5000 > build/cxkey_fuzz.txt
+	$(PYTHON) tests/fn_fuzz.py build/fn_drive
+	$(PYTHON) tests/cx_fuzz.py build/cx_drive
+	$(PYTHON) tests/cxkey_fuzz.py 1 5000 > build/cxkey_fuzz.txt
 	./build/vectors build/cxkey_fuzz.txt
-	python3 tests/solve_fuzz.py 1 1500 > build/solve_fuzz.txt
+	$(PYTHON) tests/solve_fuzz.py 1 1500 > build/solve_fuzz.txt
 	./build/vectors build/solve_fuzz.txt
-	python3 tests/stat_fuzz.py 1 1500 > build/stat_fuzz.txt
+	$(PYTHON) tests/stat_fuzz.py 1 1500 > build/stat_fuzz.txt
 	./build/vectors build/stat_fuzz.txt
-	python3 tests/frac_fuzz.py 1 3000 > build/frac_fuzz.txt
+	$(PYTHON) tests/frac_fuzz.py 1 3000 > build/frac_fuzz.txt
 	./build/fmt_vectors build/frac_fuzz.txt
-	python3 tests/base_fuzz.py 1 5000 > build/base_fuzz.txt
+	$(PYTHON) tests/base_fuzz.py 1 5000 > build/base_fuzz.txt
 	./build/vectors build/base_fuzz.txt
 	# unit 016: every key-vector file with a save and load after every key, and run in slices
 	for f in $(KEYV) work/016-vectors.txt work/017-vectors.txt; do AB_SAVELOAD=1 AB_STORE=1 ./build/vectors $$f || exit 1; done
