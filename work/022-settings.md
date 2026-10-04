@@ -19,7 +19,7 @@ built it), and RADIX and SETUP hold the rest. If he rules otherwise, only keymap
    their exact meaning, including what `,` as radix does to the grouping mark). The screen already
    takes `radix` and `separator` in screen_ui. Show the mark in effect on its soft key.
 2. **SETUP (blue 3):**
-   - F1 **OFF** cycles the auto-off time: 2, 5, 10 (the 35s's, p.1-1) and 30 minutes;
+   - F1 **OFF** cycles the auto-off time: 2, 5, 10 and 30 minutes (ours; the 35s has a fixed 10, p.1-1);
    - F2 **VOL** cycles the five piezo levels (piezo.h), sounding one short tone at the new level;
    - F3 **BEEP** turns the buzzer's uses on or off as a whole.
 
