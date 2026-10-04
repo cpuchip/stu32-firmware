@@ -22,9 +22,10 @@
 
 #include "calc.h"
 
-#define AB_STATE_VERSION 3      /* 2 (unit 017): the 33s/35s mode, the message, entries'
-                                   insertion points; 3 (unit 018): what the message says; an
-                                   older image gives what it lacks its default */
+#define AB_STATE_VERSION 4      /* 2 (unit 017): the 33s/35s mode, the message, entries'
+                                   insertion points; 3 (unit 018): what the message says; 4: a
+                                   keyboard VIEW's display (abacus #3982); an older image gives
+                                   what it lacks its default */
 
 /* Writes the image into buf when it fits in cap; returns its length either way (call with cap 0
    to size the buffer). 0 if the calculator is in the middle of a run (it never is between calls). */

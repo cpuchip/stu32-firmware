@@ -195,6 +195,9 @@ size_t ab_state_save(const ab_calc *c, uint8_t *buf, size_t cap)
         w8(&w, (unsigned)c->err_status);
         wval(&w, &c->err_x);
     }
+    w8(&w, c->viewing);                     /* version 4: a keyboard VIEW's display, which decides what
+                                               C and backspace do next (abacus #3982) */
+    wi32(&w, c->viewing ? c->view_id : 0);
     sec_end(&w, s);
 
     s = sec_begin(&w, T_STACK);
@@ -543,6 +546,13 @@ static void sec_modes(rd *r)
     } else {
         msg = 0;                                /* an older image: no message to say */
     }
+    unsigned viewing = 0;
+    int32_t view_id = 0;
+    if (r->version >= 4) {
+        viewing = r8(r);
+        view_id = ri32(r);
+        need(r, flag_byte(viewing) && (viewing ? id_ok(view_id, false) : view_id == 0));
+    }
     need(r, angle <= AB_ANGLE_GRAD && mode <= AB_ALL && n <= AB_FMT_N_MAX && (mode != AB_ALL || n == 0) &&
                 (base == 2 || base == 8 || base == 10 || base == 16) && flag_byte(fdisp) && fc >= 2 &&
                 fc <= 4095 && flag_byte(f8) && flag_byte(f9) && flag_byte(cpolar) && (flags & ~0x0C7Fu) == 0 &&
@@ -569,6 +579,8 @@ static void sec_modes(rd *r)
     r->c->err_active = kind_of(eactive);
     r->c->err_status = (abn_status)estatus;
     r->c->err_x = ex;
+    r->c->viewing = viewing;
+    r->c->view_id = view_id;
 }
 
 static void sec_stack(rd *r)
