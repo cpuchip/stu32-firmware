@@ -120,7 +120,7 @@ static void start(text *t, int width)
 
 /* Plain notation with exactly q decimals: [-]integer[radix fraction]. The thousands
  * separator groups the integer part in threes; it is ',' with radix '.' and '.' with
- * radix ',' (UG p.1-24). Returns false if it does not fit. */
+ * radix ',' (UG p.1-24), or a space when ab_fmt asks for one (ours, unit 022). Returns false if it does not fit. */
 static bool plain(text *t, const dec *v, int q, const ab_fmt *f)
 {
     int top = (!is_zero(v) && v->lead > 0) ? v->lead : 0;
@@ -128,7 +128,7 @@ static bool plain(text *t, const dec *v, int q, const ab_fmt *f)
     int seps = f->separator ? (int_len - 1) / 3 : 0;
     long need = (v->neg ? 1 : 0) + int_len + seps + (q > 0 ? 1 + q : 0);
     if (need > t->cap) return false;
-    char sep = f->radix == ',' ? '.' : ',';
+    char sep = f->separator == ' ' ? ' ' : f->radix == ',' ? '.' : ',';
     if (v->neg) put(t, '-');
     for (int pos = top; pos >= 0; pos--) {
         put(t, digit_at(v, pos));

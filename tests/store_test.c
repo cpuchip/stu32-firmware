@@ -124,7 +124,7 @@ static int settings_checks(void)
           "a pre-022 image loads, with the default settings");
     /* a damaged record gives the defaults; the state still loads */
     n = dev_image_save(&c, &set, img, sizeof img);
-    img[n - 6] ^= 0x10;
+    img[n - 8] ^= 0x20;                         /* grouping ' ' to 0: still in range, so only the CRC tells */
     back = set;
     CHECK(dev_image_load(&c2, &back, img, n) == ABN_OK && !memcmp(&back, &def, sizeof back),
           "a damaged record: the defaults, the state loaded");

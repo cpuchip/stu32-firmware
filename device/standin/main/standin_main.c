@@ -195,14 +195,15 @@ static void store_init(void)
     flash = (ab_flash){(void *)p, 4096, p->size / 2, fl_erase, fl_write, fl_read};
 }
 
+/* the state image and the device's settings after it (unit 022, settings.h) */
 static void save(void)
 {
-    size_t n = ab_state_save(calc, NULL, 0);
+    size_t n = dev_image_save(calc, &app.set, NULL, 0);
     if (!flash.ctx || n == 0 || n > IMAGE_CAP) {
         printf("save: not saved (%u bytes)\n", (unsigned)n);
         return;
     }
-    ab_state_save(calc, image, IMAGE_CAP);
+    dev_image_save(calc, &app.set, image, IMAGE_CAP);
     int64_t t0 = esp_timer_get_time();
     int rc = ab_store_save(&flash, image, (uint32_t)n);
     printf("save: %u bytes, %s, %lld ms\n", (unsigned)n, rc == 0 ? "ok" : "FAILED",
@@ -210,14 +211,17 @@ static void save(void)
     if (rc == 0) app_saved(&app);
 }
 
+static dev_settings loaded;             /* the settings load() found, for the app once it is set up */
+
 static void load(void)
 {
     uint32_t n = flash.ctx ? ab_store_load(&flash, image, IMAGE_CAP) : 0;
-    abn_status st = n ? ab_state_load(calc, image, n) : ABN_BAD_IMAGE;
+    abn_status st = n ? dev_image_load(calc, &loaded, image, n) : ABN_BAD_IMAGE;
     if (st == ABN_OK) {
         printf("load: %u bytes ok\n", (unsigned)n);
     } else {
         ab_memory_clear(calc);          /* state.h: MEMORY CLEAR, shown (UG p.B-3) */
+        dev_settings_default(&loaded);  /* and the settings' defaults */
         memory_clear_msg = true;
         printf("load: %s: MEMORY CLEAR\n", n ? "image refused" : "no image");
     }
@@ -398,6 +402,7 @@ static void calc_task(void *arg)
             printf("key %d\n", ev.a);
             memory_clear_msg = false;
             app_key(&app, ev.a, now);
+            app.tone = -1;                      /* the stand-in has no buzzer (unit 022's tones) */
         } else if (got && ev.kind == EV_TOUCHED) {
             printf("key %d: interrupted the run\n", ev.a);
             app.last_key_ms = now;              /* activity, and nothing more */
@@ -463,6 +468,7 @@ void app_main(void)
     load();
     app_init(&app, calc, now_ms());
     app.busy = on_busy;
+    app.set = loaded;
     {   /* UNDO's two images (unit 021), in PSRAM beside the store's; without them UNDO does nothing */
         uint8_t *u0 = heap_caps_malloc(IMAGE_CAP, MALLOC_CAP_SPIRAM), *u1 = heap_caps_malloc(IMAGE_CAP, MALLOC_CAP_SPIRAM);
         if (!u0 || !u1) {

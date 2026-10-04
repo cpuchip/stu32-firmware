@@ -230,21 +230,24 @@ static int fl_read(void *ctx, uint32_t off, void *dst, uint32_t len)
     return esp_partition_read(ctx, off, dst, len) == ESP_OK ? 0 : -1;
 }
 
+/* the state image and the device's settings after it (unit 022, settings.h) */
 static void save(void)
 {
-    size_t n = ab_state_save(calc, NULL, 0);
+    size_t n = dev_image_save(calc, &app.set, NULL, 0);
     if (!flash.ctx || !n || n > IMAGE_CAP) return;
-    ab_state_save(calc, image, IMAGE_CAP);
+    dev_image_save(calc, &app.set, image, IMAGE_CAP);
     if (ab_store_save(&flash, image, (uint32_t)n) == 0) app_saved(&app);
 }
 
 static bool memory_clear_msg;
+static dev_settings loaded;                 /* the settings load() found, for the app once it is set up */
 
 static void load(void)
 {
     uint32_t n = flash.ctx ? ab_store_load(&flash, image, IMAGE_CAP) : 0;
-    if (!n || ab_state_load(calc, image, n) != ABN_OK) {
-        ab_memory_clear(calc);
+    if (!n || dev_image_load(calc, &loaded, image, n) != ABN_OK) {
+        ab_memory_clear(calc);              /* and the settings' defaults (dev_image_load gave them) */
+        dev_settings_default(&loaded);
         memory_clear_msg = true;
     }
 }
@@ -331,6 +334,12 @@ static void calc_task(void *arg)
         if (got && k >= 0) {
             memory_clear_msg = false;
             app_key(&app, k, now);
+            if (app.tone >= 0) {                /* VOL's new level, or an error with BEEP on (unit 022) */
+                piezo_level = app.tone;
+                piezo_tone(2000, 60);
+                piezo_level = app.set.vol;
+                app.tone = -1;
+            }
         } else if (got) {
             char stop[32];
             ab_stop_text(calc, stop);
@@ -408,6 +417,8 @@ void app_main(void)
     load();
     app_init(&app, calc, now_ms());
     app.busy = on_busy;
+    app.set = loaded;
+    piezo_level = app.set.vol;
     {   /* UNDO's two images (unit 021), in PSRAM beside the store's; without them UNDO does nothing */
         uint8_t *u0 = heap_caps_malloc(IMAGE_CAP, MALLOC_CAP_SPIRAM), *u1 = heap_caps_malloc(IMAGE_CAP, MALLOC_CAP_SPIRAM);
         if (!u0 || !u1) {

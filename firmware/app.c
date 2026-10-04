@@ -6,6 +6,7 @@
 
 #include "const.h"
 #include "keymap.h"
+#include "piezo.h"
 #include "state.h"
 
 void app_init(app_state *a, ab_calc *c, uint32_t now_ms)
@@ -16,7 +17,9 @@ void app_init(app_state *a, ab_calc *c, uint32_t now_ms)
     a->confirm_op = -1;
     a->menu = -1;
     a->last_key_ms = now_ms;
+    a->tone = -1;
     pwr_init(&a->pwr, now_ms);
+    dev_settings_default(&a->set);
     c->slice = APP_SLICE_LINES;
 }
 
@@ -91,8 +94,10 @@ static void do_op(app_state *a, int op, int arg)
     bool runs = !c->prgm && (op == AB_XEQ || op == AB_RS || op == AB_SST || op == AB_SOLVE || op == AB_INTEG);
     if (op != AB_VIEW) undo_mark(a);
     if (runs && a->busy) a->busy(a->ctx, op);
+    bool msg = c->msg;
     ab_do_arg(c, (ab_op)op, arg);
     a->dirty = true;
+    if (c->msg && !msg && a->set.beep && a->set.vol > 0) a->tone = a->set.vol;   /* the error tone (unit 022) */
     if (c->stop == AB_STOP_SLICE) {
         a->running = true;
         a->busy_op = op;
@@ -232,6 +237,28 @@ void app_key(app_state *a, int key, uint32_t now_ms)
     do_action(a, act);
 }
 
+/* RADIX and SETUP (unit 022): the device's settings change, are saved with the image, and are not
+   undo points (UNDO is the calculator's). */
+static void setting(app_state *a, const km_action *act)
+{
+    dev_settings *s = &a->set;
+    switch (act->arg) {
+    case KM_DEV_RADIX: s->radix = (char)act->op; break;
+    case KM_DEV_GROUP: s->group = (char)act->op; break;
+    case KM_DEV_OFFTIME:                        /* 2, 5, 10, 30 minutes, wrapping */
+        s->off_min = s->off_min == 2 ? 5 : s->off_min == 5 ? 10 : s->off_min == 10 ? 30 : 2;
+        break;
+    case KM_DEV_VOL:                            /* the next level, sounded */
+        s->vol = (uint8_t)((s->vol + 1) % PIEZO_LEVELS);
+        a->tone = s->vol;
+        break;
+    case KM_DEV_BEEP: s->beep = !s->beep; break;
+    default: return;
+    }
+    a->pwr.idle_ms = s->off_min * 60000u;
+    a->dirty = true;
+}
+
 static void do_action(app_state *a, const km_action *act)
 {
     switch (act->kind) {
@@ -257,6 +284,7 @@ static void do_action(app_state *a, const km_action *act)
     case KM_DEVICE:
         if (act->arg == KM_DEV_OFF) a->off = true;
         if (act->arg == KM_DEV_UNDO) undo(a);
+        if (act->arg >= KM_DEV_RADIX) setting(a, act);
         break;
     default:                                    /* a menu not defined yet, a soft key with none open */
         break;
@@ -276,6 +304,7 @@ app_action app_tick(app_state *a, const pwr_inputs *in, uint32_t now_ms)
     }
     pwr_inputs p = *in;
     p.busy = a->running;
+    a->pwr.idle_ms = a->set.off_min * 60000u;   /* settings the device loaded take effect */
     if (a->off || pwr_check(&a->pwr, &p, now_ms) != PWR_STAY) return APP_OFF;
     if (a->dirty && !a->running && (uint32_t)(now_ms - a->last_key_ms) >= APP_QUIET_MS) return APP_SAVE;
     if (a->render) {
@@ -303,6 +332,8 @@ void app_ui(const app_state *a, screen_ui *ui)
 {
     screen_ui_default(ui);
     ui->shift = a->shift;
+    ui->radix = a->set.radix;
+    ui->separator = a->set.group;
     ui->busy = a->running ? a->busy_op : 0;
     ui->prompt = a->prompt_op >= 0 ? a->prompt_text : NULL;
     if (a->confirm_op >= 0) {
@@ -322,5 +353,22 @@ void app_ui(const app_state *a, screen_ui *ui)
         bool all = it->kind == KM_CONFIRM && it->op == AB_CLALL;
         ui->soft[i] = all && a->c->prgm ? "PGM" : all && a->c->eqn_mode ? "EQN" : it->legend;
         ui->soft_on[i] = it->kind == KM_OP && it->op == AB_MODEL && it->arg == (a->c->m35 ? 35 : 33);
+        if (it->kind == KM_DEVICE) {            /* the settings in effect (unit 022) */
+            static char off[8], vol[8];
+            switch (it->arg) {
+            case KM_DEV_RADIX: ui->soft_on[i] = a->set.radix == (char)it->op; break;
+            case KM_DEV_GROUP: ui->soft_on[i] = a->set.group == (char)it->op; break;
+            case KM_DEV_OFFTIME:
+                snprintf(off, sizeof off, "OFF%u", (unsigned)a->set.off_min);
+                ui->soft[i] = off;
+                break;
+            case KM_DEV_VOL:
+                snprintf(vol, sizeof vol, "VOL %u", (unsigned)a->set.vol);
+                ui->soft[i] = vol;
+                break;
+            case KM_DEV_BEEP: ui->soft_on[i] = a->set.beep; break;
+            default: break;
+            }
+        }
     }
 }

@@ -545,7 +545,9 @@ int main(void)
             bool ok = true;
             for (int i = 0; i < 6; i++) {
                 const char *want = mn->paged ? (i < 5 ? ab_const_name(i) : "more") : mn->item[i].legend;
-                ok = ok && ui.soft[i] && !strcmp(ui.soft[i], want);
+                /* SETUP's OFF and VOL show their values after the legend (unit 022) */
+                ok = ok && ui.soft[i] && !strncmp(ui.soft[i], want, strlen(want)) &&
+                     (!strcmp(ui.soft[i], want) || mn->item[i].kind == KM_DEVICE);
             }
             char m[96];
             snprintf(m, sizeof m, "%s opens with its items on the soft keys", mn->name);

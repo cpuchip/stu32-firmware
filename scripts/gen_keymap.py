@@ -141,6 +141,14 @@ MENUS = [
                   o("SPC", "AB_KSPACE"), ("REG\u25b8", "KM_MENU", "0", "REG", 0)]),
     ("REG", [o("REGX", "AB_KREG", 0), o("REGY", "AB_KREG", 1), o("REGZ", "AB_KREG", 2), o("REGT", "AB_KREG", 3),
              NONE, NONE]),
+    # unit 022 (provisional homes): the device's settings (settings.h). RADIX: the mark and the
+    # grouping (UG p.1-24; 1 000 ours); SETUP: OFF cycles 2/5/10/30 minutes, VOL the five levels,
+    # BEEP on or off (the app shows each value). A KM_DEVICE action's op is its value.
+    ("RADIX", [("."   , "KM_DEVICE", "'.'", "KM_DEV_RADIX", 0), (",", "KM_DEVICE", "','", "KM_DEV_RADIX", 0),
+               ("1,000", "KM_DEVICE", "1", "KM_DEV_GROUP", 0), ("1 000", "KM_DEVICE", "' '", "KM_DEV_GROUP", 0),
+               ("none", "KM_DEVICE", "0", "KM_DEV_GROUP", 0), NONE]),
+    ("SETUP", [("OFF", "KM_DEVICE", "0", "KM_DEV_OFFTIME", 0), ("VOL", "KM_DEVICE", "0", "KM_DEV_VOL", 0),
+               ("BEEP", "KM_DEVICE", "0", "KM_DEV_BEEP", 0), NONE, NONE, NONE]),
     # rule 3: the one paged menu; the app fills soft keys 1-5 from the core's constants
     ("CONST", [NONE, NONE, NONE, NONE, NONE, ("more", "KM_NONE", "0", 0, 0)], "AB_CONST"),
 ]

@@ -19,7 +19,9 @@ typedef struct {
     int n;                  /* digit setting; ignored for ALL */
     int width;              /* most characters the text may take; every character counts */
     char radix;             /* '.' or ',' */
-    bool separator;         /* thousands separator in the integer part */
+    char separator;         /* grouping of the integer part in threes: 0 (false) none, 1 (true) the
+                               guide's mark, ',' or '.' with radix ',' (UG p.1-24), ' ' a space (ours,
+                               unit 022) */
 } ab_fmt;
 
 /* Writes the text (NUL-terminated) and returns its length. Returns -1 and writes "" when

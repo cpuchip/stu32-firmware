@@ -35,7 +35,7 @@ typedef struct {
     int busy;               /* 0, or the op running in slices: AB_SOLVE, AB_INTEG, AB_XEQ, AB_RS */
     const char *prompt;     /* an op waiting for its argument ("STO _", app.h), NULL none */
     char radix;             /* '.' or ',': the device's setting, as the core leaves it */
-    bool separator;         /* thousands separator */
+    char separator;         /* digit grouping, as ab_fmt's: 0 none, 1 the guide's mark, ' ' a space */
     const char *soft[SCREEN_SOFT];  /* the soft keys' labels (UTF-8); NULL or "" for none */
     bool soft_on[SCREEN_SOFT];      /* a label marked as the setting in effect (unit 019: MODE) */
 } screen_ui;

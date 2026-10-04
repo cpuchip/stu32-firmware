@@ -205,6 +205,12 @@ int main(void)
                 {"STACK", {O(AB_CLSTK, 0, "CLSTK"), O(AB_LASTX, 0, "LASTx"), O(AB_RUP, 0, "R\xe2\x86\x91"), O(AB_XY, 0, "x\xe2\x86\x94y"),
                            N, N}},
                 {"MODE", {O(AB_MODEL, 33, "33s"), O(AB_MODEL, 35, "35s"), N, N, N, N}},
+                /* unit 022: the device's settings, a KM_DEVICE action's op its value */
+                {"RADIX", {{KM_DEVICE, '.', KM_DEV_RADIX, 0, "."}, {KM_DEVICE, ',', KM_DEV_RADIX, 0, ","},
+                           {KM_DEVICE, 1, KM_DEV_GROUP, 0, "1,000"}, {KM_DEVICE, ' ', KM_DEV_GROUP, 0, "1 000"},
+                           {KM_DEVICE, 0, KM_DEV_GROUP, 0, "none"}, N}},
+                {"SETUP", {{KM_DEVICE, 0, KM_DEV_OFFTIME, 0, "OFF"}, {KM_DEVICE, 0, KM_DEV_VOL, 0, "VOL"},
+                           {KM_DEVICE, 0, KM_DEV_BEEP, 0, "BEEP"}, N, N, N}},
                 {"POW", {O(AB_IP, 0, "IP"), O(AB_FP, 0, "FP"), O(AB_INTG, 0, "INTG"), O(AB_RND, 0, "RND"), O(AB_SGN, 0, "SGN"),
                          O(AB_ABS, 0, "ABS")}},
             };
@@ -253,7 +259,7 @@ int main(void)
             expect(in->kind == KM_PROMPT && in->op == AB_INTEG && in->prompt == KM_ARG_VAR && !strcmp(in->legend, "\xe2\x88\xab"),
                    "integrate (gold 8) asks for a variable, then integrates");
             /* rule 5: these stay not defined */
-            static const char *const LATER[] = {"EXP", "MEM", "SYS", "RADIX", "SETUP", "GRAPH", "TABLE", "TUTOR", "APPS"};
+            static const char *const LATER[] = {"EXP", "MEM", "SYS", "GRAPH", "TABLE", "TUTOR", "APPS"};   /* RADIX, SETUP: unit 022 */
             for (size_t i = 0; i < sizeof LATER / sizeof LATER[0]; i++) {
                 bool found = false, undefined = true;
                 for (int k = 0; k < KB_KEYS; k++)

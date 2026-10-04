@@ -18,7 +18,7 @@ static const km_action KEYMAP[KB_KEYS][3] = {
     [10] = {{KM_OP, AB_INV, 0, 0, "1/x"}, {KM_OP, AB_PCT, 0, 0, "%"}, {KM_OP, AB_PCTCHG, 0, 0, "%CHG"}},
     [11] = {{KM_OP, AB_SIGMAPLUS, 0, 0, "\xce\xa3+"}, {KM_OP, AB_SIGMAMINUS, 0, 0, "\xce\xa3\xe2\x88\x92"}, {KM_MENU, 0, 5, 0, "STAT"}},
     [12] = {{KM_PROMPT, AB_STO, 0, KM_ARG_VAR, "STO"}, {KM_PROMPT, AB_VIEW, 0, KM_ARG_VAR, "VIEW"}, {KM_MENU, 0, 21, 0, "VARS"}},
-    [13] = {{KM_PROMPT, AB_RCL, 0, KM_ARG_VAR, "RCL"}, {KM_MENU, 0, 28, 0, "CONST"}, {KM_MENU, 0, 18, 0, "CONV"}},
+    [13] = {{KM_PROMPT, AB_RCL, 0, KM_ARG_VAR, "RCL"}, {KM_MENU, 0, 30, 0, "CONST"}, {KM_MENU, 0, 18, 0, "CONV"}},
     [14] = {{KM_OP, AB_RDN, 0, 0, "R\xe2\x86\x93"}, {KM_OP, AB_RUP, 0, 0, "R\xe2\x86\x91"}, {KM_MENU, 0, 22, 0, "STACK"}},
     [15] = {{KM_OP, AB_SIN, 0, 0, "SIN"}, {KM_OP, AB_ASIN, 0, 0, "ASIN"}, {KM_MENU, 0, 20, 0, "ANGLE"}},
     [16] = {{KM_OP, AB_COS, 0, 0, "COS"}, {KM_OP, AB_ACOS, 0, 0, "ACOS"}, {KM_OP, AB_TORAD, 0, 0, "\xe2\x86\x92RAD"}},
@@ -44,7 +44,7 @@ static const km_action KEYMAP[KB_KEYS][3] = {
     [36] = {{KM_SHIFT, 0, 2, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}},
     [37] = {{KM_OP, AB_K1, 0, 0, "1"}, {KM_MENU, 0, 19, 0, "UNITS"}, {KM_MENU, 0, -1, 0, "MEM"}},
     [38] = {{KM_OP, AB_K2, 0, 0, "2"}, {KM_MENU, 0, 1, 0, "DISP"}, {KM_MENU, 0, 2, 0, "\xe2\x88\xa1MODE"}},
-    [39] = {{KM_OP, AB_K3, 0, 0, "3"}, {KM_MENU, 0, -1, 0, "RADIX"}, {KM_MENU, 0, -1, 0, "SETUP"}},
+    [39] = {{KM_OP, AB_K3, 0, 0, "3"}, {KM_MENU, 0, 28, 0, "RADIX"}, {KM_MENU, 0, 29, 0, "SETUP"}},
     [40] = {{KM_OP, AB_SUB, 0, 0, "\xe2\x88\x92"}, {KM_OP, AB_RAND, 0, 0, "RAND"}, {KM_OP, AB_SEED, 0, 0, "SEED"}},
     [41] = {{KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}},
     [42] = {{KM_OP, AB_CANCEL, 0, 0, "C"}, {KM_DEVICE, 0, KM_DEV_OFF, 0, "OFF"}, {KM_MENU, 0, -1, 0, "SYS"}},
@@ -84,6 +84,8 @@ static const km_menu MENUS[] = {
     {"EQN LIST", {{KM_OP, AB_BST, 0, 0, "\xe2\x96\xb2"}, {KM_OP, AB_SST, 0, 0, "\xe2\x96\xbc"}, {KM_OP, AB_KRIGHT, 0, 0, "EDIT"}, {KM_OP, AB_EQTOP, 0, 0, "NEW"}, {KM_NONE, 0, 0, 0, ""}, {KM_OP, AB_EQN, 0, 0, "EXIT"}}, 0},
     {"EQN TYPE", {{KM_OP, AB_KLEFT, 0, 0, "\xe2\x97\x80"}, {KM_OP, AB_KRIGHT, 0, 0, "\xe2\x96\xb6"}, {KM_OP, AB_KPAREN, 0, 0, "( )"}, {KM_OP, AB_KEQ, 0, 0, "="}, {KM_OP, AB_KSPACE, 0, 0, "SPC"}, {KM_MENU, 0, 27, 0, "REG\xe2\x96\xb8"}}, 0},
     {"REG", {{KM_OP, AB_KREG, 0, 0, "REGX"}, {KM_OP, AB_KREG, 1, 0, "REGY"}, {KM_OP, AB_KREG, 2, 0, "REGZ"}, {KM_OP, AB_KREG, 3, 0, "REGT"}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}}, 0},
+    {"RADIX", {{KM_DEVICE, '.', KM_DEV_RADIX, 0, "."}, {KM_DEVICE, ',', KM_DEV_RADIX, 0, ","}, {KM_DEVICE, 1, KM_DEV_GROUP, 0, "1,000"}, {KM_DEVICE, ' ', KM_DEV_GROUP, 0, "1 000"}, {KM_DEVICE, 0, KM_DEV_GROUP, 0, "none"}, {KM_NONE, 0, 0, 0, ""}}, 0},
+    {"SETUP", {{KM_DEVICE, 0, KM_DEV_OFFTIME, 0, "OFF"}, {KM_DEVICE, 0, KM_DEV_VOL, 0, "VOL"}, {KM_DEVICE, 0, KM_DEV_BEEP, 0, "BEEP"}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}}, 0},
     {"CONST", {{KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, "more"}}, AB_CONST},
 };
 

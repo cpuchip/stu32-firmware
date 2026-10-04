@@ -35,7 +35,9 @@ typedef enum {
 enum { KM_ARG_VAR = 1, KM_ARG_LABEL, KM_ARG_TARGET,     /* what a KM_PROMPT asks for */
        KM_ARG_DIGITS,                                   /* a digit setting, from the digit keys (app.h) */
        KM_ARG_ADDR };                                   /* three digits, 000-999 (CLVARx, unit 021) */
-enum { KM_DEV_OFF = 1, KM_DEV_UNDO };
+enum { KM_DEV_OFF = 1, KM_DEV_UNDO,
+       /* unit 022's settings (settings.h): op carries the value for RADIX and GROUP */
+       KM_DEV_RADIX, KM_DEV_GROUP, KM_DEV_OFFTIME, KM_DEV_VOL, KM_DEV_BEEP };
 
 typedef struct {
     km_kind kind;
