@@ -4,7 +4,9 @@
  * drives it with key numbers.
  *
  * What it does:
- * - Shifts (keymap.h): the same shift cancels, the other switches; any other key clears it.
+ * - Shifts (keymap.h): the same shift cancels, the other switches; any other key clears it. With a
+ *   menu open a shift leaves it open: a soft key then acts and clears the shift, any other key closes
+ *   the menu and acts in the shift (ruling #3828, abacus #3971).
  * - A key whose action asks for an argument (STO, RCL, VIEW, ISG, DSE, LBL, XEQ, GTO) opens a
  *   prompt; the next keys are read in the letter layer: a letter, (I) or (J) completes it, + - x /
  *   turns STO and RCL into STO+ ... RCL/ (UG p.3-6, 3-7), ESC (the C key) cancels it, other keys

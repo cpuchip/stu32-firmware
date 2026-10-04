@@ -3191,16 +3191,17 @@ void ab_clear_all(ab_calc *c)
 }
 
 /* MEMORY CLEAR (UG p.B-3, B-4's right column): everything at its default, DEG, DEC, FIX 4, /c 4095,
- * xiy, fraction display off, flags clear, seed zero; the device's settings (budget, slice) kept.
+ * xiy, fraction display off, flags clear, seed zero; the core's run limit (budget) at its default
+ * too, and the device's slice kept (abacus #3971: a calloc'd host had budget 0, so every run
+ * stopped at once).
  * Contrast, the radix mark and the thousands separator are the device's (the core shows numbers in
  * its own form). ab_init differs only in the display: ALL (unit 002, ours). */
 void ab_memory_clear(ab_calc *c)
 {
-    long budget = c->budget, slice = c->slice;
+    long slice = c->slice;
     ab_init(c);
     c->disp_mode = AB_FIX;
     c->disp_n = 4;
-    c->budget = budget;
     c->slice = slice;
 }
 

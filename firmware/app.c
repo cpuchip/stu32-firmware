@@ -208,6 +208,11 @@ void app_key(app_state *a, int key, uint32_t now_ms)
         }
         return;
     }
+    if (a->menu >= 0 && face->kind == KM_SHIFT) {     /* a shift arms, switches or cancels; the menu stays
+                                                         (ruling #3828, abacus #3971) */
+        a->shift = a->shift == face->arg ? 0 : face->arg;
+        return;
+    }
     if (a->menu >= 0) {                         /* a menu on the soft keys */
         int at = a->menu, page = a->menu_page;
         const km_menu *mn = km_menu_at(at);
