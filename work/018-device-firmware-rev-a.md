@@ -64,3 +64,27 @@ after; this unit is what we bring it up with.
 
 The calculator running on the 4.3" S3 board with the Rev A screen layout, its state surviving
 resets, and the LS027, matrix and power drivers written and host-tested, waiting for Rev A.
+
+## Addendum, 2026-10-04: Rev A pass 6 (abacus decision 34; the pins land with draftsman's pass 6)
+
+Michael ruled three board changes. They change where two things are read, and add one output. The
+keymap does not change.
+
+1. **C (ON) is on IO0, off the matrix**, active low with the existing 10k pull-up (no diode). Key
+   42 is still C in keymap.c. Only pins and keys change: the scan reads key 42 from IO0, and row 7
+   col 0 of the matrix is no longer a key. Debounce it like the matrix keys. Deep-sleep wake
+   becomes EXT1 ANY_LOW on IO0 alone (RTC_GPIO0). The external pull-up holds with the RTC
+   peripherals off, so columns no longer need to be held low through sleep. C held at reset enters
+   download mode (GPIO0 0, GPIO46 0); that is intended.
+2. **A pinhole reset** (EN to GND): hardware only, no firmware.
+3. **A passive piezo on IO46** through a low-side MOSFET, driven by LEDC. IO46 is a strapping pin
+   and must read 0 at reset (the gate's pull-down holds it), so leave it untouched until after boot.
+   It is not an RTC pin, so nothing sounds in deep sleep. What it sounds for (a key click, BEEP in
+   programs, the 35s's error tone) is Michael's call, so build the driver only.
+
+Also for the list: the R8 module is rated 65 °C ambient, or 85 °C with PSRAM ECC, which costs 1/16
+of the PSRAM (WROOM-1 p.3). A calculator left in a car may want ECC. Measure what 1/16 costs the
+two-calculator state in PSRAM before turning it on.
+
+Host-testable now: the scan with key 42 from a separate input (the simulated matrix plus one GPIO),
+and the sleep configuration's wake mask, a pure function of the pin table.
