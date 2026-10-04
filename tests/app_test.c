@@ -542,9 +542,9 @@ int main(void)
         expect(ui.prompt && !strcmp(ui.prompt, "SF _"), "SF _");
         press(&a, ". 1");
         expect(ab_flag(&c, 11), "SF then .1 sets flag 11");
-        press(&a, "BLUE 6 k:2 1 1");
+        press(&a, "BLUE 6 k:2 . 1");
         expect(c.yes, "FS? 11: yes");
-        press(&a, "GOLD x\xe2\x86\x94y k:4 1 1");
+        press(&a, "GOLD x\xe2\x86\x94y k:4 . 1");
         expect(c.yes, "TEST's FS? 11: yes");
         /* BASE, and BASE > LOGIC > AND (12 AND 10 is 8) */
         press(&a, "BLUE x\xe2\x86\x94y k:1");

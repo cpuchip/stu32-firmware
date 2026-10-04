@@ -461,6 +461,12 @@ int main(int argc, char **argv)
     expect(text_at(&f, 2 + 3, 214, 2, "SOLVE", 1), "SOLVE centred in its box");
     expect(glyph_at(&f, 134 + 27, 214, 2, 'x', 1), "a one-cell label centred");
     expect(dark_in(&f, 68, 206, 64, 30) == 0, "an empty soft key: nothing drawn");
+    /* a label marked as the setting in effect (unit 019: MODE) is drawn inverted */
+    ui.soft_on[2] = true;
+    screen_render(&c, &ui, &f);
+    expect(glyph_at(&f, 134 + 27, 214, 2, 'x', 0) && dark_in(&f, 134, 206, 64, 30) > 64 * 30 - 100,
+           "a marked label: light on a dark box");
+    expect(text_at(&f, 2 + 3, 214, 2, "SOLVE", 1), "an unmarked label beside it unchanged");
     screen_ui_default(&ui);
 
     /* the gaps a first mutation sweep showed */

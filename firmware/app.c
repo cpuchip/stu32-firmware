@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "const.h"
 #include "keymap.h"
 #include "state.h"
 
@@ -34,8 +35,10 @@ static void prompt_open(app_state *a, int op, int kind)
     const char *name = op == AB_STO ? "STO" : op == AB_RCL ? "RCL" : op == AB_VIEW ? "VIEW" : op == AB_ISG ? "ISG"
                        : op == AB_DSE ? "DSE" : op == AB_LBL ? "LBL" : op == AB_XEQ ? "XEQ" : op == AB_GTO ? "GTO"
                        : op == AB_SETFIX ? "FIX" : op == AB_SETSCI ? "SCI" : op == AB_SETENG ? "ENG"
-                       : op == AB_INPUT ? "INPUT" : op == AB_CLVARX ? "CLVAR" : "";
-    char buf[12] = "";
+                       : op == AB_INPUT ? "INPUT" : op == AB_CLVARX ? "CLVAR" : op == AB_SF ? "SF"
+                       : op == AB_CF ? "CF" : op == AB_FS ? "FS?" : op == AB_XVAR ? "x<>" : op == AB_SOLVE ? "SOLVE"
+                       : op == AB_INTEG ? "\xe2\x88\xab" "FN d" : "";
+    char buf[16] = "";
     if (op >= AB_STOADD && op <= AB_STODIV) snprintf(buf, sizeof buf, "STO%s", ARITH[op - AB_STOADD]);
     else if (op >= AB_RCLADD && op <= AB_RCLDIV) snprintf(buf, sizeof buf, "RCL%s", ARITH[op - AB_RCLADD]);
     else snprintf(buf, sizeof buf, "%s", name);
@@ -167,8 +170,20 @@ void app_key(app_state *a, int key, uint32_t now_ms)
         return;
     }
     if (a->menu >= 0) {                         /* a menu on the soft keys */
-        const km_menu *mn = km_menu_at(a->menu);
+        int at = a->menu, page = a->menu_page;
+        const km_menu *mn = km_menu_at(at);
         a->menu = -1;
+        if (face->kind == KM_SOFT && mn && mn->paged) {     /* CONST: five a page, then more */
+            int n = ab_const_count(), i = page * 5 + face->arg;
+            a->shift = 0;
+            if (face->arg == 5) {
+                a->menu = at;
+                a->menu_page = (page + 1) * 5 < n ? page + 1 : 0;
+            } else if (i < n) {
+                do_op(a, mn->paged, i);
+            }
+            return;
+        }
         if (face->kind == KM_SOFT && mn) {
             a->shift = 0;
             do_action(a, &mn->item[face->arg]);
@@ -199,7 +214,10 @@ static void do_action(app_state *a, const km_action *act)
             prompt_open(a, act->op, act->prompt);
         break;
     case KM_MENU:
-        if (act->arg >= 0 && km_menu_at(act->arg)) a->menu = act->arg;
+        if (act->arg >= 0 && km_menu_at(act->arg)) {
+            a->menu = act->arg;
+            a->menu_page = 0;
+        }
         break;
     case KM_CONFIRM:                            /* in program entry ALL is PGM (UG p.1-5) */
         a->confirm_op = act->op == AB_CLALL && a->c->prgm ? AB_CLPGM : act->op;
@@ -264,6 +282,12 @@ void app_ui(const app_state *a, screen_ui *ui)
     const km_menu *mn = a->menu >= 0 ? km_menu_at(a->menu) : NULL;
     for (int i = 0; mn && i < SCREEN_SOFT && i < KM_SOFT_KEYS; i++) {
         const km_action *it = &mn->item[i];
+        if (mn->paged && i < 5) {               /* CONST's page: its constants by name */
+            int k = a->menu_page * 5 + i;
+            ui->soft[i] = k < ab_const_count() ? ab_const_name(k) : NULL;
+            continue;
+        }
         ui->soft[i] = it->kind == KM_CONFIRM && it->op == AB_CLALL && a->c->prgm ? "PGM" : it->legend;
+        ui->soft_on[i] = it->kind == KM_OP && it->op == AB_MODEL && it->arg == (a->c->m35 ? 35 : 33);
     }
 }

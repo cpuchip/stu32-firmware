@@ -2546,6 +2546,7 @@ static abn_status program_key(ab_calc *c, ab_op op, int arg)
     case AB_MODEL:                          /* a device menu setting, ours (unit 017) */
     case AB_CLALL:                          /* in program entry the menu offers CLPGM in its place
                                                (UG p.1-5) */
+    case AB_FRACFMT:                        /* a device menu setting, as FDISP (unit 019) */
         return ABN_NONPROGRAMMABLE;
     case AB_CLVARX:
         if (arg < 0 || arg > AB_IND_MAX) return ABN_DOMAIN;
@@ -3623,6 +3624,14 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
         /* CLEAR ALL: data cleared, modes and settings kept (UG p.1-29, p.B-3); the device asks
            first (UG p.1-5) */
         ab_clear_all(c);
+        return ABN_OK;
+    case AB_FRACFMT:
+        /* The fraction format as its two flags at once (UG p.5-6; unit 019 rule 2): precise
+           clears 8; factors sets 8 and clears 9; fixed sets both. A display setting, so neutral
+           for lift as FDISP and the formats are (UG p.B-5), where SF and CF enable it. */
+        if (arg < 0 || arg > 2) return ABN_DOMAIN;
+        c->flag8 = arg > 0;
+        if (arg > 0) c->flag9 = arg == 2;
         return ABN_OK;
     case AB_SETFIX:
     case AB_SETSCI:

@@ -7,3 +7,4 @@ F03 | 35s p.5-6 precise: 8 clear | FRACFMT:2 FRACFMT:0 | %F8=0
 F04 | 35s p.5-6 fixed with /c 4 shows quarters: 0.3 is 1/4 | FRACFMT:2 4 /C 0.3 RND | X=0.25
 F05 | ours: a device menu setting, so not a program line | PRGM FRACFMT:2 | ERR %ERR=NONPROGRAMMABLE %LINES=0
 F06 | ours: only 0, 1 and 2 | FRACFMT:3 | ERR %ERR=DOMAIN
+F07 | 35s p.B-5 a display setting is neutral for lift: ENTER then FRACFMT then a number replaces X | 5 ENTER FRACFMT:2 7 | X=7 Y=5 Z=0

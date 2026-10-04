@@ -54,6 +54,20 @@ MEANING = {
     "→FRAC": OP("AB_FDISP"),                     # the Fraction-display toggle, ch.5 (abacus #3822)
 }
 
+def o(legend, op, arg=0):
+    return (legend, "KM_OP", op, arg, 0)
+
+
+def p(legend, op, prompt):
+    return (legend, "KM_PROMPT", op, 0, prompt)
+
+
+def t(legend, rel):
+    return (legend, "KM_OP", "AB_TEST", rel, 0)
+
+
+NONE = ("", "KM_NONE", "0", 0, 0)
+
 # The menus (abacus #3877; provisional until Michael rules the menus): a menu's name and its six
 # soft keys, each (legend, kind, op, arg, prompt). PRGM, DISP, the angle modes and CLEAR are
 # defined; a menu key whose menu is not here is a menu not defined yet (arg -1). Data only, like
@@ -76,10 +90,59 @@ MENUS = [
     ("CLEAR", [("CLx", "KM_OP", "AB_CLX", 0, 0), ("CLSTK", "KM_OP", "AB_CLSTK", 0, 0),
                ("CLVARS", "KM_OP", "AB_CLVARS", 0, 0), ("CL\u03a3", "KM_OP", "AB_CLSIGMA", 0, 0),
                ("ALL", "KM_CONFIRM", "AB_CLALL", 0, 0), ("CLVARx", "KM_PROMPT", "AB_CLVARX", 0, "KM_ARG_ADDR")]),
+    # unit 019 (abacus's draft v1, provisional): built exactly as drafted, F1-F6 in order
+    ("HYP", [o("SINH", "AB_SINH"), o("COSH", "AB_COSH"), o("TANH", "AB_TANH"), o("ASINH", "AB_ASINH"),
+             o("ACOSH", "AB_ACOSH"), o("ATANH", "AB_ATANH")]),
+    ("STAT", [o("x\u0304", "AB_XBAR"), o("y\u0304", "AB_YBAR"), o("sx", "AB_SX"), o("sy", "AB_SY"),
+              o("\u03c3x", "AB_PSX"), o("\u03c3y", "AB_PSY")]),
+    ("L.R.", [o("x\u0302", "AB_XHAT"), o("y\u0302", "AB_YHAT"), o("r", "AB_CORR"), o("m", "AB_SLOPE"),
+              o("b", "AB_YINT"), o("x\u0304w", "AB_XWBAR")]),
+    ("SUMS", [o("n", "AB_NSUM"), o("\u03a3x", "AB_SUMX"), o("\u03a3y", "AB_SUMY"), o("\u03a3x\u00b2", "AB_SUMX2"),
+              o("\u03a3y\u00b2", "AB_SUMY2"), o("\u03a3xy", "AB_SUMXY")]),
+    ("PROB", [o("Cn,r", "AB_NCR"), o("Pn,r", "AB_NPR"), o("n!", "AB_FACT"), o("RAND", "AB_RAND"),
+              o("SEED", "AB_SEED"), NONE]),
+    # SF, CF, FS? take the flag from the digit prompt: 10 and 11 by .0 and .1 (UG p.14-9)
+    ("FLAGS", [p("SF", "AB_SF", "KM_ARG_DIGITS"), p("CF", "AB_CF", "KM_ARG_DIGITS"),
+               p("FS?", "AB_FS", "KM_ARG_DIGITS"), NONE, NONE, NONE]),
+    # the tests: AB_TEST with its relation (calc.h's AB_TEST_* order, + 6 against 0; UG p.14-7)
+    ("x?y", [t("x\u2260y?", 0), t("x\u2264y?", 1), t("x<y?", 2), t("x>y?", 3), t("x\u2265y?", 4), t("x=y?", 5)]),
+    ("x?0", [t("x\u22600?", 6), t("x\u22640?", 7), t("x<0?", 8), t("x>0?", 9), t("x\u22650?", 10), t("x=0?", 11)]),
+    ("TEST", [t("x=y?", 5), t("x\u2260y?", 0), t("x=0?", 11), t("x\u22600?", 6), p("FS?", "AB_FS", "KM_ARG_DIGITS"),
+              t("x<y?", 2)]),
+    ("BASE", [o("DEC", "AB_DEC"), o("HEX", "AB_HEX"), o("OCT", "AB_OCT"), o("BIN", "AB_BIN"),
+              ("LOGIC\u25b8", "KM_MENU", "0", "LOGIC", 0), ("SUFFIX\u25b8", "KM_MENU", "0", "SUFFIX", 0)]),
+    ("LOGIC", [o("AND", "AB_AND"), o("OR", "AB_OR"), o("XOR", "AB_XOR"), o("NOT", "AB_NOT"), o("NAND", "AB_NAND"),
+               o("NOR", "AB_NOR")]),
+    ("SUFFIX", [o("d", "AB_SUF", 10), o("h", "AB_SUF", 16), o("o", "AB_SUF", 8), o("b", "AB_SUF", 2), NONE, NONE]),
+    ("CMPLX", [o("i", "AB_KI"), o("\u03b8", "AB_KTHETA"), o("ARG", "AB_ARG"), o("[", "AB_KVEC"), NONE, NONE]),
+    # the three formats are one core op each, both flags at once (rule 2; UG p.5-6)
+    ("FRAC", [o("FDISP", "AB_FDISP"), o("/c", "AB_SETC"), o("RCL/c", "AB_RCLC"), o("precise", "AB_FRACFMT", 0),
+              o("factors", "AB_FRACFMT", 1), o("fixed", "AB_FRACFMT", 2)]),
+    ("CONV", [o("\u2192kg", "AB_TOKG"), o("\u2192lb", "AB_TOLB"), o("\u2192\u00b0C", "AB_TOC"),
+              o("\u2192\u00b0F", "AB_TOF"), o("\u2192cm", "AB_TOCM"), o("\u2192in", "AB_TOIN")]),
+    ("UNITS", [o("\u2192l", "AB_TOL"), o("\u2192gal", "AB_TOGAL"), o("\u2192km", "AB_TOKM"),
+               o("\u2192mile", "AB_TOMILE"), NONE, NONE]),
+    ("ANGLE", [o("\u2192POL", "AB_TOPOL"), o("\u2192REC", "AB_TOREC"), o("\u2192HMS", "AB_HMS"),
+               o("HMS\u2192", "AB_HMSINV"), o("\u2192DEG", "AB_TODEG"), o("\u2192RAD", "AB_TORAD")]),
+    ("VARS", [p("x\u2194", "AB_XVAR", "KM_ARG_VAR"), p("VIEW", "AB_VIEW", "KM_ARG_VAR"), o("CLVARS", "AB_CLVARS"),
+              NONE, NONE, NONE]),
+    ("STACK", [o("CLSTK", "AB_CLSTK"), o("LASTx", "AB_LASTX"), o("R\u2191", "AB_RUP"), o("x\u2194y", "AB_XY"),
+               NONE, NONE]),
+    ("MODE", [o("33s", "AB_MODEL", 33), o("35s", "AB_MODEL", 35), NONE, NONE, NONE, NONE]),
+    # the parts of a number under the printed legend POW (Michael is asked to rename it PARTS)
+    ("POW", [o("IP", "AB_IP"), o("FP", "AB_FP"), o("INTG", "AB_INTG"), o("RND", "AB_RND"), o("SGN", "AB_SGN"),
+             o("ABS", "AB_ABS")]),
+    # rule 3: the one paged menu; the app fills soft keys 1-5 from the core's constants
+    ("CONST", [NONE, NONE, NONE, NONE, NONE, ("more", "KM_NONE", "0", 0, 0)], "AB_CONST"),
 ]
 # Menu legends that act as plain ops until their menu is ruled (abacus #3867): the EQN menu's
 # first item will take this over.
-MENU_AS_OP = {"EQN": OP("AB_EQN")}
+MENU_AS_OP = {"EQN": OP("AB_EQN"),
+              # unit 019 rule 4: SOLVE and integrate are direct, the 35s's way: the variable, then
+              # the op. The layout still boxes them as menus; Michael's roadmap answer decides the
+              # legend.
+              "SOLVE": ("KM_PROMPT", "AB_SOLVE", 0, "KM_ARG_VAR"),
+              "\u222b": ("KM_PROMPT", "AB_INTEG", 0, "KM_ARG_VAR")}
 
 # The letter layer. The letters are the layout's own (each lettered key's "letter" field in
 # stu32-v0.json, printed on the keycaps, decision 25, abacus #3887); LETTERS is the check: the

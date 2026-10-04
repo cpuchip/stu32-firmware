@@ -396,10 +396,12 @@ static void soft_band(ls027_frame *f, const screen_ui *ui)
         if (!s || !*s) continue;
         int x = k * 66 + 2, n = screen_cells(s);
         if (n > 5) n = 5;                       /* five cells hold a label at scale 2 */
+        bool on = ui->soft_on[k];               /* the setting in effect: drawn inverted (unit 019) */
         frame_box(f, x, SOFT_Y, 64, 30);
+        if (on) screen_fill(f, x, SOFT_Y, 64, 30, true);
         line l = {.n = 0, .cursor = -1};
         line_add(&l, s);
-        draw_cps(f, x + (64 - span(n, 2)) / 2, SOFT_Y + 8, 2, l.cp, n, true);
+        draw_cps(f, x + (64 - span(n, 2)) / 2, SOFT_Y + 8, 2, l.cp, n, !on);
     }
 }
 

@@ -21,7 +21,9 @@
  * - Menus (keymap.h's MENUS): a menu key opens its menu and its labels go to the soft keys; a
  *   soft key does its item and closes it; C only closes it (ours: in program entry C would
  *   otherwise leave it); any other key closes it and acts. A menu not defined yet, and a soft key
- *   with no menu open, do nothing.
+ *   with no menu open, do nothing. A soft key may open another menu (BASE's LOGIC and SUFFIX).
+ *   CONST is paged (unit 019): soft keys 1-5 recall five constants, 6 shows the next five, and
+ *   after the last page the first. MODE marks the model in effect.
  * - An address prompt (CLVARx, unit 021; UG p.1-5's three placeholders) reads three digit keys,
  *   "CLVAR___" filling as they come; the third completes it, backspace takes one back, C cancels,
  *   other keys do nothing.
@@ -62,6 +64,7 @@ typedef struct {
     int prompt_n, prompt_val;   /* an address prompt's digits so far, and their value */
     int confirm_op;         /* the op a yes/no prompt waits to do (CLR ALL?), -1 none */
     int menu;               /* the menu open on the soft keys (km_menu_at), -1 none */
+    int menu_page;          /* a paged menu's page (CONST, unit 019) */
     bool running;           /* a run in slices */
     int busy_op;            /* the op that started it, for ab_busy_message */
     bool dirty;             /* changed since the last save */
