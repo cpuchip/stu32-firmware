@@ -8,7 +8,8 @@
 #include <stdint.h>
 
 #define PIEZO_LEVELS 5          /* 0 off, 1 -16 dB, 2 -10 dB, 3 -3 dB, 4 loudest */
-#define PIEZO_HZ 2000           /* the tones' frequency */
+#define PIEZO_HZ 4000           /* the tones' frequency: the PKMCS0909E4000's rated 4 kHz (65 dB min;
+                                   abacus #4073). Untested until Rev A: a phone SPL meter then */
 
 /* The duty for a level, out of 2^bits (LEDC's resolution); 0 for off or a level out of range. */
 uint32_t piezo_duty(int level, int bits);

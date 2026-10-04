@@ -186,7 +186,7 @@ static int piezo_level = PIEZO_LEVELS - 1;  /* where the setting lives waits for
 static void piezo_init(void)
 {
     ledc_timer_config_t t = {.speed_mode = LEDC_LOW_SPEED_MODE, .duty_resolution = LEDC_TIMER_10_BIT,
-                             .timer_num = LEDC_TIMER_0, .freq_hz = 2000, .clk_cfg = LEDC_AUTO_CLK};
+                             .timer_num = LEDC_TIMER_0, .freq_hz = PIEZO_HZ, .clk_cfg = LEDC_AUTO_CLK};
     ledc_channel_config_t ch = {.gpio_num = PIN_PIEZO, .speed_mode = LEDC_LOW_SPEED_MODE, .channel = LEDC_CHANNEL_0,
                                 .timer_sel = LEDC_TIMER_0, .duty = 0, .hpoint = 0};
     piezo_ready = ledc_timer_config(&t) == ESP_OK && ledc_channel_config(&ch) == ESP_OK;
@@ -314,7 +314,7 @@ static void console_task(void *arg)
             int k = -1;
             xQueueSend(keys_q, &k, 0);
         } else if (!strcmp(line, "BEEP")) {
-            piezo_tone(2000, 100);              /* bring-up: does the piezo sound */
+            piezo_tone(PIEZO_HZ, 100);          /* bring-up: does the piezo sound */
         } else if (!strncmp(line, "VOL", 3)) {
             piezo_level = atoi(line + 3);       /* bring-up: VOL 0..4 (piezo.h) */
         }
@@ -336,7 +336,7 @@ static void calc_task(void *arg)
             app_key(&app, k, now);
             if (app.tone >= 0) {                /* VOL's new level, or an error with BEEP on (unit 022) */
                 piezo_level = app.tone;
-                piezo_tone(2000, 60);
+                piezo_tone(PIEZO_HZ, 60);
                 piezo_level = app.set.vol;
                 app.tone = -1;
             }
