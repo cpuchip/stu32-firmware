@@ -21,3 +21,5 @@ S16 | ours: LOG2 of an exact power of two is exact | 0.0009765625 LOG2 | X=-10
 S17 | ours: LOG2 of 2^112, the largest power of two exact in 34 digits | 5192296858534827628530496329220096 LOG2 | X=112
 S18 | ours: e^x - 1 far below: -1 | 1 CHS E 8 EXPM1 | X=-1
 S19 | ours: e^x - 1 too large is the range error | 1 E 5 EXPM1 | ERR %ERR=RANGE
+S20 | ours: CLEAR ALL acts in Equation mode too (no silent no-op after CLR ALL? is answered) | 5 STO:A EQN CLALL | @A=0 %EQ=TOP
+S21 | ours: CLEAR ALL acts while an equation is typed, and leaves Equation mode | 5 STO:A EQN RCL:A CLALL 2 ENTER 3 + | @A=0 X=5

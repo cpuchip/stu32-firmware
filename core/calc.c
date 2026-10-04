@@ -3102,8 +3102,10 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
         if (c->m35) return ABN_OK;
     }
     c->err_set = false;
+    /* CLEAR ALL acts in Equation mode too, ending it (unit 021: never a silent no-op once the
+       device has asked CLR ALL?) */
     if (c->prgm) st = program_key(c, op, arg);
-    else if (c->eqn_mode && !c->eqn_pending) st = eqn_key(c, op, arg);
+    else if (c->eqn_mode && !c->eqn_pending && op != AB_CLALL) st = eqn_key(c, op, arg);
     else st = do_key(c, op, arg);
     if (st != ABN_OK && st != ABN_CLAMPED) {
         c->msg = true;
