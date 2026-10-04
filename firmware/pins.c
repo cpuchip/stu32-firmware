@@ -13,8 +13,9 @@ const pin_boot PIN_BOOT[] = {
 };
 const int PIN_BOOT_COUNT = (int)(sizeof PIN_BOOT / sizeof PIN_BOOT[0]);
 
-/* red: decision 34's stub, replaced in the green commit */
+/* C alone wakes the chip (decision 34): IO0 is an RTC GPIO with an external pull-up, so it holds
+   through deep sleep with the RTC peripherals off, and no column needs holding low */
 uint64_t pin_wake_mask(void)
 {
-    return 0;
+    return 1ull << PIN_ON;
 }

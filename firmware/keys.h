@@ -6,8 +6,10 @@
  *
  * kb_scan is one pass over the columns (call it every millisecond). A key's change is taken once
  * it has read the same KB_DEBOUNCE passes running; each press becomes a key-down event, in the
- * order taken (within one pass, by column then row). Keys are numbered row * 6 + column; the
- * matrix has 43 (rows 0-2 six keys, rows 3-7 five: the layout's rows, stu32-v0.json). */
+ * order taken (within one pass, by column then row, then C from its own pin when it has one).
+ * Keys are numbered row * 6 + column; the layout has 43 (rows 0-2 six keys, rows 3-7 five:
+ * stu32-v0.json). From Rev A pass 6 (decision 34) C, key 42, is on its own pin (IO0) and the
+ * matrix's row 7 column 0 is no longer a key: read_on gives it. */
 #ifndef KEYS_H
 #define KEYS_H
 

@@ -7,12 +7,12 @@
  *   SCS high around each transfer (setup 3 us, hold 1 us); only the rows that changed are sent.
  *   Power on (Sharp 6-2, p.11): BOOST_EN up (5 V), clear the pixel memory, DISP up, 30 us before
  *   SCS. EXTCOMIN is the ULP's (ulp/main.c): 1 Hz, awake and asleep.
- * - Deep sleep keeps the image: BOOST_EN and DISP are held high, the ULP keeps inverting COM. The
- *   ON key wakes the chip: its column (COL0, IO10) is held low and its row (ROW7, IO9) wakes on low
- *   (both RTC GPIOs, facts 2.5). Sharp asks that a still image not stand two hours unrefreshed
+ * - Deep sleep keeps the image: BOOST_EN and DISP are held high, the ULP keeps inverting COM. C
+ *   (ON) wakes the chip: since Rev A pass 6 (decision 34) it is on IO0, off the matrix, and wakes
+ *   it by EXT1 ANY_LOW alone (an RTC GPIO with an external pull-up). Sharp asks that a still image not stand two hours unrefreshed
  *   (p.4): a timer wakes the chip every 100 minutes to rewrite it, then it sleeps again.
  * - Keys (keys.h): a scan every millisecond, columns driven low one at a time (open drain), rows
- *   read on their pull-ups. A key held at power-up (the ON press that woke it) makes no event.
+ *   read on their pull-ups, C from IO0. A key held at power-up (the ON press that woke it) makes no event.
  * - Power (power.h, gauge.h): the MAX17048 read every 30 s; CHG_N and PGOOD_N; BOOT levels from
  *   pins.c, except BOOST_EN and DISP after a deep-sleep wake (they were held high).
  * - The console: K<n> presses key n, X prints the state (for bring-up, as on the stand-in). */
@@ -23,6 +23,7 @@
 
 #include "driver/gpio.h"
 #include "driver/i2c_master.h"
+#include "driver/ledc.h"
 #include "driver/spi_master.h"
 #include "esp_heap_caps.h"
 #include "esp_partition.h"
@@ -145,11 +146,17 @@ static uint8_t kb_read(void *ctx)
     return rows;
 }
 
+static bool kb_read_on(void *ctx)
+{
+    (void)ctx;
+    return gpio_get_level(PIN_ON) == 0;         /* active low on its 10k pull-up (decision 34) */
+}
+
 static void scan_task(void *arg)
 {
     (void)arg;
     static kb_state ks;
-    kb_io io = {NULL, kb_drive, kb_read};
+    kb_io io = {NULL, kb_drive, kb_read, kb_read_on};
     kb_init(&ks);
     for (int i = 0; i <= KB_DEBOUNCE; i++) kb_scan(&ks, &io);   /* keys held at power-up: no event */
     while (kb_next(&ks) >= 0) {
@@ -166,6 +173,35 @@ static void scan_task(void *arg)
         }
         vTaskDelay(1);
     }
+}
+
+/* ---- the piezo (decision 34): LEDC on IO46, set up only after boot (IO46 is a strapping pin and
+   must read 0 at reset; the MOSFET gate's pull-down holds it). What it sounds for is Michael's
+   call, so only the driver is here, and the console's BEEP for bring-up. ---- */
+
+static bool piezo_ready;
+
+static void piezo_init(void)
+{
+    ledc_timer_config_t t = {.speed_mode = LEDC_LOW_SPEED_MODE, .duty_resolution = LEDC_TIMER_10_BIT,
+                             .timer_num = LEDC_TIMER_0, .freq_hz = 2000, .clk_cfg = LEDC_AUTO_CLK};
+    ledc_channel_config_t ch = {.gpio_num = PIN_PIEZO, .speed_mode = LEDC_LOW_SPEED_MODE, .channel = LEDC_CHANNEL_0,
+                                .timer_sel = LEDC_TIMER_0, .duty = 0, .hpoint = 0};
+    piezo_ready = ledc_timer_config(&t) == ESP_OK && ledc_channel_config(&ch) == ESP_OK;
+}
+
+/* a tone of hz for ms (blocking; 0 Hz is a rest) */
+static void piezo_tone(uint32_t hz, uint32_t ms)
+{
+    if (!piezo_ready) return;
+    if (hz) {
+        ledc_set_freq(LEDC_LOW_SPEED_MODE, LEDC_TIMER_0, hz);
+        ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 512);    /* half of 10 bits: a square wave */
+        ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
+    }
+    vTaskDelay(pdMS_TO_TICKS(ms));
+    ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 0);
+    ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
 }
 
 /* ---- the gauge, the store ---- */
@@ -236,11 +272,10 @@ static void sleep_now(void)
     gpio_hold_en(PIN_BOOST_EN);
     gpio_hold_en(PIN_DISP);
     for (int c = 0; c < KB_COLS; c++) gpio_set_direction(COLS[c], GPIO_MODE_INPUT);
-    gpio_set_direction(COLS[0], GPIO_MODE_OUTPUT);
-    gpio_set_level(COLS[0], 0);
-    gpio_hold_en(COLS[0]);
     gpio_deep_sleep_hold_en();
-    esp_sleep_enable_ext0_wakeup(ROWS[7], 0);
+    /* C alone wakes it (decision 34): EXT1 ANY_LOW on IO0, whose external pull-up holds with the
+       RTC peripherals off */
+    esp_sleep_enable_ext1_wakeup(pin_wake_mask(), ESP_EXT1_WAKEUP_ANY_LOW);
     esp_sleep_enable_timer_wakeup(REFRESH_US);
     esp_deep_sleep_start();
 }
@@ -268,6 +303,8 @@ static void console_task(void *arg)
         } else if (line[0] == 'X') {
             int k = -1;
             xQueueSend(keys_q, &k, 0);
+        } else if (!strcmp(line, "BEEP")) {
+            piezo_tone(2000, 100);              /* bring-up: does the piezo sound */
         }
     }
 }
@@ -311,7 +348,7 @@ static void calc_task(void *arg)
 void app_main(void)
 {
     esp_sleep_wakeup_cause_t why = esp_sleep_get_wakeup_cause();
-    bool woke = why == ESP_SLEEP_WAKEUP_EXT0 || why == ESP_SLEEP_WAKEUP_TIMER;
+    bool woke = why == ESP_SLEEP_WAKEUP_EXT1 || why == ESP_SLEEP_WAKEUP_TIMER;
     /* the outputs' first levels (pins.c), keeping BOOST_EN and DISP high after a wake */
     for (int i = 0; i < PIN_BOOT_COUNT; i++) {
         const pin_boot *p = &PIN_BOOT[i];
@@ -322,7 +359,7 @@ void app_main(void)
         if (woke) gpio_hold_dis(p->pin);
     }
     gpio_deep_sleep_hold_dis();
-    if (woke) gpio_hold_dis(COLS[0]);
+    gpio_set_direction(PIN_ON, GPIO_MODE_INPUT);
     for (int r = 0; r < KB_ROWS; r++) {
         gpio_set_direction(ROWS[r], GPIO_MODE_INPUT);
         gpio_set_pull_mode(ROWS[r], GPIO_PULLUP_ONLY);
@@ -367,6 +404,7 @@ void app_main(void)
         render(0);
         sleep_now();
     }
+    piezo_init();                               /* after boot: IO46 has been read */
     keys_q = xQueueCreate(32, sizeof(int));
     xTaskCreatePinnedToCore(calc_task, "calc", 32768, NULL, 4, NULL, 1);
     xTaskCreatePinnedToCore(scan_task, "scan", 4096, NULL, 6, NULL, 0);

@@ -21,6 +21,19 @@ static void push(kb_state *k, int key)
     k->qn++;
 }
 
+/* one pass's reading of a key, through its debounce integrator */
+static void sample(kb_state *k, int key, bool now)
+{
+    if (now && k->count[key] < KB_DEBOUNCE) k->count[key]++;
+    else if (!now && k->count[key] > 0) k->count[key]--;
+    if (!k->down[key] && k->count[key] == KB_DEBOUNCE) {
+        k->down[key] = true;
+        push(k, key);
+    } else if (k->down[key] && k->count[key] == 0) {
+        k->down[key] = false;
+    }
+}
+
 void kb_scan(kb_state *k, const kb_io *io)
 {
     for (int c = 0; c < KB_COLS; c++) {
@@ -29,18 +42,12 @@ void kb_scan(kb_state *k, const kb_io *io)
         for (int r = 0; r < KB_ROWS; r++) {
             int key = r * KB_COLS + c;
             if (!kb_exists(r, c)) continue;
-            bool now = rows >> r & 1;
-            if (now && k->count[key] < KB_DEBOUNCE) k->count[key]++;
-            else if (!now && k->count[key] > 0) k->count[key]--;
-            if (!k->down[key] && k->count[key] == KB_DEBOUNCE) {
-                k->down[key] = true;
-                push(k, key);
-            } else if (k->down[key] && k->count[key] == 0) {
-                k->down[key] = false;
-            }
+            if (key == KB_ON_KEY && io->read_on) continue;     /* off the matrix (Rev A pass 6) */
+            sample(k, key, rows >> r & 1);
         }
     }
     io->drive(io->ctx, -1);
+    if (io->read_on) sample(k, KB_ON_KEY, io->read_on(io->ctx));   /* after the columns, each pass */
 }
 
 int kb_next(kb_state *k)
