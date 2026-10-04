@@ -4,6 +4,7 @@
 void pwr_init(pwr_state *p, uint32_t now_ms)
 {
     p->last_ms = now_ms;
+    p->idle_ms = PWR_IDLE_MS;
 }
 
 void pwr_activity(pwr_state *p, uint32_t now_ms)
@@ -18,7 +19,7 @@ pwr_action pwr_check(pwr_state *p, const pwr_inputs *in, uint32_t now_ms)
         p->last_ms = now_ms;
         return PWR_STAY;
     }
-    return (uint32_t)(now_ms - p->last_ms) >= PWR_IDLE_MS ? PWR_OFF_IDLE : PWR_STAY;   /* wraps */
+    return (uint32_t)(now_ms - p->last_ms) >= p->idle_ms ? PWR_OFF_IDLE : PWR_STAY;   /* wraps */
 }
 
 bool pwr_charging(const pwr_inputs *in)

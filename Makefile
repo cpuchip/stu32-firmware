@@ -33,7 +33,7 @@ SCREEN := firmware/screen.c firmware/font5x7.c
 build/keymap_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) firmware/keymap.c firmware/keymap.h firmware/keys.c firmware/keys.h firmware/screen.h tests/keymap_test.c | build
 	$(CC) $(CFLAGS) -Icore -Ifirmware -o $@ $(CORE) $(SCREEN) firmware/keymap.c firmware/keys.c tests/keymap_test.c $(ENGINE) $(LIBS)
 
-APP := firmware/app.c firmware/keymap.c firmware/keys.c firmware/power.c
+APP := firmware/app.c firmware/keymap.c firmware/keys.c firmware/power.c firmware/settings.c firmware/piezo.c
 build/app_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) $(APP) firmware/app.h firmware/keymap.h firmware/power.h firmware/screen.h tests/app_test.c | build
 	$(CC) $(CFLAGS) -Icore -Ifirmware -o $@ $(CORE) $(SCREEN) $(APP) tests/app_test.c $(ENGINE) $(LIBS)
 
@@ -52,8 +52,8 @@ build/keys_test: firmware/keys.c firmware/keys.h tests/keys_test.c | build
 build/ls027_test: firmware/ls027.c firmware/ls027.h tests/ls027_test.c | build
 	$(CC) $(CFLAGS) -Ifirmware -o $@ firmware/ls027.c tests/ls027_test.c
 
-build/store_test: $(CORE) $(HDRS) $(ENGINE) firmware/store.c firmware/store.h tests/store_test.c | build
-	$(CC) $(CFLAGS) -Icore -Ifirmware -o $@ $(CORE) firmware/store.c tests/store_test.c $(ENGINE) $(LIBS)
+build/store_test: $(CORE) $(HDRS) $(ENGINE) firmware/store.c firmware/store.h firmware/settings.c firmware/settings.h firmware/piezo.c tests/store_test.c | build
+	$(CC) $(CFLAGS) -Icore -Ifirmware -o $@ $(CORE) firmware/store.c firmware/settings.c firmware/piezo.c tests/store_test.c $(ENGINE) $(LIBS)
 
 build/load_fuzz: $(CORE) $(HDRS) $(ENGINE) tests/load_fuzz.c | build
 	$(CC) $(CFLAGS) -Icore -o $@ $(CORE) tests/load_fuzz.c $(ENGINE) $(LIBS)

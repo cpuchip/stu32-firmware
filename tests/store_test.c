@@ -14,6 +14,7 @@
 #include <string.h>
 
 #include "calc.h"
+#include "settings.h"
 #include "state.h"
 #include "store.h"
 
@@ -87,6 +88,57 @@ static bool same(const uint8_t *a, uint32_t na, const uint8_t *b, uint32_t nb)
     return na == nb && memcmp(a, b, na) == 0;
 }
 
+/* unit 022: the device's settings saved with the image, through the store and back */
+static int settings_checks(void)
+{
+    static ab_calc c, c2;
+    static uint8_t img[SLOT], got[SLOT];
+    static sim s2;
+    ab_flash f2 = {&s2, SECTOR, SLOT, sim_erase, sim_write, sim_read};
+    dev_settings set, back, def;
+    int bad = 0, checks = 0;
+#define CHECK(ok, what) do { checks++; if (!(ok)) { bad++; fprintf(stderr, "store_test: %s\n", what); } } while (0)
+    memset(s2.mem, 0xFF, sizeof s2.mem);
+    s2.budget = -1;
+    dev_settings_default(&def);
+    CHECK(def.radix == '.' && def.group == 0 && def.off_min == 10 && def.vol == 4 && def.beep,
+          "the defaults: radix '.', no grouping, 10 minutes, the loudest level, BEEP on");
+    ab_init(&c);
+    ab_do(&c, AB_K7);
+    ab_do(&c, AB_ENTER);
+    set = (dev_settings){',', ' ', 30, 2, false};
+    size_t n = dev_image_save(&c, &set, img, sizeof img);
+    CHECK(n > ab_state_save(&c, NULL, 0), "the record follows the core's image");
+    CHECK(n > 0 && n <= sizeof img && ab_store_save(&f2, img, (uint32_t)n) == 0, "saved through the store");
+    uint32_t m = ab_store_load(&f2, got, sizeof got);
+    ab_init(&c2);
+    back = def;
+    CHECK(m == n && dev_image_load(&c2, &back, got, m) == ABN_OK, "loaded back");
+    CHECK(back.radix == ',' && back.group == ' ' && back.off_min == 30 && back.vol == 2 && !back.beep,
+          "non-default settings load back");
+    CHECK(abn_cmp(&c2.x.re, &c.x.re) == 0, "and the state with them");
+    /* an image from before unit 022 (the core's alone) loads the defaults */
+    n = ab_state_save(&c, img, sizeof img);
+    back = set;
+    CHECK(dev_image_load(&c2, &back, img, n) == ABN_OK && !memcmp(&back, &def, sizeof back),
+          "a pre-022 image loads, with the default settings");
+    /* a damaged record gives the defaults; the state still loads */
+    n = dev_image_save(&c, &set, img, sizeof img);
+    img[n - 6] ^= 0x10;
+    back = set;
+    CHECK(dev_image_load(&c2, &back, img, n) == ABN_OK && !memcmp(&back, &def, sizeof back),
+          "a damaged record: the defaults, the state loaded");
+    /* a refused core image: BAD_IMAGE and the defaults */
+    n = dev_image_save(&c, &set, img, sizeof img);
+    img[5] ^= 0x7F;
+    back = set;
+    CHECK(dev_image_load(&c2, &back, img, n) == ABN_BAD_IMAGE && !memcmp(&back, &def, sizeof back),
+          "a refused core image: BAD_IMAGE, the defaults");
+#undef CHECK
+    printf("store_test: settings %d/%d checks\n", checks - bad, checks);
+    return bad != 0;
+}
+
 int main(void)
 {
     static sim s;
@@ -144,5 +196,5 @@ int main(void)
     }
     free(prev);
     printf("store_test: power cut at every moment of 6 saves: %ld/%ld leave a good image\n", good, cases);
-    return good == cases ? 0 : 1;
+    return (good == cases ? 0 : 1) | settings_checks();
 }

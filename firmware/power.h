@@ -29,6 +29,7 @@ typedef struct {
 
 typedef struct {
     uint32_t last_ms;       /* the last activity, on a clock that may wrap */
+    uint32_t idle_ms;       /* the auto-off time: PWR_IDLE_MS from pwr_init, SETUP's OFF (unit 022) */
 } pwr_state;
 
 /* The radio (Rev A has none in use yet; the rule for when it does). Decision 36's buck-boost holds

@@ -50,6 +50,7 @@
 #include "calc.h"
 #include "power.h"
 #include "screen.h"
+#include "settings.h"
 
 #define APP_QUIET_MS 30000u                 /* a change saved after 30 s without keys (ours) */
 #define APP_SLICE_LINES 200                 /* program lines per app_tick slice (ours) */
@@ -81,6 +82,9 @@ typedef struct {
     size_t undo_cap, undo_len;  /* undo_len 0: nothing to undo */
     uint32_t last_key_ms;
     pwr_state pwr;
+    dev_settings set;       /* the device's settings (unit 022): RADIX and SETUP change them */
+    int tone;               /* a tone for the device to sound at this level, -1 none (it clears it):
+                               VOL's new level, or an error with BEEP on (unit 022) */
     void *ctx;
     void (*busy)(void *ctx, int op);        /* before a call that may take long; may be NULL */
 } app_state;

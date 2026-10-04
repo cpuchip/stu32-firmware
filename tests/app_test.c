@@ -810,6 +810,74 @@ int main(void)
         expect(!c.eqn_mode && c.eqn_count == count && !ui.soft[0], "EXIT: Equation mode off, the list as it was");
     }
 
+    /* unit 022: RADIX and SETUP, the device's settings */
+    {
+        /* each RADIX choice changes the number as the screen formats it (the guide's p.1-24 example) */
+        static const struct { const char *keys; const char *want; } R[] = {
+            {"GOLD 3 k:2", "12,345,678.9"},             /* 1,000: the guide's mark */
+            {"GOLD 3 k:1", "12.345.678,9"},             /* , radix: the mark becomes . (p.1-24) */
+            {"GOLD 3 k:4", "12345678,9"},               /* none */
+            {"GOLD 3 k:3", "12 345 678,9"},             /* 1 000: a space (ours) */
+            {"GOLD 3 k:0", "12 345 678.9"},             /* . radix again, the space kept */
+        };
+        ab_init(&c);
+        app_init(&a, &c, now);
+        press(&a, "1 2 3 4 5 6 7 8 . 9 ENTER");
+        for (size_t i = 0; i < sizeof R / sizeof R[0]; i++) {
+            press(&a, R[i].keys);
+            app_ui(&a, &ui);
+            ab_fmt f = {AB_ALL, 0, 40, ui.radix, ui.separator};
+            char t[48];
+            ab_format(&c.x.re, &f, t, sizeof t);
+            char m[96];
+            snprintf(m, sizeof m, "%s: %s (got %s)", R[i].keys, R[i].want, t);
+            expect(!strcmp(t, R[i].want), m);
+        }
+        press(&a, "GOLD 3");
+        app_ui(&a, &ui);
+        expect(ui.soft_on[0] && !ui.soft_on[1] && ui.soft_on[3] && !ui.soft_on[2] && !ui.soft_on[4],
+               "RADIX marks the mark and the grouping in effect");
+        press(&a, "C");
+        /* SETUP: OFF cycles 2, 5, 10, 30 and wraps; the idle time follows */
+        expect(a.set.off_min == 10, "OFF starts at 10 minutes");
+        static const int OFF[] = {30, 2, 5, 10};
+        bool ok = true;
+        for (int i = 0; i < 4; i++) {
+            press(&a, "BLUE 3 k:0");
+            ok = ok && a.set.off_min == OFF[i] && a.pwr.idle_ms == OFF[i] * 60000u;
+        }
+        expect(ok, "OFF: 30, 2, 5, 10, wrapping, the idle time with it");
+        press(&a, "BLUE 3");
+        app_ui(&a, &ui);
+        expect(ui.soft[0] && !strcmp(ui.soft[0], "OFF10") && ui.soft[1] && !strcmp(ui.soft[1], "VOL 4") &&
+               ui.soft[2] && !strcmp(ui.soft[2], "BEEP") && ui.soft_on[2], "SETUP shows OFF10, VOL 4, BEEP on");
+        press(&a, "C");
+        /* VOL cycles the five levels, sounding each */
+        ok = true;
+        for (int i = 0; i < 5; i++) {
+            a.tone = -1;
+            press(&a, "BLUE 3 k:1");
+            ok = ok && a.set.vol == (unsigned)i && a.tone == i;
+        }
+        expect(ok, "VOL: 0, 1, 2, 3, 4, a tone at each new level");
+        /* the error tone, only with BEEP on */
+        a.tone = -1;
+        press(&a, "1 ENTER 0 \xc3\xb7");
+        expect(a.tone == 4, "an error sounds at the level set");
+        press(&a, "C BLUE 3 k:2");
+        expect(!a.set.beep, "BEEP off");
+        a.tone = -1;
+        press(&a, "1 ENTER 0 \xc3\xb7");
+        expect(a.tone == -1, "BEEP off: no error tone");
+        press(&a, "C");
+        /* CLEAR ALL keeps them, and a settings change is saved */
+        press(&a, "GOLD 3 k:1 GOLD \xe2\x86\x90 k:4 k:0");
+        expect(a.set.radix == ',' && !a.set.beep && a.set.off_min == 10, "CLEAR ALL keeps the settings");
+        app_saved(&a);
+        press(&a, "GOLD 3 k:0");
+        expect(a.dirty, "a settings change is saved (dirty)");
+    }
+
     /* other menus and the soft keys alone do nothing yet; nothing crashes on any key in any shift */
     ab_init(&c);
     app_init(&a, &c, now);
