@@ -25,6 +25,7 @@ const uint16_t SI_PALETTE[SI_COLOURS] = {
     [SI_EDGE] = 0x6B4D,                         /* #686868 */
     [SI_LCD_DARK] = 0x1943,                     /* the memory LCD's dark and light pixels */
     [SI_LCD_LIGHT] = 0xCE78,
+    [SI_DIM] = 0x52AA,                          /* #555555: not available in the shift held */
 };
 
 /* ---- where the keys are: each row's keys share 400 px by width units ---- */
@@ -155,13 +156,19 @@ void si_draw_keys(uint8_t *img, const si_keys_state *s)
             continue;
         }
         const km_action *g = km_lookup(k, KM_GOLD), *b = km_lookup(k, KM_BLUE);
-        if (g->legend[0]) text(img, x + 5, y + 6, 1, g->legend, SI_GOLD);
-        if (b->legend[0]) text(img, x + w - 5 - text_width(b->legend, 1), y + 6, 1, b->legend, SI_BLUE);
-        if (face->legend[0]) text(img, x + (w - text_width(face->legend, 2)) / 2, y + 24, 2, face->legend, SI_FACE);
+        /* a shift held lights its own legends and dims the rest; a key with no legend in that shift
+           keeps its face lit, since the face is what it does there (keymap.h, #3827) */
+        const km_action *held_legend = s->shift == 1 ? g : s->shift == 2 ? b : NULL;
+        bool face_lit = !held_legend || !held_legend->legend[0];
+        if (g->legend[0]) text(img, x + 5, y + 6, 1, g->legend, s->shift == 2 ? SI_DIM : SI_GOLD);
+        if (b->legend[0])
+            text(img, x + w - 5 - text_width(b->legend, 1), y + 6, 1, b->legend, s->shift == 1 ? SI_DIM : SI_BLUE);
+        if (face->legend[0])
+            text(img, x + (w - text_width(face->legend, 2)) / 2, y + 24, 2, face->legend, face_lit ? SI_FACE : SI_DIM);
         const km_letter *l = km_letter_of(k);
         if (l->kind == KL_LETTER) {             /* the faceplate letter (decision 25), lower right */
             char t[2] = {(char)('A' + l->value), 0};
-            text(img, x + w - 5 - 5, y + h - 5 - 7, 1, t, SI_LETTER);
+            text(img, x + w - 5 - 5, y + h - 5 - 7, 1, t, s->shift ? SI_DIM : SI_LETTER);
         }
     }
 }
