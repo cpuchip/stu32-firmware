@@ -1,0 +1,9 @@
+# Unit 019, soroban's vectors for the core op it adds: FRAC's three formats as one op each, flags
+# 8 and 9 at once (UG p.5-6; work/019 rule 2). Format as work/021-vectors.txt.
+
+F01 | 35s p.5-6 fixed: flags 8 and 9 set | FRACFMT:2 | %F8=1 %F9=1
+F02 | 35s p.5-6 factors: 8 set, 9 clear | FRACFMT:2 FRACFMT:1 | %F8=1 %F9=0
+F03 | 35s p.5-6 precise: 8 clear | FRACFMT:2 FRACFMT:0 | %F8=0
+F04 | 35s p.5-6 fixed with /c 4 shows quarters: 0.3 is 1/4 | FRACFMT:2 4 /C 0.3 RND | X=0.25
+F05 | ours: a device menu setting, so not a program line | PRGM FRACFMT:2 | ERR %ERR=NONPROGRAMMABLE %LINES=0
+F06 | ours: only 0, 1 and 2 | FRACFMT:3 | ERR %ERR=DOMAIN

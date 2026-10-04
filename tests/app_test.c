@@ -7,6 +7,7 @@
 
 #include "app.h"
 #include "keymap.h"
+#include "const.h"
 #include "state.h"
 
 static int bad, checks;
@@ -473,6 +474,185 @@ int main(void)
     press(&a, "GOLD \xe2\x86\x90 k:5 0 C 0");
     app_ui(&a, &ui);
     expect(!ui.prompt && c.ind_top == 50 && c.entry.active, "C cancels it; the next 0 is typed");
+
+    /* unit 019: every menu on a key opens with its items on the soft keys (CONST shows its first
+       five constants and "more") */
+    for (int k = 0; k < KB_KEYS; k++)
+        for (int sh = 1; sh < 3; sh++) {
+            const km_action *act = km_lookup(k, sh);
+            if (act->kind != KM_MENU || act->arg < 0) continue;
+            const km_menu *mn = km_menu_at(act->arg);
+            ab_init(&c);
+            app_init(&a, &c, now);
+            tap(&a, shift_key(sh));
+            tap(&a, k);
+            app_ui(&a, &ui);
+            bool ok = true;
+            for (int i = 0; i < 6; i++) {
+                const char *want = mn->paged ? (i < 5 ? ab_const_name(i) : "more") : mn->item[i].legend;
+                ok = ok && ui.soft[i] && !strcmp(ui.soft[i], want);
+            }
+            char m[96];
+            snprintf(m, sizeof m, "%s opens with its items on the soft keys", mn->name);
+            expect(ok, m);
+        }
+
+    /* each soft key does its op: one per menu (work/019 acceptance) */
+    {
+        static const struct { const char *keys; double x; const char *what; } S[] = {
+            {"1 BLUE LN k:0", 1.1752011936438014, "HYP SINH 1"},
+            {"1 \xce\xa3+ 3 \xce\xa3+ BLUE \xce\xa3+ k:0", 2, "STAT x-bar of 1 and 3"},
+            {"2 ENTER 1 \xce\xa3+ 4 ENTER 2 \xce\xa3+ BLUE + k:3", 2, "L.R. m of (1,2) (2,4)"},
+            {"2 ENTER 1 \xce\xa3+ 4 ENTER 2 \xce\xa3+ GOLD + k:0", 2, "SUMS n"},
+            {"5 ENTER 2 BLUE \xc3\x97 k:0", 10, "PROB Cn,r 5 2"},
+            {"1 ENTER 2 GOLD 6 k:2 1 0", 10, "x?y: a test from the keys leaves the stack"},
+            {"1 0 BLUE RCL k:4", 25.4, "CONV 10 in to cm"},
+            {"1 GOLD 1 k:2", 1.609344, "UNITS 1 mile to km"},
+            {"1 BLUE SIN k:4", 57.295779513082321, "ANGLE 1 rad to degrees"},
+            {"5 BLUE R\xe2\x86\x93 k:0", 0, "STACK CLSTK"},
+            {"2 . 5 BLUE y\xcb\xa3 k:0", 2, "POW IP 2.5"},
+            {"GOLD RCL k:0", 299792458, "CONST c"},
+        };
+        for (size_t i = 0; i < sizeof S / sizeof S[0]; i++) {
+            ab_init(&c);
+            app_init(&a, &c, now);
+            press(&a, S[i].keys);
+            double x = x_of(&c), e = S[i].x == 0 ? 1e-12 : 1e-12 * (S[i].x < 0 ? -S[i].x : S[i].x);
+            app_ui(&a, &ui);
+            expect(x > S[i].x - e && x < S[i].x + e && !ui.soft[0], S[i].what);
+        }
+        /* the tests set YES / NO */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        press(&a, "1 ENTER 2 GOLD 6 k:3");
+        expect(c.yes, "x?y x>y? with y 1, x 2: yes");
+        press(&a, "GOLD 6 k:2");
+        expect(!c.yes, "x?y x<y?: no");
+        press(&a, "5 BLUE 5 k:3");
+        expect(c.yes, "x?0 x>0? of 5: yes");
+        press(&a, "0 GOLD x\xe2\x86\x94y k:2");
+        expect(c.yes, "TEST x=0? of 0: yes");
+        /* FLAGS: SF, CF, FS? take a flag from the digit prompt; SF then .1 is flag 11 */
+        press(&a, "BLUE 6 k:0 3");
+        expect(ab_flag(&c, 3), "FLAGS SF 3");
+        press(&a, "BLUE 6 k:1 3");
+        expect(!ab_flag(&c, 3), "FLAGS CF 3");
+        press(&a, "BLUE 6 k:0");
+        app_ui(&a, &ui);
+        expect(ui.prompt && !strcmp(ui.prompt, "SF _"), "SF _");
+        press(&a, ". 1");
+        expect(ab_flag(&c, 11), "SF then .1 sets flag 11");
+        press(&a, "BLUE 6 k:2 1 1");
+        expect(c.yes, "FS? 11: yes");
+        press(&a, "GOLD x\xe2\x86\x94y k:4 1 1");
+        expect(c.yes, "TEST's FS? 11: yes");
+        /* BASE, and BASE > LOGIC > AND (12 AND 10 is 8) */
+        press(&a, "BLUE x\xe2\x86\x94y k:1");
+        expect(c.base == 16, "BASE HEX");
+        press(&a, "BLUE x\xe2\x86\x94y k:0 1 2 ENTER 1 0 BLUE x\xe2\x86\x94y k:4");
+        app_ui(&a, &ui);
+        expect(c.base == 10 && ui.soft[0] && !strcmp(ui.soft[0], "AND") && ui.soft[5] && !strcmp(ui.soft[5], "NOR"),
+               "BASE > LOGIC: the logic menu on the soft keys");
+        press(&a, "k:0");
+        expect(x_of(&c) == 8, "BASE > LOGIC > AND: 12 AND 10 is 8");
+        press(&a, "BLUE x\xe2\x86\x94y k:5");
+        app_ui(&a, &ui);
+        expect(ui.soft[1] && !strcmp(ui.soft[1], "h"), "BASE > SUFFIX: d h o b");
+        press(&a, "C");
+        /* CMPLX: i between the parts */
+        press(&a, "1 BLUE +/\xe2\x88\x92 k:0 2 ENTER");
+        expect(c.x.kind == AB_COMPLEX, "CMPLX i: 1 i 2 is complex");
+        /* VARS x<> takes a variable */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        press(&a, "7 BLUE STO k:0");
+        app_ui(&a, &ui);
+        expect(ui.prompt && !strcmp(ui.prompt, "x<> _"), "VARS x<>: x<> _");
+        press(&a, "ltr:A");
+        expect(var_of(&c, 'A') == 7 && x_of(&c) == 0, "VARS x<> A");
+        /* FRAC's three formats, each both flags (rule 2) */
+        press(&a, "BLUE E k:5");
+        expect(c.flag8 && c.flag9, "FRAC fixed: flags 8 and 9 set");
+        press(&a, "BLUE E k:3");
+        expect(!c.flag8, "FRAC precise: flag 8 clear");
+        press(&a, "BLUE E k:5 BLUE E k:4");
+        expect(c.flag8 && !c.flag9, "FRAC factors: 8 set, 9 clear");
+        /* MODE: both items, and the one in effect marked */
+        press(&a, "BLUE ENTER k:1");
+        expect(c.m35, "MODE 35s");
+        press(&a, "BLUE ENTER");
+        app_ui(&a, &ui);
+        expect(ui.soft_on[1] && !ui.soft_on[0], "MODE: 35s marked in effect");
+        press(&a, "k:0");
+        expect(!c.m35, "MODE 33s");
+        press(&a, "BLUE ENTER");
+        app_ui(&a, &ui);
+        expect(ui.soft_on[0] && !ui.soft_on[1], "MODE: 33s marked in effect");
+        press(&a, "C");
+        app_ui(&a, &ui);
+        expect(!ui.soft_on[0] && !ui.soft[0], "no menu, no mark");
+    }
+
+    /* CONST pages: five constants and "more", wrapping after the last (41 constants: nine pages,
+       the last holding one) */
+    ab_init(&c);
+    app_init(&a, &c, now);
+    press(&a, "GOLD RCL k:5");
+    app_ui(&a, &ui);
+    expect(ui.soft[0] && !strcmp(ui.soft[0], ab_const_name(5)) && ui.soft[5] && !strcmp(ui.soft[5], "more"),
+           "CONST more: the next five");
+    for (int i = 0; i < 7; i++) press(&a, "k:5");
+    app_ui(&a, &ui);
+    expect(ab_const_count() == 41 && ui.soft[0] && !strcmp(ui.soft[0], ab_const_name(40)) && (!ui.soft[1] || !ui.soft[1][0]) &&
+               ui.soft[5] && !strcmp(ui.soft[5], "more"), "CONST's last page: the 41st alone");
+    press(&a, "k:0");
+    {
+        uint32_t before = img_crc(&c);
+        abn want;
+        ab_calc t;
+        ab_init(&t);
+        ab_do_arg(&t, AB_CONST, 40);
+        want = t.x.re;
+        expect(abn_cmp(&c.x.re, &want) == 0 && before == img_crc(&c), "the last page's constant recalled");
+    }
+    press(&a, "GOLD RCL");
+    for (int i = 0; i < 9; i++) press(&a, "k:5");
+    app_ui(&a, &ui);
+    expect(ui.soft[0] && !strcmp(ui.soft[0], ab_const_name(0)), "CONST wraps from the last page to the first");
+    press(&a, "k:1");
+    {
+        ab_calc t;
+        ab_init(&t);
+        ab_do_arg(&t, AB_CONST, 1);
+        expect(abn_cmp(&c.x.re, &t.x.re) == 0, "after wrapping, soft key 2 recalls the second constant");
+    }
+    press(&a, "GOLD RCL");
+    for (int i = 0; i < 8; i++) press(&a, "k:5");
+    press(&a, "k:2");
+    app_ui(&a, &ui);
+    expect(!ui.soft[0], "an empty soft key on the last page closes it");
+
+    /* C closes a menu and does nothing else */
+    ab_init(&c);
+    app_init(&a, &c, now);
+    press(&a, "4");
+    {
+        uint32_t before = img_crc(&c);
+        press(&a, "BLUE LN C");
+        app_ui(&a, &ui);
+        expect(!ui.soft[0] && img_crc(&c) == before && c.entry.active, "C closes HYP, the 4 still being typed");
+    }
+
+    /* SOLVE (gold 7) and integrate (gold 8) ask for the variable (rule 4) */
+    ab_init(&c);
+    app_init(&a, &c, now);
+    press(&a, "GOLD 7");
+    app_ui(&a, &ui);
+    expect(ui.prompt && !strcmp(ui.prompt, "SOLVE _"), "SOLVE _");
+    press(&a, "C GOLD 8");
+    app_ui(&a, &ui);
+    expect(ui.prompt && !strcmp(ui.prompt, "\xe2\x88\xab" "FN d _"), "integrate: \xe2\x88\xab" "FN d _");
+    press(&a, "C");
 
     /* other menus and the soft keys alone do nothing yet; nothing crashes on any key in any shift */
     ab_init(&c);

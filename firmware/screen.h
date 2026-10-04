@@ -37,6 +37,7 @@ typedef struct {
     char radix;             /* '.' or ',': the device's setting, as the core leaves it */
     bool separator;         /* thousands separator */
     const char *soft[SCREEN_SOFT];  /* the soft keys' labels (UTF-8); NULL or "" for none */
+    bool soft_on[SCREEN_SOFT];      /* a label marked as the setting in effect (unit 019: MODE) */
 } screen_ui;
 
 void screen_ui_default(screen_ui *ui);

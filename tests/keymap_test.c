@@ -25,7 +25,7 @@ typedef struct {
 
 #define OPK(r, c, s, op, l) {r, c, s, KM_OP, op, 0, 0, l}
 #define VARK(r, c, s, op, l) {r, c, s, KM_PROMPT, op, 0, KM_ARG_VAR, l}
-#define MENU(r, c, s, l) {r, c, s, KM_MENU, 0, -1, 0, l}  /* a menu not defined yet */
+#define MENU(r, c, s, l) {r, c, s, KM_MENU, 0, -1, 0, l}  /* a menu by its legend (see below) */
 
 static const want W[] = {
     /* row 1 */
@@ -53,8 +53,10 @@ static const want W[] = {
     /* row 4 */
     {4, 0, KM_FACE, KM_PROMPT, AB_XEQ, 0, KM_ARG_TARGET, "XEQ"}, {4, 0, KM_GOLD, KM_PROMPT, AB_LBL, 0, KM_ARG_LABEL, "LBL"},
     OPK(4, 0, KM_BLUE, AB_RTN, "RTN"),
-    OPK(4, 1, KM_FACE, AB_K7, "7"), MENU(4, 1, KM_GOLD, "SOLVE"), MENU(4, 1, KM_BLUE, "GRAPH"),
-    OPK(4, 2, KM_FACE, AB_K8, "8"), MENU(4, 2, KM_GOLD, "\xe2\x88\xab"), MENU(4, 2, KM_BLUE, "TABLE"),
+    OPK(4, 1, KM_FACE, AB_K7, "7"), {4, 1, KM_GOLD, KM_PROMPT, AB_SOLVE, 0, KM_ARG_VAR, "SOLVE"} /* unit 019 rule 4 */,
+    MENU(4, 1, KM_BLUE, "GRAPH"),
+    OPK(4, 2, KM_FACE, AB_K8, "8"), {4, 2, KM_GOLD, KM_PROMPT, AB_INTEG, 0, KM_ARG_VAR, "\xe2\x88\xab"} /* rule 4 */,
+    MENU(4, 2, KM_BLUE, "TABLE"),
     OPK(4, 3, KM_FACE, AB_K9, "9"), {4, 3, KM_GOLD, KM_MENU, 0, 0, 0, "PRGM"} /* menu 0 (#3877) */, MENU(4, 3, KM_BLUE, "TUTOR"),
     OPK(4, 4, KM_FACE, AB_DIV, "\xc3\xb7"), OPK(4, 4, KM_GOLD, AB_IDIV, "INT\xc3\xb7"), OPK(4, 4, KM_BLUE, AB_RMDR, "Rmdr"),
     /* row 5 */
@@ -90,7 +92,11 @@ int main(void)
         const km_action *a = km_lookup(w->row * KB_COLS + w->col, w->shift);
         snprintf(m, sizeof m, "key %d,%d shift %d: kind %d op %d arg %d prompt %d '%.20s'", w->row, w->col, w->shift,
                  a->kind, a->op, a->arg, a->prompt, a->legend ? a->legend : "(null)");
-        expect(a->kind == w->kind && a->op == w->op && a->arg == w->arg && a->prompt == w->prompt && a->legend &&
+        /* a menu: the one its legend names, or none defined yet (-1); which are defined is
+           checked below, by name, so the generator's order of menus is free */
+        bool arg_ok = w->kind == KM_MENU ? a->arg == -1 || (km_menu_at(a->arg) && !strcmp(km_menu_at(a->arg)->name, w->legend))
+                                         : a->arg == w->arg;
+        expect(a->kind == w->kind && a->op == w->op && arg_ok && a->prompt == w->prompt && a->legend &&
                    strcmp(a->legend, w->legend) == 0,
                m);
     }
@@ -156,7 +162,110 @@ int main(void)
             expect(am->item[3].kind == KM_NONE && am->item[4].kind == KM_NONE && am->item[5].kind == KM_NONE &&
                        am->item[3].legend && am->item[5].legend, "its soft keys 4-6 empty");
         }
-        expect(km_menu_at(4) == NULL && km_menu_at(-1) == NULL, "only PRGM, DISP, the angle mode and CLEAR are defined");
+        expect(km_menu_at(-1) == NULL, "no menu at -1");
+        /* unit 019: the drafted menus, item by item (work/019-menus.md rule 1's table) */
+        {
+#define O(op, arg, l) {KM_OP, op, arg, 0, l}
+#define P(op, k, l) {KM_PROMPT, op, 0, k, l}
+#define N {KM_NONE, 0, 0, 0, ""}
+#define T(rel, l) {KM_OP, AB_TEST, rel, 0, l}
+            static const struct { const char *name; km_action item[6]; } D[] = {
+                {"HYP", {O(AB_SINH, 0, "SINH"), O(AB_COSH, 0, "COSH"), O(AB_TANH, 0, "TANH"), O(AB_ASINH, 0, "ASINH"),
+                         O(AB_ACOSH, 0, "ACOSH"), O(AB_ATANH, 0, "ATANH")}},
+                {"STAT", {O(AB_XBAR, 0, "x\xcc\x84"), O(AB_YBAR, 0, "y\xcc\x84"), O(AB_SX, 0, "sx"), O(AB_SY, 0, "sy"),
+                          O(AB_PSX, 0, "\xcf\x83x"), O(AB_PSY, 0, "\xcf\x83y")}},
+                {"L.R.", {O(AB_XHAT, 0, "x\xcc\x82"), O(AB_YHAT, 0, "y\xcc\x82"), O(AB_CORR, 0, "r"), O(AB_SLOPE, 0, "m"),
+                          O(AB_YINT, 0, "b"), O(AB_XWBAR, 0, "x\xcc\x84w")}},
+                {"SUMS", {O(AB_NSUM, 0, "n"), O(AB_SUMX, 0, "\xce\xa3x"), O(AB_SUMY, 0, "\xce\xa3y"),
+                          O(AB_SUMX2, 0, "\xce\xa3x\xc2\xb2"), O(AB_SUMY2, 0, "\xce\xa3y\xc2\xb2"), O(AB_SUMXY, 0, "\xce\xa3xy")}},
+                {"PROB", {O(AB_NCR, 0, "Cn,r"), O(AB_NPR, 0, "Pn,r"), O(AB_FACT, 0, "n!"), O(AB_RAND, 0, "RAND"),
+                          O(AB_SEED, 0, "SEED"), N}},
+                {"FLAGS", {P(AB_SF, KM_ARG_DIGITS, "SF"), P(AB_CF, KM_ARG_DIGITS, "CF"), P(AB_FS, KM_ARG_DIGITS, "FS?"), N, N, N}},
+                {"x?y", {T(0, "x\xe2\x89\xa0y?"), T(1, "x\xe2\x89\xa4y?"), T(2, "x<y?"), T(3, "x>y?"), T(4, "x\xe2\x89\xa5y?"),
+                         T(5, "x=y?")}},
+                {"x?0", {T(6, "x\xe2\x89\xa0" "0?"), T(7, "x\xe2\x89\xa4" "0?"), T(8, "x<0?"), T(9, "x>0?"),
+                         T(10, "x\xe2\x89\xa5" "0?"), T(11, "x=0?")}},
+                {"TEST", {T(5, "x=y?"), T(0, "x\xe2\x89\xa0y?"), T(11, "x=0?"), T(6, "x\xe2\x89\xa0" "0?"),
+                          P(AB_FS, KM_ARG_DIGITS, "FS?"), T(2, "x<y?")}},
+                {"BASE", {O(AB_DEC, 0, "DEC"), O(AB_HEX, 0, "HEX"), O(AB_OCT, 0, "OCT"), O(AB_BIN, 0, "BIN"),
+                          {KM_MENU, 0, -2, 0, "LOGIC\xe2\x96\xb8"}, {KM_MENU, 0, -3, 0, "SUFFIX\xe2\x96\xb8"}}},
+                {"LOGIC", {O(AB_AND, 0, "AND"), O(AB_OR, 0, "OR"), O(AB_XOR, 0, "XOR"), O(AB_NOT, 0, "NOT"),
+                           O(AB_NAND, 0, "NAND"), O(AB_NOR, 0, "NOR")}},
+                {"SUFFIX", {O(AB_SUF, 10, "d"), O(AB_SUF, 16, "h"), O(AB_SUF, 8, "o"), O(AB_SUF, 2, "b"), N, N}},
+                {"CMPLX", {O(AB_KI, 0, "i"), O(AB_KTHETA, 0, "\xce\xb8"), O(AB_ARG, 0, "ARG"), O(AB_KVEC, 0, "["), N, N}},
+                {"FRAC", {O(AB_FDISP, 0, "FDISP"), O(AB_SETC, 0, "/c"), O(AB_RCLC, 0, "RCL/c"), O(AB_FRACFMT, 0, "precise"),
+                          O(AB_FRACFMT, 1, "factors"), O(AB_FRACFMT, 2, "fixed")}},
+                {"CONV", {O(AB_TOKG, 0, "\xe2\x86\x92kg"), O(AB_TOLB, 0, "\xe2\x86\x92lb"), O(AB_TOC, 0, "\xe2\x86\x92\xc2\xb0" "C"),
+                          O(AB_TOF, 0, "\xe2\x86\x92\xc2\xb0" "F"), O(AB_TOCM, 0, "\xe2\x86\x92" "cm"), O(AB_TOIN, 0, "\xe2\x86\x92in")}},
+                {"UNITS", {O(AB_TOL, 0, "\xe2\x86\x92l"), O(AB_TOGAL, 0, "\xe2\x86\x92gal"), O(AB_TOKM, 0, "\xe2\x86\x92km"),
+                           O(AB_TOMILE, 0, "\xe2\x86\x92mile"), N, N}},
+                {"ANGLE", {O(AB_TOPOL, 0, "\xe2\x86\x92POL"), O(AB_TOREC, 0, "\xe2\x86\x92REC"), O(AB_HMS, 0, "\xe2\x86\x92HMS"),
+                           O(AB_HMSINV, 0, "HMS\xe2\x86\x92"), O(AB_TODEG, 0, "\xe2\x86\x92" "DEG"), O(AB_TORAD, 0, "\xe2\x86\x92RAD")}},
+                {"VARS", {P(AB_XVAR, KM_ARG_VAR, "x\xe2\x86\x94"), P(AB_VIEW, KM_ARG_VAR, "VIEW"), O(AB_CLVARS, 0, "CLVARS"), N, N, N}},
+                {"STACK", {O(AB_CLSTK, 0, "CLSTK"), O(AB_LASTX, 0, "LASTx"), O(AB_RUP, 0, "R\xe2\x86\x91"), O(AB_XY, 0, "x\xe2\x86\x94y"),
+                           N, N}},
+                {"MODE", {O(AB_MODEL, 33, "33s"), O(AB_MODEL, 35, "35s"), N, N, N, N}},
+                {"POW", {O(AB_IP, 0, "IP"), O(AB_FP, 0, "FP"), O(AB_INTG, 0, "INTG"), O(AB_RND, 0, "RND"), O(AB_SGN, 0, "SGN"),
+                         O(AB_ABS, 0, "ABS")}},
+            };
+#undef O
+#undef P
+#undef N
+#undef T
+            for (size_t d = 0; d < sizeof D / sizeof D[0]; d++) {
+                const km_menu *mn = NULL;
+                int at = -1;
+                for (int i = 0; km_menu_at(i); i++)
+                    if (!strcmp(km_menu_at(i)->name, D[d].name)) mn = km_menu_at(at = i);
+                snprintf(m, sizeof m, "menu %s is defined", D[d].name);
+                expect(mn != NULL, m);
+                if (!mn) continue;
+                for (int i = 0; i < 6; i++) {
+                    const km_action *it = &mn->item[i], *want = &D[d].item[i];
+                    bool same = it->kind == want->kind && it->op == want->op && it->prompt == want->prompt &&
+                                !strcmp(it->legend, want->legend);
+                    if (want->kind == KM_MENU) {    /* -2 LOGIC, -3 SUFFIX: by name */
+                        const km_menu *sub = km_menu_at(it->arg);
+                        same = same && sub && !strcmp(sub->name, want->arg == -2 ? "LOGIC" : "SUFFIX");
+                    } else {
+                        same = same && it->arg == want->arg;
+                    }
+                    snprintf(m, sizeof m, "menu %s soft key %d is %s", D[d].name, i + 1, want->legend);
+                    expect(same, m);
+                }
+                /* every menu but the two from BASE has its key */
+                bool keyed = false;
+                for (int k = 0; k < KB_KEYS; k++)
+                    for (int sh = 0; sh < 3; sh++)
+                        if (km_lookup(k, sh)->kind == KM_MENU && km_lookup(k, sh)->arg == at) keyed = true;
+                snprintf(m, sizeof m, "menu %s is on its key", D[d].name);
+                expect(keyed == (strcmp(D[d].name, "LOGIC") && strcmp(D[d].name, "SUFFIX")), m);
+            }
+            /* CONST pages the core's constants (rule 3); SOLVE and integrate ask for the variable (rule 4) */
+            const km_menu *km = NULL;
+            for (int i = 0; km_menu_at(i); i++)
+                if (!strcmp(km_menu_at(i)->name, "CONST")) km = km_menu_at(i);
+            expect(km && km->paged == AB_CONST && km_lookup(13, KM_GOLD)->kind == KM_MENU && km_menu_at(km_lookup(13, KM_GOLD)->arg) == km,
+                   "CONST (gold RCL) pages the constants");
+            const km_action *so = km_lookup(25, KM_GOLD), *in = km_lookup(26, KM_GOLD);
+            expect(so->kind == KM_PROMPT && so->op == AB_SOLVE && so->prompt == KM_ARG_VAR && !strcmp(so->legend, "SOLVE"),
+                   "SOLVE (gold 7) asks for a variable, then solves");
+            expect(in->kind == KM_PROMPT && in->op == AB_INTEG && in->prompt == KM_ARG_VAR && !strcmp(in->legend, "\xe2\x88\xab"),
+                   "integrate (gold 8) asks for a variable, then integrates");
+            /* rule 5: these stay not defined */
+            static const char *const LATER[] = {"EXP", "MEM", "SYS", "RADIX", "SETUP", "GRAPH", "TABLE", "TUTOR", "APPS"};
+            for (size_t i = 0; i < sizeof LATER / sizeof LATER[0]; i++) {
+                bool found = false, undefined = true;
+                for (int k = 0; k < KB_KEYS; k++)
+                    for (int sh = 1; sh < 3; sh++)
+                        if (!strcmp(km_lookup(k, sh)->legend, LATER[i])) {
+                            found = true;
+                            undefined = km_lookup(k, sh)->kind == KM_MENU && km_lookup(k, sh)->arg == -1;
+                        }
+                snprintf(m, sizeof m, "%s stays not defined (rule 5)", LATER[i]);
+                expect(found && undefined, m);
+            }
+        }
         /* CLEAR (unit 019's draft order with unit 021's ALL and CLVARx) */
         const km_menu *cm = km_menu_at(3);
         expect(cm && !strcmp(cm->name, "CLEAR"), "menu 3 is CLEAR");

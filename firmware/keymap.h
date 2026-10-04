@@ -67,6 +67,8 @@ const km_action *km_lookup(int key, int shift);
 typedef struct {
     const char *name;
     km_action item[KM_SOFT_KEYS];
+    int paged;              /* 0, or AB_CONST: soft keys 1-5 are five of the core's constants and
+                               6 is "more", the next five, wrapping at the end (unit 019) */
 } km_menu;
 
 const km_menu *km_menu_at(int index);   /* NULL when there is no such menu */

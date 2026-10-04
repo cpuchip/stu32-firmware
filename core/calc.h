@@ -106,10 +106,14 @@ typedef enum {
     AB_TWOX, AB_LOG2,       /* 2^x and log2 x (ours) */
     AB_CLVARX,              /* arg: an address 0..800; clears the indirect variables above it
                                (UG p.1-5) */
-    AB_CLALL                /* CLEAR ALL (UG p.1-29, B-3): data cleared, modes kept; nonprogrammable */
+    AB_CLALL,               /* CLEAR ALL (UG p.1-29, B-3): data cleared, modes kept; nonprogrammable */
+    /* unit 019 */
+    AB_FRACFMT              /* the fraction format, flags 8 and 9 at once (UG p.5-6): arg 0 precise
+                               (8 clear), 1 factors (8 set, 9 clear), 2 fixed (both set); a device
+                               menu setting, nonprogrammable */
 } ab_op;
 
-#define AB_OP_LAST AB_CLALL     /* the last op: loops over every op end here */
+#define AB_OP_LAST AB_FRACFMT   /* the last op: loops over every op end here */
 
 /* Why the last run stopped (unit 012 rule 1): the device draws it; the core never waits. */
 typedef enum {

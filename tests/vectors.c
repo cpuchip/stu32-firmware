@@ -473,6 +473,10 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
         if (do1(c, AB_SUF, b) != ABN_OK) (*errors)++;
         return 0;
     }
+    if (strncmp(tok, "FRACFMT:", 8) == 0 && tok[8] >= '0' && tok[8] <= '9' && !tok[9]) {   /* unit 019 */
+        if (do1(c, AB_FRACFMT, tok[8] - '0') != ABN_OK) (*errors)++;
+        return 0;
+    }
     if (strncmp(tok, "CLVAR:", 6) == 0) {      /* CLVARx with its three-digit address (unit 021) */
         const char *v = tok + 6;
         if (strlen(v) != 3 || !isdigit((unsigned char)v[0]) || !isdigit((unsigned char)v[1]) ||
