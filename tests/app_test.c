@@ -709,6 +709,107 @@ int main(void)
     expect(ui.prompt && !strcmp(ui.prompt, "\xe2\x88\xab" "FN d _"), "integrate: \xe2\x88\xab" "FN d _");
     press(&a, "C");
 
+    /* unit 020: in Equation mode the soft keys are the editor's bar (the list's, or typing's) */
+    {
+        static const char *const LIST[6] = {"\xe2\x96\xb2", "\xe2\x96\xbc", "EDIT", "NEW", NULL, "EXIT"};
+        static const char *const TYPE[6] = {"\xe2\x97\x80", "\xe2\x96\xb6", "( )", "=", "SPC", "REG\xe2\x96\xb8"};
+        bool ok;
+        ab_init(&c);
+        app_init(&a, &c, now);
+        press(&a, "GOLD 0");
+        app_ui(&a, &ui);
+        ok = c.eqn_mode;
+        for (int i = 0; i < 6; i++) ok = ok && (LIST[i] ? ui.soft[i] && !strcmp(ui.soft[i], LIST[i]) : !ui.soft[i] || !ui.soft[i][0]);
+        expect(ok, "EQN: the list's bar, \xe2\x96\xb2 \xe2\x96\xbc EDIT NEW - EXIT");
+        /* the guide's first equation, key by key (p.6-2; unit 014's M01-M04) */
+        press(&a, "RCL ltr:V");
+        app_ui(&a, &ui);
+        ok = c.eqn_typing;
+        for (int i = 0; i < 6; i++) ok = ok && ui.soft[i] && !strcmp(ui.soft[i], TYPE[i]);
+        expect(ok, "typing: the bar \xe2\x97\x80 \xe2\x96\xb6 ( ) = SPC REG\xe2\x96\xb8");
+        press(&a, "k:3 . 2 5 \xc3\x97 GOLD E \xc3\x97 RCL ltr:D y\xcb\xa3 2 \xc3\x97 RCL ltr:L ENTER");
+        expect(!c.eqn_typing && c.eqn_cur >= 0 && !strcmp(c.eqn[c.eqn_cur], "V=0.25\xc3\x97\xcf\x80\xc3\x97" "D^2\xc3\x97L"),
+               "V=0.25\xc3\x97\xcf\x80\xc3\x97" "D^2\xc3\x97L typed from the keys, = from the bar");
+        press(&a, "ENTER");
+        expect(c.stop == AB_STOP_INPUT, "ENTER evaluates: the prompt for D");
+        press(&a, "2 . 5 R/S 1 6 R/S");
+        expect(x_of(&c) > 78.539816339744 && x_of(&c) < 78.539816339745 && var_of(&c, 'V') > 78.5398,
+               "D 2.5, L 16: V = 78.5398..., stored (unit 014's M04)");
+
+        /* the list wraps through EQN LIST TOP (p.6-7); NEW goes to TOP; EDIT on a built-in does nothing */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_eqn_add(&c, "A+1");
+        press(&a, "GOLD 0");
+        int n = c.eqn_count, top = c.eqn_cur;
+        press(&a, "k:3");
+        expect(c.eqn_cur == -1, "NEW: EQN LIST TOP");
+        press(&a, "k:0");
+        expect(c.eqn_cur == n - 1, "\xe2\x96\xb2 from TOP: the last equation");
+        press(&a, "k:1");
+        expect(c.eqn_cur == -1, "\xe2\x96\xbc from the last: TOP");
+        press(&a, "k:1");
+        expect(c.eqn_cur == 0, "\xe2\x96\xbc from TOP: the first");
+        int b = -1;
+        for (int i = 0; i < n; i++)
+            if (c.eqn[i][0] == '\x01' && b < 0) b = i;
+        for (int i = 0; i < n + 2 && c.eqn_cur != b; i++) press(&a, "k:1");
+        expect(c.eqn_cur == b, "\xe2\x96\xbc reaches a built-in solver");
+        press(&a, "k:2");
+        expect(!c.eqn_typing, "EDIT on a built-in solver does nothing (p.6-8)");
+        (void)top;
+
+        /* EDIT, then the cursor and backspace fix a typing mistake, and the equation evaluates */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        press(&a, "4 STO ltr:A GOLD 0 RCL ltr:A + 2 3");
+        press(&a, "k:0 \xe2\x86\x90");
+        app_ui(&a, &ui);
+        expect(!strcmp(c.ebuf, "A+3"), "\xe2\x97\x80 then \xe2\x86\x90 deletes the 2 before the cursor: A+3");
+        press(&a, "ENTER XEQ R/S");
+        expect(x_of(&c) == 7, "A+3 with A = 4: 7");
+        press(&a, "k:2");
+        expect(c.eqn_typing && c.ecur == 0, "EDIT: editing at the start of the equation (p.6-7)");
+        press(&a, "k:1 k:1 \xe2\x86\x90 C");
+        expect(!c.eqn_mode && !strcmp(c.eqn[c.eqn_cur], "A3"), "C in the middle of typing stores the edit and leaves");
+        app_ui(&a, &ui);
+        expect(!ui.soft[0], "after C the bar is gone");
+
+        /* REG > REGY types REGY, and the typing bar comes back */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        press(&a, "GOLD 0 RCL ltr:A + k:5");
+        app_ui(&a, &ui);
+        expect(ui.soft[1] && !strcmp(ui.soft[1], "REGY") && ui.soft[3] && !strcmp(ui.soft[3], "REGT"), "REG\xe2\x96\xb8: REGX REGY REGZ REGT");
+        press(&a, "k:1");
+        app_ui(&a, &ui);
+        expect(strstr(c.ebuf, "REGY") != NULL && ui.soft[0] && !strcmp(ui.soft[0], TYPE[0]), "REGY typed; the typing bar back");
+
+        /* RCL types a variable, (I) included; SPC; a function key types its name; a menu's item types too */
+        int ki = -1;
+        for (int k = 0; k < KB_KEYS; k++)
+            if (km_letter_of(k)->kind == KL_IND_I) ki = k;
+        char keys_[48];
+        snprintf(keys_, sizeof keys_, "\xc3\x97 RCL k:%d k:4 SIN", ki);
+        press(&a, keys_);
+        expect(strstr(c.ebuf, "(I)") != NULL && strstr(c.ebuf, " ") != NULL && strstr(c.ebuf, "SIN(") != NULL,
+               "RCL (I) types (I), SPC a blank, SIN its name");
+        press(&a, "BLUE LN k:0");
+        expect(strstr(c.ebuf, "SINH(") != NULL, "HYP's SINH types SINH( (p.6-4)");
+        press(&a, "k:2");
+        expect(strstr(c.ebuf, "()") != NULL || strstr(c.ebuf, "(") != NULL, "( ) types a pair");
+
+        /* EXIT leaves with the list unchanged */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_eqn_add(&c, "B+2");
+        press(&a, "GOLD 0 k:1 k:1");
+        int count = c.eqn_count;
+        press(&a, "k:5");
+        app_ui(&a, &ui);
+        expect(!c.eqn_mode && c.eqn_count == count && !ui.soft[0], "EXIT: Equation mode off, the list as it was");
+    }
+
     /* other menus and the soft keys alone do nothing yet; nothing crashes on any key in any shift */
     ab_init(&c);
     app_init(&a, &c, now);

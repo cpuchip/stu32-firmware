@@ -317,6 +317,25 @@ int main(int argc, char **argv)
         si_draw_keys(keys, &ks);
         v.x2 = true;
         shot("04-x2-view", &v);
+        /* unit 020: Equation mode's typing bar on the soft band, all six labels drawn */
+        ab_init(&c);
+        app_init(&a, &c, 0);
+        app_key(&a, 5 * KB_COLS + 0, 50);               /* the gold shift */
+        app_key(&a, 7 * KB_COLS + 1, 60);               /* 0: EQN */
+        app_key(&a, 2 * KB_COLS + 1, 70);               /* RCL: a prompt */
+        app_key(&a, 2 * KB_COLS + 0, 80);               /* the letter layer's G (STO's key) */
+        app_ui(&a, &ui);
+        screen_render(&c, &ui, &frame);
+        int inked = 0;
+        for (int k = 0; k < 6; k++) {
+            int n = 0;
+            for (int y = 210; y < 232; y++)
+                for (int x = k * 66 + 6; x < k * 66 + 62; x++) n += frame.px[y][x / 8] >> (x % 8) & 1;
+            inked += n > 10;
+        }
+        expect(c.eqn_typing && inked == 6, "the stand-in shows Equation mode's typing bar: six labels on the soft band");
+        v.x2 = false;
+        shot("05-equation-bar", &v);
     }
 
     if (ref && writing) {
