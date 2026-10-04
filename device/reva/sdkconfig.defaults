@@ -6,6 +6,10 @@ CONFIG_SPIRAM=y
 CONFIG_SPIRAM_MODE_OCT=y
 CONFIG_SPIRAM_SPEED_80M=y
 CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY=y
+# decision 35: PSRAM ECC on, for the module's 85 C rating (a calculator left in a car). Measured on
+# the stand-in's octal R8 (5421c84): 1/16 of the PSRAM (512 KiB), +4.6% on a state load, programs
+# within noise; two calculators' state still has 34x its size free.
+CONFIG_SPIRAM_ECC_ENABLE=y
 CONFIG_COMPILER_OPTIMIZATION_PERF=y
 CONFIG_PARTITION_TABLE_CUSTOM=y
 CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
