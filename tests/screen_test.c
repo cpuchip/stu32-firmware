@@ -821,6 +821,17 @@ int main(int argc, char **argv)
         keys(&c, "EQN");
         screen_lines(&c, &ui, &pg);
         expect(pg.x.kind == SCREEN_EQN && !strcmp(pg.x.text, "EQN LIST TOP") && pg.status.eqn, "text: EQN LIST TOP, EQN on");
+        /* a keyboard VIEW: Variable=Value in X, left, no letter (abacus #3979); drawn there too */
+        ab_init(&c);
+        keys(&c, "5");
+        ab_do_arg(&c, AB_STO, 0);
+        keys(&c, "7");
+        ab_do_arg(&c, AB_VIEW, 0);
+        screen_lines(&c, &ui, &pg);
+        expect(pg.x.kind == SCREEN_VIEW && !strcmp(pg.x.text, "A=5") && pg.x.left && !pg.x.label,
+               "text: VIEW A, A=5 in X");
+        screen_render(&c, &ui, &f);
+        expect(text_at(&f, 20, 128, 4, "A=5", 1) && dark_in(&f, 2, 142, 10, 14) == 0, "VIEW A drawn: A=5 in the X line, no letter");
         /* the status band */
         ab_init(&c);
         ab_do_arg(&c, AB_SF, 1);                /* before PRGM, where SF would be a line */

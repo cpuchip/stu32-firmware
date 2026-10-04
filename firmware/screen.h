@@ -55,7 +55,8 @@ typedef enum {
     SCREEN_EQN,             /* an equation typed (with its cursor) or shown, or EQN LIST TOP */
     SCREEN_PROGRAM,         /* program entry: the pointer's address and line, or PRGM TOP */
     SCREEN_MESSAGE,         /* the op running (RUNNING...), or the error message */
-    SCREEN_PROMPT           /* an op waiting for its argument (X); INPUT's A? or VIEW's A= (Y) */
+    SCREEN_PROMPT,          /* an op waiting for its argument (X); INPUT's A? or VIEW's A= (Y) */
+    SCREEN_VIEW             /* a keyboard VIEW's Variable=Value in X (UG p.3-4), until the next key */
 } screen_kind;
 
 typedef struct {

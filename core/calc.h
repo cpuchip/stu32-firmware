@@ -225,6 +225,11 @@ typedef struct {
     ab_stop stop;           /* why the last run stopped (unit 012) */
     int stop_var;           /* INPUT / VIEW / PSE: the variable (A..Z 0..25, or -27..-32, or
                                1000 + an unnamed address); -1 for none */
+    bool viewing;           /* a keyboard VIEW's display, Variable=Value (UG p.3-4), until the next key:
+                               C or backspace only clears it, any other key clears it and acts
+                               (abacus #3979); not in the state image */
+    int view_id;            /* its variable, as stop_var's ids (A..Z 0..25, 1000 + an indirect
+                               address, -27..-32 the statistics) */
     int stop_line;          /* the line an error stopped at */
     int fn;                 /* FN=: the label chosen (0..25), -1 none (unit 013) */
     int active;             /* 0, or AB_SOLVE / AB_INTEG while its function is being evaluated */

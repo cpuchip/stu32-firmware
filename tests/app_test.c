@@ -969,6 +969,37 @@ int main(void)
         expect(z.stop == AB_STOP_DONE, "calloc then MEMORY CLEAR: a program runs to its end, no RUN LIMIT");
     }
 
+    /* abacus #3979: a keyboard VIEW shows Variable=Value on the X line (UG p.3-4), the stack untouched;
+       C or backspace only clears it (p.3-6); any other key clears it and acts */
+    {
+        static screen_page pg;
+        ab_init(&c);
+        app_init(&a, &c, now);
+        press(&a, "5 STO ltr:A 7 GOLD STO ltr:A");
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(pg.x.kind == SCREEN_VIEW && !strcmp(pg.x.text, "A=5") && !pg.x.label && x_of(&c) == 7,
+               "VIEW A: A=5 on the X line, X still 7");
+        press(&a, "C");
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(pg.x.kind != SCREEN_VIEW && x_of(&c) == 7 && !c.entry.active, "C only clears the VIEW display: X 7");
+        press(&a, "GOLD STO ltr:A \xe2\x86\x90");
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(pg.x.kind != SCREEN_VIEW && x_of(&c) == 7, "backspace only clears it too: X 7, not cleared");
+        press(&a, "GOLD STO ltr:A +");
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(pg.x.kind != SCREEN_VIEW && x_of(&c) == 12, "VIEW then +: the display goes and + adds (5 + 7)");
+        /* VIEW (I) names the variable it points at */
+        press(&a, "C 3 STO ltr:I 9 STO k:39 GOLD STO k:39");
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(pg.x.kind == SCREEN_VIEW && !strcmp(pg.x.text, "(3)=9"), "VIEW (I) with I = 3: (3)=9");
+        press(&a, "C");
+    }
+
     /* other menus and the soft keys alone do nothing yet; nothing crashes on any key in any shift */
     ab_init(&c);
     app_init(&a, &c, now);
