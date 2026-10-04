@@ -55,8 +55,9 @@ MEANING = {
 }
 
 # The menus (abacus #3877; provisional until Michael rules the menus): a menu's name and its six
-# soft keys, each (legend, kind, op, arg, prompt). Only PRGM is defined; a menu key whose menu is
-# not here is a menu not defined yet (arg -1). Data only, like LETTERS.
+# soft keys, each (legend, kind, op, arg, prompt). PRGM, DISP, the angle modes and CLEAR are
+# defined; a menu key whose menu is not here is a menu not defined yet (arg -1). Data only, like
+# LETTERS.
 MENUS = [
     ("PRGM", [("PRGM", "KM_OP", "AB_PRGM", 0, 0), ("LBL", "KM_PROMPT", "AB_LBL", 0, "KM_ARG_LABEL"),
               ("INPUT", "KM_PROMPT", "AB_INPUT", 0, "KM_ARG_VAR"), ("SST", "KM_OP", "AB_SST", 0, 0),
@@ -70,6 +71,11 @@ MENUS = [
     ("\u2221MODE", [("DEG", "KM_OP", "AB_DEG", 0, 0), ("RAD", "KM_OP", "AB_RAD", 0, 0),
                     ("GRAD", "KM_OP", "AB_GRAD", 0, 0), ("", "KM_NONE", "0", 0, 0),
                     ("", "KM_NONE", "0", 0, 0), ("", "KM_NONE", "0", 0, 0)]),
+    # unit 019's draft order (CLSTK second: the forum's complaint), with unit 021's two items: ALL
+    # asks first (UG p.1-5, CLR ALL? Y N), CLVARx takes a three-digit address (UG p.1-5)
+    ("CLEAR", [("CLx", "KM_OP", "AB_CLX", 0, 0), ("CLSTK", "KM_OP", "AB_CLSTK", 0, 0),
+               ("CLVARS", "KM_OP", "AB_CLVARS", 0, 0), ("CL\u03a3", "KM_OP", "AB_CLSIGMA", 0, 0),
+               ("ALL", "KM_CONFIRM", "AB_CLALL", 0, 0), ("CLVARx", "KM_PROMPT", "AB_CLVARX", 0, "KM_ARG_ADDR")]),
 ]
 # Menu legends that act as plain ops until their menu is ruled (abacus #3867): the EQN menu's
 # first item will take this over.

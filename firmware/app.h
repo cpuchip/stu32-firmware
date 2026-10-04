@@ -18,10 +18,19 @@
  * - A digit prompt (DISP's FIX, SCI, ENG; Michael #3901) reads the digit keys: a digit completes
  *   it, the point then a digit gives 10-19 (the guide's .0 and .1 for 10 and 11, UG p.1-21,
  *   extended), C cancels it, other keys do nothing.
- * - Menus (keymap.h's MENUS; only PRGM is defined, abacus #3877): a menu key opens its menu and
- *   its labels go to the soft keys; a soft key does its item and closes it; C only closes it
- *   (ours: in program entry C would otherwise leave it); any other key closes it and acts.
- *   A menu not defined yet, and a soft key with no menu open, do nothing; UNDO is the device's. */
+ * - Menus (keymap.h's MENUS): a menu key opens its menu and its labels go to the soft keys; a
+ *   soft key does its item and closes it; C only closes it (ours: in program entry C would
+ *   otherwise leave it); any other key closes it and acts. A menu not defined yet, and a soft key
+ *   with no menu open, do nothing.
+ * - An address prompt (CLVARx, unit 021; UG p.1-5's three placeholders) reads three digit keys,
+ *   "CLVAR___" filling as they come; the third completes it, backspace takes one back, C cancels,
+ *   other keys do nothing.
+ * - A yes/no prompt (CLEAR ALL, unit 021; UG p.1-5's CLR ALL? Y N; in program entry the item is
+ *   PGM, CLR PGMS?): soft key 1 is yes, and any other key, a shift included, only cancels.
+ * - UNDO (unit 021, ours): before each key that reaches the core (VIEW excepted: it changes
+ *   nothing) the state image is kept, and UNDO swaps it with the state, so a second UNDO puts it
+ *   back. A run is one key. Shifts, menus and prompts opening are not undo points. The device gives
+ *   the two image buffers; the images are not kept through power off. */
 #ifndef APP_H
 #define APP_H
 
@@ -50,12 +59,16 @@ typedef struct {
     int prompt_kind;        /* KM_ARG_* */
     char prompt_text[16];   /* what the X line shows meanwhile: "STO _" */
     bool prompt_tens;       /* a digit prompt has had its point: the next digit is 10-19 */
+    int prompt_n, prompt_val;   /* an address prompt's digits so far, and their value */
+    int confirm_op;         /* the op a yes/no prompt waits to do (CLR ALL?), -1 none */
     int menu;               /* the menu open on the soft keys (km_menu_at), -1 none */
     bool running;           /* a run in slices */
     int busy_op;            /* the op that started it, for ab_busy_message */
     bool dirty;             /* changed since the last save */
     bool off;               /* the OFF key was pressed */
     bool render;            /* the screen changed since the last APP_RENDER */
+    uint8_t *undo[2];       /* UNDO's images: [0] the state before the last change, [1] scratch */
+    size_t undo_cap, undo_len;  /* undo_len 0: nothing to undo */
     uint32_t last_key_ms;
     pwr_state pwr;
     void *ctx;

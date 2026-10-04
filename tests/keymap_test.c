@@ -48,7 +48,7 @@ static const want W[] = {
     OPK(3, 1, KM_FACE, AB_XY, "x\xe2\x86\x94y"), MENU(3, 1, KM_GOLD, "TEST"), MENU(3, 1, KM_BLUE, "BASE"),
     OPK(3, 2, KM_FACE, AB_KCHS, "+/\xe2\x88\x92"), OPK(3, 2, KM_GOLD, AB_ABS, "ABS"), MENU(3, 2, KM_BLUE, "CMPLX"),
     OPK(3, 3, KM_FACE, AB_KE, "E"), OPK(3, 3, KM_GOLD, AB_PI, "\xcf\x80"), MENU(3, 3, KM_BLUE, "FRAC"),
-    OPK(3, 4, KM_FACE, AB_KBKSP, "\xe2\x86\x90"), MENU(3, 4, KM_GOLD, "CLEAR"),
+    OPK(3, 4, KM_FACE, AB_KBKSP, "\xe2\x86\x90"), {3, 4, KM_GOLD, KM_MENU, 0, 3, 0, "CLEAR"} /* menu 3 (unit 021) */,
     {3, 4, KM_BLUE, KM_DEVICE, 0, KM_DEV_UNDO, 0, "UNDO"},
     /* row 4 */
     {4, 0, KM_FACE, KM_PROMPT, AB_XEQ, 0, KM_ARG_TARGET, "XEQ"}, {4, 0, KM_GOLD, KM_PROMPT, AB_LBL, 0, KM_ARG_LABEL, "LBL"},
@@ -156,7 +156,29 @@ int main(void)
             expect(am->item[3].kind == KM_NONE && am->item[4].kind == KM_NONE && am->item[5].kind == KM_NONE &&
                        am->item[3].legend && am->item[5].legend, "its soft keys 4-6 empty");
         }
-        expect(km_menu_at(3) == NULL && km_menu_at(-1) == NULL, "only PRGM, DISP and the angle mode are defined");
+        expect(km_menu_at(4) == NULL && km_menu_at(-1) == NULL, "only PRGM, DISP, the angle mode and CLEAR are defined");
+        /* CLEAR (unit 019's draft order with unit 021's ALL and CLVARx) */
+        const km_menu *cm = km_menu_at(3);
+        expect(cm && !strcmp(cm->name, "CLEAR"), "menu 3 is CLEAR");
+        if (cm) {
+            static const struct { km_kind kind; int op, prompt; const char *legend; } CL[6] = {
+                {KM_OP, AB_CLX, 0, "CLx"}, {KM_OP, AB_CLSTK, 0, "CLSTK"}, {KM_OP, AB_CLVARS, 0, "CLVARS"},
+                {KM_OP, AB_CLSIGMA, 0, "CL\xce\xa3"}, {KM_CONFIRM, AB_CLALL, 0, "ALL"},
+                {KM_PROMPT, AB_CLVARX, KM_ARG_ADDR, "CLVARx"}};
+            for (int i = 0; i < 6; i++) {
+                const km_action *it = &cm->item[i];
+                snprintf(m, sizeof m, "CLEAR's soft key %d is %s", i + 1, CL[i].legend);
+                expect(it->kind == CL[i].kind && it->op == CL[i].op && it->prompt == CL[i].prompt &&
+                           !strcmp(it->legend, CL[i].legend), m);
+            }
+            /* CLVARx's three digits are an argument its op records (UG p.1-5's CLVAR056) */
+            char t[64];
+            ab_init(&c);
+            ab_do(&c, AB_PRGM);
+            abn_status st = ab_do_arg(&c, AB_CLVARX, 56);
+            expect(st == ABN_OK && c.prog_len == 1 && ab_prog_line(&c, 0, NULL, t, sizeof t) > 0 && !strcmp(t, "CLVAR056"),
+                   "CLVARx 056 in program entry: the line CLVAR056");
+        }
         if (dm) {
             static const struct { km_kind kind; int op, prompt; const char *legend; } D[6] = {
                 {KM_PROMPT, AB_SETFIX, KM_ARG_DIGITS, "FIX"}, {KM_PROMPT, AB_SETSCI, KM_ARG_DIGITS, "SCI"},

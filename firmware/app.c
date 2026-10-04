@@ -5,12 +5,14 @@
 #include <string.h>
 
 #include "keymap.h"
+#include "state.h"
 
 void app_init(app_state *a, ab_calc *c, uint32_t now_ms)
 {
     memset(a, 0, sizeof *a);
     a->c = c;
     a->prompt_op = -1;
+    a->confirm_op = -1;
     a->menu = -1;
     a->last_key_ms = now_ms;
     pwr_init(&a->pwr, now_ms);
@@ -21,6 +23,7 @@ static void prompt_close(app_state *a)
 {
     a->prompt_op = -1;
     a->prompt_tens = false;
+    a->prompt_n = a->prompt_val = 0;
     a->prompt_text[0] = '\0';
 }
 
@@ -30,22 +33,60 @@ static void prompt_open(app_state *a, int op, int kind)
     static const char *const ARITH[4] = {"+", "-", "\xc3\x97", "\xc3\xb7"};
     const char *name = op == AB_STO ? "STO" : op == AB_RCL ? "RCL" : op == AB_VIEW ? "VIEW" : op == AB_ISG ? "ISG"
                        : op == AB_DSE ? "DSE" : op == AB_LBL ? "LBL" : op == AB_XEQ ? "XEQ" : op == AB_GTO ? "GTO"
-                       : op == AB_SETFIX ? "FIX" : op == AB_SETSCI ? "SCI" : op == AB_SETENG ? "ENG" : "";
+                       : op == AB_SETFIX ? "FIX" : op == AB_SETSCI ? "SCI" : op == AB_SETENG ? "ENG"
+                       : op == AB_INPUT ? "INPUT" : op == AB_CLVARX ? "CLVAR" : "";
     char buf[12] = "";
     if (op >= AB_STOADD && op <= AB_STODIV) snprintf(buf, sizeof buf, "STO%s", ARITH[op - AB_STOADD]);
     else if (op >= AB_RCLADD && op <= AB_RCLDIV) snprintf(buf, sizeof buf, "RCL%s", ARITH[op - AB_RCLADD]);
     else snprintf(buf, sizeof buf, "%s", name);
     a->prompt_op = op;
     a->prompt_kind = kind;
-    snprintf(a->prompt_text, sizeof a->prompt_text, a->prompt_tens ? "%s 1_" : "%s _", buf);
+    if (kind == KM_ARG_ADDR) {                  /* CLVAR05_: the digits so far, then the blanks */
+        char d[4] = "";
+        if (a->prompt_n) snprintf(d, sizeof d, "%0*d", a->prompt_n, a->prompt_val);
+        snprintf(a->prompt_text, sizeof a->prompt_text, "%s%s%s", buf, d, &"___"[a->prompt_n]);
+    } else
+        snprintf(a->prompt_text, sizeof a->prompt_text, a->prompt_tens ? "%s 1_" : "%s _", buf);
 }
 
-/* An op from the keys: the busy callback first when it may take long, and a run that has not
-   ended goes on from app_tick. */
+static void undo_swap(app_state *a, size_t n)
+{
+    uint8_t *t = a->undo[0];
+    a->undo[0] = a->undo[1];
+    a->undo[1] = t;
+    a->undo_len = n;
+}
+
+/* The state now becomes UNDO's (unit 021): saved into the scratch image, which then takes the
+   undo image's place. A state too large for the buffers leaves nothing to undo. */
+static void undo_mark(app_state *a)
+{
+    if (!a->undo[0]) return;
+    size_t n = ab_state_save(a->c, a->undo[1], a->undo_cap);
+    if (n == 0 || n > a->undo_cap) {
+        a->undo_len = 0;
+        return;
+    }
+    undo_swap(a, n);
+}
+
+/* UNDO: the state and the undo image change places, so a second UNDO puts it back. */
+static void undo(app_state *a)
+{
+    if (!a->undo_len) return;
+    size_t n = ab_state_save(a->c, a->undo[1], a->undo_cap);
+    if (n == 0 || n > a->undo_cap || ab_state_load(a->c, a->undo[0], a->undo_len) != ABN_OK) return;
+    undo_swap(a, n);
+    a->dirty = true;
+}
+
+/* An op from the keys: the state kept for UNDO first (VIEW changes nothing), the busy callback
+   when it may take long, and a run that has not ended goes on from app_tick. */
 static void do_op(app_state *a, int op, int arg)
 {
     ab_calc *c = a->c;
     bool runs = !c->prgm && (op == AB_XEQ || op == AB_RS || op == AB_SST || op == AB_SOLVE || op == AB_INTEG);
+    if (op != AB_VIEW) undo_mark(a);
     if (runs && a->busy) a->busy(a->ctx, op);
     ab_do_arg(c, (ab_op)op, arg);
     a->dirty = true;
@@ -66,6 +107,33 @@ void app_key(app_state *a, int key, uint32_t now_ms)
 
     if (a->running) {                           /* only C and R/S, which interrupt (UG p.13-19) */
         if (face->kind == KM_OP && (face->op == AB_CANCEL || face->op == AB_RS)) ab_interrupt(a->c);
+        return;
+    }
+    if (a->confirm_op >= 0) {                   /* CLR ALL? Y N: soft key 1 is yes; any other key
+                                                   only cancels (UG p.1-5) */
+        int op = a->confirm_op;
+        a->confirm_op = -1;
+        a->shift = 0;
+        if (face->kind == KM_SOFT && face->arg == 0) do_op(a, op, 0);
+        return;
+    }
+    if (a->prompt_op >= 0 && a->prompt_kind == KM_ARG_ADDR) {      /* three digits (CLVARx) */
+        if (face->kind == KM_OP && face->op >= AB_K0 && face->op <= AB_K9) {
+            a->prompt_val = a->prompt_val * 10 + face->op - AB_K0;
+            if (++a->prompt_n == 3) {
+                int op = a->prompt_op, v = a->prompt_val;
+                prompt_close(a);
+                do_op(a, op, v);
+            } else {
+                prompt_open(a, a->prompt_op, a->prompt_kind);
+            }
+        } else if (face->kind == KM_OP && face->op == AB_KBKSP && a->prompt_n > 0) {
+            a->prompt_n--;
+            a->prompt_val /= 10;
+            prompt_open(a, a->prompt_op, a->prompt_kind);
+        } else if (face->kind == KM_OP && face->op == AB_CANCEL) {
+            prompt_close(a);
+        }
         return;
     }
     if (a->prompt_op >= 0 && a->prompt_kind == KM_ARG_DIGITS) {    /* a digit setting */
@@ -133,8 +201,12 @@ static void do_action(app_state *a, const km_action *act)
     case KM_MENU:
         if (act->arg >= 0 && km_menu_at(act->arg)) a->menu = act->arg;
         break;
+    case KM_CONFIRM:                            /* in program entry ALL is PGM (UG p.1-5) */
+        a->confirm_op = act->op == AB_CLALL && a->c->prgm ? AB_CLPGM : act->op;
+        break;
     case KM_DEVICE:
         if (act->arg == KM_DEV_OFF) a->off = true;
+        if (act->arg == KM_DEV_UNDO) undo(a);
         break;
     default:                                    /* a menu not defined yet, a soft key with none open */
         break;
@@ -170,10 +242,11 @@ void app_saved(app_state *a)
 
 void app_undo_buffers(app_state *a, uint8_t *b0, uint8_t *b1, size_t cap)
 {
-    (void)a;
-    (void)b0;
-    (void)b1;
-    (void)cap;
+    a->undo[0] = b0;
+    a->undo[1] = b1;
+    a->undo_cap = b0 && b1 ? cap : 0;
+    a->undo_len = 0;
+    if (!a->undo_cap) a->undo[0] = a->undo[1] = NULL;
 }
 
 void app_ui(const app_state *a, screen_ui *ui)
@@ -182,6 +255,15 @@ void app_ui(const app_state *a, screen_ui *ui)
     ui->shift = a->shift;
     ui->busy = a->running ? a->busy_op : 0;
     ui->prompt = a->prompt_op >= 0 ? a->prompt_text : NULL;
+    if (a->confirm_op >= 0) {
+        ui->prompt = a->confirm_op == AB_CLPGM ? "CLR PGMS?" : "CLR ALL?";
+        ui->soft[0] = "Y";
+        ui->soft[1] = "N";
+        return;
+    }
     const km_menu *mn = a->menu >= 0 ? km_menu_at(a->menu) : NULL;
-    for (int i = 0; mn && i < SCREEN_SOFT && i < KM_SOFT_KEYS; i++) ui->soft[i] = mn->item[i].legend;
+    for (int i = 0; mn && i < SCREEN_SOFT && i < KM_SOFT_KEYS; i++) {
+        const km_action *it = &mn->item[i];
+        ui->soft[i] = it->kind == KM_CONFIRM && it->op == AB_CLALL && a->c->prgm ? "PGM" : it->legend;
+    }
 }

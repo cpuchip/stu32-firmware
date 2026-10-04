@@ -410,8 +410,9 @@ int main(void)
         press(&a, "GOLD \xe2\x86\x90 k:4 5");
         app_ui(&a, &ui);
         expect(img_crc(&c) == before && !ui.prompt, "any other key cancels, and only cancels: 5 not typed");
-        press(&a, "GOLD \xe2\x86\x90 k:4 BLUE \xe2\x86\x90");
-        expect(img_crc(&c) == before, "a shift then UNDO at the prompt: cancelled, nothing undone");
+        press(&a, "GOLD \xe2\x86\x90 k:4 BLUE");
+        app_ui(&a, &ui);
+        expect(img_crc(&c) == before && !ui.prompt && a.shift == 0, "a shift at the prompt only cancels it, unarmed");
 
         /* in program entry the menu offers PGM instead (UG p.1-5: CLR PGMS? Y N) */
         press(&a, "GOLD 9 k:0 GOLD XEQ ltr:A 2 BLUE XEQ");

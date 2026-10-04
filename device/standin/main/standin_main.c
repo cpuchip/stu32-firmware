@@ -463,6 +463,16 @@ void app_main(void)
     load();
     app_init(&app, calc, now_ms());
     app.busy = on_busy;
+    {   /* UNDO's two images (unit 021), in PSRAM beside the store's; without them UNDO does nothing */
+        uint8_t *u0 = heap_caps_malloc(IMAGE_CAP, MALLOC_CAP_SPIRAM), *u1 = heap_caps_malloc(IMAGE_CAP, MALLOC_CAP_SPIRAM);
+        if (!u0 || !u1) {
+            printf("standin: no memory for UNDO\n");
+            heap_caps_free(u0);
+            heap_caps_free(u1);
+            u0 = u1 = NULL;
+        }
+        app_undo_buffers(&app, u0, u1, IMAGE_CAP);
+    }
     printf("standin: heap internal %u (largest block %u), PSRAM %u\n",
            (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
            (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL),

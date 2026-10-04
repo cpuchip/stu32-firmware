@@ -27,7 +27,7 @@ static const km_action KEYMAP[KB_KEYS][3] = {
     [19] = {{KM_OP, AB_XY, 0, 0, "x\xe2\x86\x94y"}, {KM_MENU, 0, -1, 0, "TEST"}, {KM_MENU, 0, -1, 0, "BASE"}},
     [20] = {{KM_OP, AB_KCHS, 0, 0, "+/\xe2\x88\x92"}, {KM_OP, AB_ABS, 0, 0, "ABS"}, {KM_MENU, 0, -1, 0, "CMPLX"}},
     [21] = {{KM_OP, AB_KE, 0, 0, "E"}, {KM_OP, AB_PI, 0, 0, "\xcf\x80"}, {KM_MENU, 0, -1, 0, "FRAC"}},
-    [22] = {{KM_OP, AB_KBKSP, 0, 0, "\xe2\x86\x90"}, {KM_MENU, 0, -1, 0, "CLEAR"}, {KM_DEVICE, 0, KM_DEV_UNDO, 0, "UNDO"}},
+    [22] = {{KM_OP, AB_KBKSP, 0, 0, "\xe2\x86\x90"}, {KM_MENU, 0, 3, 0, "CLEAR"}, {KM_DEVICE, 0, KM_DEV_UNDO, 0, "UNDO"}},
     [23] = {{KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}},
     [24] = {{KM_PROMPT, AB_XEQ, 0, KM_ARG_TARGET, "XEQ"}, {KM_PROMPT, AB_LBL, 0, KM_ARG_LABEL, "LBL"}, {KM_OP, AB_RTN, 0, 0, "RTN"}},
     [25] = {{KM_OP, AB_K7, 0, 0, "7"}, {KM_MENU, 0, -1, 0, "SOLVE"}, {KM_MENU, 0, -1, 0, "GRAPH"}},
@@ -59,6 +59,7 @@ static const km_menu MENUS[] = {
     {"PRGM", {{KM_OP, AB_PRGM, 0, 0, "PRGM"}, {KM_PROMPT, AB_LBL, 0, KM_ARG_LABEL, "LBL"}, {KM_PROMPT, AB_INPUT, 0, KM_ARG_VAR, "INPUT"}, {KM_OP, AB_SST, 0, 0, "SST"}, {KM_OP, AB_BST, 0, 0, "BST"}, {KM_OP, AB_CLPGM, 0, 0, "CLPGM"}}},
     {"DISP", {{KM_PROMPT, AB_SETFIX, 0, KM_ARG_DIGITS, "FIX"}, {KM_PROMPT, AB_SETSCI, 0, KM_ARG_DIGITS, "SCI"}, {KM_PROMPT, AB_SETENG, 0, KM_ARG_DIGITS, "ENG"}, {KM_OP, AB_SETALL, 0, 0, "ALL"}, {KM_OP, AB_XIY, 0, 0, "xiy"}, {KM_OP, AB_RTA, 0, 0, "r\xce\xb8" "a"}}},
     {"\xe2\x88\xa1MODE", {{KM_OP, AB_DEG, 0, 0, "DEG"}, {KM_OP, AB_RAD, 0, 0, "RAD"}, {KM_OP, AB_GRAD, 0, 0, "GRAD"}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}}},
+    {"CLEAR", {{KM_OP, AB_CLX, 0, 0, "CLx"}, {KM_OP, AB_CLSTK, 0, 0, "CLSTK"}, {KM_OP, AB_CLVARS, 0, 0, "CLVARS"}, {KM_OP, AB_CLSIGMA, 0, 0, "CL\xce\xa3"}, {KM_CONFIRM, AB_CLALL, 0, 0, "ALL"}, {KM_PROMPT, AB_CLVARX, 0, KM_ARG_ADDR, "CLVARx"}}},
 };
 
 const km_menu *km_menu_at(int index)

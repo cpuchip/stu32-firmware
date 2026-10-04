@@ -408,6 +408,16 @@ void app_main(void)
     load();
     app_init(&app, calc, now_ms());
     app.busy = on_busy;
+    {   /* UNDO's two images (unit 021), in PSRAM beside the store's; without them UNDO does nothing */
+        uint8_t *u0 = heap_caps_malloc(IMAGE_CAP, MALLOC_CAP_SPIRAM), *u1 = heap_caps_malloc(IMAGE_CAP, MALLOC_CAP_SPIRAM);
+        if (!u0 || !u1) {
+            printf("reva: no memory for UNDO\n");
+            heap_caps_free(u0);
+            heap_caps_free(u1);
+            u0 = u1 = NULL;
+        }
+        app_undo_buffers(&app, u0, u1, IMAGE_CAP);
+    }
 
     if (why == ESP_SLEEP_WAKEUP_TIMER) {            /* the refresh: rewrite the image, sleep again */
         render(0);

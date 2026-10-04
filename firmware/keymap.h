@@ -28,11 +28,13 @@ typedef enum {
     KM_SHIFT,               /* arg 1 gold, 2 blue */
     KM_SOFT,                /* soft key arg (0..5) */
     KM_DEVICE,              /* arg: KM_DEV_* */
-    KM_UNDEFINED            /* a legend with no meaning yet (reported, not guessed) */
+    KM_UNDEFINED,           /* a legend with no meaning yet (reported, not guessed) */
+    KM_CONFIRM              /* op, once a yes/no prompt is answered yes (unit 021: CLR ALL?) */
 } km_kind;
 
 enum { KM_ARG_VAR = 1, KM_ARG_LABEL, KM_ARG_TARGET,     /* what a KM_PROMPT asks for */
-       KM_ARG_DIGITS };                                 /* a digit setting, from the digit keys (app.h) */
+       KM_ARG_DIGITS,                                   /* a digit setting, from the digit keys (app.h) */
+       KM_ARG_ADDR };                                   /* three digits, 000-999 (CLVARx, unit 021) */
 enum { KM_DEV_OFF = 1, KM_DEV_UNDO };
 
 typedef struct {
@@ -55,7 +57,9 @@ const km_action *km_lookup(int key, int shift);
      the P4 panel's menu, so the panel, the app and the device agree;
    - DISP (Michael, #3901): FIX, SCI, ENG, each then a digit setting (UG p.1-21's "FIX_" prompt),
      ALL, and the complex display forms xiy and rθa (provisional picks);
-   - ∡MODE (abacus decision 33): DEG, RAD, GRAD, soft keys 4-6 empty.
+   - ∡MODE (abacus decision 33): DEG, RAD, GRAD, soft keys 4-6 empty;
+   - CLEAR (unit 019's draft, with unit 021's two): CLx, CLSTK, CLVARS, CLΣ, ALL (asks CLR ALL?
+     first, UG p.1-5; PGM in program entry), CLVARx (a three-digit address).
    Until the menus are ruled, EQN (gold on 0) is the plain Equation-mode toggle (UG p.G-7), a
    provisional KM_OP the EQN menu's first item will take over. */
 #define KM_SOFT_KEYS 6
