@@ -43,6 +43,51 @@ typedef struct {
 
 void screen_ui_default(screen_ui *ui);
 
+/* The screen as text (abacus #3971): each line's text and kind, from the rules screen_render draws
+ * by (it draws from these), so a host that draws its own lines (the app, the 10" panel) shows what
+ * the device shows. A line is whole: fitting it to a width (screen_render's scale and its ellipsis
+ * window around the cursor) is the host's. */
+#define SCREEN_TEXT_MAX 1024
+
+typedef enum {
+    SCREEN_VALUE = 0,       /* a register's value */
+    SCREEN_ENTRY,           /* the number being typed, with its cursor */
+    SCREEN_EQN,             /* an equation typed (with its cursor) or shown, or EQN LIST TOP */
+    SCREEN_PROGRAM,         /* program entry: the pointer's address and line, or PRGM TOP */
+    SCREEN_MESSAGE,         /* the op running (RUNNING...), or the error message */
+    SCREEN_PROMPT           /* an op waiting for its argument (X); INPUT's A? or VIEW's A= (Y) */
+} screen_kind;
+
+typedef struct {
+    char text[SCREEN_TEXT_MAX];     /* UTF-8; a cursor is the '_' in it */
+    int cursor;                     /* the cursor's cell (screen_cells counting), -1 none */
+    screen_kind kind;
+    bool left;                      /* drawn from the left, else right aligned */
+    const char *label;              /* the letter at its left ("T", "Z", "Y", "X"), NULL none */
+} screen_line;
+
+typedef struct {
+    int shift;                      /* 0, 1 GOLD, 2 BLUE */
+    const char *angle;              /* "RAD", "GRAD", NULL in degrees */
+    const char *base;               /* "HEX", "OCT", "BIN", NULL in decimal */
+    bool prgm, eqn;
+    int frac;                       /* the fraction indicator: 1 up, -1 down, 0 none */
+    char flags[6];                  /* the flags 0-4 that are set, as digits */
+    const char *model;              /* "33" or "35" */
+    int battery;                    /* percent, -1 not read */
+    bool charging;
+    char text[64];                  /* the annunciators in order, space-separated */
+} screen_status;
+
+typedef struct {
+    screen_status status;
+    screen_line t, z, y, x;
+    const char *soft[SCREEN_SOFT];  /* as screen_ui's */
+    bool soft_on[SCREEN_SOFT], soft_sub[SCREEN_SOFT];
+} screen_page;
+
+void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out);
+
 /* The whole frame for c and ui. */
 void screen_render(const ab_calc *c, const screen_ui *ui, ls027_frame *f);
 

@@ -773,6 +773,73 @@ int main(int argc, char **argv)
     frame("20-listing-marks", &c, &ui);
     expect(screen_missed == 0, "a frame drew a character the face lacks");
 
+    /* abacus #3971: the screen as text, by screen_render's rules */
+    {
+        static screen_page pg;
+        screen_ui_default(&ui);
+        ab_init(&c);
+        keys(&c, "12 . 5 E CHS 3");
+        screen_lines(&c, &ui, &pg);
+        expect(pg.x.kind == SCREEN_ENTRY && !strcmp(pg.x.text, "12.5E-3_") && pg.x.cursor == 7 && pg.x.left &&
+                   pg.x.label && !strcmp(pg.x.label, "X"), "text: the entry 12.5E-3_ with its cursor, X");
+        ui.radix = ',';
+        screen_lines(&c, &ui, &pg);
+        expect(!strcmp(pg.x.text, "12,5E-3_"), "text: the device's radix in the entry");
+        ui.radix = '.';
+        keys(&c, "ENTER");
+        screen_lines(&c, &ui, &pg);
+        expect(pg.x.kind == SCREEN_VALUE && !strcmp(pg.x.text, "0.0125") && !pg.x.left && pg.x.cursor == -1 &&
+                   !strcmp(pg.y.text, "0.0125") && !strcmp(pg.y.label, "Y") && !strcmp(pg.t.label, "T"),
+               "text: X and Y values, right aligned, their letters");
+        ab_init(&c);
+        keys(&c, "1 ENTER 0 /");
+        screen_lines(&c, &ui, &pg);
+        expect(pg.x.kind == SCREEN_MESSAGE && !strcmp(pg.x.text, "DIVIDE BY 0") && !pg.x.label && pg.x.left &&
+                   !strcmp(pg.y.text, "1"), "text: the message, no letter; Y still 1");
+        ui.prompt = "STO _";
+        screen_lines(&c, &ui, &pg);
+        expect(pg.x.kind == SCREEN_PROMPT && !strcmp(pg.x.text, "STO _"), "text: a prompt before the message");
+        ui.busy = AB_XEQ;
+        screen_lines(&c, &ui, &pg);
+        expect(pg.x.kind == SCREEN_MESSAGE && !strcmp(pg.x.text, "RUNNING"), "text: the op running before a prompt");
+        screen_ui_default(&ui);
+        ab_init(&c);
+        c.stop = AB_STOP_INPUT;
+        c.stop_var = 1;
+        screen_lines(&c, &ui, &pg);
+        expect(pg.y.kind == SCREEN_PROMPT && !strcmp(pg.y.text, "B?") && pg.y.left && !pg.y.label, "text: INPUT B? in Y");
+        ab_init(&c);
+        ab_do_arg(&c, AB_MODEL, 35);
+        keys(&c, "E 3 ENTER ENTER");
+        screen_lines(&c, &ui, &pg);
+        expect(pg.x.kind == SCREEN_ENTRY && !strcmp(pg.x.text, "_E3") && pg.x.cursor == 0, "text: the cursor before the E");
+        ab_init(&c);
+        keys(&c, "PRGM");
+        screen_lines(&c, &ui, &pg);
+        expect(pg.x.kind == SCREEN_PROGRAM && !strcmp(pg.x.text, "PRGM TOP"), "text: PRGM TOP");
+        ab_init(&c);
+        keys(&c, "EQN");
+        screen_lines(&c, &ui, &pg);
+        expect(pg.x.kind == SCREEN_EQN && !strcmp(pg.x.text, "EQN LIST TOP") && pg.status.eqn, "text: EQN LIST TOP, EQN on");
+        /* the status band */
+        ab_init(&c);
+        keys(&c, "RAD HEX PRGM");
+        ab_do_arg(&c, AB_SF, 1);
+        ab_do_arg(&c, AB_SF, 3);
+        ui.shift = 1;
+        ui.battery = 80;
+        screen_lines(&c, &ui, &pg);
+        expect(pg.status.shift == 1 && !strcmp(pg.status.angle, "RAD") && !strcmp(pg.status.base, "HEX") && pg.status.prgm &&
+                   !strcmp(pg.status.flags, "13") && !strcmp(pg.status.model, "33") && pg.status.battery == 80 &&
+                   !strcmp(pg.status.text, "GOLD RAD HEX PRGM 13 33"), "text: the status band, in order");
+        /* the soft labels, as screen_ui gives them */
+        ui.soft[0] = "SINH";
+        ui.soft_sub[4] = true;
+        screen_lines(&c, &ui, &pg);
+        expect(pg.soft[0] && !strcmp(pg.soft[0], "SINH") && pg.soft_sub[4] && !pg.soft_on[0], "text: the soft labels");
+        screen_ui_default(&ui);
+    }
+
     printf("screen_test: %d/%d checks, %d/%d frames %s %s\n", checks - bad, checks, frames_ok, frames,
            writing ? "written to" : "match", frame_dir);
     return bad == 0 && frames_ok == frames ? 0 : 1;

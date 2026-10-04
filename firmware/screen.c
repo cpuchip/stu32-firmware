@@ -407,6 +407,13 @@ static void soft_band(ls027_frame *f, const screen_ui *ui)
     }
 }
 
+void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
+{
+    (void)c;
+    (void)ui;
+    memset(out, 0, sizeof *out);
+}
+
 void screen_render(const ab_calc *c, const screen_ui *ui, ls027_frame *f)
 {
     screen_clear(f);
