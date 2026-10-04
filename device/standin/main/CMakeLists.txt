@@ -23,4 +23,4 @@ target_include_directories(${COMPONENT_LIB} SYSTEM PRIVATE "${BID_INC}")
 target_compile_definitions(${COMPONENT_LIB} PRIVATE
     DECIMAL_CALL_BY_REFERENCE=0 DECIMAL_GLOBAL_ROUNDING=0 DECIMAL_GLOBAL_EXCEPTION_FLAGS=0)
 target_link_libraries(${COMPONENT_LIB} PRIVATE "${BID_LIB}")
-set_source_files_properties("${REPO}/core/arena.c" PROPERTIES COMPILE_OPTIONS "-include;${CMAKE_CURRENT_LIST_DIR}/pool_attr.h")
+set_source_files_properties("${REPO}/core/arena.c" PROPERTIES COMPILE_OPTIONS "-include;${REPO}/device/pool_attr.h")
