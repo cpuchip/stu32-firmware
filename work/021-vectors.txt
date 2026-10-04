@@ -1,0 +1,47 @@
+# Work unit 021 acceptance vectors (abacus hidden model, tools/refmodel/gen_021.py):
+# gamma through x! (35s p.4-15), EXPM1 LN1P TWOX LOG2 (ours), CLVAR:nnn (35s p.1-5), CLALL (p.1-29).
+# New tokens: EXPM1 LN1P TWOX LOG2 CLVAR:nnn CLALL. X^ = within 8 units in the 34th digit;
+# values from mpmath 1.4.1 at 120 digits on the exact decimal argument, rounded once to 34.
+
+G01 | 35s p.4-15 x! of a non-integer is gamma: Γ(1.5) = √π/2 | 0.5 FACT | X^8.862269254527580136490837416705726E-1
+G02 | 35s p.4-15 x! of a non-integer is gamma: Γ(0.5) = √π | 0.5 CHS FACT | X^1.772453850905516027298167483341145E+0
+G03 | 35s p.4-15 x! of a non-integer is gamma: Γ(5.5) | 4.5 FACT | X^5.234277778455352018114900849241819E+1
+G04 | 35s p.4-15 x! of a non-integer is gamma: Γ(-1.5) = 4√π/3, a negative non-integer is allowed | 2.5 CHS FACT | X^2.363271801207354703064223311121527E+0
+G05 | 35s p.4-15 x! of a non-integer is gamma: Γ(1.1) | 0.1 FACT | X^9.513507698668731836292487177265402E-1
+G06 | 35s p.4-15 x! of a non-integer is gamma: Γ(101.5), large | 100.5 FACT | X^9.367567919603130191390855358187620E+158
+G07 | 35s p.4-15 x! of a non-integer is gamma: Γ(1+1e-20), next to 0! = 1 | 1 E 20 CHS FACT | X^9.999999999999999999942278433509847E-1
+G08 | 35s p.4-15 x! of a non-integer is gamma: Γ(0.001), large near the pole | 0.999 CHS FACT | X^9.994237724845954661149822012996440E+2
+G09 | 35s p.4-15 a negative integer is an error | 3 CHS FACT | ERR X=-3
+G10 | 35s p.4-15 1 CHS is a negative integer too | 1 CHS FACT | ERR X=-1
+G11 | ours: integers keep the exact path | 5 FACT | X=120
+E01 | ours: EXPM1 accurate where x is tiny | 1 E 20 CHS EXPM1 | X^1.000000000000000000005000000000000E-20
+E02 | ours: EXPM1 accurate where x is tiny | 1 E 30 CHS EXPM1 | X^1.000000000000000000000000000000500E-30
+E03 | ours: EXPM1 accurate where x is tiny, negative | 1 CHS E 20 CHS EXPM1 | X^-9.999999999999999999950000000000000E-21
+E04 | ours: EXPM1 e - 1 | 1 EXPM1 | X^1.718281828459045235360287471352662E+0
+E05 | ours: EXPM1 near -1 | 50 CHS EXPM1 | X^-9.999999999999999999998071250152036E-1
+E06 | ours: LN1P accurate where x is tiny | 1 E 20 CHS LN1P | X^9.999999999999999999950000000000000E-21
+E07 | ours: LN1P accurate where x is tiny | 1 E 30 CHS LN1P | X^9.999999999999999999999999999995000E-31
+E08 | ours: LN1P accurate where x is tiny, negative | 1 CHS E 20 CHS LN1P | X^-1.000000000000000000005000000000000E-20
+E09 | ours: LN1P ln 2 | 1 LN1P | X^6.931471805599453094172321214581766E-1
+E10 | ours: LN1P ln 0.5 | 0.5 CHS LN1P | X^-6.931471805599453094172321214581766E-1
+E11 | ours: LN1P needs x > -1 | 1 CHS LN1P | ERR X=-1
+E12 | ours: LN1P needs x > -1 | 2 CHS LN1P | ERR X=-2
+E13 | ours: EXPM1 at 0 is 0 | 0 EXPM1 | X=0
+E14 | ours: LN1P at 0 is 0 | 0 LN1P | X=0
+E15 | ours: 2^x exact on an integer | 3 TWOX | X=8
+E16 | ours: 2^x exact on a negative integer | 10 CHS TWOX | X=0.0009765625
+E17 | ours: TWOX √2 | 0.5 TWOX | X^1.414213562373095048801688724209698E+0
+E18 | ours: TWOX 1/√2 | 0.5 CHS TWOX | X^7.071067811865475244008443621048490E-1
+E19 | ours: LOG2 of a power of two | 1024 LOG2 | X^1.000000000000000000000000000000000E+1
+E20 | ours: LOG2 log₂ 3 | 3 LOG2 | X^1.584962500721156181453738943947817E+0
+E21 | ours: LOG2 log₂ 0.001 | 0.001 LOG2 | X^-9.965784284662087043610958288468171E+0
+E22 | ours: LOG2 of 0 is an error, as LOG | 0 LOG2 | ERR X=0
+E23 | ours: LOG2 of a negative is an error, as LOG | 2 CHS LOG2 | ERR X=-2
+V01 | 35s p.1-5 CLVAR056 keeps 56 and below | 50 STO:I 5 STO:(I) 56 STO:I 7 STO:(I) 60 STO:I 6 STO:(I) CLVAR:056 | @#50=5 @#56=7 @#60=0
+V02 | 35s p.1-5 CLVAR000 keeps only address 0 | 0 STO:I 9 STO:(I) 1 STO:I 8 STO:(I) 300 STO:I 3 STO:(I) CLVAR:000 | @#0=9 @#1=0 @#300=0
+V03 | 35s p.1-5 the top address is erased by CLVAR799 | 800 STO:I 1 STO:(I) CLVAR:799 | @#800=0
+V04 | 35s p.1-5 CLVAR800 erases nothing | 800 STO:I 1 STO:(I) CLVAR:800 | @#800=1
+V05 | ours: CLVARx leaves the lettered variables | 4 STO:A 60 STO:I 6 STO:(I) CLVAR:010 | @A=4 @#60=0
+K01 | 35s p.1-29 CLEAR ALL erases stored numbers | 5 STO:A 2 ENTER 3 CLALL | X=0 Y=0 @A=0
+K02 | 35s p.1-29 CLEAR ALL erases indirect variables | 60 STO:I 6 STO:(I) CLALL | @#60=0 @I=0
+K03 | 35s p.1-29 CLEAR ALL keeps the angle mode | RAD 7 CLALL PI SIN | X^-1.158028306006248941790250554076922E-34
