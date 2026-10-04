@@ -182,7 +182,10 @@ static void loop_steps(void)
     loop_step("work/012-vectors.txt", false, "7");
     loop_step("work/013-vectors.txt", false, "7");
     loop_step("work/015-vectors.txt", false, "7");
-    loop_step("work/016-vectors.txt", true, "7");          /* both: a save and load at every slice stop */
+    /* both: a save and load after every key and at every slice stop. Not 016: its vectors watch
+       for slice stops themselves, which the harness's slicing resumes (the Makefile's slice runs
+       leave 016-018 out for the same reason) */
+    loop_step("work/012-vectors.txt", true, "7");
 }
 
 static int run_all(void)
