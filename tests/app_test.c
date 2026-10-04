@@ -934,6 +934,41 @@ int main(void)
     run_out(&a, &in);
     expect(c.stop == AB_STOP_DONE && x_of(&c) == 6, "R/S then resumes it");
 
+    /* abacus #3971 (ruling #3828): with a menu open a shift arms, switches or cancels and the menu stays;
+       a soft key then acts and clears the shift; any other key closes the menu and acts in the shift */
+    ab_init(&c);
+    app_init(&a, &c, now);
+    press(&a, "1 BLUE LN GOLD");
+    app_ui(&a, &ui);
+    expect(a.shift == 1 && ui.soft[0] && !strcmp(ui.soft[0], "SINH"), "HYP open, gold: armed, the menu stays");
+    press(&a, "BLUE");
+    app_ui(&a, &ui);
+    expect(a.shift == 2 && ui.soft[0] && !strcmp(ui.soft[0], "SINH"), "then blue: switched, the menu stays");
+    press(&a, "BLUE");
+    app_ui(&a, &ui);
+    expect(a.shift == 0 && ui.soft[0] && !strcmp(ui.soft[0], "SINH"), "blue again: cancelled, the menu stays");
+    press(&a, "GOLD k:0");
+    app_ui(&a, &ui);
+    expect(a.shift == 0 && !ui.soft[0] && x_of(&c) > 1.1752 && x_of(&c) < 1.1753, "gold, then a soft key: SINH acts, the shift cleared");
+    press(&a, "C 3 BLUE LN GOLD \xe2\x88\x9ax");
+    app_ui(&a, &ui);
+    expect(a.shift == 0 && !ui.soft[0] && x_of(&c) == 9, "gold, then another key: the menu closes and x squared acts");
+
+    /* abacus #3971: MEMORY CLEAR restores the core's run limits, so a calloc'd calculator runs programs */
+    {
+        static ab_calc z;
+        memset(&z, 0, sizeof z);
+        ab_memory_clear(&z);
+        ab_do(&z, AB_PRGM);
+        ab_do_arg(&z, AB_LBL, 0);
+        for (int i = 0; i < 40; i++) ab_do(&z, AB_K1);      /* a few lines of work */
+        ab_do(&z, AB_RTN);
+        ab_do(&z, AB_PRGM);
+        ab_do_arg(&z, AB_XEQ, 0);
+        while (z.stop == AB_STOP_SLICE) ab_continue(&z);
+        expect(z.stop == AB_STOP_DONE, "calloc then MEMORY CLEAR: a program runs to its end, no RUN LIMIT");
+    }
+
     /* other menus and the soft keys alone do nothing yet; nothing crashes on any key in any shift */
     ab_init(&c);
     app_init(&a, &c, now);
