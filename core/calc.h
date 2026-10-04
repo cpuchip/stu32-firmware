@@ -353,6 +353,11 @@ void ab_memory_clear(ab_calc *c);
 abn_status ab_continue(ab_calc *c);
 void ab_interrupt(ab_calc *c);
 
+/* A key arriving while a keyboard VIEW shows (UG p.3-4; abacus #3979): the display goes, and true
+   when the key is spent on that, C or backspace (p.3-6); any other op (or -1, a device key that is
+   no op) then acts. ab_do_arg applies it; a device applies it to keys that never reach the core. */
+bool ab_view_key(ab_calc *c, int op);
+
 /* Rebuilds the label table after program memory is replaced (state loading). */
 void ab_prog_relabel(ab_calc *c);
 

@@ -3111,12 +3111,7 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
         c->msg = false;
         if (c->m35) return ABN_OK;
     }
-    if (c->viewing) {
-        /* a keyboard VIEW's display: C or backspace only clears it (UG p.3-4, 3-6); any other key
-           clears it and acts (abacus #3979) */
-        c->viewing = false;
-        if (op == AB_CANCEL || op == AB_KBKSP) return ABN_OK;
-    }
+    if (ab_view_key(c, op)) return ABN_OK;
     c->err_set = false;
     /* CLEAR ALL and CLR EQN act in Equation mode too (unit 021: never a silent no-op once the
        device has asked CLR ALL? or CLR EQN?) */
@@ -3129,6 +3124,13 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
         c->err_status = st;
     }
     return st;
+}
+
+bool ab_view_key(ab_calc *c, int op)
+{
+    if (!c->viewing) return false;
+    c->viewing = false;
+    return op == AB_CANCEL || op == AB_KBKSP;
 }
 
 void ab_interrupt(ab_calc *c)

@@ -142,12 +142,11 @@ void app_key(app_state *a, int key, uint32_t now_ms)
         if (face->kind == KM_OP && (face->op == AB_CANCEL || face->op == AB_RS)) a->pause = false;
         return;
     }
-    if (a->c->viewing && face->kind != KM_SHIFT) {
-        /* a keyboard VIEW's display (UG p.3-4): C or backspace only clears it, as the core does for
-           the keys it sees; any other key, a menu's or a prompt's included, clears it and acts */
-        a->c->viewing = false;
-        if (a->shift == 0 && face->kind == KM_OP && (face->op == AB_CANCEL || face->op == AB_KBKSP)) return;
-    }
+    if (face->kind != KM_SHIFT &&
+        ab_view_key(a->c, a->shift == 0 && face->kind == KM_OP ? face->op : -1))
+        return;                                 /* a keyboard VIEW's display: the core's rule, applied
+                                                   here too for keys that never reach it (a menu's,
+                                                   a prompt's) */
     if (a->c->msg && a->c->m35 && face->kind != KM_SHIFT) {
         /* the 35s: a key with a message showing only clears it (UG p.F-1, unit 017 rule 4), a
            key that would open a menu or a prompt too, so no op a menu confirms is spent on it
