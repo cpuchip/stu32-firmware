@@ -14,7 +14,7 @@ ENGINE := build/abn_intel.o $(INTEL_LIB)
 LIBS := -lm
 
 .PHONY: all test accuracy clean device-host
-KEYV := $(filter-out work/002-vectors.txt work/016-vectors.txt work/017-vectors.txt work/018-vectors.txt,$(filter-out %-fmt-vectors.txt,$(wildcard work/*-vectors.txt))) tests/021-soroban.txt tests/019-soroban.txt tests/003-soroban.txt
+KEYV := $(filter-out work/002-vectors.txt work/016-vectors.txt work/017-vectors.txt work/018-vectors.txt,$(filter-out %-fmt-vectors.txt,$(wildcard work/*-vectors.txt))) tests/021-soroban.txt tests/019-soroban.txt tests/003-soroban.txt tests/018-soroban.txt
 all: build/standin_test build/app_test build/keymap_test build/power_test build/screen_test build/keys_test build/ls027_test build/store_test build/load_fuzz build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test
 
 # every build/ target is order-only on the directory: a fresh clone has none (abacus #3803)
@@ -113,6 +113,7 @@ test: all
 	./build/vectors tests/021-soroban.txt
 	./build/vectors tests/019-soroban.txt
 	./build/vectors tests/003-soroban.txt
+	./build/vectors tests/018-soroban.txt
 	./build/vectors tests/golden-v1.txt
 	./build/load_fuzz 20000
 	./build/store_test

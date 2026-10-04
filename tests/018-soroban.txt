@@ -1,0 +1,9 @@
+# Unit 018 follow-ups, soroban's core-level vectors: the rules app.c also applies, checked where
+# direct core callers (the vectors runner, the panel's tokens, any host) meet them. Format as
+# work/021-vectors.txt.
+
+W01 | 35s p.3-4 a keyboard VIEW leaves the stack: X stays 7 | 5 STO:A 7 VIEW:A | X=7 Y=5
+W02 | 35s p.3-6 C only clears the VIEW display: X unchanged, then a key acts as usual | 5 STO:A 7 VIEW:A C 2 + | X=9
+W03 | 35s p.3-4 backspace only clears it too (unspent it would clear X) | 5 STO:A 7 VIEW:A BKSP | X=7
+W04 | abacus #3979 any other key clears it and acts: + adds | 5 STO:A 7 VIEW:A + | X=12
+W05 | abacus #3979 and a digit starts a number | 5 STO:A 7 VIEW:A 3 | X=3 Y=7
