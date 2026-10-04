@@ -275,6 +275,11 @@ static void sleep_now(void)
     gpio_hold_en(PIN_DISP);
     for (int c = 0; c < KB_COLS; c++) gpio_set_direction(COLS[c], GPIO_MODE_INPUT);
     gpio_deep_sleep_hold_en();
+    /* the ULP's domain kept on explicitly (review R1, ddc9b6c; on the S3 the slow-memory domain is not
+       configurable in IDF 5.4.2, RTC_PERIPH is: "RTC IO, sensors and ULP co-processor"). Measured on
+       the 4.3"'s S3 (device/ulp_probe): the ULP gives +20 edges in 10 s of deep sleep with or
+       without this line, and stops when RTC_PERIPH is forced off */
+    esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
     /* C alone wakes it (decision 34): EXT1 ANY_LOW on IO0, whose external pull-up holds with the
        RTC peripherals off */
     esp_sleep_enable_ext1_wakeup(pin_wake_mask(), ESP_EXT1_WAKEUP_ANY_LOW);
@@ -371,13 +376,13 @@ void app_main(void)
     gpio_set_direction(PIN_CHG_N, GPIO_MODE_INPUT);
     gpio_set_direction(PIN_PGOOD_N, GPIO_MODE_INPUT);
 
-    if (!woke) {                                    /* EXTCOMIN: the ULP, from the first boot on */
+    lcd_init(!woke);
+    if (!woke) {                                    /* EXTCOMIN: the ULP, from the first boot on, started */
         ESP_ERROR_CHECK(ulp_riscv_load_binary(ulp_main_bin_start, (size_t)(ulp_main_bin_end - ulp_main_bin_start)));
-        ulp_set_wakeup_period(0, 500000);
+        ulp_set_wakeup_period(0, 500000);           /* after DISP rises: Sharp 6-2's order (review R3) */
         ulp_riscv_cfg_t cfg = ULP_RISCV_DEFAULT_CONFIG();
         ESP_ERROR_CHECK(ulp_riscv_config_and_run(&cfg));
     }
-    lcd_init(!woke);
 
     i2c_master_bus_handle_t bus;
     i2c_master_bus_config_t bc = {.i2c_port = 0, .sda_io_num = PIN_SDA, .scl_io_num = PIN_SCL,

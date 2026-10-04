@@ -1,0 +1,18 @@
+# Review R2: the measurement (SLEEP, PERIPHON), then the two falsifiers (PERIPHOFF, HALT). The board's USB bridge
+# stays powered while the S3 sleeps, so the console carries across each wake. Cause 4 is the timer.
+wait PROBE READY 30
+send SLEEP
+expect wake: cause 4, mode SLEEP 30
+wait PROBE READY 15
+send PERIPHON
+expect wake: cause 4, mode PERIPHON 30
+wait PROBE READY 15
+send PERIPHOFF
+# the falsifier's outcome on the board: no timer wake into a running ULP; a cold start reloads it
+expect cold: the ULP loaded 30
+wait PROBE READY 15
+send RESTART
+wait PROBE READY 15
+send HALT
+expect wake: cause 4, mode HALT, edges after 7, delta 0 30
+wait PROBE READY 15
