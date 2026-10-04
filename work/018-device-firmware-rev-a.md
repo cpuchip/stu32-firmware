@@ -101,3 +101,11 @@ Superseded 2026-10-04 (abacus decision 36): Rev A now has a TPS63802 buck-boost,
 across the whole cell. The TX cap on USB and the 3.5 V radio floor came from the RT9080's dropout
 and heat. Drop the TX cap. Keep a radio floor only as a reserve for the save at power-off (the
 gauge's empty threshold, or about 3.3 V).
+
+Piezo volume (Michael asked, 2026-10-04): the driver takes a level as well as a frequency. With a
+low-side switch, the square wave's fundamental scales as sin(π·duty): 50% duty is loudest, 10% is
+about -10 dB, 5% about -16 dB. So a few steps (for example 50 / 20 / 8 / 3% and off) make a volume
+setting with no board change. Driving away from the part's resonance (about 7.5 kHz for the
+PKMCS0909) is a second, coarser control. Where the setting lives (SETUP, or a mode) waits for the
+menu ruling, so build the levels only. This is unverified until a piezo is on a bench: measure the
+steps with a phone's SPL meter when Rev A arrives.
