@@ -50,11 +50,12 @@ const km_action *km_lookup(int key, int shift);
 
 /* The menus, as data beside the legends (provisional until Michael rules the menus): a menu's six
    soft keys, each an action like a key's (an op, or an op that asks for its argument); KM_NONE for a
-   soft key with nothing. Two are defined:
+   soft key with nothing. Three are defined:
    - PRGM (abacus #3877): PRGM (the program-entry toggle, UG p.G-11), LBL, INPUT, SST, BST, CLPGM,
      the P4 panel's menu, so the panel, the app and the device agree;
    - DISP (Michael, #3901): FIX, SCI, ENG, each then a digit setting (UG p.1-21's "FIX_" prompt),
-     ALL, and the complex display forms xiy and rθa (provisional picks).
+     ALL, and the complex display forms xiy and rθa (provisional picks);
+   - ∡MODE (abacus decision 33): DEG, RAD, GRAD, soft keys 4-6 empty.
    Until the menus are ruled, EQN (gold on 0) is the plain Equation-mode toggle (UG p.G-7), a
    provisional KM_OP the EQN menu's first item will take over. */
 #define KM_SOFT_KEYS 6

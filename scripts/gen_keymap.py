@@ -66,6 +66,10 @@ MENUS = [
               ("SCI", "KM_PROMPT", "AB_SETSCI", 0, "KM_ARG_DIGITS"),
               ("ENG", "KM_PROMPT", "AB_SETENG", 0, "KM_ARG_DIGITS"), ("ALL", "KM_OP", "AB_SETALL", 0, 0),
               ("xiy", "KM_OP", "AB_XIY", 0, 0), ("r\u03b8a", "KM_OP", "AB_RTA", 0, 0)]),
+    # abacus decision 33: the angle modes (UG G-5, G-11, G-8); soft keys 4-6 empty
+    ("\u2221MODE", [("DEG", "KM_OP", "AB_DEG", 0, 0), ("RAD", "KM_OP", "AB_RAD", 0, 0),
+                    ("GRAD", "KM_OP", "AB_GRAD", 0, 0), ("", "KM_NONE", "0", 0, 0),
+                    ("", "KM_NONE", "0", 0, 0), ("", "KM_NONE", "0", 0, 0)]),
 ]
 # Menu legends that act as plain ops until their menu is ruled (abacus #3867): the EQN menu's
 # first item will take this over.
