@@ -7,6 +7,7 @@
 
 #include "app.h"
 #include "keymap.h"
+#include "state.h"
 
 static int bad, checks;
 static uint32_t now;
@@ -78,6 +79,15 @@ static double var_of(const ab_calc *c, char name)
     double v = 0;
     if (abn_to_text(&c->var[name - 'A'].re, t, sizeof t) > 0) sscanf(t, "%lf", &v);
     return v;
+}
+
+/* the state's identity: the checksum of its image (unit 016) without the image's own closing
+   checksum, since a CRC-32 over data and its CRC is the same constant for every image */
+static uint32_t img_crc(const ab_calc *c)
+{
+    static uint8_t img[1 << 18];
+    size_t n = ab_state_save(c, img, sizeof img);
+    return n > 4 && n <= sizeof img ? ab_crc32(img, n - 4) : 0;
 }
 
 static void run_out(app_state *a, pwr_inputs *in)
@@ -338,6 +348,130 @@ int main(void)
     expect(c.angle == AB_ANGLE_GRAD && !ui.soft[0], "an empty soft key: nothing, the menu closed");
     press(&a, "BLUE 2 k:0");
     expect(c.angle == AB_ANGLE_DEG, "DEG");
+
+    /* unit 021: UNDO, one level (ours): the state before the last key that reached the core; a
+       second UNDO puts it back. Compared as whole state images. */
+    {
+        static uint8_t u0[1 << 18], u1[1 << 18];
+        uint32_t before, after;
+        ab_init(&c);
+        app_init(&a, &c, now);
+        press(&a, "BLUE \xe2\x86\x90");
+        app_undo_buffers(&a, u0, u1, sizeof u0);
+        press(&a, "2 ENTER 3");
+        before = img_crc(&c);
+        press(&a, "+");
+        after = img_crc(&c);
+        expect(x_of(&c) == 5 && before != after, "2 ENTER 3 +");
+        press(&a, "BLUE \xe2\x86\x90");
+        expect(img_crc(&c) == before, "UNDO after +: the state before + back");
+        press(&a, "BLUE \xe2\x86\x90");
+        expect(img_crc(&c) == after && x_of(&c) == 5, "UNDO twice: + again (a redo)");
+
+        /* a shift, a menu opening, a menu closed with C and VIEW are not undo points */
+        press(&a, "7");
+        before = img_crc(&c);
+        press(&a, "STO ltr:A");
+        after = img_crc(&c);
+        press(&a, "GOLD GOLD BLUE GOLD \xe2\x86\x90 C GOLD STO ltr:A");
+        press(&a, "BLUE \xe2\x86\x90");
+        expect(img_crc(&c) == before && var_of(&c, 'A') == 0, "UNDO passes over shifts, a menu and VIEW to STO");
+
+        /* UNDO after CLSTK (the CLEAR menu's second item) */
+        press(&a, "1 ENTER 2 ENTER 3");
+        before = img_crc(&c);
+        press(&a, "GOLD \xe2\x86\x90 k:1");
+        expect(x_of(&c) == 0 && img_crc(&c) != before, "CLEAR CLSTK");
+        press(&a, "BLUE \xe2\x86\x90");
+        expect(img_crc(&c) == before, "UNDO after CLSTK");
+
+        /* CLEAR ALL asks first (UG p.1-5: CLR ALL? Y N); yes clears, and UNDO brings it all back */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        app_undo_buffers(&a, u0, u1, sizeof u0);
+        press(&a, "4 STO ltr:A 9");
+        before = img_crc(&c);
+        press(&a, "GOLD \xe2\x86\x90");
+        app_ui(&a, &ui);
+        expect(ui.soft[4] && !strcmp(ui.soft[4], "ALL") && ui.soft[5] && !strcmp(ui.soft[5], "CLVARx") &&
+               ui.soft[1] && !strcmp(ui.soft[1], "CLSTK"), "GOLD \xe2\x86\x90: the CLEAR menu, ALL fifth and CLVARx sixth");
+        press(&a, "k:4");
+        app_ui(&a, &ui);
+        expect(ui.prompt && !strcmp(ui.prompt, "CLR ALL?") && ui.soft[0] && !strcmp(ui.soft[0], "Y") &&
+               ui.soft[1] && !strcmp(ui.soft[1], "N") && var_of(&c, 'A') == 4, "ALL: CLR ALL? with Y and N, nothing cleared yet");
+        press(&a, "k:0");
+        app_ui(&a, &ui);
+        expect(var_of(&c, 'A') == 0 && !c.entry.active && !ui.prompt && !ui.soft[0], "Y: all cleared, the prompt gone");
+        press(&a, "BLUE \xe2\x86\x90");
+        expect(img_crc(&c) == before && var_of(&c, 'A') == 4, "UNDO after CLEAR ALL: everything back");
+        press(&a, "GOLD \xe2\x86\x90 k:4 k:1");
+        app_ui(&a, &ui);
+        expect(img_crc(&c) == before && !ui.prompt && !ui.soft[0], "N: nothing cleared, the prompt gone");
+        press(&a, "GOLD \xe2\x86\x90 k:4 5");
+        app_ui(&a, &ui);
+        expect(img_crc(&c) == before && !ui.prompt, "any other key cancels, and only cancels: 5 not typed");
+        press(&a, "GOLD \xe2\x86\x90 k:4 BLUE \xe2\x86\x90");
+        expect(img_crc(&c) == before, "a shift then UNDO at the prompt: cancelled, nothing undone");
+
+        /* in program entry the menu offers PGM instead (UG p.1-5: CLR PGMS? Y N) */
+        press(&a, "GOLD 9 k:0 GOLD XEQ ltr:A 2 BLUE XEQ");
+        expect(c.prgm && c.prog_len == 3, "a program keyed");
+        press(&a, "GOLD \xe2\x86\x90");
+        app_ui(&a, &ui);
+        expect(ui.soft[4] && !strcmp(ui.soft[4], "PGM"), "in program entry F5 is PGM");
+        press(&a, "k:4");
+        app_ui(&a, &ui);
+        expect(ui.prompt && !strcmp(ui.prompt, "CLR PGMS?") && c.prog_len == 3, "PGM: CLR PGMS?");
+        press(&a, "k:0");
+        expect(c.prog_len == 0 && c.prgm, "Y: the programs cleared, still in program entry");
+        press(&a, "GOLD 9 k:0");
+
+        /* UNDO after a short program: a run is one key */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        app_undo_buffers(&a, u0, u1, sizeof u0);
+        press(&a, "GOLD 9 k:0 GOLD XEQ ltr:B 3 \xc3\x97 BLUE XEQ GOLD 9 k:0 5");
+        before = img_crc(&c);
+        press(&a, "XEQ ltr:B");
+        run_out(&a, &in);
+        expect(x_of(&c) == 15, "XEQ B: 5 times 3");
+        press(&a, "BLUE \xe2\x86\x90");
+        expect(img_crc(&c) == before, "UNDO after the run: the state before XEQ");
+
+        /* with no buffers UNDO does nothing */
+        app_init(&a, &c, now);
+        before = img_crc(&c);
+        press(&a, "BLUE \xe2\x86\x90");
+        expect(img_crc(&c) == before, "no undo buffers: UNDO does nothing");
+    }
+
+    /* unit 021: CLVARx asks for a three-digit address (UG p.1-5), from the digit keys */
+    ab_init(&c);
+    app_init(&a, &c, now);
+    ab_do_arg(&c, AB_K5, 0);
+    ab_do_arg(&c, AB_K0, 0);
+    ab_do_arg(&c, AB_STO, 'I' - 'A');
+    ab_do_arg(&c, AB_STO, AB_VAR_IND_I);
+    ab_do_arg(&c, AB_K6, 0);
+    ab_do_arg(&c, AB_K0, 0);
+    ab_do_arg(&c, AB_STO, 'I' - 'A');
+    ab_do_arg(&c, AB_STO, AB_VAR_IND_I);
+    expect(c.ind_top == 60, "50 and 60 stored indirectly");
+    press(&a, "GOLD \xe2\x86\x90 k:5");
+    app_ui(&a, &ui);
+    expect(ui.prompt && !strcmp(ui.prompt, "CLVAR___"), "CLVARx: CLVAR___");
+    press(&a, "0");
+    app_ui(&a, &ui);
+    expect(ui.prompt && !strcmp(ui.prompt, "CLVAR0__"), "one digit: CLVAR0__");
+    press(&a, "+ 5");
+    app_ui(&a, &ui);
+    expect(ui.prompt && !strcmp(ui.prompt, "CLVAR05_") && c.ind_top == 60, "another key does nothing; two digits");
+    press(&a, "5");
+    app_ui(&a, &ui);
+    expect(!ui.prompt && c.ind_top == 50, "the third digit: CLVAR055 clears 60, keeps 50");
+    press(&a, "GOLD \xe2\x86\x90 k:5 0 C 0");
+    app_ui(&a, &ui);
+    expect(!ui.prompt && c.ind_top == 50 && c.entry.active, "C cancels it; the next 0 is typed");
 
     /* other menus and the soft keys alone do nothing yet; nothing crashes on any key in any shift */
     ab_init(&c);

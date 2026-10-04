@@ -26,6 +26,7 @@
 #define APP_H
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #include "calc.h"
@@ -66,6 +67,9 @@ void app_key(app_state *a, int key, uint32_t now_ms);
 /* Between events: runs one slice of a run in progress, and says what the device should do. */
 app_action app_tick(app_state *a, const pwr_inputs *in, uint32_t now_ms);
 void app_saved(app_state *a);               /* the device saved the image */
+/* UNDO's two image buffers of cap bytes each (unit 021; the device's PSRAM): without them UNDO
+   does nothing. */
+void app_undo_buffers(app_state *a, uint8_t *b0, uint8_t *b1, size_t cap);
 /* What the screen needs that the core does not hold. */
 void app_ui(const app_state *a, screen_ui *ui);
 

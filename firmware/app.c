@@ -168,6 +168,14 @@ void app_saved(app_state *a)
     a->dirty = false;
 }
 
+void app_undo_buffers(app_state *a, uint8_t *b0, uint8_t *b1, size_t cap)
+{
+    (void)a;
+    (void)b0;
+    (void)b1;
+    (void)cap;
+}
+
 void app_ui(const app_state *a, screen_ui *ui)
 {
     screen_ui_default(ui);
