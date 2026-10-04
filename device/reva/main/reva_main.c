@@ -43,6 +43,7 @@
 #include "keymap.h"
 #include "keys.h"
 #include "ls027.h"
+#include "piezo.h"
 #include "pins.h"
 #include "screen.h"
 #include "state.h"
@@ -180,6 +181,7 @@ static void scan_task(void *arg)
    call, so only the driver is here, and the console's BEEP for bring-up. ---- */
 
 static bool piezo_ready;
+static int piezo_level = PIEZO_LEVELS - 1;  /* where the setting lives waits for the menu ruling */
 
 static void piezo_init(void)
 {
@@ -196,7 +198,7 @@ static void piezo_tone(uint32_t hz, uint32_t ms)
     if (!piezo_ready) return;
     if (hz) {
         ledc_set_freq(LEDC_LOW_SPEED_MODE, LEDC_TIMER_0, hz);
-        ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 512);    /* half of 10 bits: a square wave */
+        ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, piezo_duty(piezo_level, 10));   /* the volume */
         ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
     }
     vTaskDelay(pdMS_TO_TICKS(ms));
@@ -305,6 +307,8 @@ static void console_task(void *arg)
             xQueueSend(keys_q, &k, 0);
         } else if (!strcmp(line, "BEEP")) {
             piezo_tone(2000, 100);              /* bring-up: does the piezo sound */
+        } else if (!strncmp(line, "VOL", 3)) {
+            piezo_level = atoi(line + 3);       /* bring-up: VOL 0..4 (piezo.h) */
         }
     }
 }
