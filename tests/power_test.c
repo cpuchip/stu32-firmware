@@ -173,21 +173,14 @@ int main(void)
             expect(PIN_BOOT[i].pin != PIN_PIEZO, "IO46 untouched until after boot (a strapping pin)");
         }
     }
-    /* the radio, from the regulator's margins (#3924/#3925, facts section 6): off below about
-       V_BAT 3.5 V; its TX power capped while on USB */
+    /* the radio (decision 36: a buck-boost holds 3.3 V across the cell, so the old regulator's
+       brown-out floor and USB TX cap are gone): only a reserve floor remains, so the cell keeps the
+       charge for the save at power-off */
     {
-        pwr_inputs on_cell = {true, true, 50, false}, on_usb = {true, false, 50, false};
-        pwr_radio r;
-        r = pwr_radio_rule(&on_cell, 3500000);
-        expect(r.allowed && !r.cap_tx, "3.5 V on the cell: the radio allowed, uncapped");
-        r = pwr_radio_rule(&on_cell, 3499999);
-        expect(!r.allowed, "below 3.5 V: no radio (TX peaks brown the module out below 3.2-3.35 V)");
-        r = pwr_radio_rule(&on_usb, 4100000);
-        expect(r.allowed && r.cap_tx, "on USB: allowed, TX capped (the LDO at its 0.43 W rating)");
-        r = pwr_radio_rule(&on_usb, 3400000);
-        expect(!r.allowed, "on USB but the cell low: still no radio");
-        r = pwr_radio_rule(&on_cell, 0);
-        expect(!r.allowed, "the cell not read (0): no radio");
+        expect(pwr_radio_allowed(3300000), "3.3 V: the radio allowed");
+        expect(!pwr_radio_allowed(3299999), "below 3.3 V: no radio (the reserve for the save)");
+        expect(pwr_radio_allowed(4200000), "a full cell: allowed");
+        expect(!pwr_radio_allowed(0), "the cell not read (0): no radio");
     }
 
     printf("power_test: %d/%d checks\n", checks - bad, checks);
