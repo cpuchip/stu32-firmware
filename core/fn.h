@@ -22,6 +22,10 @@ abn_status fn_ln(abn *out, const abn *x);
 abn_status fn_tenx(abn *out, const abn *x);
 abn_status fn_log(abn *out, const abn *x);
 abn_status fn_pow(abn *out, const abn *y, const abn *x);    /* y^x */
+abn_status fn_expm1(abn *out, const abn *x);                 /* e^x - 1 (unit 021) */
+abn_status fn_ln1p(abn *out, const abn *x);                  /* ln(1 + x), x > -1 */
+abn_status fn_twox(abn *out, const abn *x);                  /* 2^x */
+abn_status fn_log2(abn *out, const abn *x);                  /* log2 x, x > 0 */
 abn_status fn_xroot(abn *out, const abn *y, const abn *x);  /* the x-th root of y */
 abn_status fn_idiv(abn *out, const abn *y, const abn *x);
 abn_status fn_rmdr(abn *out, const abn *y, const abn *x);

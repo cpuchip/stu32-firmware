@@ -56,6 +56,8 @@ static const char *const NAMES[AB_OP_LAST + 1] = {
     [AB_LBL] = "LBL", [AB_RTN] = "RTN", [AB_XEQ] = "XEQ", [AB_GTO] = "GTO", [AB_RS] = "STOP", [AB_PSE] = "PSE",
     [AB_FS] = "FS?", [AB_ISG] = "ISG", [AB_DSE] = "DSE", [AB_INPUT] = "INPUT",
     [AB_FN] = "FN=", [AB_SOLVE] = "SOLVE", [AB_INTEG] = "\xe2\x88\xab" "FN d",
+    [AB_EXPM1] = "e\xcb\xa3-1", [AB_LN1P] = "LN(1+x)", [AB_TWOX] = "2\xcb\xa3", [AB_LOG2] = "LOG2",
+    [AB_CLVARX] = "CLVAR",
 };
 
 /* x?y and x?0, in the order of the menu (UG p.14-7) */
@@ -144,6 +146,9 @@ int ab_prog_line(const ab_calc *c, int i, const ab_display *d, char *out, int si
     case AB_SETFIX: case AB_SETSCI: case AB_SETENG: case AB_SF: case AB_CF: case AB_FS:
         snprintf(a, sizeof a, "%d", arg);
         break;
+    case AB_CLVARX:                             /* CLVAR056, no space (UG p.1-5) */
+        snprintf(out, (size_t)size, "%s%03d", NAMES[op], arg);
+        return (int)strlen(out);
     default:
         a[0] = '\0';
     }

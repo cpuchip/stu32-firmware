@@ -11,7 +11,8 @@ Stdlib only; run from anywhere."""
 import os, subprocess, sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-KEY = ["001", "003", "004", "005", "006", "007", "008", "009", "010", "011", "012", "013", "014", "015", "015b", "016", "017", "018"]
+KEY = ["001", "003", "004", "005", "006", "007", "008", "009", "010", "011", "012", "013", "014", "015", "015b", "016", "017", "018", "021"]
+OWN = ["tests/021-soroban.txt"]          # soroban's own key vectors beside a unit's
 FMT = ["007-fmt", "008-fmt", "009-fmt", "010-fmt", "002"]
 FUZZ = [("eqn_fuzz", 2000), ("prog_fuzz", 1000), ("veckey_fuzz", 3000)]
 
@@ -46,6 +47,8 @@ def main():
     files = []                                       # (name, is_fmt, bytes)
     for k in KEY:
         files.append((f"work/{k}-vectors.txt", 0, open(os.path.join(ROOT, f"work/{k}-vectors.txt"), "rb").read()))
+    for path in OWN:
+        files.append((path, 0, open(os.path.join(ROOT, path), "rb").read()))
     for name, count in FUZZ:
         n = count // 10 if small else count
         text = subprocess.run([sys.executable, os.path.join(ROOT, f"tests/{name}.py"), "1", str(n)],

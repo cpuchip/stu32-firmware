@@ -80,7 +80,7 @@ P03 | ours: 37! correctly rounded | 37 FACT | X=1.376375309122634504631597958158
 P04 | ours: 100! correctly rounded | 100 FACT | X=9.332621544394415268169923885626670E+157
 P05 | ours: the largest factorial in range | 2123 FACT | X=1.479907299403249333203306687281203E+6143
 P06 | ours: 2124! is out of range | 2124 FACT | ERR X=2124
-P07 | 35s p.4-15 non-integer x! (gamma) deferred: error | 2.5 FACT | ERR X=2.5
+P07 | 35s p.4-15 non-integer x! is gamma (unit 021 rule 1; was deferred: an error) | 2.5 FACT | X^3.323350970447842551184064031264647E+0
 P08 | ours: negative integer factorial is an error | 3 CHS FACT | ERR X=-3
 P09 | ours: permutations | 10 ENTER 3 NPR | X=720 L=3
 P10 | ours: combinations, exact | 50 ENTER 25 NCR | X=126410606437752

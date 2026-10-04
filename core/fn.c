@@ -11,6 +11,7 @@
 #include "arena.h"
 #include "sbig.h"
 #include "bigint.h"
+#include "hp.h"
 
 /* Constants to 34 significant digits, from mpmath at 80 digits (pi also checked against
  * Machin's formula in Python's decimal module). */
@@ -208,6 +209,72 @@ abn_status fn_log(abn *out, const abn *x)
         return ABN_OK;
     }
     return abn_log10(out, x);
+}
+
+/* ---- e^x - 1, ln(1 + x), 2^x, log2 x (ours, unit 021) ---- */
+
+#define FN_HP 50        /* the digits these are formed to before their one rounding */
+
+/* e^x - 1, its digits kept where x is tiny (core/hp.c). */
+abn_status fn_expm1(abn *out, const abn *x)
+{
+    static hp hx, r;
+    if (abn_is_zero(x)) {
+        *out = abn_zero();
+        return ABN_OK;
+    }
+    if (!hp_from_abn(&hx, x)) return ABN_RANGE;
+    if (hp_lead(&hx) >= 7) {    /* |x| >= 10^7: e^x overflows, or is far below a unit of 1's 34th digit */
+        if (!abn_is_negative(x)) return ABN_RANGE;
+        *out = abn_from_int(-1);
+        return ABN_OK;
+    }
+    if (!hp_expm1(&r, &hx, FN_HP)) return ABN_RANGE;
+    return hp_round(out, &r);
+}
+
+/* ln(1 + x), x > -1; formed from x itself, so a tiny x keeps its digits. */
+abn_status fn_ln1p(abn *out, const abn *x)
+{
+    static hp t, s, one, r;
+    abn m1 = abn_from_int(-1);
+    if (abn_cmp(x, &m1) <= 0) return ABN_DOMAIN;
+    if (abn_is_zero(x)) {
+        *out = abn_zero();
+        return ABN_OK;
+    }
+    hp_set_int(&one, 1);
+    if (!hp_from_abn(&t, x) || !hp_add(&s, &one, &t, false, HP_PMAX) || !hp_ln(&r, &s, &t, FN_HP))
+        return ABN_RANGE;
+    return hp_round(out, &r);
+}
+
+abn_status fn_twox(abn *out, const abn *x)
+{
+    abn two = abn_from_int(2);
+    return fn_pow(out, &two, x);    /* exact on the integer powers that fit */
+}
+
+/* log2 x, x > 0 (as LOG). A power of two exact in 34 digits gives its power exactly. */
+abn_status fn_log2(abn *out, const abn *x)
+{
+    static hp hx, t, one, two, l, l2, r;
+    abn res, h, n, p, two_ = abn_from_int(2), half = K("0.5");
+    int32_t k;
+    if (abn_is_zero(x) || abn_is_negative(x)) return ABN_DOMAIN;
+    hp_set_int(&one, 1);
+    hp_set_int(&two, 2);
+    if (!hp_from_abn(&hx, x) || !hp_add(&t, &hx, &one, true, HP_PMAX) || !hp_ln(&l, &hx, &t, FN_HP + 5) ||
+        !hp_ln(&l2, &two, &one, FN_HP + 5) || !hp_div(&r, &l, &l2, FN_HP))
+        return ABN_RANGE;
+    abn_status st = hp_round(&res, &r);
+    if (st != ABN_OK) return st;
+    /* 2^k is exact in 34 digits for -48 <= k <= 112 */
+    if (abn_add(&h, &res, &half) == ABN_OK && fn_intg(&n, &h) == ABN_OK && small_int(&n, &k) && k >= -48 &&
+        k <= 112 && fn_pow(&p, &two_, &n) == ABN_OK && abn_cmp(&p, x) == 0)
+        res = n;
+    *out = res;
+    return ABN_OK;
 }
 
 /* y^x (UG p.4-2). A negative base needs an integer power, zero to a negative power is
@@ -905,14 +972,63 @@ abn_status fn_convert(abn *out, const abn *x, fn_unit u)
 
 #define FACT_MAX 2123   /* the largest n with n! inside the decimal128 range (ours, unit 004) */
 
-/* n! exactly, rounded once. The guide defines x! for non-integers through gamma (UG p.4-15);
- * that is deferred to a later unit, so a non-integer is an error here, as is a negative. */
+#define GAMMA_P 64      /* the digits gamma is formed to before its one rounding (unit 021) */
+
+/* gamma(z) for 0 < z < 10^5 (beyond that the result is outside the range either way): up to
+ * w = z + n >= 40 by gamma(z) = gamma(w) / (z (z + 1) ... (w - 1)), then the Stirling series. */
+static bool gamma_pos(hp *g, const hp *z)
+{
+    static hp one, forty, w, prod, d, t, lg, e;
+    if (hp_lead(z) >= 5) return false;
+    hp_set_int(&one, 1);
+    hp_set_int(&forty, 40);
+    hp_set_int(&prod, 1);
+    w = *z;
+    for (;;) {
+        if (!hp_add(&d, &w, &forty, true, GAMMA_P + 40)) return false;
+        if (sxn_sign(&d) >= 0) break;
+        if (!hp_mul(&t, &prod, &w, GAMMA_P + 5)) return false;
+        prod = t;
+        if (!hp_add(&t, &w, &one, false, GAMMA_P + 40)) return false;
+        w = t;
+    }
+    return hp_lgamma_big(&lg, &w, GAMMA_P) && hp_exp(&e, &lg, GAMMA_P) && hp_div(g, &e, &prod, GAMMA_P);
+}
+
+/* x! of a non-integer x is gamma(x + 1) (UG p.4-15). Below x = -1, the reflection
+ * gamma(x + 1) gamma(-x) = pi / sin(pi (x + 1)), with the sine from the exact fraction of x
+ * (the nearer of f and 1 - f) so it keeps its digits next to the poles. A result outside the
+ * range, too large or too small, is the range error (unit 003 rule 4). */
+static abn_status gamma_(abn *out, const abn *x)
+{
+    static hp hx, h1, z, g, pi, a, s, c, t, u;
+    abn m1 = abn_from_int(-1), u1 = one(), fl, f, f1;
+    hp_set_int(&h1, 1);
+    if (!hp_from_abn(&hx, x)) return ABN_RANGE;
+    if (abn_cmp(x, &m1) > 0) {
+        if (!hp_add(&z, &hx, &h1, false, 120) || !gamma_pos(&g, &z)) return ABN_RANGE;
+        return hp_round(out, &g);
+    }
+    /* x = fl + f, 0 < f < 1, all exact; sin(pi (x + 1)) = -(-1)^fl sin(pi f) */
+    if (fn_intg(&fl, x) != ABN_OK || abn_sub(&f, x, &fl) != ABN_OK || abn_sub(&f1, &u1, &f) != ABN_OK)
+        return ABN_RANGE;
+    if (abn_cmp(&f1, &f) < 0) f = f1;
+    hp_neg(&hx);
+    if (!gamma_pos(&g, &hx)) return ABN_RANGE;      /* gamma(-x) beyond the range: x! below it */
+    if (!hp_from_abn(&a, &f) || !hp_pi(&pi, GAMMA_P + 5) || !hp_mul(&t, &pi, &a, GAMMA_P + 5) ||
+        !hp_sincos(&s, &c, &t, GAMMA_P) || !hp_mul(&u, &s, &g, GAMMA_P) || !hp_div(&t, &pi, &u, GAMMA_P))
+        return ABN_RANGE;
+    if (!is_odd_integer(&fl)) hp_neg(&t);
+    return hp_round(out, &t);
+}
+
+/* n! exactly, rounded once; a negative integer is an error (UG p.4-15). */
 static abn_status fn_fact_(abn *out, const abn *x)
 {
     bigint *f;
     int32_t n;
     if (!ar_bi(1, &f)) return ABN_RANGE;
-    if (!abn_is_integer(x) || abn_is_negative(x)) return ABN_DOMAIN;
+    if (abn_is_negative(x)) return ABN_DOMAIN;
     if (!small_int(x, &n) || n > FACT_MAX) return ABN_RANGE;
     bi_set(f, 1);
     for (int32_t i = 2; i <= n; i++)
@@ -922,6 +1038,7 @@ static abn_status fn_fact_(abn *out, const abn *x)
 
 abn_status fn_fact(abn *out, const abn *x)
 {
+    if (!abn_is_integer(x)) return gamma_(out, x);
     int m = ar_mark();
     abn_status st = fn_fact_(out, x);
     ar_release(m);

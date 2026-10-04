@@ -27,6 +27,8 @@ static const ab_op V1_OPS[] = {
     AB_KVEC, AB_KCOMMA, AB_PRGM, AB_LBL, AB_RTN, AB_XEQ, AB_GTO, AB_GTOPOS, AB_RS, AB_PSE, AB_SST,
     AB_BST, AB_CLPGM, AB_TEST, AB_FS, AB_ISG, AB_DSE, AB_LIT, AB_INPUT, AB_CANCEL, AB_FN, AB_SOLVE,
     AB_INTEG, AB_EQN, AB_KEQ, AB_KPAREN, AB_KLEFT, AB_KRIGHT, AB_EQLINE, AB_KSPACE, AB_KREG,
+    /* unit 021 */
+    AB_EXPM1, AB_LN1P, AB_TWOX, AB_LOG2, AB_CLVARX, AB_CLALL,
 };
 #define V1_N ((int)(sizeof V1_OPS / sizeof V1_OPS[0]))
 
@@ -486,8 +488,10 @@ bool ab_line_ok(ab_op op, int32_t arg)
     case AB_PRGM: case AB_KVEC: case AB_KCOMMA: case AB_GTOPOS: case AB_SST: case AB_BST: case AB_KBKSP:
     case AB_CLPGM: case AB_FDISP: case AB_CANCEL: case AB_EQN: case AB_SUF: case AB_KI: case AB_KTHETA:
     case AB_KPOINT: case AB_KE: case AB_KA: case AB_KB: case AB_KC: case AB_KD: case AB_KE_HEX: case AB_KF:
-    case AB_LIT: case AB_EQLINE:
+    case AB_LIT: case AB_EQLINE: case AB_CLALL:
         return false;
+    case AB_CLVARX:
+        return arg >= 0 && arg <= AB_IND_MAX;
     case AB_LBL: case AB_FN:
         return (arg >= 0 && arg < 26) || (op == AB_FN && (arg == AB_TGT_IND_I || arg == AB_TGT_IND_J));
     case AB_XEQ: case AB_GTO:

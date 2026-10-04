@@ -698,6 +698,10 @@ static abn_status one_number_fn(ab_calc *c, ab_op op)
     case AB_TOKM: st = fn_convert(&r, &c->x.re, FN_TOKM); break;
     case AB_TOMILE: st = fn_convert(&r, &c->x.re, FN_TOMILE); break;
     case AB_FACT: st = fn_fact(&r, &c->x.re); break;         /* UG p.4-15 */
+    case AB_EXPM1: st = fn_expm1(&r, &c->x.re); break;       /* ours, unit 021 */
+    case AB_LN1P: st = fn_ln1p(&r, &c->x.re); break;
+    case AB_TWOX: st = fn_twox(&r, &c->x.re); break;
+    case AB_LOG2: st = fn_log2(&r, &c->x.re); break;
     case AB_IP: st = fn_ip(&r, &c->x.re); break;             /* UG p.4-17, p.4-18 */
     case AB_FP: st = fn_fp(&r, &c->x.re); break;
     case AB_INTG: st = fn_intg(&r, &c->x.re); break;
@@ -2540,7 +2544,12 @@ static abn_status program_key(ab_calc *c, ab_op op, int arg)
         return ABN_OK;
     case AB_FDISP:
     case AB_MODEL:                          /* a device menu setting, ours (unit 017) */
+    case AB_CLALL:                          /* in program entry the menu offers CLPGM in its place
+                                               (UG p.1-5) */
         return ABN_NONPROGRAMMABLE;
+    case AB_CLVARX:
+        if (arg < 0 || arg > AB_IND_MAX) return ABN_DOMAIN;
+        return prog_insert(c, op, arg);
     case AB_LIT:
     case AB_EQLINE:                         /* internal: lines, never keys (unit 018 found it) */
         return ABN_DOMAIN;
@@ -3046,7 +3055,7 @@ static bool reads_x(ab_op op)
             op != AB_GRAD) ||
            (op >= AB_HMS && op <= AB_TOREC && op != AB_RAND) || op == AB_SIGMAPLUS ||
            op == AB_SIGMAMINUS || op == AB_XHAT || op == AB_YHAT || op == AB_SETC ||
-           (op >= AB_AND && op <= AB_NOR) || op == AB_ARG;
+           (op >= AB_AND && op <= AB_NOR) || op == AB_ARG || (op >= AB_EXPM1 && op <= AB_LOG2);
 }
 
 static bool reads_y(ab_op op)
@@ -3344,6 +3353,7 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
     case AB_TOKG: case AB_TOLB: case AB_TOC: case AB_TOF: case AB_TOCM: case AB_TOIN:
     case AB_TOL: case AB_TOGAL: case AB_TOKM: case AB_TOMILE:
     case AB_FACT: case AB_IP: case AB_FP: case AB_INTG: case AB_ABS: case AB_SGN: case AB_RND:
+    case AB_EXPM1: case AB_LN1P: case AB_TWOX: case AB_LOG2:
         return one_number_fn(c, op);
     case AB_TOPOL:
     case AB_TOREC: {
@@ -3595,8 +3605,22 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
         return ABN_OK;
     case AB_CLVARS:
         /* Clear the direct variables A..Z (UG p.3-5); neutral for stack lift (UG p.B-5). The
-           unnamed indirect variables have their own clearing (UG p.1-5, a later unit). */
+           unnamed indirect variables have their own clearing, CLVARx. */
         for (int i = 0; i < 26; i++) c->var[i] = ab_real(abn_zero());
+        return ABN_OK;
+    case AB_CLVARX:
+        /* Clear the indirect variables whose address is greater than arg (UG p.1-5); the defined
+           range then ends at the last nonzero one, as a store of 0 leaves it (UG p.14-24). Not in
+           p.B-5's neutral list, so it enables lift. */
+        if (arg < 0 || arg > AB_IND_MAX) return ABN_DOMAIN;
+        for (int i = arg + 1; i <= c->ind_top; i++) c->ind[i] = abn_zero();
+        if (c->ind_top > arg) c->ind_top = arg;
+        while (c->ind_top >= 0 && abn_is_zero(&c->ind[c->ind_top])) c->ind_top--;
+        break;
+    case AB_CLALL:
+        /* CLEAR ALL: data cleared, modes and settings kept (UG p.1-29, p.B-3); the device asks
+           first (UG p.1-5) */
+        ab_clear_all(c);
         return ABN_OK;
     case AB_SETFIX:
     case AB_SETSCI:

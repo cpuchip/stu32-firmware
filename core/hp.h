@@ -34,6 +34,8 @@ bool hp_sincos(hp *s, hp *c, const hp *x, int p);   /* radians; false past the s
 bool hp_sinhcosh(hp *sh, hp *ch, const hp *x, int p);
 /* ln s for s = 1 + t > 0, both given (t exact matters near s = 1). */
 bool hp_ln(hp *r, const hp *s, const hp *t, int p);
+/* ln gamma(w) for w >= 40 by the Stirling series, p <= 64 (unit 021). */
+bool hp_lgamma_big(hp *r, const hp *w, int p);
 /* The angle of (a, b) in (-pi, pi], radians; not both zero. */
 bool hp_atan2(hp *r, const abn *b, const abn *a, int p);
 

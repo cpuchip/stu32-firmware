@@ -78,9 +78,14 @@ const char *ab_error_message(const ab_calc *c)
         switch (op) {
         case AB_SQRT:
             return x->kind == AB_REAL && abn_is_negative(&x->re) ? "SQRT(NEG)" : "INVALID DATA";   /* F-4 */
-        case AB_LN: case AB_LOG:
+        case AB_LN: case AB_LOG: case AB_LOG2:
             if (is_zero_val(x)) return "LOG(0)";                                        /* F-3 */
             return x->kind == AB_REAL && abn_is_negative(&x->re) ? "LOG(NEG)" : "INVALID DATA";
+        case AB_LN1P: {                         /* ln(1 + x): as LN of 1 + x (ours, unit 021) */
+            abn m1 = abn_from_int(-1);
+            if (x->kind != AB_REAL) return "INVALID DATA";
+            return abn_cmp(&x->re, &m1) == 0 ? "LOG(0)" : "LOG(NEG)";
+        }
         case AB_POW: case AB_XROOT:
             return "INVALID y\xcb\xa3";                                                 /* F-3: INVALID yˣ */
         case AB_FACT:

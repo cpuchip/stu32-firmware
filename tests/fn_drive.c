@@ -1,4 +1,4 @@
-/* fn_drive: applies one unit 003 function per input line, for tests/fn_fuzz.py.
+/* fn_drive: applies one function of units 003, 004 or 021 per input line, for tests/fn_fuzz.py.
  *
  *   input:  NAME MODE x [y]        (MODE is DEG, RAD or GRAD; y for two-number functions)
  *   output: the result as engine text, or ERR <status>
@@ -33,6 +33,7 @@ static const struct { const char *name; f1 one; fa ang; f2 two; } FNS[] = {
     {"TORAD", fn_torad, 0, 0}, {"FACT", fn_fact, 0, 0}, {"IP", fn_ip, 0, 0}, {"FP", fn_fp, 0, 0},
     {"INTG", fn_intg, 0, 0}, {"NCR", 0, 0, fn_ncr}, {"NPR", 0, 0, fn_npr},
     {"TOPOL", 0, 0, 0}, {"TOREC", 0, 0, 0},
+    {"EXPM1", fn_expm1, 0, 0}, {"LN1P", fn_ln1p, 0, 0}, {"TWOX", fn_twox, 0, 0}, {"LOG2", fn_log2, 0, 0},
 };
 
 static const struct { const char *name; fn_unit u; } UNITS[] = {

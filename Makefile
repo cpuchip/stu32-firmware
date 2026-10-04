@@ -14,7 +14,7 @@ ENGINE := build/abn_intel.o $(INTEL_LIB)
 LIBS := -lm
 
 .PHONY: all test accuracy clean device-host
-KEYV := $(filter-out work/002-vectors.txt work/016-vectors.txt work/017-vectors.txt work/018-vectors.txt,$(filter-out %-fmt-vectors.txt,$(wildcard work/*-vectors.txt)))
+KEYV := $(filter-out work/002-vectors.txt work/016-vectors.txt work/017-vectors.txt work/018-vectors.txt,$(filter-out %-fmt-vectors.txt,$(wildcard work/*-vectors.txt))) tests/021-soroban.txt
 all: build/standin_test build/app_test build/keymap_test build/power_test build/screen_test build/keys_test build/ls027_test build/store_test build/load_fuzz build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test
 
 # every build/ target is order-only on the directory: a fresh clone has none (abacus #3803)
@@ -64,8 +64,8 @@ build/vectors: $(CORE) $(HDRS) $(ENGINE) tests/vectors.c tests/norm.h firmware/s
 build/fmt_vectors: $(CORE) $(HDRS) $(ENGINE) tests/fmt_vectors.c | build
 	$(CC) $(CFLAGS) -Icore -o $@ $(CORE) tests/fmt_vectors.c $(ENGINE) $(LIBS)
 
-build/fmt_drive: core/fmt.c core/fn.c core/frac.c core/bigint.c core/arena.c core/sbig.c core/base.c $(HDRS) $(ENGINE) tests/fmt_drive.c | build
-	$(CC) $(CFLAGS) -Icore -o $@ core/fmt.c core/fn.c core/frac.c core/bigint.c core/arena.c core/sbig.c core/base.c tests/fmt_drive.c $(ENGINE) $(LIBS)
+build/fmt_drive: core/fmt.c core/fn.c core/hp.c core/frac.c core/bigint.c core/arena.c core/sbig.c core/base.c $(HDRS) $(ENGINE) tests/fmt_drive.c | build
+	$(CC) $(CFLAGS) -Icore -o $@ core/fmt.c core/fn.c core/hp.c core/frac.c core/bigint.c core/arena.c core/sbig.c core/base.c tests/fmt_drive.c $(ENGINE) $(LIBS)
 
 build/cx_drive: core/cplx.c core/hp.c core/sbig.c core/xnum.c core/bigint.c core/arena.c $(HDRS) $(ENGINE) tests/cx_drive.c | build
 	$(CC) $(CFLAGS) -Icore -o $@ core/cplx.c core/hp.c core/sbig.c core/xnum.c core/bigint.c core/arena.c tests/cx_drive.c $(ENGINE) $(LIBS)
@@ -73,8 +73,8 @@ build/cx_drive: core/cplx.c core/hp.c core/sbig.c core/xnum.c core/bigint.c core
 build/xnum_test: core/xnum.c core/bigint.c core/arena.c $(HDRS) $(ENGINE) tests/xnum_test.c | build
 	$(CC) $(CFLAGS) -Icore -o $@ core/xnum.c core/bigint.c core/arena.c tests/xnum_test.c $(ENGINE) $(LIBS)
 
-build/fn_drive: core/fn.c core/bigint.c core/arena.c core/sbig.c $(HDRS) $(ENGINE) tests/fn_drive.c | build
-	$(CC) $(CFLAGS) -Icore -o $@ core/fn.c core/bigint.c core/arena.c core/sbig.c tests/fn_drive.c $(ENGINE) $(LIBS)
+build/fn_drive: core/fn.c core/hp.c core/bigint.c core/arena.c core/sbig.c $(HDRS) $(ENGINE) tests/fn_drive.c | build
+	$(CC) $(CFLAGS) -Icore -o $@ core/fn.c core/hp.c core/bigint.c core/arena.c core/sbig.c tests/fn_drive.c $(ENGINE) $(LIBS)
 
 build/abn_test: $(HDRS) $(ENGINE) tests/abn_test.c tests/norm.h tests/cases.h | build
 	$(CC) $(CFLAGS) -Icore -o $@ tests/abn_test.c $(ENGINE) $(LIBS)
@@ -108,6 +108,8 @@ test: all
 	./build/vectors work/016-vectors.txt
 	./build/vectors work/017-vectors.txt
 	./build/vectors work/018-vectors.txt
+	./build/vectors work/021-vectors.txt
+	./build/vectors tests/021-soroban.txt
 	./build/vectors tests/golden-v1.txt
 	./build/load_fuzz 20000
 	./build/store_test

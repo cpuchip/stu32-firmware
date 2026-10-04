@@ -98,12 +98,20 @@ TWO = [("POW", lambda: (logspace(-20, 20), num(-50, 50)), lambda y, x: mp.power(
        ("XROOT", lambda: (logspace(-300, 300), num(-20, 20, 6)), lambda y, x: mp.power(y, 1 / x), 8),
        ("PCT", lambda: (logspace(-100, 100, True), logspace(-100, 100, True)), lambda y, x: y * x / 100, 0.5 + 1e-9),
        ("PCTCHG", lambda: (logspace(-30, 30, True), logspace(-30, 30, True)), lambda y, x: (x - y) / y * 100, 8),   # three roundings: within 8 units
-       # floored, the remainder with the divisor's sign (unit 017 rule 5): exact, so correctly rounded
+       # floored, the remainder with the divisor's sign (unit 017 rule 5): exact, so correctly rounded;
+       # the truth in Decimal, since binary mpf leaves a residue where the remainder is exactly 0
        ("IDIV", lambda: (str(R.randint(-10**12, 10**12)), str(R.choice([-1, 1]) * R.randint(1, 10**6))),
         lambda y, x: mp.floor(y / x), 0.5 + 1e-9),
        ("RMDR", lambda: (str(R.randint(-10**12, 10**12)), str(R.choice([-1, 1]) * R.randint(1, 10**6))),
-        lambda y, x: y - x * mp.floor(y / x), 0.5 + 1e-9),
-       ("RMDR", lambda: (num(-1000, 1000, 8), num(-50, 50, 6)), lambda y, x: y - x * mp.floor(y / x), 0.5 + 1e-9)]
+        lambda y, x: floored_rmdr(y, x), 0.5 + 1e-9),
+       ("RMDR", lambda: (num(-1000, 1000, 8), num(-50, 50, 6)), lambda y, x: floored_rmdr(y, x), 0.5 + 1e-9)]
+
+
+def floored_rmdr(y, x):
+    """y - x floor(y / x) exactly: the arguments are decimals of at most 34 digits."""
+    dy, dx = Decimal(mp.nstr(y, 50)), Decimal(mp.nstr(x, 50))
+    q = (dy / dx).to_integral_value(rounding="ROUND_FLOOR")
+    return mp.mpf(str(dy - dx * q))
 
 
 import math
@@ -165,6 +173,27 @@ CASES.append(("HMSINV", "RAD", lambda: str(R.randint(-9999, 9999)) + "." + "%02d
 CASES.append(("TODEG", "RAD", lambda: logspace(-300, 300, True), lambda x: x * 180 / mp.pi, 8))
 CASES.append(("TORAD", "RAD", lambda: logspace(-300, 300, True), lambda x: x * mp.pi / 180, 8))
 CASES.append(("FACT", "RAD", lambda: str(R.randint(0, 2123)), lambda x: mp.mpf(math.factorial(int(x))), 0.5 + 1e-9))
+# unit 021: x! of a non-integer is gamma(x + 1), the poles beside the negative integers included;
+# e^x - 1 and ln(1 + x) where x is tiny; 2^x and log2 x, with their exact powers of two
+def near_negint():
+    k = str(R.randint(1, 60))
+    if R.random() < 0.5:
+        return "-" + k + ".0" + "0" * R.randint(0, 28) + str(R.randint(1, 9))
+    return "-" + str(int(k) - 1) + "." + "9" * R.randint(1, 30)
+
+
+for gen in (lambda: num(-1, 1), lambda: num(-200, 200), lambda: num(-2300, 2300, 12),
+            lambda: logspace(-40, -1, True), near_negint):
+    CASES.append(("FACT", "RAD", gen, lambda x: mp.gamma(x + 1), 8))
+for name, f, gens in [
+        ("EXPM1", mp.expm1, (lambda: num(-60, 60), lambda: logspace(-300, 5, True))),
+        ("LN1P", mp.log1p, (lambda: num(-1, 1), lambda: logspace(-300, 300), lambda: logspace(-300, -1, True))),
+        ("TWOX", lambda x: mp.power(2, x), (lambda: num(-300, 300), lambda: logspace(-40, 4, True))),
+        ("LOG2", lambda x: mp.log(x, 2), (lambda: logspace(-300, 300), lambda: str(Decimal(2) ** R.randint(-48, 112))))]:
+    for gen in gens:
+        CASES.append((name, "RAD", gen, f, 8))
+
+
 def prob_truth(f, y, x):
     """nCr, nPr: r > n or n >= 10^16 is INVALID DATA (p.F-2, ruled #3778): no true value"""
     if int(x) > int(y) or int(y) >= 10**16:
