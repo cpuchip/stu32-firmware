@@ -100,8 +100,16 @@ typedef enum {
     AB_KREG,                /* in an equation, R-down's menu choice: arg 0..3 types REGX..REGT
                                (UG p.B-7) */
     /* unit 017 */
-    AB_MODEL                /* the 33s/35s mode: arg 33 or 35 (a device menu; not a program line) */
+    AB_MODEL,               /* the 33s/35s mode: arg 33 or 35 (a device menu; not a program line) */
+    /* unit 021 */
+    AB_EXPM1, AB_LN1P,      /* e^x - 1 and ln(1 + x), accurate where x is tiny (ours) */
+    AB_TWOX, AB_LOG2,       /* 2^x and log2 x (ours) */
+    AB_CLVARX,              /* arg: an address 0..800; clears the indirect variables above it
+                               (UG p.1-5) */
+    AB_CLALL                /* CLEAR ALL (UG p.1-29, B-3): data cleared, modes kept; nonprogrammable */
 } ab_op;
+
+#define AB_OP_LAST AB_CLALL     /* the last op: loops over every op end here */
 
 /* Why the last run stopped (unit 012 rule 1): the device draws it; the core never waits. */
 typedef enum {

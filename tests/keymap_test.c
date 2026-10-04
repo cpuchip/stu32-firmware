@@ -126,7 +126,7 @@ int main(void)
         for (int s = 0; s < 3; s++) {
             const km_action *a = km_lookup(k, s);
             if (a->kind != KM_OP && a->kind != KM_PROMPT) continue;
-            expect(a->op >= 0 && a->op <= AB_MODEL, "an op in range");
+            expect(a->op >= 0 && a->op <= AB_OP_LAST, "an op in range");
             if (a->kind != KM_PROMPT) continue;
             int arg = a->prompt == KM_ARG_VAR ? AB_VAR_A : a->prompt == KM_ARG_LABEL ? 2 : 1 * 1000 + 1;
             ab_init(&c);

@@ -61,6 +61,8 @@ static const struct { const char *name; ab_op op; } NAMED[] = {
     {"PSX", AB_PSX}, {"PSY", AB_PSY}, {"XHAT", AB_XHAT}, {"YHAT", AB_YHAT}, {"CORR", AB_CORR},
     {"SLOPE", AB_SLOPE}, {"YINT", AB_YINT}, {"NSUM", AB_NSUM}, {"SUMX", AB_SUMX},
     {"SUMY", AB_SUMY}, {"SUMX2", AB_SUMX2}, {"SUMY2", AB_SUMY2}, {"SUMXY", AB_SUMXY},
+    {"EXPM1", AB_EXPM1}, {"LN1P", AB_LN1P}, {"TWOX", AB_TWOX}, {"LOG2", AB_LOG2},
+    {"CLALL", AB_CLALL},
 };
 
 /* The last error any key returned in the current vector, for %ERR (unit 012). */
@@ -370,10 +372,6 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
             c->intr_after = atol(tok + 5);
             return 0;
         }
-        if (strcmp(tok, "CLALL") == 0) {
-            ab_clear_all(c);
-            return 0;
-        }
         if (strncmp(tok, "MODEL:", 6) == 0) {   /* the mode op with any argument (unit 017) */
             if (do1(c, AB_MODEL, atoi(tok + 6)) != ABN_OK) (*errors)++;
             return 0;
@@ -473,6 +471,14 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
         int b = tok[4] == 'b' ? 2 : tok[4] == 'o' ? 8 : tok[4] == 'd' ? 10 : tok[4] == 'h' ? 16 : 0;
         if (!b || tok[5]) return -1;
         if (do1(c, AB_SUF, b) != ABN_OK) (*errors)++;
+        return 0;
+    }
+    if (strncmp(tok, "CLVAR:", 6) == 0) {      /* CLVARx with its three-digit address (unit 021) */
+        const char *v = tok + 6;
+        if (strlen(v) != 3 || !isdigit((unsigned char)v[0]) || !isdigit((unsigned char)v[1]) ||
+            !isdigit((unsigned char)v[2]))
+            return -1;
+        if (do1(c, AB_CLVARX, atoi(v)) != ABN_OK) (*errors)++;
         return 0;
     }
     if (strcmp(tok, "CLVARS") == 0) {

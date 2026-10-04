@@ -17,7 +17,7 @@
 #define BAR "\xcc\x84"
 #define HAT "\xcc\x82"
 
-static const char *const NAMES[AB_MODEL + 1] = {
+static const char *const NAMES[AB_OP_LAST + 1] = {
     [AB_KCHS] = "+/-", [AB_ENTER] = "ENTER", [AB_RDN] = "R\xe2\x86\x93", [AB_RUP] = "R\xe2\x86\x91",
     [AB_XY] = "x<>y", [AB_LASTX] = "LASTx", [AB_CLX] = "CLx", [AB_CLSTK] = "CLSTK",
     [AB_ADD] = "+", [AB_SUB] = "-", [AB_MUL] = "\xc3\x97", [AB_DIV] = "\xc3\xb7",
@@ -121,7 +121,7 @@ int ab_prog_line(const ab_calc *c, int i, const ab_display *d, char *out, int si
         snprintf(out, (size_t)size, "%s", n ? n : "?");
         return (int)strlen(out);
     }
-    if (op < 0 || op > AB_MODEL || !NAMES[op]) {
+    if (op < 0 || op > AB_OP_LAST || !NAMES[op]) {
         snprintf(out, (size_t)size, "?");
         return -1;
     }

@@ -310,7 +310,7 @@ int main(int argc, char **argv)
         ab_init(&c);
         c.msg = true;
         for (int st = 1; st <= ABN_BAD_IMAGE; st++)
-            for (int op = 0; op <= AB_MODEL; op++)
+            for (int op = 0; op <= AB_OP_LAST; op++)
                 for (int a = 0; a < 5; a++)
                     for (int xs = 0; xs < 3; xs++)
                         for (int ac = 0; ac < 3; ac++) {
@@ -323,7 +323,7 @@ int main(int argc, char **argv)
                             const char *m = ab_error_message(&c);
                             if (m) holes += holes_in(m);
                         }
-        for (int op = 0; op <= AB_MODEL; op++) {
+        for (int op = 0; op <= AB_OP_LAST; op++) {
             const char *m = ab_busy_message((ab_op)op);
             if (m) holes += holes_in(m);
         }
@@ -638,7 +638,7 @@ int main(int argc, char **argv)
         static const int ARGS[] = {0, 1, 4, 'Z' - 'A', AB_VAR_IND_I, AB_VAR_IND_J, 1001, AB_TGT_IND_I, 40, -1, 26000};
         static uint8_t img[1 << 16];
         int lines = 0, named = 0, kept = 0;
-        for (int op = 0; op <= AB_MODEL; op++)
+        for (int op = 0; op <= AB_OP_LAST; op++)
             for (int a = 0; a < 11; a++) {
                 ab_init(&c);
                 keys(&c, "PRGM");
