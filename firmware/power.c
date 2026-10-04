@@ -31,9 +31,7 @@ bool pwr_external(const pwr_inputs *in)
     return !in->pgood_n;
 }
 
-/* red: decision 36's stub, replaced in the green commit */
 bool pwr_radio_allowed(uint32_t vbat_uv)
 {
-    (void)vbat_uv;
-    return false;
+    return vbat_uv >= PWR_RADIO_MIN_UV;         /* 0 (the gauge not read) is below it */
 }
