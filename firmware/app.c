@@ -102,6 +102,10 @@ static void do_op(app_state *a, int op, int arg)
         a->running = true;
         a->busy_op = op;
     }
+    if (c->stop == AB_STOP_PSE) {               /* PSE: going on by itself after the pause */
+        a->pause = true;
+        a->pause_ms = a->last_key_ms;
+    }
 }
 
 static void do_action(app_state *a, const km_action *act);
@@ -132,6 +136,10 @@ void app_key(app_state *a, int key, uint32_t now_ms)
 
     if (a->running) {                           /* only C and R/S, which interrupt (UG p.13-19) */
         if (face->kind == KM_OP && (face->op == AB_CANCEL || face->op == AB_RS)) ab_interrupt(a->c);
+        return;
+    }
+    if (a->pause) {                             /* PSE's pause: C and R/S stop it (UG p.13-19) */
+        if (face->kind == KM_OP && (face->op == AB_CANCEL || face->op == AB_RS)) a->pause = false;
         return;
     }
     if (a->c->msg && a->c->m35 && face->kind != KM_SHIFT) {
@@ -231,6 +239,13 @@ void app_key(app_state *a, int key, uint32_t now_ms)
         a->shift = a->shift == face->arg ? 0 : face->arg;
         return;
     }
+    if (a->shift == 0 && a->c->base == 16 && key >= 6 && key <= 11) {     /* HEX: A-F (UG p.11-1) */
+        const km_letter *l = km_letter_of(key);
+        if (l->kind == KL_LETTER && l->value < 6) {
+            do_op(a, AB_KA + l->value, 0);
+            return;
+        }
+    }
     const km_action *act = km_lookup(key, a->shift);
     if (act->kind == KM_NONE) act = face;       /* no separate legend: the face action (#3827) */
     a->shift = 0;
@@ -301,9 +316,27 @@ app_action app_tick(app_state *a, const pwr_inputs *in, uint32_t now_ms)
             a->running = false;
             a->busy_op = 0;
         }
+        if (a->c->stop == AB_STOP_PSE) {
+            a->pause = true;
+            a->pause_ms = now_ms;
+        }
+    } else if (a->pause && (uint32_t)(now_ms - a->pause_ms) >= APP_PSE_MS) {
+        /* the pause is over: the program goes on, part of the same run (no undo point) */
+        a->pause = false;
+        ab_do_arg(a->c, AB_RS, 0);
+        a->dirty = true;
+        a->render = true;
+        if (a->c->stop == AB_STOP_SLICE) {
+            a->running = true;
+            a->busy_op = AB_RS;
+        }
+        if (a->c->stop == AB_STOP_PSE) {
+            a->pause = true;
+            a->pause_ms = now_ms;
+        }
     }
     pwr_inputs p = *in;
-    p.busy = a->running;
+    p.busy = a->running || a->pause;
     a->pwr.idle_ms = a->set.off_min * 60000u;   /* settings the device loaded take effect */
     if (a->off || pwr_check(&a->pwr, &p, now_ms) != PWR_STAY) return APP_OFF;
     if (a->dirty && !a->running && (uint32_t)(now_ms - a->last_key_ms) >= APP_QUIET_MS) return APP_SAVE;

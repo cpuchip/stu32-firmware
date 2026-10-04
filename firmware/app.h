@@ -34,6 +34,12 @@
  *   from keymap.h's EQN LIST (up, down, EDIT, NEW, -, EXIT) while the list shows and EQN TYPE
  *   (left, right, ( ), =, SPC, REG >) while an equation is typed; it follows the core's state, so
  *   C or EXIT leaving Equation mode takes it away.
+ * - HEX (abacus #3962; UG p.11-1's shortcuts): with no shift, the keys lettered A-F (6-11, whose
+ *   functions the core refuses in HEX, p.11-4) type the digits A-F; shifted they keep their
+ *   functions.
+ * - PSE (UG p.13-19): a program paused at PSE goes on by itself after APP_PSE_MS, from app_tick, so
+ *   keys are never blocked; in the pause C or R/S stops it (R/S then resumes it) and other keys are
+ *   ignored, as during a run.
  * - On the 35s a key with a message showing only clears it, whatever it would have done (a menu
  *   or a prompt included), as the core does for the keys it sees (unit 017 rule 4).
  * - UNDO (unit 021, ours): before each key that reaches the core (VIEW excepted: it changes
@@ -54,6 +60,7 @@
 
 #define APP_QUIET_MS 30000u                 /* a change saved after 30 s without keys (ours) */
 #define APP_SLICE_LINES 200                 /* program lines per app_tick slice (ours) */
+#define APP_PSE_MS 1000u                    /* PSE's pause, "about 1 second" (UG p.13-19) */
 
 typedef enum {
     APP_IDLE = 0,           /* nothing to do */
@@ -74,6 +81,8 @@ typedef struct {
     int menu;               /* the menu open on the soft keys (km_menu_at), -1 none */
     int menu_page;          /* a paged menu's page (CONST, unit 019) */
     bool running;           /* a run in slices */
+    bool pause;             /* a program paused at PSE, going on by itself after APP_PSE_MS */
+    uint32_t pause_ms;      /* when the pause began */
     int busy_op;            /* the op that started it, for ab_busy_message */
     bool dirty;             /* changed since the last save */
     bool off;               /* the OFF key was pressed */

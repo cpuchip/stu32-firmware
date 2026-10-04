@@ -163,8 +163,14 @@ void si_draw_keys(uint8_t *img, const si_keys_state *s)
         if (g->legend[0]) text(img, x + 5, y + 6, 1, g->legend, s->shift == 2 ? SI_DIM : SI_GOLD);
         if (b->legend[0])
             text(img, x + w - 5 - text_width(b->legend, 1), y + 6, 1, b->legend, s->shift == 1 ? SI_DIM : SI_BLUE);
-        if (face->legend[0])
-            text(img, x + (w - text_width(face->legend, 2)) / 2, y + 24, 2, face->legend, face_lit ? SI_FACE : SI_DIM);
+        const char *fl = face->legend;
+        char hexd[2] = {0, 0};
+        if (s->hex && k >= 6 && k <= 11 && km_letter_of(k)->kind == KL_LETTER) {   /* HEX: A-F (UG p.11-1) */
+            hexd[0] = (char)('A' + km_letter_of(k)->value);
+            fl = hexd;
+        }
+        if (fl[0])
+            text(img, x + (w - text_width(fl, 2)) / 2, y + 24, 2, fl, face_lit ? SI_FACE : SI_DIM);
         const km_letter *l = km_letter_of(k);
         if (l->kind == KL_LETTER) {             /* the faceplate letter (decision 25), lower right */
             char t[2] = {(char)('A' + l->value), 0};

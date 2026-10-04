@@ -229,7 +229,7 @@ static void load(void)
 
 /* ---- drawing ---- */
 
-static si_keys_state keys_drawn = {-1, false, -1};
+static si_keys_state keys_drawn = {-1, false, -1, false};
 
 static void render(int busy)
 {
@@ -240,7 +240,7 @@ static void render(int busy)
     int back = 1 - front;
     screen_render(calc, &ui, &fb[back]);
     front = back;
-    si_keys_state ks = {app.shift, app.prompt_op >= 0, -1};
+    si_keys_state ks = {app.shift, app.prompt_op >= 0, -1, calc->base == 16};
     if (memcmp(&ks, &keys_drawn, sizeof ks)) {
         si_draw_keys(keys_img, &ks);
         keys_drawn = ks;
@@ -458,7 +458,7 @@ void app_main(void)
         return;
     }
     si_init();
-    si_keys_state ks = {0, false, -1};
+    si_keys_state ks = {0, false, -1, false};
     si_draw_keys(keys_img, &ks);
     keys_drawn = ks;
     board_init();
