@@ -111,11 +111,13 @@ typedef enum {
     AB_FRACFMT,             /* the fraction format, flags 8 and 9 at once (UG p.5-6): arg 0 precise
                                (8 clear), 1 factors (8 set, 9 clear), 2 fixed (both set); a device
                                menu setting, nonprogrammable */
-    AB_CLEQN                /* clear the equations, the built-in solvers kept (UG p.1-5: CLEAR's
+    AB_CLEQN,               /* clear the equations, the built-in solvers kept (UG p.1-5: CLEAR's
                                EQN in Equation mode); nonprogrammable (unit 021, review) */
+    AB_EQTOP                /* in Equation mode, the list to EQN LIST TOP (unit 020's NEW, ours);
+                               nothing elsewhere, and not a program line */
 } ab_op;
 
-#define AB_OP_LAST AB_CLEQN     /* the last op: loops over every op end here */
+#define AB_OP_LAST AB_EQTOP     /* the last op: loops over every op end here */
 
 /* Why the last run stopped (unit 012 rule 1): the device draws it; the core never waits. */
 typedef enum {

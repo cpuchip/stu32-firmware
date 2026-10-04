@@ -30,6 +30,10 @@
  * - A yes/no prompt (CLEAR ALL, unit 021; UG p.1-5's CLR ALL? Y N; the item is PGM, CLR PGMS?,
  *   in program entry and EQN, CLR EQN?, in Equation mode): soft key 1 is yes, and any other key,
  *   a shift included, only cancels.
+ * - Equation mode's bar (unit 020, provisional): with no menu open, the soft keys are the editor's,
+ *   from keymap.h's EQN LIST (up, down, EDIT, NEW, -, EXIT) while the list shows and EQN TYPE
+ *   (left, right, ( ), =, SPC, REG >) while an equation is typed; it follows the core's state, so
+ *   C or EXIT leaving Equation mode takes it away.
  * - On the 35s a key with a message showing only clears it, whatever it would have done (a menu
  *   or a prompt included), as the core does for the keys it sees (unit 017 rule 4).
  * - UNDO (unit 021, ours): before each key that reaches the core (VIEW excepted: it changes

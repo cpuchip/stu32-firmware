@@ -101,6 +101,23 @@ static void do_op(app_state *a, int op, int arg)
 
 static void do_action(app_state *a, const km_action *act);
 
+/* The menu named name, -1 if there is none. */
+static int menu_named(const char *name)
+{
+    for (int i = 0; km_menu_at(i); i++)
+        if (!strcmp(km_menu_at(i)->name, name)) return i;
+    return -1;
+}
+
+/* Equation mode's bar on the soft keys when no menu is open (unit 020): typing's while an equation
+   is typed (in program entry too), the list's while Equation mode shows the list; -1 none. */
+static int eqn_bar(const app_state *a)
+{
+    if (a->c->eqn_typing) return menu_named("EQN TYPE");
+    if (a->c->eqn_mode && !a->c->prgm) return menu_named("EQN LIST");
+    return -1;
+}
+
 void app_key(app_state *a, int key, uint32_t now_ms)
 {
     const km_action *face = km_lookup(key, KM_FACE);
@@ -200,6 +217,11 @@ void app_key(app_state *a, int key, uint32_t now_ms)
         }
         if (face->kind == KM_OP && face->op == AB_CANCEL && a->shift == 0) return;   /* C: only closes it */
     }
+    if (face->kind == KM_SOFT && eqn_bar(a) >= 0) {     /* Equation mode's bar (unit 020) */
+        a->shift = 0;
+        do_action(a, &km_menu_at(eqn_bar(a))->item[face->arg]);
+        return;
+    }
     if (face->kind == KM_SHIFT) {               /* the same shift cancels, the other switches */
         a->shift = a->shift == face->arg ? 0 : face->arg;
         return;
@@ -289,7 +311,7 @@ void app_ui(const app_state *a, screen_ui *ui)
         ui->soft[1] = "N";
         return;
     }
-    const km_menu *mn = a->menu >= 0 ? km_menu_at(a->menu) : NULL;
+    const km_menu *mn = a->menu >= 0 ? km_menu_at(a->menu) : eqn_bar(a) >= 0 ? km_menu_at(eqn_bar(a)) : NULL;
     for (int i = 0; mn && i < SCREEN_SOFT && i < KM_SOFT_KEYS; i++) {
         const km_action *it = &mn->item[i];
         if (mn->paged && i < 5) {               /* CONST's page: its constants by name */

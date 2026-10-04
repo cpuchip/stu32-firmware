@@ -2568,7 +2568,7 @@ static abn_status program_key(ab_calc *c, ab_op op, int arg)
     case AB_CANCEL:                         /* C leaves program entry (UG p.13-7) */
         c->prgm = false;
         return ABN_OK;
-    case AB_KEQ: case AB_KPAREN: case AB_KLEFT: case AB_KRIGHT: case AB_KSPACE: case AB_KREG:
+    case AB_KEQ: case AB_KPAREN: case AB_KLEFT: case AB_KRIGHT: case AB_KSPACE: case AB_KREG: case AB_EQTOP:
         return ABN_OK;                      /* Equation mode's keys: no line, as they do nothing
                                                outside it (ours, unit 018; an older image's such
                                                line still loads) */
@@ -3011,6 +3011,9 @@ static abn_status eqn_key(ab_calc *c, ab_op op, int arg)
     case AB_INTEG:
         if (c->eqn_typing && (st = eqn_store_typed(c)) != ABN_OK) return st;
         return eqn_solve_key(c, op, arg);
+    case AB_EQTOP:                                  /* NEW: typing then starts at TOP (unit 020) */
+        if (!c->eqn_typing) c->eqn_cur = -1;
+        return ABN_OK;
     case AB_SST:                                    /* the list wraps through EQN LIST TOP (p.6-7) */
         if (c->eqn_typing) return ABN_OK;
         c->eqn_cur = c->eqn_cur + 1 >= c->eqn_count ? -1 : c->eqn_cur + 1;

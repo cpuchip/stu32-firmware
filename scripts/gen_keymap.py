@@ -132,6 +132,15 @@ MENUS = [
     # the parts of a number under the printed legend POW (Michael is asked to rename it PARTS)
     ("POW", [o("IP", "AB_IP"), o("FP", "AB_FP"), o("INTG", "AB_INTG"), o("RND", "AB_RND"), o("SGN", "AB_SGN"),
              o("ABS", "AB_ABS")]),
+    # unit 020 (provisional): in Equation mode the soft keys are the editor's bar, chosen by the app
+    # from the core's state: the list's (NEW, ours: EQN LIST TOP) and typing's; REG > is one choice
+    # of a register (UG p.B-7), then typing's bar again. On no key, like LOGIC and SUFFIX.
+    ("EQN LIST", [o("\u25b2", "AB_BST"), o("\u25bc", "AB_SST"), o("EDIT", "AB_KRIGHT"), o("NEW", "AB_EQTOP"),
+                  NONE, o("EXIT", "AB_EQN")]),
+    ("EQN TYPE", [o("\u25c0", "AB_KLEFT"), o("\u25b6", "AB_KRIGHT"), o("( )", "AB_KPAREN"), o("=", "AB_KEQ"),
+                  o("SPC", "AB_KSPACE"), ("REG\u25b8", "KM_MENU", "0", "REG", 0)]),
+    ("REG", [o("REGX", "AB_KREG", 0), o("REGY", "AB_KREG", 1), o("REGZ", "AB_KREG", 2), o("REGT", "AB_KREG", 3),
+             NONE, NONE]),
     # rule 3: the one paged menu; the app fills soft keys 1-5 from the core's constants
     ("CONST", [NONE, NONE, NONE, NONE, NONE, ("more", "KM_NONE", "0", 0, 0)], "AB_CONST"),
 ]

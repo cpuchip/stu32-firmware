@@ -739,8 +739,7 @@ int main(void)
         /* the list wraps through EQN LIST TOP (p.6-7); NEW goes to TOP; EDIT on a built-in does nothing */
         ab_init(&c);
         app_init(&a, &c, now);
-        ab_eqn_add(&c, "A+1");
-        press(&a, "GOLD 0");
+        ab_eqn_add(&c, "A+1");                  /* (which turns Equation mode on) */
         int n = c.eqn_count, top = c.eqn_cur;
         press(&a, "k:3");
         expect(c.eqn_cur == -1, "NEW: EQN LIST TOP");
@@ -768,7 +767,7 @@ int main(void)
         expect(!strcmp(c.ebuf, "A+3"), "\xe2\x97\x80 then \xe2\x86\x90 deletes the 2 before the cursor: A+3");
         press(&a, "ENTER XEQ R/S");
         expect(x_of(&c) == 7, "A+3 with A = 4: 7");
-        press(&a, "k:2");
+        press(&a, "GOLD 0 k:2");                /* the evaluation left Equation mode (unit 014): back to it */
         expect(c.eqn_typing && c.ecur == 0, "EDIT: editing at the start of the equation (p.6-7)");
         press(&a, "k:1 k:1 \xe2\x86\x90 C");
         expect(!c.eqn_mode && !strcmp(c.eqn[c.eqn_cur], "A3"), "C in the middle of typing stores the edit and leaves");
@@ -792,7 +791,8 @@ int main(void)
         char keys_[48];
         snprintf(keys_, sizeof keys_, "\xc3\x97 RCL k:%d k:4 SIN", ki);
         press(&a, keys_);
-        expect(strstr(c.ebuf, "(I)") != NULL && strstr(c.ebuf, " ") != NULL && strstr(c.ebuf, "SIN(") != NULL,
+        /* (I) is the guide's single glyph in an equation (p.14-23; the core keeps it as U+24A4) */
+        expect(strstr(c.ebuf, "\xe2\x92\xa4") != NULL && strstr(c.ebuf, " ") != NULL && strstr(c.ebuf, "SIN(") != NULL,
                "RCL (I) types (I), SPC a blank, SIN its name");
         press(&a, "BLUE LN k:0");
         expect(strstr(c.ebuf, "SINH(") != NULL, "HYP's SINH types SINH( (p.6-4)");
@@ -803,7 +803,7 @@ int main(void)
         ab_init(&c);
         app_init(&a, &c, now);
         ab_eqn_add(&c, "B+2");
-        press(&a, "GOLD 0 k:1 k:1");
+        press(&a, "k:1 k:1");
         int count = c.eqn_count;
         press(&a, "k:5");
         app_ui(&a, &ui);
