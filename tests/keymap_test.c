@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "calc.h"
+#include "const.h"
 #include "keymap.h"
 #include "screen.h"
 
@@ -187,21 +188,25 @@ int main(void)
                          T(10, "x\xe2\x89\xa5" "0?"), T(11, "x=0?")}},
                 {"TEST", {T(5, "x=y?"), T(0, "x\xe2\x89\xa0y?"), T(11, "x=0?"), T(6, "x\xe2\x89\xa0" "0?"),
                           P(AB_FS, KM_ARG_DIGITS, "FS?"), T(2, "x<y?")}},
+                /* abacus #3958: the short forms, the box marking a submenu (no ▸) */
                 {"BASE", {O(AB_DEC, 0, "DEC"), O(AB_HEX, 0, "HEX"), O(AB_OCT, 0, "OCT"), O(AB_BIN, 0, "BIN"),
-                          {KM_MENU, 0, -2, 0, "LOGIC\xe2\x96\xb8"}, {KM_MENU, 0, -3, 0, "SUFFIX\xe2\x96\xb8"}}},
+                          {KM_MENU, 0, -2, 0, "LOGIC"}, {KM_MENU, 0, -3, 0, "SUFX"}}},
                 {"LOGIC", {O(AB_AND, 0, "AND"), O(AB_OR, 0, "OR"), O(AB_XOR, 0, "XOR"), O(AB_NOT, 0, "NOT"),
                            O(AB_NAND, 0, "NAND"), O(AB_NOR, 0, "NOR")}},
                 {"SUFFIX", {O(AB_SUF, 10, "d"), O(AB_SUF, 16, "h"), O(AB_SUF, 8, "o"), O(AB_SUF, 2, "b"), N, N}},
                 {"CMPLX", {O(AB_KI, 0, "i"), O(AB_KTHETA, 0, "\xce\xb8"), O(AB_ARG, 0, "ARG"), O(AB_KVEC, 0, "["), N, N}},
-                {"FRAC", {O(AB_FDISP, 0, "FDISP"), O(AB_SETC, 0, "/c"), O(AB_RCLC, 0, "RCL/c"), O(AB_FRACFMT, 0, "precise"),
-                          O(AB_FRACFMT, 1, "factors"), O(AB_FRACFMT, 2, "fixed")}},
+                {"FRAC", {O(AB_FDISP, 0, "FDISP"), O(AB_SETC, 0, "/c"), O(AB_RCLC, 0, "RCL/c"), O(AB_FRACFMT, 0, "PREC"),
+                          O(AB_FRACFMT, 1, "FCTR"), O(AB_FRACFMT, 2, "FIXED")}},
+                /* abacus #3958: EXP as drafted (LN(1+x) shortened to fit five cells) */
+                {"EXP", {O(AB_TWOX, 0, "2\xcb\xa3"), O(AB_LOG2, 0, "LOG\xe2\x82\x82"), O(AB_EXPM1, 0, "e\xcb\xa3\xe2\x88\x92" "1"),
+                         O(AB_LN1P, 0, "LN1+x"), N, N}},
                 {"CONV", {O(AB_TOKG, 0, "\xe2\x86\x92kg"), O(AB_TOLB, 0, "\xe2\x86\x92lb"), O(AB_TOC, 0, "\xe2\x86\x92\xc2\xb0" "C"),
                           O(AB_TOF, 0, "\xe2\x86\x92\xc2\xb0" "F"), O(AB_TOCM, 0, "\xe2\x86\x92" "cm"), O(AB_TOIN, 0, "\xe2\x86\x92in")}},
                 {"UNITS", {O(AB_TOL, 0, "\xe2\x86\x92l"), O(AB_TOGAL, 0, "\xe2\x86\x92gal"), O(AB_TOKM, 0, "\xe2\x86\x92km"),
                            O(AB_TOMILE, 0, "\xe2\x86\x92mile"), N, N}},
                 {"ANGLE", {O(AB_TOPOL, 0, "\xe2\x86\x92POL"), O(AB_TOREC, 0, "\xe2\x86\x92REC"), O(AB_HMS, 0, "\xe2\x86\x92HMS"),
                            O(AB_HMSINV, 0, "HMS\xe2\x86\x92"), O(AB_TODEG, 0, "\xe2\x86\x92" "DEG"), O(AB_TORAD, 0, "\xe2\x86\x92RAD")}},
-                {"VARS", {P(AB_XVAR, KM_ARG_VAR, "x\xe2\x86\x94"), P(AB_VIEW, KM_ARG_VAR, "VIEW"), O(AB_CLVARS, 0, "CLVARS"), N, N, N}},
+                {"VARS", {P(AB_XVAR, KM_ARG_VAR, "x\xe2\x86\x94"), P(AB_VIEW, KM_ARG_VAR, "VIEW"), O(AB_CLVARS, 0, "CLR"), N, N, N}},
                 {"STACK", {O(AB_CLSTK, 0, "CLSTK"), O(AB_LASTX, 0, "LASTx"), O(AB_RUP, 0, "R\xe2\x86\x91"), O(AB_XY, 0, "x\xe2\x86\x94y"),
                            N, N}},
                 {"MODE", {O(AB_MODEL, 33, "33s"), O(AB_MODEL, 35, "35s"), N, N, N, N}},
@@ -259,7 +264,7 @@ int main(void)
             expect(in->kind == KM_PROMPT && in->op == AB_INTEG && in->prompt == KM_ARG_VAR && !strcmp(in->legend, "\xe2\x88\xab"),
                    "integrate (gold 8) asks for a variable, then integrates");
             /* rule 5: these stay not defined */
-            static const char *const LATER[] = {"EXP", "MEM", "SYS", "GRAPH", "TABLE", "TUTOR", "APPS"};   /* RADIX, SETUP: unit 022 */
+            static const char *const LATER[] = {"MEM", "SYS", "GRAPH", "TABLE", "TUTOR", "APPS"};   /* RADIX, SETUP: unit 022; EXP #3958 */
             for (size_t i = 0; i < sizeof LATER / sizeof LATER[0]; i++) {
                 bool found = false, undefined = true;
                 for (int k = 0; k < KB_KEYS; k++)
@@ -272,14 +277,43 @@ int main(void)
                 expect(found && undefined, m);
             }
         }
+        /* abacus #3958: every soft legend and every constant's symbol draws with no hollow box, fits its
+           box (five cells at scale 2, screen.c) and is distinct within its menu (or page) */
+        for (int i = 0; km_menu_at(i); i++) {
+            const km_menu *mn = km_menu_at(i);
+            for (int j = 0; j < 6; j++) {
+                const char *l = mn->item[j].legend;
+                if (!l[0]) continue;
+                snprintf(m, sizeof m, "menu %s: the legend %s draws whole and fits five cells", mn->name, l);
+                expect(screen_missing(l) == 0 && screen_cells(l) <= 5, m);
+                for (int k = 0; k < j; k++) {
+                    snprintf(m, sizeof m, "menu %s: soft keys %d and %d differ", mn->name, k + 1, j + 1);
+                    expect(strcmp(mn->item[k].legend, l) != 0, m);
+                }
+            }
+        }
+        for (int i = 0; i < ab_const_count(); i++) {
+            const char *l = ab_const_symbol(i);
+            snprintf(m, sizeof m, "constant %d: its symbol draws whole and fits five cells", i);
+            expect(l && screen_missing(l) == 0 && screen_cells(l) <= 5, m);
+            for (int k = 0; l && k < i; k++) {
+                snprintf(m, sizeof m, "constants %d and %d have different symbols", k, i);
+                expect(strcmp(ab_const_symbol(k), l) != 0, m);
+            }
+        }
+        /* the labels app.c makes (PGM, EQN, the confirmation, SETUP's values, CONST's more) */
+        static const char *const APPL[] = {"PGM", "EQN", "Y", "N", "OFF10", "OFF30", "VOL 4", "more"};
+        for (size_t i = 0; i < sizeof APPL / sizeof APPL[0]; i++)
+            expect(screen_missing(APPL[i]) == 0 && screen_cells(APPL[i]) <= 5, "an app label fits");
         /* CLEAR (unit 019's draft order with unit 021's ALL and CLVARx) */
         const km_menu *cm = km_menu_at(3);
         expect(cm && !strcmp(cm->name, "CLEAR"), "menu 3 is CLEAR");
         if (cm) {
+            /* abacus #3958: the 35s's option names (the title supplies CL), STK kept second */
             static const struct { km_kind kind; int op, prompt; const char *legend; } CL[6] = {
-                {KM_OP, AB_CLX, 0, "CLx"}, {KM_OP, AB_CLSTK, 0, "CLSTK"}, {KM_OP, AB_CLVARS, 0, "CLVARS"},
-                {KM_OP, AB_CLSIGMA, 0, "CL\xce\xa3"}, {KM_CONFIRM, AB_CLALL, 0, "ALL"},
-                {KM_PROMPT, AB_CLVARX, KM_ARG_ADDR, "CLVARx"}};
+                {KM_OP, AB_CLX, 0, "x"}, {KM_OP, AB_CLSTK, 0, "STK"}, {KM_OP, AB_CLVARS, 0, "VARS"},
+                {KM_OP, AB_CLSIGMA, 0, "\xce\xa3"}, {KM_CONFIRM, AB_CLALL, 0, "ALL"},
+                {KM_PROMPT, AB_CLVARX, KM_ARG_ADDR, "VARx"}};
             for (int i = 0; i < 6; i++) {
                 const km_action *it = &cm->item[i];
                 snprintf(m, sizeof m, "CLEAR's soft key %d is %s", i + 1, CL[i].legend);

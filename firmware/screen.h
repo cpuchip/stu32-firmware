@@ -38,6 +38,7 @@ typedef struct {
     char separator;         /* digit grouping, as ab_fmt's: 0 none, 1 the guide's mark, ' ' a space */
     const char *soft[SCREEN_SOFT];  /* the soft keys' labels (UTF-8); NULL or "" for none */
     bool soft_on[SCREEN_SOFT];      /* a label marked as the setting in effect (unit 019: MODE) */
+    bool soft_sub[SCREEN_SOFT];     /* a label that opens a submenu: its box marked (abacus #3958) */
 } screen_ui;
 
 void screen_ui_default(screen_ui *ui);

@@ -74,6 +74,11 @@ const char *ab_const_name(int i)
     return (i >= 0 && i < ab_const_count()) ? CONSTANTS[i].name : NULL;
 }
 
+const char *ab_const_symbol(int i)
+{
+    return ab_const_name(i);
+}
+
 abn_status ab_const_value(abn *out, int i)
 {
     if (i < 0 || i >= ab_const_count()) return ABN_DOMAIN;

@@ -467,6 +467,15 @@ int main(int argc, char **argv)
     expect(glyph_at(&f, 134 + 27, 214, 2, 'x', 0) && dark_in(&f, 134, 206, 64, 30) > 64 * 30 - 100,
            "a marked label: light on a dark box");
     expect(text_at(&f, 2 + 3, 214, 2, "SOLVE", 1), "an unmarked label beside it unchanged");
+    /* a label that opens a submenu has its box marked (abacus #3958: in place of a trailing arrow) */
+    ui.soft_on[2] = false;
+    ui.soft_sub[2] = true;
+    screen_render(&c, &ui, &f);
+    int sub = dark_in(&f, 134, 206, 64, 30);
+    ui.soft_sub[2] = false;
+    screen_render(&c, &ui, &f);
+    expect(sub > dark_in(&f, 134, 206, 64, 30) + 20 && glyph_at(&f, 134 + 27, 214, 2, 'x', 1),
+           "a submenu's box is marked, its label as before");
     screen_ui_default(&ui);
 
     /* the gaps a first mutation sweep showed */

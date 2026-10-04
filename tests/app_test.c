@@ -394,8 +394,8 @@ int main(void)
         before = img_crc(&c);
         press(&a, "GOLD \xe2\x86\x90");
         app_ui(&a, &ui);
-        expect(ui.soft[4] && !strcmp(ui.soft[4], "ALL") && ui.soft[5] && !strcmp(ui.soft[5], "CLVARx") &&
-               ui.soft[1] && !strcmp(ui.soft[1], "CLSTK"), "GOLD \xe2\x86\x90: the CLEAR menu, ALL fifth and CLVARx sixth");
+        expect(ui.soft[4] && !strcmp(ui.soft[4], "ALL") && ui.soft[5] && !strcmp(ui.soft[5], "VARx") &&
+               ui.soft[1] && !strcmp(ui.soft[1], "STK"), "GOLD \xe2\x86\x90: the CLEAR menu, ALL fifth and VARx sixth (#3958)");
         press(&a, "k:4");
         app_ui(&a, &ui);
         expect(ui.prompt && !strcmp(ui.prompt, "CLR ALL?") && ui.soft[0] && !strcmp(ui.soft[0], "Y") &&
@@ -544,7 +544,7 @@ int main(void)
             app_ui(&a, &ui);
             bool ok = true;
             for (int i = 0; i < 6; i++) {
-                const char *want = mn->paged ? (i < 5 ? ab_const_name(i) : "more") : mn->item[i].legend;
+                const char *want = mn->paged ? (i < 5 ? ab_const_symbol(i) : "more") : mn->item[i].legend;
                 /* SETUP's OFF and VOL show their values after the legend (unit 022) */
                 ok = ok && ui.soft[i] && !strncmp(ui.soft[i], want, strlen(want)) &&
                      (!strcmp(ui.soft[i], want) || mn->item[i].kind == KM_DEVICE);
@@ -610,6 +610,11 @@ int main(void)
         app_ui(&a, &ui);
         expect(c.base == 10 && ui.soft[0] && !strcmp(ui.soft[0], "AND") && ui.soft[5] && !strcmp(ui.soft[5], "NOR"),
                "BASE > LOGIC: the logic menu on the soft keys");
+        press(&a, "C BLUE x\xe2\x86\x94y");
+        app_ui(&a, &ui);
+        expect(ui.soft_sub[4] && ui.soft_sub[5] && !ui.soft_sub[0] && !strcmp(ui.soft[4], "LOGIC") && !strcmp(ui.soft[5], "SUFX"),
+               "BASE: LOGIC and SUFX boxed as submenus (#3958)");
+        press(&a, "k:4");
         press(&a, "k:0");
         expect(x_of(&c) == 8, "BASE > LOGIC > AND: 12 AND 10 is 8");
         press(&a, "BLUE x\xe2\x86\x94y k:5");
@@ -650,17 +655,25 @@ int main(void)
         expect(!ui.soft_on[0] && !ui.soft[0], "no menu, no mark");
     }
 
+    /* abacus #3958: EXP (blue eˣ) as drafted */
+    ab_init(&c);
+    app_init(&a, &c, now);
+    press(&a, "1 0 BLUE e\xcb\xa3 k:0");
+    expect(x_of(&c) == 1024, "EXP 2^x of 10");
+    press(&a, "BLUE e\xcb\xa3 k:1");
+    expect(x_of(&c) == 10, "EXP LOG2 of 1024");
+
     /* CONST pages: five constants and "more", wrapping after the last (41 constants: nine pages,
        the last holding one) */
     ab_init(&c);
     app_init(&a, &c, now);
     press(&a, "GOLD RCL k:5");
     app_ui(&a, &ui);
-    expect(ui.soft[0] && !strcmp(ui.soft[0], ab_const_name(5)) && ui.soft[5] && !strcmp(ui.soft[5], "more"),
-           "CONST more: the next five");
+    expect(ui.soft[0] && !strcmp(ui.soft[0], ab_const_symbol(5)) && !strcmp(ab_const_symbol(5), "R\xe2\x88\x9e") &&
+           ui.soft[5] && !strcmp(ui.soft[5], "more"), "CONST more: the next five, by symbol (R\xe2\x88\x9e, #3958)");
     for (int i = 0; i < 7; i++) press(&a, "k:5");
     app_ui(&a, &ui);
-    expect(ab_const_count() == 41 && ui.soft[0] && !strcmp(ui.soft[0], ab_const_name(40)) && (!ui.soft[1] || !ui.soft[1][0]) &&
+    expect(ab_const_count() == 41 && ui.soft[0] && !strcmp(ui.soft[0], ab_const_symbol(40)) && (!ui.soft[1] || !ui.soft[1][0]) &&
                ui.soft[5] && !strcmp(ui.soft[5], "more"), "CONST's last page: the 41st alone");
     press(&a, "k:0");
     {
@@ -675,7 +688,7 @@ int main(void)
     press(&a, "GOLD RCL");
     for (int i = 0; i < 9; i++) press(&a, "k:5");
     app_ui(&a, &ui);
-    expect(ui.soft[0] && !strcmp(ui.soft[0], ab_const_name(0)), "CONST wraps from the last page to the first");
+    expect(ui.soft[0] && !strcmp(ui.soft[0], ab_const_symbol(0)), "CONST wraps from the last page to the first");
     press(&a, "k:1");
     {
         ab_calc t;
