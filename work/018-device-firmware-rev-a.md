@@ -96,3 +96,8 @@ RT9080 is adequate, not generous.
 - Keep the radio off below about V_BAT 3.5 V (from the gauge). TX peaks brown the module out below
   3.2-3.35 V.
 - Bring-up check on Rev A: a sustained-TX soak with the LDO's case temperature measured.
+
+Superseded 2026-10-04 (abacus decision 36): Rev A now has a TPS63802 buck-boost, which holds 3.3 V
+across the whole cell. The TX cap on USB and the 3.5 V radio floor came from the RT9080's dropout
+and heat. Drop the TX cap. Keep a radio floor only as a reserve for the save at power-off (the
+gauge's empty threshold, or about 3.3 V).
