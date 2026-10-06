@@ -15,16 +15,27 @@
  *   HALT       SLEEP with the ULP stopped first                          falsifier: flat
  *   ULPWAKE    SLEEP plus esp_sleep_enable_ulp_wakeup()                  the fallback the review names
  *   RCFAST     ULPWAKE plus RC_FAST kept on                              the second fallback
- * The bookkeeping is in RTC fast memory. */
+ * The bookkeeping is in RTC fast memory.
+ *
+ * Unit 023 (light sleep between keys), with automatic light sleep configured at boot (esp_pm,
+ * tickless idle, min 40 MHz) and IO0 as a GPIO wake on a low level:
+ *   LIGHT      10 s blocked in light sleep: the ULP's edges (expect about +20) and the time the
+ *              PM layer spent in light sleep (the positive control: it did sleep)
+ *   LIGHTHALT  LIGHT with the ULP stopped first                          falsifier: flat
+ *   LIGHTKEY   blocked in light sleep up to 20 s until IO0 goes low (the host pulls it through the
+ *              board's auto-reset DTR line): IO0 wakes it, and how long it took */
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
 #include "driver/gpio.h"
 #include "esp_attr.h"
+#include "esp_pm.h"
+#include "esp_timer.h"
 #include "esp_sleep.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/semphr.h"
 #include "ulp_common.h"
 #include "ulp_main.h"
 #include "ulp_riscv.h"
@@ -33,6 +44,57 @@ extern const uint8_t ulp_main_bin_start[] asm("_binary_ulp_main_bin_start");
 extern const uint8_t ulp_main_bin_end[] asm("_binary_ulp_main_bin_end");
 
 static RTC_FAST_ATTR uint32_t before;
+static SemaphoreHandle_t io0_low;
+static esp_pm_lock_handle_t console;    /* no light sleep while the console waits for a command: the UART
+                                           drops what arrives in light sleep (seen on the board) */
+
+static void IRAM_ATTR io0_isr(void *arg)
+{
+    (void)arg;
+    gpio_intr_disable(GPIO_NUM_0);              /* a level interrupt: once, until re-armed */
+    BaseType_t woken = pdFALSE;
+    xSemaphoreGiveFromISR(io0_low, &woken);
+    if (woken) portYIELD_FROM_ISR();
+}
+
+static void light(const char *m)
+{
+    if (!strcmp(m, "LIGHTHALT")) {
+        ulp_riscv_timer_stop();
+        ulp_riscv_halt();
+        vTaskDelay(pdMS_TO_TICKS(600));
+    }
+    uint32_t e0 = ulp_edges;
+    int64_t t0 = esp_timer_get_time();
+    printf("light: mode %s, edges before %lu\n", m, (unsigned long)e0);
+    fflush(stdout);
+    vTaskDelay(pdMS_TO_TICKS(100));             /* the line out before the sleep */
+    esp_pm_lock_release(console);
+    if (!strcmp(m, "LIGHTSETTLE")) {            /* E1: a second for the cores to settle, then measure */
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        e0 = ulp_edges;
+        t0 = esp_timer_get_time();
+    }
+    if (!strcmp(m, "LIGHTKEY")) {
+        xSemaphoreTake(io0_low, 0);
+        gpio_intr_enable(GPIO_NUM_0);
+        bool got = xSemaphoreTake(io0_low, pdMS_TO_TICKS(20000)) == pdTRUE;
+        printf("lightkey: %s after %lld ms, edges %+ld\n", got ? "IO0 woke it" : "no IO0 in 20 s",
+               (long long)((esp_timer_get_time() - t0) / 1000), (long)(ulp_edges - e0));
+    } else {
+        vTaskDelay(pdMS_TO_TICKS(10000));
+        uint32_t e1 = ulp_edges;
+        printf("light: mode %s, edges after %lu, delta %ld over %lld ms (one edge per 500 ms: about 20)\n", m,
+               (unsigned long)e1, (long)(e1 - e0), (long long)((esp_timer_get_time() - t0) / 1000));
+    }
+    esp_pm_lock_acquire(console);
+    esp_pm_dump_locks(stdout);                  /* with CONFIG_PM_PROFILING: the time in light sleep */
+    static char stats[1024];                    /* which task held each core (a diagnostic) */
+    vTaskGetRunTimeStats(stats);
+    printf("tasks:\n%s", stats);
+    printf("PROBE READY\n");
+    fflush(stdout);
+}
 static RTC_FAST_ATTR char mode[12];
 
 static void sleep_as_reva(const char *m)
@@ -71,6 +133,20 @@ void app_main(void)
         printf("cold: the ULP loaded and started\n");
     }
     gpio_deep_sleep_hold_dis();
+    /* unit 023: automatic light sleep, and IO0 (the BOOT button, Rev A's C) as a wake */
+    esp_pm_config_t pm = {.max_freq_mhz = 240, .min_freq_mhz = 40, .light_sleep_enable = true};
+    ESP_ERROR_CHECK(esp_pm_configure(&pm));
+    ESP_ERROR_CHECK(esp_pm_lock_create(ESP_PM_NO_LIGHT_SLEEP, 0, "console", &console));
+    ESP_ERROR_CHECK(esp_pm_lock_acquire(console));
+    io0_low = xSemaphoreCreateBinary();
+    gpio_config_t io0 = {.pin_bit_mask = 1ull << 0, .mode = GPIO_MODE_INPUT, .pull_up_en = GPIO_PULLUP_ENABLE,
+                         .intr_type = GPIO_INTR_LOW_LEVEL};
+    ESP_ERROR_CHECK(gpio_config(&io0));
+    gpio_intr_disable(GPIO_NUM_0);
+    ESP_ERROR_CHECK(gpio_install_isr_service(0));
+    ESP_ERROR_CHECK(gpio_isr_handler_add(GPIO_NUM_0, io0_isr, NULL));
+    ESP_ERROR_CHECK(gpio_wakeup_enable(GPIO_NUM_0, GPIO_INTR_LOW_LEVEL));
+    ESP_ERROR_CHECK(esp_sleep_enable_gpio_wakeup());
     for (int i = 0; i < 3; i++) {
         vTaskDelay(pdMS_TO_TICKS(1000));
         printf("awake: edges %lu\n", (unsigned long)ulp_edges);
@@ -94,6 +170,9 @@ void app_main(void)
         if (!strcmp(line, "SLEEP") || !strcmp(line, "PERIPHON") || !strcmp(line, "PERIPHOFF") || !strcmp(line, "HALT") ||
             !strcmp(line, "ULPWAKE") || !strcmp(line, "RCFAST"))
             sleep_as_reva(line);
+        else if (!strcmp(line, "LIGHT") || !strcmp(line, "LIGHTHALT") || !strcmp(line, "LIGHTKEY") ||
+                 !strcmp(line, "LIGHTSETTLE"))
+            light(line);
         else if (!strcmp(line, "RESTART"))
             esp_restart();
     }

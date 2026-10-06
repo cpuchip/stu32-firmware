@@ -1,0 +1,23 @@
+# Unit 023 on the 4.3" stand-in's S3 (run.sh PORT device/ulp_probe/light.txt; delete build/sdkconfig after
+# changing sdkconfig.defaults, which IDF reads only for a fresh config). Measured 2026-10-06:
+# - LIGHTSETTLE: the ULP's EXTCOMIN counted 20 edges in 10 s while the chip spent 9.999 s of it in light sleep
+#   (esp_pm_dump_locks: SLEEP mode), so the 1 Hz toggle survives automatic light sleep.
+# - LIGHT straight after the console lock's release: still 20 edges, but no light sleep in that first block
+#   (core 1 holds its CPU lock until its next interrupt); from the next idle period on it sleeps.
+# - LIGHTKEY: IO0 low (the host's DTR, 3 s in) wakes it from light sleep, after 2995 ms.
+# - LIGHTHALT, the falsifier: the ULP stopped, the count stays flat.
+wait PROBE READY 30
+send LIGHTSETTLE
+expect light: mode LIGHTSETTLE, edges after 30
+wait PROBE READY 15
+send LIGHT
+expect light: mode LIGHT, edges after 30
+wait PROBE READY 15
+send LIGHTKEY
+sleep 3
+press0 200
+expect lightkey: IO0 woke it 25
+wait PROBE READY 15
+send LIGHTHALT
+expect light: mode LIGHTHALT, edges after 30
+wait PROBE READY 15

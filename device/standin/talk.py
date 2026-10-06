@@ -9,6 +9,8 @@ Copies every line the board prints to stdout and LOG. With a SCRIPT, runs its li
     wait TEXT [SECONDS]    wait for a printed line containing TEXT (default 10 s); fail if none
     expect TEXT [SECONDS]  the same, named for a check: a miss is reported as FAIL
     reset                  pulse EN through the board's auto-reset (RTS, with DTR held low)
+    press0 MS              hold IO0 low for MS ms through the auto-reset's DTR line (RTS high), as
+                           pressing BOOT: a key for the light-sleep probe (unit 023)
     sleep SECONDS
     # ...                  a comment
 
@@ -91,6 +93,11 @@ if script:
             s.rts = True
             time.sleep(0.15)
             s.rts = False
+        elif word == "press0":               # IO0 low (DTR asserted, RTS not), then released
+            s.rts = False
+            s.dtr = True
+            time.sleep(float(rest) / 1000)
+            s.dtr = False
         elif word == "sleep":
             time.sleep(float(rest))
         else:
