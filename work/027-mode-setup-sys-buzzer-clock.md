@@ -30,7 +30,9 @@ Two of his calls ride along:
 2. **SETUP** (blue 3):
    - F1 `OFF` and F2 `VOL` as now;
    - F3 `BEEP▸` opens the buzzer's uses (rule 3);
-   - F4 `CLOCK▸` (rule 4);
+   - F4 `CLOCK▸` (rule 4). **Open (2026-10-06):** Michael's decided SETUP card lists OFF, VOL and BEEP only. Where
+     the clock is set is his call, asked. Build rule 4 with SETUP's F4 as its provisional home; if he places it
+     elsewhere, only keymap data moves.
    - F5 and F6 kept for later (Wi-Fi).
 3. **The buzzer's uses**, each on or off, all on by default (Michael: "All of these are good!"):
    - `CLICK`: a short tick on every key;
@@ -65,7 +67,12 @@ Two of his calls ride along:
    - F1 `BATT`: a screen with the gauge's percent, the charge state (CHG_N, PGOOD_N) and, if the gauge gives it, the
      cell's voltage;
    - F2 `VER`: the firmware's version, the core's commit and the build date;
-   - F3 `MEM`: free memory, program bytes and the internal heap's free and largest block (unit 023's lesson).
+   - ~~F3 `MEM`: free memory, program bytes and the internal heap's free and largest block (unit 023's lesson).~~
+     **Amended 2026-10-06, to match Michael's decided SYS card** ("BATT, VER, FLASH (new) free flash mem ? maybe
+     different then MEM since this is ESP32/android storage?"): F3 `FLASH` shows the free storage. On the device
+     that's the state partition's free space; in the app it's its storage. It also shows the internal heap's free and
+     largest block, which is unit 023's lesson and belongs with "how much room is left". The calculator's memory
+     catalog (variables, programs, bytes; the 33s's MEM) stays in the MEM menu, a separate thing.
 
    Each is a view that any key leaves.
 6. **BEEP, the programmable instruction.** None of the 33s, 32SII or 35s has one (no buzzer, and no BEEP in any of
