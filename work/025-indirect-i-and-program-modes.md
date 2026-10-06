@@ -39,8 +39,11 @@ register 1, with no error, so a 33s program runs and uses different storage.
      FN=), the label's mode governs every mode-dependent behaviour while it runs. Today that is only the indirect
      model (rule 1); later rulings add more. That includes reading `c->m35`.
    - **Calls:** the mode travels with the return stack. A 35s label calling a 33s label runs the callee under 33s
-     rules, and its RTN restores the caller's mode. An error stop or an interrupt leaves the running label's mode
-     in effect until the program is resumed or abandoned.
+     rules, and its RTN restores the caller's mode. ~~An error stop or an interrupt leaves the running label's mode
+     in effect until the program is resumed or abandoned.~~ **Struck 2026-10-06 (soroban's question (a)):** the
+     label's mode governs the program's own lines only, while they run. After a stop, the keyboard follows the
+     calculator's mode like every other key. If it didn't, the same RCL (I) would reach different storage depending
+     on whether a program happens to be halted. The error message keeps the label's terms, as built.
    - **Keyboard behaviour always follows the calculator's mode:** E with no mantissa, and the first key after a
      message (unit 017 and 024). That includes number lines typed into a program.
    - Keep one function that says which mode is in force, so the next ruling has one place to look.
@@ -52,8 +55,11 @@ register 1, with no error, so a 33s program runs and uses different storage.
    - It isn't programmable.
 6. **The state image** (version 5):
    - It carries i and each label's mode.
-   - An image from before this unit loads with every label stamped with that image's calculator mode (the best
-     guess at how it was written) and i = 0.
+   - ~~An image from before this unit loads with every label stamped with that image's calculator mode (the best
+     guess at how it was written)~~ **Struck 2026-10-06 (soroban's question (b)):** an image from before this unit
+     loads with every label stamped **35s**. Before 025, (I) always followed the 35s model in either mode, so 35 is
+     how those lines actually behaved; stamping the image's mode (33s by default) would silently change what their
+     indirect lines address. i = 0.
 
 ## Vectors and amendments
 
