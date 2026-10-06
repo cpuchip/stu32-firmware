@@ -942,10 +942,11 @@ abn_status ab_state_load(ab_calc *c, const uint8_t *buf, size_t len)
     r.c = c;
     parse(&r);
     if (!r.mode25) {
-        /* an image from before unit 025: every label stamped with its calculator's mode (the best
-           guess at how it was written), i at 0, the message's mode its calculator's */
-        for (int l = 0; l < 26; l++) c->lmode[l] = c->m35 ? 35 : 33;
-        c->err_m35 = c->m35;
+        /* an image from before unit 025: every label stamped 35s, since (I) followed the 35s model
+           in either mode then (unit 025 rule 6 as amended, abacus b75640f); i at 0; a message
+           showing reads in (I) terms, as it did */
+        for (int l = 0; l < 26; l++) c->lmode[l] = 35;
+        c->err_m35 = true;
     }
     ab_prog_relabel(c);
     return ABN_OK;
