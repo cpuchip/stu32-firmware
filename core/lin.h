@@ -9,7 +9,9 @@
 #include "abn.h"
 
 /* coef holds n * (n + 1) numbers; out receives n. ABN_OK, ABN_NO_SOLUTION, ABN_MULT_SOLUTION,
-   or ABN_RANGE when an exact value would not fit (out untouched unless ABN_OK). */
+   or ABN_RANGE when an exact value would not fit (out untouched for these); ABN_OVERFLOW when a
+   solution lies beyond the range, out written with it as the largest number with its sign (and a
+   solution below the range is 0; unit 026). */
 abn_status lin_solve(int n, const abn *coef, abn *out);
 
 #endif

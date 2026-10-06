@@ -295,6 +295,8 @@ typedef struct {
     int err_op, err_arg, err_active;
     ab_val err_x;
     bool err_set;           /* recorded already in this call (the innermost wins) */
+    int ovf;                /* overflows since the key began (unit 026): flag 5's stop, the device's
+                               OVERFLOW notice; not in the state image */
     bool err_m35;           /* the mode in force when it was recorded (unit 025: INVALID (I) or (i)) */
     int exec_at;            /* the program line being executed while running (unit 025: its label's
                                mode is in force), -1 none */

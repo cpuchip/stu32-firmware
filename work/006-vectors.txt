@@ -9,7 +9,7 @@
 # written from the 35s guide's indirect model, start with MODE35 (the ERR ones added after review, which
 # passed in 33s mode only by failing early: E07): G02 M26. G02 goes back to MODE33 after its
 # STO (I), as it was written: in 35s mode the key after the error would only clear the message (unit 017).
-# Unit 026 (work/026-overflow-per-the-manuals.md): overflow gives the largest number with flag 6, not an error; amended: G02.
+# Unit 026 (work/026-overflow-per-the-manuals.md): overflow gives the largest number with flag 6, not an error; amended: G02, E08.
 
 
 M01 | 35s p.12-3 first pair: X is n, y stays in Y, x in LAST X | CLSIGMA 4 ENTER 20 SIGMA+ | X=1 Y=4 L=20
@@ -46,7 +46,7 @@ E04 | ours: r with all y equal | 3 ENTER 1 SIGMA+ 3 ENTER 2 SIGMA+ CORR | ERR X=
 E05 | 35s p.F STAT ERROR: weighted mean with sum y = 0 | 1 SIGMA+ XWBAR | ERR X=1
 E06 | ours: x-hat with slope 0 | 3 ENTER 1 SIGMA+ 3 ENTER 2 SIGMA+ 3 XHAT | ERR X=3
 E07 | ours: a negative variance (registers stored directly) | MODE35 27 CHS STO:I 2 STO:(I) 28 CHS STO:I 4 STO:(I) 30 CHS STO:I 1 STO:(I) SX | ERR X=1
-E08 | ours (rule 2): SIGMA+ is all or nothing | 1 E 5000 SIGMA+ NSUM | ERR X=0 Y=1E5000
+E08 | ours (rule 2; unit 026, abacus #4198: SIGMA+ completes, sum x^2 at the largest, flag 6) | 1 E 5000 SIGMA+ SUMX2 NSUM | X=1 Y=9.999999999999999999999999999999999E6144 %F6=1
 E09 | ours: population s of one point is 0 | 5 SIGMA+ PSX | X=0
 E10 | B-5 CLSIGMA clears only the six and is neutral | 5 STO:A 3 ENTER 2 SIGMA+ CLSIGMA 7 | X=7 Y=3 @A=5
 E11 | B-5 CLSIGMA really clears them | 1 ENTER 2 SIGMA+ CLSIGMA SUMXY | X=0

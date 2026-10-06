@@ -594,11 +594,19 @@ static abn_status vec_arith(ab_val *r, ab_op op, const ab_val *a, const ab_val *
     return ABN_OK;
 }
 
+static abn_status settle(ab_calc *c, abn_status st, abn *r, bool neg);
+
 /* x op y with a vector in either; LAST X and the drop as for real arithmetic (UG p.B-6). */
 static abn_status two_vector(ab_calc *c, ab_op op)
 {
     ab_val r;
     abn_status st = vec_arith(&r, op, &c->y, &c->x);
+    if ((st == ABN_OVERFLOW || st == ABN_UNDERFLOW) && op == AB_MUL && is_vec(&c->x) && is_vec(&c->y)) {
+        /* the dot product is a real result: settled (unit 026); exact, then rounded once, so the
+           engine's sign is its own */
+        abn d;
+        if ((st = settle(c, st, &d, abn_overflow_negative())) == ABN_OK) r = ab_real(d);
+    }
     if (st != ABN_OK) return st;
     c->lastx = c->x;
     c->x = r;
@@ -627,7 +635,7 @@ static abn_status vec_abs(ab_calc *c)
     int m = ar_mark();
     abn_status st = vec_abs_(&r, &c->x);
     ar_release(m);
-    if (st != ABN_OK) return st;
+    if ((st = settle(c, st, &r, false)) != ABN_OK) return st;      /* a real result (unit 026) */
     c->lastx = c->x;
     c->x = ab_real(r);
     c->lift = true;
@@ -650,12 +658,78 @@ static abn_status one_complex(ab_calc *c, ab_op op)
     case AB_TAN: st = cx_tan(&r, &z); break;
     default: st = cx_abs(&r.re, &z); break;    /* AB_ABS */
     }
+    if (op == AB_ABS) st = settle(c, st, &r.re, false);     /* |z| is a real result (unit 026) */
     if (st != ABN_OK) return st;
     nv = op == AB_ABS ? ab_real(r.re) : ab_cx(r);
     c->lastx = c->x;
     c->x = nv;
     c->lift = true;
     return ABN_OK;
+}
+
+/* ---- overflow and underflow (unit 026; 33s p.1-16, p.13-9, F-3; 35s p.1-17) ---- */
+
+/* An overflow: flag 6 set (33s p.13-9: "any time an overflow occurs") and counted, for flag 5's stop
+ * and the device's OVERFLOW notice. */
+static void note_overflow(ab_calc *c)
+{
+    c->flags = (uint16_t)(c->flags | (1u << 6));
+    c->ovf++;
+}
+
+/* A real result out of the range: an overflow is the largest number, with the sign the true result
+ * has (neg), noted; an underflow is 0, silently. Neither is an error: the operation completes as any
+ * other does. Other statuses pass. */
+static abn_status settle(ab_calc *c, abn_status st, abn *r, bool neg)
+{
+    if (st == ABN_UNDERFLOW) {
+        *r = abn_zero();
+        return ABN_OK;
+    }
+    if (st != ABN_OVERFLOW) return st;
+    abn m = abn_largest();
+    *r = neg ? abn_neg(&m) : m;
+    note_overflow(c);
+    return ABN_OK;
+}
+
+/* The sign of an overflowing one-number function's true result: from the function where it forms
+ * |result| first or reports the overflow itself; otherwise the engine's last rounding, which was the
+ * result's own. */
+static bool overflow_neg1(ab_op op, const abn *x)
+{
+    switch (op) {
+    case AB_EXP: case AB_TENX: case AB_TWOX: case AB_EXPM1: case AB_COSH: case AB_SQ: case AB_FACT:
+        return false;
+    case AB_SINH: case AB_HMS: case AB_HMSINV: case AB_TODEG: case AB_TORAD: case AB_TOKG: case AB_TOLB:
+    case AB_TOC: case AB_TOF: case AB_TOCM: case AB_TOIN: case AB_TOL: case AB_TOGAL: case AB_TOKM:
+    case AB_TOMILE: case AB_RND:
+        return abn_is_negative(x);              /* odd in x, or x times a positive factor; RND keeps x's sign */
+    default:
+        return abn_overflow_negative();
+    }
+}
+
+static bool odd_integer(const abn *x)
+{
+    abn two = abn_from_int(2), r;
+    return abn_is_integer(x) && abn_fmod(&r, x, &two) == ABN_OK && !abn_is_zero(&r);
+}
+
+/* The sign of an overflowing y op x (storage arithmetic: the variable's op as its plain one). A sum
+ * overflows only with both terms of one sign, a difference with y and -x of one sign. */
+static bool overflow_neg2(ab_op op, const abn *y, const abn *x)
+{
+    bool ny = abn_is_negative(y), nx = abn_is_negative(x);
+    switch (op) {
+    case AB_ADD: case AB_STOADD: case AB_RCLADD: return abn_is_zero(y) ? nx : ny;
+    case AB_SUB: case AB_STOSUB: case AB_RCLSUB: return abn_is_zero(y) ? !nx : ny;
+    case AB_MUL: case AB_STOMUL: case AB_RCLMUL: case AB_DIV: case AB_STODIV: case AB_RCLDIV: case AB_IDIV:
+        return ny != nx;
+    case AB_POW: return ny && odd_integer(x);   /* a negative base to an odd power */
+    case AB_XROOT: return ny;                   /* a negative's odd root */
+    default: return false;                      /* nCr, nPr */
+    }
 }
 
 static abn_status one_number_fn(ab_calc *c, ab_op op)
@@ -722,7 +796,7 @@ static abn_status one_number_fn(ab_calc *c, ab_op op)
         st = fn_rnd(&r, &c->x.re, c->disp_mode, c->disp_n);
         break;
     }
-    if (st != ABN_OK) return st;
+    if ((st = settle(c, st, &r, overflow_neg1(op, &c->x.re))) != ABN_OK) return st;
     c->lastx = c->x;
     c->x = ab_real(r);
     c->lift = true;
@@ -735,7 +809,10 @@ static abn_status percent_fn(ab_calc *c, ab_op op)
 {
     abn r;
     abn_status st = op == AB_PCT ? fn_pct(&r, &c->y.re, &c->x.re) : fn_pctchg(&r, &c->y.re, &c->x.re);
-    if (st != ABN_OK) return st;
+    bool ny = abn_is_negative(&c->y.re);
+    /* y x / 100; (x - y) / y 100 */
+    bool neg = op == AB_PCT ? ny != abn_is_negative(&c->x.re) : (abn_cmp(&c->x.re, &c->y.re) < 0) != ny;
+    if ((st = settle(c, st, &r, neg)) != ABN_OK) return st;
     c->lastx = c->x;
     c->x = ab_real(r);
     c->lift = true;
@@ -782,7 +859,8 @@ static abn_status two_number_op(ab_calc *c, ab_op op)
     case AB_NPR: st = fn_npr(&r, &c->y.re, &c->x.re); break;
     default: st = fn_rmdr(&r, &c->y.re, &c->x.re); break;           /* Rmdr (UG p.4-2) */
     }
-    if (st != ABN_OK) return st;    /* the stack stays as it was */
+    if ((st = settle(c, st, &r, overflow_neg2(op, &c->y.re, &c->x.re))) != ABN_OK)
+        return st;                  /* the stack stays as it was */
     c->lastx = c->x;                /* these operations save x in LAST X (UG p.B-6) */
     c->x = ab_real(r);
     stack_drop(c);
@@ -922,7 +1000,7 @@ static abn_status store_val(ab_calc *c, const slot *sl, ab_val v)
 }
 
 /* a op b for storage and recall arithmetic; complex when either is (unit 009 rule 3). */
-static abn_status arith(ab_val *r, ab_op op, const ab_val *a, const ab_val *b)
+static abn_status arith(ab_calc *c, ab_val *r, ab_op op, const ab_val *a, const ab_val *b)
 {
     abn_status st;
     if (is_vec(a) || is_vec(b)) return vec_arith(r, plain_op(op), a, b);
@@ -944,6 +1022,7 @@ static abn_status arith(ab_val *r, ab_op op, const ab_val *a, const ab_val *b)
     case AB_STOMUL: case AB_RCLMUL: st = abn_mul(&v, &a->re, &b->re); break;
     default: st = abn_div(&v, &a->re, &b->re); break;
     }
+    st = settle(c, st, &v, overflow_neg2(op, &a->re, &b->re));
     if (st == ABN_OK) *r = ab_real(v);
     return st;
 }
@@ -970,14 +1049,14 @@ static abn_status storage_op(ab_calc *c, ab_op op, int code)
         /* Storage arithmetic: variable = variable op x; the stack is untouched (UG p.3-6) and so
            is LAST X (not in UG p.B-6's list). An error changes nothing (unit 005 rule 3). */
         v = load_val(&sl);
-        if ((st = arith(&r, op, &v, &c->x)) != ABN_OK) return st;
+        if ((st = arith(c, &r, op, &v, &c->x)) != ABN_OK) return st;
         if ((st = store_val(c, &sl, r)) != ABN_OK) return st;
         break;
     case AB_RCLADD: case AB_RCLSUB: case AB_RCLMUL: case AB_RCLDIV:
         /* Recall arithmetic: x = x op variable; only X changes (UG p.3-7), and x is saved in
            LAST X (UG p.B-6). */
         v = load_val(&sl);
-        if ((st = arith(&r, op, &c->x, &v)) != ABN_OK) return st;
+        if ((st = arith(c, &r, op, &c->x, &v)) != ABN_OK) return st;
         c->lastx = c->x;
         c->x = r;
         break;
@@ -1063,6 +1142,7 @@ static abn_status base_arith(ab_calc *c, ab_op op)
     c->x = ab_real(base_from_word(r));
     stack_drop(c);
     c->lift = true;
+    if (clamped) note_overflow(c);              /* an overflow too (33s p.13-9; unit 026) */
     return clamped ? ABN_CLAMPED : ABN_OK;
 }
 
@@ -1088,6 +1168,7 @@ static abn_status logic(ab_calc *c, ab_op op)
         stack_drop(c);
     }
     c->lift = true;
+    if (clamped) note_overflow(c);              /* an overflow too (33s p.13-9; unit 026) */
     return clamped ? ABN_CLAMPED : ABN_OK;
 }
 
@@ -1459,6 +1540,7 @@ static abn_status prog_run_lines(ab_calc *c, long limit, bool sst)
         abn_status st = ABN_OK;
         bool skip = false;
         c->exec_at = at;                        /* its label's mode is in force (unit 025) */
+        int ovf0 = c->ovf;
         steps++;
         if (c->running == 1) c->run_lines++;
         if (c->intr_after > 0 && --c->intr_after == 0) c->intr = true;   /* the tests' interrupt */
@@ -1628,6 +1710,7 @@ static abn_status prog_run_lines(ab_calc *c, long limit, bool sst)
             break;
         }
         if (st != ABN_OK && st != ABN_CLAMPED) {
+            if (st == ABN_OVERFLOW) note_overflow(c);   /* a complex or vector one (unit 026) */
             err_note(c, op, arg, NULL);
             c->pc = at;
             c->stop = AB_STOP_ERROR;
@@ -1635,6 +1718,18 @@ static abn_status prog_run_lines(ab_calc *c, long limit, bool sst)
             return st;
         }
         c->pc = skip ? next + 1 : next;
+        if (op == AB_SOLVE || op == AB_INTEG) ovf0 = c->ovf;    /* its evaluations are not steps (rule 6) */
+        if (c->ovf != ovf0 && ab_flag(c, 5) && !c->active) {
+            /* flag 5 set: an overflow stops the run at the line after, OVERFLOW held until a key
+               (33s p.13-9, F-3; unit 026 rule 3); R/S runs on. Not while SOLVE or integrate
+               evaluate (rule 6). */
+            c->stop = AB_STOP_STOP;
+            c->msg = true;
+            c->err_status = ABN_OVERFLOW;
+            c->err_op = op;
+            c->err_arg = arg;
+            return ABN_OK;
+        }
     }
     if (sst) {
         c->stop = AB_STOP_STOP;
@@ -1651,7 +1746,7 @@ static abn_status prog_run_lines(ab_calc *c, long limit, bool sst)
 
 static bool math_error(abn_status st)
 {
-    return st == ABN_DIV_ZERO || st == ABN_RANGE || st == ABN_DOMAIN;
+    return st == ABN_DIV_ZERO || st == ABN_RANGE || st == ABN_DOMAIN || st == ABN_OVERFLOW || st == ABN_UNDERFLOW;
 }
 
 static abn_status fn_value(const ab_calc *c, const ab_val *v, abn *f);
@@ -2126,25 +2221,25 @@ bracket:
         if (abn_cmp(&t1, &tol) >= 0 && cmp_abs(&fa, &fb) > 0) {
             /* inverse quadratic interpolation, or the secant when a = c */
             abn one = abn_from_int(1);
-            if (abn_div(&sv, &fb, &fa) != ABN_OK) goto noroot;
+            if (abn_div(&sv, &fb, &fa) != ABN_OK) goto bisect;
             if (abn_cmp(&a, &cc) == 0) {
                 if (abn_mul(&p, &xm, &two) != ABN_OK || abn_mul(&p, &p, &sv) != ABN_OK ||
                     abn_sub(&q, &one, &sv) != ABN_OK)
-                    goto noroot;
+                    goto bisect;
             } else {
                 abn u, w;
-                if (abn_div(&q, &fa, &fc) != ABN_OK || abn_div(&r, &fb, &fc) != ABN_OK) goto noroot;
+                if (abn_div(&q, &fa, &fc) != ABN_OK || abn_div(&r, &fb, &fc) != ABN_OK) goto bisect;
                 /* p = s (2 xm q (q - r) - (b - a)(r - 1)); q = (q - 1)(r - 1)(s - 1) */
                 if (abn_sub(&u, &q, &r) != ABN_OK || abn_mul(&u, &u, &q) != ABN_OK ||
                     abn_mul(&u, &u, &xm) != ABN_OK || abn_mul(&u, &u, &two) != ABN_OK ||
                     abn_sub(&w, &b, &a) != ABN_OK || abn_sub(&t2, &r, &one) != ABN_OK ||
                     abn_mul(&w, &w, &t2) != ABN_OK || abn_sub(&u, &u, &w) != ABN_OK ||
                     abn_mul(&p, &u, &sv) != ABN_OK)
-                    goto noroot;
+                    goto bisect;
                 if (abn_sub(&u, &q, &one) != ABN_OK || abn_sub(&w, &r, &one) != ABN_OK ||
                     abn_mul(&u, &u, &w) != ABN_OK || abn_sub(&w, &sv, &one) != ABN_OK ||
                     abn_mul(&q, &u, &w) != ABN_OK)
-                    goto noroot;
+                    goto bisect;
             }
             if (sgn(&p) > 0) q = abn_neg(&q);
             p = abn_abs(&p);
@@ -2153,21 +2248,23 @@ bracket:
                 abn three = abn_from_int(3), tq;
                 if (abn_mul(&m1, &xm, &q) != ABN_OK || abn_mul(&m1, &m1, &three) != ABN_OK ||
                     abn_mul(&tq, &tol, &q) != ABN_OK)
-                    goto noroot;
+                    goto bisect;
                 tq = abn_abs(&tq);
-                if (abn_sub(&m1, &m1, &tq) != ABN_OK || abn_mul(&m2, &e, &q) != ABN_OK) goto noroot;
+                if (abn_sub(&m1, &m1, &tq) != ABN_OK || abn_mul(&m2, &e, &q) != ABN_OK) goto bisect;
                 m2 = abn_abs(&m2);
                 if (abn_cmp(&m1, &m2) > 0) m1 = m2;
-                if (abn_mul(&t2, &p, &two) != ABN_OK) goto noroot;
+                if (abn_mul(&t2, &p, &two) != ABN_OK) goto bisect;
                 if (abn_cmp(&t2, &m1) < 0) {
                     e = d;
-                    if (abn_div(&d, &p, &q) != ABN_OK) goto noroot;
+                    if (abn_div(&d, &p, &q) != ABN_OK) goto bisect;
                 } else {
                     d = xm;
                     e = d;
                 }
             }
         } else {
+        bisect:     /* also an interpolation whose arithmetic left the range (f at the largest
+                       number, unit 026): a bisection step instead */
             d = xm;
             e = d;
         }
@@ -3185,7 +3282,8 @@ static abn_status lin_key(ab_calc *c, int n)
         if (c->var[i].kind != AB_REAL) return ABN_DOMAIN;
         coef[i] = c->var[i].re;
     }
-    if ((st = lin_solve(n, coef, sol)) != ABN_OK) return st;
+    if ((st = lin_solve(n, coef, sol)) == ABN_OVERFLOW) note_overflow(c);  /* written (unit 026) */
+    else if (st != ABN_OK) return st;
     c->var['X' - 'A'] = c->x = ab_real(sol[0]);
     c->var['Y' - 'A'] = c->y = ab_real(sol[1]);
     if (n == 3) c->var['Z' - 'A'] = c->z = ab_real(sol[2]);
@@ -3402,12 +3500,14 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
     }
     if (ab_view_key(c, op)) return ABN_OK;
     c->err_set = false;
+    c->ovf = 0;
     /* CLEAR ALL and CLR EQN act in Equation mode too (unit 021: never a silent no-op once the
        device has asked CLR ALL? or CLR EQN?) */
     if (c->prgm) st = program_key(c, op, arg);
     else if (c->eqn_mode && !c->eqn_pending && op != AB_CLALL && op != AB_CLEQN) st = eqn_key(c, op, arg);
     else st = do_key(c, op, arg);
     if (st != ABN_OK && st != ABN_CLAMPED) {
+        if (st == ABN_OVERFLOW) note_overflow(c);   /* a complex or vector one (unit 026, abacus #4198) */
         c->msg = true;
         err_note(c, op, arg, &x0);
         c->err_status = st;
@@ -3661,7 +3761,7 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
            ABS does (UG p.B-6). */
         abn r, th;
         abn_status st = fn_topol(&r, &th, &c->x.re, &c->x.im, angle_of(c));
-        if (st != ABN_OK) return st;
+        if (st != ABN_OK && st != ABN_OVERFLOW) return st;     /* an r beyond the range: theta stands */
         c->lastx = c->x;
         c->x = ab_real(th);
         break;
@@ -3697,7 +3797,8 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
         abn a, b;
         abn_status st = op == AB_TOPOL ? fn_topol(&a, &b, &c->x.re, &c->y.re, angle_of(c))
                                        : fn_torec(&a, &b, &c->x.re, &c->y.re, angle_of(c));
-        if (st != ABN_OK) return st;
+        if (st == ABN_OVERFLOW) note_overflow(c);  /* a part at the largest number (unit 026) */
+        else if (st != ABN_OK) return st;
         c->lastx = c->x;
         c->x = ab_real(a);
         c->y = ab_real(b);
@@ -3728,8 +3829,10 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
         /* Sigma+ / Sigma- add or remove the pair (x in X, y in Y; UG p.12-2): X becomes n, Y keeps
            y, x goes to LAST X (UG p.12-3, p.B-6) and lift is disabled (UG p.B-5). All six
            registers change or none does (ours, unit 006 rule 2). */
-        abn_status st = st_accumulate(c->stat, &c->x.re, &c->y.re, op == AB_SIGMAMINUS);
+        bool over = false;
+        abn_status st = st_accumulate(c->stat, &c->x.re, &c->y.re, op == AB_SIGMAMINUS, &over);
         if (st != ABN_OK) return st;
+        if (over) note_overflow(c);             /* a register at the largest (unit 026, abacus #4198) */
         c->lastx = c->x;
         c->x = ab_real(c->stat[ST_N]);
         c->lift = false;
@@ -3745,7 +3848,8 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
            (UG p.B-6). */
         abn r;
         abn_status st = op == AB_XHAT ? st_xhat(&r, c->stat, &c->x.re) : st_yhat(&r, c->stat, &c->x.re);
-        if (st != ABN_OK) return st;
+        /* an exact value rounded once: the engine's sign is the result's */
+        if ((st = settle(c, st, &r, abn_overflow_negative())) != ABN_OK) return st;
         c->lastx = c->x;
         c->x = ab_real(r);
         break;
@@ -3769,7 +3873,7 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
         case AB_SLOPE: st = st_slope(&r, c->stat); break;
         default: st = st_yint(&r, c->stat); break;
         }
-        if (st != ABN_OK) return st;
+        if ((st = settle(c, st, &r, abn_overflow_negative())) != ABN_OK) return st;    /* as x-hat */
         place_in_x(c, r);
         break;
     }

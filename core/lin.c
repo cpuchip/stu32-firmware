@@ -94,6 +94,7 @@ abn_status lin_solve(int n, const abn *coef, abn *out)
     xnum *det, *num;
     abn res[3];
     abn_status st = ABN_OK;
+    bool over = false;
     if (n < 2 || n > 3) return ABN_DOMAIN;
     if (!ar_xn(2, &det, &num) || !minor(det, coef, w, all, all, n)) {
         ar_release(mk);
@@ -111,9 +112,19 @@ abn_status lin_solve(int n, const abn *coef, abn *out)
         for (int j = 0; j < n; j++) cols[j] = j == i ? n : j;
         if (!minor(num, coef, w, all, cols, n)) st = ABN_RANGE;
         else st = xn_div_to_abn(&res[i], num, det);
+        /* a solution beyond the range: the largest number with its sign; below it 0 (unit 026) */
+        if (st == ABN_UNDERFLOW) {
+            res[i] = abn_zero();
+            st = ABN_OK;
+        } else if (st == ABN_OVERFLOW) {
+            res[i] = abn_largest();
+            if ((xn_sign(num) < 0) != (xn_sign(det) < 0)) res[i] = abn_neg(&res[i]);
+            over = true;
+            st = ABN_OK;
+        }
     }
     ar_release(mk);
     if (st != ABN_OK) return st;
     for (int i = 0; i < n; i++) out[i] = res[i];
-    return ABN_OK;
+    return over ? ABN_OVERFLOW : ABN_OK;
 }

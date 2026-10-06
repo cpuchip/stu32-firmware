@@ -158,6 +158,7 @@ all-checks:
 accuracy: build/fn_drive build/cx_drive build/vectors
 	$(PYTHON) tests/fn_fuzz.py build/fn_drive
 	$(PYTHON) tests/cx_fuzz.py build/cx_drive
+	$(PYTHON) tests/range_fuzz.py build/fn_drive 1 30
 	$(PYTHON) tests/cxkey_fuzz.py 1 5000 > build/cxkey_fuzz.txt
 	./build/vectors build/cxkey_fuzz.txt
 	$(PYTHON) tests/solve_fuzz.py 1 1500 > build/solve_fuzz.txt

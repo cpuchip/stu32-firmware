@@ -239,7 +239,8 @@ static abn_status decimal_value(const char *s, int n, int points, abn *v)
         memcpy(buf + k, s, (size_t)n);
         buf[k + n] = '\0';
         st = abn_from_text(v, buf);
-        return st == ABN_BAD_TEXT ? ABN_SYNTAX : st;
+        /* a typed number beyond the range keeps the range error it had (unit 026 rule 7) */
+        return st == ABN_BAD_TEXT ? ABN_SYNTAX : st == ABN_OVERFLOW || st == ABN_UNDERFLOW ? ABN_RANGE : st;
     }
 }
 

@@ -549,7 +549,7 @@ static void sec_modes(rd *r)
         eactive = r8(r);
         estatus = r8(r);
         rval(r, &ex);
-        need(r, (ecode == 0xFFFF || ecode < (unsigned)V1_N) && eactive <= 2 && estatus <= ABN_BAD_IMAGE);
+        need(r, (ecode == 0xFFFF || ecode < (unsigned)V1_N) && eactive <= 2 && estatus <= ABN_UNDERFLOW);  /* unit 026 added two */
     } else {
         msg = 0;                                /* an older image: no message to say */
     }
@@ -853,7 +853,8 @@ static void sec_solve(rd *r)
     sfrom = r8(r);
     need(r, active <= 2 && (svar_ == 0 || id_ok(svar_, false)) && phase <= 2 && fn_eqn >= -1 && fn_eqn < r->eqn_count &&
                 (fn_eqn < 0 || !r->builtin[fn_eqn]) && flag_byte(cached) &&
-                (cst == ABN_OK || cst == ABN_DIV_ZERO || cst == ABN_RANGE || cst == ABN_DOMAIN) && skind <= 2 &&
+                (cst == ABN_OK || cst == ABN_DIV_ZERO || cst == ABN_RANGE || cst == ABN_DOMAIN || cst == ABN_OVERFLOW ||
+                 cst == ABN_UNDERFLOW) && skind <= 2 &&
                 (svar == 0 || svar == -1 || id_ok(svar, false)) && scode >= -1 && scode <= AB_VAR_SI &&
                 flag_byte(slift) && (spc == AB_PC_TOP || (spc >= 0 && spc <= r->prog_len)) &&
                 srbase <= AB_RTN_DEPTH && srdepth < AB_RTN_DEPTH && flag_byte(sfrom));

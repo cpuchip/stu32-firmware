@@ -31,6 +31,11 @@ const char *ab_status_message(abn_status st)
     case ABN_MULT_SOLUTION: return "MULT SOLUTION";             /* F-3 */
     case ABN_INTERRUPTED: return "INTERRUPTED";                 /* F-2 */
     case ABN_BAD_IMAGE: return "MEMORY CLEAR";                  /* F-3, B-3 */
+    case ABN_OVERFLOW: return "OVERFLOW";                       /* F-3: the warning; an error only for a
+                                                                   complex or vector result (unit 026) */
+    case ABN_UNDERFLOW: return "OVERFLOW";                      /* ours: a complex or vector result whose
+                                                                   parts underflow stays the range error
+                                                                   it was (unit 026) */
     }
     return "";
 }

@@ -107,11 +107,15 @@ def exact_op(op, a, b):
 
 
 def xr(z):
-    """The expectation for a transcendental complex result: normwise, or an error beyond the
-    range (the larger part above the largest number, or the whole number below the smallest)."""
+    """The expectation for a transcendental complex result: normwise; an error beyond the range
+    (the larger part above the largest number: a complex overflow stays an error, unit 026 with
+    abacus #4198); 0i0 when the whole number is below the smallest (unit 026 rule 4: each part
+    underflows to 0)."""
     m = max(abs(mp.re(z)), abs(mp.im(z)))
-    if m > mp.mpf("9.999999999999999999999999999999999e6144") or (m != 0 and m < mp.mpf("1e-6143")):
+    if m > mp.mpf("9.999999999999999999999999999999999e6144"):
         return "ERR"
+    if m != 0 and m < mp.mpf("1e-6143"):
+        return "X=0i0"
     return "X^" + cz(z)
 
 

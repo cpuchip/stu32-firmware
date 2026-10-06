@@ -139,10 +139,13 @@ def main():
                 truth = ONE[name](C(a))
             else:
                 truth = TWO[name](C(a[:2]), C(a[2:]), a)
+            under = False
             if truth is not None and abs(truth) != 0:
                 m = max(abs(truth.real), abs(truth.imag))
-                if m > mp.mpf("9.99e6144") or m < mp.mpf("1e-6143"):
-                    truth = "range"
+                if m > mp.mpf("9.99e6144"):
+                    truth = "range"         # a complex overflow stays an error (unit 026, abacus #4198)
+                elif m < mp.mpf("1e-6143"):
+                    under = True            # both parts below the range: each is 0 (unit 026 rule 4)
             if line.startswith("ERR"):
                 if truth is None or truth == "range":
                     continue
@@ -156,6 +159,12 @@ def main():
                     print(f"  {label}: {a} gave {line}, expected an error")
                 continue
             g = [mp.mpf(t) for t in line.split()]
+            if under:
+                if g[0] != 0 or g[1] != 0:
+                    errs += 1
+                    if errs <= 3:
+                        print(f"  {label}: {a} gave {line}, expected 0 0 (an underflow)")
+                continue
             if name in EXACT:
                 # each part correctly rounded: within half a unit of its own 34th digit
                 e = 0

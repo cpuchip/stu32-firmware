@@ -86,6 +86,18 @@ static void undo(app_state *a)
     a->dirty = true;
 }
 
+/* OVERFLOW, briefly (unit 024 rule 3; unit 026): after the key, or when the run it started ends (33s
+   p.13-9: shown "when the program eventually stops"); not over a message (flag 5's stop holds
+   OVERFLOW itself, an error has its own). */
+static void overflow_notice(app_state *a, uint32_t now_ms)
+{
+    if (!a->ovf_pending || a->running || a->pause) return;
+    a->ovf_pending = false;
+    if (a->c->msg) return;
+    a->notice = ab_status_message(ABN_OVERFLOW);
+    a->notice_ms = now_ms;
+}
+
 /* An op from the keys: the state kept for UNDO first (VIEW changes nothing), the busy callback
    when it may take long, and a run that has not ended goes on from app_tick. */
 static void do_op(app_state *a, int op, int arg)
@@ -99,10 +111,7 @@ static void do_op(app_state *a, int op, int arg)
     int was = on_lbl ? c->lmode[c->prog[c->pc].arg] : 0;
     abn_status st = ab_do_arg(c, (ab_op)op, arg);
     a->dirty = true;
-    if (st == ABN_CLAMPED) {                    /* OVERFLOW, briefly (unit 024 rule 3) */
-        a->notice = ab_status_message(st);
-        a->notice_ms = a->last_key_ms;
-    }
+    if (st == ABN_CLAMPED || c->ovf > 0) a->ovf_pending = true;
     if (op == AB_MODEL && st == ABN_OK && on_lbl && was != arg && ab_label_indirect(c, c->prog[c->pc].arg)) {
         /* a label restamped to the other mode (unit 025 rule 5) whose lines use an indirect: what
            it now means */
@@ -118,6 +127,7 @@ static void do_op(app_state *a, int op, int arg)
         a->pause = true;
         a->pause_ms = a->last_key_ms;
     }
+    overflow_notice(a, a->last_key_ms);
 }
 
 static void do_action(app_state *a, const km_action *act);
@@ -338,6 +348,7 @@ app_action app_tick(app_state *a, const pwr_inputs *in, uint32_t now_ms)
 {
     if (a->running) {
         ab_continue(a->c);
+        if (a->c->ovf > 0) a->ovf_pending = true;
         a->dirty = true;
         a->render = true;
         if (a->c->stop != AB_STOP_SLICE) {
@@ -355,6 +366,7 @@ app_action app_tick(app_state *a, const pwr_inputs *in, uint32_t now_ms)
         a->pause = false;
         pwr_activity(&a->pwr, now_ms);
         ab_do_arg(a->c, AB_RS, 0);
+        if (a->c->ovf > 0) a->ovf_pending = true;
         a->dirty = true;
         a->render = true;
         if (a->c->stop == AB_STOP_SLICE) {
@@ -366,6 +378,7 @@ app_action app_tick(app_state *a, const pwr_inputs *in, uint32_t now_ms)
             a->pause_ms = now_ms;
         }
     }
+    overflow_notice(a, now_ms);
     if (a->notice && (uint32_t)(now_ms - a->notice_ms) >= APP_NOTICE_MS) {
         a->notice = NULL;                       /* the brief notice is over */
         a->render = true;

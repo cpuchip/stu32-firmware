@@ -57,18 +57,26 @@ abn abn_neg(const abn *a)
     return from_bid(bid128_negate(to_bid(a)));
 }
 
-/* Accepts the result of one library call: in range and finite, or ABN_RANGE. A zero
- * result (of either sign, any exponent) becomes the one zero. */
+/* Accepts the result of one library call when it is in the normal range and finite; otherwise says
+ * which way it left (unit 026): ABN_OVERFLOW beyond the largest finite value, ABN_UNDERFLOW a nonzero
+ * result below the smallest normal one (or rounded to zero from there), ABN_DOMAIN not a number. What
+ * each means is the caller's. A zero result (of either sign, any exponent) becomes the one zero. */
+static bool ovf_neg;        /* the sign of the last overflow (abn_overflow_negative) */
+
 static abn_status accept(abn *out, BID_UINT128 r, _IDEC_flags fl)
 {
-    if (fl & (BID_OVERFLOW_EXCEPTION | BID_UNDERFLOW_EXCEPTION | BID_INVALID_EXCEPTION))
-        return ABN_RANGE;
-    if (!bid128_isFinite(r)) return ABN_RANGE;
+    if ((fl & BID_INVALID_EXCEPTION) || bid128_isNaN(r)) return ABN_DOMAIN;
+    if ((fl & BID_OVERFLOW_EXCEPTION) || bid128_isInf(r)) {
+        ovf_neg = bid128_isSigned(r);
+        return ABN_OVERFLOW;
+    }
+    /* the flag alone is not an underflow: a result tiny before rounding may round to the smallest
+       normal number, which is in range (sin 1E-6143 is 1E-6143) */
+    if (bid128_isSubnormal(r) || ((fl & BID_UNDERFLOW_EXCEPTION) && bid128_isZero(r))) return ABN_UNDERFLOW;
     if (bid128_isZero(r)) {
         *out = abn_zero();
         return ABN_OK;
     }
-    if (bid128_isSubnormal(r)) return ABN_RANGE;
     *out = from_bid(r);
     return ABN_OK;
 }
@@ -120,6 +128,18 @@ static bool plain_number(const char *s)
     for (; *s; s++)
         if (*s < '0' || *s > '9') return false;
     return true;
+}
+
+bool abn_overflow_negative(void)
+{
+    return ovf_neg;
+}
+
+abn abn_largest(void)
+{
+    abn m;
+    (void)abn_from_text(&m, "9.999999999999999999999999999999999E6144");
+    return m;
 }
 
 abn_status abn_from_text(abn *out, const char *s)
@@ -249,8 +269,8 @@ abn_status abn_fmod(abn *out, const abn *a, const abn *b)
         *out = abn_zero();
         return ABN_OK;
     }
-    if (bid128_isSubnormal(r)) return ABN_RANGE;
-    if (!bid128_isFinite(r)) return ABN_RANGE;
+    if (bid128_isSubnormal(r)) return ABN_UNDERFLOW;
+    if (!bid128_isFinite(r)) return ABN_DOMAIN;
     *out = from_bid(r);
     return ABN_OK;
 }

@@ -80,11 +80,11 @@ int main(void)
     check("reject 1.2.3", abn_from_text(&a, "1.2.3") == ABN_BAD_TEXT);
     check("reject 1E", abn_from_text(&a, "1E") == ABN_BAD_TEXT);
     check("reject 1x", abn_from_text(&a, "1x") == ABN_BAD_TEXT);
-    check("reject exponent past range", abn_from_text(&a, "1E10000") == ABN_RANGE);
+    check("reject exponent past range", abn_from_text(&a, "1E10000") == ABN_OVERFLOW);
     check("top of range", abn_from_text(&a, "9.999999999999999999999999999999999E6144") == ABN_OK);
-    check("past the top", abn_from_text(&a, "1E6145") == ABN_RANGE);
+    check("past the top", abn_from_text(&a, "1E6145") == ABN_OVERFLOW);
     check("bottom of range", abn_from_text(&a, "1E-6143") == ABN_OK);
-    check("below the bottom", abn_from_text(&a, "1E-6144") == ABN_RANGE);
+    check("below the bottom", abn_from_text(&a, "1E-6144") == ABN_UNDERFLOW);
     check("reject inf", abn_from_text(&a, "inf") == ABN_BAD_TEXT);
     check("reject nan", abn_from_text(&a, "nan") == ABN_BAD_TEXT);
 
@@ -108,10 +108,19 @@ int main(void)
     check_text("divide by zero leaves out", &r, "1");
     abn_from_text(&a, "1E4000");
     r = a;
-    check("multiply past range", abn_mul(&r, &a, &a) == ABN_RANGE);
+    check("multiply past range: overflow (unit 026)", abn_mul(&r, &a, &a) == ABN_OVERFLOW);
+    check("its sign: positive", !abn_overflow_negative());
+    {
+        abn na = abn_neg(&a);
+        check("a negative product past range: overflow, negative", abn_mul(&r, &a, &na) == ABN_OVERFLOW &&
+              abn_overflow_negative());
+        r = a;
+    }
     check_text("multiply past range leaves out", &r, "1E4000");
     abn_from_text(&a, "1E-4000");
-    check("multiply below range", abn_mul(&r, &a, &a) == ABN_RANGE);
+    check("multiply below range: underflow (unit 026)", abn_mul(&r, &a, &a) == ABN_UNDERFLOW);
+    check("the largest number: 34 nines E6144", abn_from_text(&b, "9.999999999999999999999999999999999E6144") == ABN_OK &&
+          (r = abn_largest(), abn_cmp(&r, &b) == 0));
 
     /* No negative zero leaves the engine: decimal arithmetic makes one from 0 x -5 and
      * from -0 in text, and the calculator must never show it. */

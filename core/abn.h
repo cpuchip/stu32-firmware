@@ -13,8 +13,8 @@
 
 #define ABN_DIGITS 34       /* significant digits kept in every result */
 #define ABN_EXP_MAX 6144    /* exponent of the leading digit lies in [ABN_EXP_MIN, ABN_EXP_MAX] */
-#define ABN_EXP_MIN (-6143) /* (the decimal128 normal range; overflow and underflow behaviour
-                               for the calculator arrive with a later unit) */
+#define ABN_EXP_MIN (-6143) /* (the decimal128 normal range; beyond it, ABN_OVERFLOW and
+                               ABN_UNDERFLOW, unit 026) */
 #define ABN_TEXT_MAX 64
 
 /* Opaque: 128 bits of engine-defined content. All bits zero is the value 0. */
@@ -25,7 +25,8 @@ typedef struct {
 typedef enum {
     ABN_OK = 0,
     ABN_DIV_ZERO,           /* division by zero */
-    ABN_RANGE,              /* result outside the normal range above */
+    ABN_RANGE,              /* a number out of range that is an error: a typed number, a working
+                               store exhausted (unit 026 moved overflow and underflow out) */
     ABN_BAD_TEXT,           /* text is not a number */
     ABN_DOMAIN,             /* argument outside the function's real domain */
     ABN_INEXACT,            /* abn_mul_exact only: the product needed rounding */
@@ -46,11 +47,21 @@ typedef enum {
     ABN_NO_SOLUTION,        /* a linear system with no solution (NO SOLUTION, p.F-3) */
     ABN_MULT_SOLUTION,      /* a linear system with many solutions (MULT SOLUTION, p.F-3) */
     ABN_INTERRUPTED,        /* a SOLVE or integral stopped by C or R/S (INTERRUPTED, unit 016) */
-    ABN_BAD_IMAGE           /* a state image that cannot be loaded: the device clears memory
+    ABN_BAD_IMAGE,          /* a state image that cannot be loaded: the device clears memory
                                (MEMORY CLEAR, UG p.B-3; unit 016) */
+    /* the engine's again (unit 026; last, so the numbers above keep their meaning in a state image) */
+    ABN_OVERFLOW,           /* a result beyond the largest finite value: the calculator gives the
+                               largest number, sets flag 6 and warns OVERFLOW (33s p.1-16, F-3) */
+    ABN_UNDERFLOW           /* a nonzero result below the smallest normal value: the calculator
+                               gives 0 (33s p.1-16) */
 } abn_status;
 
 abn abn_zero(void);
+abn abn_largest(void);                      /* 9.99...9E6144, 34 nines: what an overflow gives (unit 026) */
+/* The sign of the infinite result behind the last ABN_OVERFLOW the engine returned: the true sign
+   where that rounding was the result's only one (an exact value rounded once); a function that forms
+   |result| first, or returns ABN_OVERFLOW itself, has its sign from its own rule (unit 026). */
+bool abn_overflow_negative(void);
 bool abn_is_zero(const abn *a);
 int abn_cmp(const abn *a, const abn *b);    /* -1, 0, 1 by value */
 abn abn_neg(const abn *a);                  /* zero stays zero, never negative */

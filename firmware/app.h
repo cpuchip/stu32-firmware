@@ -87,6 +87,8 @@ typedef struct {
     bool pause;             /* a program paused at PSE, going on by itself after APP_PSE_MS */
     const char *notice;     /* a brief notice on the X line, NULL none (unit 024: a base result clamped) */
     uint32_t notice_ms;     /* when it began; it goes after APP_NOTICE_MS or at the next key */
+    bool ovf_pending;       /* an overflow in the run going on: its OVERFLOW notice when the run
+                               ends (33s p.13-9; unit 026) */
     uint32_t pause_ms;      /* when the pause began */
     int busy_op;            /* the op that started it, for ab_busy_message */
     bool dirty;             /* changed since the last save */

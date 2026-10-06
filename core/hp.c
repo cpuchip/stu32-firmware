@@ -329,7 +329,7 @@ bool hp_ln(hp *r, const hp *s, const hp *t, int p)
     bool near = hp_lead(t) < -1;    /* |s - 1| < 0.1: the form that keeps a small ln small */
     if (near) {
         abn_status st = hp_round(&a, t);
-        if (st == ABN_RANGE) {      /* t below the engine's range: ln(1 + t) = t to far beyond p */
+        if (st == ABN_UNDERFLOW) {  /* t below the engine's range: ln(1 + t) = t to far beyond p */
             *r = *t;
             hp_trim(r, p);
             return true;

@@ -195,7 +195,7 @@ static const char *const STATUS_NAMES[] = {"OK", "DIV_ZERO", "RANGE", "BAD_TEXT"
                                            "MEMORY_FULL", "NONPROGRAMMABLE", "BUDGET", "NO_ROOT",
                                            "SELECT_FN", "NESTED", "SYNTAX", "INVALID_VAR",
                                            "NO_SOLUTION", "MULT_SOLUTION", "INTERRUPTED",
-                                           "BAD_IMAGE"};
+                                           "BAD_IMAGE", "OVERFLOW", "UNDERFLOW"};
 
 /* Applies one key token. Returns 0, or -1 for an unknown token. */
 static int apply_token(ab_calc *c, const char *tok, int *errors)

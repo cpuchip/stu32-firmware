@@ -18,8 +18,9 @@
 #define ST_SXY 5
 
 /* Adds (or with remove, takes away) the data point (x, y): one correctly rounded operation per
-   register, all or nothing. */
-abn_status st_accumulate(abn r[6], const abn *x, const abn *y, bool remove);
+   register, all or nothing for an error; a register that overflows is the largest number with
+   *over set, one that underflows 0 (unit 026). */
+abn_status st_accumulate(abn r[6], const abn *x, const abn *y, bool remove, bool *over);
 
 abn_status st_mean(abn *out, const abn r[6], bool of_y);
 abn_status st_wmean(abn *out, const abn r[6]);

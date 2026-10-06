@@ -59,6 +59,17 @@ static abn_status load4(quad *q, const cplx *a, const cplx *b)
     return ABN_OK;
 }
 
+/* A part rounded from its exact value: one below the range is 0 (unit 026: an underflow gives 0; the
+ * part is exact, so it is truly that small); the other statuses stand. */
+static abn_status part(abn *out, abn_status st)
+{
+    if (st == ABN_UNDERFLOW) {
+        *out = abn_zero();
+        return ABN_OK;
+    }
+    return st;
+}
+
 /* (a + bi)(c + di) = (ac - bd) + (ad + bc)i, each part exact, then rounded once. */
 static abn_status mul_(cplx *out, const cplx *a, const cplx *b)
 {
@@ -68,8 +79,8 @@ static abn_status mul_(cplx *out, const cplx *a, const cplx *b)
     if ((st = load4(&q, a, b)) != ABN_OK) return st;
     xn_set_int(q.DEN, 1);
     if (!dot2(q.N1, q.A, q.C, q.B, q.D, true) || !dot2(q.N2, q.A, q.D, q.B, q.C, false)) return ABN_RANGE;
-    if ((st = xn_div_to_abn(&r.re, q.N1, q.DEN)) != ABN_OK) return st;
-    if ((st = xn_div_to_abn(&r.im, q.N2, q.DEN)) != ABN_OK) return st;
+    if ((st = part(&r.re, xn_div_to_abn(&r.re, q.N1, q.DEN))) != ABN_OK) return st;
+    if ((st = part(&r.im, xn_div_to_abn(&r.im, q.N2, q.DEN))) != ABN_OK) return st;
     *out = r;
     return ABN_OK;
 }
@@ -84,8 +95,8 @@ static abn_status div_(cplx *out, const cplx *a, const cplx *b)
     if (!dot2(q.DEN, q.C, q.C, q.D, q.D, false)) return ABN_RANGE;
     if (xn_sign(q.DEN) == 0) return ABN_DIV_ZERO;
     if (!dot2(q.N1, q.A, q.C, q.B, q.D, false) || !dot2(q.N2, q.B, q.C, q.A, q.D, true)) return ABN_RANGE;
-    if ((st = xn_div_to_abn(&r.re, q.N1, q.DEN)) != ABN_OK) return st;
-    if ((st = xn_div_to_abn(&r.im, q.N2, q.DEN)) != ABN_OK) return st;
+    if ((st = part(&r.re, xn_div_to_abn(&r.re, q.N1, q.DEN))) != ABN_OK) return st;
+    if ((st = part(&r.im, xn_div_to_abn(&r.im, q.N2, q.DEN))) != ABN_OK) return st;
     *out = r;
     return ABN_OK;
 }
@@ -157,7 +168,7 @@ static int lead_of(const abn *a)
 static abn_status mulp(abn *out, const abn *a, const abn *b)
 {
     abn_status st = abn_mul(out, a, b);
-    if (st == ABN_RANGE && lead_of(a) + lead_of(b) < 0) {
+    if (st == ABN_UNDERFLOW && lead_of(a) + lead_of(b) < 0) {
         *out = abn_zero();
         return ABN_OK;
     }
@@ -169,20 +180,13 @@ static abn_status mulp(abn *out, const abn *a, const abn *b)
  * 10^180) the engine's own functions stand in. */
 #define HP_WORK 50
 
-/* Rounds both parts once; a part below the range beside a nonzero part within it is 0 (negligible
- * normwise). Both below the range is a range error, as for a real result. */
+/* Rounds both parts once; a part below the range is 0 (unit 026, as for a real result: an underflow
+ * gives 0; each part is rounded from its value to HP_WORK digits, so it is truly that small). A part
+ * beyond the range is an overflow, which a complex result reports as an error (abacus #4198). */
 static abn_status round_parts(cplx *out, const hp *re, const hp *im)
 {
     cplx r;
-    abn_status s1 = hp_round(&r.re, re), s2 = hp_round(&r.im, im);
-    if (s1 == ABN_RANGE && s2 == ABN_OK && !abn_is_zero(&r.im) && hp_lead(re) < 0) {
-        r.re = abn_zero();
-        s1 = ABN_OK;
-    }
-    if (s2 == ABN_RANGE && s1 == ABN_OK && !abn_is_zero(&r.re) && hp_lead(im) < 0) {
-        r.im = abn_zero();
-        s2 = ABN_OK;
-    }
+    abn_status s1 = part(&r.re, hp_round(&r.re, re)), s2 = part(&r.im, hp_round(&r.im, im));
     if (s1 != ABN_OK) return s1;
     if (s2 != ABN_OK) return s2;
     *out = r;
@@ -208,7 +212,11 @@ static abn_status exp_lib(cplx *out, const cplx *z)
 abn_status cx_exp(cplx *out, const cplx *z)
 {
     if (!hp_from_abn(&ha, &z->re) || !hp_from_abn(&hb, &z->im)) return ABN_RANGE;
-    if (!hp_exp(&e1, &ha, HP_WORK)) return ABN_RANGE;       /* |a| >= 10^7: beyond the range */
+    if (!hp_exp(&e1, &ha, HP_WORK)) {                       /* |a| >= 10^7: beyond the range */
+        if (!abn_is_negative(&z->re)) return ABN_OVERFLOW;
+        out->re = out->im = abn_zero();                     /* e^a below it: 0 (unit 026) */
+        return ABN_OK;
+    }
     if (!hp_sincos(&e2, &e3, &hb, HP_WORK)) return exp_lib(out, z);
     if (!hp_mul(&pr, &e1, &e3, HP_WORK) || !hp_mul(&pi_, &e1, &e2, HP_WORK)) return ABN_RANGE;
     return round_parts(out, &pr, &pi_);
@@ -436,7 +444,12 @@ abn_status cx_pow(cplx *out, const cplx *z1, const cplx *z2)
         return ABN_RANGE;
     if (!hp_mul(&t1, &c, &e6, p + 5) || !hp_mul(&t2, &d, &e5, p + 5) || !hp_add(&wi, &t1, &t2, false, p))
         return ABN_RANGE;
-    if (!hp_exp(&E, &wr, HP_WORK) || !hp_sincos(&sn, &cs, &wi, HP_WORK)) return ABN_RANGE;
+    if (!hp_exp(&E, &wr, HP_WORK)) {                        /* |Re w| >= 10^7: beyond the range */
+        if (!wr.neg) return ABN_OVERFLOW;
+        out->re = out->im = abn_zero();                     /* below it: 0 (unit 026) */
+        return ABN_OK;
+    }
+    if (!hp_sincos(&sn, &cs, &wi, HP_WORK)) return ABN_RANGE;
     if (!hp_mul(&pr, &E, &cs, HP_WORK) || !hp_mul(&pi_, &E, &sn, HP_WORK)) return ABN_RANGE;
     return round_parts(out, &pr, &pi_);
 }

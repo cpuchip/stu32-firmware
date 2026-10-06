@@ -2,7 +2,9 @@
  *
  * Adds what the engine alone does not give: exact results where the decimal answer is exact,
  * angles in degrees and grads reduced exactly in decimal, and the calculator's domain rules.
- * Every function returns ABN_OK or an error status and leaves *out alone on error.
+ * Every function returns ABN_OK or an error status and leaves *out alone on error; ABN_OVERFLOW and
+ * ABN_UNDERFLOW say the result lies beyond the range (unit 026), except where a function's own
+ * comment says its outputs are written with it (->POL, ->REC).
  */
 #ifndef FN_H
 #define FN_H
@@ -66,6 +68,8 @@ abn_status fn_ncr(abn *out, const abn *n, const abn *r);
 abn_status fn_npr(abn *out, const abn *n, const abn *r);
 
 /* x, y to r, theta (theta in the angle mode, in (-half turn, half turn]) and back. */
+/* ABN_OVERFLOW from these two: a result beyond the range, written as the largest number with its
+   sign, both outputs written (unit 026); a part below the range is 0. */
 abn_status fn_topol(abn *r, abn *theta, const abn *x, const abn *y, fn_angle m);
 abn_status fn_torec(abn *x, abn *y, const abn *r, const abn *theta, fn_angle m);
 

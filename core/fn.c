@@ -139,6 +139,23 @@ static abn round_sig(const abn *x, int k)
     return K(text);
 }
 
+#define FN_HP 50        /* the digits these are formed to before their one rounding */
+
+/* y^e for y > 0 as e^(e ln y) in hp, rounded once: beside the range's edges, where the engine's pow
+ * (and the steps of pow_real) leave it inside though the result may not (unit 026: the engine gives
+ * 2^-30000 as an overflow). */
+static abn_status pow_hp(abn *out, const abn *y, const abn *e)
+{
+    static hp hy, he, one, t, l, w, r;
+    hp_set_int(&one, 1);
+    if (!hp_from_abn(&hy, y) || !hp_from_abn(&he, e) || !hp_add(&t, &hy, &one, true, HP_PMAX) ||
+        !hp_ln(&l, &hy, &t, FN_HP + 20) || !hp_mul(&w, &he, &l, FN_HP + 20))
+        return ABN_RANGE;
+    if (!hp_exp(&r, &w, FN_HP))         /* |e ln y| >= 10^7: beyond the range */
+        return w.neg ? ABN_UNDERFLOW : ABN_OVERFLOW;
+    return hp_round(out, &r);
+}
+
 /* y^e for y > 0. The engine's pow is accurate for non-integer exponents, but for integer
  * exponents it loses about one unit per power (measured: 247 units at n = 200, against its
  * documented bound of 8). So an integer power is exact by squaring when that is exact, and
@@ -161,7 +178,9 @@ static abn_status pow_real(abn *out, const abn *y, const abn *e)
     abn half = K("0.5"), e2, p, s;
     abn_status st;
     if ((st = abn_sub(&e2, e, &half)) != ABN_OK) return st;
-    if ((st = abn_pow(&p, y, &e2)) != ABN_OK) return st;
+    if ((st = abn_pow(&p, y, &e2)) == ABN_OVERFLOW || st == ABN_UNDERFLOW)
+        return pow_hp(out, y, e);   /* y^(n - 1/2) beyond the range though y^n may not be (unit 026) */
+    if (st != ABN_OK) return st;
     if ((st = abn_sqrt(&s, y)) != ABN_OK) return st;
     return abn_mul(out, &p, &s);
 }
@@ -230,7 +249,6 @@ abn_status fn_log(abn *out, const abn *x)
 
 /* ---- e^x - 1, ln(1 + x), 2^x, log2 x (ours, unit 021) ---- */
 
-#define FN_HP 50        /* the digits these are formed to before their one rounding */
 
 /* e^x - 1, its digits kept where x is tiny (core/hp.c). */
 abn_status fn_expm1(abn *out, const abn *x)
@@ -242,7 +260,7 @@ abn_status fn_expm1(abn *out, const abn *x)
     }
     if (!hp_from_abn(&hx, x)) return ABN_RANGE;
     if (hp_lead(&hx) >= 7) {    /* |x| >= 10^7: e^x overflows, or is far below a unit of 1's 34th digit */
-        if (!abn_is_negative(x)) return ABN_RANGE;
+        if (!abn_is_negative(x)) return ABN_OVERFLOW;
         *out = abn_from_int(-1);
         return ABN_OK;
     }
@@ -256,8 +274,8 @@ abn_status fn_ln1p(abn *out, const abn *x)
     static hp t, s, one, r;
     abn m1 = abn_from_int(-1);
     if (abn_cmp(x, &m1) <= 0) return ABN_DOMAIN;
-    if (abn_is_zero(x)) {
-        *out = abn_zero();
+    if (abn_is_zero(x) || tiny(x)) {
+        *out = *x;                      /* ln(1 + x) = x - x^2/2: x itself below 1E-40 (see tiny) */
         return ABN_OK;
     }
     hp_set_int(&one, 1);
@@ -277,7 +295,7 @@ abn_status fn_twox(abn *out, const abn *x)
     hp_set_int(&two, 2);
     if (!hp_from_abn(&hx, x) || !hp_ln(&l2, &two, &one, FN_HP + 5) || !hp_mul(&t, &hx, &l2, FN_HP + 5) ||
         !hp_exp(&r, &t, FN_HP))
-        return ABN_RANGE;           /* |x ln 2| >= 10^7: beyond the range either way */
+        return abn_is_negative(x) ? ABN_UNDERFLOW : ABN_OVERFLOW;  /* |x ln 2| >= 10^7: beyond the range */
     return hp_round(out, &r);
 }
 
@@ -335,14 +353,29 @@ abn_status fn_xroot(abn *out, const abn *y, const abn *x)
     }
     abn ay = abn_abs(y), u = one(), h, nh, res, l, lny, corr, r;
     abn_status st;
-    if ((st = abn_div(&h, &u, x)) != ABN_OK) return st;
+    if ((st = abn_div(&h, &u, x)) == ABN_UNDERFLOW) {
+        /* |1/x| below the range: y^(1/x) is 1 to far beyond the 34th digit (unit 026) */
+        *out = yneg ? abn_neg(&u) : u;
+        return ABN_OK;
+    }
+    if (st != ABN_OK) return st;
+    if (tiny(&h)) {
+        /* |1/x| < 1E-40: y^(1/x) = 1 + ln(y)/x rounds to 1 (|ln y| < 14200), and the engine's pow
+           underflows inside (unit 026) */
+        *out = yneg ? abn_neg(&u) : u;
+        return ABN_OK;
+    }
     nh = abn_neg(&h);
-    if ((st = abn_fma(&res, &nh, x, &u)) != ABN_OK) return st;      /* 1 - h*x */
+    if ((st = abn_fma(&res, &nh, x, &u)) == ABN_UNDERFLOW) res = abn_zero();       /* 1 - h*x */
+    else if (st != ABN_OK) return st;
     if ((st = pow_real(&r, &ay, &h)) != ABN_OK) return st;
     if (!abn_is_zero(&res)) {
-        if ((st = abn_div(&l, &res, x)) != ABN_OK) return st;
+        /* the correction (1 + l ln y); below the range it is negligible (unit 026) */
+        if ((st = abn_div(&l, &res, x)) == ABN_UNDERFLOW) l = abn_zero();
+        else if (st != ABN_OK) return st;
         if ((st = abn_ln(&lny, &ay)) != ABN_OK) return st;
-        if ((st = abn_mul(&corr, &l, &lny)) != ABN_OK) return st;
+        if ((st = abn_mul(&corr, &l, &lny)) == ABN_UNDERFLOW) corr = abn_zero();
+        else if (st != ABN_OK) return st;
         if (!abn_is_zero(&corr) && (st = abn_fma(&r, &r, &corr, &r)) != ABN_OK) return st;
     }
     /* Exact roots exact: if a short neighbour of r, raised to x, gives y back exactly. */
@@ -372,11 +405,30 @@ static bool floor_adjust(const abn *r, const abn *x)
     return !abn_is_zero(r) && abn_is_negative(r) != abn_is_negative(x);
 }
 
+/* The truncated remainder of y by x; one below the range (|y| tiny beside x, or x tiny) is kept as
+ * its sign alone, a nonzero smaller than any number (unit 026: it is not the result, only its floor
+ * correction). False when below the range. */
+static abn_status trunc_rem(abn *r, bool *tiny_rem, const abn *y, const abn *x)
+{
+    abn_status st = abn_fmod(r, y, x);
+    *tiny_rem = st == ABN_UNDERFLOW;
+    if (*tiny_rem) {
+        abn m;
+        abn_from_text(&m, "1E-6143");
+        *r = abn_is_negative(y) ? abn_neg(&m) : m;     /* stands for its sign */
+        return ABN_OK;
+    }
+    return st;
+}
+
 abn_status fn_idiv(abn *out, const abn *y, const abn *x)
 {
     abn q, r, one = abn_from_int(1);
     abn_status st;
-    if ((st = abn_idiv(&q, y, x)) != ABN_OK || (st = abn_fmod(&r, y, x)) != ABN_OK) return st;
+    bool tr;
+    if ((st = abn_idiv(&q, y, x)) == ABN_UNDERFLOW) q = abn_zero();    /* |y / x| < 1: 0 (unit 026) */
+    else if (st != ABN_OK) return st;
+    if ((st = trunc_rem(&r, &tr, y, x)) != ABN_OK) return st;
     if (floor_adjust(&r, x)) return abn_sub(out, &q, &one);
     *out = q;
     return ABN_OK;
@@ -386,7 +438,25 @@ abn_status fn_rmdr(abn *out, const abn *y, const abn *x)
 {
     abn r;
     abn_status st;
-    if ((st = abn_fmod(&r, y, x)) != ABN_OK) return st;
+    bool tr;
+    if ((st = trunc_rem(&r, &tr, y, x)) != ABN_OK) return st;
+    if (tr) {
+        /* the truncated remainder below the range (unit 026). Beside an x not that small, x plus it
+           is x; else both scaled by 10^200 (exact), the remainder taken there and scaled back */
+        abn ax = abn_abs(x), small, k, ys, xs, rs, ik;
+        abn_from_text(&small, "1E-6000");
+        if (abn_cmp(&ax, &small) >= 0) {
+            if (!floor_adjust(&r, x)) return ABN_UNDERFLOW;
+            *out = *x;
+            return ABN_OK;
+        }
+        abn_from_text(&k, "1E200");
+        abn_from_text(&ik, "1E-200");
+        if ((st = abn_mul(&ys, y, &k)) != ABN_OK || (st = abn_mul(&xs, x, &k)) != ABN_OK)
+            return st == ABN_OVERFLOW ? ABN_RANGE : st;    /* y huge beside a tiny x: an error */
+        if ((st = fn_rmdr(&rs, &ys, &xs)) != ABN_OK) return st;
+        return abn_mul(out, &rs, &ik);
+    }
     if (floor_adjust(&r, x)) return abn_add(out, &r, x);
     *out = r;
     return ABN_OK;
@@ -396,18 +466,42 @@ abn_status fn_pct(abn *out, const abn *y, const abn *x)
 {
     abn t, hundred = abn_from_int(100);
     abn_status st = abn_mul(&t, y, x);
+    if (st == ABN_OVERFLOW) {
+        /* y x beyond the range, y x / 100 perhaps not: y / 100 first, exact (unit 026) */
+        if ((st = abn_div(&t, y, &hundred)) != ABN_OK) return st;
+        return abn_mul(out, &t, x);
+    }
     if (st != ABN_OK) return st;
     return abn_div(out, &t, &hundred);  /* dividing by 100 adds no rounding */
 }
 
 abn_status fn_pctchg(abn *out, const abn *y, const abn *x)
 {
-    abn d, hundred = abn_from_int(100);
+    abn d, hundred = abn_from_int(100), ys = *y, xs = *x;
     abn_status st;
     if (abn_is_zero(y)) return ABN_DIV_ZERO;
-    if ((st = abn_sub(&d, x, y)) != ABN_OK) return st;
-    if ((st = abn_mul(&d, &d, &hundred)) != ABN_OK) return st;
-    return abn_div(out, &d, y);
+    if ((st = abn_sub(&d, x, y)) == ABN_UNDERFLOW) {
+        /* x - y below the range: both are tiny; scaled by 10^200 (exact) the change is the same */
+        abn k;
+        abn_from_text(&k, "1E200");
+        if ((st = abn_mul(&xs, x, &k)) != ABN_OK || (st = abn_mul(&ys, y, &k)) != ABN_OK ||
+            (st = abn_sub(&d, &xs, &ys)) != ABN_OK)
+            return st;
+    } else if (st == ABN_OVERFLOW) {
+        /* x - y beyond the range: x and y huge, of opposite signs; (x / y - 1) 100 (unit 026) */
+        abn q, u = one();
+        if ((st = abn_div(&q, x, y)) != ABN_OK || (st = abn_sub(&q, &q, &u)) != ABN_OK) return st;
+        return abn_mul(out, &q, &hundred);
+    } else if (st != ABN_OK) {
+        return st;
+    }
+    if ((st = abn_mul(&d, &d, &hundred)) == ABN_OVERFLOW) {
+        /* (x - y) 100 beyond the range: divide first; times 100 adds no rounding (unit 026) */
+        if ((st = abn_div(&d, &d, &ys)) != ABN_OK) return st;
+        return abn_mul(out, &d, &hundred);
+    }
+    if (st != ABN_OK) return st;
+    return abn_div(out, &d, &ys);
 }
 
 /* ---- trigonometry (UG p.4-3 to p.4-5; exact reduction ours, unit 003 amendment 1) ---- */
@@ -599,7 +693,11 @@ static abn_status cos_reduced(abn *out, const abn *a, const angle_unit *u)
         return ABN_OK;
     }
     if ((st = trig_exactish(out, a, u, true, NULL)) != ABN_DOMAIN) return st;
-    if ((st = to_rad_pair(&hi, &lo, a, u->to_rad, u->to_rad_lo)) != ABN_OK) return st;
+    if ((st = to_rad_pair(&hi, &lo, a, u->to_rad, u->to_rad_lo)) == ABN_UNDERFLOW) {
+        *out = one();                   /* an angle below the range in radians: cos 1 (unit 026) */
+        return ABN_OK;
+    }
+    if (st != ABN_OK) return st;
     if ((st = abn_cos(&cv, &hi)) != ABN_OK) return st;
     if (abn_is_zero(&lo) || abn_sin(&sv, &hi) != ABN_OK) {
         *out = cv;
@@ -775,6 +873,15 @@ abn_status fn_acos(abn *out, const abn *x, fn_angle m)
 
 abn_status fn_atan(abn *out, const abn *x, fn_angle m)
 {
+    abn big, ax = abn_abs(x);
+    abn_from_text(&big, "1E40");
+    if (abn_cmp(&ax, &big) >= 0) {
+        /* atan x = +-(pi/2 - 1/x), 1/x far below the 34th digit (the engine's atan leaves the range
+           inside for the largest x, unit 026) */
+        *out = K(m == FN_DEG ? "90" : m == FN_GRAD ? "100" : "1.570796326794896619231321691639751");
+        if (abn_is_negative(x)) *out = abn_neg(out);
+        return ABN_OK;
+    }
     return inverse(out, x, m, abn_atan, ATAN_EXACT, (int)(sizeof ATAN_EXACT / sizeof ATAN_EXACT[0]), true);
 }
 
@@ -799,7 +906,17 @@ abn_status fn_cosh(abn *out, const abn *x)
     }
     return abn_cosh(out, x);
 }
-abn_status fn_tanh(abn *out, const abn *x) { return odd_fn(out, x, abn_tanh); }
+abn_status fn_tanh(abn *out, const abn *x)
+{
+    abn big = abn_from_int(100), ax = abn_abs(x);
+    if (abn_cmp(&ax, &big) >= 0) {
+        /* 1 - |tanh x| = 2e^-2|x| lies far below the 34th digit (and the engine's tanh leaves the
+           range inside for the largest x, unit 026) */
+        *out = abn_is_negative(x) ? abn_from_int(-1) : one();
+        return ABN_OK;
+    }
+    return odd_fn(out, x, abn_tanh);
+}
 abn_status fn_asinh(abn *out, const abn *x) { return odd_fn(out, x, abn_asinh); }
 abn_status fn_acosh(abn *out, const abn *x) { return abn_acosh(out, x); }
 abn_status fn_atanh(abn *out, const abn *x) { return odd_fn(out, x, abn_atanh); }
@@ -880,7 +997,9 @@ abn_status fn_rnd(abn *out, const abn *x, ab_mode mode, int n)
             return ABN_OK;
         }
     }
-    *out = round_sig(x, n + 1);
+    abn r = round_sig(x, n + 1);
+    if (abn_is_zero(&r)) return ABN_OVERFLOW;   /* all nines rounded up past the largest number (unit 026) */
+    *out = r;
     return ABN_OK;
 }
 
@@ -894,6 +1013,10 @@ abn_status fn_hms(abn *out, const abn *x)
     abn ax = abn_abs(x), s, h, rest, m, sec, v, k3600 = abn_from_int(3600), k60 = abn_from_int(60),
         k100 = abn_from_int(100), k10000 = abn_from_int(10000);
     abn_status st;
+    if (abn_is_integer(x)) {
+        *out = *x;                      /* whole hours: H.MMSS is x (and x 3600 may leave the range) */
+        return ABN_OK;
+    }
     if ((st = abn_mul(&s, &ax, &k3600)) != ABN_OK) return st;
     if ((st = abn_idiv(&h, &s, &k3600)) != ABN_OK) return st;
     if ((st = abn_fmod(&rest, &s, &k3600)) != ABN_OK) return st;
@@ -914,6 +1037,10 @@ abn_status fn_hmsinv(abn *out, const abn *x)
     abn ax = abn_abs(x), h, f, mm, ss, t, k3600 = abn_from_int(3600), k60 = abn_from_int(60),
         k100 = abn_from_int(100);
     abn_status st;
+    if (abn_is_integer(x)) {
+        *out = *x;                      /* whole hours (and h 3600 may leave the range, unit 026) */
+        return ABN_OK;
+    }
     if ((st = abn_trunc(&h, &ax)) != ABN_OK) return st;
     if ((st = abn_sub(&f, &ax, &h)) != ABN_OK) return st;
     if ((st = abn_mul(&f, &f, &k100)) != ABN_OK) return st;          /* MM.SSss: exact */
@@ -1035,7 +1162,7 @@ static bool gamma_pos(hp *g, const hp *z)
 /* x! of a non-integer x is gamma(x + 1) (UG p.4-15). Below x = -1, the reflection
  * gamma(x + 1) gamma(-x) = pi / sin(pi (x + 1)), with the sine from the exact fraction of x
  * (the nearer of f and 1 - f) so it keeps its digits next to the poles. A result outside the
- * range, too large or too small, is the range error (unit 003 rule 4). */
+ * range is an overflow or an underflow (unit 026; it was unit 003 rule 4's range error). */
 static abn_status gamma_(abn *out, const abn *x)
 {
     static hp hx, h1, z, g, pi, a, s, c, t, u;
@@ -1043,7 +1170,7 @@ static abn_status gamma_(abn *out, const abn *x)
     hp_set_int(&h1, 1);
     if (!hp_from_abn(&hx, x)) return ABN_RANGE;
     if (abn_cmp(x, &m1) > 0) {
-        if (!hp_add(&z, &hx, &h1, false, 120) || !gamma_pos(&g, &z)) return ABN_RANGE;
+        if (!hp_add(&z, &hx, &h1, false, 120) || !gamma_pos(&g, &z)) return ABN_OVERFLOW;
         return hp_round(out, &g);
     }
     /* x = fl + f, 0 < f < 1, all exact; sin(pi (x + 1)) = -(-1)^fl sin(pi f) */
@@ -1051,7 +1178,7 @@ static abn_status gamma_(abn *out, const abn *x)
         return ABN_RANGE;
     if (abn_cmp(&f1, &f) < 0) f = f1;
     hp_neg(&hx);
-    if (!gamma_pos(&g, &hx)) return ABN_RANGE;      /* gamma(-x) beyond the range: x! below it */
+    if (!gamma_pos(&g, &hx)) return ABN_UNDERFLOW;  /* gamma(-x) beyond the range: x! below it */
     if (!hp_from_abn(&a, &f) || !hp_pi(&pi, GAMMA_P + 5) || !hp_mul(&t, &pi, &a, GAMMA_P + 5) ||
         !hp_sincos(&s, &c, &t, GAMMA_P) || !hp_mul(&u, &s, &g, GAMMA_P) || !hp_div(&t, &pi, &u, GAMMA_P))
         return ABN_RANGE;
@@ -1066,7 +1193,7 @@ static abn_status fn_fact_(abn *out, const abn *x)
     int32_t n;
     if (!ar_bi(1, &f)) return ABN_RANGE;
     if (abn_is_negative(x)) return ABN_DOMAIN;
-    if (!small_int(x, &n) || n > FACT_MAX) return ABN_RANGE;
+    if (!small_int(x, &n) || n > FACT_MAX) return ABN_OVERFLOW;
     bi_set(f, 1);
     for (int32_t i = 2; i <= n; i++)
         if (!bi_mul_u32(f, (uint32_t)i)) return ABN_RANGE;
@@ -1113,13 +1240,13 @@ static abn_status fn_npr_(abn *out, const abn *xn, const abn *xr)
        unit 004's 0 for r > n and its large n) */
     if (bi_cmp(rb, n) > 0 || bi_ndigits(n) >= 17) return ABN_DOMAIN;
     int32_t r = small_bi(rb);
-    if (r < 0 || r > FACT_MAX) return ABN_RANGE;     /* nPr >= r! */
+    if (r < 0 || r > FACT_MAX) return ABN_OVERFLOW;  /* nPr >= r! */
     bi_set(p, 1);
     *t = *n;
     for (int32_t i = 0; i < r; i++) {
         if (!bi_mul(tmp, p, t)) return ABN_RANGE;
         *p = *tmp;
-        if (bi_ndigits(p) > RESULT_DIGITS_MAX) return ABN_RANGE;
+        if (bi_ndigits(p) > RESULT_DIGITS_MAX) return ABN_OVERFLOW;
         bi_sub_u32(t, 1);
     }
     return bi_to_abn(out, p, false, 0, false);
@@ -1149,14 +1276,14 @@ static abn_status fn_ncr_(abn *out, const abn *xn, const abn *xr)
         *rb = *tmp;
     }
     int32_t r = small_bi(rb);
-    if (r < 0 || r > 20500) return ABN_RANGE;   /* C(n, r') >= 2^r' when r' <= n / 2: beyond range */
+    if (r < 0 || r > 20500) return ABN_OVERFLOW;    /* C(n, r') >= 2^r' when r' <= n / 2: beyond range */
     bi_set(c, 1);
     for (int32_t i = 1; i <= r; i++) {
         *t = *base;
         if (!bi_add_u32(t, (uint32_t)i) || !bi_mul(tmp, c, t)) return ABN_RANGE;
         *c = *tmp;
         bi_divmod_u32(c, (uint32_t)i);             /* exact */
-        if (bi_ndigits(c) > RESULT_DIGITS_MAX) return ABN_RANGE;
+        if (bi_ndigits(c) > RESULT_DIGITS_MAX) return ABN_OVERFLOW;
     }
     return bi_to_abn(out, c, false, 0, false);
 }
@@ -1175,8 +1302,17 @@ abn_status fn_ncr(abn *out, const abn *xn, const abn *xr)
 abn_status fn_topol(abn *r, abn *theta, const abn *x, const abn *y, fn_angle m)
 {
     abn rr, th, ax = abn_abs(x), ay = abn_abs(y);
-    abn_status st;
-    if ((st = abn_hypot(&rr, x, y)) != ABN_OK) return st;
+    abn_status st, rst = ABN_OK;
+    /* r beyond the range: the largest number, theta as ever, reported ABN_OVERFLOW with both written;
+       below it 0 (unit 026) */
+    if ((st = abn_hypot(&rr, x, y)) == ABN_OVERFLOW) {
+        rr = abn_largest();
+        rst = ABN_OVERFLOW;
+    } else if (st == ABN_UNDERFLOW) {
+        rr = abn_zero();
+    } else if (st != ABN_OK) {
+        return st;
+    }
     if (m != FN_RAD) {
         const angle_unit *u = unit_of(m);
         const char *v = NULL;
@@ -1193,17 +1329,19 @@ abn_status fn_topol(abn *r, abn *theta, const abn *x, const abn *y, fn_angle m)
             if (yneg) th = abn_neg(&th);
             *r = rr;
             *theta = th;
-            return ABN_OK;
+            return rst;
         }
     }
-    if ((st = abn_atan2(&th, y, x)) != ABN_OK) return st;
+    if ((st = abn_atan2(&th, y, x)) == ABN_UNDERFLOW) th = abn_zero();     /* theta below the range */
+    else if (st != ABN_OK) return st;
     if (m != FN_RAD) {
         abn k = K(unit_of(m)->from_rad);
-        if ((st = abn_mul(&th, &th, &k)) != ABN_OK) return st;
+        if ((st = abn_mul(&th, &th, &k)) == ABN_UNDERFLOW) th = abn_zero();
+        else if (st != ABN_OK) return st;
     }
     *r = rr;
     *theta = th;
-    return ABN_OK;
+    return rst;
 }
 
 /* r cos theta and r sin theta. In degrees and grads the products are formed exactly from the
@@ -1218,39 +1356,87 @@ static abn_status rect_part(abn *out, const abn *r, const abn *theta, fn_angle m
     if ((st = reduce(&rd, theta, u)) != ABN_OK) return st;
     bool use_cos = want_y ? rd.swap : !rd.swap;     /* the function the reduced angle needs */
     int sign = want_y ? rd.sin_sign : rd.cos_sign;
+    abn_status vs = ABN_OK;                         /* the product's: its one rounding */
     if (abn_is_zero(&rd.a)) {
         v = use_cos ? *r : abn_zero();              /* cos 0 = 1, sin 0 = 0 exactly */
     } else if (!use_cos && u->sixth_of_half && (v = K(u->sixth_of_half), abn_cmp(&rd.a, &v) == 0)) {
         abn half = K("0.5");
-        if ((st = abn_mul(&v, r, &half)) != ABN_OK) return st;     /* r sin 30 = r / 2 */
+        vs = abn_mul(&v, r, &half);                 /* r sin 30 = r / 2 */
     } else if ((st = trig_exactish(&v, &rd.a, u, use_cos, r)) == ABN_DOMAIN) {
         abn f;      /* below 1E-17 of a unit */
         st = use_cos ? cos_reduced(&f, &rd.a, u) : sin_reduced(&f, &rd.a, u);
-        if (st != ABN_OK) return st;
-        if ((st = abn_mul(&v, &f, r)) != ABN_OK) return st;
-    } else if (st != ABN_OK) {
-        return st;
+        if (st == ABN_UNDERFLOW) {
+            /* the angle below the range in radians: sin a = a k (k the unit's radians to beyond 34
+               digits, to_rad + to_rad_lo), and r a k may be in range: formed in hp, rounded once
+               (unit 026) */
+            static hp hr, ha, hk, hl, t1, t2;
+            abn k = K(u->to_rad), kl = K(u->to_rad_lo);
+            if (!hp_from_abn(&hr, r) || !hp_from_abn(&ha, &rd.a) || !hp_from_abn(&hk, &k) ||
+                !hp_from_abn(&hl, &kl) || !hp_add(&t1, &hk, &hl, false, 80) || !hp_mul(&t2, &ha, &t1, 80) ||
+                !hp_mul(&t1, &t2, &hr, 80))
+                return ABN_RANGE;
+            vs = hp_round(&v, &t1);
+        } else if (st != ABN_OK) {
+            return st;
+        } else {
+            vs = abn_mul(&v, &f, r);
+        }
+    } else {
+        vs = st;
+    }
+    /* the part beyond the range: the largest number with r's sign (the function's here is +), or
+       below it 0 (unit 026); the caller learns of an overflow by the status, *out written */
+    if (vs == ABN_UNDERFLOW) {
+        v = abn_zero();
+        vs = ABN_OK;
+    } else if (vs == ABN_OVERFLOW) {
+        v = abn_largest();
+        if (abn_is_negative(r)) v = abn_neg(&v);
+    } else if (vs != ABN_OK) {
+        return vs;
     }
     *out = signed_(&v, sign);
-    return ABN_OK;
+    return vs;
+}
+
+/* A part r f with its status: beyond the range the largest number with the product's sign, below it
+ * 0 (unit 026); *over set for the first. Other statuses pass. */
+static abn_status rad_part(abn *out, const abn *f, const abn *r, bool *over)
+{
+    abn_status st = abn_mul(out, f, r);
+    if (st == ABN_UNDERFLOW) {
+        *out = abn_zero();
+        return ABN_OK;
+    }
+    if (st == ABN_OVERFLOW) {
+        *out = abn_largest();
+        if (abn_is_negative(f) != abn_is_negative(r)) *out = abn_neg(out);
+        *over = true;
+        return ABN_OK;
+    }
+    return st;
 }
 
 abn_status fn_torec(abn *x, abn *y, const abn *r, const abn *theta, fn_angle m)
 {
     abn c, s;
     abn_status st;
+    bool over = false;
     if (m == FN_RAD) {
         if ((st = abn_cos(&c, theta)) != ABN_OK) return st;
-        if ((st = abn_sin(&s, theta)) != ABN_OK) return st;
-        if ((st = abn_mul(&c, &c, r)) != ABN_OK) return st;
-        if ((st = abn_mul(&s, &s, r)) != ABN_OK) return st;
+        if ((st = abn_sin(&s, theta)) == ABN_UNDERFLOW) s = *theta;  /* a tiny theta: sin theta = theta */
+        else if (st != ABN_OK) return st;
+        if ((st = rad_part(&c, &c, r, &over)) != ABN_OK) return st;
+        if ((st = rad_part(&s, &s, r, &over)) != ABN_OK) return st;
     } else {
-        if ((st = rect_part(&c, r, theta, m, false)) != ABN_OK) return st;
-        if ((st = rect_part(&s, r, theta, m, true)) != ABN_OK) return st;
+        if ((st = rect_part(&c, r, theta, m, false)) == ABN_OVERFLOW) over = true;
+        else if (st != ABN_OK) return st;
+        if ((st = rect_part(&s, r, theta, m, true)) == ABN_OVERFLOW) over = true;
+        else if (st != ABN_OK) return st;
     }
     *x = c;
     *y = s;
-    return ABN_OK;
+    return over ? ABN_OVERFLOW : ABN_OK;
 }
 
 /* ---- RAND and SEED (ours, unit 004) ---- */

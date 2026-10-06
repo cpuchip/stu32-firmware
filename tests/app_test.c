@@ -1139,6 +1139,47 @@ int main(void)
         expect(!a.notice, "a key clears it at once");
     }
 
+    /* unit 026: an overflow is the largest number with the OVERFLOW notice, not an error (33s p.1-16,
+       F-3); in a run the notice comes when it ends (p.13-9), and flag 5's stop holds the message */
+    {
+        static const ab_op OVF[] = {AB_LBL, AB_K1, AB_KE, AB_K6, AB_K0, AB_K0, AB_K0, AB_ENTER, AB_MUL, AB_K5, AB_RTN};
+        ab_init(&c);
+        app_init(&a, &c, now);
+        press(&a, "1 E 6 0 0 0 ENTER \xc3\x97");
+        app_ui(&a, &ui);
+        expect(ui.notice && !strcmp(ui.notice, "OVERFLOW") && !c.msg && ab_flag(&c, 6),
+               "1E6000 squared from the keys: the OVERFLOW notice, no message, flag 6 set");
+        press(&a, "C 1 E +/\xe2\x88\x92 6 0 0 0 ENTER \xc3\x97");
+        app_ui(&a, &ui);
+        expect(!ui.notice && !c.msg && x_of(&c) == 0, "an underflow: 0, no notice");
+        /* a program that overflows, run in slices of 2 lines: the notice when the run ends */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do(&c, AB_PRGM);
+        for (size_t i = 0; i < sizeof OVF / sizeof OVF[0]; i++) ab_do_arg(&c, OVF[i], 0);
+        ab_do(&c, AB_PRGM);
+        c.slice = 2;
+        press(&a, "XEQ ltr:A");
+        bool mid = a.running && !a.notice;
+        run_out(&a, &in);
+        app_ui(&a, &ui);
+        expect(mid && !a.running && ui.notice && !strcmp(ui.notice, "OVERFLOW") && x_of(&c) == 5,
+               "an overflow in a sliced run: no notice while it runs, OVERFLOW when it ends (33s p.13-9)");
+        /* flag 5 set: the run stops at the line after with OVERFLOW held as a message, no notice */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do(&c, AB_PRGM);
+        for (size_t i = 0; i < sizeof OVF / sizeof OVF[0]; i++) ab_do_arg(&c, OVF[i], 0);
+        ab_do(&c, AB_PRGM);
+        ab_do_arg(&c, AB_SF, 5);
+        press(&a, "XEQ ltr:A");
+        run_out(&a, &in);
+        app_ui(&a, &ui);
+        const char *m = ab_error_message(&c);
+        expect(c.stop == AB_STOP_STOP && c.msg && m && !strcmp(m, "OVERFLOW") && !ui.notice,
+               "flag 5: stopped with OVERFLOW held as a message, not a brief notice (33s p.F-3)");
+    }
+
     /* unit 025: the 33s's i and (i) from the keys, labels stamped with their mode, MODE restamping */
     {
         char t[48];

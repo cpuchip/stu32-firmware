@@ -10,21 +10,43 @@
 #include "stat.h"
 #include "xnum.h"
 
-abn_status st_accumulate(abn r[6], const abn *x, const abn *y, bool remove)
+/* One register's new value: an overflow is the largest number with the sign of the term that
+ * overflowed it (a sum leaves the range only with both of one sign, and |register| is within it, so
+ * the term's sign is the result's), *over set; an underflow is 0 (unit 026, abacus #4198: the data
+ * point goes in whole, each register at its own result). */
+static abn_status reg_settle(abn_status st, abn *out, bool neg, bool *over)
 {
-    abn t[6], one = abn_from_int(1), nx = abn_neg(x);
+    if (st == ABN_UNDERFLOW) {
+        *out = abn_zero();
+        return ABN_OK;
+    }
+    if (st != ABN_OVERFLOW) return st;
+    abn m = abn_largest();
+    *out = neg ? abn_neg(&m) : m;
+    *over = true;
+    return ABN_OK;
+}
+
+abn_status st_accumulate(abn r[6], const abn *x, const abn *y, bool remove, bool *over)
+{
+    abn t[6], one = abn_from_int(1), nx = abn_neg(x), ny = abn_neg(y);
     abn_status st;
     const abn *sx = remove ? &nx : x;               /* -x for removal: -x*x and -x*y */
+    const abn *sy = remove ? &ny : y;
+    bool o = false;
     if ((st = remove ? abn_sub(&t[ST_N], &r[ST_N], &one) : abn_add(&t[ST_N], &r[ST_N], &one)) != ABN_OK) return st;
-    if ((st = remove ? abn_sub(&t[ST_SX], &r[ST_SX], x) : abn_add(&t[ST_SX], &r[ST_SX], x)) != ABN_OK) return st;
-    if ((st = remove ? abn_sub(&t[ST_SY], &r[ST_SY], y) : abn_add(&t[ST_SY], &r[ST_SY], y)) != ABN_OK) return st;
-    if ((st = abn_fma(&t[ST_SX2], sx, x, &r[ST_SX2])) != ABN_OK) return st;
-    {
-        abn ny = abn_neg(y);
-        if ((st = abn_fma(&t[ST_SY2], remove ? &ny : y, y, &r[ST_SY2])) != ABN_OK) return st;
-    }
-    if ((st = abn_fma(&t[ST_SXY], sx, y, &r[ST_SXY])) != ABN_OK) return st;
+    st = remove ? abn_sub(&t[ST_SX], &r[ST_SX], x) : abn_add(&t[ST_SX], &r[ST_SX], x);
+    if ((st = reg_settle(st, &t[ST_SX], abn_is_negative(sx), &o)) != ABN_OK) return st;
+    st = remove ? abn_sub(&t[ST_SY], &r[ST_SY], y) : abn_add(&t[ST_SY], &r[ST_SY], y);
+    if ((st = reg_settle(st, &t[ST_SY], abn_is_negative(sy), &o)) != ABN_OK) return st;
+    st = abn_fma(&t[ST_SX2], sx, x, &r[ST_SX2]);
+    if ((st = reg_settle(st, &t[ST_SX2], remove, &o)) != ABN_OK) return st;
+    st = abn_fma(&t[ST_SY2], sy, y, &r[ST_SY2]);
+    if ((st = reg_settle(st, &t[ST_SY2], remove, &o)) != ABN_OK) return st;
+    st = abn_fma(&t[ST_SXY], sx, y, &r[ST_SXY]);
+    if ((st = reg_settle(st, &t[ST_SXY], abn_is_negative(sx) != abn_is_negative(y), &o)) != ABN_OK) return st;
     for (int i = 0; i < 6; i++) r[i] = t[i];
+    *over = o;
     return ABN_OK;
 }
 
