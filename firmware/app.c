@@ -331,8 +331,11 @@ app_action app_tick(app_state *a, const pwr_inputs *in, uint32_t now_ms)
             a->pause_ms = now_ms;
         }
     } else if (a->pause && (uint32_t)(now_ms - a->pause_ms) >= APP_PSE_MS) {
-        /* the pause is over: the program goes on, part of the same run (no undo point) */
+        /* the pause is over: the program goes on, part of the same run (no undo point); its end is
+           activity for the power policy (unit 023: a pause counts once, here, so app_tick before it
+           changes nothing) */
         a->pause = false;
+        pwr_activity(&a->pwr, now_ms);
         ab_do_arg(a->c, AB_RS, 0);
         a->dirty = true;
         a->render = true;
@@ -346,7 +349,7 @@ app_action app_tick(app_state *a, const pwr_inputs *in, uint32_t now_ms)
         }
     }
     pwr_inputs p = *in;
-    p.busy = a->running || a->pause;
+    p.busy = a->running;                        /* a pause is counted at its end, above */
     a->pwr.idle_ms = a->set.off_min * 60000u;   /* settings the device loaded take effect */
     if (a->off || pwr_check(&a->pwr, &p, now_ms) != PWR_STAY) return APP_OFF;
     if (a->dirty && !a->running && (uint32_t)(now_ms - a->last_key_ms) >= APP_QUIET_MS) return APP_SAVE;
@@ -360,6 +363,24 @@ app_action app_tick(app_state *a, const pwr_inputs *in, uint32_t now_ms)
 void app_saved(app_state *a)
 {
     a->dirty = false;
+}
+
+/* the ms left of span since `since` (0 when it has run out); the clock may wrap */
+static uint32_t left(uint32_t now_ms, uint32_t since, uint32_t span)
+{
+    uint32_t gone = now_ms - since;
+    return gone >= span ? 0 : span - gone;
+}
+
+uint32_t app_next_wake(const app_state *a, const pwr_inputs *in, uint32_t now_ms)
+{
+    if (a->running || a->render || a->off) return 0;
+    pwr_state p = a->pwr;
+    p.idle_ms = a->set.off_min * 60000u;        /* as app_tick sets it */
+    uint32_t w = pwr_next(&p, in, now_ms), t;
+    if (a->pause && (t = left(now_ms, a->pause_ms, APP_PSE_MS)) < w) w = t;
+    if (a->dirty && (t = left(now_ms, a->last_key_ms, APP_QUIET_MS)) < w) w = t;
+    return w;
 }
 
 void app_undo_buffers(app_state *a, uint8_t *b0, uint8_t *b1, size_t cap)

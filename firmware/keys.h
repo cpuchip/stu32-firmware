@@ -44,5 +44,8 @@ void kb_init(kb_state *k);
 void kb_scan(kb_state *k, const kb_io *io);
 /* The next key-down event (row * 6 + col), or -1. */
 int kb_next(kb_state *k);
+/* Whether the scan may stop (unit 023): every key reads up and every debounce integrator has
+   settled at 0, so kb_scan would change nothing until a key goes down. */
+bool kb_idle(const kb_state *k);
 
 #endif

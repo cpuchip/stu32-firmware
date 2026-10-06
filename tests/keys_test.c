@@ -124,6 +124,48 @@ int main(void)
     expect(kb_next(&k) == -1, "a tap shorter than the debounce is no key", 3, 0);
     expect(keys == 43, "the layout has 43 keys", keys, 0);
 
+    /* unit 023: kb_idle, when the scan may stop. Idle from the start; not while a key is down or
+       any integrator is unsettled, including a tap shorter than the debounce; idle again only when
+       every count is back at 0 */
+    kb_init(&k);
+    memset(&m, 0, sizeof m);
+    expect(kb_idle(&k), "a fresh scan is idle", 0, 0);
+    m.closed[7] = true;
+    kb_scan(&k, &io);
+    expect(!kb_idle(&k), "one pass with a key closed: not idle (its integrator moved)", 7, 0);
+    for (int t = 0; t < KB_DEBOUNCE + 3; t++) kb_scan(&k, &io);
+    expect(!kb_idle(&k), "a key held down: not idle", 7, 0);
+    m.closed[7] = false;
+    int passes = 0;
+    while (!kb_idle(&k) && passes < 100) {
+        kb_scan(&k, &io);
+        passes++;
+    }
+    expect(passes == KB_DEBOUNCE, "after the release: idle once the integrator has run down, KB_DEBOUNCE passes", passes, KB_DEBOUNCE);
+    kb_init(&k);
+    m.closed[3] = true;
+    for (int t = 0; t < KB_DEBOUNCE - 1; t++) {
+        kb_scan(&k, &io);
+        expect(!kb_idle(&k), "a short tap in progress: not idle", t, 0);
+    }
+    m.closed[3] = false;
+    passes = 0;
+    while (!kb_idle(&k) && passes < 100) {
+        kb_scan(&k, &io);
+        passes++;
+    }
+    expect(passes == KB_DEBOUNCE - 1 && kb_next(&k) == -1, "a short tap: idle once its count has run down, still no key", passes, 0);
+    {   /* C on its own pin (Rev A pass 6) counts too */
+        static matrix mo;
+        kb_io io_o = {&mo, drive, rd, rd_on};
+        kb_init(&k);
+        memset(&mo, 0, sizeof mo);
+        mo.on_wire = true;
+        mo.closed[KB_ON_KEY] = true;            /* ON pressed: rd_on reads it */
+        kb_scan(&k, &io_o);
+        expect(!kb_idle(&k), "ON pressed on IO0: not idle", 0, 0);
+    }
+
     /* Rev A pass 6 (abacus decision 34): C (ON, key 42) on its own input, IO0, debounced like the
        matrix keys; the matrix's row 7 column 0 is no longer a key */
     {

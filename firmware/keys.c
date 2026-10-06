@@ -50,6 +50,13 @@ void kb_scan(kb_state *k, const kb_io *io)
     if (io->read_on) sample(k, KB_ON_KEY, io->read_on(io->ctx));   /* after the columns, each pass */
 }
 
+bool kb_idle(const kb_state *k)
+{
+    for (int key = 0; key < KB_KEYS; key++)
+        if (k->down[key] || k->count[key]) return false;
+    return true;
+}
+
 int kb_next(kb_state *k)
 {
     int key;

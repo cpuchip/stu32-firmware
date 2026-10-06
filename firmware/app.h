@@ -105,6 +105,11 @@ void app_key(app_state *a, int key, uint32_t now_ms);
 /* Between events: runs one slice of a run in progress, and says what the device should do. */
 app_action app_tick(app_state *a, const pwr_inputs *in, uint32_t now_ms);
 void app_saved(app_state *a);               /* the device saved the image */
+/* The ms until app_tick has anything to do (unit 023): 0 while a program runs or a render, save
+   or power-off is due; else the nearest of the PSE pause's end, the quiet save and pwr_next's
+   auto-off or low battery. The contract: app_tick at any t before now_ms plus this, with the same
+   inputs, returns APP_IDLE and changes nothing. The device sleeps until then or the next key. */
+uint32_t app_next_wake(const app_state *a, const pwr_inputs *in, uint32_t now_ms);
 /* UNDO's two image buffers of cap bytes each (unit 021; the device's PSRAM): without them UNDO
    does nothing. */
 void app_undo_buffers(app_state *a, uint8_t *b0, uint8_t *b1, size_t cap);
