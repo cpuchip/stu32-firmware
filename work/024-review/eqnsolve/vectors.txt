@@ -1,0 +1,120 @@
+# Review vectors: equations, SOLVE and integration against the HP 33s User's Guide (ch.6, 7, 8,
+# app. D, E, F) and the HP 32SII Owner's Manual (ch.6, 7, 8, app. C, D, E). Format as abacus-firmware
+# work/014-vectors.txt and 015-vectors.txt. IDs: Q = the 33s's rule or example (the project default,
+# decision 22), B = both manuals agree, T = the 32SII's own rule where it differs from the 33s.
+# Exact values as the earlier units computed them (34-digit chains); SOLVE judged as a root, the
+# integral at the accuracy the display format implies.
+
+# ---- Chapter 6: entering and evaluating equations ----
+B01 | 33s p.6-1/6-2, 32SII p.6-2/6-3 typing V=.25xpixD^2xL, ENTER, D = 2 1/2 at its prompt, L 16: V 78.5398 stored | EQN RCL:V = .25 * PI * RCL:D POW 2 * RCL:L ENTER ENTER 2.1.2 RS 16 RS | %EQ=V=0.25×π×D^2×L X=78.53981633974483096156608458198758 @V=78.53981633974483096156608458198758 @D=2.5 @L=16
+B02 | 33s p.6-11, 32SII p.6-13 ENTER with D 35, L 20 x 1000, then 10^6 / gives liters (V unchanged) | 2.5 STO:D 16 STO:L EQ:V=0.25×π×D^2×L ENTER 35 RS 20 ENTER 1000 * RS 6 TENX / | X=19.24225500323748358558369072258696 @V=19242255.00323748358558369072258696 @L=20000
+B03 | 33s p.6-12, 32SII p.6-14 XEQ prompts V, D, L; D 35.5: the imbalance, then / 10^6 | 35 STO:D 20000 STO:L 19242255.00323748358558369072258696 STO:V EQ:V=0.25×π×D^2×L XEQ RS 35.5 RS RS 6 TENX / | X=-0.55370570519520105827904089630301 @V=19242255.00323748358558369072258696 @D=35.5
+B04 | 33s p.6-14, 32SII p.6-16 AxB^3=C is a x (b^3) = c | 2 STO:A 3 STO:B 4 STO:C EQ:A×B^3=C XEQ RS RS RS | X=50
+B05 | 33s p.6-14, 32SII p.6-16 (AxB)^3=C | 2 STO:A 3 STO:B 4 STO:C EQ:(A×B)^3=C XEQ RS RS RS | X=212
+B06 | 33s p.6-14, 32SII p.6-16 A+B/C=12 | 2 STO:A 3 STO:B 4 STO:C EQ:A+B÷C=12 XEQ RS RS RS | X=-9.25
+B07 | 33s p.6-14, 32SII p.6-16 (A+B)/C=12 | 2 STO:A 3 STO:B 4 STO:C EQ:(A+B)÷C=12 XEQ RS RS RS | X=-10.75
+Q01 | 33s p.6-14 %CHG(T+12:A-6)^2: the 33s separates two arguments with a colon (p.6-15) | 8 STO:T 46 STO:A EQ:%CHG(T+12:A-6)^2 XEQ RS RS | X=10000
+T01 | 32SII p.6-16 %CHG(T+12 A-6)^2 typed: the 32SII separates two arguments with a space (p.6-17) | 8 STO:T 46 STO:A EQN PCTCHG RCL:T + 12 SPACE RCL:A - 6 > POW 2 ENTER XEQ RS RS | %EQ=%CHG(T+12_A-6)^2 X=10000
+B08 | 33s p.6-14, 32SII p.6-16 the same with our separator (the 35s's comma): the function itself | 8 STO:T 46 STO:A EQ:%CHG(T+12,A-6)^2 XEQ RS RS | X=10000
+Q02 | 33s p.6-15 XROOT(3:-8): index first | EQ:XROOT(3:-8) XEQ | X=-2
+T02 | 32SII p.6-17 XROOT(3 -8) typed | EQN XROOT 3 SPACE CHS 8 ENTER XEQ | %EQ=XROOT(3_-8) X=-2
+Q03 | 33s p.6-15 Cn,r(28:4) is 28 ENTER 4 Cn,r | EQ:Cn,r(28:4) XEQ | X=20475
+Q04 | 33s p.6-15 the name Cn,r alone (our separator) | EQ:Cn,r(28,4) XEQ | X=20475
+B09 | 33s p.6-15, 32SII p.6-17 the function under our name nCr | EQ:nCr(28,4) XEQ | X=20475
+Q05 | 33s p.6-16 %CHG(-X:-2) is valid (X 3) | 3 STO:X EQ:%CHG(-X:-2) XEQ RS | X^-33.3333333333333333333333333333333333
+Q06 | 33s p.6-16 %CHG(X:(-Y)) is valid (X 4, Y 2) | 4 STO:X 2 STO:Y EQ:%CHG(X:(-Y)) XEQ RS RS | X=-150
+T03 | 32SII p.6-18 %CHG(-X -2) typed (X 3) | 3 STO:X EQN PCTCHG CHS RCL:X SPACE CHS 2 ENTER XEQ RS | %EQ=%CHG(-X_-2) X^-33.3333333333333333333333333333333333
+T04 | 32SII p.6-18 %CHG(X (-Y)) typed (X 4, Y 2) | 4 STO:X 2 STO:Y EQN PCTCHG RCL:X SPACE () CHS RCL:Y ENTER XEQ RS RS | %EQ=%CHG(X_(-Y)) X=-150
+B10 | 33s p.6-16/6-17, 32SII p.6-18/6-19 the trapezoid perimeter (DEG; A 2 B 5 H 1, T 30, F 45) | DEG 2 STO:A 5 STO:B 1 STO:H 30 STO:T 45 STO:F EQ:P=A+B+H×(1÷SIN(T)+1÷SIN(F)) ENTER RS RS RS RS RS | X=10.41421356237309504880168872420970 @P=10.41421356237309504880168872420970
+B11 | 33s p.6-17, 32SII p.6-19 the same with INV | DEG 2 STO:A 5 STO:B 1 STO:H 30 STO:T 45 STO:F EQ:P=A+B+H×(INV(SIN(T))+INV(SIN(F))) ENTER RS RS RS RS RS | X=10.41421356237309504880168872420970
+B12 | 33s p.6-17, 32SII p.6-19/6-20 the polygon area, N 6, D 1 (RAD) | RAD 6 STO:N 1 STO:D EQ:A=0.25×N×D^2×COS(π÷N)÷SIN(π÷N) ENTER RS RS | X^2.59807621135331594029116951225880863
+B13 | 33s p.6-14, 32SII p.6-16 no implied multiplication: P(1-F) is an error, found at evaluation | EQ:P(1-F) XEQ RSALL | ERR %ERR=SYNTAX
+B14 | 33s p.6-18, 32SII p.6-20 syntax is checked only after every prompt is answered | EQ:A×(B+ XEQ | %STOP=INPUT:A
+B15 | 33s p.6-18, 32SII p.6-20 ... then the error | EQ:A×(B+ XEQ RS RS | ERR %ERR=SYNTAX
+Q07 | 33s p.F-2 the 33s names a syntax error INVALID EQN | EQ:2×(3+ XEQ | ERR %STATUSMSG=INVALID_EQN
+T05 | 32SII p.6-6/6-7 the final right parenthesis is optional | DEG EQ:2×COS(0 XEQ | X=2
+B16 | 33s p.6-10, 32SII p.6-12 evaluating changes the number base back to 10 (so a number typed next is decimal; the 35s instead converts the result to the current base, its p.6-10) | HEX EQ:2+3 XEQ 1 0 | X=10 Y=5
+B17 | 33s p.6-10, 32SII p.6-12 no values taken from the stack; the value lifts; LAST X not affected (equation typed with the keys: see report on EQ:) | 9 SQRT 5 ENTER 6 EQN 2 + 2 ENTER XEQ | X=4 Y=6 Z=5 L=9
+B18 | 33s p.6-12, 32SII p.6-15 C during digit entry at a prompt clears the number to zero; the prompt stays | 4 STO:A EQ:A+1 XEQ 7 C | X=0 %STOP=INPUT:A
+B19 | 33s p.6-12, 32SII p.6-15 ... a second C cancels the prompt | 4 STO:A EQ:A+1 XEQ 7 C C | %STOP=CANCELLED @A=4
+B20 | 33s p.6-12, 32SII p.6-15 ENTER first to calculate with the displayed value | 3 STO:A EQ:A+1 XEQ ENTER 2 * RS | X=7 @A=6
+B21 | 33s p.6-12, 32SII p.6-15 a value calculated at a prompt: 2 ENTER 5 y^x | EQ:A+1 XEQ 2 ENTER 5 POW RS | X=33 @A=32
+B22 | 33s p.6-12, 32SII p.6-15 each prompt's value stays on the stack (lift off at the prompt, on after R/S) | CLSTK 1 STO:A 2 STO:B CLSTK EQ:A+B XEQ 3 RS 4 RS | X=7 Y=4 Z=3 @A=3 @B=4
+B23 | 33s p.6-9/6-10, 32SII p.6-11/6-12 XEQ on an assignment: left minus right, nothing stored | 2 STO:B EQ:A=B+1 XEQ RS RS | X=-3 @A=0
+B24 | 33s p.6-9/6-10, 32SII p.6-11/6-12 ENTER on an assignment: the right side, stored | 2 STO:B EQ:A=B+1 ENTER RS | X=3 @A=3
+B25 | 33s p.6-9, 32SII p.6-11 an equality's value is the difference | 3 STO:X 4 STO:Y 5 STO:R EQ:X^2+Y^2=R^2 ENTER RS RS RS | X=0
+Q08 | 33s p.6-6/6-7 the list holds the user's equations only: past the last is EQN LIST TOP | EQ:1+1 SST | %EQ=TOP
+Q09 | 33s p.6-7/6-8 backspace on a shown equation starts editing at its end, deleting nothing; then each backspace deletes the rightmost number or function | EQ:R=2×C×COS(T-A)+25 BKSP BKSP BKSP ENTER | %EQ=R=2×C×COS(T-A) %EQN=1
+T06 | 32SII p.6-9/6-10 the same: backspace once starts editing, the next deletes the final parenthesis | EQ:R=2×C×COS(T-A) BKSP BKSP ENTER | %EQ=R=2×C×COS(T-A %EQN=1
+Q10 | 33s p.6-4 an equation of up to 255 characters (here 255: 128 ones added); ours holds 191 bytes | EQ:1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1 XEQ | X=128
+B26 | 33s p.6-15, 32SII p.6-17 statistics in equations: x-bar and n | 1 SIGMA+ 3 SIGMA+ EQ:x̄+n XEQ | X=4
+Q11 | 33s p.6-15/6-16 CB (x cubed) in an equation | EQ:CB(2) XEQ | X=8
+Q12 | 33s p.6-15/6-16 CBRT (cube root) in an equation | EQ:CBRT(27) XEQ | X=3
+B27 | 33s p.6-15, 32SII p.6-17 RANDOM (the 35s's RAND) in an equation | EQ:RANDOM×0+1 XEQ | X=1 %STOP=DONE
+B28 | 33s p.6-15, 32SII p.6-17 ->HR (the 35s's HMS->) in an equation: 1.3 (1 h 30 min) is 1.5 | EQ:→HR(1.3) XEQ | X=1.5
+B29 | ours: the same under our name HMS-> | EQ:HMS→(1.3) XEQ | X=1.5
+Q13 | 33s p.6-14 power before unary minus: -A^2 is -(A^2) | 3 STO:A EQ:-A^2 XEQ RS | X=-9
+T07 | 32SII p.6-16 unary minus before power: -A^2 is (-A)^2 | 3 STO:A EQ:-A^2 XEQ RS | X=9
+B30 | 33s p.6-4, 32SII p.6-5 the indirect variable in an equation (our (I)) | 3 STO:B 2 CHS STO:I EQN RCL:(I) * 2 ENTER XEQ | X=6
+B75 | 33s p.6-4, 32SII p.6-5 STO and a letter also types the variable in an equation | EQN STO:A + 1 ENTER | %EQ=A+1
+
+# ---- Chapter 7: solving equations ----
+B31 | 33s p.7-2/7-3, 32SII p.7-2/7-3 SOLVE D prompts V first (the unknown skipped) | EQ:D=V×T+0.5×G×T^2 SOLVE:D | %STOP=INPUT:V
+B32 | 33s p.7-3, 32SII p.7-3 V 0, T 5, G 9.8: D = 122.5, stored | EQ:D=V×T+0.5×G×T^2 SOLVE:D 0 RS 5 RS 9.8 RS | X=122.5 @D=122.5 Z=0
+B33 | 33s p.7-3, 32SII p.7-3 SOLVE T prompts D first | EQ:D=V×T+0.5×G×T^2 SOLVE:D 0 RS 5 RS 9.8 RS EQN SOLVE:T | %STOP=INPUT:D
+B34 | 33s p.7-3, 32SII p.7-3 D 500: T = 10.1015 (T's old 5 the guess) | EQ:D=V×T+0.5×G×T^2 SOLVE:D 0 RS 5 RS 9.8 RS EQN SOLVE:T 500 RS RS RS | X#10.1015254455221074914406337443549863,1E-30 @T#10.1015254455221074914406337443549863,1E-30 Z#0,1E-28
+B35 | 33s p.7-4/7-5, 32SII p.7-4/7-5 SOLVE P: V 2, N .005, R .0821, T 24 + 273.1: P = 0.0610 | EQ:P×V=N×R×T SOLVE:P 2 RS .005 RS .0821 RS 24 ENTER 273.1 + RS | X=0.060979775 @P=0.060979775 @T=297.1
+B36 | 33s p.7-5, 32SII p.7-5 SOLVE N prompts P first | EQ:P×V=N×R×T SOLVE:P 2 RS .005 RS .0821 RS 24 ENTER 273.1 + RS EQN SOLVE:N | %STOP=INPUT:P
+B37 | 33s p.7-5, 32SII p.7-5 P .05, V 5, R kept, T 18 + 273.1; then x 28 / V: 0.0586 g/l | EQ:P×V=N×R×T SOLVE:P 2 RS .005 RS .0821 RS 24 ENTER 273.1 + RS EQN SOLVE:N .05 RS 5 RS RS 18 ENTER 273.1 + RS 28 * RCL:V / | X#0.0585790970534295760003113060586268,1E-30
+B38 | 33s p.7-9/7-10, 32SII p.7-9 box: guesses 10 (H) and 20 (X): H = 15 | EQ:V=(40-H)×(20-H)×4×H C 10 STO:H 20 EQN SOLVE:H 7500 RS | X=15 @H=15 Z=0
+B39 | 33s p.7-10, 32SII p.7-9 ... Y, the previous estimate, shows the same 15.0000 (FIX 4): an exact root | EQ:V=(40-H)×(20-H)×4×H C 10 STO:H 20 EQN SOLVE:H 7500 RS | Y#15,0.00005
+B40 | 33s p.7-10, 32SII p.7-10 guesses 30 and 40: 42.0256 | EQ:V=(40-H)×(20-H)×4×H C 30 STO:H 40 EQN SOLVE:H 7500 RS | X#42.02562418976663598532430683939775,1E-28
+B41 | 33s p.7-10, 32SII p.7-10 guesses 0 and 10: 2.9744 (both print 2.9774, the misprint the 35s has) | EQ:V=(40-H)×(20-H)×4×H C 0 STO:H 10 EQN SOLVE:H 7500 RS | X#2.974375810233364014675693160602246,1E-28
+B42 | 33s p.7-7, 32SII p.7-7 one guess (variable and X equal): nudged apart, the root found | EQ:X^2-9 C 2 STO:X EQN SOLVE:X | X=3 @X=3
+B43 | 33s p.7-7, 32SII p.7-7 a halted SOLVE leaves its current best estimate in the unknown (inside the guesses) | PRGM CLPGM LBL:F RCL:X SQ 2 - RTN PRGM 1 STO:X 100 FN=:F INTR:20 SOLVE:X | ERR %ERR=INTERRUPTED @X#50.5,49.5
+B44 | 33s p.7-6, 32SII p.7-6 NO ROOT FND: X and Y bracket the last interval, Z = f there (x^2-6x+13: about 3, 3, 4) | EQ:X^2-6×X+13 C 0 STO:X 10 EQN SOLVE:X | ERR %ERR=NO_ROOT X#3,1E-3 Y#3,1E-3 Z#4,1E-5
+B45 | 33s p.F-2 a syntax error found during SOLVE | EQ:X+ C 1 STO:X 2 EQN SOLVE:X | ERR %ERR=SYNTAX
+
+# ---- Appendix D (33s) / C (32SII): more about solving ----
+B46 | 33s p.D-3/D-4, 32SII p.C-3/C-4 -2x^3+4x^2-6x+8, guesses 0 and 10: 1.6506, Y the same to 4 places, f small | EQ:-2×X^3+4×X^2-6×X+8 C 0 STO:X 10 EQN SOLVE:X | X^1.65062919143938821888080096742619744 Y#1.65062919143938821888080096742619744,1E-4 Z#0,1E-30
+B47 | 33s p.D-4/D-5, 32SII p.C-4/C-5 x^2+x-6, guesses 0 and 10: 2; the two final estimates the same (FIX 4); f = 0 | EQ:X^2+X-6 C 0 STO:X 10 EQN SOLVE:X | X=2 Y#2,0.00005 Z=0
+B48 | 33s p.D-5, 32SII p.C-5 guesses 0 and -10: -3, Y the same (FIX 4), f = 0 | EQ:X^2+X-6 C 0 STO:X 10 CHS EQN SOLVE:X | X=-3 Y#-3,0.00005 Z=0
+B49 | 33s p.D-6/D-7, 32SII p.C-6/C-7 IP(X)=1.5: the neighbour below 2, Y = 2 (slightly bigger), f = -0.5 | EQ:IP(X)=1.5 C 0 STO:X 5 EQN SOLVE:X | X=1.999999999999999999999999999999999 Y=2 Z=-0.5
+Q14 | 33s p.D-7/D-8 a pole between 2.3 and 2.7: NO ROOT FND, f large | EQ:X÷(X^2-6)-1 C 2.3 STO:X 2.7 EQN SOLVE:X | ERR %ERR=NO_ROOT
+T08 | 32SII p.C-7/C-8 the same pole: the 32SII returns X = 2.4495 as a root, f large, no message | EQ:X÷(X^2-6)-1 C 2.3 STO:X 2.7 EQN SOLVE:X | X#2.449489742783178098197284074705891,1E-10
+B50 | 33s p.D-9/D-10, 32SII p.C-10 x^2-6x+13: NO ROOT FND | EQ:X^2-6×X+13 C 0 STO:X 10 EQN SOLVE:X | ERR %ERR=NO_ROOT %XVAR=X
+B51 | 33s p.D-10/D-11, 32SII p.C-11 10-1/x, guesses .005 and 5: 0.1; previous estimate the same (FIX 4); f = 0 | EQ:10-INV(X) C .005 STO:X 5 EQN SOLVE:X | X=0.1 Y#0.1,0.00005 Z=0
+Q15 | 33s p.D-11 negative guesses -1 and -2: the 33s still finds 0.1 | EQ:10-INV(X) C 1 CHS STO:X 2 CHS EQN SOLVE:X | X=0.1 @X=0.1
+T09 | 32SII p.C-11/C-12 the same guesses: NO ROOT FND, f near its asymptote 10 | EQ:10-INV(X) C 1 CHS STO:X 2 CHS EQN SOLVE:X | ERR %ERR=NO_ROOT Z#10,1E-6
+B52 | 33s p.D-11, 32SII p.C-12 sqrt(x/(x+0.3))-0.5, guesses 0 and 10: 0.1 | EQ:SQRT(X÷(X+0.3))-0.5 C 0 STO:X 10 EQN SOLVE:X | X^0.1
+Q16 | 33s p.D-12 guesses 0 and -10: NO ROOT FND; VIEW X shows 0.0000 | EQ:SQRT(X÷(X+0.3))-0.5 C 0 STO:X 10 CHS EQN SOLVE:X | ERR %ERR=NO_ROOT @X#0,0.00005
+Q16b | 33s p.7-6, D-12 the final estimate in X is a point where f is defined, and Z is f there: f at the reported X must be Z (-0.5 at the 33s's 0) | EQ:SQRT(X÷(X+0.3))-0.5 C 0 STO:X 10 CHS EQN SOLVE:X C EQN XEQ RS | ERR %ERR=NO_ROOT X=-0.5
+T10 | 32SII p.C-9, C-12/C-13 the same: a math error (SQRT(NEG)) stops SOLVE; X holds the estimate that caused it (-0.1988) | EQ:SQRT(X÷(X+0.3))-0.5 C 0 STO:X 10 CHS EQN SOLVE:X | ERR %ERR=DOMAIN
+Q17 | 33s p.D-12/D-13 the flat region, program J, guesses 1E-8 (keyed E 8 +/-: the 33s's E alone) and -1E-8: -2 | PRGM CLPGM LBL:J 1 ENTER 2 RCL+:X X<Y? RTN 4 - CHS X>Y? RDN RTN PRGM E 8 CHS STO:X 1 CHS E 8 CHS FN=:J SOLVE:X | X=-2 @X=-2 Z=0
+T11 | 32SII p.C-13/C-14 the same: NO ROOT FND, f = 1 (the flat value) | PRGM CLPGM LBL:J 1 ENTER 2 RCL+:X X<Y? RTN 4 - CHS X>Y? RDN RTN PRGM 1 E 8 CHS STO:X 1 CHS E 8 CHS FN=:J SOLVE:X | ERR %ERR=NO_ROOT Z=1
+B53 | 33s p.D-13, 32SII p.C-14 ((abs x+1)+1E15)^2-1E30, guesses 1 and 2: the 12-digit machines return 1.0000 (round-off) | EQ:(ABS(X)+1+1E15)^2-1E30 C 1 STO:X 2 EQN SOLVE:X | X#1,1E-4
+B54 | 33s p.D-13, 32SII p.C-14/C-15 abs(x^2-7): NO ROOT FND, the final estimate the best approximation of sqrt 7 | EQ:ABS(X^2-7) C 2 STO:X 3 EQN SOLVE:X | ERR %ERR=NO_ROOT @X#2.645751311064590590501615753639260,1E-30
+B55 | 33s p.D-14, 32SII p.C-15 1/x^2 underflows: SOLVE returns a very large value as a root, no message | EQ:INV(X^2) C 1 STO:X 2 EQN SOLVE:X | Z=0
+
+# ---- Chapter 8 and appendix E (33s) / D (32SII): integration ----
+B56 | 33s p.8-3, 32SII p.8-3/8-4 integrate T from 0 to pi prompts for X only | RAD FIX4 EQ:COS(X×SIN(T)) C 0 ENTER PI EQN INTEG:T | %STOP=INPUT:X
+B57 | 33s p.8-3, 32SII p.8-4 X = 2: 0.7034; / pi: J0(2) = 0.2239 | RAD FIX4 EQ:COS(X×SIN(T)) C 0 ENTER PI EQN INTEG:T 2 RS PI / | X#0.22389077914123566805,0.0002
+B58 | 33s p.8-4, 32SII p.8-4 X = 3 (prompt shows 2): -0.8170, / pi: J0(3) = -0.2601 | RAD FIX4 EQ:COS(X×SIN(T)) C 0 ENTER PI EQN INTEG:T 2 RS 0 ENTER PI EQN INTEG:T 3 RS | X#-0.816977311071578307785230779099,0.0007 %COVER=-0.816977311071578307785230779099
+B59 | 33s p.8-5, 32SII p.8-5/8-6 Si(2) = 1.6054 in FIX 4; the limits pushed to Z and T | RAD FIX4 EQ:SIN(X)÷X C 0 ENTER 2 EQN INTEG:X | X#1.6054129768026948485767201482,1E-4 %COVER=1.6054129768026948485767201482 Z=2 T=0
+B60 | 33s p.8-2, 32SII p.8-3 R-down twice brings the limits back to X and Y | RAD FIX4 EQ:SIN(X)÷X C 0 ENTER 2 EQN INTEG:X RDN RDN | X=2 Y=0
+B61 | 33s p.8-6/8-7, 32SII p.8-7 SCI 2: 1.61, uncertainty 1.61E-2 (the 33s's 1.6079E-2) | RAD SCI2 EQ:SIN(X)÷X C 0 ENTER 2 EQN INTEG:X | X#1.6054129768026948485767201482,0.02 Y#0.0161,0.0003 %COVER=1.6054129768026948485767201482
+B62 | 33s p.8-7, 32SII p.8-8 SCI 4 after R-down R-down: 1.6054, uncertainty 1.6056E-4 | RAD SCI2 EQ:SIN(X)÷X C 0 ENTER 2 EQN INTEG:X SCI4 RDN RDN EQN INTEG:X | X#1.6054129768026948485767201482,0.0002 Y#0.00016056,0.000003 %COVER=1.6054129768026948485767201482
+B63 | 33s p.8-6, 32SII p.8-6 Fraction-display mode on: the accuracy is the previous format's (FIX 2: U = 0.01 x 2) | RAD FIX2 FDISP EQ:SIN(X)÷X C 0 ENTER 2 EQN INTEG:X | Y#0.02,0.002 %COVER=1.6054129768026948485767201482
+B64 | 33s p.8-1, 32SII p.8-1 integration works only with real numbers: a complex integrand | EQ:X×(0i1) C 0 ENTER 1 EQN INTEG:X | ERR
+B65 | 33s p.8-1, 32SII p.8-2 a halted integration gives no result: the stack as it was | PRGM CLPGM LBL:F RCL:X SQ RTN PRGM FIX4 FN=:F 0 ENTER 2 INTR:5 INTEG:X | ERR %ERR=INTERRUPTED X=2 Y=0
+B66 | 33s p.E-3/E-4, 32SII p.D-3/D-4 x e^-x on [0, 1E499] in SCI 3: both manuals' integrators miss the spike and return 0 | SCI3 EQ:X×EXP(-X) C 0 ENTER 1 E 499 EQN INTEG:X | X=0
+B67 | 33s p.E-7/E-8, 32SII p.D-8/D-9 on [0, 1000] in SCI 3: 1.000 | SCI3 EQ:X×EXP(-X) C 0 ENTER 1 E 3 EQN INTEG:X | X#1,1E-3 Y#0.001,0.0002 %COVER=1
+B68 | 33s p.E-2, 32SII p.D-2 the uncertainty in Y bounds the error (1/(1+x^2) on 0..5, FIX 6) | FIX6 EQ:INV(1+X^2) C 0 ENTER 5 EQN INTEG:X | %COVER=1.373400766945015860861271926444961148
+B69 | 33s p.E-6, 32SII p.D-7 subdividing the interval gives the same integral (0..1 + 1..2 = 0..2 of Si, FIX 4) | RAD FIX4 EQ:SIN(X)÷X C 0 ENTER 1 EQN INTEG:X STO:B 1 ENTER 2 EQN INTEG:X RCL:B + | X#1.6054129768026948485767201482,2E-4
+
+# ---- Appendix F (33s) / E (32SII): SOLVE and integration messages ----
+B70 | 33s p.F-1, 32SII p.E-1 integral(SOLVE): a routine being integrated runs SOLVE | PRGM CLPGM LBL:F 1 STO:Y 2 SOLVE:Y RCL:X RTN PRGM FN=:F 0 ENTER 1 INTEG:X | ERR %ERR=NESTED
+B71 | 33s p.F-3, 32SII p.E-3/E-4 SOLVE(integral FN): a routine being solved integrates | PRGM CLPGM LBL:F 0 ENTER 1 INTEG:Y RCL:X 3 - RTN PRGM FN=:F 1 STO:X 2 SOLVE:X | ERR %ERR=NESTED
+B72 | 33s p.F-1, 32SII p.E-1 integral FN ACTIVE: FN= while integrating | PRGM CLPGM LBL:F FN=:G RCL:X RTN LBL:G RCL:X RTN PRGM FN=:F 0 ENTER 1 INTEG:X | ERR %ERR=NESTED
+B73 | 33s p.F-2, 32SII p.E-2 INVALID VAR: solving for a variable the equation lacks | EQ:A+1 SOLVE:B | ERR %ERR=INVALID_VAR
+B74 | 33s p.F-3, 32SII p.E-3 SELECT FN: SOLVE with no function chosen | 1 STO:X 2 SOLVE:X | ERR %ERR=SELECT_FN

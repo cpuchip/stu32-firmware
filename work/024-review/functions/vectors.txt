@@ -1,0 +1,164 @@
+# Manual review, topic "functions": real-number functions and fractions, HP 33s User's Guide
+# ch.4-5 and HP 32SII Owner's Manual ch.4-5 (pages read from the rendered PDFs where the text
+# extraction lost key glyphs or display values). Format: abacus-firmware tests/vectors.c.
+# "X#v,t" is |x - v| <= t: used where the manual shows only a FIX 4 (or FIX 2/6) display, so the
+# vector checks exactly what the page claims. Reference values: mpmath at 60 digits.
+# IDs: A = 33s ch.4, B = 32SII ch.4, C = 33s ch.5, D = 32SII ch.5, R = a stated rule probed.
+
+# ---- 33s chapter 4 ----
+A01 | 33s p.4-2 58 INT÷ 9 shows 6 | 58 ENTER 9 IDIV | X=6
+A02 | 33s p.4-2 58 Rmdr 9 shows 4 | 58 ENTER 9 RMDR | X=4
+A03 | 33s p.4-3 15 x^2 = 225 | 15 SQ | X=225
+A04 | 33s p.4-3 6 10^x = 1,000,000 | 6 TENX | X=1000000
+A05 | 33s p.4-3 5 ENTER 4 y^x = 625 | 5 ENTER 4 POW | X=625
+A06 | 33s p.4-3 2^-1.4 shows 0.3789 | 2 ENTER 1.4 CHS POW | X#0.3789,0.00005 X~0.378929141628
+A07 | 33s p.4-3 (-1.4)^3 via the 33s's x^3 key (no cube op here: y^x 3 instead) | 1.4 CHS ENTER 3 POW | X=-2.744
+A08 | 33s p.4-3 sqrt 196 = 14 | 196 SQRT | X=14
+A09 | 33s p.4-3 cube root of -125 via the 33s's cube-root key (no op here: XROOT 3 instead) | 125 CHS ENTER 3 XROOT | X~-5
+A10 | 33s p.4-3 4th root of 625 = 5 | 625 ENTER 4 XROOT | X~5
+A11 | 33s p.4-3 -1.4th root of .37893 shows 2.0000 | .37893 ENTER 1.4 CHS XROOT | X#2,0.00005
+A12 | 33s p.4-3 pi is the first 12 digits (ours 34, unit 003): ~ compares 12 | PI | X~3.14159265359
+A13 | 33s p.4-4 default angle mode is DEG (no annunciator) | 30 SIN | X=0.5
+A14 | 33s p.4-5 RAD: 5/7 keyed as a fraction (. 5 . 7) shows 0.7143 | RAD .5.7 ENTER | X#0.7143,0.00005
+A15 | 33s p.4-5 RAD cos(5/7 pi) shows -0.6235 | RAD .5.7 ENTER PI * COS | X#-0.6235,0.00005 X~-0.623489801859
+A16 | 33s p.4-5 DEG cos 128.57 shows -0.6235 | RAD .5.7 ENTER PI * COS DEG 128.57 COS | X#-0.6235,0.00005
+A17 | 33s p.4-5 arctan(y/x) at x = 0 is DIVIDE BY 0 (the division) | 1 ENTER 0 / ATAN | ERR X=0 Y=1
+A18 | 33s p.4-6 hyperbolics (no example; values mpmath) SINH 1 | 1 SINH | X~1.17520119364
+A19 | 33s p.4-6 COSH 1 | 1 COSH | X~1.54308063482
+A20 | 33s p.4-6 TANH 0.5 | 0.5 TANH | X~0.46211715726
+A21 | 33s p.4-6 ASINH 1 | 1 ASINH | X~0.881373587020
+A22 | 33s p.4-6 ACOSH 1 = 0 | 1 ACOSH | X=0
+A23 | 33s p.4-6 ATANH 0.5 | 0.5 ATANH | X~0.549306144334
+A24 | 33s p.4-6 6% of 15.76 shows 0.95 in FIX 2, keeps y | FIX2 15.76 ENTER 6 PCT | X=0.9456 Y=15.76
+A25 | 33s p.4-7 + gives 16.71 (FIX 2) | FIX2 15.76 ENTER 6 PCT + | X=16.7056
+A26 | 33s p.4-7 %CHG 16.12 to 15.76 shows -2.23, then -2.2333 in FIX 4 | FIX2 16.12 ENTER 15.76 PCTCHG FIX4 | X~-2.23325062035 Y=16.12
+A27 | 33s p.4-6 %CHG needs y != 0 | 0 ENTER 5 PCTCHG | ERR
+A28 | 33s p.4-8 CONST c (the 33s's list is CODATA 1998; ours CODATA 2022, unit 004 rule 1) | CONST:c | X=299792458
+A29 | 33s p.4-8 CONST g | CONST:g | X=9.80665
+A30 | 33s p.4-9 CONST t (Celsius temperature) | CONST:t | X=273.15
+A31 | 33s p.4-9 CONST atm | CONST:atm | X=101325
+A32 | 33s p.4-11 DEG 30 ENTER 10 theta,r->y,x: x shows 8.6603 | DEG 30 ENTER 10 TOREC | X~8.66025403784
+A33 | 33s p.4-11 x<>y shows y 5.0000 | DEG 30 ENTER 10 TOREC XY | X=5
+A34 | 33s p.4-11 4 ENTER 3 y,x->theta,r: r shows 5.0000 | DEG 4 ENTER 3 TOPOL | X=5
+A35 | 33s p.4-11 x<>y shows theta 53.1301 | DEG 4 ENTER 3 TOPOL XY | X~53.1301023542
+A36 | 33s p.4-12 36.5 CHS ENTER 77.8 ->y,x: x 62.5401 | DEG 36.5 CHS ENTER 77.8 TOREC | X#62.5401,0.00005 Y#-46.2772,0.00005
+A37 | 33s p.4-10 theta in -180..180: y=-1, x=-1 is -135 | DEG 1 CHS ENTER 1 CHS TOPOL | Y~-135 X~1.41421356237
+A38 | 33s p.4-10 theta in -180..180: y=0, x=-1 is 180 | DEG 0 ENTER 1 CHS TOPOL | Y~180 X=1
+A39 | 33s p.4-10 theta in -pi..pi in RAD | RAD 1 CHS ENTER 1 CHS TOPOL | Y~-2.35619449019
+A40 | 33s p.4-10 theta in -200..200 in GRAD | GRAD 1 CHS ENTER 1 CHS TOPOL | Y~-150
+A41 | 33s p.4-12/4-13 1/7 hour (keyed . 1 . 7) ->HMS shows 0.083429 in FIX 6 | FIX6 .1.7 HMS | X~0.0834285714286
+A42 | 33s p.4-12 ->HR undoes ->HMS (1.30 is 1.5 h) | 1.3 HMSINV | X=1.5
+A43 | 33s p.4-13 ->RAD of 180 degrees | 180 TORAD | X~3.14159265359
+A44 | 33s p.4-13 ->DEG of pi radians | PI TODEG | X~180
+A45 | 33s p.4-13 1 lb ->kg shows 0.4536 | 1 TOKG | X=0.45359237
+A46 | 33s p.4-13 1 kg ->lb shows 2.2046 | 1 TOLB | X~2.20462262185
+A47 | 33s p.4-13 32 F ->C shows 0.0000 | 32 TOC | X=0
+A48 | 33s p.4-13 100 C ->F shows 212.0000 | 100 TOF | X=212
+A49 | 33s p.4-13 1 in ->cm shows 2.5400 | 1 TOCM | X=2.54
+A50 | 33s p.4-13 100 cm ->in shows 39.3701 | 100 TOIN | X~39.3700787402
+A51 | 33s p.4-13 1 gal ->l shows 3.7854 | 1 TOL | X=3.785411784
+A52 | 33s p.4-13 1 l ->gal shows 0.2642 | 1 TOGAL | X~0.264172052358
+A53 | 33s p.4-14 x! of a non-negative integer: 0! | 0 FACT | X=1
+A54 | 33s p.4-14 x! up to 253 (253! is in range) | 253 FACT | X~5.17346099264E499
+A55 | 33s p.4-14 x! above 253 (the 33s's range ends at 9.99E499) | 254 FACT | ERR
+A56 | 33s p.4-14 gamma: x! of a non-integer is Gamma(x+1); Gamma(1.5) | 0.5 FACT | X~0.886226925453
+A57 | 33s p.4-14 x cannot be a negative integer | 3 CHS FACT | ERR X=-3
+A58 | 33s p.4-15 24 ENTER 6 nCr = 134,596 | 24 ENTER 6 NCR | X=134596
+A59 | 33s p.4-15 14 ENTER 6 nCr = 3,003; x<>y; / shows 0.0223 | 24 ENTER 6 NCR 14 ENTER 6 NCR XY / | X~0.0223112128146
+A60 | 33s p.4-14 nCr takes non-negative integers only | 2.5 ENTER 1 NCR | ERR
+A61 | 33s p.4-14 nPr takes non-negative integers only | 5 ENTER 2 CHS NPR | ERR
+A62 | 33s p.4-14 nPr 5 2 = 20 (no example; definition) | 5 ENTER 2 NPR | X=20
+A63 | 33s p.4-14 RAND is in [0, 1) | 3 SEED RAND INTG | X=0
+A64 | 33s p.4-15 same seed, same sequence | 3 SEED RAND RAND SAVEX 3 SEED RAND RAND | %SAMEX=1
+A65 | 33s p.4-15 each random number becomes the seed for the next | 3 SEED RAND SEED RAND SAVEX 3 SEED RAND RAND | %SAMEX=1
+A66 | 33s p.4-15 a seed of zero makes the calculator generate its own seed (two runs from seed 0 differ) | 0 SEED CLX RAND 0 SEED CLX RAND - ABS SGN | X=1
+A67 | 33s p.4-16 IP 2.47 shows 2.0000 | 2.47 IP | X=2
+A68 | 33s p.4-16 FP 2.47 shows 0.4700 | 2.47 FP | X=0.47
+A69 | 33s p.4-16 ABS -7 shows 7.0000 | 7 CHS ABS | X=7
+A70 | 33s p.4-16 SGN 9 shows 1.0000 | 9 SGN | X=1
+A71 | 33s p.4-16 INTG -5.3 shows -6.0000 | 5.3 CHS INTG | X=-6
+A72 | 33s p.4-16 SGN of 0 is 0, of a negative -1 | 0 SGN 3 CHS SGN | X=-1 Y=0
+A73 | 33s p.4-16 IP and FP of 14.23 | 14.23 IP 14.23 FP | X=0.23 Y=14
+A74 | 33s p.4-16 RND rounds to the display format (FIX 2) | FIX2 2.4567 RND | X=2.46
+A75 | 33s p.4-16 RND in SCI 2 (three digits) | SCI2 123456 RND | X=123000
+A76 | 33s p.G-13 (index, RND) ENG n rounds to n+1 significant digits | ENG2 0.0123456 RND | X=0.0123
+
+# ---- 32SII chapter 4 ----
+B01 | 32SII p.4-2 15 x^2 = 225 | 15 SQ | X=225
+B02 | 32SII p.4-2 6 10^x | 6 TENX | X=1000000
+B03 | 32SII p.4-2 5 ENTER 4 y^x (the page prints 635.0000, a misprint for 625) | 5 ENTER 4 POW | X=625
+B04 | 32SII p.4-2 2^-1.4 shows 0.3789 | 2 ENTER 1.4 CHS POW | X#0.3789,0.00005
+B05 | 32SII p.4-2 (-1.4)^3 by y^x: a negative base, integer power | 1.4 CHS ENTER 3 POW | X=-2.744
+B06 | 32SII p.4-2 cube root of -125 by XROOT shows -5.0000 | 125 CHS ENTER 3 XROOT | X~-5
+B07 | 32SII p.4-2 cube root of 125 shows 5.0000 | 125 ENTER 3 XROOT | X~5
+B08 | 32SII p.4-3 -1.4th root of .37893 shows 2.0000 | .37893 ENTER 1.4 CHS XROOT | X#2,0.00005
+B09 | 32SII p.4-4 RAD cos(5/7 pi) | RAD .5.7 ENTER PI * COS | X#-0.6235,0.00005
+B10 | 32SII p.4-4 DEG cos 128.57 | DEG 128.57 COS | X#-0.6235,0.00005
+B11 | 32SII p.4-6 6% of 15.76, then + | FIX2 15.76 ENTER 6 PCT + | X=16.7056
+B12 | 32SII p.4-6 %CHG | 16.12 ENTER 15.76 PCTCHG | X~-2.23325062035
+B13 | 32SII p.4-8 x of 30 deg, r 10 | DEG 30 ENTER 10 TOREC | X~8.66025403784 Y=5
+B14 | 32SII p.4-8 r, theta of 4, 3 | DEG 4 ENTER 3 TOPOL | X=5 Y~53.1301023542
+B15 | 32SII p.4-9 RC circuit | DEG 36.5 CHS ENTER 77.8 TOREC | X#62.5401,0.00005 Y#-46.2772,0.00005
+B16 | 32SII p.4-10 1/7 h ->HMS | FIX6 .1.7 HMS | X#0.083429,0.0000005
+B17 | 32SII p.4-11 units: lb->kg, kg->lb | 1 TOKG 1 TOLB | Y=0.45359237 X~2.20462262185
+B18 | 32SII p.4-11 units: F->C, C->F | 32 TOC 100 TOF | Y=0 X=212
+B19 | 32SII p.4-11 units: in->cm, cm->in | 1 TOCM 100 TOIN | Y=2.54 X~39.3700787402
+B20 | 32SII p.4-11 units: gal->l, l->gal | 1 TOL 1 TOGAL | Y=3.785411784 X~0.264172052358
+B21 | 32SII p.4-13 nCr 24 6, 14 6, ratio | 24 ENTER 6 NCR 14 ENTER 6 NCR XY / | X#0.0223,0.00005
+B22 | 32SII p.4-14 IP of 14.2300 | 14.23 IP | X=14
+B23 | 32SII p.4-14 FP of 14.2300 | 14.23 FP | X=0.23
+
+# ---- 33s chapter 5 ----
+C01 | 33s p.5-1 1.5 ENTER in Fraction display (value kept) | FDISP 1.5 ENTER | X=1.5
+C02 | 33s p.5-1 1 . 3 . 4 ENTER is 1 3/4 | FDISP 1.3.4 ENTER | X=1.75
+C03 | 33s p.5-1 2 . 3 . 8 is 2 3/8 | 2.3.8 ENTER | X=2.375
+C04 | 33s p.5-1 . 5 . 8 is 5/8 | .5.8 ENTER | X=0.625
+C05 | 33s p.5-1 and 32SII p.5-1: 5/8 is '. 5 . 8' or '5 . . 8' (35s p.5-1 prints '0 . 5 . 8' instead) | 5..8 ENTER | X=0.625
+C30 | 33s p.1-22 '3 . . 8 also works' for 3/8 | 3..8 ENTER | X=0.375
+C31 | 33s p.1-22 . 3 . 8 ENTER is 0.3750 | .3.8 ENTER | X=0.375
+C32 | 33s p.1-23 12 3/8 then . 3 . 4 + is 13 1/8 | 12.3.8 ENTER .3.4 + | X=13.125
+C06 | 33s p.5-1 integer and numerator over 12 digits is an illegal entry (33s; 35s p.5-3 accepts) | MODE33 12345678.12345.3 ENTER | ERR
+C07 | 33s p.5-1 a denominator of more than 4 digits is an illegal entry (33s; 35s p.5-3 accepts) | MODE33 16.3.16384 ENTER | ERR
+C08 | 33s p.5-1 fractions only in base 10 (HEX: the points are not taken) | HEX 1.2.3 ENTER DEC | X=291
+C09 | 33s p.5-1 FDISP returns to the previous format (FIX 2 kept underneath) | FIX2 16 /C FDISP 2.777 RND | X=2.78
+C10 | 33s p.5-1 ALL also turns Fraction display off | 16 /C ALL 2.77 RND | X=2.77
+C11 | 33s p.5-1 SCI also turns Fraction display off | 16 /C SCI2 2.777 RND | X=2.78
+C12 | 33s p.5-5 n /c with n above 4095 restores 4095 | 16 /C 4096 /C 1 /C | X=4095
+C13 | 33s p.5-5 /c uses the absolute value of IP(x) | 16.9 CHS /C 1 /C | X=16
+C14 | 33s p.5-5 /c leaves LAST X | 9 SQRT 16 /C | L=9
+C15 | 33s p.5-5 0 /c restores 4095 | 16 /C 0 /C 1 /C | X=4095
+C16 | 33s p.5-5 setting /c turns Fraction display on (RND then rounds to it) | 16 /C 2.77 RND | X=2.769230769230769230769230769230769
+C17 | 33s p.5-7 stock: factors of 8, 48 1/4 - 2 5/8 = 45 5/8 | SF:8 CF:9 8 /C 48.1.4 ENTER 2.5.8 - | X=45.625
+C18 | 33s p.5-7 85 % keeps y; the value 38.78125 shows 38 3/4 up | SF:8 CF:9 8 /C 48.1.4 ENTER 2.5.8 - 85 PCT | X=38.78125 Y=45.625
+C19 | 33s p.5-7 RND of it (ours: RND to the shown 3/4) | SF:8 CF:9 8 /C 48.1.4 ENTER 2.5.8 - 85 PCT RND | X=38.75
+C20 | 33s p.5-8 56 3/4 / 6 at /c 16, factors (flags as the stock example) | SF:8 CF:9 16 /C 56.3.4 STO:D 6 / | X~9.45833333333
+C21 | 33s p.5-8 RND gives 9 7/16 | SF:8 CF:9 16 /C 56.3.4 STO:D 6 / RND | X=9.4375
+C22 | 33s p.5-8 x 6 is 56 5/8 | SF:8 CF:9 16 /C 56.3.4 STO:D 6 / RND 6 * | X=56.625
+C23 | 33s p.5-8 RCL D - is -1/8 | SF:8 CF:9 16 /C 56.3.4 STO:D 6 / RND 6 * RCL:D - | X=-0.125
+C24 | 33s p.5-8 CF 8, FDISP off: -0.1250 | SF:8 CF:9 16 /C 56.3.4 STO:D 6 / RND 6 * RCL:D - CF:8 FDISP | X=-0.125
+C25 | 33s p.5-8 RND does fractional rounding in a program | PRGM CLPGM LBL:A RND RTN PRGM 16 /C 2.77 XEQ:A | X=2.769230769230769230769230769230769
+C26 | 33s p.5-9 a fraction typed in a program becomes its decimal value | PRGM CLPGM LBL:A 1.3.4 RTN PRGM XEQ:A | X=1.75
+C27 | 33s p.5-9 FDISP is not programmable | PRGM CLPGM LBL:A FDISP | ERR
+C28 | 33s p.5-9 setting flag 7 turns Fraction display on (in a program) | PRGM CLPGM LBL:A SF:7 RTN PRGM 16 /C FDISP XEQ:A 2.77 RND | X=2.769230769230769230769230769230769
+C29 | 33s p.5-4 e^14 (the value the longer-fraction example shows) | 14 EXP | X~1202604.28416
+
+# ---- 32SII chapter 5 ----
+D01 | 32SII p.5-2 FDISP 1.5 ENTER, 1 . 3 . 4 ENTER | FDISP 1.5 ENTER 1.3.4 ENTER | X=1.75 Y=1.75 Z=1.5
+D02 | 32SII p.5-1 over 12 digits of integer and numerator is illegal (as the 33s) | MODE33 12345678.12345.3 ENTER | ERR
+D03 | 32SII p.5-1 a 5-digit denominator is illegal (as the 33s) | MODE33 16.3.16384 ENTER | ERR
+D04 | 32SII p.5-8 stock example | SF:8 CF:9 8 /C 48.1.4 ENTER 2.5.8 - 85 PCT | X=38.78125 Y=45.625
+D05 | 32SII p.5-9 the 56 3/4 example to -1/8 | SF:8 CF:9 16 /C 56.3.4 STO:D 6 / RND 6 * RCL:D - | X=-0.125
+D06 | 32SII p.5-10 FDISP is not programmable | PRGM CLPGM LBL:A FDISP | ERR
+
+# ---- rules stated in the chapters, probed ----
+R01 | 33s p.4-3 y^x: y < 0 needs an odd integer x (32SII p.4-2: any integer) | 2 CHS ENTER 2 POW | X=4
+R02 | 33s p.4-3 y^x: y < 0 and x not an integer is an error | 2 CHS ENTER 0.5 POW | ERR
+R03 | 33s p.4-3 y^x: y = 0 needs x positive (0^0) | 0 ENTER 0 POW | ERR
+R04 | 33s p.4-3 y^x: y = 0, x negative | 0 ENTER 1 CHS POW | ERR
+R05 | 33s p.4-3 xroot: y < 0 needs x an integer | 8 CHS ENTER 0.5 XROOT | ERR
+R06 | 33s p.4-3 xroot: y < 0, odd integer x | 8 CHS ENTER 3 XROOT | X~-2
+R07 | 33s p.4-3 xroot: y < 0, even integer x (no real root) | 16 CHS ENTER 4 XROOT | ERR
+R08 | 33s p.4-4 GRAD: 100 grads is a right angle | GRAD 100 SIN | X=1
+R09 | 33s p.4-6 ACOSH below 1 is a domain error | 0.5 ACOSH | ERR
+R10 | 33s p.4-6 ATANH at 1 | 1 ATANH | ERR
+R11 | 33s p.4-6 percent keeps the base in Y and lifts nothing | 1 ENTER 200 ENTER 10 PCT | X=20 Y=200 Z=1

@@ -1,0 +1,63 @@
+# Manual review, topic "functions": Fraction-display vectors from the HP 33s User's Guide ch.1/5 and
+# the HP 32SII Owner's Manual ch.5 (display values read from the rendered PDF pages). Format:
+# abacus-firmware tests/fmt_vectors.c (mode "FRAC c P|F|X": most precise, factors of c, fixed c).
+# Values are the 34-digit numbers our core holds (unit 007 rule 3); " ^" / " v" is the indicator.
+
+H01 | 33s p.5-1 1.5 in Fraction display | 1.5 | FRAC 4095 P |  | 1 1/2
+H02 | 33s p.5-1 1 3/4 | 1.75 | FRAC 4095 P |  | 1 3/4
+H03 | 33s p.5-2 2 3/8 | 2.375 | FRAC 4095 P |  | 2 3/8
+H04 | 33s p.5-2 14 15/32 | 14.46875 | FRAC 4095 P |  | 14 15/32
+H05 | 33s p.5-2 54/12 | 4.5 | FRAC 4095 P |  | 4 1/2
+H06 | 33s p.5-2 6 18/5 | 9.6 | FRAC 4095 P |  | 9 3/5
+H07 | 33s p.5-2 34/12 shows 2 5/6 below | 2.833333333333333333333333333333333 | FRAC 4095 P |  | 2 5/6 v
+H08 | 33s p.5-2 15/8192 shows 0 7/3823 above | 0.0018310546875 | FRAC 4095 P |  | 0 7/3823 ^
+H09 | 33s p.5-3 diagram: 7/16 exactly | 0.4375 | FRAC 16 X |  | 0 7/16
+H10 | 33s p.5-3 diagram: between 6.5/16 and 7/16 is 7/16 below | 0.42 | FRAC 16 X |  | 0 7/16 v
+H11 | 33s p.5-3 diagram: between 7/16 and 7.5/16 is 7/16 above | 0.45 | FRAC 16 X |  | 0 7/16 ^
+H12 | 33s p.5-4 2/3 at fixed denominator 5 | 0.6666666666666666666666666666666667 | FRAC 5 X |  | 0 3/5 ^
+H13 | 33s p.5-4 -2/3 at fixed denominator 5 | -0.6666666666666666666666666666666667 | FRAC 5 X |  | -0 3/5 ^
+H14 | 33s p.5-4 2 2/3 entered shows 2 2/3 above | 2.666666666666666666666666666666667 | FRAC 4095 P |  | 2 2/3 ^
+H15 | 33s p.5-4 e^14 shows (...)2604 888/3125, no indicator (12-digit internal value) | 1202604.284164776777749236770767859 | FRAC 4095 P |  | 1202604 888/3125
+H16 | 33s p.5-4 a fraction too long for the display keeps its fraction and shows ... before the integer (width 15 here: the rule, not the 33s LCD) | 1202604.28416 | FRAC 4095 P | w=15 | ...604 888/3125
+H17 | 32SII p.5-5 the same on the 32SII's narrower display | 1202604.28416 | FRAC 4095 P | w=14 | ...04 888/3125
+H18 | 33s p.5-5 factors of 8: 53 1/4 | 53.25 | FRAC 8 F |  | 53 1/4
+H19 | 33s p.5-5 factors of 8: 37 7/8 | 37.875 | FRAC 8 F |  | 37 7/8
+H20 | 33s p.5-5 fixed 60: 1 25/60 (34-digit value rounds up: above) | 1.416666666666666666666666666666667 | FRAC 60 X |  | 1 25/60 ^
+H21 | 33s p.5-5 factors of 12 are 2, 3, 4, 6, 12: 0.2 is 1/6, not 1/5 | 0.2 | FRAC 12 F |  | 0 1/6 ^
+H22 | 33s p.5-6 2.77 /c 4095 most precise | 2.77 | FRAC 4095 P |  | 2 77/100
+H23 | 33s p.5-6 2.77 /c 4095 factors | 2.77 | FRAC 4095 F |  | 2 1051/1365 ^
+H24 | 33s p.5-6 2.77 /c 4095 fixed | 2.77 | FRAC 4095 X |  | 2 3153/4095 ^
+H25 | 33s p.5-6 2.77 /c 16 most precise | 2.77 | FRAC 16 P |  | 2 10/13 ^
+H26 | 33s p.5-6 2.77 /c 16 factors | 2.77 | FRAC 16 F |  | 2 3/4 ^
+H27 | 33s p.5-6 2.77 /c 16 fixed | 2.77 | FRAC 16 X |  | 2 12/16 ^
+H28 | 33s p.5-7 table: 2, precise | 2 | FRAC 16 P |  | 2
+H29 | 33s p.5-7 table: 2, factors | 2 | FRAC 16 F |  | 2
+H30 | 33s p.5-7 table: 2, fixed | 2 | FRAC 16 X |  | 2 0/16
+H31 | 33s p.5-7 table: 2.5, precise | 2.5 | FRAC 16 P |  | 2 1/2
+H32 | 33s p.5-7 table: 2.5, factors | 2.5 | FRAC 16 F |  | 2 1/2
+H33 | 33s p.5-7 table: 2.5, fixed | 2.5 | FRAC 16 X |  | 2 8/16
+H34 | 33s p.5-7 table: 2 2/3, precise | 2.666666666666666666666666666666667 | FRAC 16 P |  | 2 2/3 ^
+H35 | 33s p.5-7 table: 2 2/3, factors | 2.666666666666666666666666666666667 | FRAC 16 F |  | 2 11/16 v
+H36 | 33s p.5-7 table: 2 2/3, fixed | 2.666666666666666666666666666666667 | FRAC 16 X |  | 2 11/16 v
+H37 | 33s p.5-7 table: 2.9999, precise | 2.9999 | FRAC 16 P |  | 3 v
+H38 | 33s p.5-7 table: 2.9999, factors | 2.9999 | FRAC 16 F |  | 3 v
+H39 | 33s p.5-7 table: 2.9999, fixed | 2.9999 | FRAC 16 X |  | 3 0/16 v
+H40 | 33s p.5-7 table: 2 16/25, precise | 2.64 | FRAC 16 P |  | 2 9/14 v
+H41 | 33s p.5-7 table: 2 16/25, factors | 2.64 | FRAC 16 F |  | 2 5/8 ^
+H42 | 33s p.5-7 table: 2 16/25, fixed | 2.64 | FRAC 16 X |  | 2 10/16 ^
+H43 | 32SII p.5-8 table: 2 16/25 precise prints 2 7/11 above (33s p.5-7: 2 9/14 below) | 2.64 | FRAC 16 P |  | 2 7/11 ^
+H44 | 32SII p.5-8 table: 2.9999 fixed prints 2 16/16 below (33s p.5-7: 3 0/16 below) | 2.9999 | FRAC 16 X |  | 2 16/16 v
+H45 | 33s p.5-7 stock: 48 1/4 | 48.25 | FRAC 8 F |  | 48 1/4
+H46 | 33s p.5-7 stock: 45 5/8 | 45.625 | FRAC 8 F |  | 45 5/8
+H47 | 33s p.5-7 stock: 85% shows 38 3/4 above | 38.78125 | FRAC 8 F |  | 38 3/4 ^
+H48 | 33s p.5-8 56 3/4 | 56.75 | FRAC 16 F |  | 56 3/4
+H49 | 33s p.5-8 / 6 shows 9 7/16 above | 9.458333333333333333333333333333333 | FRAC 16 F |  | 9 7/16 ^
+H50 | 33s p.5-8 after RND: 9 7/16 | 9.4375 | FRAC 16 F |  | 9 7/16
+H51 | 33s p.5-8 x 6: 56 5/8 | 56.625 | FRAC 16 F |  | 56 5/8
+H52 | 33s p.5-8 RCL D -: -0 1/8 | -0.125 | FRAC 16 F |  | -0 1/8
+H53 | 33s p.5-8 FDISP off: -0.1250 (FIX 4) | -0.125 | FIX 4 |  | -0.1250
+H54 | 33s p.1-23 12 3/8 | 12.375 | FRAC 4095 P |  | 12 3/8
+H55 | 33s p.1-23 + 3/4 shows 13 1/8 | 13.125 | FRAC 4095 P |  | 13 1/8
+H56 | 33s p.1-22 0 3/8 is shown 0.3750 in FIX 4 | 0.375 | FIX 4 |  | 0.3750
+H57 | 32SII p.5-3 15/8192 (its table prints internal .183105468750, a misprint; display 0 7/3823 above) | 0.0018310546875 | FRAC 4095 P |  | 0 7/3823 ^
+H58 | 32SII p.5-4 -2/3 at fixed 5 | -0.6666666666666666666666666666666667 | FRAC 5 X |  | -0 3/5 ^

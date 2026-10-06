@@ -1,0 +1,10 @@
+# Manual review (cxbasestat, 2026-10-06): the base display as the 33s and 32SII print it. Format: abacus-firmware
+# tests/fmt_vectors.c. The 33s/32SII show a base number with no suffix (the HEX/OCT/BIN annunciator names the base);
+# the 35s appends h/o/b (35s p.11-2, 11-5). A decimal outside the 36-bit range shows TOO BIG in a base mode in all three.
+
+D01 | 33s p.10-1, 32SII p.10-1 125.99 in HEX shows 7D | 125.99 | BASE 16 | | 7D
+D02 | 33s p.10-1, 32SII p.10-2 125.99 in OCT shows 175 | 125.99 | BASE 8 | | 175
+D03 | 33s p.10-2, 32SII p.10-2 125.99 in BIN shows 1111101 | 125.99 | BASE 2 | | 1111101
+D04 | 33s p.10-3, 32SII p.10-3 FC9 | 4041 | BASE 16 | | FC9
+D05 | 33s p.10-4, 32SII p.10-5 -546 in HEX shows FFFFFFDDE | -546 | BASE 16 | | FFFFFFDDE
+D06 | 33s p.10-5, 32SII p.10-6, 35s p.11-7 a decimal beyond the range shows TOO BIG in a base mode | 1E20 | BASE 16 | | TOO BIG

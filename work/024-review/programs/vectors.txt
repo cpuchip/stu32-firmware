@@ -1,0 +1,147 @@
+# Manual review: programming (HP 33s User's Guide ch.12-14, HP 32SII Owner's Manual ch.12-14).
+# Format as abacus-firmware tests/vectors.c. Each vector starts fresh (33s mode by default).
+# Page citations follow the page footers (the text dump puts each footer after its page's content).
+# Where the 33s/32SII use the variable i as the index, these vectors use our I in its place (the
+# harness has no token for a variable i, and the core has none: see the report).
+# Numbers: 25 pi, 6.25 pi, 4 pi^3, 50 pi, 52.5 pi to 12 digits.
+
+# ---- Chapter 12: simple programming ----
+P01 | 33s p.12-2, 32SII p.12-2 the first program, unlabeled at PRGM TOP; GTO . . then 5 R/S: 78.5398 | PRGM GTO.. SQ PI * PRGM GTO.. 5 RS | X~78.5398163397 %PC=TOP %LINES=3
+P02 | 33s p.12-7, 12-9; 32SII p.12-7, 12-9 program A (LBL A, x^2, pi, x, RTN): 5 XEQ A = 78.5398 | PRGM CLPGM LBL:A SQ PI * RTN PRGM 5 XEQ:A | X~78.5398163397 %PC=TOP %LINES=5
+P03 | 33s p.12-8, 12-9; 32SII p.12-8, 12-9 program E with an equation line (STO R, pi*R^2): 2.5 XEQ E = 19.6350 | PRGM CLPGM LBL:E STO:R EQ:π×R^2 RTN PRGM 2.5 XEQ:E | X~19.6349540849 @R=2.5
+P04 | 33s p.12-9, 32SII p.12-9 2 pi x XEQ A = 124.0251 | PRGM CLPGM LBL:A SQ PI * RTN PRGM 2 PI * XEQ:A | X~124.025106721
+P05 | 33s p.12-10, 32SII p.12-10 GTO A then SST: LBL A, X still 5 | PRGM CLPGM LBL:A SQ PI * RTN PRGM 5 GTO:A SST | X=5 %PC=A002
+P06 | 33s p.12-10 SST: x^2 gives 25 | PRGM CLPGM LBL:A SQ PI * RTN PRGM 5 GTO:A SST SST | X=25 %PC=A003
+P07 | 33s p.12-10 SST: pi | PRGM CLPGM LBL:A SQ PI * RTN PRGM 5 GTO:A SST SST SST | X~3.14159265359 Y=25
+P08 | 33s p.12-10 SST: x gives 78.5398 | PRGM CLPGM LBL:A SQ PI * RTN PRGM 5 GTO:A SST SST SST SST | X~78.5398163397 %PC=A005
+P09 | 33s p.12-10 SST: RTN, the end; the pointer at PRGM TOP | PRGM CLPGM LBL:A SQ PI * RTN PRGM 5 GTO:A SST SST SST SST SST | X~78.5398163397 %PC=TOP
+P10 | 33s p.12-11, 12-13; 32SII p.12-11, 12-13 INPUT stops and prompts with the variable's current value in X | PRGM CLPGM LBL:A INPUT:R SQ PI * RTN PRGM 3 STO:R CLX XEQ:A | %STOP=INPUT:R X=3 %PC=A002
+P11 | 33s p.12-12, 12-13 a typed value writes over X and is stored in R | PRGM CLPGM LBL:A INPUT:R SQ PI * RTN PRGM 3 STO:R CLX XEQ:A 5 RS | @R=5 X~78.5398163397 %STOP=DONE
+P12 | 33s p.12-12, 12-13 R/S alone keeps the displayed value | PRGM CLPGM LBL:A INPUT:R SQ PI * RTN PRGM 2 STO:R CLX XEQ:A RS | @R=2 X~12.5663706144
+P13 | 33s p.12-13, 32SII p.12-13 ENTER first to calculate with the displayed number: 3 ENTER 2 x R/S stores 6 | PRGM CLPGM LBL:A INPUT:R SQ PI * RTN PRGM 3 STO:R CLX XEQ:A ENTER 2 * RS | @R=6
+P14 | 33s p.12-13 C during digit entry clears the number; a second C cancels the prompt, R's value in X | PRGM CLPGM LBL:A INPUT:R SQ PI * RTN PRGM 4 STO:R CLX XEQ:A 7 C C | %STOP=CANCELLED X=4 @R=4
+P15 | 33s p.12-13, 32SII p.12-13 R/S after a cancelled INPUT repeats the prompt | PRGM CLPGM LBL:A INPUT:R SQ PI * RTN PRGM 4 STO:R CLX XEQ:A 7 C C RS | %STOP=INPUT:R X=4
+P16 | 33s p.12-13, 32SII p.12-14 VIEW stops and shows the variable without copying it to X | PRGM CLPGM LBL:A VIEW:B 7 RTN PRGM 4 STO:B CLX XEQ:A | %STOP=VIEW:B X=0 %PC=A003
+P17 | 33s p.12-13, 32SII p.12-14 ENTER at a VIEW copies the value to X | PRGM CLPGM LBL:A VIEW:B 7 RTN PRGM 4 STO:B CLX XEQ:A ENTER | X=4
+P18 | 33s p.12-14 R/S continues after a VIEW | PRGM CLPGM LBL:A VIEW:B 7 RTN PRGM 4 STO:B CLX XEQ:A RS | X=7 %STOP=DONE
+P19 | 33s p.12-15, 12-16; 32SII p.12-15 to 12-17 the cylinder: XEQ C prompts for R | PRGM CLPGM LBL:C INPUT:R INPUT:H EQ:π×R^2×H STO:V EQ:2×π×R×(R+H) STO:S SF:10 EQ:VOL+AREA CF:10 VIEW:V VIEW:S RTN PRGM XEQ:C | %STOP=INPUT:R
+P20 | 33s p.12-16 R = 2 1/2 as a fraction: prompts for H | PRGM CLPGM LBL:C INPUT:R INPUT:H EQ:π×R^2×H STO:V EQ:2×π×R×(R+H) STO:S SF:10 EQ:VOL+AREA CF:10 VIEW:V VIEW:S RTN PRGM XEQ:C 2.1.2 RS | %STOP=INPUT:H @R=2.5
+P21 | 33s p.12-16 H = 8: the message (flag 10) | PRGM CLPGM LBL:C INPUT:R INPUT:H EQ:π×R^2×H STO:V EQ:2×π×R×(R+H) STO:S SF:10 EQ:VOL+AREA CF:10 VIEW:V VIEW:S RTN PRGM XEQ:C 2.1.2 RS 8 RS | %STOP=MSG %MSG=VOL+AREA @V~157.079632679 @S~164.933614313
+P22 | 33s p.12-16 R/S: VIEW V, 157.0796 | PRGM CLPGM LBL:C INPUT:R INPUT:H EQ:π×R^2×H STO:V EQ:2×π×R×(R+H) STO:S SF:10 EQ:VOL+AREA CF:10 VIEW:V VIEW:S RTN PRGM XEQ:C 2.1.2 RS 8 RS RS | %STOP=VIEW:V %F10=0
+P23 | 33s p.12-16 R/S: VIEW S, 164.9336; R/S ends | PRGM CLPGM LBL:C INPUT:R INPUT:H EQ:π×R^2×H STO:V EQ:2×π×R×(R+H) STO:S SF:10 EQ:VOL+AREA CF:10 VIEW:V VIEW:S RTN PRGM XEQ:C 2.1.2 RS 8 RS RS RS RS | %STOP=DONE X~164.933614313
+P24 | 33s p.12-16, 32SII p.12-17 VIEW followed by PSE: shown, and execution continues | PRGM CLPGM LBL:A VIEW:B PSE 7 RTN PRGM 4 STO:B XEQ:A | X=7 %STOP=DONE
+P25 | 33s p.12-17, 32SII p.12-17 VIEW and PSE are one step when single-stepping | PRGM CLPGM LBL:A VIEW:B PSE 7 RTN PRGM 4 STO:B GTO:A SST SST | %PC=A004
+P26 | 33s p.12-17, 32SII p.12-18 R/S in program entry records STOP: the run halts after it, the pointer not at TOP | PRGM CLPGM LBL:A 1 RS 2 + RTN PRGM XEQ:A | X=1 %PC=A004 %STOP=STOP
+P27 | 33s p.12-17, 32SII p.12-18 R/S resumes after STOP | PRGM CLPGM LBL:A 1 RS 2 + RTN PRGM XEQ:A RS | X=3 %PC=TOP
+P28 | 33s p.12-17, 32SII p.12-18 an interrupted program resumes with R/S | PRGM CLPGM LBL:A 1 STO+:C 2 STO+:D RTN PRGM INTR:3 XEQ:A RS | @C=1 @D=2
+P29 | 33s p.12-17, 32SII p.12-18 after an interrupt and RTN it cannot be resumed: R/S runs from the top | PRGM CLPGM LBL:A 1 STO+:C 2 STO+:D RTN PRGM INTR:3 XEQ:A RTN RS | @C=2 @D=2
+P30 | 33s p.12-17, 32SII p.12-18 after an interrupt and XEQ it cannot be resumed | PRGM CLPGM LBL:A 1 STO+:C 2 STO+:D RTN LBL:B 9 RTN PRGM INTR:3 XEQ:A XEQ:B RS | @C=2 @D=2
+P31 | 33s p.12-17, 12-18; 32SII p.12-18 an error stops the program at the failing line | PRGM CLPGM LBL:A 0 INV RTN PRGM XEQ:A | ERR %PC=A003 %STOP=ERROR
+P32 | 33s p.12-6, 32SII p.12-6 C always cancels program entry (the next key acts) | PRGM CLPGM LBL:A SQ C 7 | X=7 %LINES=2
+P33 | 33s p.12-6, 32SII p.12-6 backspace during digit entry backspaces the digit | PRGM CLPGM LBL:A 12 BKSP 3 RTN PRGM XEQ:A | X=13 %LINES=3
+P34 | 33s p.12-18, 32SII p.12-19 deleting a line moves the pointer to the one before | PRGM CLPGM LBL:A SQ SQRT BKSP PRGM | %PC=A002 %LINES=2
+P35 | 33s p.12-18, 32SII p.12-19 a line keyed after A0004 is inserted there, the old A0005 renumbered (2: x^2 x^2 x^2 sqrt x^2 = 256) | PRGM CLPGM LBL:A SQ SQ SQ SQ GTO.:A004 SQRT PRGM 2 XEQ:A | X=256 %LINES=6
+P36 | 33s p.12-18 the inserted line becomes A0005 | PRGM CLPGM LBL:A SQ SQ SQ SQ GTO.:A004 SQRT PRGM | %PC=A005
+P37 | 33s p.12-19, 32SII p.12-20 program memory is circular: BST at PRGM TOP goes to the last line | PRGM CLPGM LBL:A SQ SQRT GTO.. BST PRGM | %PC=A003
+P38 | 33s p.12-19, 32SII p.12-20 SST at the last line goes to PRGM TOP | PRGM CLPGM LBL:A SQ SQRT SST PRGM | %PC=TOP
+P39 | 33s p.12-19, 32SII p.12-20 leaving program entry does not move the pointer | PRGM CLPGM LBL:A SQ SQRT GTO.:A002 PRGM | %PC=A002
+P40 | 33s p.12-21, 32SII p.12-22 clearing all programs | PRGM CLPGM LBL:A SQ CLPGM PRGM | %LINES=0 %PC=TOP
+P41 | 33s p.12-21, 32SII p.12-22 clearing all of memory (CLEAR ALL) also clears all programs | PRGM CLPGM LBL:A SQ PRGM CLALL | %LINES=0
+P42 | 33s p.12-22 FDISP is not programmable | PRGM FDISP PRGM | ERR %LINES=0 %ERR=NONPROGRAMMABLE
+P43 | 33s p.12-22, 32SII p.12-24 a base instruction in a program; the number lines keep the base they were keyed in | PRGM CLPGM LBL:A HEX 13 DEC RTN PRGM XEQ:A | X=13
+P44 | 33s p.12-23, 32SII p.12-24 a number keyed in HEX mode is a HEX line (D is 13) | HEX PRGM CLPGM LBL:A HD RTN PRGM DEC XEQ:A | X=13
+P45 | 33s p.12-22, 32SII p.12-24 SOLVE sets Decimal mode (after it, 7 / 2 is 3.5, not HEX's 3) | PRGM CLPGM LBL:F RCL:X 2 - RTN PRGM 0 STO:X 5 HEX FN=:F SOLVE:X 7 ENTER 2 / | X=3.5
+P46 | 33s p.12-22, 32SII p.12-24 integrate sets Decimal mode | PRGM CLPGM LBL:F 1 RTN PRGM FIX4 FN=:F 2 ENTER 5 HEX INTEG:X 7 ENTER 2 / | X=3.5
+P47 | 33s p.12-22, 32SII p.12-24 equation evaluation sets Decimal mode | HEX EQ:1+1 XEQ C 7 ENTER 2 / | X=3.5
+P48 | 33s p.12-23, 12-24 5x^4 + 2x^3 at x = 7 (the ALG listing as RPN): 12,691 | PRGM CLPGM LBL:A INPUT:X 5 RCL:X 4 POW * RCL:X 3 POW 2 * + RTN PRGM XEQ:A 7 RS | X=12691
+P49 | 32SII p.12-25, 12-26 Horner with a stack filled by ENTER ENTER ENTER: (((5x + 2)x)x)x at 7 = 12,691 | PRGM CLPGM LBL:P INPUT:X ENTER ENTER ENTER 5 * 2 + * * * RTN PRGM XEQ:P 7 RS | X=12691
+P50 | 32SII p.12-26, 12-27 general Horner, A=5 B=2 C=D=E=0, x = 7 | PRGM CLPGM LBL:P INPUT:A INPUT:B INPUT:C INPUT:D INPUT:E INPUT:X ENTER ENTER ENTER RCL*:A RCL+:B * RCL+:C * RCL+:D * RCL+:E RTN PRGM XEQ:P 5 RS 2 RS 0 RS 0 RS 0 RS 7 RS | X=12691 %STOP=DONE
+P51 | 33s p.12-3, 32SII p.12-3 one unlabeled program at the top, then a labeled one: R/S from the top runs into it | PRGM CLPGM GTO.. 3 LBL:A SQ RTN PRGM GTO.. RS | X=9
+P52 | 33s p.12-3 a label used twice is refused (DUPLICAT.LBL) | PRGM CLPGM LBL:A LBL:A PRGM | ERR %ERR=DUP_LABEL %LINES=1
+P53 | 33s p.12-4, 32SII p.12-4 the last RTN returns the pointer to PRGM TOP | PRGM CLPGM LBL:A 1 RTN PRGM XEQ:A | %PC=TOP
+P54 | 33s p.12-19, 13-6 the line address reads label + four digits on the 33s (A0004; the 32SII: A04) | PRGM CLPGM LBL:A SQ SQ SQ SQ PRGM GTO.:A004 | %PC=A0004
+
+# ---- Chapter 13: programming techniques ----
+Q01 | 33s p.13-3, 13-4; 32SII p.13-4 nested S and Q: sqrt(a^2+b^2+c^2+d^2), 1 2 3 4 | PRGM CLPGM LBL:S INPUT:A INPUT:B INPUT:C INPUT:D RCL:D RCL:C RCL:B RCL:A SQ XEQ:Q XEQ:Q XEQ:Q SQRT RTN LBL:Q XY SQ + RTN PRGM XEQ:S 1 RS 2 RS 3 RS 4 RS | X~5.47722557505
+Q02 | 33s p.13-3, 32SII p.13-3 seven nested levels below the top level run | MODE33 PRGM CLPGM LBL:A XEQ:B RTN LBL:B XEQ:C RTN LBL:C XEQ:D RTN LBL:D XEQ:E RTN LBL:E XEQ:F RTN LBL:F XEQ:G RTN LBL:G XEQ:H RTN LBL:H 7 RTN PRGM XEQ:A | X=7 %PC=TOP
+Q03 | 33s p.13-3, 32SII p.13-3 an eighth nested level is XEQ OVERFLOW | MODE33 PRGM CLPGM LBL:A XEQ:B RTN LBL:B XEQ:C RTN LBL:C XEQ:D RTN LBL:D XEQ:E RTN LBL:E XEQ:F RTN LBL:F XEQ:G RTN LBL:G XEQ:H RTN LBL:H XEQ:I RTN LBL:I 7 RTN PRGM XEQ:A | ERR %ERR=XEQ_OVERFLOW %PC=H002
+Q04 | 35s p.14-2 (contrast) in the 35s mode the eighth level runs (20 allowed) | MODE35 PRGM CLPGM LBL:A XEQ:B RTN LBL:B XEQ:C RTN LBL:C XEQ:D RTN LBL:D XEQ:E RTN LBL:E XEQ:F RTN LBL:F XEQ:G RTN LBL:G XEQ:H RTN LBL:H XEQ:I RTN LBL:I 7 RTN PRGM XEQ:A | X=7
+Q05 | 33s p.13-2, 32SII p.13-2 XEQ must branch to a label, never a line number: XEQ B0002 cannot be keyed | MODE33 PRGM CLPGM LBL:A XEQ:B002 PRGM | ERR %LINES=1
+Q06 | 33s p.13-4, 32SII p.13-5 a programmed GTO cannot branch to a line number | MODE33 PRGM CLPGM LBL:A GTO:A002 PRGM | ERR %LINES=1
+Q07 | 33s p.13-4, 13-5; 32SII p.13-5, 13-6 GTO Z from routines S and L to the shared label Z (bodies ours) | PRGM CLPGM LBL:S 1 GTO:Z LBL:L 2 GTO:Z LBL:Z 10 * RTN PRGM XEQ:S | X=10
+Q08 | 33s p.13-4, 13-5 the same from L | PRGM CLPGM LBL:S 1 GTO:Z LBL:L 2 GTO:Z LBL:Z 10 * RTN PRGM XEQ:L | X=20
+Q09 | 33s p.13-5, 13-6; 32SII p.13-6 GTO . A0005 from the keyboard moves the pointer only | PRGM CLPGM LBL:A SQ SQ SQ SQ SQ PRGM 3 GTO.:A005 | %PC=A005 X=3
+Q10 | 33s p.13-6, 32SII p.13-6 GTO label from the keyboard (program entry off) moves to the label | PRGM CLPGM LBL:A SQ RTN LBL:B SQRT RTN PRGM GTO:B | %PC=B001
+Q11 | 33s p.13-6, 32SII p.13-7 x=0? false skips the next line (A0005 skips to A0007) | PRGM CLPGM LBL:A ENTER ENTER ENTER X=0? GTO:B 7 RTN LBL:B 9 RTN PRGM 5 XEQ:A | X=7
+Q12 | 33s p.13-6, 32SII p.13-7 x=0? true does the next line | PRGM CLPGM LBL:A ENTER ENTER ENTER X=0? GTO:B 7 RTN LBL:B 9 RTN PRGM 0 XEQ:A | X=9
+Q13 | 33s p.13-7, 32SII p.13-8 x = 2, y = 7: x<y? from the keyboard is YES | 7 ENTER 2 X<Y? | %YES=1 X=2 Y=7
+Q14 | 33s p.13-7 x>y? from the keyboard is NO | 7 ENTER 2 X>Y? | %YES=0
+Q15 | 33s p.13-8, 32SII p.13-9 twelve flags, 0 to 11 | SF:0 SF:11 | %F0=1 %F11=1
+Q16 | 33s p.13-8, 32SII p.13-9 there is no flag 12 | SF:12 | ERR
+Q17 | 33s p.13-8, 32SII p.13-9 every flag is clear by default | | %F0=0 %F1=0 %F2=0 %F3=0 %F4=0 %F5=0 %F6=0 %F7=0 %F8=0 %F9=0 %F10=0 %F11=0
+Q18 | 33s p.13-8, 32SII p.13-9 memory clear clears all flags | SF:0 SF:4 SF:5 SF:10 SF:11 MEMCLR | %F0=0 %F4=0 %F5=0 %F10=0 %F11=0
+Q19 | 33s p.13-8, 32SII p.13-9 CLEAR ALL does not affect the flags | SF:0 SF:4 SF:5 SF:10 SF:11 CLALL | %F0=1 %F4=1 %F5=1 %F10=1 %F11=1
+Q20 | 33s p.13-9, 32SII p.13-9 an overflow in a program sets flag 6, substitutes the largest number and (flag 5 clear) runs on | PRGM CLPGM LBL:A 1 E 499 ENTER 10 * 5 RTN PRGM XEQ:A | X=5 Y=9.99999999999E499 %F6=1
+Q21 | 33s p.13-9 the same at our own range's edge (decimal128): flag 6 set, the run goes on | PRGM CLPGM LBL:A 1 E 6000 ENTER * 5 RTN PRGM XEQ:A | X=5 %F6=1
+Q22 | 33s p.13-9, 32SII p.13-10 flag 5 set: the overflow stops the program at the line just after | PRGM CLPGM LBL:A SF:5 1 E 6000 ENTER * 5 RTN PRGM XEQ:A | %PC=A006 %F6=1
+Q23 | 33s p.13-9, 32SII p.13-10 flag 6 can be set by hand and tested | SF:6 FS?:6 | %YES=1
+Q24 | 33s p.13-9, 32SII p.13-10 FDISP sets flag 7 | FDISP | %F7=1
+Q25 | 33s p.13-9 FDISP again clears flag 7 | FDISP FDISP | %F7=0
+Q26 | 33s p.13-10, 32SII p.13-10 flag 10 set: an equation line is a message; execution halts, the pointer at the next line, the stack untouched | PRGM CLPGM LBL:A 5 SF:10 EQ:A+B CF:10 RTN PRGM XEQ:A | %STOP=MSG %MSG=A+B X=5 %PC=A005
+Q27 | 33s p.13-10 R/S resumes after the message | PRGM CLPGM LBL:A 5 SF:10 EQ:A+B CF:10 RTN PRGM XEQ:A RS | %STOP=DONE X=5 %F10=0
+Q28 | 33s p.13-10, 32SII p.13-11 a message followed by PSE: execution continues | PRGM CLPGM LBL:A 5 SF:10 EQ:A+B PSE CF:10 7 RTN PRGM XEQ:A | X=7 Y=5 %STOP=DONE
+Q29 | 33s p.13-10, 32SII p.13-10 flag 10 clear: the equation is evaluated, its value on the stack | 3 STO:A 4 STO:B PRGM CLPGM LBL:A EQ:A+B RTN PRGM XEQ:A | X=7
+Q30 | 33s p.13-10, 32SII p.13-11 flag 11 set: an equation in a program prompts for its first variable | PRGM CLPGM LBL:A SF:11 EQ:A×A+B RTN PRGM XEQ:A | %STOP=INPUT:A
+Q31 | 33s p.13-10 ... each variable once, then flag 11 is cleared after the evaluation | PRGM CLPGM LBL:A SF:11 EQ:A×A+B RTN PRGM XEQ:A 3 RS 1 RS | X=10 %F11=0 %STOP=DONE
+Q32 | 33s p.13-10 flag 11 clear: no prompts, the stored values | 3 STO:A 1 STO:B PRGM CLPGM LBL:A EQ:A×A+B RTN PRGM XEQ:A | X=10 %STOP=DONE
+Q33 | 33s p.13-11, 32SII p.13-12 FS? from the keyboard: YES / NO | SF:2 FS?:2 | %YES=1
+Q34 | 33s p.13-11 FS? of a clear flag is NO | FS?:3 | %YES=0
+Q35 | 33s p.13-12, 13-13; 32SII p.13-12, 13-13 curve-fit flags: CF 0 CF 1, no logs taken | PRGM CLPGM LBL:S CF:0 CF:1 GTO:W LBL:W RCL:X FS?:0 LN STO:X RCL:Y FS?:1 LN STO:Y RTN PRGM 10 STO:X 10 STO:Y XEQ:S | @X=10 @Y=10
+Q36 | 33s p.13-12 SF 0: ln of the X-input only | PRGM CLPGM LBL:S SF:0 CF:1 GTO:W LBL:W RCL:X FS?:0 LN STO:X RCL:Y FS?:1 LN STO:Y RTN PRGM 10 STO:X 10 STO:Y XEQ:S | @X~2.30258509299 @Y=10
+Q37 | 33s p.13-12 SF 0 SF 1: both | PRGM CLPGM LBL:S SF:0 SF:1 GTO:W LBL:W RCL:X FS?:0 LN STO:X RCL:Y FS?:1 LN STO:Y RTN PRGM 10 STO:X 10 STO:Y XEQ:S | @X~2.30258509299 @Y~2.30258509299
+Q38 | 33s p.13-16, 13-17; 32SII p.13-16, 13-17 the conditional loop (two labels, a GTO to L): A = 10, B = 3 gives A = 1 | PRGM CLPGM LBL:S INPUT:A INPUT:B LBL:L RCL:A RCL-:B STO:A RCL:B X<Y? GTO:L VIEW:A RTN PRGM XEQ:S 10 RS 3 RS | %STOP=VIEW:A @A=1
+Q39 | 33s p.13-17 it stops when A reaches B | PRGM CLPGM LBL:S INPUT:A INPUT:B LBL:L RCL:A RCL-:B STO:A RCL:B X<Y? GTO:L VIEW:A RTN PRGM XEQ:S 10 RS 5 RS | @A=5
+Q40 | 33s p.13-19, 32SII p.13-19 ISG ten times with LBL L and LBL M: Z becomes 11.0100 | PRGM CLPGM LBL:L 1.01 STO:Z LBL:M ISG:Z GTO:M RTN PRGM XEQ:L | @Z=11.01
+Q41 | 33s p.13-19, 32SII p.13-19 0.050 for ISG: from 0 up to 50 by 1 (the body runs 51 times) | PRGM CLPGM LBL:L 0.05 STO:Z 0 STO:C LBL:M 1 STO+:C ISG:Z GTO:M RTN PRGM XEQ:L | @C=51 @Z=51.05
+Q42 | 33s p.13-18, 32SII p.13-18 DSE skips when the new counter is at most fff: 3.001 runs the body twice | PRGM CLPGM LBL:W 1 STO+:B DSE:N GTO:W RTN PRGM 3.001 STO:N XEQ:W | @B=2 @N=1.001
+Q43 | 33s p.13-18 ii is the step: 0.01002 ISG gives 2.01002 | 0.01002 STO:A ISG:A | @A=2.01002
+Q44 | 33s p.13-18 fff is always three digits: 1.1 means a final value of 100 (no skip) | PRGM CLPGM LBL:A ISG:N 7 RTN PRGM 1.1 STO:N 9 XEQ:A | @N=2.1 X=7
+Q45 | 33s p.13-21, 32SII p.13-21 i = 1 addresses variable A | MODE33 1 STO:I 5 STO:(I) | @A=5
+Q46 | 33s p.13-21 i = 26 addresses variable Z | MODE33 26 STO:I 7 STO:(I) | @Z=7
+Q47 | 33s p.13-21 only the absolute value of the integer part: -2.7 addresses B | MODE33 2.7 CHS STO:I 5 STO:(I) | @B=5
+Q48 | 33s p.13-21 2.7 addresses B | MODE33 2.7 STO:I 5 STO:(I) | @B=5
+Q49 | 33s p.13-21, 32SII p.13-21 i = 0 is INVALID (i) | MODE33 0 STO:I 5 STO:(I) | ERR
+Q50 | 33s p.13-21, 32SII p.13-21 i = 34 is INVALID (i) | MODE33 34 STO:I 5 STO:(I) | ERR
+Q51 | 33s p.13-21, 32SII p.13-21 i = 28 is the n register | MODE33 1 ENTER 2 SIGMA+ 3 ENTER 4 SIGMA+ 28 STO:I RCL:(I) | X=2
+Q52 | 35s p.14-22 (contrast) in the 35s mode -27 is the n register | MODE35 1 ENTER 2 SIGMA+ 3 ENTER 4 SIGMA+ 27 CHS STO:I RCL:(I) | X=2
+Q53 | 33s p.13-21 VIEW (i) labels the display with the variable it names (i = 3: C) | MODE33 PRGM CLPGM LBL:A VIEW:(I) RTN PRGM 3 STO:I 9 STO:C XEQ:A | %STOP=VIEW:C
+Q54 | 33s p.13-22, 13-23; 32SII p.13-22, 13-23 XEQ (i) with i = 2 calls LBL B | MODE33 PRGM CLPGM LBL:A 2 STO:I XEQ:(I) 1 + RTN LBL:B 7 RTN PRGM XEQ:A | X=8
+Q55 | 33s p.13-23 i increased by 6: 8 calls LBL H | MODE33 PRGM CLPGM LBL:A 2 STO:I 6 STO+:I XEQ:(I) RTN LBL:H 9 RTN PRGM XEQ:A | X=9
+Q56 | 33s p.13-21 GTO (i) with i = 3 goes to LBL C | MODE33 PRGM CLPGM LBL:A 3 STO:I GTO:(I) 1 RTN LBL:C 9 RTN PRGM XEQ:A | X=9
+Q57 | 33s p.13-23, 13-24; 32SII p.13-23, 13-24 the matrix input loop: 1.003 in i, INPUT (i) prompts for A first | MODE33 PRGM CLPGM LBL:A 1.003 STO:I LBL:L INPUT:(I) ISG:I GTO:L RTN PRGM XEQ:A | %STOP=INPUT:A
+Q58 | 33s p.13-24 ... and fills A, B, C; i ends at 4.003 | MODE33 PRGM CLPGM LBL:A 1.003 STO:I LBL:L INPUT:(I) ISG:I GTO:L RTN PRGM XEQ:A 10 RS 20 RS 30 RS | @A=10 @B=20 @C=30 @I=4.003
+Q59 | 33s p.13-25, 32SII p.13-25 an equation with (i): the sum of the squares of A to C | MODE33 1 STO:A 2 STO:B 3 STO:C PRGM CLPGM LBL:S CF:10 CF:11 1.003 STO:I 0 LBL:Q EQ:⒤^2 + ISG:I GTO:Q RTN PRGM XEQ:S | X=14
+
+# ---- Chapter 14: solving and integrating programs ----
+S01 | 32SII p.14-2, 14-3 (RPN); 33s p.14-3, 14-4 (ALG) ideal gas program G: SOLVE P prompts for V (INPUT P ignored) | PRGM CLPGM LBL:G INPUT:P INPUT:V INPUT:N INPUT:R INPUT:T RCL:P RCL*:V RCL:N RCL*:R RCL*:T - RTN PRGM FN=:G SOLVE:P | %STOP=INPUT:V
+S02 | 32SII p.14-3, 14-4; 33s p.14-4 V 2, N .005, R .0821, T 24 + 273.1: P = 0.0610 | PRGM CLPGM LBL:G INPUT:P INPUT:V INPUT:N INPUT:R INPUT:T RCL:P RCL*:V RCL:N RCL*:R RCL*:T - RTN PRGM FN=:G SOLVE:P 2 RS .005 RS .0821 RS 24 ENTER 273.1 + RS | @T=297.1 @P#0.060979775,1E-25 %STOP=DONE
+S03 | 32SII p.14-5, 33s p.14-5 the change in pressure when T drops by 10: -0.0021 | PRGM CLPGM LBL:G INPUT:P INPUT:V INPUT:N INPUT:R INPUT:T RCL:P RCL*:V RCL:N RCL*:R RCL*:T - RTN PRGM FN=:G SOLVE:P 2 RS .005 RS .0821 RS 24 ENTER 273.1 + RS STO:L FN=:G SOLVE:P RS RS RS ENTER 10 - RS RCL:L - | X#-0.0020525,1E-25 @T=287.1
+S04 | 33s p.14-5, 14-6; 32SII p.14-1, 14-2 the equation program H with flag 11: SOLVE P prompts for V first | PRGM CLPGM LBL:H SF:11 EQ:P×V=N×R×T RTN PRGM 2 STO:V FN=:H SOLVE:P | %STOP=INPUT:V X=2
+S05 | 33s p.14-6, 32SII p.14-5 a programmed SOLVE that finds no root skips the next line | PRGM CLPGM LBL:A FN=:F 1 STO:X 2 SOLVE:X GTO:Y 7 RTN LBL:Y 9 RTN LBL:F RCL:X SQ 1 + RTN PRGM XEQ:A | X=7
+S06 | 33s p.14-6 a programmed SOLVE that finds a root does the next line | PRGM CLPGM LBL:A FN=:F 1 STO:X 2 SOLVE:X GTO:Y 7 RTN LBL:Y 9 RTN LBL:F RCL:X SQ 4 - RTN PRGM XEQ:A | X=9
+S07 | 33s p.14-7, 32SII p.14-6 SOLVE (i) to solve for X: i = 24 is X; VIEW (i) shows the root | MODE33 PRGM CLPGM LBL:X 24 GTO:M LBL:M STO:I FN=:F SOLVE:(I) VIEW:(I) RTN LBL:F RCL:X SQ RCL:Y + 10 - RTN PRGM 1 STO:Y 1 STO:X XEQ:X | %STOP=VIEW:X @X=3
+S08 | 33s p.14-9, 32SII p.14-8, 14-9 Si(2): the integrand as an equation, 0 to 2 in RAD: 1.6054 | PRGM CLPGM LBL:S EQ:SIN(X)÷X RTN PRGM RAD FIX4 FN=:S 0 ENTER 2 INTEG:X | X#1.6054129768,0.0002
+S09 | 33s p.14-11, 32SII p.14-10 SOLVE cannot call a routine with a SOLVE | PRGM CLPGM LBL:F 1 STO:Y 2 SOLVE:Y RCL:X 3 - RTN PRGM 1 STO:X 2 FN=:F SOLVE:X | ERR %ERR=NESTED
+S10 | 33s p.14-11, 32SII p.14-10 an integral inside an integral | PRGM CLPGM LBL:F 0 ENTER 1 INTEG:Y RTN PRGM FN=:F 0 ENTER 1 INTEG:X | ERR %ERR=NESTED
+S11 | 33s p.14-11, 32SII p.14-10 SOLVE cannot call a routine with FN= | PRGM CLPGM LBL:F RCL:X FN=:G RTN LBL:G RCL:X RTN PRGM 1 STO:X 2 FN=:F SOLVE:X | ERR %ERR=NESTED
+S12 | 33s p.14-11, 32SII p.14-10 SOLVE cannot call a routine with an integral | PRGM CLPGM LBL:F RCL:X 0 ENTER 1 INTEG:Y RTN PRGM 1 STO:X 2 FN=:F SOLVE:X | ERR %ERR=NESTED
+S13 | 33s p.14-11, 32SII p.14-10 a SOLVE at six nested levels still runs (it takes the seventh) | MODE33 PRGM CLPGM LBL:A XEQ:B RTN LBL:B XEQ:C RTN LBL:C XEQ:D RTN LBL:D XEQ:E RTN LBL:E XEQ:F RTN LBL:F XEQ:G RTN LBL:G FN=:Z 1 STO:X 2 SOLVE:X RTN LBL:Z RCL:X 1.5 - RTN PRGM XEQ:A | X=1.5
+S14 | 33s p.14-11, 32SII p.14-10 a SOLVE at seven nested levels needs an eighth: XEQ OVERFLOW | MODE33 PRGM CLPGM LBL:A XEQ:B RTN LBL:B XEQ:C RTN LBL:C XEQ:D RTN LBL:D XEQ:E RTN LBL:E XEQ:F RTN LBL:F XEQ:G RTN LBL:G XEQ:H RTN LBL:H FN=:Z 1 STO:X 2 SOLVE:X RTN LBL:Z RCL:X 1.5 - RTN PRGM XEQ:A | ERR %ERR=XEQ_OVERFLOW
+S15 | 33s p.14-1, 32SII p.14-1 (35s p.15-1) a halted SOLVE resumes with R/S | PRGM CLPGM LBL:F RCL:X SQ 2 - RTN PRGM 1 STO:X 9 ENTER 2 FN=:F INTR:40 SOLVE:X RS | X~1.41421356237 @X~1.41421356237
+S16 | 33s p.14-8 a halted integration cannot be resumed (the 32SII p.14-7 says it can) | PRGM CLPGM LBL:F RCL:X SQ RTN PRGM 3 STO:X 0 ENTER 1 FN=:F INTR:20 INTEG:X | ERR %ERR=INTERRUPTED @X=3
+S17 | 33s p.14-2 VIEW in a function SOLVE calls is done once, not at every call | MODE33 PRGM CLPGM LBL:F VIEW:X RCL:X SQ 4 - RTN PRGM 1 STO:X 5 FN=:F SOLVE:X | %STOP=VIEW:X
+S18 | 33s p.14-2 STOP in a function SOLVE calls is done once | MODE33 PRGM CLPGM LBL:F RS RCL:X SQ 4 - RTN PRGM 1 STO:X 5 FN=:F SOLVE:X | %STOP=STOP
+S19 | 33s p.14-1, 32SII p.14-1 INPUT for the unknown is ignored | PRGM CLPGM LBL:F INPUT:X SQ 9 - RTN PRGM 1 STO:X 10 FN=:F SOLVE:X | X=3 %STOP=DONE
+S20 | 33s p.14-8, 32SII p.14-7, 14-8 INPUT for the variable of integration is ignored | PRGM CLPGM LBL:F INPUT:X RTN PRGM FIX4 FN=:F 0 ENTER 2 INTEG:X | X#2,1E-20 %STOP=DONE
+P55 | 33s p.12-19, 13-6 line numbers below 10000 (four digits): a label of 1000 lines fits (LBL and 999 more) | MODE33 PRGM CLPGM LBL:A SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ SQ PRGM | %LINES=1000
+P56 | 33s p.12-22, p.14-11; 32SII p.12-24, p.14-10 SOLVE works in Decimal even when HEX is set: x^2 - 2 has its root 1.41421356 | PRGM CLPGM LBL:F RCL:X SQ 2 - RTN PRGM 1 STO:X 2 HEX FN=:F SOLVE:X DEC | X~1.41421356237

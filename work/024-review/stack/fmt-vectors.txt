@@ -1,0 +1,48 @@
+# Manual review, topic "stack": the displays the 33s and 32SII chapters 1-3 print, through our
+# formatter. Format: abacus-firmware tests/fmt_vectors.c (ID | source | value | MODE n | options | text).
+# Values are the exact results the key vectors produce; the default width (22) is ours.
+
+F01 | 33s p.1-14, 32SII p.1-10 FIX 4 rounds .000062 | 0.000062 | FIX 4 |  | 0.0001
+F02 | 33s p.1-14, 32SII p.1-10 FIX 4 goes scientific for .000042 | 0.000042 | FIX 4 |  | 4.2000E-5
+F03 | 33s p.1-16 sqrt 123 in FIX 4 | 11.09053650640941716205160010260993 | FIX 4 |  | 11.0905
+F04 | 33s p.1-16, 32SII p.1-12 127 in FIX 4 | 127 | FIX 4 |  | 127.0000
+F05 | 33s p.1-16, 32SII p.1-12 the largest number shows as 1.0000E500 | 9.99999999999E499 | FIX 4 |  | 1.0000E500
+F06 | 33s p.1-17, 32SII p.1-13 1/32 in FIX 4 (a tie: away from zero) | 0.03125 | FIX 4 |  | 0.0313
+F07 | 33s p.1-17, 32SII p.1-13 12.2 | 12.2 | FIX 4 |  | 12.2000
+F08 | 33s p.1-17, 32SII p.1-13 -148.84 | -148.84 | FIX 4 |  | -148.8400
+F09 | 33s p.1-18 12^3 with the separator | 1728 | FIX 4 |  | 1,728.0000
+F10 | 33s p.1-18, 32SII p.1-14 %CHG 8 to 5 | -37.5 | FIX 4 |  | -37.5000
+F11 | 33s p.1-18 one million, radix . | 1000000 | FIX 4 |  | 1,000,000.0000
+F12 | 33s p.1-18 one million, radix , | 1000000 | FIX 4 | radix=, | 1.000.000,0000
+F13 | 33s p.1-19, 32SII p.1-15 FIX 4 example | 123456.7089 | FIX 4 |  | 123,456.7089
+F14 | 33s p.1-19, 32SII p.1-15 SCI 4 example | 123456 | SCI 4 |  | 1.2346E5
+F15 | 33s p.1-20, 32SII p.1-16 ENG 4 example | 123456 | ENG 4 |  | 123.46E3
+F16 | 33s p.1-21, 32SII p.1-17 58.5 in FIX 4 | 58.5 | FIX 4 |  | 58.5000
+F17 | 33s p.1-21, 32SII p.1-17 58.5 in SCI 2 | 58.5 | SCI 2 |  | 5.85E1
+F18 | 33s p.1-21, 32SII p.1-17 58.5 in ENG 2 | 58.5 | ENG 2 |  | 58.5E0
+F19 | 33s p.1-21, 32SII p.1-17 58.5 in ALL | 58.5 | ALL |  | 58.5
+F20 | 33s p.1-21, 32SII p.1-17 1/58.5 in FIX 4 | 0.01709401709401709401709401709401709 | FIX 4 |  | 0.0171
+F21 | 33s p.1-20/1-21, 32SII p.1-16 14.8745632019 in FIX 4 | 14.8745632019 | FIX 4 |  | 14.8746
+F22 | 33s p.2-10, 32SII p.2-11 149.0987 | 149.0987 | FIX 4 |  | 149.0987
+F23 | 33s p.2-10, 32SII p.2-11 the quotient | 2.845682864869920049165278167448234 | FIX 4 |  | 2.8457
+F24 | 33s p.2-11, 32SII p.2-12 9.5E15 | 9.5E15 | FIX 4 |  | 9.5000E15
+F25 | 33s p.2-11, 32SII p.2-12 4.085E16 | 4.085E16 | FIX 4 |  | 4.0850E16
+F26 | 33s p.2-11, 32SII p.2-12 8.265E16 | 8.265E16 | FIX 4 |  | 8.2650E16
+F27 | 33s p.2-11, 32SII p.2-13 105 | 105 | FIX 4 |  | 105.0000
+F28 | 33s p.2-12, 32SII p.2-13 2/13 | 0.1538461538461538461538461538461538 | FIX 4 |  | 0.1538
+F29 | 33s p.2-12, 32SII p.2-13 4/33 | 0.1212121212121212121212121212121212 | FIX 4 |  | 0.1212
+F30 | 33s p.2-13, 32SII p.2-14 181 | 181 | FIX 4 |  | 181.0000
+F31 | 33s p.2-13, 32SII p.2-14 21.5743 | 21.57427267981787461183952922012523 | FIX 4 |  | 21.5743
+F32 | 33s p.2-13, 32SII p.2-14 0.2500 | 0.25 | FIX 4 |  | 0.2500
+F33 | 33s p.2-14, 32SII p.2-16 78.0000 | 78 | FIX 4 |  | 78.0000
+F34 | 33s p.2-15, 32SII p.2-16 412.1429 | 412.1428571428571428571428571428571 | FIX 4 |  | 412.1429
+F35 | 33s p.2-15, 32SII p.2-16 0.5961 | 0.5961130989034000883693004677713481 | FIX 4 |  | 0.5961
+F36 | 33s p.2-15, 32SII p.2-16 4.5728 | 4.572784280227090957455575298621746 | FIX 4 |  | 4.5728
+F37 | 33s p.3-2 Avogadro's number in FIX 4 | 6.0221E23 | FIX 4 |  | 6.0221E23
+F38 | 32SII p.3-2 Avogadro's number in FIX 4 | 6.0225E23 | FIX 4 |  | 6.0225E23
+F39 | 33s p.3-6, 32SII p.3-6 3/D | 1.5 | FIX 4 |  | 1.5000
+F40 | 33s p.3-6, 32SII p.3-6 x E | 4.5 | FIX 4 |  | 4.5000
+F41 | 33s p.3-6, 32SII p.3-6 + F | 8.5 | FIX 4 |  | 8.5000
+F42 | 33s p.3-5, 32SII p.3-5 recall arithmetic result | 0.25 | FIX 4 |  | 0.2500
+F43 | 33s p.1-15, 32SII p.1-11 1E34 completed, FIX 4 | 1E34 | FIX 4 |  | 1.0000E34
+F44 | 33s p.1-15 6.6261E-34 completed, FIX 4 | 6.6261E-34 | FIX 4 |  | 6.6261E-34

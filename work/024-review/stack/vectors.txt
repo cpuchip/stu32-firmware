@@ -1,0 +1,207 @@
+# Manual review, topic "stack": getting started, the stack, LAST X, number entry, display state,
+# memory and variables, appendix B (memory and the stack) and the messages appendix.
+# Sources: HP 33s User's Guide (ch.1-3, App. B, F; p.13-21 for (i)) and HP 32SII Owner's Manual
+# (ch.1-3, App. B, E; p.13-21). Keys read from the rendered PDF pages where the text lost them.
+# Format: abacus-firmware tests/vectors.c. Every vector starts from ab_init (33s mode, ALL display).
+# Values with ~ are compared to 12 significant digits (references from Python decimal, 40 digits).
+
+# ---------------- chapter 1: keying in numbers, arithmetic, messages ----------------
+N01 | 33s p.1-14, 32SII p.1-10 a small number keyed | .000062 ENTER | X=0.000062 Y=0.000062
+N02 | 33s p.1-15 Planck's constant 6.6261E-34 | 6.6261 E 34 CHS ENTER | X=6.6261E-34
+N03 | 32SII p.1-10/1-11 Planck's constant 6.6262E-34 | 6.6262 E 34 CHS ENTER | X=6.6262E-34
+N04 | 33s p.1-15, 32SII p.1-11 CHS right after E negates the exponent | 6.6261 E CHS 34 ENTER | X=6.6261E-34
+N05 | 33s p.1-15 a negative mantissa: CHS after its digits, before E | 6.6261 CHS E 34 CHS ENTER | X=-6.6261E-34
+N06 | 33s p.1-15, 32SII p.1-11 E 34 with no multiplier shows 1E34 (default mode) | E 34 ENTER | X=1E34 Y=1E34
+N07 | 33s p.1-15 same, the 33s mode named | MODE33 E 34 ENTER | X=1E34
+N08 | 33s p.1-14, 32SII p.1-10 CHS of a completed number with an exponent: mantissa only | 6.6261 E 34 CHS ENTER CHS | X=-6.6261E-34 Y=6.6261E-34
+N09 | 33s p.1-14 CHS of a number entered previously | 5 ENTER CHS | X=-5 Y=5
+N10 | 33s p.1-16, 32SII p.1-11 a function ends digit entry: sqrt 123 | 123 SQRT | X~11.09053650640941716205160010260993 L=123
+N11 | 33s p.1-16, 32SII p.1-12 123 ENTER 4 + | 123 ENTER 4 + | X=127 L=4
+N12 | 33s p.1-14/1-16 backspace in entry erases the last digit | 123 BKSP 4 ENTER | X=124 Y=124
+N13 | 33s p.1-16, 32SII p.1-12 backspace with no cursor acts like C: X 0, lift off | 1 ENTER 9 ENTER 4 + BKSP 5 | X=5 Y=1 Z=0
+N14 | 33s p.1-14, 32SII p.1-9 C clears the whole number being keyed | 7 ENTER 123 C 5 | X=5 Y=7
+N15 | 33s p.1-17 1/32 | 32 INV | X=0.03125 L=32
+N16 | 33s p.1-17, 32SII p.1-13 then sqrt 148.84, square, CHS | 32 INV 148.84 SQRT SQ CHS | X=-148.84 Y=0.03125 L=12.2
+N17 | 33s p.1-18, 32SII p.1-14 12+3 | 12 ENTER 3 + | X=15
+N18 | 33s p.1-18, 32SII p.1-14 12-3 | 12 ENTER 3 - | X=9
+N19 | 33s p.1-18, 32SII p.1-14 12x3 | 12 ENTER 3 * | X=36
+N20 | 33s p.1-18, 32SII p.1-14 12^3 | 12 ENTER 3 POW | X=1728 L=3
+N21 | 33s p.1-18, 32SII p.1-14 %CHG from 8 to 5 (and p.2-8: %CHG does not drop the stack) | 8 ENTER 5 PCTCHG | X=-37.5 Y=8 L=5
+N22 | 33s p.1-18 x<>y repairs the order of a non-commutative function | 3 ENTER 12 XY - | X=9
+N23 | 33s p.1-21, 32SII p.1-17 display formats change no number; then 1/x of 58.5 | FIX4 45 ENTER 1.3 * SCI2 ENG2 ALL FIX4 INV | X~0.01709401709401709401709401709401709 Y=0 L=58.5
+N24 | 33s p.1-16, F-3; 32SII p.1-12, E-3 overflow returns the largest number with a warning and sets flag 6 (no error) | 1 E 6000 ENTER * | X=9.999999999999999999999999999999999E6144 %F6=1
+N25 | 33s p.1-16, 32SII p.1-12 underflow returns zero, no message | 1 E 6000 CHS ENTER * | X=0
+N26 | 33s p.1-16, 32SII p.1-12 underflow inside a function returns zero: e^-20000 | 20000 CHS EXP | X=0 L=-20000
+N27 | 33s p.1-16, F-3; 32SII p.1-12, E-3 overflow inside a function: e^20000 gives the largest number, flag 6 set | 20000 EXP | X=9.999999999999999999999999999999999E6144 %F6=1
+
+# the message, then the next key (33s p.1-23, F-1; 32SII p.1-19, E-1)
+K01 | 33s p.1-23, F-1; 32SII p.1-19, E-1 C clears a message and does nothing else | 1 ENTER 0 / C 5 | ERR X=5 Y=0 Z=1
+K02 | 33s p.1-23, F-1; 32SII p.1-19, E-1 backspace clears a message and does nothing else | 1 ENTER 0 / BKSP 5 | ERR X=5 Y=0 Z=1
+K03 | 33s F-1, 32SII E-1 any other key clears the message and executes: ENTER | 1 ENTER 0 / ENTER | ERR X=0 Y=0 Z=1
+K04 | 33s F-1, 32SII E-1 any other key clears the message and executes: x<>y | 9 ENTER 0 / XY | ERR X=9 Y=0
+K05 | 33s p.1-23, F-1; 32SII p.1-19, E-1 C after SQRT(NEG) keeps the operand in X | 7 ENTER 2 CHS SQRT C | ERR X=-2 Y=7
+K06 | 33s p.1-23, F-1; 32SII p.1-19, E-1 backspace after SQRT(NEG) keeps the operand in X | 7 ENTER 2 CHS SQRT BKSP | ERR X=-2 Y=7
+K07 | 33s F-1 a second C, after the message is gone, clears x | 7 ENTER 2 CHS SQRT C C | ERR X=0 Y=7
+K08 | ours, unit 017 rule 4 (35s mode): C after the message only clears it | MODE35 7 ENTER 2 CHS SQRT C | ERR X=-2 Y=7
+
+# ---------------- chapter 2: the stack ----------------
+S01 | 33s p.2-3, 32SII p.2-3 R-down once | 1 ENTER 2 ENTER 3 ENTER 4 RDN | X=3 Y=2 Z=1 T=4
+S02 | 33s p.2-3, 32SII p.2-3 R-down four times | 1 ENTER 2 ENTER 3 ENTER 4 RDN RDN RDN RDN | X=4 Y=3 Z=2 T=1
+S03 | 33s p.2-3, 32SII p.2-3 R-up once | 1 ENTER 2 ENTER 3 ENTER 4 RUP | X=1 Y=4 Z=3 T=2
+S04 | 33s p.2-3, 32SII p.2-3 R-up four times | 1 ENTER 2 ENTER 3 ENTER 4 RUP RUP RUP RUP | X=4 Y=3 Z=2 T=1
+S05 | 33s p.2-4, 32SII p.2-4 x<>y twice restores the order | 1 ENTER 2 ENTER 3 ENTER 4 XY XY | X=4 Y=3 Z=2 T=1
+S06 | 33s p.2-4, 32SII p.2-4 9/(13-8) with x<>y | 13 ENTER 8 - 9 XY / | X=1.8
+S07 | 33s p.2-4, 32SII p.2-4 9/(13-8) left to right | 9 ENTER 13 ENTER 8 - / | X=1.8
+S08 | 32SII p.2-5 (33s p.2-4/2-5) stack 1..4, then +: drop, T replicates | 1 ENTER 2 ENTER 3 ENTER 4 + | X=7 Y=2 Z=1 T=1
+S09 | 32SII p.2-5 (33s p.2-5) then 9: lift, T lost | 1 ENTER 2 ENTER 3 ENTER 4 + 9 | X=9 Y=7 Z=2 T=1
+S10 | 32SII p.2-5 (33s p.2-5) then -: drop | 1 ENTER 2 ENTER 3 ENTER 4 + 9 - | X=-2 Y=2 Z=1 T=1
+S11 | 33s p.2-5, 32SII p.2-6 how ENTER works: 5 ENTER 6 before + | 1 ENTER 2 ENTER 3 ENTER 4 XY XY 5 ENTER 6 | X=6 Y=5 Z=4 T=3
+S12 | 33s p.2-5, 32SII p.2-6 then + | 1 ENTER 2 ENTER 3 ENTER 4 XY XY 5 ENTER 6 + | X=11 Y=4 Z=3 T=3
+S13 | 33s p.2-5, 32SII p.2-6 0 ENTER ENTER ENTER clears the stack | 1 ENTER 2 ENTER 3 ENTER 4 ENTER 0 ENTER ENTER ENTER | X=0 Y=0 Z=0 T=0
+S14 | 33s p.2-6, 32SII p.2-6 ENTER + adds a number to itself | 7 ENTER + | X=14
+S15 | 33s p.2-6, 32SII p.2-7 a constant: 1.5 growth, three days | 1.5 ENTER ENTER ENTER 100 * * * | X=337.5 Y=1.5 Z=1.5 T=1.5
+S16 | 33s p.2-7, 32SII p.2-8 correcting 1 and 2 to 1 and 3 with CLx | 1 ENTER 2 CLX 3 | X=3 Y=1
+S17 | 33s p.2-2/2-6, 32SII p.2-2/2-7 C clears x when X shows, lift off | 5 ENTER 1 ENTER 2 + C 3 | X=3 Y=5 Z=0
+S18 | 33s p.2-2/2-6, 32SII p.2-2/2-7 backspace with no cursor clears x, lift off | 5 ENTER 1 ENTER 2 + BKSP 3 | X=3 Y=5 Z=0
+
+# LAST X (33s p.2-7 to 2-11, 32SII p.2-8 to 2-12)
+L01 | 33s p.2-8, 32SII p.2-9 wrong one-number function: e^x for sqrt, then LASTX sqrt | 4.7839 ENTER 3.879 E 5 * LN EXP LASTX SQRT | X~3.799178722677821687256793092704736 Y~1855674.81 L~14.43375896684788474753173597523646
+L02 | 33s p.2-8, 32SII p.2-9 % does not drop the stack | 200 ENTER 15 PCT | X=30 Y=200 L=15
+L03 | 33s p.2-9, 32SII p.2-10 wrong function | 16 ENTER 19 - LASTX + LASTX * | X=304 L=19
+L04 | 33s p.2-9, 32SII p.2-10 wrong first number | 15 ENTER 19 * 16 LASTX * | X=304 Y=285 L=19
+L05 | 33s p.2-9, 32SII p.2-10 wrong second number | 16 ENTER 18 * LASTX / 19 * | X=304 L=19
+L06 | 33s p.2-10, 32SII p.2-11 (96.704+52.3947)/52.3947, t=1 z=2: after + | 1 ENTER 2 ENTER 96.704 ENTER 52.3947 + | X=149.0987 Y=2 Z=1 T=1 L=52.3947
+L07 | 33s p.2-10, 32SII p.2-11 then LASTX | 1 ENTER 2 ENTER 96.704 ENTER 52.3947 + LASTX | X=52.3947 Y=149.0987 Z=2 T=1 L=52.3947
+L08 | 33s p.2-10, 32SII p.2-11 then / | 1 ENTER 2 ENTER 96.704 ENTER 52.3947 + LASTX / | X~2.845682864869920049165278167448234 Y=2 Z=1 T=1 L=52.3947
+L09 | 33s p.2-10/2-11, 32SII p.2-12 meters to Rigel Centaurus | 4.3 ENTER 9.5 E 15 * | X=4.085E16 L=9.5E15
+L10 | 33s p.2-11, 32SII p.2-12 LASTX reuses c: meters to Sirius | 4.3 ENTER 9.5 E 15 * 8.7 LASTX * | X=8.265E16 Y=4.085E16 L=9.5E15
+
+# chain calculations and exercises (33s p.2-11 to 2-15, 32SII p.2-12 to 2-17)
+C01 | 33s p.2-11, 32SII p.2-12/2-13 (12+3)x7 | 12 ENTER 3 + 7 * | X=105
+C02 | 33s p.2-12, 32SII p.2-13 2/(3+10) | 3 ENTER 10 + 2 XY / | X~0.1538461538461538461538461538461538
+C03 | 33s p.2-12, 32SII p.2-13 4/[14+(7x3)-2] | 7 ENTER 3 * 14 + 2 - 4 XY / | X~0.1212121212121212121212121212121212
+C04 | 33s p.2-12, 32SII p.2-14 (3+4)x(5+6) | 3 ENTER 4 + 5 ENTER 6 + * | X=77
+C05 | 33s p.2-13, 32SII p.2-14 exercise sqrt(16.3805x5)/0.05 = 181 | 16.3805 ENTER 5 * SQRT .05 / | X=181
+C06 | 33s p.2-13, 32SII p.2-14 exercise sqrt((2+3)(4+5)) + sqrt((6+7)(8+9)) = 21.5743 | 2 ENTER 3 + 4 ENTER 5 + * SQRT 6 ENTER 7 + 8 ENTER 9 + * SQRT + | X~21.57427267981787461183952922012523
+C07 | 33s p.2-13, 32SII p.2-14 exercise (10-5)/[(17-12)x4], solution 1 | 17 ENTER 12 - 4 * 10 ENTER 5 - XY / | X=0.25
+C08 | 33s p.2-13, 32SII p.2-14 same, solution 2 | 10 ENTER 5 - 17 ENTER 12 - 4 * / | X=0.25
+C09 | 33s p.2-14, 32SII p.2-15/2-16 left to right: the stack full at 7 ENTER 3 | 4 ENTER 14 ENTER 7 ENTER 3 | X=3 Y=7 Z=14 T=4
+C10 | 33s p.2-14, 32SII p.2-16 left to right, the answer | 4 ENTER 14 ENTER 7 ENTER 3 * + 2 - / | X~0.1212121212121212121212121212121212
+C11 | 33s p.2-14/2-15, 32SII p.2-16 (14+12)x(18-12)/(9-7) = 78 | 14 ENTER 12 + 18 ENTER 12 - * 9 ENTER 7 - / | X=78
+C12 | 33s p.2-15, 32SII p.2-16 23^2 - (13x9) + 1/7 = 412.1429 | 23 SQ 13 ENTER 9 * - 7 INV + | X~412.1428571428571428571428571428571
+C13 | 33s p.2-15, 32SII p.2-16 sqrt((5.4x0.8)/(12.5-0.7^3)) = 0.5961, solution 1 | 5.4 ENTER .8 * .7 ENTER 3 POW 12.5 XY - / SQRT | X~0.5961130989034000883693004677713481
+C14 | 33s p.2-15, 32SII p.2-16 same, solution 2 | 5.4 ENTER .8 * 12.5 ENTER .7 ENTER 3 POW - / SQRT | X~0.5961130989034000883693004677713481
+C15 | 33s p.2-15, 32SII p.2-16/2-17 the 4.5728 exercise (LASTX mid-chain) | 4 ENTER 5.2 - 8.33 * LASTX 7.46 - 0.32 * / 3.15 ENTER 2.75 - 4.3 * 1.71 ENTER 2.01 * - / SQRT | X~4.572784280227090957455575298621746
+
+# ---------------- chapter 3: variables ----------------
+V01 | 33s p.3-2 Avogadro's number: STO, C, RCL | 1 ENTER 6.0221 E 23 STO:A C RCL:A | X=6.0221E23 Y=1 Z=0 @A=6.0221E23
+V02 | 32SII p.3-2 Avogadro's number (6.0225E23) | 1 ENTER 6.0225 E 23 STO:A C RCL:A | X=6.0225E23 Y=1 Z=0 @A=6.0225E23
+V03 | 33s p.3-2, 32SII p.3-2 STO ends digit entry: the next digit starts a new number | 12 STO:A 3 | X=3 Y=12 @A=12
+V04 | 33s p.3-3, 32SII p.3-2 VIEW shows a variable without touching the stack | 5 STO:A 7 VIEW:A | X=7 Y=5 @A=5
+V05 | 33s p.3-3, 32SII p.3-3 C cancels the VIEW display only | 5 STO:A 7 VIEW:A C | X=7 Y=5
+V06 | 33s p.3-3, 32SII p.3-3 backspace cancels the VIEW display only | 5 STO:A 7 VIEW:A BKSP | X=7 Y=5
+V07 | 33s p.3-4, 32SII p.3-3/3-4 clear one variable by storing zero | 5 STO:A 0 STO:A | @A=0
+V08 | 33s p.3-4, 32SII p.3-4 CLVARS clears every variable | 5 STO:A 6 STO:Z CLVARS | X=6 @A=0 @Z=0
+V09 | 33s p.3-4/3-5, 32SII p.3-4/3-5 storage arithmetic: A - x, the stack untouched | 15 STO:A 3 STO-:A | X=3 Y=15 @A=12
+V10 | 33s p.3-5, 32SII p.3-5 recall arithmetic: x / A, only X changes | 12 STO:A 3 RCL/:A | X=0.25 Y=12 L=3 @A=12
+V11 | 33s p.3-6, 32SII p.3-6 add 1 to D, E and F | 1 STO:D 2 STO:E 3 STO:F 1 STO+:D STO+:E STO+:F | X=1 Y=3 @D=2 @E=3 @F=4
+V12 | 33s p.3-6, 32SII p.3-6 then VIEW D, E, F and backspace: X shows again | 1 STO:D 2 STO:E 3 STO:F 1 STO+:D STO+:E STO+:F VIEW:D VIEW:E VIEW:F BKSP | X=1 Y=3 @D=2
+V13 | 33s p.3-6, 32SII p.3-6 3/D, xE, +F with D,E,F = 2,3,4 | 2 STO:D 3 STO:E 4 STO:F 3 RCL/:D RCL*:E RCL+:F | X=8.5 L=4.5
+V14 | 33s p.3-6/3-7, 32SII p.3-7 x<>A | 12 STO:A 3 XVAR:A | X=12 Y=12 @A=3
+V15 | 33s p.3-7, 32SII p.3-7 x<>A again | 12 STO:A 3 XVAR:A XVAR:A | X=3 Y=12 @A=12
+V16 | 33s p.3-2, 32SII p.3-1 variable X is not the X-register | 5 STO:X 7 RCL:X | X=5 Y=7 @X=5
+
+# the indirect address (i) as the 33s and 32SII define it (33s p.13-21, F-2; 32SII p.13-21, E-2),
+# written with our index letter I (the 33s's i is a 27th variable, not the letter I: p.3-7)
+I01 | 33s p.13-21, 32SII p.13-21 i = 1 addresses A | 5 STO:A 1 STO:I RCL:(I) | X=5
+I02 | 33s p.13-21, 32SII p.13-21 i = 26 addresses Z | 7 STO:Z 26 STO:I RCL:(I) | X=7
+I03 | 33s p.13-21, 32SII p.13-21 i = -26 addresses Z (absolute value) | 7 STO:Z 26 CHS STO:I RCL:(I) | X=7
+I04 | 33s p.13-21, 32SII p.13-21 i = 28 addresses the n register | 3 ENTER 4 SIGMA+ 28 STO:I RCL:(I) | X=1
+I05 | 33s p.13-21, 32SII p.13-21 i = 33 addresses the sum-xy register | 3 ENTER 4 SIGMA+ 33 STO:I RCL:(I) | X=12
+I06 | 33s p.13-21, F-2 i = 0 is INVALID (i) | 0 STO:I RCL:(I) | ERR
+I07 | 33s F-2, 32SII E-2 an index of magnitude under 1 is INVALID (i) | .5 STO:I 4 STO:(I) | ERR
+I08 | 33s p.13-21 i = 34 is INVALID (i) | 34 STO:I 4 STO:(I) | ERR
+I09 | 33s p.13-21 i = -34 is INVALID (i) (agrees with ours) | 34 CHS STO:I 4 STO:(I) | ERR
+
+# ---------------- appendix B: stack lift and LAST X (33s p.B-4 to B-6, 32SII p.B-4 to B-6) ----------------
+B01 | 33s p.B-4, 32SII p.B-5 Sigma+ disables lift | 3 ENTER 4 SIGMA+ 7 | X=7 Y=3
+B02 | 33s p.B-4, 32SII p.B-5 Sigma- disables lift | 3 ENTER 4 SIGMA+ 3 ENTER 4 SIGMA- 7 | X=7 Y=3 Z=3
+B03 | 33s p.B-4, 32SII p.B-5 CLx disables lift | 9 ENTER 1 ENTER 2 + CLX 5 | X=5 Y=9 Z=0
+B04 | 33s p.B-5, 32SII p.B-5 neutral: DEG, RAD, GRAD (lift stays off) | 1 ENTER RAD GRAD DEG 2 | X=2 Y=1 Z=0
+B05 | 33s p.B-5, 32SII p.B-5 neutral: angle modes (lift stays on) | 1 ENTER 2 + RAD DEG 4 | X=4 Y=3
+B06 | 33s p.B-5, 32SII p.B-5 neutral: FIX, SCI, ENG, ALL | 1 ENTER FIX4 SCI2 ENG3 ALL 2 | X=2 Y=1 Z=0
+B07 | 33s p.B-5, 32SII p.B-5 neutral: DEC, HEX, OCT, BIN | 1 ENTER HEX OCT BIN DEC 2 | X=2 Y=1 Z=0
+B08 | 33s p.B-5, 32SII p.B-5 neutral: CLVARS | 1 ENTER CLVARS 2 | X=2 Y=1 Z=0
+B09 | 33s p.B-5, 32SII p.B-5 neutral: CL-Sigma | 1 ENTER CLSIGMA 2 | X=2 Y=1 Z=0
+B10 | 33s p.B-5, 32SII p.B-5 neutral: FDISP | 1 ENTER FDISP FDISP 2 | X=2 Y=1 Z=0
+B11 | 33s p.B-5, 32SII p.B-5 neutral: PRGM and program entry | 1 ENTER PRGM PRGM 2 | X=2 Y=1 Z=0
+B12 | 33s p.B-5, 32SII p.B-5 neutral: EQN | 1 ENTER EQN EQN 2 | X=2 Y=1 Z=0
+B13 | 33s p.B-5, 32SII p.B-5 neutral: GTO . . | 1 ENTER GTO.. 2 | X=2 Y=1 Z=0
+B14 | 33s p.B-5, 32SII p.B-5 neutral: R/S | 1 ENTER RS 2 | X=2 Y=1 Z=0
+B15 | 33s p.B-5, 32SII p.B-5 neutral: PSE | 1 ENTER PSE 2 | X=2 Y=1 Z=0
+B16 | 33s p.B-5, 32SII p.B-5 neutral: errors (lift off stays off) | 1 ENTER 0 ENTER / 5 | ERR X=5 Y=0 Z=1
+B17 | 33s p.B-4, 32SII p.B-5 every other function enables lift: STO | 1 ENTER STO:A 2 | X=2 Y=1 Z=1
+B18 | 33s p.B-4, 32SII p.B-5 every other function enables lift: x<>y | 1 ENTER XY 2 | X=2 Y=1 Z=1
+B19 | 33s p.B-4, 32SII p.B-5 every other function enables lift: RCL (after overwriting) | 5 STO:A 1 ENTER RCL:A 2 | X=2 Y=5 Z=1 T=5
+B20 | 33s p.B-4, 32SII p.B-5 every other function enables lift: SF (not in the neutral list) | 1 ENTER SF:0 2 | X=2 Y=1 Z=1
+B21 | 33s p.B-4, 32SII p.B-5 every other function enables lift: VIEW (not in the neutral list) | 5 STO:A 1 ENTER VIEW:A 2 | X=2 Y=1 Z=1
+B22 | 33s p.B-4, 32SII p.B-5 every other function enables lift: R-down | 1 ENTER RDN 2 | X=2 Y=1
+B30 | 33s p.B-6, 32SII p.B-6 x RCL+ var saves x | 5 STO:A 2 RCL+:A | X=7 L=2
+B31 | 33s p.B-6, 32SII p.B-6 x RCL var + saves the recalled number | 5 STO:A 2 RCL:A + | X=7 L=5
+B32 | 33s p.B-6, 32SII p.B-6 /c does not affect LAST X | 9 SQRT 16 /C | L=9
+B33 | 33s p.B-6, 32SII p.B-6 Sigma+ saves x | 3 ENTER 4 SIGMA+ | X=1 L=4
+B34 | 33s p.B-6, 32SII p.B-6 x! saves x | 5 FACT | X=120 L=5
+B35 | 33s p.B-6, 32SII p.B-6 nCr saves x | 5 ENTER 2 NCR | X=10 L=2
+B36 | 33s p.B-6, 32SII p.B-6 ->HMS saves x | 1.5 HMS | X=1.3 L=1.5
+B37 | 33s p.B-6, 32SII p.B-6 IP saves x | 2.5 IP | X=2 L=2.5
+B38 | 33s p.B-6, 32SII p.B-6 ABS saves x | 3 CHS ABS | X=3 L=-3
+B39 | 33s p.B-6, 32SII p.B-6 y,x->theta,r saves x | 4 ENTER 3 TOPOL | X=5 L=3
+B40 | 33s p.B-6, 32SII p.B-6 CHS is not in the list: LAST X kept | 9 SQRT CHS | X=-3 L=9
+B41 | 33s p.B-6, 32SII p.B-6 storage arithmetic is not in the list: LAST X kept | 9 SQRT 5 STO:A 2 STO*:A | L=9 @A=10
+B42 | 32SII p.B-6 (35s p.B-6; the 33s list omits it) y-hat saves x | 1 ENTER 1 SIGMA+ 2 ENTER 2 SIGMA+ 5 YHAT | X=5 L=5
+
+# the B-3 table, CLEAR ALL and MEMORY CLEAR (33s p.B-3, 32SII p.B-4; p.1-24 / p.1-20)
+B50 | 33s p.B-3, 32SII p.B-4 CLEAR ALL: stack and variables cleared to zero | 5 STO:A 1 ENTER 2 CLALL | X=0 Y=0 Z=0 @A=0
+B51 | 33s p.B-3, 32SII p.B-4 CLEAR ALL keeps the angular mode | RAD CLALL 30 SIN | X~-0.9880316240928618
+B52 | 33s p.B-3, 32SII p.B-4 CLEAR ALL keeps the display format (seen through RND) | FIX2 CLALL 2 ENTER 3 / RND | X=0.67
+B53 | 33s p.B-3, 32SII p.B-4 CLEAR ALL keeps the flags | SF:0 CLALL | %F0=1
+B54 | 33s p.B-3, 32SII p.B-4 CLEAR ALL keeps /c | 16 /C CLALL RCL/C | X=16
+B55 | 33s p.B-3, 32SII p.B-4 CLEAR ALL keeps Fraction-display mode | FDISP CLALL | %F7=1
+B56 | 33s p.B-3, 32SII p.B-4 CLEAR ALL keeps the random seed | 5 SEED RAND SAVEX 5 SEED CLALL RAND | %SAMEX=yes
+B57 | 33s p.B-3, 32SII p.B-4 CLEAR ALL clears program memory | PRGM LBL:A 1 RTN PRGM CLALL | %LINES=0
+B58 | 33s p.B-3, 32SII p.B-4 MEMORY CLEAR: degrees | RAD MEMCLR 30 SIN | X=0.5
+B59 | 33s p.B-3, 32SII p.B-4 MEMORY CLEAR: FIX 4 | ALL MEMCLR 2 ENTER 3 / RND | X=0.6667
+B60 | 33s p.B-3, 32SII p.B-4 MEMORY CLEAR: flags cleared | SF:0 MEMCLR | %F0=0
+B61 | 33s p.B-3, 32SII p.B-4 MEMORY CLEAR: /c 4095 | 16 /C MEMCLR RCL/C | X=4095
+B62 | 33s p.B-3, 32SII p.B-4 MEMORY CLEAR: Fraction display off | FDISP MEMCLR | %F7=0
+B63 | 33s p.B-3, 32SII p.B-4 MEMORY CLEAR: seed zero | 0 SEED RAND SAVEX 5 SEED MEMCLR RAND | %SAMEX=yes
+
+# ---------------- appendix F (33s) / E (32SII): messages ----------------
+M01 | 33s F-1, 32SII E-1 DIVIDE BY 0 | 1 ENTER 0 / | ERR %ERRMSG=DIVIDE_BY_0
+M02 | 33s F-1, 32SII E-1 %CHG with Y = 0 is DIVIDE BY 0 | 0 ENTER 5 PCTCHG | ERR %ERRMSG=DIVIDE_BY_0
+M03 | 33s F-2, 32SII E-2 nCr with r > n | 3 ENTER 5 NCR | ERR %ERRMSG=INVALID_DATA
+M04 | 33s F-2, 32SII E-2 nCr with a non-integer n | 5.5 ENTER 2 NCR | ERR %ERRMSG=INVALID_DATA
+M05 | 33s F-2 nCr with n >= 10^16 | 1 E 16 ENTER 2 NCR | ERR %ERRMSG=INVALID_DATA
+M06 | 32SII E-2 nCr with n >= 10^12 (the 32SII's limit) | 1 E 12 ENTER 2 NCR | ERR %ERRMSG=INVALID_DATA
+M07 | 33s F-2, 32SII E-2 nPr with r > n | 3 ENTER 5 NPR | ERR %ERRMSG=INVALID_DATA
+M08 | 33s F-2, 32SII E-2 TAN of 90 degrees | 90 TAN | ERR %ERRMSG=INVALID_DATA
+M09 | 33s F-2, 32SII E-2 TAN of -270 degrees | 270 CHS TAN | ERR %ERRMSG=INVALID_DATA
+M10 | 33s F-2, 32SII E-2 TAN of 100 grads (90 degrees) | GRAD 100 TAN | ERR %ERRMSG=INVALID_DATA
+M11 | 33s F-2, 32SII E-2 ASIN of x > 1 | 1.5 ASIN | ERR %ERRMSG=INVALID_DATA
+M12 | 33s F-2, 32SII E-2 ACOS of x < -1 | 1.5 CHS ACOS | ERR %ERRMSG=INVALID_DATA
+M13 | 33s F-2, 32SII E-2 ATANH of 1 | 1 ATANH | ERR %ERRMSG=INVALID_DATA
+M14 | 33s F-2, 32SII E-2 ATANH of -1 | 1 CHS ATANH | ERR %ERRMSG=INVALID_DATA
+M15 | 33s F-2, 32SII E-2 ACOSH of x < 1 | .5 ACOSH | ERR %ERRMSG=INVALID_DATA
+M16 | 33s F-2, 32SII E-2 INVALID x! | 3 CHS FACT | ERR %ERRMSG=INVALID_x!
+M17 | 33s F-2, 32SII E-2 0^0 | 0 ENTER 0 POW | ERR %ERRMSG=INVALID_yˣ
+M18 | 33s F-2, 32SII E-2 0 to a negative power | 0 ENTER 2 CHS POW | ERR %ERRMSG=INVALID_yˣ
+M19 | 33s F-2, 32SII E-2 a negative number to a non-integer power | 2 CHS ENTER .5 POW | ERR %ERRMSG=INVALID_yˣ
+M20 | 33s F-2, 32SII E-2 LOG(0) from LN | 0 LN | ERR %ERRMSG=LOG(0)
+M21 | 33s F-2, 32SII E-2 LOG(0) from LOG | 0 LOG | ERR %ERRMSG=LOG(0)
+M22 | 33s F-2, 32SII E-2 LOG(NEG) | 2 CHS LOG | ERR %ERRMSG=LOG(NEG)
+M23 | 33s F-4, 32SII E-4 SQRT(NEG) | 4 CHS SQRT | ERR %ERRMSG=SQRT(NEG)
+M24 | 33s F-4, 32SII E-4 STAT ERROR with n = 0 | XBAR | ERR %ERRMSG=STAT_ERROR
+M25 | 33s F-4, 32SII E-4 STAT ERROR: sx with n = 1 | 1 ENTER 2 SIGMA+ SX | ERR %ERRMSG=STAT_ERROR
+M26 | 33s F-3, 32SII E-3 NONEXISTENT label from the keyboard | XEQ:A | ERR %ERRMSG=NONEXISTENT
+M27 | 33s F-2 the indirect-address message reads INVALID (i) | 801 STO:I RCL:(I) | ERR %ERRMSG=INVALID_(i)
+M28 | 33s F-1/F-2 an error changes nothing on the stack (Errors neutral, p.B-5) | 4 ENTER 2 ENTER 0 / | ERR X=0 Y=2 Z=4 L=0
