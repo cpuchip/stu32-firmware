@@ -106,21 +106,21 @@ Q41 | 33s p.13-19, 32SII p.13-19 0.050 for ISG: from 0 up to 50 by 1 (the body r
 Q42 | 33s p.13-18, 32SII p.13-18 DSE skips when the new counter is at most fff: 3.001 runs the body twice | PRGM CLPGM LBL:W 1 STO+:B DSE:N GTO:W RTN PRGM 3.001 STO:N XEQ:W | @B=2 @N=1.001
 Q43 | 33s p.13-18 ii is the step: 0.01002 ISG gives 2.01002 | 0.01002 STO:A ISG:A | @A=2.01002
 Q44 | 33s p.13-18 fff is always three digits: 1.1 means a final value of 100 (no skip) | PRGM CLPGM LBL:A ISG:N 7 RTN PRGM 1.1 STO:N 9 XEQ:A | @N=2.1 X=7
-Q45 | 33s p.13-21, 32SII p.13-21 i = 1 addresses variable A | MODE33 1 STO:I 5 STO:(I) | @A=5
-Q46 | 33s p.13-21 i = 26 addresses variable Z | MODE33 26 STO:I 7 STO:(I) | @Z=7
+Q45 | 33s p.13-21, 32SII p.13-21 i = 1 addresses variable A (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 1 STO:i 5 STO:(i) | @A=5
+Q46 | 33s p.13-21 i = 26 addresses variable Z (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 26 STO:i 7 STO:(i) | @Z=7
 Q47 | 33s p.13-21 only the absolute value of the integer part: -2.7 addresses B | MODE33 2.7 CHS STO:I 5 STO:(I) | @B=5
-Q48 | 33s p.13-21 2.7 addresses B | MODE33 2.7 STO:I 5 STO:(I) | @B=5
-Q49 | 33s p.13-21, 32SII p.13-21 i = 0 is INVALID (i) | MODE33 0 STO:I 5 STO:(I) | ERR
-Q50 | 33s p.13-21, 32SII p.13-21 i = 34 is INVALID (i) | MODE33 34 STO:I 5 STO:(I) | ERR
-Q51 | 33s p.13-21, 32SII p.13-21 i = 28 is the n register | MODE33 1 ENTER 2 SIGMA+ 3 ENTER 4 SIGMA+ 28 STO:I RCL:(I) | X=2
+Q48 | 33s p.13-21 2.7 addresses B (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 2.7 STO:i 5 STO:(i) | @B=5
+Q49 | 33s p.13-21, 32SII p.13-21 i = 0 is INVALID (i) (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 0 STO:i 5 STO:(i) | ERR
+Q50 | 33s p.13-21, 32SII p.13-21 i = 34 is INVALID (i) (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 34 STO:i 5 STO:(i) | ERR
+Q51 | 33s p.13-21, 32SII p.13-21 i = 28 is the n register (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 1 ENTER 2 SIGMA+ 3 ENTER 4 SIGMA+ 28 STO:i RCL:(i) | X=2
 Q52 | 35s p.14-22 (contrast) in the 35s mode -27 is the n register | MODE35 1 ENTER 2 SIGMA+ 3 ENTER 4 SIGMA+ 27 CHS STO:I RCL:(I) | X=2
-Q53 | 33s p.13-21 VIEW (i) labels the display with the variable it names (i = 3: C) | MODE33 PRGM CLPGM LBL:A VIEW:(I) RTN PRGM 3 STO:I 9 STO:C XEQ:A | %STOP=VIEW:C
-Q54 | 33s p.13-22, 13-23; 32SII p.13-22, 13-23 XEQ (i) with i = 2 calls LBL B | MODE33 PRGM CLPGM LBL:A 2 STO:I XEQ:(I) 1 + RTN LBL:B 7 RTN PRGM XEQ:A | X=8
-Q55 | 33s p.13-23 i increased by 6: 8 calls LBL H | MODE33 PRGM CLPGM LBL:A 2 STO:I 6 STO+:I XEQ:(I) RTN LBL:H 9 RTN PRGM XEQ:A | X=9
-Q56 | 33s p.13-21 GTO (i) with i = 3 goes to LBL C | MODE33 PRGM CLPGM LBL:A 3 STO:I GTO:(I) 1 RTN LBL:C 9 RTN PRGM XEQ:A | X=9
-Q57 | 33s p.13-23, 13-24; 32SII p.13-23, 13-24 the matrix input loop: 1.003 in i, INPUT (i) prompts for A first | MODE33 PRGM CLPGM LBL:A 1.003 STO:I LBL:L INPUT:(I) ISG:I GTO:L RTN PRGM XEQ:A | %STOP=INPUT:A
-Q58 | 33s p.13-24 ... and fills A, B, C; i ends at 4.003 | MODE33 PRGM CLPGM LBL:A 1.003 STO:I LBL:L INPUT:(I) ISG:I GTO:L RTN PRGM XEQ:A 10 RS 20 RS 30 RS | @A=10 @B=20 @C=30 @I=4.003
-Q59 | 33s p.13-25, 32SII p.13-25 an equation with (i): the sum of the squares of A to C | MODE33 1 STO:A 2 STO:B 3 STO:C PRGM CLPGM LBL:S CF:10 CF:11 1.003 STO:I 0 LBL:Q EQ:⒤^2 + ISG:I GTO:Q RTN PRGM XEQ:S | X=14
+Q53 | 33s p.13-21 VIEW (i) labels the display with the variable it names (i = 3: C) (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 PRGM CLPGM LBL:A VIEW:(i) RTN PRGM 3 STO:i 9 STO:C XEQ:A | %STOP=VIEW:C
+Q54 | 33s p.13-22, 13-23; 32SII p.13-22, 13-23 XEQ (i) with i = 2 calls LBL B (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 PRGM CLPGM LBL:A 2 STO:i XEQ:(i) 1 + RTN LBL:B 7 RTN PRGM XEQ:A | X=8
+Q55 | 33s p.13-23 i increased by 6: 8 calls LBL H (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 PRGM CLPGM LBL:A 2 STO:i 6 STO+:i XEQ:(i) RTN LBL:H 9 RTN PRGM XEQ:A | X=9
+Q56 | 33s p.13-21 GTO (i) with i = 3 goes to LBL C (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 PRGM CLPGM LBL:A 3 STO:i GTO:(i) 1 RTN LBL:C 9 RTN PRGM XEQ:A | X=9
+Q57 | 33s p.13-23, 13-24; 32SII p.13-23, 13-24 the matrix input loop: 1.003 in i, INPUT (i) prompts for A first (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 PRGM CLPGM LBL:A 1.003 STO:i LBL:L INPUT:(i) ISG:i GTO:L RTN PRGM XEQ:A | %STOP=INPUT:A
+Q58 | 33s p.13-24 ... and fills A, B, C; i ends at 4.003 (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 PRGM CLPGM LBL:A 1.003 STO:i LBL:L INPUT:(i) ISG:i GTO:L RTN PRGM XEQ:A 10 RS 20 RS 30 RS | @A=10 @B=20 @C=30 @i=4.003
+Q59 | 33s p.13-25, 32SII p.13-25 an equation with (i): the sum of the squares of A to C (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 1 STO:A 2 STO:B 3 STO:C PRGM CLPGM LBL:S CF:10 CF:11 1.003 STO:i 0 LBL:Q EQ:⒤^2 + ISG:i GTO:Q RTN PRGM XEQ:S | X=14
 
 # ---- Chapter 14: solving and integrating programs ----
 S01 | 32SII p.14-2, 14-3 (RPN); 33s p.14-3, 14-4 (ALG) ideal gas program G: SOLVE P prompts for V (INPUT P ignored) | PRGM CLPGM LBL:G INPUT:P INPUT:V INPUT:N INPUT:R INPUT:T RCL:P RCL*:V RCL:N RCL*:R RCL*:T - RTN PRGM FN=:G SOLVE:P | %STOP=INPUT:V
@@ -129,7 +129,7 @@ S03 | 32SII p.14-5, 33s p.14-5 the change in pressure when T drops by 10: -0.002
 S04 | 33s p.14-5, 14-6; 32SII p.14-1, 14-2 the equation program H with flag 11: SOLVE P prompts for V first | PRGM CLPGM LBL:H SF:11 EQ:P×V=N×R×T RTN PRGM 2 STO:V FN=:H SOLVE:P | %STOP=INPUT:V X=2
 S05 | 33s p.14-6, 32SII p.14-5 a programmed SOLVE that finds no root skips the next line | PRGM CLPGM LBL:A FN=:F 1 STO:X 2 SOLVE:X GTO:Y 7 RTN LBL:Y 9 RTN LBL:F RCL:X SQ 1 + RTN PRGM XEQ:A | X=7
 S06 | 33s p.14-6 a programmed SOLVE that finds a root does the next line | PRGM CLPGM LBL:A FN=:F 1 STO:X 2 SOLVE:X GTO:Y 7 RTN LBL:Y 9 RTN LBL:F RCL:X SQ 4 - RTN PRGM XEQ:A | X=9
-S07 | 33s p.14-7, 32SII p.14-6 SOLVE (i) to solve for X: i = 24 is X; VIEW (i) shows the root | MODE33 PRGM CLPGM LBL:X 24 GTO:M LBL:M STO:I FN=:F SOLVE:(I) VIEW:(I) RTN LBL:F RCL:X SQ RCL:Y + 10 - RTN PRGM 1 STO:Y 1 STO:X XEQ:X | %STOP=VIEW:X @X=3
+S07 | 33s p.14-7, 32SII p.14-6 SOLVE (i) to solve for X: i = 24 is X; VIEW (i) shows the root (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 PRGM CLPGM LBL:X 24 GTO:M LBL:M STO:i FN=:F SOLVE:(i) VIEW:(i) RTN LBL:F RCL:X SQ RCL:Y + 10 - RTN PRGM 1 STO:Y 1 STO:X XEQ:X | %STOP=VIEW:X @X=3
 S08 | 33s p.14-9, 32SII p.14-8, 14-9 Si(2): the integrand as an equation, 0 to 2 in RAD: 1.6054 | PRGM CLPGM LBL:S EQ:SIN(X)÷X RTN PRGM RAD FIX4 FN=:S 0 ENTER 2 INTEG:X | X#1.6054129768,0.0002
 S09 | 33s p.14-11, 32SII p.14-10 SOLVE cannot call a routine with a SOLVE | PRGM CLPGM LBL:F 1 STO:Y 2 SOLVE:Y RCL:X 3 - RTN PRGM 1 STO:X 2 FN=:F SOLVE:X | ERR %ERR=NESTED
 S10 | 33s p.14-11, 32SII p.14-10 an integral inside an integral | PRGM CLPGM LBL:F 0 ENTER 1 INTEG:Y RTN PRGM FN=:F 0 ENTER 1 INTEG:X | ERR %ERR=NESTED

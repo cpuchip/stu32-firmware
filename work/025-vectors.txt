@@ -1,0 +1,38 @@
+# Work unit 025 acceptance vectors: the 33s's i and (i) in 33s mode, and each label's mode. The first 28 are the
+# review's vectors (work/024-review, abacus), amended there for unit 025 (i and (i) for the stand-ins I and (I))
+# and copied here; the N rows are ours, from the unit's rules. MODE33/MODE35 set the calculator's mode.
+
+I01 | 33s p.13-21, 32SII p.13-21 i = 1 addresses A (unit 025: i and (i) for the stand-ins I and (I)) | 5 STO:A 1 STO:i RCL:(i) | X=5
+I02 | 33s p.13-21, 32SII p.13-21 i = 26 addresses Z (unit 025: i and (i) for the stand-ins I and (I)) | 7 STO:Z 26 STO:i RCL:(i) | X=7
+I03 | 33s p.13-21, 32SII p.13-21 i = -26 addresses Z (absolute value) (unit 025: i and (i) for the stand-ins I and (I)) | 7 STO:Z 26 CHS STO:i RCL:(i) | X=7
+I04 | 33s p.13-21, 32SII p.13-21 i = 28 addresses the n register (unit 025: i and (i) for the stand-ins I and (I)) | 3 ENTER 4 SIGMA+ 28 STO:i RCL:(i) | X=1
+I05 | 33s p.13-21, 32SII p.13-21 i = 33 addresses the sum-xy register (unit 025: i and (i) for the stand-ins I and (I)) | 3 ENTER 4 SIGMA+ 33 STO:i RCL:(i) | X=12
+I06 | 33s p.13-21, F-2 i = 0 is INVALID (i) (unit 025: i and (i) for the stand-ins I and (I)) | 0 STO:i RCL:(i) | ERR
+I07 | 33s F-2, 32SII E-2 an index of magnitude under 1 is INVALID (i) (unit 025: i and (i) for the stand-ins I and (I)) | .5 STO:i 4 STO:(i) | ERR
+I08 | 33s p.13-21 i = 34 is INVALID (i) (unit 025: i and (i) for the stand-ins I and (I)) | 34 STO:i 4 STO:(i) | ERR
+I09 | 33s p.13-21 i = -34 is INVALID (i) (agrees with ours) (unit 025: i and (i) for the stand-ins I and (I)) | 34 CHS STO:i 4 STO:(i) | ERR
+M27 | 33s F-2 the indirect-address message reads INVALID (i) (unit 025: i and (i) for the stand-ins I and (I)) | 801 STO:i RCL:(i) | ERR %ERRMSG=INVALID_(i)
+Q45 | 33s p.13-21, 32SII p.13-21 i = 1 addresses variable A (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 1 STO:i 5 STO:(i) | @A=5
+Q46 | 33s p.13-21 i = 26 addresses variable Z (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 26 STO:i 7 STO:(i) | @Z=7
+Q48 | 33s p.13-21 2.7 addresses B (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 2.7 STO:i 5 STO:(i) | @B=5
+Q49 | 33s p.13-21, 32SII p.13-21 i = 0 is INVALID (i) (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 0 STO:i 5 STO:(i) | ERR
+Q50 | 33s p.13-21, 32SII p.13-21 i = 34 is INVALID (i) (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 34 STO:i 5 STO:(i) | ERR
+Q51 | 33s p.13-21, 32SII p.13-21 i = 28 is the n register (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 1 ENTER 2 SIGMA+ 3 ENTER 4 SIGMA+ 28 STO:i RCL:(i) | X=2
+Q53 | 33s p.13-21 VIEW (i) labels the display with the variable it names (i = 3: C) (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 PRGM CLPGM LBL:A VIEW:(i) RTN PRGM 3 STO:i 9 STO:C XEQ:A | %STOP=VIEW:C
+Q54 | 33s p.13-22, 13-23; 32SII p.13-22, 13-23 XEQ (i) with i = 2 calls LBL B (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 PRGM CLPGM LBL:A 2 STO:i XEQ:(i) 1 + RTN LBL:B 7 RTN PRGM XEQ:A | X=8
+Q55 | 33s p.13-23 i increased by 6: 8 calls LBL H (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 PRGM CLPGM LBL:A 2 STO:i 6 STO+:i XEQ:(i) RTN LBL:H 9 RTN PRGM XEQ:A | X=9
+Q56 | 33s p.13-21 GTO (i) with i = 3 goes to LBL C (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 PRGM CLPGM LBL:A 3 STO:i GTO:(i) 1 RTN LBL:C 9 RTN PRGM XEQ:A | X=9
+Q57 | 33s p.13-23, 13-24; 32SII p.13-23, 13-24 the matrix input loop: 1.003 in i, INPUT (i) prompts for A first (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 PRGM CLPGM LBL:A 1.003 STO:i LBL:L INPUT:(i) ISG:i GTO:L RTN PRGM XEQ:A | %STOP=INPUT:A
+Q58 | 33s p.13-24 ... and fills A, B, C; i ends at 4.003 (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 PRGM CLPGM LBL:A 1.003 STO:i LBL:L INPUT:(i) ISG:i GTO:L RTN PRGM XEQ:A 10 RS 20 RS 30 RS | @A=10 @B=20 @C=30 @i=4.003
+Q59 | 33s p.13-25, 32SII p.13-25 an equation with (i): the sum of the squares of A to C (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 1 STO:A 2 STO:B 3 STO:C PRGM CLPGM LBL:S CF:10 CF:11 1.003 STO:i 0 LBL:Q EQ:⒤^2 + ISG:i GTO:Q RTN PRGM XEQ:S | X=14
+S07 | 33s p.14-7, 32SII p.14-6 SOLVE (i) to solve for X: i = 24 is X; VIEW (i) shows the root (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 PRGM CLPGM LBL:X 24 GTO:M LBL:M STO:i FN=:F SOLVE:(i) VIEW:(i) RTN LBL:F RCL:X SQ RCL:Y + 10 - RTN PRGM 1 STO:Y 1 STO:X XEQ:X | %STOP=VIEW:X @X=3
+S31 | 33s p.11-12, 32SII p.11-13 register 28 (n) through (i): store 5 there (unit 025: i and (i) for the stand-ins I and (I)) | CLSIGMA 28 STO:i 5 STO:(i) NSUM | X=5
+S32 | 33s p.11-12, 32SII p.11-13 register 33 (sum xy) recalled through (i) (unit 025: i and (i) for the stand-ins I and (I)) | CLSIGMA 2 ENTER 1 SIGMA+ 4 ENTER 3 SIGMA+ 33 STO:i RCL:(i) | X=14
+G01 | 33s p.16-22 grouped sx = 11.4118, registers by the 33s's numbers 28, 29, 31 (p.16-20) (unit 025: i and (i) for the stand-ins I and (I)) | CLSIGMA 28 STO:i 311 STO:(i) 29 STO:i 7280 STO:(i) 31 STO:i 210784 STO:(i) SX | X#11.4118,0.00005
+G02 | 33s p.16-22 weighted mean 23.4084, the 33s's numbering (unit 025: i and (i) for the stand-ins I and (I)) | CLSIGMA 28 STO:i 311 STO:(i) 29 STO:i 7280 STO:(i) 31 STO:i 210784 STO:(i) XBAR | X#23.4084,0.00005
+
+N01 | unit 025 rule 4: a 35s label calls a 33s label and back, each indirecting by its own model (35s: I = 5 is unnamed 5; 33s: i = 1 is A); RTN restores the caller's | MODE33 PRGM CLPGM LBL:B 1 STO:i 9 STO:(i) RTN PRGM MODE35 PRGM GTO.. LBL:A 5 STO:I 7 STO:(I) XEQ:B RCL:(I) RTN PRGM MODE33 XEQ:A | X=7 @A=9 @#5=7 @i=1 @I=5
+N02 | unit 025 rule 5: in program entry, MODE on a LBL line restamps the label; its (i) then follows the 35s model (index I = 0: unnamed 0), no line added | MODE33 PRGM CLPGM LBL:C 3 STO:i 6 STO:(i) RTN GTO.:C001 MODE35 PRGM MODE33 XEQ:C | @#0=6 @C=0 %LINES=4
+N03 | unit 025 rule 6: labels keep their modes through a save and load (N01's program) | MODE33 PRGM CLPGM LBL:B 1 STO:i 9 STO:(i) RTN PRGM MODE35 PRGM GTO.. LBL:A 5 STO:I 7 STO:(I) XEQ:B RCL:(I) RTN PRGM MODE33 SAVE MEMCLR LOAD XEQ:A | X=7 @A=9 @#5=7
+N04 | unit 025 rule 6: a version-4 image loads with its labels stamped with its mode (35s at the save), whatever the mode after | MODE33 PRGM CLPGM LBL:A 5 STO:I 7 STO:(I) RTN PRGM MODE35 SAVE IMGVER:4 LOAD MODE33 XEQ:A | @#5=7 @E=0
+N05 | unit 025 rule 4: SOLVE of a 33s-mode FN= whose function reads (i) (i = 1: A = 4), run with the calculator in 35s mode: the label's mode governs | MODE33 PRGM CLPGM LBL:F 1 STO:i RCL:(i) RCL:X SQ - RTN PRGM MODE35 4 STO:A 1 STO:X 3 FN=:F SOLVE:X | X=2 @X=2

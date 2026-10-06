@@ -3378,6 +3378,11 @@ bool ab_view_key(ab_calc *c, int op)
     return op == AB_CANCEL || op == AB_KBKSP;
 }
 
+bool ab_mode35(const ab_calc *c)
+{
+    return c->m35;
+}
+
 void ab_interrupt(ab_calc *c)
 {
     if (c->stop == AB_STOP_SLICE) c->stop = AB_STOP_STOP;  /* between slices: stopped at once */

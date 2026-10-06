@@ -113,15 +113,15 @@ V16 | 33s p.3-2, 32SII p.3-1 variable X is not the X-register | 5 STO:X 7 RCL:X 
 
 # the indirect address (i) as the 33s and 32SII define it (33s p.13-21, F-2; 32SII p.13-21, E-2),
 # written with our index letter I (the 33s's i is a 27th variable, not the letter I: p.3-7)
-I01 | 33s p.13-21, 32SII p.13-21 i = 1 addresses A | 5 STO:A 1 STO:I RCL:(I) | X=5
-I02 | 33s p.13-21, 32SII p.13-21 i = 26 addresses Z | 7 STO:Z 26 STO:I RCL:(I) | X=7
-I03 | 33s p.13-21, 32SII p.13-21 i = -26 addresses Z (absolute value) | 7 STO:Z 26 CHS STO:I RCL:(I) | X=7
-I04 | 33s p.13-21, 32SII p.13-21 i = 28 addresses the n register | 3 ENTER 4 SIGMA+ 28 STO:I RCL:(I) | X=1
-I05 | 33s p.13-21, 32SII p.13-21 i = 33 addresses the sum-xy register | 3 ENTER 4 SIGMA+ 33 STO:I RCL:(I) | X=12
-I06 | 33s p.13-21, F-2 i = 0 is INVALID (i) | 0 STO:I RCL:(I) | ERR
-I07 | 33s F-2, 32SII E-2 an index of magnitude under 1 is INVALID (i) | .5 STO:I 4 STO:(I) | ERR
-I08 | 33s p.13-21 i = 34 is INVALID (i) | 34 STO:I 4 STO:(I) | ERR
-I09 | 33s p.13-21 i = -34 is INVALID (i) (agrees with ours) | 34 CHS STO:I 4 STO:(I) | ERR
+I01 | 33s p.13-21, 32SII p.13-21 i = 1 addresses A (unit 025: i and (i) for the stand-ins I and (I)) | 5 STO:A 1 STO:i RCL:(i) | X=5
+I02 | 33s p.13-21, 32SII p.13-21 i = 26 addresses Z (unit 025: i and (i) for the stand-ins I and (I)) | 7 STO:Z 26 STO:i RCL:(i) | X=7
+I03 | 33s p.13-21, 32SII p.13-21 i = -26 addresses Z (absolute value) (unit 025: i and (i) for the stand-ins I and (I)) | 7 STO:Z 26 CHS STO:i RCL:(i) | X=7
+I04 | 33s p.13-21, 32SII p.13-21 i = 28 addresses the n register (unit 025: i and (i) for the stand-ins I and (I)) | 3 ENTER 4 SIGMA+ 28 STO:i RCL:(i) | X=1
+I05 | 33s p.13-21, 32SII p.13-21 i = 33 addresses the sum-xy register (unit 025: i and (i) for the stand-ins I and (I)) | 3 ENTER 4 SIGMA+ 33 STO:i RCL:(i) | X=12
+I06 | 33s p.13-21, F-2 i = 0 is INVALID (i) (unit 025: i and (i) for the stand-ins I and (I)) | 0 STO:i RCL:(i) | ERR
+I07 | 33s F-2, 32SII E-2 an index of magnitude under 1 is INVALID (i) (unit 025: i and (i) for the stand-ins I and (I)) | .5 STO:i 4 STO:(i) | ERR
+I08 | 33s p.13-21 i = 34 is INVALID (i) (unit 025: i and (i) for the stand-ins I and (I)) | 34 STO:i 4 STO:(i) | ERR
+I09 | 33s p.13-21 i = -34 is INVALID (i) (agrees with ours) (unit 025: i and (i) for the stand-ins I and (I)) | 34 CHS STO:i 4 STO:(i) | ERR
 
 # ---------------- appendix B: stack lift and LAST X (33s p.B-4 to B-6, 32SII p.B-4 to B-6) ----------------
 B01 | 33s p.B-4, 32SII p.B-5 Sigma+ disables lift | 3 ENTER 4 SIGMA+ 7 | X=7 Y=3
@@ -203,5 +203,5 @@ M23 | 33s F-4, 32SII E-4 SQRT(NEG) | 4 CHS SQRT | ERR %ERRMSG=SQRT(NEG)
 M24 | 33s F-4, 32SII E-4 STAT ERROR with n = 0 | XBAR | ERR %ERRMSG=STAT_ERROR
 M25 | 33s F-4, 32SII E-4 STAT ERROR: sx with n = 1 | 1 ENTER 2 SIGMA+ SX | ERR %ERRMSG=STAT_ERROR
 M26 | 33s F-3, 32SII E-3 NONEXISTENT label from the keyboard | XEQ:A | ERR %ERRMSG=NONEXISTENT
-M27 | 33s F-2 the indirect-address message reads INVALID (i) | 801 STO:I RCL:(I) | ERR %ERRMSG=INVALID_(i)
+M27 | 33s F-2 the indirect-address message reads INVALID (i) (unit 025: i and (i) for the stand-ins I and (I)) | 801 STO:i RCL:(i) | ERR %ERRMSG=INVALID_(i)
 M28 | 33s F-1/F-2 an error changes nothing on the stack (Errors neutral, p.B-5) | 4 ENTER 2 ENTER 0 / | ERR X=0 Y=2 Z=4 L=0

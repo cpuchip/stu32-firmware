@@ -1114,6 +1114,39 @@ int main(void)
         expect(!a.notice, "a key clears it at once");
     }
 
+    /* unit 025: the 33s's i and (i) from the keys, labels stamped with their mode, MODE restamping */
+    {
+        char t[48];
+        ab_init(&c);
+        app_init(&a, &c, now);
+        expect(!c.m35, "the default is 33s mode (decision 22)");
+        press(&a, "5 STO k:39");
+        expect(abn_cmp(&c.var[26].re, &c.x.re) == 0 && var_of(&c, 'I') == 0, "33s: STO then the (I) key stores in i, not I");
+        press(&a, "1 STO k:39 7 STO k:43");
+        expect(var_of(&c, 'A') == 7, "33s: the (J) key gives (i): i = 1 addresses A");
+        ab_do_arg(&c, AB_MODEL, 35);
+        press(&a, "2 STO ltr:I 4 STO k:39");
+        expect(c.ind_top == 2, "35s: the (I) key is still (I): I = 2 is unnamed register 2");
+        /* a label is stamped with the mode it was entered in; the listing shows it */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        press(&a, "GOLD 9 k:0 GOLD XEQ ltr:A STO k:43 BLUE XEQ");
+        ab_prog_line(&c, 0, NULL, t, sizeof t);
+        expect(c.lmode[0] == 33 && !strcmp(t, "LBL A \xc2\xb7" "33"), "LBL A entered in 33s mode: LBL A \xc2\xb7" "33");
+        ab_prog_line(&c, 1, NULL, t, sizeof t);
+        expect(!strcmp(t, "STO (i)"), "under a 33s label the indirect lists as STO (i)");
+        /* MODE on the LBL line restamps it (no line added), with a brief notice; the calculator's mode stays */
+        int lines = c.prog_len;
+        press(&a, "GOLD 9 k:4");                /* BST (the PRGM menu's fifth): the pointer up to the LBL line */
+        press(&a, "BLUE ENTER k:1");            /* MODE 35s */
+        app_ui(&a, &ui);
+        ab_prog_line(&c, 1, NULL, t, sizeof t);
+        expect(c.lmode[0] == 35 && !c.m35 && c.prog_len == lines, "MODE 35s on LBL A: the label restamped, the calculator still 33s");
+        expect(!strcmp(t, "STO (I)") && ui.notice && !strcmp(ui.notice, "(i) MEANS (I)"),
+               "its indirect now lists STO (I), and the notice says so");
+        press(&a, "GOLD 9 k:0");
+    }
+
     /* other menus and the soft keys alone do nothing yet; nothing crashes on any key in any shift */
     ab_init(&c);
     app_init(&a, &c, now);

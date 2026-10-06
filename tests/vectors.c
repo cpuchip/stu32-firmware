@@ -219,6 +219,8 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
             if (v[0] >= 'A' && v[0] <= 'Z' && v[1] == '\0') code = AB_VAR_A + (v[0] - 'A');
             else if (strcmp(v, "(I)") == 0) code = AB_VAR_IND_I;
             else if (strcmp(v, "(J)") == 0) code = AB_VAR_IND_J;
+            else if (strcmp(v, "i") == 0) code = AB_VAR_SI;             /* unit 025: the 33s's i */
+            else if (strcmp(v, "(i)") == 0) code = AB_VAR_IND_I;        /* (i): the index in 33s mode */
             else return -1;
             if (do1(c, STORE[i].op, code) != ABN_OK) (*errors)++;
             return 0;
@@ -241,9 +243,9 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
             size_t n = strlen(TGT[i].prefix);
             if (strncmp(tok, TGT[i].prefix, n) == 0) {
                 const char *v = tok + n;
-                if (strcmp(v, "(I)") == 0 || strcmp(v, "(J)") == 0) {
-                    /* XEQ (I), GTO (I): the label the index names (unit 012) */
-                    if (do1(c, TGT[i].op, v[1] == 'I' ? AB_TGT_IND_I : AB_TGT_IND_J) != ABN_OK) (*errors)++;
+                if (strcmp(v, "(I)") == 0 || strcmp(v, "(J)") == 0 || strcmp(v, "(i)") == 0) {
+                    /* XEQ (I), GTO (I): the label the index names (unit 012); (i) in 33s mode */
+                    if (do1(c, TGT[i].op, v[1] == 'J' ? AB_TGT_IND_J : AB_TGT_IND_I) != ABN_OK) (*errors)++;
                     return 0;
                 }
                 if (v[0] < 'A' || v[0] > 'Z') return -1;
@@ -412,7 +414,7 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
         if (strncmp(tok, "FN=:", 4) == 0) {
             const char *v = tok + 4;
             int a;
-            if (strcmp(v, "(I)") == 0) a = AB_TGT_IND_I;
+            if (strcmp(v, "(I)") == 0 || strcmp(v, "(i)") == 0) a = AB_TGT_IND_I;
             else if (strcmp(v, "(J)") == 0) a = AB_TGT_IND_J;
             else if (v[0] >= 'A' && v[0] <= 'Z' && !v[1]) a = v[0] - 'A';
             else return -1;
@@ -443,8 +445,9 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
                 const char *v = tok + 4;
                 int code;
                 if (v[0] >= 'A' && v[0] <= 'Z' && v[1] == '\0') code = AB_VAR_A + (v[0] - 'A');
-                else if (strcmp(v, "(I)") == 0) code = AB_VAR_IND_I;
+                else if (strcmp(v, "(I)") == 0 || strcmp(v, "(i)") == 0) code = AB_VAR_IND_I;
                 else if (strcmp(v, "(J)") == 0) code = AB_VAR_IND_J;
+                else if (strcmp(v, "i") == 0) code = AB_VAR_SI;
                 else return -1;
                 if (do1(c, LOOP[i].op, code) != ABN_OK) (*errors)++;
                 return 0;
@@ -755,8 +758,8 @@ int vectors_run(const char *name, FILE *f)
                 /* @A=v: variable A; @#n=v: unnamed indirect variable n (unit 005); any of the
                    comparisons = ~ ^ # after the name (unit 013) */
                 char *eq = ex[1] == '#' ? strchr(ex, '=') : strpbrk(ex + 1, "=~^#");
-                if (eq && ex[1] >= 'A' && ex[1] <= 'Z' && eq == ex + 2) {
-                    var_val = c.var[ex[1] - 'A'];
+                if (eq && ((ex[1] >= 'A' && ex[1] <= 'Z') || ex[1] == 'i') && eq == ex + 2) {
+                    var_val = c.var[ex[1] == 'i' ? 26 : ex[1] - 'A'];         /* @i: unit 025 */
                     rv = &var_val;
                     r = &var_val.re;
                 } else if (eq && ex[1] == '#') {

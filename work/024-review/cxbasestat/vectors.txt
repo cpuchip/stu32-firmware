@@ -96,8 +96,8 @@ S27 | 33s p.11-11, 32SII p.11-12 statistics register SUMY2 | CLSIGMA 2 ENTER 1 S
 S28 | 33s p.11-11, 32SII p.11-12 statistics register SUMX2 | CLSIGMA 2 ENTER 1 SIGMA+ 4 ENTER 3 SIGMA+ SUMX2 | X=10
 S29 | 33s p.11-11, 32SII p.11-12 statistics register SUMY | CLSIGMA 2 ENTER 1 SIGMA+ 4 ENTER 3 SIGMA+ SUMY | X=6
 S30 | 33s p.11-11, 32SII p.11-12 statistics register SUMX | CLSIGMA 2 ENTER 1 SIGMA+ 4 ENTER 3 SIGMA+ SUMX | X=4
-S31 | 33s p.11-12, 32SII p.11-13 register 28 (n) through (i): store 5 there | CLSIGMA 28 STO:I 5 STO:(I) NSUM | X=5
-S32 | 33s p.11-12, 32SII p.11-13 register 33 (sum xy) recalled through (i) | CLSIGMA 2 ENTER 1 SIGMA+ 4 ENTER 3 SIGMA+ 33 STO:I RCL:(I) | X=14
+S31 | 33s p.11-12, 32SII p.11-13 register 28 (n) through (i): store 5 there (unit 025: i and (i) for the stand-ins I and (I)) | CLSIGMA 28 STO:i 5 STO:(i) NSUM | X=5
+S32 | 33s p.11-12, 32SII p.11-13 register 33 (sum xy) recalled through (i) (unit 025: i and (i) for the stand-ins I and (I)) | CLSIGMA 2 ENTER 1 SIGMA+ 4 ENTER 3 SIGMA+ 33 STO:i RCL:(i) | X=14
 S33 | 35s p.12-12 numbering (ours today): register -32 (sum xy) through (I) | CLSIGMA 2 ENTER 1 SIGMA+ 4 ENTER 3 SIGMA+ 32 CHS STO:I RCL:(I) | X=14
 S34 | 33s p.11-7, 32SII p.11-7 L.R. with no data: STAT ERROR | CLSIGMA SLOPE | ERR
 S35 | 33s p.11-7 (STAT ERROR) mean of no data | CLSIGMA XBAR | ERR
@@ -137,7 +137,7 @@ F19 | 33s p.16-11 power: y-hat(37) = 98.6845 | CLSIGMA 104.5 LN 40.5 LN SIGMA+ 1
 F20 | 33s p.16-11 power: x-hat(101) = 38.3151 | CLSIGMA 104.5 LN 40.5 LN SIGMA+ 102 LN 38.6 LN SIGMA+ 100 LN 379 LN SIGMA+ 100 LN 379 LN SIGMA- 100 LN 37.9 LN SIGMA+ 97.5 LN 36.2 LN SIGMA+ 95.5 LN 35.1 LN SIGMA+ 94 LN 34.6 LN SIGMA+ 101 LN XHAT EXP | X#38.3151,0.00005
 
 # 33s ch.16 p.16-17 to 16-22 grouped standard deviation: the program writes sum f, sum xf, sum x^2 f into registers 28, 29, 31
-G01 | 33s p.16-22 grouped sx = 11.4118, registers by the 33s's numbers 28, 29, 31 (p.16-20) | CLSIGMA 28 STO:I 311 STO:(I) 29 STO:I 7280 STO:(I) 31 STO:I 210784 STO:(I) SX | X#11.4118,0.00005
-G02 | 33s p.16-22 weighted mean 23.4084, the 33s's numbering | CLSIGMA 28 STO:I 311 STO:(I) 29 STO:I 7280 STO:(I) 31 STO:I 210784 STO:(I) XBAR | X#23.4084,0.00005
+G01 | 33s p.16-22 grouped sx = 11.4118, registers by the 33s's numbers 28, 29, 31 (p.16-20) (unit 025: i and (i) for the stand-ins I and (I)) | CLSIGMA 28 STO:i 311 STO:(i) 29 STO:i 7280 STO:(i) 31 STO:i 210784 STO:(i) SX | X#11.4118,0.00005
+G02 | 33s p.16-22 weighted mean 23.4084, the 33s's numbering (unit 025: i and (i) for the stand-ins I and (I)) | CLSIGMA 28 STO:i 311 STO:(i) 29 STO:i 7280 STO:(i) 31 STO:i 210784 STO:(i) XBAR | X#23.4084,0.00005
 G03 | 33s p.16-22 grouped sx = 11.4118, the same registers by the 35s's numbers -27, -28, -30 | CLSIGMA 27 CHS STO:I 311 STO:(I) 28 CHS STO:I 7280 STO:(I) 30 CHS STO:I 210784 STO:(I) SX | X#11.4118,0.00005
 G04 | 33s p.16-22 weighted mean 23.4084, the 35s's numbering | CLSIGMA 27 CHS STO:I 311 STO:(I) 28 CHS STO:I 7280 STO:(I) 30 CHS STO:I 210784 STO:(I) XBAR | X#23.4084,0.00005

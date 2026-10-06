@@ -142,6 +142,8 @@ enum { AB_TEST_NE = 0, AB_TEST_LE, AB_TEST_LT, AB_TEST_GT, AB_TEST_GE, AB_TEST_E
 #define AB_VAR_A 0                  /* AB_VAR_A + k is the k-th letter; I and J are letters too */
 #define AB_VAR_IND_I 26             /* (I): the variable or register the number in I names */
 #define AB_VAR_IND_J 27             /* (J) */
+#define AB_VAR_SI 28                /* i: the 33s's 27th variable, separate from the letter I (33s
+                                       p.13-20; unit 025); it lives at var[26] */
 #define AB_STAT_REGS 6              /* n, sum x, sum y, sum x^2, sum y^2, sum xy (UG p.14-22) */
 #define AB_IND_MAX 800              /* unnamed indirect variables 0..800 (UG p.14-22) */
 #define AB_PROG_LINES 4000          /* program memory, lines (ours, unit 011 rule 4) */
@@ -194,7 +196,10 @@ typedef struct {
     ab_mode disp_mode;      /* display setting, for RND (unit 004) */
     int disp_n;
     uint64_t rng;           /* random generator state (unit 004) */
-    ab_val var[26];         /* A..Z (unit 005); each may hold a complex number (UG p.9-2, unit 009) */
+    ab_val var[27];         /* A..Z (unit 005), each may hold a complex number (UG p.9-2, unit 009);
+                               and i at 26 (unit 025) */
+    uint8_t lmode[26];      /* each label's mode, 33 or 35, stamped when its LBL line was entered
+                               (unit 025 rule 3); 0 for a label not in memory */
     abn stat[AB_STAT_REGS]; /* the statistics registers, reached through (I)/(J) for now */
     abn ind[AB_IND_MAX + 1];/* unnamed indirect variables */
     int ind_top;            /* highest defined indirect address, -1 if none */
@@ -340,6 +345,11 @@ abn_status ab_eqn_based(const char *digits, int n, int base, abn *out);
 const char *ab_status_message(abn_status st);
 const char *ab_error_message(const ab_calc *c);
 const char *ab_busy_message(ab_op op);
+
+/* Unit 025: the mode in force (33s or 35s): while a program line runs, the mode of the label that
+   owns it; otherwise (the keyboard, lines before the first label) the calculator's. Every
+   mode-dependent behaviour asks here. */
+bool ab_mode35(const ab_calc *c);
 
 /* Unit 016: CLEAR ALL and MEMORY CLEAR as UG p.B-4's table has them. ab_init is MEMORY CLEAR,
    with the device fields (budget, slice) at their defaults. */
