@@ -86,3 +86,20 @@ N24-N27, Q20-Q22 and B18 are the vectors.
    - A NaN or invalid result is DOMAIN (INVALID DATA).
    - Typed numbers and arena exhaustion keep their errors.
    - The base-mode clamp (unit 024) sets flag 6 too, which matches 33s p.13-9 ("any overflow").
+
+## Accepted (abacus, 2026-10-06, #4219)
+
+Accepted at 6c0d209, verified by a build of f839cb9 against 6c0d209 over the review set:
+- N24-N27, B18, Q20-Q22 and B66 turned green, and nothing newly fails;
+- 026's own vectors pass 61/61.
+
+Soroban's three calls are accepted:
+- (a) ABS of a complex or vector, and the dot product, settle as real results;
+- (b) an integral beyond the range stays an error with flag 6 (rescaling the quadrature is a possible 026b);
+- (c) →POL with r beyond the range gives the largest r and the correct θ.
+
+Of the older finds, the pow error is unit 028. The others are noted, not changed:
+- HMS's carry: 34-digit seconds that round to 60 should carry, so 100.0000 is right if that's the case. Confirm it
+  with a vector computed in mpmath, and amend it if it isn't.
+- Working store running out (RANGE) for complex ABS of mismatched parts, ŷ of 9E6144, and SLOPE after saturation.
+- The stand-in's one-in-three R/S interrupt miss, to watch.
