@@ -2,6 +2,8 @@
 # , (the next element); the guide has no closing key, entry ends as any number's does. An
 # expectation "[a,b,c]" is a vector: the register must hold a vector of that length, "=" each
 # element exact. Exact references: python decimal at 500 digits, rounded once to 34 (half even).
+# Unit 025 (work/025-indirect-i-and-program-modes.md): the default is now 33s mode, so these vectors,
+# written from the 35s guide's indirect model, start with MODE35: O22.
 
 M01 | 35s p.10-2 [1.5,-2.2] + [-1.5,2.2]; CHS before the digits; Y gets the old Z | [ 1.5 , CHS 2.2 ENTER [ CHS 1.5 , 2.2 + | X=[0,0] Y=0 L=[-1.5,2.2]
 M02 | 35s p.10-2 ENTER copies the vector | [ 1.5 , CHS 2.2 ENTER | X=[1.5,-2.2] Y=[1.5,-2.2]
@@ -44,7 +46,7 @@ O18 | ours: backspace through an empty element erases the comma | [ 1 , 2 BKSP B
 O19 | ours: backspace in an empty first element erases the bracket (X 0, lift off) | 5 ENTER [ BKSP 7 + | X=12
 O20 | ours: storage arithmetic with vectors | [ 1 , 2 STO:A [ 3 , 4 STO+:A RCL:A | X=[4,6]
 O21 | ours: storage arithmetic that fails changes nothing | [ 1 , 2 STO:A 5 STO+:A RCL:A | ERR X=[1,2] Y=5
-O22 | ours: the unnamed indirect variables hold reals only | 5 STO:I [ 1 , 2 STO:(I) | ERR X=[1,2]
+O22 | ours: the unnamed indirect variables hold reals only | MODE35 5 STO:I [ 1 , 2 STO:(I) | ERR X=[1,2]
 O23 | ours: CHS after an element's digits | [ 1 , 2 CHS ENTER | X=[1,-2]
 O24 | ours: CHS on the first element | [ 1 CHS , 2 ENTER | X=[-1,2]
 O25 | 35s p.2-4 x<>y moves the whole vector | [ 1 , 2 ENTER 3 XY | X=[1,2] Y=3

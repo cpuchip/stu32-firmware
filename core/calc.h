@@ -228,12 +228,12 @@ typedef struct {
     bool yes;               /* the last test's answer, shown as YES / NO from the keyboard */
     long budget;            /* lines a run may execute: AB_RUN_BUDGET unless a device changes it */
     ab_stop stop;           /* why the last run stopped (unit 012) */
-    int stop_var;           /* INPUT / VIEW / PSE: the variable (A..Z 0..25, or -27..-32, or
+    int stop_var;           /* INPUT / VIEW / PSE: the variable (A..Z 0..25, i 26, or -27..-32, or
                                1000 + an unnamed address); -1 for none */
     bool viewing;           /* a keyboard VIEW's display, Variable=Value (UG p.3-4), until the next key:
                                C or backspace only clears it, any other key clears it and acts
                                (abacus #3979); not in the state image */
-    int view_id;            /* its variable, as stop_var's ids (A..Z 0..25, 1000 + an indirect
+    int view_id;            /* its variable, as stop_var's ids (A..Z 0..25, i 26, 1000 + an indirect
                                address, -27..-32 the statistics) */
     int stop_line;          /* the line an error stopped at */
     int fn;                 /* FN=: the label chosen (0..25), -1 none (unit 013) */
@@ -254,7 +254,7 @@ typedef struct {
     int eqn_errpos;         /* SYNTAX ERROR: the character offset of the first error */
     int eqn_pending;        /* prompting for: 1 ENTER, 2 XEQ, 3 SOLVE, 4 integrate, 5 the 2*2 and
                                6 the 3*3 solver (unit 015); 0 none */
-    int eqn_vars[26];       /* the variables to prompt for, in order */
+    int eqn_vars[27];       /* the variables to prompt for, in order (26: i, unit 025) */
     int eqn_nvars, eqn_next;
     /* unit 015: equations in programs; SOLVE and integrate of equations */
     char peqn[AB_PEQN_MAX][AB_EQN_LEN];     /* the texts of AB_EQLINE program lines */
@@ -295,6 +295,9 @@ typedef struct {
     int err_op, err_arg, err_active;
     ab_val err_x;
     bool err_set;           /* recorded already in this call (the innermost wins) */
+    bool err_m35;           /* the mode in force when it was recorded (unit 025: INVALID (I) or (i)) */
+    int exec_at;            /* the program line being executed while running (unit 025: its label's
+                               mode is in force), -1 none */
     abn_status err_status;  /* the status the message is for */
 } ab_calc;
 
@@ -350,6 +353,9 @@ const char *ab_busy_message(ab_op op);
    owns it; otherwise (the keyboard, lines before the first label) the calculator's. Every
    mode-dependent behaviour asks here. */
 bool ab_mode35(const ab_calc *c);
+/* Whether a label's lines use an indirect address ((I), (J), (i), or an equation's), so a restamp
+   changes their storage (unit 025 rule 5). */
+bool ab_label_indirect(const ab_calc *c, int label);
 
 /* Unit 016: CLEAR ALL and MEMORY CLEAR as UG p.B-4's table has them. ab_init is MEMORY CLEAR,
    with the device fields (budget, slice) at their defaults. */

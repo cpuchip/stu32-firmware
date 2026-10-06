@@ -448,6 +448,8 @@ int main(void)
             }
         }
         ab_init(&c);
+        ab_do_arg(&c, AB_MODEL, 35);            /* the letter layer's (I) and (J) are 35s mode's; app.c maps
+                                                   them to i and (i) in 33s mode (unit 025) */
         ab_do(&c, AB_PRGM);
         ab_do_arg(&c, km_lookup(12, KM_FACE)->op, km_prompt_arg(KM_ARG_VAR, km_letter_of(12)));
         char t[32];

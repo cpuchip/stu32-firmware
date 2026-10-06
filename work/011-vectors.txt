@@ -5,6 +5,8 @@
 # %PC=A005|TOP, %GO:A004=A003 (that line's target, NONE when deleted), %LINES=n, %YES=0|1 (the last
 # test from the keyboard), %Fn=0|1. INPUT and VIEW (a later unit): where the guide's listing has
 # INPUT v the vector stores v first and the line is RCL v; VIEW v is PSE; line numbers kept.
+# Unit 025 (work/025-indirect-i-and-program-modes.md): the default is now 33s mode, so these vectors,
+# written from the 35s guide's indirect model, start with MODE35: M26.
 
 M01 | 35s p.13-2/13-3 the first program, unlabeled; run off its end (ours: as RTN) | PRGM GTO.. SQ PI * PRGM GTO.. 5 RS | X=78.53981633974483096156608458198758 %PC=TOP %LINES=3
 M02 | 35s p.13-8/13-10 program A, XEQ A | PRGM CLPGM LBL:A SQ PI * RTN PRGM 5 XEQ:A | X=78.53981633974483096156608458198758 %PC=TOP %LINES=5
@@ -31,7 +33,7 @@ M22 | 35s p.14-17 it stops at equality | PRGM CLPGM LBL:S RCL:A RCL:B RCL:A RCL-
 M23 | 35s p.14-17 the body runs at least once | PRGM CLPGM LBL:S RCL:A RCL:B RCL:A RCL-:B STO:A RCL:B X<Y? GTO:S004 PSE RTN PRGM 2 STO:A 5 STO:B XEQ:S | @A=-3
 M24 | 35s p.14-19/14-20 ISG ten times: 1.01 becomes 11.0100 | PRGM CLPGM LBL:L 1.01 STO:Z ISG:Z GTO:L004 RTN PRGM XEQ:L | @Z=11.01
 M25 | 35s p.14-19 DSE: loop while the counter stays above the final value (body ours) | PRGM CLPGM LBL:W 1 STO+:B DSE:A GTO:W001 RTN PRGM 5 STO:A 0 STO:B XEQ:W | @A=0 @B=5
-M26 | 35s p.14-24 an error stops the program at the failing line (A016 RCL (I), INVALID (I); p.13-19) | PRGM CLPGM LBL:A 100 STO:I 12345 STO:(I) 150 STO:I 67890 STO:(I) 100 STO:I 0 STO:(I) 170 STO:I RCL:(I) RTN PRGM XEQ:A | ERR %PC=A016
+M26 | 35s p.14-24 an error stops the program at the failing line (A016 RCL (I), INVALID (I); p.13-19) | MODE35 PRGM CLPGM LBL:A 100 STO:I 12345 STO:(I) 150 STO:I 67890 STO:(I) 100 STO:I 0 STO:(I) 170 STO:I RCL:(I) RTN PRGM XEQ:A | ERR %PC=A016
 M27 | 35s p.14-2 twenty nested subroutines below the top level run | PRGM CLPGM LBL:A XEQ:B001 RTN LBL:B XEQ:C001 RTN LBL:C XEQ:D001 RTN LBL:D XEQ:E001 RTN LBL:E XEQ:F001 RTN LBL:F XEQ:G001 RTN LBL:G XEQ:H001 RTN LBL:H XEQ:I001 RTN LBL:I XEQ:J001 RTN LBL:J XEQ:K001 RTN LBL:K XEQ:L001 RTN LBL:L XEQ:M001 RTN LBL:M XEQ:N001 RTN LBL:N XEQ:O001 RTN LBL:O XEQ:P001 RTN LBL:P XEQ:Q001 RTN LBL:Q XEQ:R001 RTN LBL:R XEQ:S001 RTN LBL:S XEQ:T001 RTN LBL:T XEQ:U001 RTN LBL:U 7 RTN PRGM XEQ:A | X=7 %PC=TOP
 M28 | 35s p.14-3, p.F-5 a 21st nested XEQ is XEQ OVERFLOW, stopped at that XEQ | PRGM CLPGM LBL:A XEQ:B001 RTN LBL:B XEQ:C001 RTN LBL:C XEQ:D001 RTN LBL:D XEQ:E001 RTN LBL:E XEQ:F001 RTN LBL:F XEQ:G001 RTN LBL:G XEQ:H001 RTN LBL:H XEQ:I001 RTN LBL:I XEQ:J001 RTN LBL:J XEQ:K001 RTN LBL:K XEQ:L001 RTN LBL:L XEQ:M001 RTN LBL:M XEQ:N001 RTN LBL:N XEQ:O001 RTN LBL:O XEQ:P001 RTN LBL:P XEQ:Q001 RTN LBL:Q XEQ:R001 RTN LBL:R XEQ:S001 RTN LBL:S XEQ:T001 RTN LBL:T XEQ:U001 RTN LBL:U XEQ:V001 RTN LBL:V 7 RTN PRGM XEQ:A | ERR %PC=U002
 M29 | 35s p.13-4, p.F-1 a label twice: DUPLICAT.LBL, the line refused | PRGM LBL:A LBL:A PRGM | ERR %LINES=1

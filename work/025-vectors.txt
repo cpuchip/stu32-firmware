@@ -32,7 +32,14 @@ G01 | 33s p.16-22 grouped sx = 11.4118, registers by the 33s's numbers 28, 29, 3
 G02 | 33s p.16-22 weighted mean 23.4084, the 33s's numbering (unit 025: i and (i) for the stand-ins I and (I)) | CLSIGMA 28 STO:i 311 STO:(i) 29 STO:i 7280 STO:(i) 31 STO:i 210784 STO:(i) XBAR | X#23.4084,0.00005
 
 N01 | unit 025 rule 4: a 35s label calls a 33s label and back, each indirecting by its own model (35s: I = 5 is unnamed 5; 33s: i = 1 is A); RTN restores the caller's | MODE33 PRGM CLPGM LBL:B 1 STO:i 9 STO:(i) RTN PRGM MODE35 PRGM GTO.. LBL:A 5 STO:I 7 STO:(I) XEQ:B RCL:(I) RTN PRGM MODE33 XEQ:A | X=7 @A=9 @#5=7 @i=1 @I=5
-N02 | unit 025 rule 5: in program entry, MODE on a LBL line restamps the label; its (i) then follows the 35s model (index I = 0: unnamed 0), no line added | MODE33 PRGM CLPGM LBL:C 3 STO:i 6 STO:(i) RTN GTO.:C001 MODE35 PRGM MODE33 XEQ:C | @#0=6 @C=0 %LINES=4
+N02 | unit 025 rule 5: in program entry, MODE on a LBL line restamps the label; its (i) then follows the 35s model (index I = 0: unnamed 0), no line added | MODE33 PRGM CLPGM LBL:C 3 STO:i 6 STO:(i) RTN GTO.:C001 MODE35 PRGM MODE33 XEQ:C | @#0=6 @C=0 %LINES=6
 N03 | unit 025 rule 6: labels keep their modes through a save and load (N01's program) | MODE33 PRGM CLPGM LBL:B 1 STO:i 9 STO:(i) RTN PRGM MODE35 PRGM GTO.. LBL:A 5 STO:I 7 STO:(I) XEQ:B RCL:(I) RTN PRGM MODE33 SAVE MEMCLR LOAD XEQ:A | X=7 @A=9 @#5=7
 N04 | unit 025 rule 6: a version-4 image loads with its labels stamped with its mode (35s at the save), whatever the mode after | MODE33 PRGM CLPGM LBL:A 5 STO:I 7 STO:(I) RTN PRGM MODE35 SAVE IMGVER:4 LOAD MODE33 XEQ:A | @#5=7 @E=0
 N05 | unit 025 rule 4: SOLVE of a 33s-mode FN= whose function reads (i) (i = 1: A = 4), run with the calculator in 35s mode: the label's mode governs | MODE33 PRGM CLPGM LBL:F 1 STO:i RCL:(i) RCL:X SQ - RTN PRGM MODE35 4 STO:A 1 STO:X 3 FN=:F SOLVE:X | X=2 @X=2
+N06 | 33s p.13-23: in an equation a lone i is the variable i and (i) the variable i names; XEQ prompts for i only (i = 1: A = 5) | MODE33 5 STO:A 1 STO:i EQN RCL:i + RCL:(i) ENTER XEQ RS | X=6 %STOP=DONE
+N07 | 33s p.13-23 with 7-2: SOLVE for i in i×i-9 (guesses 1 and 5) | MODE33 EQ:i×i-9 C 1 STO:i 5 EQN SOLVE:i | X=3 @i=3
+N08 | 33s p.13-23: an equation stopped at the i prompt names it | MODE33 EQN RCL:i + 1 ENTER XEQ | %STOP=INPUT:i
+N09 | unit 025 rule 6: an image saved while a program waits at INPUT i loads back waiting there | MODE33 PRGM CLPGM LBL:D INPUT:i RTN PRGM XEQ:D SAVE MEMCLR LOAD | %STOP=INPUT:i
+N10 | ours, from 35s p.7-11 (the stack as when the key was pressed): integrate over (i) of an equation that uses i: (i) names A when the key is pressed (i = 1); the prompt's answer i = 2 does not move it | MODE33 EQ:A+i C 1 STO:i 0 ENTER 1 EQN INTEG:(i) 2 RS | X#2.5,1E-20
+N11 | ours, as N10: SOLVE for (i), i answered 2 after the key: A + 2 - 5 = 0 in A | MODE33 EQ:A+i-5 C 1 STO:i 0 STO:A 1 EQN SOLVE:(i) 2 RS | X=3 @A=3 @i=2
+N12 | ours, as N11 in 35s mode: (I) with I = -1 names A; I answered 2 does not make it unnamed 2 | MODE35 EQ:A+I-5 C 1 CHS STO:I 0 STO:A 1 EQN SOLVE:(I) 2 RS | X=3 @A=3 @I=2

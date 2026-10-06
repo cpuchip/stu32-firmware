@@ -278,7 +278,7 @@ int main(void)
     {
         char t[32] = "";
         ab_prog_line(&c, 0, NULL, t, sizeof t);
-        bool l1 = !strcmp(t, "LBL A");
+        bool l1 = !strcmp(t, "LBL A \xc2\xb7" "33");   /* stamped with the mode it was entered in (unit 025) */
         ab_prog_line(&c, 1, NULL, t, sizeof t);
         expect(l1 && !strcmp(t, "INPUT R") && c.prog_len == 2, "the menu's LBL A and INPUT R recorded");
     }
@@ -505,6 +505,7 @@ int main(void)
     /* unit 021: CLVARx asks for a three-digit address (UG p.1-5), from the digit keys */
     ab_init(&c);
     app_init(&a, &c, now);
+    ab_do_arg(&c, AB_MODEL, 35);                /* the unnamed registers are 35s mode's (unit 025) */
     ab_do_arg(&c, AB_K5, 0);
     ab_do_arg(&c, AB_K0, 0);
     ab_do_arg(&c, AB_STO, 'I' - 'A');
@@ -792,6 +793,7 @@ int main(void)
         /* REG > REGY types REGY, and the typing bar comes back */
         ab_init(&c);
         app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, 35);            /* (I) below is 35s mode's key (unit 025) */
         press(&a, "GOLD 0 RCL ltr:A + k:5");
         app_ui(&a, &ui);
         expect(ui.soft[1] && !strcmp(ui.soft[1], "REGY") && ui.soft[3] && !strcmp(ui.soft[3], "REGT"), "REG\xe2\x96\xb8: REGX REGY REGZ REGT");
@@ -813,6 +815,17 @@ int main(void)
         expect(strstr(c.ebuf, "SINH(") != NULL, "HYP's SINH types SINH( (p.6-4)");
         press(&a, "k:2");
         expect(strstr(c.ebuf, "()") != NULL || strstr(c.ebuf, "(") != NULL, "( ) types a pair");
+
+        /* 33s mode: RCL i types i, RCL (i) the glyph; i is a variable, prompted for, (i) is not
+           (33s p.13-23; unit 025) */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        press(&a, "5 STO ltr:A 1 STO k:39 GOLD 0 RCL k:39 + RCL k:43");
+        expect(!strcmp(c.ebuf, "i+\xe2\x92\xa4"), "33s: RCL i types i, RCL (i) types (i)");
+        press(&a, "ENTER XEQ");
+        expect(c.stop == AB_STOP_INPUT && c.stop_var == 26, "33s: XEQ prompts for i, not for (i)");
+        press(&a, "R/S");
+        expect(x_of(&c) == 6, "i+(i) with i = 1, A = 5: 6");
 
         /* EXIT leaves with the list unchanged */
         ab_init(&c);
@@ -993,10 +1006,22 @@ int main(void)
         screen_lines(&c, &ui, &pg);
         expect(pg.x.kind != SCREEN_VIEW && x_of(&c) == 12, "VIEW then +: the display goes and + adds (5 + 7)");
         /* VIEW (I) names the variable it points at */
-        press(&a, "C 3 STO ltr:I 9 STO k:39 GOLD STO k:39");
+        press(&a, "C");
+        ab_do_arg(&c, AB_MODEL, 35);            /* the unnamed registers are 35s mode's (unit 025) */
+        press(&a, "3 STO ltr:I 9 STO k:39 GOLD STO k:39");
         app_ui(&a, &ui);
         screen_lines(&c, &ui, &pg);
         expect(pg.x.kind == SCREEN_VIEW && !strcmp(pg.x.text, "(3)=9"), "VIEW (I) with I = 3: (3)=9");
+        press(&a, "C");
+        ab_do_arg(&c, AB_MODEL, 33);
+        press(&a, "3 STO k:39 8 STO k:43 GOLD STO k:43");
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(pg.x.kind == SCREEN_VIEW && !strcmp(pg.x.text, "C=8"), "33s: VIEW (i) with i = 3 names C: C=8");
+        press(&a, "C GOLD STO k:39");
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(pg.x.kind == SCREEN_VIEW && !strcmp(pg.x.text, "i=3"), "33s: VIEW i: i=3");
         press(&a, "C");
     }
 
@@ -1137,13 +1162,21 @@ int main(void)
         expect(!strcmp(t, "STO (i)"), "under a 33s label the indirect lists as STO (i)");
         /* MODE on the LBL line restamps it (no line added), with a brief notice; the calculator's mode stays */
         int lines = c.prog_len;
-        press(&a, "GOLD 9 k:4");                /* BST (the PRGM menu's fifth): the pointer up to the LBL line */
+        press(&a, "GOLD 9 k:4 GOLD 9 k:4");     /* BST twice (the PRGM menu's fifth): from RTN up to the LBL line */
+        expect(c.pc == 0, "two BSTs bring the pointer to the LBL line");
         press(&a, "BLUE ENTER k:1");            /* MODE 35s */
         app_ui(&a, &ui);
         ab_prog_line(&c, 1, NULL, t, sizeof t);
         expect(c.lmode[0] == 35 && !c.m35 && c.prog_len == lines, "MODE 35s on LBL A: the label restamped, the calculator still 33s");
         expect(!strcmp(t, "STO (I)") && ui.notice && !strcmp(ui.notice, "(i) MEANS (I)"),
                "its indirect now lists STO (I), and the notice says so");
+        a.notice = NULL;
+        press(&a, "BLUE ENTER");
+        app_ui(&a, &ui);
+        expect(ui.soft_on[1] && !ui.soft_on[0], "on the LBL line MODE marks the label's mode (35s), not the calculator's");
+        press(&a, "k:1");
+        app_ui(&a, &ui);
+        expect(c.lmode[0] == 35 && !ui.notice, "35s again on a 35s label: no notice, nothing changed");
         press(&a, "GOLD 9 k:0");
     }
 

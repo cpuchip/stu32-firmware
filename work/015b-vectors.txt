@@ -1,6 +1,9 @@
 # Work unit 015 key vectors, part 2: complex, vector and base-n numbers, the logic functions and %
 # in equations. Keyboard twins: SAVEX after the equation, then the same computation keyed (CLSTK
 # first); %SAMEX=same requires X to be what the keys gave, bit for bit. Format as 015-vectors.txt.
+# Unit 025 (work/025-indirect-i-and-program-modes.md): the default is now 33s mode, so these vectors,
+# written from the 35s guide's indirect model, start with MODE35 (the ERR ones added after review, which
+# passed in 33s mode only by failing early: B17): B11 B18.
 
 B01 | 35s p.9-7/9-8 a complex sum in an equation (DEG): 1i2+3θ10+5θ30 | DEG EQ:1i2+3θ10+5θ30 XEQ SAVEX CLSTK DEG 1 CI 2 ENTER 3 CA 10 + 5 CA 30 + | %SAMEX=same
 B02 | 35s p.9-7 typing complex numbers: i and θ keys type i and θ | EQN 1 CI 2 + 3 CA 10 ENTER | %EQ=1i2+3θ10
@@ -12,14 +15,14 @@ B07 | 35s p.6-10, 9-7 an equality of complex values: left minus right | EQ:1i1=1
 B08 | ours: unary minus of a complex number | EQ:-(1i1) XEQ SAVEX CLSTK 1 CI 1 ENTER CHS | %SAMEX=same
 B09 | 35s p.9-3 ABS and ARG of a complex number give reals | DEG EQ:ABS(3i4)+ARG(1i1) XEQ SAVEX CLSTK DEG 3 CI 4 ABS 1 CI 1 ARG + | %SAMEX=same
 B10 | 35s p.B-7 REGX holding a complex number | 1 CI 1 EQ:REGX×2 XEQ SAVEX CLSTK 1 CI 1 ENTER 2 * | %SAMEX=same
-B11 | 35s p.14-23 (I) naming a variable that holds a complex number | 1 CI 1 STO:A 1 CHS STO:I EQ:⒤+1 XEQ SAVEX CLSTK 1 CI 1 ENTER 1 + | %SAMEX=same
+B11 | 35s p.14-23 (I) naming a variable that holds a complex number | MODE35 1 CI 1 STO:A 1 CHS STO:I EQ:⒤+1 XEQ SAVEX CLSTK 1 CI 1 ENTER 1 + | %SAMEX=same
 B12 | 35s p.9-7 polar entry in RAD | RAD EQ:2θ1 XEQ SAVEX CLSTK RAD 2 CA 1 | %SAMEX=same
 B13 | 35s p.10-6 vectors add in an equation | EQ:[1,2]+[3,4] XEQ | X=[4,6]
 B14 | 35s p.10-6 x between two vectors is the dot product | EQ:[1,2,3]×[4,5,6] XEQ | X=32
 B15 | 35s p.10-6 a number times a vector | EQ:2×[1,2] XEQ | X=[2,4]
 B16 | 35s p.4-17, 10-6 ABS of a vector | EQ:ABS([3,4]) XEQ | X=5
-B17 | 35s p.10-8 [C, REGZ, (J)] typed in Equation mode: [ types a pair, R-down's menu gives REGZ, RCL (J) types (J) | EQN [ RCL:C , REG:Z , RCL:(J) ENTER | %EQ=[C,REGZ,⒥]
-B18 | 35s p.10-8 its value: C (prompted: its push moves the stack), the Z register when evaluated, the variable J names | 7 STO:C 4 STO:D 4 CHS STO:J 1 ENTER 2 ENTER 3 EQN [ RCL:C , REG:Z , RCL:(J) ENTER XEQ RS | X=[7,2,4]
+B17 | 35s p.10-8 [C, REGZ, (J)] typed in Equation mode: [ types a pair, R-down's menu gives REGZ, RCL (J) types (J) | MODE35 EQN [ RCL:C , REG:Z , RCL:(J) ENTER | %EQ=[C,REGZ,⒥]
+B18 | 35s p.10-8 its value: C (prompted: its push moves the stack), the Z register when evaluated, the variable J names | MODE35 7 STO:C 4 STO:D 4 CHS STO:J 1 ENTER 2 ENTER 3 EQN [ RCL:C , REG:Z , RCL:(J) ENTER XEQ RS | X=[7,2,4]
 B19 | 35s p.10-6 a vector at a prompt | EQ:A+[1,1] XEQ [ 2 , 3 RS | X=[3,4] @A=[2,3]
 B20 | 35s p.10-6 vector plus number: INVALID DATA, as on the keyboard | EQ:[1,2]+1 XEQ | ERR %ERR=DOMAIN
 B21 | 35s p.10-6 integrate an equation whose value is [v,0,0]: the first element | FIX4 EQ:[X,0,0] C 0 ENTER 2 EQN INTEG:X | X#2,1E-4

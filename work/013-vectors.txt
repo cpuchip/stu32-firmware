@@ -3,6 +3,8 @@
 # algorithm's tolerance are judged as "X#v,t" (|x - v| <= t) and %COVER=v (|x - v| <= y, the
 # uncertainty in Y covers the true error); %EVALS<=n bounds the evaluations. The guide's equation
 # examples are keyed as RPN programs. Exact values: mpmath at 60 digits.
+# Unit 025 (work/025-indirect-i-and-program-modes.md): the default is now 33s mode, so these vectors,
+# written from the 35s guide's indirect model, start with MODE35: M13 M14 O02.
 
 M01 | 35s p.D-12/D-13 program J, a local flat region: guesses 1E-8 and -1E-8 find -2 (J002/J003 '1','2' keyed 1 ENTER 2: two number lines cannot be keyed apart) | PRGM CLPGM LBL:J 1 ENTER 2 RCL+:X X<Y? RTN 4 - CHS X>Y? RDN RTN PRGM 1 E 8 CHS STO:X 1 CHS E 8 CHS FN=:J SOLVE:X | X=-2 @X=-2 Z=0
 M02 | 35s p.D-3/D-4 -2x^3+4x^2-6x+8, guesses 0 and 10: one root, 1.6506 | PRGM CLPGM LBL:P RCL:X 3 POW 2 CHS * RCL:X SQ 4 * + RCL:X 6 * - 8 + RTN PRGM 0 STO:X 10 FN=:P SOLVE:X | X^1.65062919143938821888080096742619744 Z#0,1E-30 %EVALS<=20
@@ -16,8 +18,8 @@ M09 | 35s p.D-11 sqrt(x/(x+0.3)) - 0.5, guesses 0 and 10: 0.1 | PRGM CLPGM LBL:G
 M10 | 35s p.D-12 guesses 0 and -10 reach the undefined region: NO ROOT FND (an error inside the function counts as no root) | PRGM CLPGM LBL:G RCL:X RCL:X .3 + / SQRT .5 - RTN PRGM 0 STO:X 10 CHS FN=:G SOLVE:X | ERR %ERR=NO_ROOT
 M11 | 35s p.D-13 abs(x^2-7) touches 0 without a sign change: NO ROOT FND | PRGM CLPGM LBL:H RCL:X SQ 7 - ABS RTN PRGM 2 STO:X 3 FN=:H SOLVE:X | ERR %ERR=NO_ROOT
 M12 | 35s p.D-13 ((abs(x)+1)+1E15)^2 - 1E30 (12 digits round it to a false root; with 34 digits there is none): NO ROOT FND | PRGM CLPGM LBL:K RCL:X ABS 1 + 1 E 15 + SQ 1 E 30 - RTN PRGM 1 STO:X 2 FN=:K SOLVE:X | ERR %ERR=NO_ROOT
-M13 | 35s p.15-6/15-7 SOLVE (I) inside a program, X = -24 (the guide's 24 is the old numbering): the root, then VIEW | PRGM CLPGM LBL:X 24 CHS GTO:L001 LBL:L STO:I FN=:F SOLVE:(I) VIEW:(I) RTN LBL:F RCL:X SQ RCL:Y + 10 - RTN PRGM 1 STO:Y 1 STO:X XEQ:X | %STOP=VIEW:X @X=-3
-M14 | 35s p.15-6, p.F-4 a programmed SOLVE that finds no root skips the next line, no message | PRGM CLPGM LBL:X 24 CHS GTO:L001 LBL:L STO:I FN=:F SOLVE:(I) VIEW:(I) RTN LBL:F RCL:X SQ RCL:Y + RTN PRGM 1 STO:Y 1 STO:X XEQ:X | %STOP=DONE
+M13 | 35s p.15-6/15-7 SOLVE (I) inside a program, X = -24 (the guide's 24 is the old numbering): the root, then VIEW | MODE35 PRGM CLPGM LBL:X 24 CHS GTO:L001 LBL:L STO:I FN=:F SOLVE:(I) VIEW:(I) RTN LBL:F RCL:X SQ RCL:Y + 10 - RTN PRGM 1 STO:Y 1 STO:X XEQ:X | %STOP=VIEW:X @X=-3
+M14 | 35s p.15-6, p.F-4 a programmed SOLVE that finds no root skips the next line, no message | MODE35 PRGM CLPGM LBL:X 24 CHS GTO:L001 LBL:L STO:I FN=:F SOLVE:(I) VIEW:(I) RTN LBL:F RCL:X SQ RCL:Y + RTN PRGM 1 STO:Y 1 STO:X XEQ:X | %STOP=DONE
 M15 | 35s p.15-2 an INPUT for the unknown is skipped | PRGM CLPGM LBL:F INPUT:X SQ 9 - RTN PRGM 1 STO:X 10 FN=:F SOLVE:X | X=3 %STOP=DONE
 M16 | 35s p.15-2, 15-3 another INPUT prompts once, in the first evaluation (unit 015 replaces 013's brief); R/S keeps 5 | PRGM CLPGM LBL:F INPUT:Y RCL:X RCL:Y - RTN PRGM 5 STO:Y 1 STO:X 9 FN=:F SOLVE:X RS | X=5 @Y=5 %STOP=DONE
 M17 | 35s p.7-9 equal guesses are nudged apart | PRGM CLPGM LBL:F RCL:X SQ 9 - RTN PRGM 2 STO:X FN=:F SOLVE:X | X=3 @X=3
@@ -38,7 +40,7 @@ M31 | 35s p.16-12 to 16-17 (p.15-10/15-11) the normal distribution, FIX 4: Q(3) 
 M32 | 35s p.16-17 M = 55, S = 15.3: Q(90) = 0.0111 | PRGM CLPGM LBL:S 0 STO:M INPUT:M 1 STO:S INPUT:S RTN LBL:D INPUT:X XEQ:Q001 STO:Q VIEW:Q GTO:D001 LBL:I INPUT:Q RCL:M STO:X LBL:T XEQ:Q001 RCL-:Q RCL:X STO:D RDN XEQ:F001 RCL/:T / STO+:X ABS 0.0001 X<Y? GTO:T001 RCL:X VIEW:X GTO:I001 LBL:Q RCL:M RCL:X FN=:F INTEG:D 2 PI * SQRT RCL*:S STO:T / CHS 0.5 + RTN LBL:F RCL:D RCL-:M RCL/:S SQ 2 / CHS EXP RTN PRGM FIX4 XEQ:S 55 RS 15.3 RS XEQ:D 90 RS | %STOP=VIEW:Q @Q#0.0110809463243301,0.0001
 M33 | 35s p.16-17 the inverse by the guide's Newton loop: Q = 0.1 gives X = 74.6077 | PRGM CLPGM LBL:S 0 STO:M INPUT:M 1 STO:S INPUT:S RTN LBL:D INPUT:X XEQ:Q001 STO:Q VIEW:Q GTO:D001 LBL:I INPUT:Q RCL:M STO:X LBL:T XEQ:Q001 RCL-:Q RCL:X STO:D RDN XEQ:F001 RCL/:T / STO+:X ABS 0.0001 X<Y? GTO:T001 RCL:X VIEW:X GTO:I001 LBL:Q RCL:M RCL:X FN=:F INTEG:D 2 PI * SQRT RCL*:S STO:T / CHS 0.5 + RTN LBL:F RCL:D RCL-:M RCL/:S SQ 2 / CHS EXP RTN PRGM FIX4 XEQ:S 55 RS 15.3 RS XEQ:I .1 RS | %STOP=VIEW:X @X#74.6077389528324,0.05
 O01 | ours: the variable of integration keeps its value | PRGM CLPGM LBL:S RCL:X SIN RCL:X / RTN PRGM RAD FIX4 7 STO:X FN=:S 0 ENTER 2 INTEG:X | @X=7
-O02 | ours: FN= (I) chooses the label I names (p.14-22) | PRGM CLPGM LBL:S RCL:X SIN RCL:X / RTN PRGM RAD FIX4 19 CHS STO:I FN=:(I) 0 ENTER 2 INTEG:X | X#1.6054129768026948486,0.0002
+O02 | ours: FN= (I) chooses the label I names (p.14-22) | MODE35 PRGM CLPGM LBL:S RCL:X SIN RCL:X / RTN PRGM RAD FIX4 19 CHS STO:I FN=:(I) 0 ENTER 2 INTEG:X | X#1.6054129768026948486,0.0002
 O03 | ours: a SOLVE from the keyboard leaves T as it was | PRGM CLPGM LBL:F RCL:X SQ 9 - RTN PRGM 5 ENTER ENTER ENTER 1 STO:X 10 FN=:F SOLVE:X | X=3 Z=0 T=5
 O04 | ours: ALL integrates as SCI 11 (the guide pairs 'SCI 11 or ALL', p.E-5) | PRGM CLPGM LBL:S RCL:X SIN RCL:X / RTN PRGM RAD ALL FN=:S 0 ENTER 2 INTEG:X | X#1.60541297680269484857672,1E-10 %COVER=1.6054129768026948485767201482
 O05 | ours: a SOLVE of an odd polynomial with a root at 0 | PRGM CLPGM LBL:F RCL:X 3 POW RTN PRGM 1 CHS STO:X 2 FN=:F SOLVE:X | X=0 Z=0

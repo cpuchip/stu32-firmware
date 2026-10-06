@@ -30,15 +30,16 @@
 #include "calc.h"
 
 /* The variables an equation uses, in order of first appearance (UG p.6-13); with rhs_only, those
-   right of an assignment's = only (the ENTER prompts, p.6-11). Returns the count. */
-int eqn_vars(const char *text, bool rhs_only, int out[26]);
+   right of an assignment's = only (the ENTER prompts, p.6-11); with with_i (33s mode, unit 025), a
+   lone i is the variable i, 26 (33s p.13-23). Returns the count. */
+int eqn_vars(const char *text, bool rhs_only, bool with_i, int out[27]);
 
 /* The length in bytes of a function name and its "(" ending at byte pos of s, or 0 (for the
    editor's backspace, which removes a function as one element). */
 int eqn_name_before(const char *s, int pos);
 
-/* An assignment's variable (a single letter, then =; p.6-9), or -1. */
-int eqn_assign_var(const char *text);
+/* An assignment's variable (a single letter, then =; p.6-9; i too with with_i), or -1. */
+int eqn_assign_var(const char *text, bool with_i);
 
 /* The equation's value (p.6-10): left minus right for an =, or with rhs_only the right side alone.
    With check_only, the syntax is checked and nothing is computed. SYNTAX ERROR: ABN_SYNTAX with

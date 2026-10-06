@@ -95,10 +95,18 @@ static void do_op(app_state *a, int op, int arg)
     if (op != AB_VIEW) undo_mark(a);
     if (runs && a->busy) a->busy(a->ctx, op);
     bool msg = c->msg;
+    bool on_lbl = c->prgm && c->pc >= 0 && c->pc < c->prog_len && c->prog[c->pc].op == AB_LBL;
+    int was = on_lbl ? c->lmode[c->prog[c->pc].arg] : 0;
     abn_status st = ab_do_arg(c, (ab_op)op, arg);
     a->dirty = true;
     if (st == ABN_CLAMPED) {                    /* OVERFLOW, briefly (unit 024 rule 3) */
         a->notice = ab_status_message(st);
+        a->notice_ms = a->last_key_ms;
+    }
+    if (op == AB_MODEL && st == ABN_OK && on_lbl && was != arg && ab_label_indirect(c, c->prog[c->pc].arg)) {
+        /* a label restamped to the other mode (unit 025 rule 5) whose lines use an indirect: what
+           it now means */
+        a->notice = arg == 35 ? "(i) MEANS (I)" : "(I) MEANS (i)";
         a->notice_ms = a->last_key_ms;
     }
     if (c->msg && !msg && a->set.beep && a->set.vol > 0) a->tone = a->set.vol;   /* the error tone (unit 022) */
@@ -205,6 +213,11 @@ void app_key(app_state *a, int key, uint32_t now_ms)
         const km_letter *l = km_letter_of(key);
         if (l->kind == KL_LETTER || l->kind == KL_IND_I || l->kind == KL_IND_J) {
             int arg = km_prompt_arg(a->prompt_kind, l);
+            if (!a->c->m35 && l->kind != KL_LETTER) {
+                /* 33s mode (unit 025): the (I) key gives i, the (J) key (i), the 33s's one index */
+                bool var = a->prompt_kind == KM_ARG_VAR, tgt = a->prompt_kind == KM_ARG_TARGET;
+                arg = l->kind == KL_IND_I ? (var ? AB_VAR_SI : -1) : var ? AB_VAR_IND_I : tgt ? AB_TGT_IND_I : -1;
+            }
             if (arg != -1) {
                 int op = a->prompt_op;
                 prompt_close(a);
@@ -427,7 +440,16 @@ void app_ui(const app_state *a, screen_ui *ui)
         }
         bool all = it->kind == KM_CONFIRM && it->op == AB_CLALL;
         ui->soft[i] = all && a->c->prgm ? "PGM" : all && a->c->eqn_mode ? "EQN" : it->legend;
-        ui->soft_on[i] = it->kind == KM_OP && it->op == AB_MODEL && it->arg == (a->c->m35 ? 35 : 33);
+        {
+            /* the mode MODE's keys would change: on a LBL line in program entry, its label's
+               (unit 025 rule 5); otherwise the calculator's */
+            const ab_calc *c = a->c;
+            int mode = c->m35 ? 35 : 33;
+            if (c->prgm && c->pc >= 0 && c->pc < c->prog_len && c->prog[c->pc].op == AB_LBL &&
+                c->lmode[c->prog[c->pc].arg])
+                mode = c->lmode[c->prog[c->pc].arg];
+            ui->soft_on[i] = it->kind == KM_OP && it->op == AB_MODEL && it->arg == mode;
+        }
         ui->soft_sub[i] = it->kind == KM_MENU;  /* a submenu: its box marked (#3958) */
         if (it->kind == KM_DEVICE) {            /* the settings in effect (unit 022) */
             static char off[8], vol[8];

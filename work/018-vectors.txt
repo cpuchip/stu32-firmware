@@ -2,6 +2,9 @@
 # %ERRMSG is the message showing (ab_error_message), %STATUSMSG a status's own text; blanks are
 # written _ and SYNTAX ERROR's line break /. Format as unit 017. abacus #3778 ruled that the guide
 # wins for 0^0 and nCr/nPr with r > n or n >= 1E16 (units 003 and 004 had computed them).
+# Unit 025 (work/025-indirect-i-and-program-modes.md): the default is now 33s mode, so these vectors,
+# written from the 35s guide's indirect model, start with MODE35 (the ERR ones added after review, which
+# passed in 33s mode only by failing early: F14): F13.
 
 F01 | 35s p.F-1 DIVIDE BY 0 | 1 ENTER 0 / | ERR %ERRMSG=DIVIDE_BY_0
 F02 | 35s p.F-1 DIVIDE BY 0 includes %CHG with Y zero | 0 ENTER 5 PCTCHG | ERR %ERRMSG=DIVIDE_BY_0
@@ -15,8 +18,8 @@ F09 | 35s p.F-3 INVALID yˣ: 0 to the 0th power (ruled #3778; unit 003 had 1) | 
 F10 | 35s p.F-3 INVALID yˣ: 0 to a negative power | 0 ENTER 2 CHS POW | ERR %ERRMSG=INVALID_yˣ
 F11 | 35s p.F-3 INVALID yˣ: a negative number to a non-integer power | 2 CHS ENTER .5 POW | ERR %ERRMSG=INVALID_yˣ
 F12 | 35s p.F-2 INVALID x!: a negative integer | 3 CHS FACT | ERR %ERRMSG=INVALID_x!
-F13 | 35s p.F-3 INVALID (I) | 900 STO:I RCL:(I) | ERR %ERRMSG=INVALID_(I)
-F14 | 35s p.F-3 INVALID (J) | 900 STO:J 5 STO:(J) | ERR %ERRMSG=INVALID_(J)
+F13 | 35s p.F-3 INVALID (I) | MODE35 900 STO:I RCL:(I) | ERR %ERRMSG=INVALID_(I)
+F14 | 35s p.F-3 INVALID (J) | MODE35 900 STO:J 5 STO:(J) | ERR %ERRMSG=INVALID_(J)
 F15 | 35s p.F-3 NONEXISTENT: XEQ a label not there | XEQ:Z | ERR %ERRMSG=NONEXISTENT
 F16 | 35s p.F-1 DUPLICAT.LBL | PRGM CLPGM LBL:A LBL:A | ERR %ERRMSG=DUPLICAT.LBL
 F17 | 35s p.F-5 STAT ERROR: n = 0 | CLSIGMA XBAR | ERR %ERRMSG=STAT_ERROR

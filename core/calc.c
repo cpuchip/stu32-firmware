@@ -42,6 +42,7 @@ void ab_init(ab_calc *c)
     c->disp_mode = AB_ALL;      /* ALL is the default display (ours, unit 002) */
     c->disp_n = 0;
     c->ind_top = -1;
+    c->exec_at = -1;
     c->pc = AB_PC_TOP;          /* program memory empty, the pointer at PRGM TOP (unit 011) */
     c->budget = AB_RUN_BUDGET;
     c->stop_var = -1;
@@ -127,6 +128,7 @@ static void err_note(ab_calc *c, int op, int arg, const ab_val *x)
     c->err_arg = arg;
     c->err_active = c->active;
     c->err_x = x ? *x : c->x;
+    c->err_m35 = ab_mode35(c);
 }
 
 /* ---- vectors (unit 010) ---- */
@@ -835,7 +837,22 @@ static abn_status resolve(ab_calc *c, int code, bool for_read, slot *out)
         out->val = &c->var[code - AB_VAR_A];
         return ABN_OK;
     }
+    if (code == AB_VAR_SI) {                    /* i (unit 025) */
+        out->val = &c->var[26];
+        return ABN_OK;
+    }
     if (code != AB_VAR_IND_I && code != AB_VAR_IND_J) return ABN_DOMAIN;
+    if (!ab_mode35(c)) {
+        /* the 33s's (i) (33s p.13-21; unit 025): only |integer part of i| counts: 1-26 are A-Z,
+           27 is i, 28-33 the statistics registers n, Sx, Sy, Sx2, Sy2, Sxy; 0 or 34 up INVALID (i).
+           The 33s has one index: (J) is INVALID there. */
+        const ab_val *ix = &c->var[26];
+        if (code == AB_VAR_IND_J || ix->kind != AB_REAL || !int_in(&ix->re, -33, 33, &k) || k == 0) return ABN_DOMAIN;
+        if (k < 0) k = -k;
+        if (k <= 27) out->val = &c->var[k - 1];
+        else out->reg = &c->stat[k - 28];
+        return ABN_OK;
+    }
     const ab_val *idx = &c->var[(code == AB_VAR_IND_I ? 'I' : 'J') - 'A'];
     if (idx->kind != AB_REAL || !int_in(&idx->re, -32, AB_IND_MAX, &k)) return ABN_DOMAIN;  /* INVALID (I) */
     if (k <= -27) {
@@ -1315,6 +1332,15 @@ static abn_status ind_target(const ab_calc *c, int arg, int *tgt)
         *tgt = arg;
         return ABN_OK;
     }
+    if (!ab_mode35(c)) {
+        /* XEQ (i), GTO (i), FN= (i): the label |i| names, 1-26 (33s p.13-21; unit 025) */
+        const ab_val *ix = &c->var[26];
+        if (arg == AB_TGT_IND_J || ix->kind != AB_REAL || !int_in(&ix->re, -33, 33, &k) || k == 0) return ABN_DOMAIN;
+        if (k < 0) k = -k;
+        if (k > 26) return ABN_NONEXISTENT;
+        *tgt = (k - 1) * 1000 + 1;
+        return ABN_OK;
+    }
     const ab_val *idx = &c->var[(arg == AB_TGT_IND_I ? 'I' : 'J') - 'A'];
     if (idx->kind != AB_REAL || !int_in(&idx->re, -32, AB_IND_MAX, &k)) return ABN_DOMAIN;
     if (k < -26 || k > -1) return ABN_NONEXISTENT;
@@ -1336,7 +1362,7 @@ static void slot_of_id(ab_calc *c, int id, slot *sl)
     sl->val = NULL;
     sl->reg = NULL;
     sl->ind = -1;
-    if (id >= 0 && id < 26) {
+    if (id >= 0 && id <= 26) {                  /* 26: i (unit 025) */
         sl->val = &c->var[id];
     } else if (id >= 1000) {
         sl->ind = id - 1000;
@@ -1359,7 +1385,7 @@ static void slot_of_id(ab_calc *c, int id, slot *sl)
  * integration (p.7-2, 8-3, 15-4). */
 static int eqn_prompt_vars(const ab_calc *c, const char *text, bool rhs_only, int *out)
 {
-    int v[26], n = eqn_vars(text, rhs_only, v), k = 0;
+    int v[27], n = eqn_vars(text, rhs_only, !ab_mode35(c), v), k = 0;
     for (int i = 0; i < n; i++)
         if (!(c->susp.kind && v[i] == c->susp.var)) out[k++] = v[i];   /* susp is set while SOLVE runs */
     return k;
@@ -1432,6 +1458,7 @@ static abn_status prog_run_lines(ab_calc *c, long limit, bool sst)
         int32_t arg = c->prog[at].arg;
         abn_status st = ABN_OK;
         bool skip = false;
+        c->exec_at = at;                        /* its label's mode is in force (unit 025) */
         steps++;
         if (c->running == 1) c->run_lines++;
         if (c->intr_after > 0 && --c->intr_after == 0) c->intr = true;   /* the tests' interrupt */
@@ -2787,8 +2814,15 @@ static abn_status program_key(ab_calc *c, ab_op op, int arg)
     case AB_CLPGM:
         prog_clear(c);
         return ABN_OK;
+    case AB_MODEL:
+        /* on a LBL line, the 33s/35s keys restamp that label (unit 025 rule 5); not a line */
+        if (c->pc >= 0 && c->pc < c->prog_len && c->prog[c->pc].op == AB_LBL) {
+            if (arg != 33 && arg != 35) return ABN_DOMAIN;
+            c->lmode[c->prog[c->pc].arg] = (uint8_t)arg;
+            return ABN_OK;
+        }
+        return ABN_NONPROGRAMMABLE;         /* elsewhere, a device menu setting (unit 017) */
     case AB_FDISP:
-    case AB_MODEL:                          /* a device menu setting, ours (unit 017) */
     case AB_CLALL:                          /* in program entry the menu offers CLPGM in its place
                                                (UG p.1-5) */
     case AB_FRACFMT:                        /* a device menu setting, as FDISP (unit 019) */
@@ -2803,7 +2837,12 @@ static abn_status program_key(ab_calc *c, ab_op op, int arg)
     case AB_LBL:
         if (arg < 0 || arg >= 26) return ABN_DOMAIN;
         if (c->labelpos[arg] >= 0) return ABN_DUP_LABEL;
-        return prog_insert(c, AB_LBL, arg);
+        {
+            abn_status st2 = prog_insert(c, AB_LBL, arg);
+            if (st2 == ABN_OK) c->lmode[arg] = c->m35 ? 35 : 33;   /* stamped with the mode it was
+                                                                    entered in (unit 025 rule 3) */
+            return st2;
+        }
     case AB_XEQ:
     case AB_GTO:
         if (arg == AB_TGT_IND_I || arg == AB_TGT_IND_J) return prog_insert(c, op, arg);
@@ -3033,7 +3072,7 @@ static abn_status lin_key(ab_calc *c, int n);
 static abn_status eqn_step(ab_calc *c)
 {
     const char *t = c->eqn[c->eqn_cur];
-    int av = eqn_assign_var(t), pos;
+    int av = eqn_assign_var(t, !ab_mode35(c)), pos;
     bool rhs = c->eqn_pending == 1 && av >= 0;
     ab_val v;
     abn_status st;
@@ -3070,7 +3109,7 @@ static abn_status eqn_step(ab_calc *c)
 static abn_status eqn_solve_key(ab_calc *c, ab_op op, int code)
 {
     const char *t;
-    int b, pos, v[26], n;
+    int b, pos, v[27], n;
     ab_val val;
     abn_status st;
     slot sl;
@@ -3087,8 +3126,8 @@ static abn_status eqn_solve_key(ab_calc *c, ab_op op, int code)
         /* no syntax check here: SOLVE and integrate meet it at their first evaluation, after the
            prompts (33s p.6-18; unit 024 rule 4) */
         if ((st = resolve(c, code, false, &sl)) != ABN_OK) return st;
-        if (!sl.val || sl.val < c->var || sl.val >= c->var + 26) return ABN_DOMAIN;  /* p.14-23 */
-        n = eqn_vars(t, false, v);
+        if (!sl.val || sl.val < c->var || sl.val >= c->var + 27) return ABN_DOMAIN;  /* p.14-23; i too (unit 025) */
+        n = eqn_vars(t, false, !ab_mode35(c), v);
         if (op == AB_SOLVE) {
             bool found = false;
             for (int i = 0; i < n; i++) found = found || v[i] == sl.val - c->var;
@@ -3115,8 +3154,11 @@ static abn_status eqn_solve_key(ab_calc *c, ab_op op, int code)
  * linear system (unit 015). */
 static abn_status eqn_solve_finish(ab_calc *c)
 {
-    int pend = c->eqn_pending, code = c->susp.code;
+    int pend = c->eqn_pending, code = c->susp.code, var = c->susp.var;
     abn_status st;
+    /* the unknown is the variable (I) or (i) named when the key was pressed: a prompt's answer for
+       I or i does not move it (the guesses and limits are kept the same way, p.7-11; unit 025) */
+    if (var >= 0) code = var == 26 ? AB_VAR_SI : AB_VAR_A + var;
     c->eqn_pending = 0;
     c->x = c->susp.x;
     c->y = c->susp.y;
@@ -3165,14 +3207,14 @@ static abn_status eqn_evaluate(ab_calc *c, bool enter)
     if (c->eqn_cur < 0) return ABN_DOMAIN;         /* EQN LIST TOP: nothing to evaluate (ours) */
     if (eqn_builtin(c, c->eqn_cur)) return ABN_OK; /* a built-in: ENTER, XEQ do nothing (p.7-6) */
     t = c->eqn[c->eqn_cur];
-    av = eqn_assign_var(t);
+    av = eqn_assign_var(t, !ab_mode35(c));
     rhs = enter && av >= 0;
     (void)v;
     (void)pos;
     (void)st;
     /* the syntax is checked when the value is calculated, after every prompt is answered (33s
        p.6-18, 32SII p.6-20; unit 024 rule 4): eqn_step's evaluation reports it */
-    c->eqn_nvars = eqn_vars(t, rhs, c->eqn_vars);
+    c->eqn_nvars = eqn_vars(t, rhs, !ab_mode35(c), c->eqn_vars);
     c->eqn_next = 0;
     c->eqn_pending = enter ? 1 : 2;
     c->eqn_mode = false;
@@ -3184,7 +3226,7 @@ static abn_status eqn_evaluate(ab_calc *c, bool enter)
 static bool eqn_type(ab_calc *c, ab_op op, int arg)
 {
     const char *t;
-    if (!(op <= AB_KE || op == AB_KCHS || op == AB_KPAREN || (op == AB_RCL && arg >= 0 && arg <= AB_VAR_IND_J) ||
+    if (!(op <= AB_KE || op == AB_KCHS || op == AB_KPAREN || (op == AB_RCL && arg >= 0 && arg <= AB_VAR_SI) ||
           (op == AB_KREG && arg >= 0 && arg < 4) || (op >= AB_KA && op <= AB_KF) || op == AB_KI ||
           op == AB_KTHETA || op == AB_KVEC || (op == AB_SUF && (arg == 2 || arg == 8 || arg == 10 || arg == 16)) ||
           eqn_fname(op) || eqn_token(op)))
@@ -3206,6 +3248,8 @@ static bool eqn_type(ab_calc *c, ab_op op, int arg)
         ed_chs(c);
     } else if (op == AB_KPAREN) {
         ed_insert(c, "()", 1);
+    } else if (op == AB_RCL && arg == AB_VAR_SI) {
+        ed_insert(c, "i", 0);                   /* the variable i (33s p.13-23; unit 025) */
     } else if (op == AB_RCL && arg >= AB_VAR_IND_I) {
         ed_insert(c, arg == AB_VAR_IND_I ? "\xe2\x92\xa4" : "\xe2\x92\xa5", 0);  /* (I), (J): p.14-23 */
     } else if (op == AB_RCL) {
@@ -3380,7 +3424,27 @@ bool ab_view_key(ab_calc *c, int op)
 
 bool ab_mode35(const ab_calc *c)
 {
+    if (c->running > 0 && c->exec_at >= 0 && c->exec_at < c->prog_len) {
+        int l = prog_owner(c, c->exec_at);
+        if (l >= 0 && c->lmode[l]) return c->lmode[l] == 35;
+    }
     return c->m35;
+}
+
+bool ab_label_indirect(const ab_calc *c, int label)
+{
+    if (label < 0 || label >= 26 || c->labelpos[label] < 0) return false;
+    int end = prog_label_end(c, c->labelpos[label]);
+    for (int i = c->labelpos[label] + 1; i < end; i++) {
+        int op = c->prog[i].op, arg = c->prog[i].arg;
+        bool takes_var = (op >= AB_STO && op <= AB_VIEW) || op == AB_INPUT || op == AB_ISG || op == AB_DSE ||
+                         op == AB_SOLVE || op == AB_INTEG;
+        if (takes_var && (arg == AB_VAR_IND_I || arg == AB_VAR_IND_J)) return true;
+        if ((op == AB_XEQ || op == AB_GTO || op == AB_FN) && (arg == AB_TGT_IND_I || arg == AB_TGT_IND_J)) return true;
+        if (op == AB_EQLINE && (strstr(c->peqn[arg], "\xe2\x92\xa4") || strstr(c->peqn[arg], "\xe2\x92\xa5")))
+            return true;
+    }
+    return false;
 }
 
 void ab_interrupt(ab_calc *c)
@@ -3421,7 +3485,7 @@ void ab_clear_all(ab_calc *c)
     ab_val zero = ab_real(abn_zero());
     c->x = c->y = c->z = c->t = c->lastx = zero;
     c->lift = true;
-    for (int i = 0; i < 26; i++) c->var[i] = zero;
+    for (int i = 0; i < 27; i++) c->var[i] = zero;  /* A..Z and i (unit 025) */
     for (int i = 0; i < AB_STAT_REGS; i++) c->stat[i] = abn_zero();
     for (int i = 0; i <= c->ind_top; i++) c->ind[i] = abn_zero();
     c->ind_top = -1;
@@ -3877,7 +3941,7 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
     case AB_CLVARS:
         /* Clear the direct variables A..Z (UG p.3-5); neutral for stack lift (UG p.B-5). The
            unnamed indirect variables have their own clearing, CLVARx. */
-        for (int i = 0; i < 26; i++) c->var[i] = ab_real(abn_zero());
+        for (int i = 0; i < 27; i++) c->var[i] = ab_real(abn_zero());   /* and i (unit 025) */
         return ABN_OK;
     case AB_CLVARX:
         /* Clear the indirect variables whose address is greater than arg (UG p.1-5); the defined
@@ -4011,6 +4075,8 @@ void ab_stop_text(const ab_calc *c, char *buf)
         if (id >= 0 && id < 26) {
             v[0] = (char)('A' + id);
             v[1] = '\0';
+        } else if (id == 26) {
+            snprintf(v, sizeof v, "i");          /* the 33s's i (unit 025) */
         } else if (id >= 1000) {
             snprintf(v, sizeof v, "#%d", id - 1000);
         } else if (id <= -27 && id >= -32) {

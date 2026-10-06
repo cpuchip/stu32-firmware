@@ -5,6 +5,10 @@
 # are ours. "=" values: the work unit's formulas evaluated exactly (Python Fraction) on the registers
 # as rule 2 stores them (Python decimal, 34 digits, half even, one rounding per update), rounded
 # once; "^" values: the same exact radicand, square root by mpmath at 150 digits.
+# Unit 025 (work/025-indirect-i-and-program-modes.md): the default is now 33s mode, so these vectors,
+# written from the 35s guide's indirect model, start with MODE35 (the ERR ones added after review, which
+# passed in 33s mode only by failing early: E07): G02 M26. G02 goes back to MODE33 after its
+# STO (I), as it was written: in 35s mode the key after the error would only clear the message (unit 017).
 
 
 M01 | 35s p.12-3 first pair: X is n, y stays in Y, x in LAST X | CLSIGMA 4 ENTER 20 SIGMA+ | X=1 Y=4 L=20
@@ -32,7 +36,7 @@ M22 | 35s p.12-11/12-12 register SUMY | 2 ENTER 1 SIGMA+ 4 ENTER 3 SIGMA+ SUMY |
 M23 | 35s p.12-11/12-12 register SUMX2 | 2 ENTER 1 SIGMA+ 4 ENTER 3 SIGMA+ SUMX2 | X=10
 M24 | 35s p.12-11/12-12 register SUMY2 | 2 ENTER 1 SIGMA+ 4 ENTER 3 SIGMA+ SUMY2 | X=20
 M25 | 35s p.12-11/12-12 register SUMXY | 2 ENTER 1 SIGMA+ 4 ENTER 3 SIGMA+ SUMXY | X=14
-M26 | 35s p.12-12 register -28 is sum x | 2 ENTER 1 SIGMA+ 4 ENTER 3 SIGMA+ 28 CHS STO:I RCL:(I) | X=4
+M26 | 35s p.12-12 register -28 is sum x | MODE35 2 ENTER 1 SIGMA+ 4 ENTER 3 SIGMA+ 28 CHS STO:I RCL:(I) | X=4
 M27 | 35s p.12-10 close, large data: exact on the registers, s = 1 (ours removes the warning) | 7776999 SIGMA+ 7777000 SIGMA+ 7777001 SIGMA+ SX | X=1
 E01 | 35s p.F STAT ERROR: a mean of no data | XBAR | ERR X=0
 E02 | 35s p.F STAT ERROR: s of one point | 5 SIGMA+ SX | ERR X=1
@@ -40,7 +44,7 @@ E03 | 35s p.F STAT ERROR: slope with all x equal | 1 ENTER 5 SIGMA+ 2 ENTER 5 SI
 E04 | ours: r with all y equal | 3 ENTER 1 SIGMA+ 3 ENTER 2 SIGMA+ CORR | ERR X=2
 E05 | 35s p.F STAT ERROR: weighted mean with sum y = 0 | 1 SIGMA+ XWBAR | ERR X=1
 E06 | ours: x-hat with slope 0 | 3 ENTER 1 SIGMA+ 3 ENTER 2 SIGMA+ 3 XHAT | ERR X=3
-E07 | ours: a negative variance (registers stored directly) | 27 CHS STO:I 2 STO:(I) 28 CHS STO:I 4 STO:(I) 30 CHS STO:I 1 STO:(I) SX | ERR X=1
+E07 | ours: a negative variance (registers stored directly) | MODE35 27 CHS STO:I 2 STO:(I) 28 CHS STO:I 4 STO:(I) 30 CHS STO:I 1 STO:(I) SX | ERR X=1
 E08 | ours (rule 2): SIGMA+ is all or nothing | 1 E 5000 SIGMA+ NSUM | ERR X=0 Y=1E5000
 E09 | ours: population s of one point is 0 | 5 SIGMA+ PSX | X=0
 E10 | B-5 CLSIGMA clears only the six and is neutral | 5 STO:A 3 ENTER 2 SIGMA+ CLSIGMA 7 | X=7 Y=3 @A=5
@@ -64,4 +68,4 @@ E27 | ours: correlation | 3 ENTER 2 SIGMA+ 7 ENTER 4 SIGMA+ 4 ENTER 5 SIGMA+ 11 
 
 # --- added after the mutation pass: each pins a behaviour no vector above could see
 G01 | ours (rule 2): sum x^2 by fma, where rounding twice would end ...074 | 4.4131195546244 SIGMA+ 2.2370473083691470407211 SIGMA+ SUMX2 | X=24.48000486328990826696395116527075
-G02 | ours (rule 2): all or nothing when only sum xy leaves the range | 32 CHS STO:I 9 E 6144 STO:(I) 1 E 3072 ENTER SIGMA+ NSUM | ERR X=0 Y=1E3072
+G02 | ours (rule 2): all or nothing when only sum xy leaves the range | MODE35 32 CHS STO:I 9 E 6144 STO:(I) MODE33 1 E 3072 ENTER SIGMA+ NSUM | ERR X=0 Y=1E3072

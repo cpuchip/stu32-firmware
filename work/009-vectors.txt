@@ -3,6 +3,8 @@
 # expectation "a i b" is complex: "=" each part exact; "^" each part within 8 units of the leading
 # digit of the expected value (normwise, unit 009 rule 4). A real expectation needs a real register.
 # "^" values: mpmath 1.4.1 at 150 digits on the exact typed inputs.
+# Unit 025 (work/025-indirect-i-and-program-modes.md): the default is now 33s mode, so these vectors,
+# written from the 35s guide's indirect model, start with MODE35: O30.
 
 M01 | 35s p.9-4 sin(2 i 3) | 2 CI 3 SIN | X^9.15449914691142957346729954460983256i-4.16890695996656435075481305885375484 L=2i3
 M02 | 35s p.9-4 z2 + z3 (CHS before and after i) | 23 CI 13 ENTER 2 CHS CI 1 ENTER 4 CI 3 CHS + | X=2i-2 Y=23i13
@@ -48,7 +50,7 @@ O26 | ours: i with no number typed starts 0 i ... | CI 5 ENTER | X=0i5
 O27 | ours: backspace through the i returns to a real | 3 CI 4 BKSP BKSP 7 ENTER | X=37
 O28 | ours: recall arithmetic with a complex variable | 3 CI 4 STO:A 1 CI 1 RCL+:A | X=4i5
 O29 | ours: storage arithmetic on a complex variable | 1 CI 1 STO:A 2 STO*:A RCL:A | X=2i2
-O30 | ours: the unnamed indirect variables hold reals only | 5 STO:I 1 CI 1 STO:(I) | ERR X=1i1
+O30 | ours: the unnamed indirect variables hold reals only | MODE35 5 STO:I 1 CI 1 STO:(I) | ERR X=1i1
 O31 | 35s p.9-2 x<>y moves the whole number | 1 CI 1 ENTER 2 XY | X=1i1 Y=2
 O32 | 35s p.B-5 the display form is neutral for lift | 1 ENTER RTA 3 | X=3 Y=1 Z=0
 O33 | ours: ARG in RAD | RAD 1 CI 1 ARG | X^0.785398163397448309615660845819875721

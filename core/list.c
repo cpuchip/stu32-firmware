@@ -66,17 +66,21 @@ static const char *const TESTS[12] = {
     "x\xe2\x89\xa0" "0?", "x\xe2\x89\xa4" "0?", "x<0?", "x>0?", "x\xe2\x89\xa5" "0?", "x=0?",
 };
 
+/* (I) is the index of the line's mode: (i) under a 33s label (unit 025) */
+static bool line_m35;
+
 static void var_text(int code, char *out, size_t size)
 {
     if (code >= AB_VAR_A && code < AB_VAR_A + 26) snprintf(out, size, "%c", 'A' + code - AB_VAR_A);
-    else if (code == AB_VAR_IND_I) snprintf(out, size, "(I)");
+    else if (code == AB_VAR_IND_I) snprintf(out, size, line_m35 ? "(I)" : "(i)");
     else if (code == AB_VAR_IND_J) snprintf(out, size, "(J)");
+    else if (code == AB_VAR_SI) snprintf(out, size, "i");
     else snprintf(out, size, "?");
 }
 
 static void target_text(int arg, char *out, size_t size)
 {
-    if (arg == AB_TGT_IND_I) snprintf(out, size, "(I)");
+    if (arg == AB_TGT_IND_I) snprintf(out, size, line_m35 ? "(I)" : "(i)");
     else if (arg == AB_TGT_IND_J) snprintf(out, size, "(J)");
     else if (arg >= 0 && arg / 1000 < 26) snprintf(out, size, "%c%03d", 'A' + arg / 1000, arg % 1000);
     else snprintf(out, size, "----");           /* its line was deleted (ours) */
@@ -89,6 +93,15 @@ int ab_prog_line(const ab_calc *c, int i, const ab_display *d, char *out, int si
     out[0] = '\0';
     if (i < 0 || i >= c->prog_len) return -1;
     int op = c->prog[i].op, arg = c->prog[i].arg;
+    {   /* the line's mode: its label's stamp, else the calculator's (unit 025) */
+        int best = -1, pos = -1;
+        for (int l = 0; l < 26; l++)
+            if (c->labelpos[l] >= 0 && c->labelpos[l] <= i && c->labelpos[l] > pos) {
+                pos = c->labelpos[l];
+                best = l;
+            }
+        line_m35 = best >= 0 && c->lmode[best] ? c->lmode[best] == 35 : c->m35;
+    }
     if ((op == AB_LIT && (arg < 0 || arg >= AB_PROG_LITS)) || (op == AB_EQLINE && (arg < 0 || arg >= AB_PEQN_MAX))) {
         snprintf(out, (size_t)size, "?");       /* a pool index out of range: not a line the core makes */
         return -1;
@@ -136,8 +149,9 @@ int ab_prog_line(const ab_calc *c, int i, const ab_display *d, char *out, int si
     case AB_XEQ: case AB_GTO:
         target_text(arg, a, sizeof a);
         break;
-    case AB_LBL:
-        snprintf(a, sizeof a, "%c", arg >= 0 && arg < 26 ? 'A' + arg : '?');
+    case AB_LBL:                                /* with its mode: LBL A ·33 (unit 025 rule 3) */
+        if (arg >= 0 && arg < 26 && c->lmode[arg]) snprintf(a, sizeof a, "%c \xc2\xb7%d", 'A' + arg, c->lmode[arg]);
+        else snprintf(a, sizeof a, "%c", arg >= 0 && arg < 26 ? 'A' + arg : '?');
         break;
     case AB_FN:                                 /* a label, or (I) / (J) */
         if (arg >= 0 && arg < 26) snprintf(a, sizeof a, "%c", 'A' + arg);

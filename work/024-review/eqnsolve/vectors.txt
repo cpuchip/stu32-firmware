@@ -55,7 +55,7 @@ B28 | 33s p.6-15, 32SII p.6-17 ->HR (the 35s's HMS->) in an equation: 1.3 (1 h 3
 B29 | ours: the same under our name HMS-> | EQ:HMS→(1.3) XEQ | X=1.5
 Q13 | 33s p.6-14 power before unary minus: -A^2 is -(A^2) | 3 STO:A EQ:-A^2 XEQ RS | X=-9
 T07 | 32SII p.6-16 unary minus before power: -A^2 is (-A)^2 | 3 STO:A EQ:-A^2 XEQ RS | X=9
-B30 | 33s p.6-4, 32SII p.6-5 the indirect variable in an equation (our (I)) | 3 STO:B 2 CHS STO:I EQN RCL:(I) * 2 ENTER XEQ | X=6
+B30 | 33s p.6-4, 32SII p.6-5 the indirect variable in an equation (our (I)) (unit 025: i and (i) for the stand-ins I and (I)) | 3 STO:B 2 CHS STO:i EQN RCL:(i) * 2 ENTER XEQ | X=6
 B75 | 33s p.6-4, 32SII p.6-5 STO and a letter also types the variable in an equation | EQN STO:A + 1 ENTER | %EQ=A+1
 
 # ---- Chapter 7: solving equations ----

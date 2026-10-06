@@ -451,6 +451,13 @@ int main(int argc, char **argv)
     screen_render(&c, &ui, &f);
     expect(text_at(&f, 20, 87, 3, "B?", 1), "INPUT B: 'B?' in the Y line at scale 3");
     expect(dark_in(&f, 2, 94, 10, 14) == 0, "a prompt: no Y letter");
+    c.stop_var = 26;
+    screen_render(&c, &ui, &f);
+    expect(text_at(&f, 20, 87, 3, "i?", 1), "INPUT i: 'i?' (unit 025)");
+    c.var[26] = c.x;
+    c.stop = AB_STOP_VIEW;
+    screen_render(&c, &ui, &f);
+    expect(text_at(&f, 20, 87, 3, "i=0", 1), "VIEW i: 'i=0' (unit 025)");
 
     /* the soft keys: a box over each key, the label centred */
     ab_init(&c);
@@ -571,13 +578,19 @@ int main(int argc, char **argv)
     ab_do(&c, AB_MUL);
     ab_do(&c, AB_RTN);
     expect(c.prog_len == 5, "13-8's area program keyed: five lines");
-    expect_line(&c, 0, "LBL A", "13-8");
+    expect_line(&c, 0, "LBL A \xc2\xb7" "33", "13-8, the label stamped with its mode (unit 025)");
     expect_line(&c, 1, "x\xc2\xb2", "13-8");
     expect_line(&c, 2, "\xcf\x80", "13-8");
     expect_line(&c, 3, "\xc3\x97", "13-8");
     expect_line(&c, 4, "RTN", "13-8");
     screen_render(&c, &ui, &f);
     expect(text_at(&f, 20, 128, 4, "A005 RTN", 1), "PRGM: the pointer's address and its line");
+    c.pc = 0;                                   /* on the LBL line: its mode drawn after a raised dot */
+    screen_render(&c, &ui, &f);
+    {
+        int dot = find_glyph(&f, 128, 4, 0xB7);
+        expect(dot > 0 && text_at(&f, dot + 24, 128, 4, "33", 1), "the LBL line draws its mode: \xc2\xb7" "33");
+    }
     ab_init(&c);
     keys(&c, "PRGM");
     ab_do_arg(&c, AB_LBL, 'Q' - 'A');
@@ -617,6 +630,7 @@ int main(int argc, char **argv)
        under FIX 4 (14-19 lists 1.01) */
     ab_init(&c);
     ab_memory_clear(&c);                        /* FIX 4 */
+    ab_do_arg(&c, AB_MODEL, 35);                /* the 35s guide's (I) and (J) (unit 025) */
     keys(&c, "PRGM");
     ab_do_arg(&c, AB_LBL, 'C' - 'A');
     ab_do_arg(&c, AB_STO, AB_VAR_IND_I);
@@ -637,7 +651,7 @@ int main(int argc, char **argv)
     screen_render(&c, &ui, &f);
     expect(text_at(&f, 20, 128, 4, "C006 1,01", 1), "a typed number listed with the device's radix mark");
     ui.radix = '.';
-    expect_line(&c, 0, "LBL C", "13-9");
+    expect_line(&c, 0, "LBL C \xc2\xb7" "35", "13-9, the label stamped with its mode (unit 025)");
 
     /* the tests, in the menu's order (14-7) */
     ab_init(&c);

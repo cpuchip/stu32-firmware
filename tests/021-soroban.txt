@@ -1,13 +1,16 @@
 # Unit 021, soroban's own vectors beside abacus's work/021-vectors.txt: what the guide implies and
 # the unit leaves to the implementation. Format as work/021-vectors.txt. Gamma values from mpmath
 # 1.4.1 at 120 digits on the exact decimal argument.
+# Unit 025 (work/025-indirect-i-and-program-modes.md): the default is now 33s mode, so these vectors,
+# written from the 35s guide's indirect model, start with MODE35 (the ERR ones added after review, which
+# passed in 33s mode only by failing early: S06): S02.
 
 S01 | 35s p.1-5 CLEAR ALL is not a program line: in program entry the menu offers CLPGM instead | PRGM CLPGM CLALL | ERR %ERR=NONPROGRAMMABLE %LINES=0
-S02 | ours: CLVARx is a program line, with its address | PRGM CLPGM LBL:A CLVAR:056 RTN PRGM 60 STO:I 6 STO:(I) 50 STO:I 5 STO:(I) XEQ:A | %LINES=3 @#60=0 @#50=5
+S02 | ours: CLVARx is a program line, with its address | MODE35 PRGM CLPGM LBL:A CLVAR:056 RTN PRGM 60 STO:I 6 STO:(I) 50 STO:I 5 STO:(I) XEQ:A | %LINES=3 @#60=0 @#50=5
 S03 | 35s p.B-4 CLVARx is not in the neutral list, so it enables lift | 5 ENTER CLVAR:010 7 | X=7 Y=5 Z=5
 S04 | 35s p.B-5 CLVARS is neutral (the contrast for S03) | 5 ENTER CLVARS 7 | X=7 Y=5 Z=0
 S05 | ours: CLVARx's address stops at 800 | CLVAR:801 | ERR %ERR=DOMAIN
-S06 | ours: CLVARx leaves the defined range ending at the last nonzero variable | 3 STO:I 1 STO:(I) 70 STO:I 2 STO:(I) CLVAR:050 69 STO:I RCL:(I) | ERR %ERR=DOMAIN
+S06 | ours: CLVARx leaves the defined range ending at the last nonzero variable | MODE35 3 STO:I 1 STO:(I) 70 STO:I 2 STO:(I) CLVAR:050 69 STO:I RCL:(I) | ERR %ERR=DOMAIN
 S07 | 35s p.4-15 gamma beside the pole at 0: x = -1 + 1e-30 | 1 E 30 CHS ENTER 1 - FACT | X^9.999999999999999999999999999994228E+29
 S08 | 35s p.4-15 gamma too large is the range error | 3000.5 FACT | ERR %ERR=RANGE
 S09 | 35s p.4-15 gamma too small is the range error (unit 003 rule 4) | 3000.5 CHS FACT | ERR %ERR=RANGE

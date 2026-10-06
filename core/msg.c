@@ -76,7 +76,8 @@ const char *ab_error_message(const ab_calc *c)
         /* the indirect variable first: whatever took (I) or (J) (F-3) */
         if ((takes_var(op) && (arg == AB_VAR_IND_I || arg == AB_VAR_IND_J)) ||
             ((op == AB_XEQ || op == AB_GTO || op == AB_FN) && (arg == AB_TGT_IND_I || arg == AB_TGT_IND_J)))
-            return arg == AB_VAR_IND_I || arg == AB_TGT_IND_I ? "INVALID (I)" : "INVALID (J)";
+            return arg == AB_VAR_IND_I || arg == AB_TGT_IND_I ? (c->err_m35 ? "INVALID (I)" : "INVALID (i)")   /* 33s F-2 */
+                                                               : "INVALID (J)";
         switch (op) {
         case AB_SQRT:
             return x->kind == AB_REAL && abn_is_negative(&x->re) ? "SQRT(NEG)" : "INVALID DATA";   /* F-4 */

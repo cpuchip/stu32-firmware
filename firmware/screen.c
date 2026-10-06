@@ -363,13 +363,14 @@ static void eqn_line(const char *s, int cur, line *l)
     if (cur >= 0 && p - s <= cur) line_cursor(l);
 }
 
-/* A variable's name as the prompts show it (stop_var's ids: A..Z, an unnamed address, the
+/* A variable's name as the prompts show it (stop_var's ids: A..Z, i, an unnamed address, the
    statistics registers); "" for none. */
 static void var_name(int id, char *out, int size)
 {
     static const char *const STATS[] = {"n", "\xce\xa3x", "\xce\xa3y", "\xce\xa3x\xc2\xb2", "\xce\xa3y\xc2\xb2",
                                         "\xce\xa3xy"};
     if (id >= 0 && id < 26) snprintf(out, (size_t)size, "%c", 'A' + id);
+    else if (id == 26) snprintf(out, (size_t)size, "i");       /* the 33s's i (unit 025) */
     else if (id >= 1000) snprintf(out, (size_t)size, "(%d)", id - 1000);
     else if (id <= -27 && id >= -32) snprintf(out, (size_t)size, "%s", STATS[-id - 27]);
     else if (size > 0) out[0] = '\0';
@@ -470,7 +471,7 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
         memset(&v, 0, sizeof v);
         v.kind = AB_REAL;
         int id = c->view_id;
-        if (id >= 0 && id < 26) v = c->var[id];
+        if (id >= 0 && id <= 26) v = c->var[id];
         else if (id >= 1000 && id - 1000 <= AB_IND_MAX) v.re = c->ind[id - 1000];
         else if (id <= -27 && id >= -32) v.re = c->stat[-id - 27];
         var_name(id, name, sizeof name);
@@ -525,7 +526,7 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
         line_add_cp(&k->y, '?');
         k->prompt = true;
     } else if ((c->stop == AB_STOP_VIEW || (c->stop == AB_STOP_PSE && c->stop_var != -1 && c->stop_var != -2)) &&
-               c->stop_var >= 0 && c->stop_var < 26) {
+               c->stop_var >= 0 && c->stop_var <= 26) {
         var_name(c->stop_var, name, sizeof name);
         line_add(&k->y, name);
         line_add_cp(&k->y, '=');

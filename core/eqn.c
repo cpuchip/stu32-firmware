@@ -394,6 +394,12 @@ static void parse_prim(parser *p, ab_val *v)
         if (!p->check && p->st == ABN_OK) *v = p->c->var[*s - 'A'];
         return;
     }
+    if (*s == 'i' && !ab_mode35(p->c)) {
+        /* 33s mode: a lone i is the variable i; (i) is the indirect glyph above (33s p.13-23) */
+        p->i++;
+        if (!p->check && p->st == ABN_OK) *v = p->c->var[26];
+        return;
+    }
     fail(p, ABN_SYNTAX);
 }
 
@@ -490,14 +496,15 @@ abn_status eqn_eval(ab_calc *c, const char *text, bool rhs_only, bool check_only
     return ABN_OK;
 }
 
-int eqn_assign_var(const char *text)
+int eqn_assign_var(const char *text, bool with_i)
 {
+    if (with_i && text[0] == 'i' && text[1] == '=') return 26;   /* var[26] (unit 025) */
     return text[0] >= 'A' && text[0] <= 'Z' && text[1] == '=' ? text[0] - 'A' : -1;
 }
 
-int eqn_vars(const char *text, bool rhs_only, int out[26])
+int eqn_vars(const char *text, bool rhs_only, bool with_i, int out[27])
 {
-    bool seen[26] = {false};
+    bool seen[27] = {false};
     int n = 0;
     const char *s = text;
     if (rhs_only) {
@@ -528,6 +535,11 @@ int eqn_vars(const char *text, bool rhs_only, int out[26])
         if (*s >= 'A' && *s <= 'Z' && !seen[*s - 'A']) {
             seen[*s - 'A'] = true;
             out[n++] = *s - 'A';
+        }
+        /* i, not a complex number's (2i3: after a digit or a point) */
+        if (with_i && *s == 'i' && !(s > text && ((s[-1] >= '0' && s[-1] <= '9') || s[-1] == '.')) && !seen[26]) {
+            seen[26] = true;
+            out[n++] = 26;
         }
     }
     return n;

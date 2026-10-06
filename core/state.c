@@ -32,7 +32,7 @@ static const ab_op V1_OPS[] = {
 };
 #define V1_N ((int)(sizeof V1_OPS / sizeof V1_OPS[0]))
 
-enum { T_MODES = 1, T_STACK, T_VARS, T_STAT, T_IND, T_PROG, T_EQNS, T_ENTRY, T_EDITOR, T_RUN, T_SOLVE };
+enum { T_MODES = 1, T_STACK, T_VARS, T_STAT, T_IND, T_PROG, T_EQNS, T_ENTRY, T_EDITOR, T_RUN, T_SOLVE, T_MODE25 };
 
 #define BUILTIN2 "\x01" "2*2 lin. solve"
 #define BUILTIN3 "\x01" "3*3 lin. solve"
@@ -324,6 +324,12 @@ size_t ab_state_save(const ab_calc *c, uint8_t *buf, size_t cap)
     w8(&w, c->susp.from_prog);
     sec_end(&w, s);
 
+    s = sec_begin(&w, T_MODE25);                /* version 5 (unit 025): i, the labels' modes */
+    wval(&w, &c->var[26]);
+    for (int l = 0; l < 26; l++) w8(&w, c->lmode[l]);
+    w8(&w, c->err_m35);
+    sec_end(&w, s);
+
     {
         size_t total = w.len + 4;
         for (int i = 0; i < 4; i++)
@@ -345,6 +351,7 @@ typedef struct {
     int prog_len, eqn_count;
     bool builtin[AB_EQN_MAX + 2];
     unsigned version;       /* the image's: fields a version lacks keep their defaults */
+    bool mode25;            /* its version-5 section was read (unit 025) */
 } rd;
 
 static unsigned r8(rd *r)
@@ -480,7 +487,7 @@ static bool flag_byte(unsigned v) { return v <= 1; }
 /* A variable or register as a stop / solve id (see ab_calc.stop_var). */
 static bool id_ok(int id, bool allow_none)
 {
-    return (id >= 0 && id < 26) || (id <= -27 && id >= -32) || (id >= 1000 && id <= 1000 + AB_IND_MAX) ||
+    return (id >= 0 && id <= 26) || (id <= -27 && id >= -32) || (id >= 1000 && id <= 1000 + AB_IND_MAX) ||
            (allow_none && (id == -1 || id == -2));
 }
 
@@ -503,7 +510,7 @@ bool ab_line_ok(ab_op op, int32_t arg)
     case AB_STO: case AB_RCL: case AB_STOADD: case AB_STOSUB: case AB_STOMUL: case AB_STODIV:
     case AB_RCLADD: case AB_RCLSUB: case AB_RCLMUL: case AB_RCLDIV: case AB_XVAR: case AB_VIEW:
     case AB_INPUT: case AB_ISG: case AB_DSE: case AB_SOLVE: case AB_INTEG:
-        return arg >= 0 && arg <= AB_VAR_IND_J;
+        return arg >= 0 && arg <= AB_VAR_SI;   /* A..Z, (I), (J), i (unit 025) */
     case AB_SF: case AB_CF: case AB_FS: case AB_TEST:
         return arg >= 0 && arg <= 11;
     case AB_SETFIX: case AB_SETSCI: case AB_SETENG:
@@ -591,6 +598,25 @@ static void sec_stack(rd *r)
     rval(r, c ? &c->z : NULL);
     rval(r, c ? &c->t : NULL);
     rval(r, c ? &c->lastx : NULL);
+}
+
+/* version 5 (unit 025): i, each label's mode (0, 33 or 35), the message's mode */
+static void sec_mode25(rd *r)
+{
+    ab_val iv;
+    uint8_t lm[26];
+    rval(r, &iv);
+    for (int l = 0; l < 26; l++) {
+        lm[l] = (uint8_t)r8(r);
+        need(r, lm[l] == 0 || lm[l] == 33 || lm[l] == 35);
+    }
+    unsigned em = r8(r);
+    need(r, flag_byte(em));
+    if (r->bad || !r->c) return;
+    r->mode25 = true;
+    r->c->var[26] = iv;
+    memcpy(r->c->lmode, lm, sizeof lm);
+    r->c->err_m35 = em;
 }
 
 static void sec_vars(rd *r)
@@ -730,16 +756,16 @@ static void sec_editor(rd *r)
     unsigned mode = r8(r), typing = r8(r);
     int edit = ri8(r), ecur, errpos, pending, nvars, next;
     char t[AB_EQN_LEN];
-    int vars[26];
+    int vars[27];
     rtext(r, t, AB_EQN_LEN, false);
     ecur = (int)r16(r);
     errpos = (int)r16(r);
     pending = (int)r8(r);
     nvars = (int)r8(r);
-    need(r, nvars <= 26);
+    need(r, nvars <= 27);
     for (int i = 0; i < nvars && !r->bad; i++) {
         vars[i] = (int)r8(r);
-        need(r, vars[i] < 26);
+        need(r, vars[i] < 27);                  /* 26: i (unit 025) */
     }
     next = (int)r8(r);
     need(r, flag_byte(mode) && flag_byte(typing) && edit >= -1 && edit < r->eqn_count &&
@@ -828,7 +854,7 @@ static void sec_solve(rd *r)
     need(r, active <= 2 && (svar_ == 0 || id_ok(svar_, false)) && phase <= 2 && fn_eqn >= -1 && fn_eqn < r->eqn_count &&
                 (fn_eqn < 0 || !r->builtin[fn_eqn]) && flag_byte(cached) &&
                 (cst == ABN_OK || cst == ABN_DIV_ZERO || cst == ABN_RANGE || cst == ABN_DOMAIN) && skind <= 2 &&
-                (svar == 0 || svar == -1 || id_ok(svar, false)) && scode >= -1 && scode <= AB_VAR_IND_J &&
+                (svar == 0 || svar == -1 || id_ok(svar, false)) && scode >= -1 && scode <= AB_VAR_SI &&
                 flag_byte(slift) && (spc == AB_PC_TOP || (spc >= 0 && spc <= r->prog_len)) &&
                 srbase <= AB_RTN_DEPTH && srdepth < AB_RTN_DEPTH && flag_byte(sfrom));
     if (r->bad || !c) return;
@@ -871,7 +897,7 @@ static bool parse(rd *r)
         unsigned tag = r16(r);
         uint32_t size = r32(r);
         size_t end;
-        if (r->bad || tag <= last || tag > T_SOLVE || size > r->len - r->pos) return false;
+        if (r->bad || tag <= last || tag > T_MODE25 || size > r->len - r->pos) return false;
         last = tag;
         end = r->pos + size;
         switch (tag) {
@@ -885,6 +911,10 @@ static bool parse(rd *r)
         case T_ENTRY: sec_entry(r); break;
         case T_EDITOR: sec_editor(r); break;
         case T_RUN: sec_run(r); break;
+        case T_MODE25:
+            if (r->version >= 5) sec_mode25(r);
+            else r->pos = end;                  /* a version without it: skipped */
+            break;
         default: sec_solve(r); break;
         }
         if (r->pos != end) return false;
@@ -911,6 +941,12 @@ abn_status ab_state_load(ab_calc *c, const uint8_t *buf, size_t len)
     r.len = len;
     r.c = c;
     parse(&r);
+    if (!r.mode25) {
+        /* an image from before unit 025: every label stamped with its calculator's mode (the best
+           guess at how it was written), i at 0, the message's mode its calculator's */
+        for (int l = 0; l < 26; l++) c->lmode[l] = c->m35 ? 35 : 33;
+        c->err_m35 = c->m35;
+    }
     ab_prog_relabel(c);
     return ABN_OK;
 }

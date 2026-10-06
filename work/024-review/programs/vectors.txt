@@ -108,7 +108,7 @@ Q43 | 33s p.13-18 ii is the step: 0.01002 ISG gives 2.01002 | 0.01002 STO:A ISG:
 Q44 | 33s p.13-18 fff is always three digits: 1.1 means a final value of 100 (no skip) | PRGM CLPGM LBL:A ISG:N 7 RTN PRGM 1.1 STO:N 9 XEQ:A | @N=2.1 X=7
 Q45 | 33s p.13-21, 32SII p.13-21 i = 1 addresses variable A (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 1 STO:i 5 STO:(i) | @A=5
 Q46 | 33s p.13-21 i = 26 addresses variable Z (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 26 STO:i 7 STO:(i) | @Z=7
-Q47 | 33s p.13-21 only the absolute value of the integer part: -2.7 addresses B | MODE33 2.7 CHS STO:I 5 STO:(I) | @B=5
+Q47 | 33s p.13-21 only the absolute value of the integer part: -2.7 addresses B (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 2.7 CHS STO:i 5 STO:(i) | @B=5
 Q48 | 33s p.13-21 2.7 addresses B (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 2.7 STO:i 5 STO:(i) | @B=5
 Q49 | 33s p.13-21, 32SII p.13-21 i = 0 is INVALID (i) (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 0 STO:i 5 STO:(i) | ERR
 Q50 | 33s p.13-21, 32SII p.13-21 i = 34 is INVALID (i) (unit 025: i and (i) for the stand-ins I and (I)) | MODE33 34 STO:i 5 STO:(i) | ERR

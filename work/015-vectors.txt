@@ -4,6 +4,8 @@
 # equation), REG:X (R-down's menu in an equation), RCL:(I) (typing (I)), SOLVE with no letter (a
 # built-in shown); %MSG=text (the message shown, blanks as _). In program entry EQ:text and EQN ...
 # ENTER make equation lines. Guide examples run in FIX 4 where the guide's display is FIX 4.
+# Unit 025 (work/025-indirect-i-and-program-modes.md): the default is now 33s mode, so these vectors,
+# written from the 35s guide's indirect model, start with MODE35: M51.
 
 M01 | 35s p.13-16/13-17 program C keyed: equation lines (EQN ... ENTER) and a message with blanks; 13 lines | PRGM CLPGM LBL:C INPUT:R INPUT:H EQN PI * RCL:R POW 2 * RCL:H ENTER STO:V EQN 2 * PI * RCL:R * () RCL:R + RCL:H > ENTER STO:S SF:10 EQN RCL:V RCL:O RCL:L SPACE + SPACE RCL:A RCL:R RCL:E RCL:A ENTER CF:10 VIEW:V VIEW:S RTN PRGM | %LINES=13 %STOP=NONE
 M02 | 35s p.13-18 R = 2 1/2, H = 8: flag 10 shows VOL + AREA as a message and stops | PRGM CLPGM LBL:C INPUT:R INPUT:H EQN PI * RCL:R POW 2 * RCL:H ENTER STO:V EQN 2 * PI * RCL:R * () RCL:R + RCL:H > ENTER STO:S SF:10 EQN RCL:V RCL:O RCL:L SPACE + SPACE RCL:A RCL:R RCL:E RCL:A ENTER CF:10 VIEW:V VIEW:S RTN PRGM XEQ:C 2.1.2 RS 8 RS | %STOP=MSG %MSG=VOL_+_AREA X=164.9336143134641450192887776221740
@@ -55,7 +57,7 @@ M47 | 35s p.14-11, 13-18 flag 10 set and a PSE next: the message shows through t
 M48 | 35s p.14-11 flag 11 prompts for each variable once, in order | PRGM CLPGM LBL:E SF:11 EQ:A+B×A RTN PRGM XEQ:E | %STOP=INPUT:A
 M49 | 35s p.14-11 A 2, B 5: 12, flag 11 cleared | PRGM CLPGM LBL:E SF:11 EQ:A+B×A RTN PRGM XEQ:E 2 RS 5 RS | X=12 %F11=0 %STOP=DONE
 M50 | 35s p.14-11 flag 11 clear: no prompts | PRGM CLPGM LBL:E EQ:A+B×A RTN PRGM 2 STO:A 5 STO:B XEQ:E | X=12 %STOP=DONE
-M51 | 35s p.14-23, 6-13 (I) in an equation: the variable I names, not prompted | 3 STO:B 2 CHS STO:I EQN RCL:(I) * 2 ENTER XEQ | X=6 %STOP=DONE
+M51 | 35s p.14-23, 6-13 (I) in an equation: the variable I names, not prompted | MODE35 3 STO:B 2 CHS STO:I EQN RCL:(I) * 2 ENTER XEQ | X=6 %STOP=DONE
 M52 | 35s p.6-19, 13-16 a message evaluated (flag 10 clear) is a syntax error | PRGM CLPGM LBL:E EQ:VOL+AREA? RTN PRGM XEQ:E | ERR %ERR=SYNTAX %STOP=ERROR
 O01 | ours: SOLVE for a variable the equation does not have: INVALID VAR (p.F-2) | EQ:A+1 SOLVE:B | ERR %ERR=INVALID_VAR
 O02 | ours: integrate a variable the equation does not have: the constant times the width | FIX4 EQ:5 C 0 ENTER 2 EQN INTEG:Q | X#10,1E-20
