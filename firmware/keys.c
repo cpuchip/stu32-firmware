@@ -52,8 +52,9 @@ void kb_scan(kb_state *k, const kb_io *io)
 
 bool kb_idle(const kb_state *k)
 {
-    (void)k;
-    return false;
+    for (int key = 0; key < KB_KEYS; key++)
+        if (k->down[key] || k->count[key]) return false;
+    return true;
 }
 
 int kb_next(kb_state *k)

@@ -24,10 +24,9 @@ pwr_action pwr_check(pwr_state *p, const pwr_inputs *in, uint32_t now_ms)
 
 uint32_t pwr_next(const pwr_state *p, const pwr_inputs *in, uint32_t now_ms)
 {
-    (void)p;
-    (void)in;
-    (void)now_ms;
-    return UINT32_MAX;
+    if (in->soc >= 0 && in->soc < PWR_LOW_SOC && !pwr_external(in)) return 0;   /* as pwr_check */
+    uint32_t gone = now_ms - p->last_ms;                                           /* wraps */
+    return gone >= p->idle_ms ? 0 : p->idle_ms - gone;
 }
 
 bool pwr_charging(const pwr_inputs *in)

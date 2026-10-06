@@ -161,6 +161,7 @@ int main(void)
         kb_init(&k);
         memset(&mo, 0, sizeof mo);
         mo.on_wire = true;
+        mo.closed[KB_ON_KEY] = true;            /* ON pressed: rd_on reads it */
         kb_scan(&k, &io_o);
         expect(!kb_idle(&k), "ON pressed on IO0: not idle", 0, 0);
     }
