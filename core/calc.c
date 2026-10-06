@@ -1742,6 +1742,204 @@ static abn_status ev(ab_calc *c, const abn *x, abn *f, bool *bad)
  * one, an unusable point, or a converged bracket whose |f| exceeds both starting values (a pole,
  * UG p.D-7: ours, reconciling D-6's text with D-D's example) is no root, reported at the point of
  * least |f|. */
+#define SOLVE_MIN_EVALS 80  /* evaluations the minimizer may use, within SOLVE_MAX (unit 024b) */
+
+/* The points the search for a sign change evaluated, for the minimizer (unit 024b). */
+static abn sp_x[SOLVE_SEARCH + 4], sp_f[SOLVE_SEARCH + 4];
+static int sp_n;
+
+static void sp_add(const abn *x, const abn *f)
+{
+    if (sp_n < SOLVE_SEARCH + 4) {
+        sp_x[sp_n] = *x;
+        sp_f[sp_n] = *f;
+        sp_n++;
+    }
+}
+
+typedef struct {
+    abn x, fx, w, fw;       /* the least |f| and f there; its nearest neighbour and f there */
+    bool found;             /* f was 0 at x */
+    bool sign;              /* f changed sign: x and w now straddle a root */
+} min_out;
+
+/* Brent's localmin (R. P. Brent, Algorithms for Minimization without Derivatives, 1973, ch.5):
+ * golden section with parabolic steps, on |f| over [lo, hi] from x inside it (f(x) = fx given,
+ * |f| below both ends). Stops at its tolerance, its own cap or SOLVE's budget, an unusable point or
+ * an arithmetic failure; reports the best point so far. */
+static abn_status solve_min(ab_calc *c, abn lo, abn hi, abn x, abn fx, min_out *o)
+{
+    abn cg, eps, tabs, half, two, v, w, fv, fw, fxa, sfw, d = abn_zero(), e = abn_zero();
+    abn m, tol, t2, p, q, r, u, su, fu, t, t3;
+    bool bad;
+    abn_status st;
+    abn_from_text(&cg, "0.3819660112501051517954131656343619");    /* (3 - sqrt 5) / 2 */
+    abn_from_text(&eps, "1E-17");                                  /* about sqrt of the precision */
+    abn_from_text(&tabs, "1E-30");
+    abn_from_text(&half, "0.5");
+    two = abn_from_int(2);
+    o->found = o->sign = false;
+    if (sgn(&lo) * sgn(&hi) < 0 && !abn_is_zero(&x)) {
+        /* a bracket around 0: f(0) first, as the root finder does, since a relative tolerance has
+           no floor there (ours) */
+        abn z = abn_zero(), fz;
+        if ((st = ev(c, &z, &fz, &bad)) != ABN_OK) return st;
+        if (!bad) {
+            if (abn_is_zero(&fz) || sgn(&fz) != sgn(&fx)) {
+                o->found = abn_is_zero(&fz);
+                o->sign = !o->found;
+                o->x = o->found ? z : x;
+                o->fx = o->found ? fz : fx;
+                o->w = o->found ? x : z;
+                o->fw = o->found ? fx : fz;
+                return ABN_OK;
+            }
+            if (cmp_abs(&fz, &fx) < 0) {        /* 0 the better point: the bracket narrows to it */
+                if (abn_cmp(&x, &z) < 0) lo = x;
+                else hi = x;
+                x = z;
+                fx = fz;
+            } else if (abn_cmp(&x, &z) < 0) {
+                hi = z;
+            } else {
+                lo = z;
+            }
+        }
+    }
+    v = w = x;
+    fxa = fv = fw = abn_abs(&fx);
+    sfw = fx;
+    for (int k = 0; k < SOLVE_MIN_EVALS && c->evals < SOLVE_MAX; k++) {
+        bool golden = true;
+        if (abn_add(&m, &lo, &hi) != ABN_OK || abn_mul(&m, &m, &half) != ABN_OK) break;
+        t = abn_abs(&x);
+        if (abn_mul(&tol, &t, &eps) != ABN_OK || abn_add(&tol, &tol, &tabs) != ABN_OK ||
+            abn_mul(&t2, &tol, &two) != ABN_OK)
+            break;
+        /* done when |x - m| <= t2 - (hi - lo) / 2 */
+        if (abn_sub(&t, &x, &m) != ABN_OK || abn_sub(&t3, &hi, &lo) != ABN_OK || abn_mul(&t3, &t3, &half) != ABN_OK ||
+            abn_sub(&t3, &t2, &t3) != ABN_OK)
+            break;
+        t = abn_abs(&t);
+        if (abn_cmp(&t, &t3) <= 0) break;
+        if (cmp_abs(&e, &tol) > 0) {            /* a parabola through x, w, v */
+            abn a1, a2, xw, xv, pq;
+            if (abn_sub(&xw, &x, &w) != ABN_OK || abn_sub(&xv, &x, &v) != ABN_OK ||
+                abn_sub(&a1, &fxa, &fv) != ABN_OK || abn_mul(&r, &xw, &a1) != ABN_OK ||
+                abn_sub(&a2, &fxa, &fw) != ABN_OK || abn_mul(&q, &xv, &a2) != ABN_OK ||
+                abn_mul(&a1, &xv, &q) != ABN_OK || abn_mul(&a2, &xw, &r) != ABN_OK || abn_sub(&p, &a1, &a2) != ABN_OK ||
+                abn_sub(&q, &q, &r) != ABN_OK || abn_mul(&q, &q, &two) != ABN_OK)
+                break;
+            if (sgn(&q) > 0) p = abn_neg(&p);
+            else q = abn_neg(&q);
+            r = e;
+            e = d;
+            /* the parabola's step is taken when it is short (|p| < |q r / 2|) and stays inside */
+            abn qa, qb;
+            if (abn_mul(&pq, &q, &r) != ABN_OK || abn_mul(&pq, &pq, &half) != ABN_OK ||
+                abn_sub(&t, &lo, &x) != ABN_OK || abn_mul(&qa, &q, &t) != ABN_OK ||
+                abn_sub(&t, &hi, &x) != ABN_OK || abn_mul(&qb, &q, &t) != ABN_OK)
+                break;
+            if (cmp_abs(&p, &pq) < 0 && abn_cmp(&p, &qa) > 0 && abn_cmp(&p, &qb) < 0 && !abn_is_zero(&q)) {
+                abn ua, ub;
+                if (abn_div(&d, &p, &q) != ABN_OK || abn_add(&u, &x, &d) != ABN_OK || abn_sub(&ua, &u, &lo) != ABN_OK ||
+                    abn_sub(&ub, &hi, &u) != ABN_OK)
+                    break;
+                if (abn_cmp(&ua, &t2) < 0 || abn_cmp(&ub, &t2) < 0) d = abn_cmp(&x, &m) < 0 ? tol : abn_neg(&tol);
+                golden = false;
+            }
+        }
+        if (golden) {                           /* a golden-section step into the larger part */
+            if (abn_sub(&e, abn_cmp(&x, &m) < 0 ? &hi : &lo, &x) != ABN_OK || abn_mul(&d, &cg, &e) != ABN_OK) break;
+        }
+        if (cmp_abs(&d, &tol) >= 0) {           /* a step of at least tol */
+            if (abn_add(&u, &x, &d) != ABN_OK) break;
+        } else {
+            abn nt = abn_neg(&tol);
+            if (abn_add(&u, &x, sgn(&d) > 0 ? &tol : &nt) != ABN_OK) break;
+        }
+        if ((st = ev(c, &u, &su, &bad)) != ABN_OK) return st;
+        if (bad) break;
+        if (abn_is_zero(&su)) {                 /* a root at the bottom: found */
+            o->found = true;
+            o->x = u;
+            o->fx = su;
+            o->w = x;
+            o->fw = fx;
+            return ABN_OK;
+        }
+        if (sgn(&su) != sgn(&fx)) {             /* a sign change: the root finder takes it from here */
+            o->sign = true;
+            o->x = x;
+            o->fx = fx;
+            o->w = u;
+            o->fw = su;
+            return ABN_OK;
+        }
+        fu = abn_abs(&su);
+        if (abn_cmp(&fu, &fxa) <= 0) {
+            if (abn_cmp(&u, &x) < 0) hi = x;
+            else lo = x;
+            v = w;
+            fv = fw;
+            w = x;
+            fw = fxa;
+            sfw = fx;
+            x = u;
+            fxa = fu;
+            fx = su;
+        } else {
+            if (abn_cmp(&u, &x) < 0) lo = u;
+            else hi = u;
+            if (abn_cmp(&fu, &fw) <= 0 || abn_cmp(&w, &x) == 0) {
+                v = w;
+                fv = fw;
+                w = u;
+                fw = fu;
+                sfw = su;
+            } else if (abn_cmp(&fu, &fv) <= 0 || abn_cmp(&v, &x) == 0 || abn_cmp(&v, &w) == 0) {
+                v = u;
+                fv = fu;
+            }
+        }
+    }
+    o->x = x;
+    o->fx = fx;
+    o->w = w;
+    o->fw = sfw;
+    return ABN_OK;
+}
+
+/* Among the search's points sorted by x, the one with the least |f| when both its neighbours have
+   more: the bracket of a minimum of |f| (unit 024b). False when the least is at either end. */
+static bool sp_bracket(int *lo, int *mid, int *hi)
+{
+    int idx[SOLVE_SEARCH + 4], n = 0;
+    for (int i = 0; i < sp_n; i++) {            /* sorted by x, a repeated x once */
+        int j = n;
+        bool dup = false;
+        for (int k = 0; k < n; k++)
+            if (abn_cmp(&sp_x[idx[k]], &sp_x[i]) == 0) dup = true;
+        if (dup) continue;
+        while (j > 0 && abn_cmp(&sp_x[idx[j - 1]], &sp_x[i]) > 0) {
+            idx[j] = idx[j - 1];
+            j--;
+        }
+        idx[j] = i;
+        n++;
+    }
+    int best = 0;
+    for (int k = 1; k < n; k++)
+        if (cmp_abs(&sp_f[idx[k]], &sp_f[idx[best]]) < 0) best = k;
+    if (best == 0 || best == n - 1) return false;
+    if (cmp_abs(&sp_f[idx[best]], &sp_f[idx[best - 1]]) >= 0 || cmp_abs(&sp_f[idx[best]], &sp_f[idx[best + 1]]) >= 0)
+        return false;
+    *lo = idx[best - 1];
+    *mid = idx[best];
+    *hi = idx[best + 1];
+    return true;
+}
+
 static abn_status solve_core(ab_calc *c, abn a, abn b, solve_out *o)
 {
     abn fa, fb, fc, cc, d, e, t1, t2, best, fbest, fmax;
@@ -1752,6 +1950,7 @@ static abn_status solve_core(ab_calc *c, abn a, abn b, solve_out *o)
     abn_from_text(&eps, "1E-33");
     abn_from_text(&tiny, "1E-6000");
     o->found = false;
+    sp_n = 0;
     if (abn_cmp(&a, &b) == 0) {
         /* equal guesses are nudged apart (UG p.7-9): by 1E-6 relative, or 1E-6 at 0 (ours) */
         abn n;
@@ -1772,6 +1971,8 @@ static abn_status solve_core(ab_calc *c, abn a, abn b, solve_out *o)
     fbest = fa;
     o->prev = b;
     if (bad) goto noroot;
+    sp_add(&a, &fa);
+    sp_add(&b, &fb);
     if (abn_is_zero(&fa) || abn_is_zero(&fb)) {
         bool az = abn_is_zero(&fa);
         o->x = az ? a : b;
@@ -1783,7 +1984,7 @@ static abn_status solve_core(ab_calc *c, abn a, abn b, solve_out *o)
     /* the search for a sign change */
     for (int k = 0; sgn(&fa) == sgn(&fb); k++) {
         abn x, fx, step, lim;
-        if (k >= SOLVE_SEARCH) goto noroot;
+        if (k >= SOLVE_SEARCH) goto nosign;
         if (cmp_abs(&fa, &fb) < 0) {         /* b the better point */
             abn tx = a, tf = fa;
             a = b;
@@ -1811,10 +2012,11 @@ static abn_status solve_core(ab_calc *c, abn a, abn b, solve_out *o)
         if (abn_add(&x, &b, &step) != ABN_OK) goto noroot;
         if (abn_cmp(&x, &b) == 0 || abn_cmp(&x, &a) == 0) {
             if (abn_add(&x, &b, &t1) != ABN_OK) goto noroot;
-            if (abn_cmp(&x, &b) == 0) goto noroot;  /* no room left to move: closed in */
+            if (abn_cmp(&x, &b) == 0) goto nosign;  /* no room left to move: closed in */
         }
         if ((st = ev(c, &x, &fx, &bad)) != ABN_OK) return st;
         if (bad) goto noroot;
+        sp_add(&x, &fx);
         a = b;
         fa = fb;
         b = x;
@@ -1839,9 +2041,10 @@ static abn_status solve_core(ab_calc *c, abn a, abn b, solve_out *o)
             w = abn_abs(&w);
             if (abn_cmp(&ma, &mb) < 0) ma = mb;
             if (abn_mul(&t2, &ma, &rel) != ABN_OK) goto noroot;
-            if (abn_cmp(&w, &t2) <= 0) goto noroot;
+            if (abn_cmp(&w, &t2) <= 0) goto nosign;
         }
     }
+bracket:
     /* Brent's method on the bracket [a, b] */
     fmax = cmp_abs(&fa, &fb) > 0 ? abn_abs(&fa) : abn_abs(&fb);
     if (sgn(&a) * sgn(&b) < 0) {
@@ -1992,6 +2195,38 @@ static abn_status solve_core(ab_calc *c, abn a, abn b, solve_out *o)
         o->found = abn_cmp(&t1, &fmax) <= 0;    /* else a pole */
         return ABN_OK;
     }
+nosign:
+    /* No sign change (unit 024b): when the search's points bracket a minimum of |f|, Brent's
+       minimizer finds it, and the report is that minimum (33s p.D-8, D-10: the search ends near a
+       local minimum, X and Y close by, Z = f there). A zero at the bottom is a root; a sign change
+       found on the way goes to the root finder. With no interior minimum, the report is as before. */
+    {
+        int il, im, ih;
+        min_out mo;
+        if (sp_bracket(&il, &im, &ih)) {
+            if ((st = solve_min(c, sp_x[il], sp_x[ih], sp_x[im], sp_f[im], &mo)) != ABN_OK) return st;
+            if (mo.found) {
+                o->x = mo.x;
+                o->prev = mo.w;
+                o->fx = mo.fx;
+                o->found = true;
+                return ABN_OK;
+            }
+            if (mo.sign) {
+                a = mo.x;
+                fa = mo.fx;
+                b = mo.w;
+                fb = mo.fw;
+                goto bracket;
+            }
+            o->x = mo.x;
+            o->fx = mo.fx;
+            o->prev = abn_cmp(&mo.w, &mo.x) != 0 ? mo.w
+                      : cmp_abs(&sp_f[il], &sp_f[ih]) <= 0 ? sp_x[il] : sp_x[ih];   /* never moved: the nearer end */
+            return ABN_OK;
+        }
+    }
+    goto noroot;
 noroot_bracket:
     best = cmp_abs(&fb, &fc) <= 0 ? b : cc;
     fbest = cmp_abs(&fb, &fc) <= 0 ? fb : fc;
