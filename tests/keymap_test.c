@@ -181,7 +181,8 @@ int main(void)
                           O(AB_SUMX2, 0, "\xce\xa3x\xc2\xb2"), O(AB_SUMY2, 0, "\xce\xa3y\xc2\xb2"), O(AB_SUMXY, 0, "\xce\xa3xy")}},
                 {"PROB", {O(AB_NCR, 0, "Cn,r"), O(AB_NPR, 0, "Pn,r"), O(AB_FACT, 0, "n!"), O(AB_RAND, 0, "RAND"),
                           O(AB_SEED, 0, "SEED"), N}},
-                {"FLAGS", {P(AB_SF, KM_ARG_DIGITS, "SF"), P(AB_CF, KM_ARG_DIGITS, "CF"), P(AB_FS, KM_ARG_DIGITS, "FS?"), N, N, N}},
+                {"FLAGS", {P(AB_SF, KM_ARG_DIGITS, "SF"), P(AB_CF, KM_ARG_DIGITS, "CF"), P(AB_FS, KM_ARG_DIGITS, "FS?"),
+                           O(AB_BEEP, 0, "BEEP"), N, N}},   /* unit 027: BEEP, ours */
                 {"x?y", {T(0, "x\xe2\x89\xa0y?"), T(1, "x\xe2\x89\xa4y?"), T(2, "x<y?"), T(3, "x>y?"), T(4, "x\xe2\x89\xa5y?"),
                          T(5, "x=y?")}},
                 {"x?0", {T(6, "x\xe2\x89\xa0" "0?"), T(7, "x\xe2\x89\xa4" "0?"), T(8, "x<0?"), T(9, "x>0?"),
@@ -209,13 +210,22 @@ int main(void)
                 {"VARS", {P(AB_XVAR, KM_ARG_VAR, "x\xe2\x86\x94"), P(AB_VIEW, KM_ARG_VAR, "VIEW"), O(AB_CLVARS, 0, "CLR"), N, N, N}},
                 {"STACK", {O(AB_CLSTK, 0, "CLSTK"), O(AB_LASTX, 0, "LASTx"), O(AB_RUP, 0, "R\xe2\x86\x91"), O(AB_XY, 0, "x\xe2\x86\x94y"),
                            N, N}},
-                {"MODE", {O(AB_MODEL, 33, "33s"), O(AB_MODEL, 35, "35s"), N, N, N, N}},
+                {"MODE", {O(AB_MODEL, 33, "33s"), O(AB_MODEL, 35, "35s"), N, {KM_DEVICE, 0, KM_DEV_ENTRY, 0, "RPN"}, N, N}},
                 /* unit 022: the device's settings, a KM_DEVICE action's op its value */
                 {"RADIX", {{KM_DEVICE, '.', KM_DEV_RADIX, 0, "."}, {KM_DEVICE, ',', KM_DEV_RADIX, 0, ","},
                            {KM_DEVICE, 1, KM_DEV_GROUP, 0, "1,000"}, {KM_DEVICE, ' ', KM_DEV_GROUP, 0, "1 000"},
                            {KM_DEVICE, 0, KM_DEV_GROUP, 0, "none"}, N}},
                 {"SETUP", {{KM_DEVICE, 0, KM_DEV_OFFTIME, 0, "OFF"}, {KM_DEVICE, 0, KM_DEV_VOL, 0, "VOL"},
-                           {KM_DEVICE, 0, KM_DEV_BEEP, 0, "BEEP"}, N, N, N}},
+                           {KM_MENU, 0, -4, 0, "BEEP"}, {KM_MENU, 0, -6, 0, "CLOCK"}, N, N}},
+                /* unit 027: the buzzer's uses (the op a DEV_USE_* bit), two pages; CLOCK; SYS's views */
+                {"BEEP", {{KM_DEVICE, 1, KM_DEV_USE, 0, "CLICK"}, {KM_DEVICE, 2, KM_DEV_USE, 0, "ERROR"},
+                          {KM_DEVICE, 4, KM_DEV_USE, 0, "PRGM"}, {KM_DEVICE, 8, KM_DEV_USE, 0, "BATT"},
+                          {KM_DEVICE, 16, KM_DEV_USE, 0, "ON"}, {KM_MENU, 0, -5, 0, "\xe2\x96\xb8"}}},
+                {"BEEP2", {{KM_DEVICE, 32, KM_DEV_USE, 0, "DONE"}, {KM_DEVICE, 0, KM_DEV_USEALL, 0, "ALL"}, N, N, N,
+                           {KM_MENU, 0, -4, 0, "\xe2\x96\xb8"}}},
+                {"CLOCK", {{KM_DEVICE, 0, KM_DEV_CLOCKSET, 0, "SET"}, {KM_DEVICE, 0, KM_DEV_H24, 0, "12/24"}, N, N, N, N}},
+                {"SYS", {{KM_DEVICE, 1, KM_DEV_VIEW, 0, "BATT"}, {KM_DEVICE, 2, KM_DEV_VIEW, 0, "VER"},
+                         {KM_DEVICE, 3, KM_DEV_VIEW, 0, "FLASH"}, N, N, N}},
                 {"POW", {O(AB_IP, 0, "IP"), O(AB_FP, 0, "FP"), O(AB_INTG, 0, "INTG"), O(AB_RND, 0, "RND"), O(AB_SGN, 0, "SGN"),
                          O(AB_ABS, 0, "ABS")}},
             };
@@ -235,22 +245,26 @@ int main(void)
                     const km_action *it = &mn->item[i], *want = &D[d].item[i];
                     bool same = it->kind == want->kind && it->op == want->op && it->prompt == want->prompt &&
                                 !strcmp(it->legend, want->legend);
-                    if (want->kind == KM_MENU) {    /* -2 LOGIC, -3 SUFFIX: by name */
+                    if (want->kind == KM_MENU) {    /* a submenu by name: -2 LOGIC, -3 SUFFIX, -4 BEEP, -5 BEEP2,
+                                                       -6 CLOCK */
+                        static const char *const SUB[] = {"LOGIC", "SUFFIX", "BEEP", "BEEP2", "CLOCK"};
                         const km_menu *sub = km_menu_at(it->arg);
-                        same = same && sub && !strcmp(sub->name, want->arg == -2 ? "LOGIC" : "SUFFIX");
+                        same = same && sub && !strcmp(sub->name, SUB[-want->arg - 2]);
                     } else {
                         same = same && it->arg == want->arg;
                     }
                     snprintf(m, sizeof m, "menu %s soft key %d is %s", D[d].name, i + 1, want->legend);
                     expect(same, m);
                 }
-                /* every menu but the two from BASE has its key */
+                /* every menu but the submenus (BASE's two, BEEP's pages, CLOCK) has its key */
                 bool keyed = false;
                 for (int k = 0; k < KB_KEYS; k++)
                     for (int sh = 0; sh < 3; sh++)
                         if (km_lookup(k, sh)->kind == KM_MENU && km_lookup(k, sh)->arg == at) keyed = true;
                 snprintf(m, sizeof m, "menu %s is on its key", D[d].name);
-                expect(keyed == (strcmp(D[d].name, "LOGIC") && strcmp(D[d].name, "SUFFIX")), m);
+                bool sub = !strcmp(D[d].name, "LOGIC") || !strcmp(D[d].name, "SUFFIX") || !strcmp(D[d].name, "BEEP") ||
+                           !strcmp(D[d].name, "BEEP2") || !strcmp(D[d].name, "CLOCK");     /* reached by a menu */
+                expect(keyed == !sub, m);
             }
             /* CONST pages the core's constants (rule 3); SOLVE and integrate ask for the variable (rule 4) */
             const km_menu *km = NULL;
@@ -264,7 +278,7 @@ int main(void)
             expect(in->kind == KM_PROMPT && in->op == AB_INTEG && in->prompt == KM_ARG_VAR && !strcmp(in->legend, "\xe2\x88\xab"),
                    "integrate (gold 8) asks for a variable, then integrates");
             /* rule 5: these stay not defined */
-            static const char *const LATER[] = {"MEM", "SYS", "GRAPH", "TABLE", "TUTOR", "APPS"};   /* RADIX, SETUP: unit 022; EXP #3958 */
+            static const char *const LATER[] = {"MEM", "GRAPH", "TABLE", "TUTOR", "APPS"};   /* RADIX, SETUP: unit 022; EXP #3958; SYS: unit 027 */
             for (size_t i = 0; i < sizeof LATER / sizeof LATER[0]; i++) {
                 bool found = false, undefined = true;
                 for (int k = 0; k < KB_KEYS; k++)

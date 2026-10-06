@@ -29,6 +29,8 @@ static const ab_op V1_OPS[] = {
     AB_INTEG, AB_EQN, AB_KEQ, AB_KPAREN, AB_KLEFT, AB_KRIGHT, AB_EQLINE, AB_KSPACE, AB_KREG,
     /* unit 021 */
     AB_EXPM1, AB_LN1P, AB_TWOX, AB_LOG2, AB_CLVARX, AB_CLALL,
+    /* unit 027 (appended: the codes before keep their meaning in an image) */
+    AB_BEEP,
 };
 #define V1_N ((int)(sizeof V1_OPS / sizeof V1_OPS[0]))
 

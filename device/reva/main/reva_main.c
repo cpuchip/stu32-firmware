@@ -50,6 +50,7 @@
 #include "screen.h"
 #include "state.h"
 #include "store.h"
+#include "dev_common.h"
 
 extern const uint8_t ulp_main_bin_start[] asm("_binary_ulp_main_bin_start");
 extern const uint8_t ulp_main_bin_end[] asm("_binary_ulp_main_bin_end");
@@ -77,6 +78,9 @@ static ab_flash flash;
 static gauge_bus gbus;
 static i2c_master_dev_handle_t gdev;
 static int soc = -1;
+static uint32_t vbat_uv;                    /* the gauge's last cell voltage, 0 not read (SYS BATT) */
+static uint32_t last_image;                 /* the last image saved: SYS FLASH's room left (unit 027) */
+static char time_text[16];                  /* TIME's argument, for the calc task (unit 027) */
 
 static uint32_t now_ms(void)
 {
@@ -290,7 +294,10 @@ static void save(void)
     size_t n = dev_image_save(calc, &app.set, NULL, 0);
     if (!flash.ctx || !n || n > IMAGE_CAP) return;
     dev_image_save(calc, &app.set, image, IMAGE_CAP);
-    if (ab_store_save(&flash, image, (uint32_t)n) == 0) app_saved(&app);
+    if (ab_store_save(&flash, image, (uint32_t)n) == 0) {
+        app_saved(&app);
+        last_image = (uint32_t)n;
+    }
 }
 
 static bool memory_clear_msg;
@@ -367,6 +374,10 @@ static void console_task(void *arg)
         } else if (line[0] == 'X') {
             int k = -1;
             xQueueSend(keys_q, &k, 0);
+        } else if (!strncmp(line, "TIME ", 5)) {   /* TIME hh:mm[:ss] (unit 027 rule 4) */
+            snprintf(time_text, sizeof time_text, "%.15s", line + 5);
+            int k = -2;
+            xQueueSend(keys_q, &k, 0);
         } else if (!strcmp(line, "BEEP")) {
             piezo_tone(PIEZO_HZ, 100);          /* bring-up: does the piezo sound */
         } else if (!strncmp(line, "VOL", 3)) {
@@ -407,11 +418,14 @@ static void calc_task(void *arg)
         if (got && k >= 0) {
             memory_clear_msg = false;
             app_key(&app, k, now);
-            if (app.tone >= 0) {                /* VOL's new level, or an error with BEEP on (unit 022) */
-                piezo_level = app.tone;
-                piezo_tone(PIEZO_HZ, 60);
-                piezo_level = app.set.vol;
-                app.tone = -1;
+        } else if (got && k == -2) {
+            int64_t w;
+            if (dev_parse_time(&app, now, time_text, &w)) {
+                dev_set_wall(NULL, w);
+                app_set_wall(&app, w, now);
+                printf("time: set %02d:%02d:%02d\n", (int)(w % 86400 / 3600), (int)(w % 3600 / 60), (int)(w % 60));
+            } else {
+                printf("time: ? %s (hh:mm or hh:mm:ss)\n", time_text);
             }
         } else if (got) {
             char stop[32];
@@ -421,11 +435,22 @@ static void calc_task(void *arg)
         }
         if (gdev && (uint32_t)(now - last_gauge) >= 30000) {
             gauge_reading g;
-            if (gauge_sample(&gbus, &g)) soc = g.percent;
+            if (gauge_sample(&gbus, &g)) {
+                soc = g.percent;
+                vbat_uv = g.microvolts;
+            }
             last_gauge = now;
         }
         pwr_inputs in = {gpio_get_level(PIN_CHG_N), gpio_get_level(PIN_PGOOD_N), soc, false};
         app_action act = app_tick(&app, &in, now);
+        if (app.tone >= 0) {                    /* VOL's new level, or a use's sound (units 022, 027) */
+            uint32_t hz, ms;
+            dev_tone_of(app.tone_use, PIEZO_HZ, &hz, &ms);
+            piezo_level = app.tone;
+            piezo_tone(hz, ms);
+            piezo_level = app.set.vol;
+            app.tone = -1;
+        }
         if (act == APP_SAVE) save();
         if (act == APP_OFF) {
             save();
@@ -434,6 +459,23 @@ static void calc_task(void *arg)
         }
         if (act == APP_RENDER || got) render(0);
     }
+}
+
+static uint32_t clock_cb(void *ctx)
+{
+    (void)ctx;
+    return now_ms();
+}
+
+/* SYS: the gauge's percent and voltage, the charger's pins (unit 027 rule 5) */
+static void sysinfo_cb(void *ctx, app_sysinfo *o)
+{
+    (void)ctx;
+    o->soc = soc;
+    o->chg_n = gpio_get_level(PIN_CHG_N);
+    o->pgood_n = gpio_get_level(PIN_PGOOD_N);
+    o->vbat_uv = vbat_uv;
+    dev_sysinfo_common(o, flash.ctx && last_image <= flash.slot_size ? flash.slot_size - last_image : 0);
 }
 
 void app_main(void)
@@ -507,11 +549,18 @@ void app_main(void)
         app_undo_buffers(&app, u0, u1, IMAGE_CAP);
     }
 
+    /* unit 027: the clock from the RTC (it ran through deep sleep; unset after the cell was out) */
+    app_set_wall(&app, dev_wall_now(), now_ms());
+    app.set_wall = dev_set_wall;
+    app.clock_ms = clock_cb;
+    app.sysinfo = sysinfo_cb;
     if (why == ESP_SLEEP_WAKEUP_TIMER) {            /* the refresh: rewrite the image, sleep again */
         render(0);
         sleep_now();
     }
     piezo_init();                               /* after boot: IO46 has been read */
+    app_powered_on(&app);                       /* ON's chirp: a first boot or a wake from OFF, not the
+                                                   refresh (above) nor a light-sleep wake (no boot) */
     keys_q = xQueueCreate(32, sizeof(int));
     /* unit 023: automatic light sleep. The pins that must keep their level or their pull through it
        are taken out of IDF's sleep isolation, which would otherwise let DISP, BOOST_EN, the LCD's

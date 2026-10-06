@@ -18,6 +18,8 @@ void app_init(app_state *a, ab_calc *c, uint32_t now_ms)
     a->menu = -1;
     a->last_key_ms = now_ms;
     a->tone = -1;
+    a->now_ms = now_ms;
+    a->beeps = c->beeps;
     pwr_init(&a->pwr, now_ms);
     dev_settings_default(&a->set);
     c->slice = APP_SLICE_LINES;
@@ -47,6 +49,12 @@ static void prompt_open(app_state *a, int op, int kind)
     else snprintf(buf, sizeof buf, "%s", name);
     a->prompt_op = op;
     a->prompt_kind = kind;
+    if (kind == KM_ARG_TIME) {                  /* SET 1_:__: HH MM as they come (unit 027) */
+        char d[5] = "____";
+        for (int i = 0, v = a->prompt_val; i < a->prompt_n; i++) d[a->prompt_n - 1 - i] = (char)('0' + v % 10), v /= 10;
+        snprintf(a->prompt_text, sizeof a->prompt_text, "SET %c%c:%c%c", d[0], d[1], d[2], d[3]);
+        return;
+    }
     if (kind == KM_ARG_ADDR) {                  /* CLVAR05_: the digits so far, then the blanks */
         char d[4] = "";
         if (a->prompt_n) snprintf(d, sizeof d, "%0*d", a->prompt_n, a->prompt_val);
@@ -98,12 +106,41 @@ static void overflow_notice(app_state *a, uint32_t now_ms)
     a->notice_ms = now_ms;
 }
 
+/* A tone for one of the buzzer's uses, when that use is on and VOL is not 0 (unit 027 rule 3); a
+   later one in the same event replaces an earlier (an error's tone over the key's tick). */
+static void sound(app_state *a, int use)
+{
+    if (!(a->set.uses & use) || a->set.vol == 0) return;
+    a->tone = a->set.vol;
+    a->tone_use = use;
+}
+
+/* After the core ran: a BEEP done (PRGM), a new message (ERROR), and the end of a run that took
+   APP_DONE_MS or more (DONE), timed from its key to now_ms (unit 027). */
+static void after_core(app_state *a, bool msg_before, uint32_t now_ms)
+{
+    ab_calc *c = a->c;
+    if (c->beeps != a->beeps) {
+        a->beeps = c->beeps;
+        sound(a, DEV_USE_PRGM);
+    }
+    if (c->msg && !msg_before) sound(a, DEV_USE_ERROR);
+    if (a->run_timed && !a->running && !a->pause) {
+        a->run_timed = false;
+        if ((uint32_t)(now_ms - a->run_t0) >= APP_DONE_MS) sound(a, DEV_USE_DONE);
+    }
+}
+
 /* An op from the keys: the state kept for UNDO first (VIEW changes nothing), the busy callback
    when it may take long, and a run that has not ended goes on from app_tick. */
 static void do_op(app_state *a, int op, int arg)
 {
     ab_calc *c = a->c;
     bool runs = !c->prgm && (op == AB_XEQ || op == AB_RS || op == AB_SST || op == AB_SOLVE || op == AB_INTEG);
+    if (runs) {
+        a->run_timed = true;                    /* DONE's clock (unit 027) */
+        a->run_t0 = a->last_key_ms;
+    }
     if (op != AB_VIEW) undo_mark(a);
     if (runs && a->busy) a->busy(a->ctx, op);
     bool msg = c->msg;
@@ -118,7 +155,6 @@ static void do_op(app_state *a, int op, int arg)
         a->notice = arg == 35 ? "(i) MEANS (I)" : "(I) MEANS (i)";
         a->notice_ms = a->last_key_ms;
     }
-    if (c->msg && !msg && (a->set.uses & DEV_USE_ERROR) && a->set.vol > 0) a->tone = a->set.vol;   /* the error tone (unit 022) */
     if (c->stop == AB_STOP_SLICE) {
         a->running = true;
         a->busy_op = op;
@@ -127,6 +163,9 @@ static void do_op(app_state *a, int op, int arg)
         a->pause = true;
         a->pause_ms = a->last_key_ms;
     }
+    /* a run's length: to now by the device's clock when it ended inside this call (a SOLVE, a short
+       program), else to the app_tick that sees it end */
+    after_core(a, msg, runs && !a->running && !a->pause && a->clock_ms ? a->clock_ms(a->ctx) : a->last_key_ms);
     overflow_notice(a, a->last_key_ms);
 }
 
@@ -152,10 +191,16 @@ static int eqn_bar(const app_state *a)
 void app_key(app_state *a, int key, uint32_t now_ms)
 {
     const km_action *face = km_lookup(key, KM_FACE);
-    a->last_key_ms = now_ms;
+    a->last_key_ms = a->now_ms = now_ms;
     pwr_activity(&a->pwr, now_ms);
     a->render = true;
     a->notice = NULL;                           /* a key ends a brief notice */
+    sound(a, DEV_USE_CLICK);                    /* every key ticks (unit 027) */
+    if (a->view) {                              /* SYS's view: any key leaves it, and only that */
+        a->view = APP_VIEW_NONE;
+        a->shift = 0;
+        return;
+    }
 
     if (a->running) {                           /* only C and R/S, which interrupt (UG p.13-19) */
         if (face->kind == KM_OP && (face->op == AB_CANCEL || face->op == AB_RS)) ab_interrupt(a->c);
@@ -185,6 +230,30 @@ void app_key(app_state *a, int key, uint32_t now_ms)
         a->confirm_op = -1;
         a->shift = 0;
         if (face->kind == KM_SOFT && face->arg == 0) do_op(a, op, 0);
+        return;
+    }
+    if (a->prompt_op >= 0 && a->prompt_kind == KM_ARG_TIME) {      /* HH MM (CLOCK's SET, unit 027) */
+        if (face->kind == KM_OP && face->op >= AB_K0 && face->op <= AB_K9) {
+            a->prompt_val = a->prompt_val * 10 + face->op - AB_K0;
+            if (++a->prompt_n == 4) {
+                int hh = a->prompt_val / 100, mm = a->prompt_val % 100;
+                prompt_close(a);
+                if (hh < 24 && mm < 60) {       /* else nothing: no such time */
+                    int64_t day = APP_CLOCK_KEYS_DATE, w;
+                    if (app_wall(a, now_ms, &w)) day = w - w % 86400;
+                    app_set_wall(a, day + hh * 3600 + mm * 60, now_ms);
+                    if (a->set_wall) a->set_wall(a->ctx, a->wall_s);
+                }
+            } else {
+                prompt_open(a, a->prompt_op, a->prompt_kind);
+            }
+        } else if (face->kind == KM_OP && face->op == AB_KBKSP && a->prompt_n > 0) {
+            a->prompt_n--;
+            a->prompt_val /= 10;
+            prompt_open(a, a->prompt_op, a->prompt_kind);
+        } else if (face->kind == KM_OP && face->op == AB_CANCEL) {
+            prompt_close(a);
+        }
         return;
     }
     if (a->prompt_op >= 0 && a->prompt_kind == KM_ARG_ADDR) {      /* three digits (CLVARx) */
@@ -262,8 +331,11 @@ void app_key(app_state *a, int key, uint32_t now_ms)
             return;
         }
         if (face->kind == KM_SOFT && mn) {
+            const km_action *it = &mn->item[face->arg];
             a->shift = 0;
-            do_action(a, &mn->item[face->arg]);
+            do_action(a, it);
+            if (it->kind == KM_DEVICE && (it->arg == KM_DEV_USE || it->arg == KM_DEV_USEALL))
+                a->menu = at;                   /* the buzzer's uses: toggled with the menu open (ours) */
             return;
         }
         if (face->kind == KM_OP && face->op == AB_CANCEL && a->shift == 0) return;   /* C: only closes it */
@@ -290,6 +362,36 @@ void app_key(app_state *a, int key, uint32_t now_ms)
     do_action(a, act);
 }
 
+/* SYS's views (unit 027 rule 5), from the device's facts, as lines any key leaves. */
+static void view_open(app_state *a, int view)
+{
+    app_sysinfo si;
+    memset(&si, 0, sizeof si);
+    si.soc = -1;
+    if (a->sysinfo) a->sysinfo(a->ctx, &si);
+    memset(a->view_text, 0, sizeof a->view_text);
+    char (*t)[40] = a->view_text;
+    if (view == APP_VIEW_BATT) {
+        if (si.soc >= 0) snprintf(t[0], sizeof t[0], "BATT %d%%", si.soc);
+        else snprintf(t[0], sizeof t[0], "BATT --");
+        snprintf(t[1], sizeof t[1], "CHG %s", si.chg_n ? "OFF" : "ON");     /* the pins are active low */
+        snprintf(t[2], sizeof t[2], "PGOOD %s", si.pgood_n ? "NO" : "YES");
+        if (si.vbat_uv) snprintf(t[3], sizeof t[3], "%u.%02u V", (unsigned)(si.vbat_uv / 1000000u),
+                                 (unsigned)(si.vbat_uv % 1000000u / 10000u));
+    } else if (view == APP_VIEW_VER) {
+        snprintf(t[0], sizeof t[0], "VER %s", si.version ? si.version : "?");
+        snprintf(t[1], sizeof t[1], "CORE %s", si.commit ? si.commit : "?");
+        snprintf(t[2], sizeof t[2], "BUILT %s", si.built ? si.built : "?");
+    } else if (view == APP_VIEW_FLASH) {
+        snprintf(t[0], sizeof t[0], "FLASH %lu B FREE", (unsigned long)si.flash_free);
+        snprintf(t[1], sizeof t[1], "HEAP %lu B", (unsigned long)si.heap_free);
+        snprintf(t[2], sizeof t[2], "LARGEST %lu B", (unsigned long)si.heap_largest);
+    } else {
+        return;
+    }
+    a->view = view;
+}
+
 /* RADIX and SETUP (unit 022): the device's settings change, are saved with the image, and are not
    undo points (UNDO is the calculator's). */
 static void setting(app_state *a, const km_action *act)
@@ -304,8 +406,19 @@ static void setting(app_state *a, const km_action *act)
     case KM_DEV_VOL:                            /* the next level, sounded */
         s->vol = (uint8_t)((s->vol + 1) % PIEZO_LEVELS);
         a->tone = s->vol;
+        a->tone_use = 0;
         break;
-    case KM_DEV_BEEP: s->uses = s->uses ? 0 : DEV_USE_ALL; break;
+    case KM_DEV_USE: s->uses ^= (uint8_t)act->op; break;            /* one use on or off (unit 027) */
+    case KM_DEV_USEALL: s->uses = s->uses ? 0 : DEV_USE_ALL; break; /* any on: all off; else all on */
+    case KM_DEV_H24: s->h24 = !s->h24; break;
+    case KM_DEV_ENTRY: return;                  /* RPN, the only entry logic yet: marked, no change */
+    case KM_DEV_CLOCKSET:
+        a->prompt_n = a->prompt_val = 0;
+        prompt_open(a, 0, KM_ARG_TIME);
+        return;
+    case KM_DEV_VIEW:
+        view_open(a, act->op);
+        return;
     default: return;
     }
     a->pwr.idle_ms = s->off_min * 60000u;
@@ -346,6 +459,7 @@ static void do_action(app_state *a, const km_action *act)
 
 app_action app_tick(app_state *a, const pwr_inputs *in, uint32_t now_ms)
 {
+    bool msg = a->c->msg;
     if (a->running) {
         ab_continue(a->c);
         if (a->c->ovf > 0) a->ovf_pending = true;
@@ -378,6 +492,24 @@ app_action app_tick(app_state *a, const pwr_inputs *in, uint32_t now_ms)
             a->pause_ms = now_ms;
         }
     }
+    after_core(a, msg, now_ms);
+    if (in->soc >= 0) {                         /* BATT: once when it first reads low (unit 027) */
+        if (in->soc <= APP_BATT_LOW_SOC && !a->batt_low) {
+            a->batt_low = true;
+            sound(a, DEV_USE_BATT);
+            a->render = true;                   /* acted on: the device looks for its tone */
+        } else if (in->soc > APP_BATT_OK_SOC && a->batt_low) {
+            a->batt_low = false;
+            a->render = true;
+        }
+    }
+    {
+        int64_t w;                              /* the clock's minute changed: draw it */
+        if (app_wall(a, now_ms, &w) && w / 60 != a->clock_min) {
+            a->clock_min = w / 60;
+            a->render = true;
+        }
+    }
     overflow_notice(a, now_ms);
     if (a->notice && (uint32_t)(now_ms - a->notice_ms) >= APP_NOTICE_MS) {
         a->notice = NULL;                       /* the brief notice is over */
@@ -390,6 +522,7 @@ app_action app_tick(app_state *a, const pwr_inputs *in, uint32_t now_ms)
     if (a->dirty && !a->running && (uint32_t)(now_ms - a->last_key_ms) >= APP_QUIET_MS) return APP_SAVE;
     if (a->render) {
         a->render = false;
+        a->now_ms = now_ms;                     /* the time the screen is drawn at (its clock) */
         return APP_RENDER;
     }
     return APP_IDLE;
@@ -410,12 +543,19 @@ static uint32_t left(uint32_t now_ms, uint32_t since, uint32_t span)
 uint32_t app_next_wake(const app_state *a, const pwr_inputs *in, uint32_t now_ms)
 {
     if (a->running || a->render || a->off) return 0;
+    if (in->soc >= 0 && ((in->soc <= APP_BATT_LOW_SOC && !a->batt_low) || (in->soc > APP_BATT_OK_SOC && a->batt_low)))
+        return 0;                               /* BATT's latch changes now (unit 027) */
     pwr_state p = a->pwr;
     p.idle_ms = a->set.off_min * 60000u;        /* as app_tick sets it */
     uint32_t w = pwr_next(&p, in, now_ms), t;
     if (a->pause && (t = left(now_ms, a->pause_ms, APP_PSE_MS)) < w) w = t;
     if (a->dirty && (t = left(now_ms, a->last_key_ms, APP_QUIET_MS)) < w) w = t;
     if (a->notice && (t = left(now_ms, a->notice_ms, APP_NOTICE_MS)) < w) w = t;
+    int64_t ws;
+    if (app_wall(a, now_ms, &ws)) {             /* the clock's next minute (unit 027 rule 4) */
+        uint32_t into = (uint32_t)(ws % 60) * 1000u + (uint32_t)((now_ms - a->wall_ms) % 1000u);
+        if ((t = 60000u - into % 60000u) < w) w = t;
+    }
     return w;
 }
 
@@ -437,6 +577,24 @@ void app_ui(const app_state *a, screen_ui *ui)
     ui->busy = a->running ? a->busy_op : 0;
     ui->prompt = a->prompt_op >= 0 ? a->prompt_text : NULL;
     ui->notice = a->notice;
+    {
+        int64_t w;                              /* the status band's clock (unit 027 rule 4) */
+        if (!app_wall(a, a->now_ms, &w)) {
+            snprintf(ui->clock, sizeof ui->clock, "--:--");
+        } else {
+            int sod = (int)(w % 86400), h = sod / 3600, m = sod / 60 % 60;
+            if (a->set.h24) {
+                snprintf(ui->clock, sizeof ui->clock, "%02d:%02d", h, m);
+            } else {
+                snprintf(ui->clock, sizeof ui->clock, "%d:%02d", h % 12 ? h % 12 : 12, m);
+                ui->ampm = h < 12 ? 'a' : 'p';
+            }
+        }
+    }
+    if (a->view) {                              /* SYS's view in place of the stack */
+        for (int i = 0; i < 4; i++) ui->view[i] = a->view_text[i][0] ? a->view_text[i] : NULL;
+        return;
+    }
     if (a->confirm_op >= 0) {
         ui->prompt = a->confirm_op == AB_CLPGM ? "CLR PGMS?" : a->confirm_op == AB_CLEQN ? "CLR EQN?" : "CLR ALL?";
         ui->soft[0] = "Y";
@@ -477,30 +635,33 @@ void app_ui(const app_state *a, screen_ui *ui)
                 snprintf(vol, sizeof vol, "VOL %u", (unsigned)a->set.vol);
                 ui->soft[i] = vol;
                 break;
-            case KM_DEV_BEEP: ui->soft_on[i] = a->set.uses != 0; break;
+            case KM_DEV_USE: ui->soft_on[i] = (a->set.uses & it->op) != 0; break;
+            case KM_DEV_H24: ui->soft_on[i] = a->set.h24; break;
+            case KM_DEV_ENTRY: ui->soft_on[i] = it->op == 0; break;     /* RPN */
             default: break;
             }
         }
     }
 }
 
-/* unit 027 (red): the interfaces, not yet built */
 void app_set_wall(app_state *a, int64_t secs, uint32_t now_ms)
 {
-    (void)a;
-    (void)secs;
-    (void)now_ms;
+    a->wall_set = secs >= APP_CLOCK_UNSET_S;
+    a->wall_s = secs;
+    a->wall_ms = a->now_ms = now_ms;
+    a->clock_min = secs / 60;
+    a->render = true;
 }
 
 bool app_wall(const app_state *a, uint32_t now_ms, int64_t *secs)
 {
-    (void)a;
-    (void)now_ms;
-    (void)secs;
-    return false;
+    if (!a->wall_set) return false;
+    int32_t gone = (int32_t)(now_ms - a->wall_ms);  /* the clock may wrap; never before wall_ms */
+    *secs = a->wall_s + (gone > 0 ? gone / 1000 : 0);
+    return true;
 }
 
 void app_powered_on(app_state *a)
 {
-    (void)a;
+    sound(a, DEV_USE_ON);
 }

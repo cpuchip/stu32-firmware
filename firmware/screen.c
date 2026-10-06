@@ -380,16 +380,24 @@ static void var_name(int id, char *out, int size)
 
 static void status_band(ls027_frame *f, const ab_calc *c, const screen_ui *ui, int ind)
 {
+    /* the clock at the left (unit 027 rule 4: Michael's decided layout, "Clock"), its 12-hour a/p
+       half size after it; the shift held covers it while armed (both brief at that spot) */
     if (ui->shift == 1 || ui->shift == 2) {     /* the shift held, light on dark */
-        screen_fill(f, 0, 0, 52, 18, true);
+        screen_fill(f, 0, 0, 70, 18, true);
         screen_text(f, 3, 2, 2, ui->shift == 1 ? "GOLD" : "BLUE", false);
+    } else if (ui->clock[0]) {
+        int cells = screen_text(f, 3, 2, 2, ui->clock, true);
+        if (ui->ampm) {
+            char ap[2] = {ui->ampm, '\0'};
+            screen_text(f, 3 + cells * 12, 9, 1, ap, true);     /* 12 px a cell at scale 2 */
+        }
     }
-    if (c->angle == AB_ANGLE_RAD) screen_text(f, 58, 2, 2, "RAD", true);
-    else if (c->angle == AB_ANGLE_GRAD) screen_text(f, 58, 2, 2, "GRAD", true);
-    if (c->base != 10) screen_text(f, 112, 2, 2, c->base == 16 ? "HEX" : c->base == 8 ? "OCT" : "BIN", true);
-    if (c->prgm) screen_text(f, 154, 2, 2, "PRGM", true);
-    if (c->eqn_mode) screen_text(f, 208, 2, 2, "EQN", true);
-    if (ind) screen_text(f, 250, 2, 2, ind > 0 ? "\xe2\x96\xb2" : "\xe2\x96\xbc", true);
+    if (c->angle == AB_ANGLE_RAD) screen_text(f, 72, 2, 2, "RAD", true);
+    else if (c->angle == AB_ANGLE_GRAD) screen_text(f, 72, 2, 2, "GRAD", true);
+    if (c->base != 10) screen_text(f, 124, 2, 2, c->base == 16 ? "HEX" : c->base == 8 ? "OCT" : "BIN", true);
+    if (c->prgm) screen_text(f, 164, 2, 2, "PRGM", true);
+    if (c->eqn_mode) screen_text(f, 216, 2, 2, "EQN", true);
+    if (ind) screen_text(f, 255, 2, 2, ind > 0 ? "\xe2\x96\xb2" : "\xe2\x96\xbc", true);
     for (int n = 0; n <= 4; n++) {
         char d[2] = {(char)('0' + n), '\0'};
         if (ab_flag(c, n)) screen_text(f, 268 + n * 12, 2, 2, d, true);
@@ -437,6 +445,7 @@ typedef struct {
     line x, y, z, t;
     screen_kind xk, yk;
     bool x_left, x_letter, prompt;
+    bool view;              /* SYS's view: four left lines at scale 2, no letters (unit 027) */
     int ind;
 } composed;
 
@@ -452,6 +461,14 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
     k->x.cursor = k->y.cursor = k->z.cursor = k->t.cursor = -1;
     k->xk = SCREEN_VALUE;
     k->yk = SCREEN_VALUE;
+    if (ui->view[0] || ui->view[1] || ui->view[2] || ui->view[3]) {     /* SYS's view (unit 027 rule 5) */
+        line *ls[4] = {&k->t, &k->z, &k->y, &k->x};
+        for (int i = 0; i < 4; i++)
+            if (ui->view[i]) line_add(ls[i], ui->view[i]);
+        k->view = k->x_left = true;
+        k->xk = k->yk = SCREEN_MESSAGE;
+        return;
+    }
     /* the X line, first that applies (screen.h) */
     if (ui->busy && (m = ab_busy_message((ab_op)ui->busy)) != NULL) {
         line_add(xl, m);
@@ -555,10 +572,17 @@ void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
     screen_status *st = &out->status;
     compose(c, ui, k);
     memset(out, 0, sizeof *out);
-    page_line(&out->t, &k->t, SCREEN_VALUE, false, "T");
-    page_line(&out->z, &k->z, SCREEN_VALUE, false, "Z");
-    page_line(&out->y, &k->y, k->yk, k->prompt, k->prompt ? NULL : "Y");
-    page_line(&out->x, &k->x, k->xk, k->x_left, k->x_letter ? "X" : NULL);
+    if (k->view) {
+        page_line(&out->t, &k->t, SCREEN_MESSAGE, true, NULL);
+        page_line(&out->z, &k->z, SCREEN_MESSAGE, true, NULL);
+        page_line(&out->y, &k->y, SCREEN_MESSAGE, true, NULL);
+        page_line(&out->x, &k->x, SCREEN_MESSAGE, true, NULL);
+    } else {
+        page_line(&out->t, &k->t, SCREEN_VALUE, false, "T");
+        page_line(&out->z, &k->z, SCREEN_VALUE, false, "Z");
+        page_line(&out->y, &k->y, k->yk, k->prompt, k->prompt ? NULL : "Y");
+        page_line(&out->x, &k->x, k->xk, k->x_left, k->x_letter ? "X" : NULL);
+    }
     /* the status band, as status_band draws it */
     st->shift = ui->shift == 1 || ui->shift == 2 ? ui->shift : 0;
     st->angle = c->angle == AB_ANGLE_RAD ? "RAD" : c->angle == AB_ANGLE_GRAD ? "GRAD" : NULL;
@@ -572,9 +596,11 @@ void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
     st->model = c->m35 ? "35" : "33";
     st->battery = ui->battery;
     st->charging = ui->charging;
-    const char *parts[8];
+    const char *parts[9];
     int np = 0;
+    st->clock = ui->clock[0] ? ui->clock : NULL;
     if (st->shift) parts[np++] = st->shift == 1 ? "GOLD" : "BLUE";
+    else if (st->clock) parts[np++] = st->clock;
     if (st->angle) parts[np++] = st->angle;
     if (st->base) parts[np++] = st->base;
     if (st->prgm) parts[np++] = "PRGM";
@@ -599,6 +625,14 @@ void screen_render(const ab_calc *c, const screen_ui *ui, ls027_frame *f)
     screen_clear(f);
     compose(c, ui, k);
     status_band(f, c, ui, k->ind);
+    if (k->view) {                              /* SYS's view: four lines at scale 2 */
+        draw_line(f, BOT_T, 2, &k->t, true);
+        draw_line(f, BOT_Z, 2, &k->z, true);
+        draw_line(f, BOT_Y, 2, &k->y, true);
+        draw_line(f, BOT_X, 2, &k->x, true);
+        soft_band(f, ui);
+        return;
+    }
     draw_label(f, BOT_T, "T");
     draw_line(f, BOT_T, 2, &k->t, false);
     draw_label(f, BOT_Z, "Z");

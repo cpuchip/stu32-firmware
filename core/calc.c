@@ -3962,6 +3962,11 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
     case AB_LBL:
     case AB_PSE:
         return ABN_OK;                          /* only in programs (UG p.G-10, G-11) */
+    case AB_BEEP:
+        /* one tone for the device, the stack and lift untouched (ours, unit 027 rule 6; neutral
+           as PSE, UG p.B-5): from the keys and in programs alike */
+        c->beeps++;
+        return ABN_OK;
     case AB_CLPGM:
         prog_clear(c);
         return ABN_OK;

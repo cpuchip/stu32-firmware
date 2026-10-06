@@ -392,9 +392,35 @@ int main(int argc, char **argv)
     ui.shift = 1;
     ui.battery = 50;
     screen_render(&c, &ui, &f);
-    expect(text_at(&f, 58, 2, 2, "RAD", 1), "RAD at 58");
-    expect(text_at(&f, 112, 2, 2, "HEX", 1), "HEX at 112");
-    expect(text_at(&f, 154, 2, 2, "PRGM", 1), "PRGM at 154");
+    expect(text_at(&f, 72, 2, 2, "RAD", 1), "RAD at 72 (unit 027: after the clock)");
+    {
+        /* unit 027: the clock at the left, its a/p half size after it; the shift held covers it */
+        screen_ui u2 = ui;
+        u2.shift = 0;
+        snprintf(u2.clock, sizeof u2.clock, "12:59");
+        u2.ampm = 'p';
+        screen_render(&c, &u2, &f);
+        expect(text_at(&f, 3, 2, 2, "12:59", 1) && glyph_at(&f, 63, 9, 1, 'p', 1), "the clock 12:59 p at the left");
+        u2.shift = 1;
+        screen_render(&c, &u2, &f);
+        expect(text_at(&f, 3, 2, 2, "GOLD", 0) && !text_at(&f, 3, 2, 2, "12:59", 1), "the shift held covers the clock");
+        u2.shift = 0;
+        u2.view[0] = "BATT 87%";
+        u2.view[3] = "3.92 V";
+        screen_render(&c, &u2, &f);
+        {
+            int bx = find_glyph(&f, 52 - 14, 2, 'B');      /* the T line's row (its bottom at 52) */
+            expect(bx >= 0 && text_at(&f, bx, 52 - 14, 2, "BATT 87%", 1), "a SYS view's first line at scale 2, in T's row");
+        }
+        screen_page pv;
+        screen_lines(&c, &u2, &pv);
+        expect(!strcmp(pv.t.text, "BATT 87%") && pv.t.left && !pv.t.label && !strcmp(pv.x.text, "3.92 V") && !pv.x.label &&
+                   !strncmp(pv.status.text, "12:59", 5),
+               "screen_lines: the view's lines, no letters; the status text starts with the clock");
+        screen_render(&c, &ui, &f);
+    }
+    expect(text_at(&f, 124, 2, 2, "HEX", 1), "HEX at 124");
+    expect(text_at(&f, 164, 2, 2, "PRGM", 1), "PRGM at 164");
     expect(text_at(&f, 3, 2, 2, "GOLD", 0), "the gold shift: GOLD light on dark");
     expect(dark_in(&f, 0, 0, 2, 18) == 36 && dark_in(&f, 50, 0, 2, 18) == 36, "the shift's box, 52 wide");
     expect(dark_in(&f, 368, 4, 13, 10) == 130 && dark_in(&f, 381, 4, 13, 10) == 0, "half charged: 13 of 26 columns");
@@ -404,7 +430,7 @@ int main(int argc, char **argv)
     keys(&c, "PRGM GRAD");
     screen_render(&c, &ui, &f);
     expect(text_at(&f, 3, 2, 2, "BLUE", 0), "the blue shift");
-    expect(text_at(&f, 58, 2, 2, "GRAD", 1), "GRAD at 58");
+    expect(text_at(&f, 72, 2, 2, "GRAD", 1), "GRAD at 72");
     {
         /* 50 % charged: the plus at 378..382 light where the charge is (to 380), dark past it */
         const font_glyph *g = screen_glyph('+');
@@ -417,7 +443,7 @@ int main(int argc, char **argv)
             }
         expect(ok, "charging: a plus over the battery, inverted over the charge");
     }
-    expect(dark_in(&f, 154, 2, 48, 14) == 0, "program entry off: no PRGM");
+    expect(dark_in(&f, 164, 2, 48, 14) == 0, "program entry off: no PRGM");
     screen_ui_default(&ui);
 
     /* a message takes X, left at 20; the stack stays */
@@ -511,14 +537,14 @@ int main(int argc, char **argv)
         int len = screen_cells(c.eqn[c.eqn_cur] + 1);
         int sc = len <= 15 ? 4 : len <= 21 ? 3 : 2;
         expect(glyph_at(&f, 20, 156 - 7 * sc, sc, (unsigned char)c.eqn[c.eqn_cur][1], 1), "a built-in: its name from x = 20");
-        expect(text_at(&f, 208, 2, 2, "EQN", 1), "Equation mode: EQN at 208");
+        expect(text_at(&f, 216, 2, 2, "EQN", 1), "Equation mode: EQN at 216");
         screen_text(&f, 0, 0, 1, "\xe4\xb8\x80", 1);
         expect(screen_missed == before + 1, "a hollow box counted");
     }
     ab_init(&c);
     keys(&c, "FDISP 2 ENTER 3 /");
     screen_render(&c, &ui, &f);
-    expect(glyph_at(&f, 250, 2, 2, 0x25B2, 1), "2/3 shown above its 34 digits: up");
+    expect(glyph_at(&f, 255, 2, 2, 0x25B2, 1), "2/3 shown above its 34 digits: up");
     ab_do_arg(&c, AB_SF, 8);
     ab_do_arg(&c, AB_SF, 9);
     screen_render(&c, &ui, &f);
@@ -526,7 +552,7 @@ int main(int argc, char **argv)
     ab_init(&c);
     keys(&c, "FDISP 1 ENTER 3 /");
     screen_render(&c, &ui, &f);
-    expect(glyph_at(&f, 250, 2, 2, 0x25BC, 1), "1/3 shown below its 34 digits: down");
+    expect(glyph_at(&f, 255, 2, 2, 0x25BC, 1), "1/3 shown below its 34 digits: down");
     ab_init(&c);
     ab_do_arg(&c, AB_SF, 1);
     ab_do_arg(&c, AB_SF, 3);

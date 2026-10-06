@@ -119,6 +119,8 @@ typedef struct {
     int tone;               /* a tone for the device to sound at this level, -1 none (it clears it):
                                VOL's new level, or one of the buzzer's uses (unit 022, 027) */
     int tone_use;           /* that use, DEV_USE_*, 0 for VOL's sample tone (the device picks the sound) */
+    uint32_t now_ms;        /* the app's clock at the last key or tick (for app_ui's clock) */
+    int64_t clock_min;      /* the minute the clock was last drawn at */
     bool wall_set;          /* the wall clock is set (unit 027 rule 4) */
     int64_t wall_s;         /* the wall time in seconds at wall_ms on the app's clock */
     uint32_t wall_ms;

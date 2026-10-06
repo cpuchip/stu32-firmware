@@ -37,6 +37,7 @@
 #include "standin.h"
 #include "state.h"
 #include "store.h"
+#include "dev_common.h"
 
 #define I2C_SDA 8
 #define I2C_SCL 9
@@ -48,7 +49,8 @@
 #define EXIO_LCD_RST (1u << 3)
 #define GT911_ADDR 0x5D
 
-enum { EV_KEY = 0, EV_OP, EV_DUMP, EV_SAVE, EV_WIPE, EV_RESTART, EV_TOUCHED, EV_BENCH };
+enum { EV_KEY = 0, EV_OP, EV_DUMP, EV_SAVE, EV_WIPE, EV_RESTART, EV_TOUCHED, EV_BENCH, EV_TIME };
+static char time_text[16];             /* TIME's argument, for the calc task (unit 027) */
 
 typedef struct {
     int kind, a, b;                     /* EV_KEY: a the key; EV_OP: a core op a with argument b */
@@ -195,6 +197,8 @@ static void store_init(void)
     flash = (ab_flash){(void *)p, 4096, p->size / 2, fl_erase, fl_write, fl_read};
 }
 
+static uint32_t last_image;             /* the last image saved: SYS FLASH's room left (unit 027) */
+
 /* the state image and the device's settings after it (unit 022, settings.h) */
 static void save(void)
 {
@@ -208,7 +212,10 @@ static void save(void)
     int rc = ab_store_save(&flash, image, (uint32_t)n);
     printf("save: %u bytes, %s, %lld ms\n", (unsigned)n, rc == 0 ? "ok" : "FAILED",
            (long long)((esp_timer_get_time() - t0) / 1000));
-    if (rc == 0) app_saved(&app);
+    if (rc == 0) {
+        app_saved(&app);
+        last_image = (uint32_t)n;
+    }
 }
 
 static dev_settings loaded;             /* the settings load() found, for the app once it is set up */
@@ -274,6 +281,12 @@ static void dump(void)
     printf("state: X=%s stop=%s lines=%d prgm=%d running=%d shift=%d prompt=%s msg=%s heap=%u stack-free=%u\n", x, stop,
            calc->prog_len, calc->prgm, app.running, app.shift, app.prompt_op >= 0 ? app.prompt_text : "-", m ? m : "-",
            (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL), (unsigned)uxTaskGetStackHighWaterMark(NULL));
+    {   /* unit 027: the status band's clock and a SYS view's first line, as the screen has them */
+        static screen_ui ui;
+        app_ui(&app, &ui);
+        printf("ui: clock=%s%c view=%s soft1=%s\n", ui.clock, ui.ampm ? ui.ampm : ' ', ui.view[0] ? ui.view[0] : "-",
+               ui.soft[0] && ui.soft[0][0] ? ui.soft[0] : "-");
+    }
     printf("pixels: gold key %04X, blue key %04X (gold %04X, blue %04X, key %04X)\n", pixel_at(440, 345),
            pixel_at(440, 405), SI_PALETTE[SI_GOLD], SI_PALETTE[SI_BLUE], SI_PALETTE[SI_KEY]);
 }
@@ -382,6 +395,10 @@ static void console_task(void *arg)
         else if (!strcmp(line, "WIPE")) e.kind = EV_WIPE;
         else if (!strcmp(line, "RESTART")) e.kind = EV_RESTART;
         else if (!strcmp(line, "BENCH")) e.kind = EV_BENCH;
+        else if (!strncmp(line, "TIME ", 5)) {      /* TIME hh:mm[:ss] (unit 027 rule 4) */
+            snprintf(time_text, sizeof time_text, "%.15s", line + 5);
+            e.kind = EV_TIME;
+        }
         if (e.kind >= 0) xQueueSend(events, &e, portMAX_DELAY);
         else if (line[0]) printf("console: ? %s\n", line);
     }
@@ -406,7 +423,6 @@ static void calc_task(void *arg)
             printf("key %d\n", ev.a);
             memory_clear_msg = false;
             app_key(&app, ev.a, now);
-            app.tone = -1;                      /* the stand-in has no buzzer (unit 022's tones) */
         } else if (got && ev.kind == EV_TOUCHED) {
             printf("key %d: interrupted the run\n", ev.a);
             app.last_key_ms = now;              /* activity, and nothing more */
@@ -424,11 +440,24 @@ static void calc_task(void *arg)
                                      ? "both slots erased" : "FAILED");
         } else if (got && ev.kind == EV_BENCH) {
             bench();
+        } else if (got && ev.kind == EV_TIME) {
+            int64_t w;
+            if (dev_parse_time(&app, now, time_text, &w)) {
+                dev_set_wall(NULL, w);
+                app_set_wall(&app, w, now);
+                printf("time: set %02d:%02d:%02d\n", (int)(w % 86400 / 3600), (int)(w % 3600 / 60), (int)(w % 60));
+            } else {
+                printf("time: ? %s (hh:mm or hh:mm:ss)\n", time_text);
+            }
         } else if (got && ev.kind == EV_RESTART) {
             fflush(stdout);
             esp_restart();
         }
         app_action act = app_tick(&app, &in, now);
+        if (app.tone >= 0) {                    /* no buzzer here: the console says what would sound */
+            printf("tone: use %d level %d\n", app.tone_use, app.tone);
+            app.tone = -1;
+        }
         if (app.running != was_running) {
             char stop[32];
             ab_stop_text(calc, stop);
@@ -449,6 +478,23 @@ static void calc_task(void *arg)
         }
         if (act == APP_RENDER || got) render(0);
     }
+}
+
+static uint32_t clock_cb(void *ctx)
+{
+    (void)ctx;
+    return now_ms();
+}
+
+/* SYS: the stand-in has no gauge and no charger pins; it is on USB */
+static void sysinfo_cb(void *ctx, app_sysinfo *o)
+{
+    (void)ctx;
+    o->soc = -1;
+    o->chg_n = true;
+    o->pgood_n = false;
+    o->vbat_uv = 0;
+    dev_sysinfo_common(o, flash.ctx && last_image <= flash.slot_size ? flash.slot_size - last_image : 0);
 }
 
 void app_main(void)
@@ -477,6 +523,13 @@ void app_main(void)
     app_init(&app, calc, now_ms());
     app.busy = on_busy;
     app.set = loaded;
+    /* unit 027: the clock from the RTC (unset after the cell was out: before 2025), the callbacks,
+       and ON's chirp: every boot of the stand-in is a power-on */
+    app_set_wall(&app, dev_wall_now(), now_ms());
+    app.set_wall = dev_set_wall;
+    app.clock_ms = clock_cb;
+    app.sysinfo = sysinfo_cb;
+    app_powered_on(&app);
     {   /* UNDO's two images (unit 021), in PSRAM beside the store's; without them UNDO does nothing */
         uint8_t *u0 = heap_caps_malloc(IMAGE_CAP, MALLOC_CAP_SPIRAM), *u1 = heap_caps_malloc(IMAGE_CAP, MALLOC_CAP_SPIRAM);
         if (!u0 || !u1) {

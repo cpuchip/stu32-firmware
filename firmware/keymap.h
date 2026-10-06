@@ -34,10 +34,14 @@ typedef enum {
 
 enum { KM_ARG_VAR = 1, KM_ARG_LABEL, KM_ARG_TARGET,     /* what a KM_PROMPT asks for */
        KM_ARG_DIGITS,                                   /* a digit setting, from the digit keys (app.h) */
-       KM_ARG_ADDR };                                   /* three digits, 000-999 (CLVARx, unit 021) */
+       KM_ARG_ADDR,                                     /* three digits, 000-999 (CLVARx, unit 021) */
+       KM_ARG_TIME };                                   /* HH MM, four digits (CLOCK's SET, unit 027) */
 enum { KM_DEV_OFF = 1, KM_DEV_UNDO,
        /* unit 022's settings (settings.h): op carries the value for RADIX and GROUP */
-       KM_DEV_RADIX, KM_DEV_GROUP, KM_DEV_OFFTIME, KM_DEV_VOL, KM_DEV_BEEP };
+       KM_DEV_RADIX, KM_DEV_GROUP, KM_DEV_OFFTIME, KM_DEV_VOL,
+       /* unit 027: MODE's entry logic (op 0 RPN, marked: the only one yet); a buzzer use (op its
+          DEV_USE_* bit) toggled, and all of them; CLOCK's SET and 12/24; SYS's views (op APP_VIEW_*) */
+       KM_DEV_ENTRY, KM_DEV_USE, KM_DEV_USEALL, KM_DEV_CLOCKSET, KM_DEV_H24, KM_DEV_VIEW };
 
 typedef struct {
     km_kind kind;

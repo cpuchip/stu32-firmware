@@ -13,7 +13,7 @@ set(FW "${REPO}/firmware")
 idf_component_register(
     SRCS reva_main.c ${CORE_SRCS} "${FW}/screen.c" "${FW}/font5x7.c" "${FW}/app.c" "${FW}/keymap.c"
          "${FW}/keys.c" "${FW}/power.c" "${FW}/store.c" "${FW}/ls027.c" "${FW}/gauge.c" "${FW}/pins.c" "${FW}/piezo.c" "${FW}/settings.c"
-    INCLUDE_DIRS . "${REPO}/core" "${FW}"
+    INCLUDE_DIRS . "${REPO}/core" "${FW}" "${REPO}/device"
     REQUIRES esp_driver_spi esp_driver_i2c esp_driver_gpio esp_driver_ledc esp_psram esp_partition esp_timer ulp esp_hw_support)
 
 set(ulp_app_name ulp_${COMPONENT_NAME})
@@ -23,6 +23,13 @@ if(NOT EXISTS "${BID_LIB}")
     message(FATAL_ERROR "no ${BID_LIB}: run TARGET=esp32s3 scripts/fetch-intel-dfp.sh")
 endif()
 target_include_directories(${COMPONENT_LIB} SYSTEM PRIVATE "${BID_INC}")
+# SYS's VER (unit 027): the core's commit, from git at configure time
+execute_process(COMMAND git -C "${REPO}" rev-parse --short HEAD OUTPUT_VARIABLE AB_COMMIT
+                OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+if(NOT AB_COMMIT)
+    set(AB_COMMIT "unknown")
+endif()
+target_compile_definitions(${COMPONENT_LIB} PRIVATE AB_CORE_COMMIT="${AB_COMMIT}")
 target_compile_definitions(${COMPONENT_LIB} PRIVATE
     DECIMAL_CALL_BY_REFERENCE=0 DECIMAL_GLOBAL_ROUNDING=0 DECIMAL_GLOBAL_EXCEPTION_FLAGS=0)
 target_link_libraries(${COMPONENT_LIB} PRIVATE "${BID_LIB}")

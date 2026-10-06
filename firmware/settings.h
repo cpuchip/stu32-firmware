@@ -22,7 +22,7 @@
 
 #include "calc.h"
 
-#define DEV_SETTINGS_VERSION 1
+#define DEV_SETTINGS_VERSION 2
 
 /* The buzzer's uses (unit 027 rule 3), each on or off: */
 enum {

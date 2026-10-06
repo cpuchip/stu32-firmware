@@ -924,7 +924,7 @@ int main(void)
         press(&a, "BLUE 3");
         app_ui(&a, &ui);
         expect(ui.soft[0] && !strcmp(ui.soft[0], "OFF10") && ui.soft[1] && !strcmp(ui.soft[1], "VOL 4") &&
-               ui.soft[2] && !strcmp(ui.soft[2], "BEEP") && ui.soft_on[2], "SETUP shows OFF10, VOL 4, BEEP on");
+               ui.soft[2] && !strcmp(ui.soft[2], "BEEP") && ui.soft_sub[2], "SETUP shows OFF10, VOL 4, BEEP> (unit 027: its uses)");
         press(&a, "C");
         /* VOL cycles the five levels, sounding each */
         ok = true;
@@ -938,7 +938,7 @@ int main(void)
         a.tone = -1;
         press(&a, "1 ENTER 0 \xc3\xb7");
         expect(a.tone == 4, "an error sounds at the level set");
-        press(&a, "C BLUE 3 k:2");
+        press(&a, "C BLUE 3 k:2 k:5 k:1 C");      /* unit 027: BEEP>'s second page, ALL */
         expect(a.set.uses == 0, "BEEP off");
         a.tone = -1;
         press(&a, "1 ENTER 0 \xc3\xb7");
@@ -1236,6 +1236,12 @@ int main(void)
         expect(!strcmp(ui.clock, "--:--") && !ui.ampm, "027: the clock never set shows --:--");
         int64_t w;
         expect(!app_wall(&a, now, &w), "027: app_wall: unset");
+        app_set_wall(&a, 1000, now);            /* an RTC that lost its cell boots near 1970 */
+        app_tick(&a, &ok, now);
+        app_ui(&a, &ui);
+        expect(!app_wall(&a, now, &w) && !strcmp(ui.clock, "--:--"), "027: an RTC time before 2025 leaves the clock unset");
+        app_saved(&a);
+        app_tick(&a, &ok, now);
         uint32_t idle_wake = app_next_wake(&a, &ok, now);
         a.set_wall = fake_set_wall;
         press(&a, "BLUE 3 k:3");
@@ -1250,9 +1256,13 @@ int main(void)
                "027 SET 13:05: the wall clock at 13:05:00 (2026-01-01), the RTC told");
         expect(!strcmp(ui.clock, "1:05") && ui.ampm == 'p', "027: 12-hour form 1:05 p");
         uint32_t t1 = now;
+        app_saved(&a);
+        app_tick(&a, &ok, t1);
         expect(app_next_wake(&a, &ok, t1) <= 60000u && app_next_wake(&a, &ok, t1) < idle_wake,
                "027: the minute's change is a deadline in app_next_wake");
         app_set_wall(&a, (int64_t)APP_CLOCK_KEYS_DATE + 13 * 3600 + 5 * 60 + 15, t1);
+        app_saved(&a);                          /* no quiet save due, so the minute is the nearest */
+        app_tick(&a, &ok, t1);                  /* the render app_set_wall asked for */
         expect(app_next_wake(&a, &ok, t1) == 45000u, "027: at 13:05:15 the next wake is in 45 s");
         app_tick(&a, &ok, t1 + 45000);
         app_ui(&a, &ui);
@@ -1383,8 +1393,8 @@ int main(void)
             a.tone = -1;
             press(&a, "XEQ ltr:A");
             uint32_t t0 = now;
-            while (a.running && now - t0 < len) app_tick(&a, &ok, now += 50);
-            now = t0 + len;
+            while (a.running && now - t0 < len - 200) app_tick(&a, &ok, now += 50);
+            now = t0 + len - 101;               /* R/S's tap adds 100 ms, the run ends a tick (1 ms) later */
             press(&a, "R/S");
             run_out(&a, &in);
             app_tick(&a, &ok, now);

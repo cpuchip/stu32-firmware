@@ -120,7 +120,7 @@ typedef enum {
                                counts it in beeps; the device sounds it */
 } ab_op;
 
-#define AB_OP_LAST AB_EQTOP     /* the last op: loops over every op end here */
+#define AB_OP_LAST AB_BEEP      /* the last op: loops over every op end here */
 
 /* Why the last run stopped (unit 012 rule 1): the device draws it; the core never waits. */
 typedef enum {

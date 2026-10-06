@@ -104,7 +104,7 @@ MENUS = [
               o("SEED", "AB_SEED"), NONE]),
     # SF, CF, FS? take the flag from the digit prompt: 10 and 11 by .0 and .1 (UG p.14-9)
     ("FLAGS", [p("SF", "AB_SF", "KM_ARG_DIGITS"), p("CF", "AB_CF", "KM_ARG_DIGITS"),
-               p("FS?", "AB_FS", "KM_ARG_DIGITS"), NONE, NONE, NONE]),
+               p("FS?", "AB_FS", "KM_ARG_DIGITS"), o("BEEP", "AB_BEEP"), NONE, NONE]),   # unit 027: BEEP, ours
     # the tests: AB_TEST with its relation (calc.h's AB_TEST_* order, + 6 against 0; UG p.14-7)
     ("x?y", [t("x\u2260y?", 0), t("x\u2264y?", 1), t("x<y?", 2), t("x>y?", 3), t("x\u2265y?", 4), t("x=y?", 5)]),
     ("x?0", [t("x\u22600?", 6), t("x\u22640?", 7), t("x<0?", 8), t("x>0?", 9), t("x\u22650?", 10), t("x=0?", 11)]),
@@ -132,7 +132,9 @@ MENUS = [
               NONE, NONE, NONE]),
     ("STACK", [o("CLSTK", "AB_CLSTK"), o("LASTx", "AB_LASTX"), o("R\u2191", "AB_RUP"), o("x\u2194y", "AB_XY"),
                NONE, NONE]),
-    ("MODE", [o("33s", "AB_MODEL", 33), o("35s", "AB_MODEL", 35), NONE, NONE, NONE, NONE]),
+    # unit 027: how the calculator behaves; F3 kept for STU, F5 for ALG; RPN marked, the only one yet
+    ("MODE", [o("33s", "AB_MODEL", 33), o("35s", "AB_MODEL", 35), NONE, ("RPN", "KM_DEVICE", "0", "KM_DEV_ENTRY", 0),
+              NONE, NONE]),
     # the parts of a number under the printed legend POW (Michael is asked to rename it PARTS)
     ("POW", [o("IP", "AB_IP"), o("FP", "AB_FP"), o("INTG", "AB_INTG"), o("RND", "AB_RND"), o("SGN", "AB_SGN"),
              o("ABS", "AB_ABS")]),
@@ -152,7 +154,20 @@ MENUS = [
                ("1,000", "KM_DEVICE", "1", "KM_DEV_GROUP", 0), ("1 000", "KM_DEVICE", "' '", "KM_DEV_GROUP", 0),
                ("none", "KM_DEVICE", "0", "KM_DEV_GROUP", 0), NONE]),
     ("SETUP", [("OFF", "KM_DEVICE", "0", "KM_DEV_OFFTIME", 0), ("VOL", "KM_DEVICE", "0", "KM_DEV_VOL", 0),
-               ("BEEP", "KM_DEVICE", "0", "KM_DEV_BEEP", 0), NONE, NONE, NONE]),
+               ("BEEP", "KM_MENU", "0", "BEEP", 0), ("CLOCK", "KM_MENU", "0", "CLOCK", 0), NONE, NONE]),
+    # unit 027 rule 3: the buzzer's uses, each toggled (the op its DEV_USE_* bit), two pages; ALL turns
+    # every use off if any is on, else all on. On no key: SETUP's BEEP opens it.
+    ("BEEP", [("CLICK", "KM_DEVICE", "1", "KM_DEV_USE", 0), ("ERROR", "KM_DEVICE", "2", "KM_DEV_USE", 0),
+              ("PRGM", "KM_DEVICE", "4", "KM_DEV_USE", 0), ("BATT", "KM_DEVICE", "8", "KM_DEV_USE", 0),
+              ("ON", "KM_DEVICE", "16", "KM_DEV_USE", 0), ("\u25b8", "KM_MENU", "0", "BEEP2", 0)]),
+    ("BEEP2", [("DONE", "KM_DEVICE", "32", "KM_DEV_USE", 0), ("ALL", "KM_DEVICE", "0", "KM_DEV_USEALL", 0),
+               NONE, NONE, NONE, ("\u25b8", "KM_MENU", "0", "BEEP", 0)]),
+    # unit 027 rule 4 (SETUP's F4 its provisional home): SET prompts HH MM; 12/24 toggles the form
+    ("CLOCK", [("SET", "KM_DEVICE", "0", "KM_DEV_CLOCKSET", 0), ("12/24", "KM_DEVICE", "0", "KM_DEV_H24", 0),
+               NONE, NONE, NONE, NONE]),
+    # unit 027 rule 5 (as amended: FLASH, Michael's SYS card): views any key leaves (the op APP_VIEW_*)
+    ("SYS", [("BATT", "KM_DEVICE", "1", "KM_DEV_VIEW", 0), ("VER", "KM_DEVICE", "2", "KM_DEV_VIEW", 0),
+             ("FLASH", "KM_DEVICE", "3", "KM_DEV_VIEW", 0), NONE, NONE, NONE]),
     # rule 3: the one paged menu; the app fills soft keys 1-5 from the core's constants
     ("CONST", [NONE, NONE, NONE, NONE, NONE, ("more", "KM_NONE", "0", 0, 0)], "AB_CONST"),
 ]

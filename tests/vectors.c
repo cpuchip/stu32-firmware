@@ -158,8 +158,11 @@ static const ab_flash host_flash = {NULL, 4096, sizeof ram_flash / 2, rf_erase, 
 static bool harness_saveload(ab_calc *c)
 {
     const uint8_t *back;
-    return buf_save(c, &himg, &himg_len, &himg_cap) && (back = through_store(himg, himg_len)) != NULL &&
-           ab_state_load(c, back, himg_len) == ABN_OK;
+    uint16_t beeps = c->beeps;      /* the BEEP count is the device's to read, not state (unit 027) */
+    bool ok = buf_save(c, &himg, &himg_len, &himg_cap) && (back = through_store(himg, himg_len)) != NULL &&
+              ab_state_load(c, back, himg_len) == ABN_OK;
+    c->beeps = beeps;
+    return ok;
 }
 
 static ab_calc calc;            /* 106 KB: off the stack, and the only one on a device */
@@ -593,6 +596,7 @@ int vectors_run(const char *name, FILE *f)
                 size_t n1;
                 static uint8_t *b2;
                 static size_t c2;
+                uint16_t hbeeps = 0;
                 const uint8_t *back = NULL;
                 if (!buf_save(&c, &himg, &himg_len, &himg_cap)) {
                     fprintf(stderr, "%s:%d: %s: save failed after '%s'\n", name, lineno, id, tok);
@@ -600,7 +604,7 @@ int vectors_run(const char *name, FILE *f)
                 } else if ((back = through_store(himg, himg_len)) == NULL) {
                     fprintf(stderr, "%s:%d: %s: the store did not give the image back after '%s'\n", name, lineno, id, tok);
                     op_errors += 1000;
-                } else if (ab_state_load(&c, back, himg_len) != ABN_OK) {
+                } else if ((hbeeps = c.beeps, ab_state_load(&c, back, himg_len)) != ABN_OK) {
                     fprintf(stderr, "%s:%d: %s: load refused its own image after '%s'\n", name, lineno, id, tok);
                     op_errors += 1000;
                 } else {
@@ -610,6 +614,7 @@ int vectors_run(const char *name, FILE *f)
                         b2 = malloc(n1);
                         c2 = b2 ? n1 : 0;
                     }
+                    c.beeps = hbeeps;           /* the device's to read, not state (unit 027) */
                     if (!b2 || ab_state_save(&c, b2, c2) != himg_len || memcmp(b2, himg, himg_len) != 0) {
                         fprintf(stderr, "%s:%d: %s: save, load, save differ after '%s'\n", name, lineno, id, tok);
                         op_errors += 1000;
