@@ -38,6 +38,8 @@
 #include "state.h"
 #include "store.h"
 #include "dev_common.h"
+#include "arena.h"
+#include "fn.h"
 
 #define I2C_SDA 8
 #define I2C_SCL 9
@@ -49,7 +51,7 @@
 #define EXIO_LCD_RST (1u << 3)
 #define GT911_ADDR 0x5D
 
-enum { EV_KEY = 0, EV_OP, EV_DUMP, EV_SAVE, EV_WIPE, EV_RESTART, EV_TOUCHED, EV_BENCH, EV_TIME };
+enum { EV_KEY = 0, EV_OP, EV_DUMP, EV_SAVE, EV_WIPE, EV_RESTART, EV_TOUCHED, EV_BENCH, EV_TIME, EV_POWBENCH };
 static char time_text[16];             /* TIME's argument, for the calc task (unit 027) */
 
 typedef struct {
@@ -291,6 +293,42 @@ static void dump(void)
            pixel_at(440, 405), SI_PALETTE[SI_GOLD], SI_PALETTE[SI_BLUE], SI_PALETTE[SI_KEY]);
 }
 
+/* POWBENCH (unit 028): y^x's time on the S3, the engine's pow (the route before 028 for a non-integer
+   exponent) beside fn_pow (028's: exact squaring, else e^(x ln y) in hp), typical and worst cases. */
+static void powbench(void)
+{
+    static const char *const C[][3] = {
+        {"typical", "2.5", "3.7"},
+        {"typical", "123.456", "-0.31"},
+        {"integer 37 (exact)", "1.0001", "37"},
+        {"integer 100000", "1.000001", "100000"},
+        {"half 1000.5", "1.01", "1000.5"},
+        {"near 1, 1E35", "1.000000000000000000000000000000001", "1E35"},
+        {"near 1, 1E20", "0.999999999999999997", "-3.3E20"},
+        {"edge base", "9.9E6144", "0.999"},
+        {"large result", "7", "7000.5"},
+    };
+    for (size_t i = 0; i < sizeof C / sizeof C[0]; i++) {
+        abn y, x, r;
+        abn_from_text(&y, C[i][1]);
+        abn_from_text(&x, C[i][2]);
+        const int reps = 50;
+        int64_t t0 = esp_timer_get_time();
+        abn_status s1 = ABN_OK, s2 = ABN_OK;
+        for (int k = 0; k < reps; k++) s1 = abn_pow(&r, &y, &x);
+        int64_t t1 = esp_timer_get_time();
+        for (int k = 0; k < reps; k++) {
+            int m = ar_mark();
+            s2 = fn_pow(&r, &y, &x);
+            ar_release(m);
+        }
+        int64_t t2 = esp_timer_get_time();
+        printf("powbench: %-20s %s^%s  engine %lld us (st %d)  fn_pow %lld us (st %d)\n", C[i][0], C[i][1], C[i][2],
+               (long long)(t1 - t0) / reps, (int)s1, (long long)(t2 - t1) / reps, (int)s2);
+    }
+    printf("powbench: done\n");
+}
+
 /* BENCH: what PSRAM costs and gives (decision 34's ECC question: measure before turning it on). A
    second calculator in PSRAM, as Rev A's two-calculator state would be; a 2,000-line program run in
    it (its arena pool in PSRAM too); 200 saves and loads of the state image in PSRAM. */
@@ -395,6 +433,7 @@ static void console_task(void *arg)
         else if (!strcmp(line, "WIPE")) e.kind = EV_WIPE;
         else if (!strcmp(line, "RESTART")) e.kind = EV_RESTART;
         else if (!strcmp(line, "BENCH")) e.kind = EV_BENCH;
+        else if (!strcmp(line, "POWBENCH")) e.kind = EV_POWBENCH;
         else if (!strncmp(line, "TIME ", 5)) {      /* TIME hh:mm[:ss] (unit 027 rule 4) */
             snprintf(time_text, sizeof time_text, "%.15s", line + 5);
             e.kind = EV_TIME;
@@ -438,6 +477,8 @@ static void calc_task(void *arg)
         } else if (got && ev.kind == EV_WIPE) {
             printf("wipe: %s\n", flash.ctx && esp_partition_erase_range(flash.ctx, 0, 2 * flash.slot_size) == ESP_OK
                                      ? "both slots erased" : "FAILED");
+        } else if (got && ev.kind == EV_POWBENCH) {
+            powbench();
         } else if (got && ev.kind == EV_BENCH) {
             bench();
         } else if (got && ev.kind == EV_TIME) {

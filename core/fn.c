@@ -141,48 +141,53 @@ static abn round_sig(const abn *x, int k)
 
 #define FN_HP 50        /* the digits these are formed to before their one rounding */
 
-/* y^e for y > 0 as e^(e ln y) in hp, rounded once: beside the range's edges, where the engine's pow
- * (and the steps of pow_real) leave it inside though the result may not (unit 026: the engine gives
- * 2^-30000 as an overflow). */
+/* y^e for y > 0 as e^(e ln y) in hp, rounded once (units 026, 028). The logarithm and the product to
+ * FN_HP digits: |e ln y| < 14200 in range, so the exponent carries 45 digits after its point, 11 beyond
+ * the result's 34 (measured on the S3, unit 028: 50 digits cost 45% less than 70, with no case of
+ * 24000 rounded differently). */
 static abn_status pow_hp(abn *out, const abn *y, const abn *e)
 {
     static hp hy, he, one, t, l, w, r;
     hp_set_int(&one, 1);
     if (!hp_from_abn(&hy, y) || !hp_from_abn(&he, e) || !hp_add(&t, &hy, &one, true, HP_PMAX) ||
-        !hp_ln(&l, &hy, &t, FN_HP + 20) || !hp_mul(&w, &he, &l, FN_HP + 20))
+        !hp_ln(&l, &hy, &t, FN_HP) || !hp_mul(&w, &he, &l, FN_HP))
         return ABN_RANGE;
     if (!hp_exp(&r, &w, FN_HP))         /* |e ln y| >= 10^7: beyond the range */
         return w.neg ? ABN_UNDERFLOW : ABN_OVERFLOW;
     return hp_round(out, &r);
 }
 
-/* y^e for y > 0. The engine's pow is accurate for non-integer exponents, but for integer
- * exponents it loses about one unit per power (measured: 247 units at n = 200, against its
- * documented bound of 8). So an integer power is exact by squaring when that is exact, and
- * otherwise taken as y^(n - 1/2) * sqrt(y): a non-integer power and a correctly rounded root. */
+/* The x-th root of y > 0 as e^(ln y / x) in hp, rounded once (unit 028). */
+static abn_status root_hp(abn *out, const abn *y, const abn *x)
+{
+    static hp hy, hx, one, t, l, w, r;
+    hp_set_int(&one, 1);
+    if (!hp_from_abn(&hy, y) || !hp_from_abn(&hx, x) || !hp_add(&t, &hy, &one, true, HP_PMAX) ||
+        !hp_ln(&l, &hy, &t, FN_HP) || !hp_div(&w, &l, &hx, FN_HP))
+        return ABN_RANGE;
+    if (!hp_exp(&r, &w, FN_HP))         /* |ln y / x| >= 10^7: beyond the range */
+        return w.neg ? ABN_UNDERFLOW : ABN_OVERFLOW;
+    return hp_round(out, &r);
+}
+
+/* y^e for y > 0 (unit 028): exact by squaring where the integer power is exact (2^10 = 1024), and
+ * otherwise e^(e ln y) in hp rounded once (pow_hp), so within a unit of the 34th digit everywhere. The
+ * engine's pow missed by thousands of units for a base near 1 with a large exponent (6914 at
+ * (1 - 2.8E-30)^-1.8E33, unit 026's review) and lost about one unit per power on integer powers. */
 static abn_status pow_real(abn *out, const abn *y, const abn *e)
 {
     int32_t n;
     abn r;
-    if (!abn_is_integer(e) || !small_int(e, &n)) return abn_pow(out, y, e);
-    if (n >= -POW_EXACT_MAX && n <= POW_EXACT_MAX &&
+    if (abn_is_integer(e) && small_int(e, &n) && n >= -POW_EXACT_MAX && n <= POW_EXACT_MAX &&
         pow_exact(&r, y, (uint32_t)(n < 0 ? -n : n)) == ABN_OK) {
         if (n < 0) {
             abn u = one();
-            return abn_div(out, &u, &r);
+            return abn_div(out, &u, &r);        /* one rounding of an exact value */
         }
         *out = r;
         return ABN_OK;
     }
-    if (n >= -1 && n <= 1) return abn_pow(out, y, e);
-    abn half = K("0.5"), e2, p, s;
-    abn_status st;
-    if ((st = abn_sub(&e2, e, &half)) != ABN_OK) return st;
-    if ((st = abn_pow(&p, y, &e2)) == ABN_OVERFLOW || st == ABN_UNDERFLOW)
-        return pow_hp(out, y, e);   /* y^(n - 1/2) beyond the range though y^n may not be (unit 026) */
-    if (st != ABN_OK) return st;
-    if ((st = abn_sqrt(&s, y)) != ABN_OK) return st;
-    return abn_mul(out, &p, &s);
+    return pow_hp(out, y, e);
 }
 
 /* ---- powers and logarithms (UG p.4-2, p.4-3) ---- */
@@ -338,9 +343,9 @@ abn_status fn_pow(abn *out, const abn *y, const abn *x)
 /* The x-th root of y (UG p.4-3): for y < 0, x must be an odd integer (the guide says an
  * integer; an even root of a negative is complex, an error here, ours, unit 003).
  *
- * The root is y^(1/x), but 1/x is rarely exact and its rounding error is multiplied by
- * ln y. So 1/x = h + l, with h the rounded reciprocal and l = (1 - h*x)/x from a fused
- * multiply-add, and the root is y^h * (1 + l * ln y). Perfect powers come out exact. */
+ * The root is e^(ln y / x) formed in hp, the division exact to far beyond 34 digits, and rounded once
+ * (unit 028; it was y^h with h the rounded 1/x and a correction for h's error). Perfect powers come
+ * out exact. */
 abn_status fn_xroot(abn *out, const abn *y, const abn *x)
 {
     if (abn_is_zero(x)) return ABN_DOMAIN;
@@ -351,7 +356,7 @@ abn_status fn_xroot(abn *out, const abn *y, const abn *x)
         *out = abn_zero();
         return ABN_OK;
     }
-    abn ay = abn_abs(y), u = one(), h, nh, res, l, lny, corr, r;
+    abn ay = abn_abs(y), u = one(), h, r;
     abn_status st;
     if ((st = abn_div(&h, &u, x)) == ABN_UNDERFLOW) {
         /* |1/x| below the range: y^(1/x) is 1 to far beyond the 34th digit (unit 026) */
@@ -365,19 +370,7 @@ abn_status fn_xroot(abn *out, const abn *y, const abn *x)
         *out = yneg ? abn_neg(&u) : u;
         return ABN_OK;
     }
-    nh = abn_neg(&h);
-    if ((st = abn_fma(&res, &nh, x, &u)) == ABN_UNDERFLOW) res = abn_zero();       /* 1 - h*x */
-    else if (st != ABN_OK) return st;
-    if ((st = pow_real(&r, &ay, &h)) != ABN_OK) return st;
-    if (!abn_is_zero(&res)) {
-        /* the correction (1 + l ln y); below the range it is negligible (unit 026) */
-        if ((st = abn_div(&l, &res, x)) == ABN_UNDERFLOW) l = abn_zero();
-        else if (st != ABN_OK) return st;
-        if ((st = abn_ln(&lny, &ay)) != ABN_OK) return st;
-        if ((st = abn_mul(&corr, &l, &lny)) == ABN_UNDERFLOW) corr = abn_zero();
-        else if (st != ABN_OK) return st;
-        if (!abn_is_zero(&corr) && (st = abn_fma(&r, &r, &corr, &r)) != ABN_OK) return st;
-    }
+    if ((st = root_hp(&r, &ay, x)) != ABN_OK) return st;      /* e^(ln y / x), rounded once (unit 028) */
     /* Exact roots exact: if a short neighbour of r, raised to x, gives y back exactly. */
     int32_t n;
     if (small_int(x, &n) && n >= -POW_EXACT_MAX && n <= POW_EXACT_MAX) {
