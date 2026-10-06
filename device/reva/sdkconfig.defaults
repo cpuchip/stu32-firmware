@@ -21,3 +21,6 @@ CONFIG_ULP_COPROC_TYPE_RISCV=y
 CONFIG_ULP_COPROC_RESERVE_MEM=4096
 # a long SOLVE is one call (unit 016)
 CONFIG_ESP_TASK_WDT_INIT=n
+# unit 023: automatic light sleep between keys (the ticks stay 1 ms for the scan while a key is down)
+CONFIG_PM_ENABLE=y
+CONFIG_FREERTOS_USE_TICKLESS_IDLE=y

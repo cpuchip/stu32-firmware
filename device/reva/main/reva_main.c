@@ -27,11 +27,13 @@
 #include "driver/spi_master.h"
 #include "esp_heap_caps.h"
 #include "esp_partition.h"
+#include "esp_pm.h"
 #include "esp_rom_sys.h"
 #include "esp_sleep.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
+#include "freertos/semphr.h"
 #include "freertos/task.h"
 #include "ulp_riscv.h"
 #include "ulp_common.h"
@@ -62,6 +64,12 @@ static uint8_t *tx;
 static ls027_frame shown, next;         /* what the panel holds, and what it should */
 static bool shown_valid;
 static QueueHandle_t keys_q;
+/* unit 023: light sleep between keys. usb_lock keeps the chip out of light sleep on USB power (the
+   console stays usable, the power is free); tone_lock through a piezo tone (LEDC stops in light
+   sleep); key_wake is given by a row's or IO0's interrupt while the scan sleeps. */
+static esp_pm_lock_handle_t usb_lock, tone_lock;
+static bool usb_locked;
+static SemaphoreHandle_t key_wake;
 static ab_calc *calc;
 static app_state app;
 static uint8_t *image;
@@ -153,6 +161,39 @@ static bool kb_read_on(void *ctx)
     return gpio_get_level(PIN_ON) == 0;         /* active low on its 10k pull-up (decision 34) */
 }
 
+/* every column driven low, so any key pressed pulls its row low: the idle scan's wake (unit 023) */
+static void kb_all_low(void)
+{
+    for (int c = 0; c < KB_COLS; c++) {
+        gpio_set_direction(COLS[c], GPIO_MODE_OUTPUT_OD);
+        gpio_set_level(COLS[c], 0);
+    }
+}
+
+static void IRAM_ATTR key_isr(void *arg)
+{
+    (void)arg;
+    for (int r = 0; r < KB_ROWS; r++) gpio_intr_disable(ROWS[r]);    /* level interrupts: once */
+    gpio_intr_disable(PIN_ON);
+    BaseType_t woken = pdFALSE;
+    xSemaphoreGiveFromISR(key_wake, &woken);
+    if (woken) portYIELD_FROM_ISR();
+}
+
+/* The rows and IO0 as wakes on a low level, for light sleep and for the scan's semaphore. */
+static void key_wake_init(void)
+{
+    key_wake = xSemaphoreCreateBinary();
+    gpio_install_isr_service(0);
+    for (int r = 0; r <= KB_ROWS; r++) {
+        int pin = r < KB_ROWS ? ROWS[r] : PIN_ON;
+        gpio_wakeup_enable(pin, GPIO_INTR_LOW_LEVEL);  /* also its interrupt type */
+        gpio_intr_disable(pin);
+        gpio_isr_handler_add(pin, key_isr, NULL);
+    }
+    esp_sleep_enable_gpio_wakeup();
+}
+
 static void scan_task(void *arg)
 {
     (void)arg;
@@ -171,6 +212,17 @@ static void scan_task(void *arg)
                 continue;
             }
             xQueueSend(keys_q, &k, 0);
+        }
+        if (kb_idle(&ks)) {
+            /* unit 023: every key up and every count settled, so kb_scan would change nothing until
+               a key goes down. Sleep on the rows and IO0 (columns low), then scan every millisecond
+               again until idle. A key down already makes its level interrupt fire at once. */
+            kb_all_low();
+            xSemaphoreTake(key_wake, 0);
+            for (int r = 0; r < KB_ROWS; r++) gpio_intr_enable(ROWS[r]);
+            gpio_intr_enable(PIN_ON);
+            xSemaphoreTake(key_wake, portMAX_DELAY);
+            kb_drive(NULL, -1);
         }
         vTaskDelay(1);
     }
@@ -196,6 +248,7 @@ static void piezo_init(void)
 static void piezo_tone(uint32_t hz, uint32_t ms)
 {
     if (!piezo_ready) return;
+    if (tone_lock) esp_pm_lock_acquire(tone_lock);
     if (hz) {
         ledc_set_freq(LEDC_LOW_SPEED_MODE, LEDC_TIMER_0, hz);
         ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, piezo_duty(piezo_level, 10));   /* the volume */
@@ -204,6 +257,7 @@ static void piezo_tone(uint32_t hz, uint32_t ms)
     vTaskDelay(pdMS_TO_TICKS(ms));
     ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 0);
     ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
+    if (tone_lock) esp_pm_lock_release(tone_lock);
 }
 
 /* ---- the gauge, the store ---- */
@@ -321,6 +375,15 @@ static void console_task(void *arg)
     }
 }
 
+/* No light sleep on USB power (unit 023 rule 5): the lock follows PGOOD_N. */
+static void usb_lock_follow(bool usb)
+{
+    if (!usb_lock || usb == usb_locked) return;
+    if (usb) esp_pm_lock_acquire(usb_lock);
+    else esp_pm_lock_release(usb_lock);
+    usb_locked = usb;
+}
+
 static void calc_task(void *arg)
 {
     (void)arg;
@@ -329,8 +392,18 @@ static void calc_task(void *arg)
     printf("REVA READY\n");
     for (;;) {
         int k;
-        bool got = xQueueReceive(keys_q, &k, app.running ? 0 : pdMS_TO_TICKS(20)) == pdTRUE;
+        /* unit 023: block until a key, the app's next deadline or the gauge's next sample */
         uint32_t now = now_ms();
+        pwr_inputs in0 = {gpio_get_level(PIN_CHG_N), gpio_get_level(PIN_PGOOD_N), soc, false};
+        usb_lock_follow(!in0.pgood_n);
+        uint32_t ms = app_next_wake(&app, &in0, now);
+        if (gdev) {
+            uint32_t gone = now - last_gauge, g = gone >= 30000 ? 0 : 30000 - gone;
+            if (g < ms) ms = g;
+        }
+        TickType_t wait = ms >= 3600000u ? portMAX_DELAY : pdMS_TO_TICKS(ms);
+        bool got = xQueueReceive(keys_q, &k, wait) == pdTRUE;
+        now = now_ms();
         if (got && k >= 0) {
             memory_clear_msg = false;
             app_key(&app, k, now);
@@ -365,6 +438,10 @@ static void calc_task(void *arg)
 
 void app_main(void)
 {
+    /* the calc task's stack first, in one internal block (the stand-in failed to find 32 KB once
+       its other buffers were in; see standin_main.c) */
+    static StaticTask_t calc_tcb;
+    StackType_t *calc_stack = heap_caps_malloc(32768, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
     esp_sleep_wakeup_cause_t why = esp_sleep_get_wakeup_cause();
     bool woke = why == ESP_SLEEP_WAKEUP_EXT1 || why == ESP_SLEEP_WAKEUP_TIMER;
     /* the outputs' first levels (pins.c), keeping BOOST_EN and DISP high after a wake */
@@ -436,7 +513,26 @@ void app_main(void)
     }
     piezo_init();                               /* after boot: IO46 has been read */
     keys_q = xQueueCreate(32, sizeof(int));
-    xTaskCreatePinnedToCore(calc_task, "calc", 32768, NULL, 4, NULL, 1);
+    /* unit 023: automatic light sleep. The pins that must keep their level or their pull through it
+       are taken out of IDF's sleep isolation, which would otherwise let DISP, BOOST_EN, the LCD's
+       lines and the columns float (seen on the stand-in: "isolate all GPIO pins in sleep state") */
+    {
+        const int keep[] = {PIN_DISP, PIN_BOOST_EN, PIN_SCS, PIN_SCLK, PIN_SI, PIN_PIEZO, PIN_EN1, PIN_EN2, PIN_ON};
+        for (size_t i = 0; i < sizeof keep / sizeof keep[0]; i++) gpio_sleep_sel_dis(keep[i]);
+        for (int r = 0; r < KB_ROWS; r++) gpio_sleep_sel_dis(ROWS[r]);
+        for (int c = 0; c < KB_COLS; c++) gpio_sleep_sel_dis(COLS[c]);
+        esp_pm_config_t pm = {.max_freq_mhz = 240, .min_freq_mhz = 40, .light_sleep_enable = true};
+        if (esp_pm_configure(&pm) == ESP_OK) {
+            esp_pm_lock_create(ESP_PM_NO_LIGHT_SLEEP, 0, "usb", &usb_lock);
+            esp_pm_lock_create(ESP_PM_NO_LIGHT_SLEEP, 0, "tone", &tone_lock);
+            usb_lock_follow(gpio_get_level(PIN_PGOOD_N) == 0);
+        } else {
+            printf("reva: no power management (light sleep off)\n");
+        }
+        key_wake_init();
+    }
+    if (!calc_stack || !xTaskCreateStaticPinnedToCore(calc_task, "calc", 32768, NULL, 4, calc_stack, &calc_tcb, 1))
+        printf("reva: the calc task could not be created\n");
     xTaskCreatePinnedToCore(scan_task, "scan", 4096, NULL, 6, NULL, 0);
     xTaskCreatePinnedToCore(console_task, "console", 4096, NULL, 3, NULL, 0);
 }

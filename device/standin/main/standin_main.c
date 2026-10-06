@@ -396,7 +396,11 @@ static void calc_task(void *arg)
     printf("STANDIN READY\n");
     for (;;) {
         event ev;
-        bool got = xQueueReceive(events, &ev, app.running ? 0 : pdMS_TO_TICKS(20)) == pdTRUE;
+        /* unit 023: block until an event or the app's next deadline (on USB it never light-sleeps:
+           rule 5, and its RGB panel needs the clocks) */
+        uint32_t ms = app_next_wake(&app, &in, now_ms());
+        TickType_t wait = ms >= 3600000u ? portMAX_DELAY : pdMS_TO_TICKS(ms);
+        bool got = xQueueReceive(events, &ev, wait) == pdTRUE;
         uint32_t now = now_ms();
         if (got && ev.kind == EV_KEY) {
             printf("key %d\n", ev.a);
@@ -449,6 +453,10 @@ static void calc_task(void *arg)
 
 void app_main(void)
 {
+    /* the calc task's stack first, before the keyboard image and the panel's buffers split the
+       internal heap: 32 KB in one block (it failed at boot once those had: largest block 31 KB) */
+    static StaticTask_t calc_tcb;
+    StackType_t *calc_stack = heap_caps_malloc(CALC_STACK, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
     events = xQueueCreate(32, sizeof(event));
     keys_img = heap_caps_malloc(SI_IMG_BYTES, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
     calc = heap_caps_calloc(1, sizeof *calc, MALLOC_CAP_SPIRAM);
@@ -484,7 +492,7 @@ void app_main(void)
            (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL),
            (unsigned)heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
     /* the stacks stay internal: the calc task writes flash, when PSRAM is out of reach */
-    bool ok = xTaskCreatePinnedToCore(calc_task, "calc", CALC_STACK, NULL, 4, NULL, 1) == pdPASS;
+    bool ok = calc_stack && xTaskCreateStaticPinnedToCore(calc_task, "calc", CALC_STACK, NULL, 4, calc_stack, &calc_tcb, 1);
     ok = ok && xTaskCreatePinnedToCore(touch_task, "touch", 4096, NULL, 5, NULL, 0) == pdPASS;
     ok = ok && xTaskCreatePinnedToCore(console_task, "console", 4096, NULL, 3, NULL, 0) == pdPASS;
     if (!ok) printf("standin: a task could not be created (heap internal %u)\n",
