@@ -63,6 +63,7 @@
 #define APP_QUIET_MS 30000u                 /* a change saved after 30 s without keys (ours) */
 #define APP_SLICE_LINES 200                 /* program lines per app_tick slice (ours) */
 #define APP_PSE_MS 1000u                    /* PSE's pause, "about 1 second" (UG p.13-19) */
+#define APP_NOTICE_MS 1000u                 /* a brief notice: OVERFLOW "briefly displayed" (33s p.10-3) */
 
 typedef enum {
     APP_IDLE = 0,           /* nothing to do */
@@ -84,6 +85,8 @@ typedef struct {
     int menu_page;          /* a paged menu's page (CONST, unit 019) */
     bool running;           /* a run in slices */
     bool pause;             /* a program paused at PSE, going on by itself after APP_PSE_MS */
+    const char *notice;     /* a brief notice on the X line, NULL none (unit 024: a base result clamped) */
+    uint32_t notice_ms;     /* when it began; it goes after APP_NOTICE_MS or at the next key */
     uint32_t pause_ms;      /* when the pause began */
     int busy_op;            /* the op that started it, for ab_busy_message */
     bool dirty;             /* changed since the last save */

@@ -34,6 +34,8 @@ typedef struct {
     bool charging;
     int busy;               /* 0, or the op running in slices: AB_SOLVE, AB_INTEG, AB_XEQ, AB_RS */
     const char *prompt;     /* an op waiting for its argument ("STO _", app.h), NULL none */
+    const char *notice;     /* a brief notice in the X line (a base result clamped: OVERFLOW, unit 024),
+                               NULL none */
     char radix;             /* '.' or ',': the device's setting, as the core leaves it */
     char separator;         /* digit grouping, as ab_fmt's: 0 none, 1 the guide's mark, ' ' a space */
     const char *soft[SCREEN_SOFT];  /* the soft keys' labels (UTF-8); NULL or "" for none */

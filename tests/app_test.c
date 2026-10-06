@@ -1089,6 +1089,31 @@ int main(void)
         expect(broken == 0 && checked > 500 && acted > 500, m);
     }
 
+    /* unit 024 rule 3: a base result beyond the word shows OVERFLOW briefly, then the largest number
+       (33s p.10-3: "OVERFLOW to be briefly displayed"); 1 s, or until the next key */
+    {
+        pwr_inputs bat = {true, true, 80, false};
+        static screen_page pg;
+        ab_init(&c);
+        app_init(&a, &c, now);
+        press(&a, "BLUE x\xe2\x86\x94y k:1 7");
+        for (int i = 0; i < 8; i++) press(&a, "\xce\xa3+");     /* the HEX F key (Sigma+) */
+        press(&a, "ENTER 1 +");
+        uint32_t t0 = now;
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(ui.notice && !strcmp(ui.notice, "OVERFLOW") && pg.x.kind == SCREEN_MESSAGE && !strcmp(pg.x.text, "OVERFLOW"),
+               "HEX 7FFFFFFFF + 1: OVERFLOW on the X line");
+        expect(x_of(&c) == 34359738367.0, "the largest number kept in X");
+        app_tick(&a, &bat, t0);
+        expect(app_next_wake(&a, &bat, t0 + 400) == APP_NOTICE_MS - 400, "the notice is a deadline: 600 ms left");
+        expect(app_tick(&a, &bat, t0 + APP_NOTICE_MS - 1) == APP_IDLE && a.notice, "1 ms before: still shown");
+        expect(app_tick(&a, &bat, t0 + APP_NOTICE_MS) == APP_RENDER && !a.notice, "after 1 s it goes (a render)");
+        press(&a, "ENTER 1 +");
+        press(&a, "C");
+        expect(!a.notice, "a key clears it at once");
+    }
+
     /* other menus and the soft keys alone do nothing yet; nothing crashes on any key in any shift */
     ab_init(&c);
     app_init(&a, &c, now);
