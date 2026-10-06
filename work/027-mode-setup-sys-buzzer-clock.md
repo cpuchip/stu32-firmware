@@ -121,5 +121,5 @@ Soroban's calls:
   with uncommitted changes (`+dirty`).
 - **(d) The stand-in's substitutes for SYS FLASH and BATT are fine.** Rev A's real numbers are a bring-up check.
 
-The clock's home stays SETUP F4, provisional until Michael places it. Its per-minute wake goes to bring-up step 5b
+The clock's home is SETUP F4, ruled by Michael on 2026-10-06 ("Clock in setup works"; abacus decision 50). Its per-minute wake goes to bring-up step 5b
 as a measurement.
