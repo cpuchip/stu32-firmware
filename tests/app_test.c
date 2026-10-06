@@ -1373,6 +1373,13 @@ int main(void)
         app_tick(&a, &hi, now += 10);
         app_tick(&a, &low, now += 10);
         expect(a.tone_use == DEV_USE_BATT && a.tone >= 0, "027 BATT: again after the charge recovered");
+        /* abacus #4238: the device restores the latch after a wake from OFF: still low, no second tone */
+        app_init(&a, &c, now);
+        a.set.uses = DEV_USE_BATT;
+        a.batt_low = true;
+        a.tone = -1;
+        app_tick(&a, &low, now += 10);
+        expect(a.tone == -1 && a.batt_low, "027 BATT: the latch kept through OFF: no tone at the wake while still low");
         /* ON: a wake from OFF chirps; a tick (a light-sleep wake) does not */
         a.set.uses = DEV_USE_ON;
         a.tone = -1;
@@ -1390,18 +1397,49 @@ int main(void)
         ab_do(&c, AB_ADD);
         ab_do_arg(&c, AB_GTO, 0 * 1000 + 1);
         ab_do(&c, AB_PRGM);
-        for (int run = 0; run < 2; run++) {
-            uint32_t len = run == 0 ? 1900 : 2000;
+        {   /* abacus #4238: a run the user stops (R/S after 3 s) sounds no DONE */
             a.tone = -1;
             press(&a, "XEQ ltr:A");
             uint32_t t0 = now;
-            while (a.running && now - t0 < len - 200) app_tick(&a, &ok, now += 50);
-            now = t0 + len - 101;               /* R/S's tap adds 100 ms, the run ends a tick (1 ms) later */
+            while (a.running && now - t0 < 3000) app_tick(&a, &ok, now += 50);
             press(&a, "R/S");
             run_out(&a, &in);
             app_tick(&a, &ok, now);
-            if (run == 0) expect(a.tone == -1, "027 DONE: a 1.9 s run: no tone");
-            else expect(a.tone >= 0 && a.tone_use == DEV_USE_DONE, "027 DONE: a 2 s run: the tone");
+            expect(!a.running && a.tone == -1, "027 DONE: a 3 s run stopped with R/S: no tone (abacus #4238)");
+            /* and the device's interrupt (its key task) counts the same */
+            a.tone = -1;
+            press(&a, "XEQ ltr:A");
+            t0 = now;
+            while (a.running && now - t0 < 3000) app_tick(&a, &ok, now += 50);
+            app_interrupt(&a);
+            run_out(&a, &in);
+            app_tick(&a, &ok, now);
+            expect(!a.running && a.tone == -1, "027 DONE: a 3 s run stopped by app_interrupt: no tone");
+        }
+        {   /* C in a PSE pause that ends a 3 s run: no tone either */
+            ab_init(&c);
+            app_init(&a, &c, now);
+            a.set.uses = DEV_USE_DONE;
+            ab_do(&c, AB_PRGM);
+            ab_do_arg(&c, AB_LBL, 0);           /* A: 3000 STO C, LBL B, DSE C, GTO B, PSE, RTN */
+            ab_do(&c, AB_K3);
+            ab_do(&c, AB_K0);
+            ab_do(&c, AB_K0);
+            ab_do(&c, AB_K0);
+            ab_do_arg(&c, AB_STO, 2);
+            ab_do_arg(&c, AB_LBL, 1);
+            ab_do_arg(&c, AB_DSE, 2);
+            ab_do_arg(&c, AB_GTO, 1 * 1000 + 1);
+            ab_do(&c, AB_PSE);
+            ab_do(&c, AB_RTN);
+            ab_do(&c, AB_PRGM);
+            a.tone = -1;
+            press(&a, "XEQ ltr:A");
+            while (a.running) app_tick(&a, &ok, now += 100);
+            bool paused = a.pause;
+            press(&a, "C");
+            app_tick(&a, &ok, now += 10);
+            expect(paused && !a.pause && a.tone == -1, "027 DONE: C in the PSE pause after 3 s: no tone (abacus #4238)");
         }
         a.clock_ms = fake_clock;
         ab_init(&c);
@@ -1465,8 +1503,17 @@ int main(void)
             run_out(&a, &in);
             app_tick(&a, &ok, now);
             expect(a.tone == -1, "027 review: the same run of a few slices: no DONE");
-            /* the last slice "takes" 5 s by the device's clock */
+            /* a natural end at 1.9 s and at 2.0 s by the device's clock */
             a.clock_ms = fake_clock;
+            for (int run = 0; run < 2; run++) {
+                press(&a, "4 0 0 STO ltr:C XEQ ltr:A");
+                fake_ms = now + (run == 0 ? 1900 : 2000);
+                a.tone = -1;
+                while (a.running) app_tick(&a, &ok, now += 1);
+                if (run == 0) expect(a.tone == -1, "027 DONE: a run ending by itself at 1.9 s: no tone");
+                else expect(a.tone >= 0 && a.tone_use == DEV_USE_DONE, "027 DONE: a run ending by itself at 2 s: the tone");
+            }
+            /* the last slice "takes" 5 s by the device's clock */
             press(&a, "4 0 0 STO ltr:C XEQ ltr:A");
             fake_ms = now + 5000;
             a.tone = -1;

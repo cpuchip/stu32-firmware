@@ -124,7 +124,9 @@ static void after_core(app_state *a, bool msg_before, uint32_t now_ms)
     ab_calc *c = a->c;
     if (a->run_timed && !a->running && !a->pause) {
         a->run_timed = false;
-        if ((uint32_t)(now_ms - a->run_t0) >= APP_DONE_MS) sound(a, DEV_USE_DONE);
+        /* only a natural end: not a run the user stopped with C or R/S (abacus #4238) */
+        if (!a->run_stopped && (uint32_t)(now_ms - a->run_t0) >= APP_DONE_MS) sound(a, DEV_USE_DONE);
+        a->run_stopped = false;
     }
     if (c->beeps != a->beeps) {
         a->beeps = c->beeps;
@@ -142,6 +144,7 @@ static void do_op(app_state *a, int op, int arg)
     if (runs) {
         a->run_timed = true;                    /* DONE's clock (unit 027) */
         a->run_t0 = a->last_key_ms;
+        a->run_stopped = false;
     }
     if (op != AB_VIEW) undo_mark(a);
     if (runs && a->busy) a->busy(a->ctx, op);
@@ -205,11 +208,14 @@ void app_key(app_state *a, int key, uint32_t now_ms)
     }
 
     if (a->running) {                           /* only C and R/S, which interrupt (UG p.13-19) */
-        if (face->kind == KM_OP && (face->op == AB_CANCEL || face->op == AB_RS)) ab_interrupt(a->c);
+        if (face->kind == KM_OP && (face->op == AB_CANCEL || face->op == AB_RS)) app_interrupt(a);
         return;
     }
     if (a->pause) {                             /* PSE's pause: C and R/S stop it (UG p.13-19) */
-        if (face->kind == KM_OP && (face->op == AB_CANCEL || face->op == AB_RS)) a->pause = false;
+        if (face->kind == KM_OP && (face->op == AB_CANCEL || face->op == AB_RS)) {
+            a->pause = false;
+            a->run_timed = false;               /* the user ended it: no DONE (abacus #4238) */
+        }
         return;
     }
     if (face->kind != KM_SHIFT &&
@@ -670,6 +676,12 @@ bool app_wall(const app_state *a, uint32_t now_ms, int64_t *secs)
     int32_t gone = (int32_t)(now_ms - a->wall_ms);  /* the clock may wrap; never before wall_ms */
     *secs = a->wall_s + (gone > 0 ? gone / 1000 : 0);
     return true;
+}
+
+void app_interrupt(app_state *a)
+{
+    ab_interrupt(a->c);
+    if (a->run_timed) a->run_stopped = true;
 }
 
 void app_powered_on(app_state *a)

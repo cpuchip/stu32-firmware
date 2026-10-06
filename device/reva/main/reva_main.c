@@ -81,6 +81,8 @@ static int soc = -1;
 static uint32_t vbat_uv;                    /* the gauge's last cell voltage, 0 not read (SYS BATT) */
 static uint32_t last_image;                 /* the last image saved: SYS FLASH's room left (unit 027) */
 static char time_text[16];                  /* TIME's argument, for the calc task (unit 027) */
+RTC_DATA_ATTR static bool rtc_batt_low;     /* BATT's latch through OFF and wake: RTC memory keeps it
+                                               through deep sleep, a power-on clears it (abacus #4238) */
 
 static uint32_t now_ms(void)
 {
@@ -212,7 +214,7 @@ static void scan_task(void *arg)
         for (int k; (k = kb_next(&ks)) >= 0;) {
             const km_action *f = km_lookup(k, KM_FACE);
             if (app.running && f->kind == KM_OP && (f->op == AB_CANCEL || f->op == AB_RS)) {
-                ab_interrupt(calc);                         /* at once; the press is spent */
+                app_interrupt(&app);                         /* at once; the press is spent */
                 continue;
             }
             xQueueSend(keys_q, &k, 0);
@@ -443,6 +445,7 @@ static void calc_task(void *arg)
         }
         pwr_inputs in = {gpio_get_level(PIN_CHG_N), gpio_get_level(PIN_PGOOD_N), soc, false};
         app_action act = app_tick(&app, &in, now);
+        rtc_batt_low = app.batt_low;
         if (app.tone >= 0) {                    /* VOL's new level, or a use's sound (units 022, 027) */
             uint32_t hz, ms;
             dev_tone_of(app.tone_use, PIEZO_HZ, &hz, &ms);
@@ -554,6 +557,7 @@ void app_main(void)
     app.set_wall = dev_set_wall;
     app.clock_ms = clock_cb;
     app.sysinfo = sysinfo_cb;
+    app.batt_low = rtc_batt_low;                /* the latch, kept through OFF (abacus #4238) */
     if (why == ESP_SLEEP_WAKEUP_TIMER) {            /* the refresh: rewrite the image, sleep again */
         render(0);
         sleep_now();

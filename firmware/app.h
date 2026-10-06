@@ -126,8 +126,11 @@ typedef struct {
     uint32_t wall_ms;
     uint16_t beeps;         /* the core's BEEP count already sounded (ours, unit 027 rule 6) */
     bool run_timed;         /* a run is going on, begun at run_t0 (DONE's tone) */
+    bool run_stopped;       /* ... and the user stopped it (C or R/S): no DONE (abacus #4238) */
     uint32_t run_t0;
-    bool batt_low;          /* BATT's tone sounded; again only after the charge recovers */
+    bool batt_low;          /* BATT's tone sounded; again only after the charge recovers above
+                               APP_BATT_OK_SOC. The device keeps it through OFF and wake (Rev A: RTC
+                               memory), so the tone means "first time low this discharge" (#4238) */
     int view;               /* APP_VIEW_*: SYS's view showing, any key leaves it */
     char view_text[4][40];  /* its lines */
     void (*set_wall)(void *ctx, int64_t secs);  /* the clock set from the keys: the device keeps it
@@ -159,6 +162,9 @@ void app_ui(const app_state *a, screen_ui *ui);
    console's TIME. app_wall gives the time at now_ms, false when it is unset. */
 void app_set_wall(app_state *a, int64_t secs, uint32_t now_ms);
 bool app_wall(const app_state *a, uint32_t now_ms, int64_t *secs);
+/* C or R/S during a run: the core's interrupt, and the run counted as stopped by the user (no DONE,
+   abacus #4238). The device calls it from its key task as it would ab_interrupt. */
+void app_interrupt(app_state *a);
 /* The device woke from OFF (a power-on, not a light-sleep wake): ON's chirp (unit 027). */
 void app_powered_on(app_state *a);
 

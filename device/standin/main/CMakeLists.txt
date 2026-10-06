@@ -20,13 +20,15 @@ if(NOT EXISTS "${BID_LIB}")
     message(FATAL_ERROR "no ${BID_LIB}: run TARGET=esp32s3 scripts/fetch-intel-dfp.sh")
 endif()
 target_include_directories(${COMPONENT_LIB} SYSTEM PRIVATE "${BID_INC}")
-# SYS's VER (unit 027): the core's commit, from git at configure time
-execute_process(COMMAND git -C "${REPO}" rev-parse --short HEAD OUTPUT_VARIABLE AB_COMMIT
-                OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
-if(NOT AB_COMMIT)
-    set(AB_COMMIT "unknown")
-endif()
-target_compile_definitions(${COMPONENT_LIB} PRIVATE AB_CORE_COMMIT="${AB_COMMIT}")
+# SYS's VER (unit 027): the commit, with +dirty for an uncommitted tree, regenerated at every build
+# (abacus #4238); the header is rewritten only when its text changes
+set(AB_COMMIT_H "${CMAKE_CURRENT_BINARY_DIR}/ab_commit.h")
+add_custom_target(ab_commit ALL
+    COMMAND ${CMAKE_COMMAND} -DREPO=${REPO} -DOUT=${AB_COMMIT_H} -P ${REPO}/scripts/gen_commit.cmake
+    BYPRODUCTS ${AB_COMMIT_H} VERBATIM)
+add_dependencies(${COMPONENT_LIB} ab_commit)
+target_include_directories(${COMPONENT_LIB} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+target_compile_definitions(${COMPONENT_LIB} PRIVATE AB_HAVE_COMMIT_H=1)
 target_compile_definitions(${COMPONENT_LIB} PRIVATE
     DECIMAL_CALL_BY_REFERENCE=0 DECIMAL_GLOBAL_ROUNDING=0 DECIMAL_GLOBAL_EXCEPTION_FLAGS=0)
 target_link_libraries(${COMPONENT_LIB} PRIVATE "${BID_LIB}")
