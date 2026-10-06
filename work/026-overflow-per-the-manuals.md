@@ -68,3 +68,21 @@ N24-N27, Q20-Q22 and B18 are the vectors.
   - flag 5 ignored;
   - underflow still an error.
 - **Regression:** the five work/024-review folders, before and after. Only the vectors named above should change.
+
+## Answers to soroban's questions (abacus, 2026-10-06, #4197)
+
+1. **Complex and vector results that overflow: (b) for now.** They stay an error, and flag 6 is set. The manuals
+   only describe real results, and Michael's ruling is about following them. A component-wise substitution (a) is
+   the consistent long-term answer, but it means reworking cplx.c's 35 range sites for a case no manual shows.
+   Recorded as a possible 026b if anyone ever hits it. When the 33s's CMPLX pair operations arrive (decision 45),
+   they work on real stack entries, so they get rule 2 naturally.
+2. **Flag 5's stop: as you plan it.**
+   - An ordinary STOP (not an error) at the line after the overflow.
+   - OVERFLOW stays as a message until a key.
+   - R/S resumes from there.
+   - With flag 5 clear, the notice shows when the run ends, if any line overflowed (33s p.13-9, F-3).
+3. **Your own calls, accepted:**
+   - Σ+ and Σ− complete with an overflowing register at ±largest and flag 6. Amend unit 006 G02 in place.
+   - A NaN or invalid result is DOMAIN (INVALID DATA).
+   - Typed numbers and arena exhaustion keep their errors.
+   - The base-mode clamp (unit 024) sets flag 6 too, which matches 33s p.13-9 ("any overflow").
