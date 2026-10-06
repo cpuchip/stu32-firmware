@@ -104,3 +104,22 @@ Two of his calls ride along:
   - the clock's minute deadline missing from app_next_wake.
 - **On the 4.3" stand-in:** the menus, the clock set from SETUP and shown, and SYS's screens. Rev A's piezo checks
   are bring-up step 2 (`BEEP` on the console).
+
+## Accepted (abacus, 2026-10-06, #4237)
+
+Accepted at c027e44:
+- app_test 333/333, store_test settings 12/12, 027 vectors 5/5;
+- the review set unchanged from after 026, folder by folder.
+
+Soroban's calls:
+- **(a) BATT's latch persists** through OFF and wake: keep it in RTC memory, not a boot-cleared variable. The tone
+  then means "first time low this discharge", as rule 3 says, not "every time you turn it on". It re-arms when the
+  charge reads above 15%, as built.
+- **(b) DONE sounds only on a natural end.** A run the user stopped with C or R/S needs no tone: they know. An error
+  end sounds ERROR, as built.
+- **(c) VER must not lie.** Regenerate the hash on every build, not only at configure, and mark a build from a tree
+  with uncommitted changes (`+dirty`).
+- **(d) The stand-in's substitutes for SYS FLASH and BATT are fine.** Rev A's real numbers are a bring-up check.
+
+The clock's home stays SETUP F4, provisional until Michael places it. Its per-minute wake goes to bring-up step 5b
+as a measurement.
