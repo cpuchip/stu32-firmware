@@ -28,7 +28,7 @@ M18 | 35s p.6-17/6-18 the trapezoid perimeter (DEG; A 2 B 5 H 1, 30 and 45 degre
 M19 | 35s p.6-18 the same with INV | DEG 2 STO:A 5 STO:B 1 STO:H 30 STO:T 45 STO:F EQ:P=A+B+H×(INV(SIN(T))+INV(SIN(F))) ENTER RS RS RS RS RS | X=10.41421356237309504880168872420970
 M20 | 35s p.6-18/6-19 the polygon area (RAD: the guide does not say) N = 6, D = 1 | RAD 6 STO:N 1 STO:D EQ:A=0.25×N×D^2×COS(π÷N)÷SIN(π÷N) ENTER RS RS | X^2.59807621135331594029116951225880863
 M21 | 35s p.6-19 SYNTAX ERROR is found when evaluating, the cursor at the first error | EQ:2×(3+ XEQ | ERR %ERR=SYNTAX %ERRPOS=5
-M22 | 35s p.6-19, p.13-16 a message is stored, and is a syntax error when evaluated | EQ:VOL+AREA? XEQ | ERR %ERR=SYNTAX %EQ=VOL+AREA?
+M22 | 35s p.6-19, p.13-16 a message is stored, and is a syntax error when evaluated (after its prompts: unit 024 rule 4, 33s p.6-18) | EQ:VOL+AREA? XEQ RS RS RS RS RS RS | ERR %ERR=SYNTAX %EQ=VOL+AREA?
 M23 | 35s p.7-3 D=VxT+0.5xGxT^2 with V 0, T 5, G 9.8: ENTER stores D = 122.5 | 0 STO:V 5 STO:T 9.8 STO:G EQ:D=V×T+0.5×G×T^2 ENTER RS RS RS | X=122.5 @D=122.5
 M24 | 35s p.7-4 PxV=NxRxT is an equality: its value is the difference | 0.06 STO:P 2 STO:V 0.005 STO:N 0.0821 STO:R 297.1 STO:T EQ:P×V=N×R×T XEQ RS RS RS RS RS | X=-0.00195955
 M25 | 35s p.13-17 the cylinder's volume as an expression, R 2.5 H 8: 157.0796 | 2.5 STO:R 8 STO:H EQ:π×R^2×H XEQ RS RS | X=157.0796326794896619231321691639751
@@ -47,9 +47,9 @@ M37 | 35s p.17-4 its value at the guide's solution is about 0 (P -186.88905, I 0
 O01 | ours: left to right within a level: 8/4/2 = 1 | EQ:8÷4÷2 XEQ | X=1
 O02 | ours: 10-3-2 = 5 | EQ:10-3-2 XEQ | X=5
 O03 | ours: powers left to right too: 2^3^2 = 64 | EQ:2^3^2 XEQ | X=64
-O04 | ours: no implied multiplication: 2A is a syntax error (the guide shows none) | EQ:2A XEQ | ERR %ERR=SYNTAX %ERRPOS=1
-O05 | ours: two letters side by side are a syntax error | EQ:AB XEQ | ERR %ERR=SYNTAX %ERRPOS=1
-O06 | ours: a second = is a syntax error | EQ:A=B=C XEQ | ERR %ERR=SYNTAX %ERRPOS=3
+O04 | ours: no implied multiplication: 2A is a syntax error (the guide shows none), found after the prompt (unit 024 rule 4) | EQ:2A XEQ RS | ERR %ERR=SYNTAX %ERRPOS=1
+O05 | ours: two letters side by side are a syntax error, found after the prompts (unit 024 rule 4) | EQ:AB XEQ RS RS | ERR %ERR=SYNTAX %ERRPOS=1
+O06 | ours: a second = is a syntax error, found after the prompts (unit 024 rule 4) | EQ:A=B=C XEQ RS RS RS | ERR %ERR=SYNTAX %ERRPOS=3
 O07 | 35s p.F-1 1/0 inside an equation: DIVIDE BY 0, nothing changed | 7 EQ:1÷0 XEQ | ERR %ERR=DIV_ZERO X=7
 O08 | 35s p.6-10 XEQ on an assignment gives the difference and stores nothing | 2 STO:B EQ:A=B+1 XEQ RS RS | X=-3 @A=0
 O09 | 35s p.6-10 ENTER on it stores the right side | 2 STO:B EQ:A=B+1 ENTER RS | X=3 @A=3

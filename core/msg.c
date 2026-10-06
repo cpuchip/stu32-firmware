@@ -13,7 +13,9 @@ const char *ab_status_message(abn_status st)
     case ABN_BAD_TEXT: return "SYNTAX ERROR";                   /* F-5 (a number's text: ours) */
     case ABN_DOMAIN: return "INVALID DATA";                     /* F-2 */
     case ABN_INEXACT: return "";                                /* not a message (internal) */
-    case ABN_CLAMPED: return "TOO BIG";                         /* F-5 */
+    case ABN_CLAMPED: return "OVERFLOW";                        /* a base result beyond the word: OVERFLOW
+                                                                   briefly, the largest kept (33s and 32SII
+                                                                   p.10-3, 35s p.11-5; unit 024 rule 3) */
     case ABN_NONEXISTENT: return "NONEXISTENT";                 /* F-3 */
     case ABN_XEQ_OVERFLOW: return "XEQ OVERFLOW";               /* F-5 */
     case ABN_DUP_LABEL: return "DUPLICAT.LBL";                  /* F-1 */

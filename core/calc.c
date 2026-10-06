@@ -1543,10 +1543,8 @@ static abn_status prog_run_lines(ab_calc *c, long limit, bool sst)
                 return ABN_OK;
             }
             if (ab_flag(c, 11) && !c->peq_ready && !(c->active && c->solve_phase != 1)) {
-                if ((st = eqn_eval(c, t, false, true, &v, &pos)) != ABN_OK) {
-                    c->eqn_errpos = pos;
-                    break;
-                }
+                /* the prompts first, the syntax when the value is calculated (33s p.6-18; unit 024
+                   rule 4, applied to a program's equation line as to the keyboard's) */
                 c->eqn_nvars = eqn_prompt_vars(c, t, false, c->eqn_vars);
                 if (c->eqn_nvars > 0) {
                     c->peq_line = at;
@@ -2849,10 +2847,10 @@ static abn_status eqn_solve_key(ab_calc *c, ab_op op, int code)
         for (int i = 0; i < c->eqn_nvars; i++) c->eqn_vars[i] = i;
     } else {
         t = c->eqn[c->eqn_cur];
-        if ((st = eqn_eval(c, t, false, true, &val, &pos)) != ABN_OK) {
-            c->eqn_errpos = pos;
-            return st;
-        }
+        (void)val;
+        (void)pos;
+        /* no syntax check here: SOLVE and integrate meet it at their first evaluation, after the
+           prompts (33s p.6-18; unit 024 rule 4) */
         if ((st = resolve(c, code, false, &sl)) != ABN_OK) return st;
         if (!sl.val || sl.val < c->var || sl.val >= c->var + 26) return ABN_DOMAIN;  /* p.14-23 */
         n = eqn_vars(t, false, v);
@@ -2934,10 +2932,11 @@ static abn_status eqn_evaluate(ab_calc *c, bool enter)
     t = c->eqn[c->eqn_cur];
     av = eqn_assign_var(t);
     rhs = enter && av >= 0;
-    if ((st = eqn_eval(c, t, rhs, true, &v, &pos)) != ABN_OK) {
-        c->eqn_errpos = pos;
-        return st;
-    }
+    (void)v;
+    (void)pos;
+    (void)st;
+    /* the syntax is checked when the value is calculated, after every prompt is answered (33s
+       p.6-18, 32SII p.6-20; unit 024 rule 4): eqn_step's evaluation reports it */
     c->eqn_nvars = eqn_vars(t, rhs, c->eqn_vars);
     c->eqn_next = 0;
     c->eqn_pending = enter ? 1 : 2;

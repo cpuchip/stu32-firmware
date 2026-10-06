@@ -95,8 +95,12 @@ static void do_op(app_state *a, int op, int arg)
     if (op != AB_VIEW) undo_mark(a);
     if (runs && a->busy) a->busy(a->ctx, op);
     bool msg = c->msg;
-    ab_do_arg(c, (ab_op)op, arg);
+    abn_status st = ab_do_arg(c, (ab_op)op, arg);
     a->dirty = true;
+    if (st == ABN_CLAMPED) {                    /* OVERFLOW, briefly (unit 024 rule 3) */
+        a->notice = ab_status_message(st);
+        a->notice_ms = a->last_key_ms;
+    }
     if (c->msg && !msg && a->set.beep && a->set.vol > 0) a->tone = a->set.vol;   /* the error tone (unit 022) */
     if (c->stop == AB_STOP_SLICE) {
         a->running = true;
@@ -133,6 +137,7 @@ void app_key(app_state *a, int key, uint32_t now_ms)
     a->last_key_ms = now_ms;
     pwr_activity(&a->pwr, now_ms);
     a->render = true;
+    a->notice = NULL;                           /* a key ends a brief notice */
 
     if (a->running) {                           /* only C and R/S, which interrupt (UG p.13-19) */
         if (face->kind == KM_OP && (face->op == AB_CANCEL || face->op == AB_RS)) ab_interrupt(a->c);
@@ -348,6 +353,10 @@ app_action app_tick(app_state *a, const pwr_inputs *in, uint32_t now_ms)
             a->pause_ms = now_ms;
         }
     }
+    if (a->notice && (uint32_t)(now_ms - a->notice_ms) >= APP_NOTICE_MS) {
+        a->notice = NULL;                       /* the brief notice is over */
+        a->render = true;
+    }
     pwr_inputs p = *in;
     p.busy = a->running;                        /* a pause is counted at its end, above */
     a->pwr.idle_ms = a->set.off_min * 60000u;   /* settings the device loaded take effect */
@@ -380,6 +389,7 @@ uint32_t app_next_wake(const app_state *a, const pwr_inputs *in, uint32_t now_ms
     uint32_t w = pwr_next(&p, in, now_ms), t;
     if (a->pause && (t = left(now_ms, a->pause_ms, APP_PSE_MS)) < w) w = t;
     if (a->dirty && (t = left(now_ms, a->last_key_ms, APP_QUIET_MS)) < w) w = t;
+    if (a->notice && (t = left(now_ms, a->notice_ms, APP_NOTICE_MS)) < w) w = t;
     return w;
 }
 
@@ -400,6 +410,7 @@ void app_ui(const app_state *a, screen_ui *ui)
     ui->separator = a->set.group;
     ui->busy = a->running ? a->busy_op : 0;
     ui->prompt = a->prompt_op >= 0 ? a->prompt_text : NULL;
+    ui->notice = a->notice;
     if (a->confirm_op >= 0) {
         ui->prompt = a->confirm_op == AB_CLPGM ? "CLR PGMS?" : a->confirm_op == AB_CLEQN ? "CLR EQN?" : "CLR ALL?";
         ui->soft[0] = "Y";

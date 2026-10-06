@@ -460,6 +460,10 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
         line_add(xl, ui->prompt);
         k->x_left = true;
         k->xk = SCREEN_PROMPT;
+    } else if (ui->notice) {                    /* a brief notice: OVERFLOW (unit 024 rule 3) */
+        line_add(xl, ui->notice);
+        k->x_left = true;
+        k->xk = SCREEN_MESSAGE;
     } else if (c->viewing) {                    /* a keyboard VIEW: Variable=Value (UG p.3-4) */
         char name[16];
         ab_val v;
