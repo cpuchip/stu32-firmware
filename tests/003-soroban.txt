@@ -14,3 +14,4 @@ T09 | ours: acos x of a tiny x is pi/2 | RAD 1 E 6000 CHS ACOS | X^1.57079632679
 T10 | ours: acos of a tiny x in degrees is 90 exactly | 1 E 6000 CHS ACOS | X=90
 T11 | ours: asin of a tiny x in degrees | 1 E 6000 CHS ASIN | X^5.729577951308232087679815481410517E-5999
 T12 | ours: acos of a tiny x in grads is 100 exactly | GRAD 1 E 6000 CHS ACOS | X=100
+S90 | ours (abacus #4220): HMS of 99.99999999999999999999999999999999 hours: the seconds, 359999.999...99964 exactly, round at 34 digits to 360000, so the carry to 100 hours is right | 99.99999999999999999999999999999999 HMS | X=100
