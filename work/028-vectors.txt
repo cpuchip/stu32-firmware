@@ -1,0 +1,17 @@
+# Work unit 028: y^x correctly rounded everywhere. Expectations are mpmath at 120 digits rounded to 34
+# (tests/pow_fuzz.py checks 24000 more). P01 is the case unit 026's review named; at 120 digits the
+# engine had it right already (the review's reference was short), so it stays as a guard. P02-P03 are
+# where the engine's pow was wrong: 6914 and 4 units in the 34th digit.
+P01 | unit 028: a base near 1 to 1E35 (correct before and after) | 1.000000000000000000000000000000001 ENTER 1 E 35 POW | X=2.688117141816135448412625551579879E43
+P02 | unit 028: a base 2.8E-30 below 1 to -1.8E33: the engine missed by 6914 units | 0.999999999999999999999999999997243 ENTER 1827869738987355972774527505860000 CHS POW | X=3.977632993669373656251047490472902E2188
+P03 | unit 028: an integer power beyond exact squaring: 37.18...^910 (the engine's half route missed by 4) | 37.18140749797886063602779451446590 ENTER 910 POW | X=9.919769554068182593461284927766512E1428
+P04 | unit 028: a negative base to an even power, 958 | 33.41091065304213037359947073027640 CHS ENTER 958 POW | X=7.67368296106513963681021861017314E1459
+P05 | unit 028: 1.000001^100000 | 1.000001 ENTER 100000 POW | X=1.105170862817139941494082477320918
+P06 | unit 028: a base near 1 to -3.3E20 | 0.999999999999999997 ENTER 3.3 CHS E 20 POW | X=8.944109020347435201808297095453984E429
+P07 | unit 028: a typical pair | 2.5 ENTER 3.7 POW | X=29.67413253642085448085222160669751
+P08 | unit 028: a half-integer power near the top: 7^7000.5 | 7 ENTER 7000.5 POW | X=1.284781042576886751473866226248468E5916
+P09 | unit 028 rule 3: exact powers stay exact: 1.1^2, (-2)^3, 10^-3 | 1.1 ENTER 2 POW 2 CHS ENTER 3 POW 10 ENTER 3 CHS POW | X=0.001 Y=-8 Z=1.21
+P13 | unit 028 rule 3: 2^10 is 1024 exactly | 2 ENTER 10 POW | X=1024
+P10 | unit 028: 6.25^0.5 is 2.5 exactly (the engine gave 2.500...001) | 6.25 ENTER 0.5 POW | X=2.5
+P11 | unit 028: the 1E30th root of 2 | 2 ENTER 1 E 30 XROOT | X=1.000000000000000000000000000000693
+P12 | unit 028: the equation engine's ^ is the same pow | EQ:2.5^3.7 C EQN XEQ | X=29.67413253642085448085222160669751

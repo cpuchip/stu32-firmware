@@ -118,6 +118,7 @@ test: all
 	AB_SAVELOAD=1 AB_STORE=1 ./build/vectors work/025-vectors.txt
 	./build/vectors work/026-vectors.txt
 	./build/vectors work/027-vectors.txt
+	./build/vectors work/028-vectors.txt
 	./build/vectors tests/021-soroban.txt
 	./build/vectors tests/019-soroban.txt
 	./build/vectors tests/003-soroban.txt
@@ -160,6 +161,7 @@ accuracy: build/fn_drive build/cx_drive build/vectors
 	$(PYTHON) tests/fn_fuzz.py build/fn_drive
 	$(PYTHON) tests/cx_fuzz.py build/cx_drive
 	$(PYTHON) tests/range_fuzz.py build/fn_drive 1 30
+	$(PYTHON) tests/pow_fuzz.py build/fn_drive 1 3400
 	$(PYTHON) tests/cxkey_fuzz.py 1 5000 > build/cxkey_fuzz.txt
 	./build/vectors build/cxkey_fuzz.txt
 	$(PYTHON) tests/solve_fuzz.py 1 1500 > build/solve_fuzz.txt
