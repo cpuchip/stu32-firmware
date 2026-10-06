@@ -1,0 +1,12 @@
+# Work unit 024 acceptance vectors: the reviewers' failing vectors for the unit's four rules, copied verbatim from
+# work/024-review/{stack,eqnsolve,cxbasestat}/vectors.txt (abacus 6146252; manual-derived, each cites its page).
+# Format as work/021-vectors.txt.
+
+K01 | 33s p.1-23, F-1; 32SII p.1-19, E-1 C clears a message and does nothing else | 1 ENTER 0 / C 5 | ERR X=5 Y=0 Z=1
+K02 | 33s p.1-23, F-1; 32SII p.1-19, E-1 backspace clears a message and does nothing else | 1 ENTER 0 / BKSP 5 | ERR X=5 Y=0 Z=1
+K05 | 33s p.1-23, F-1; 32SII p.1-19, E-1 C after SQRT(NEG) keeps the operand in X | 7 ENTER 2 CHS SQRT C | ERR X=-2 Y=7
+K06 | 33s p.1-23, F-1; 32SII p.1-19, E-1 backspace after SQRT(NEG) keeps the operand in X | 7 ENTER 2 CHS SQRT BKSP | ERR X=-2 Y=7
+Q16 | 33s p.D-12 guesses 0 and -10: NO ROOT FND; VIEW X shows 0.0000 | EQ:SQRT(X÷(X+0.3))-0.5 C 0 STO:X 10 CHS EQN SOLVE:X | ERR %ERR=NO_ROOT @X#0,0.00005
+Q16b | 33s p.7-6, D-12 the final estimate in X is a point where f is defined, and Z is f there: f at the reported X must be Z (-0.5 at the 33s's 0) | EQ:SQRT(X÷(X+0.3))-0.5 C 0 STO:X 10 CHS EQN SOLVE:X C EQN XEQ RS | ERR %ERR=NO_ROOT X=-0.5
+B14 | 33s p.6-18, 32SII p.6-20 syntax is checked only after every prompt is answered | EQ:A×(B+ XEQ | %STOP=INPUT:A
+B17 | 33s p.10-3, 32SII p.10-3 a result beyond 36 bits shows OVERFLOW, then the largest | HEX 7 HF HF HF HF HF HF HF HF ENTER 1 + | ERR X=34359738367 %STATUSMSG=OVERFLOW
