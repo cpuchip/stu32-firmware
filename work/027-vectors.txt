@@ -1,0 +1,7 @@
+# Work unit 027: the BEEP instruction (ours, rule 6: none of the 33s, 32SII or 35s has one). %BEEP is
+# the core's count of BEEPs done; the device sounds one tone per new one when its PRGM use is on.
+B01 | unit 027 rule 6: BEEP in a program sounds once and leaves the stack alone | PRGM CLPGM LBL:A 5 BEEP 7 RTN PRGM XEQ:A | X=7 Y=5 %BEEP=1
+B02 | unit 027 rule 6: BEEP from the keys, in either mode, the stack untouched | 3 ENTER 4 BEEP MODE35 BEEP | X=4 Y=3 %BEEP=2
+B03 | unit 027 rule 6: BEEP is a program line, listed BEEP | PRGM CLPGM LBL:A BEEP RTN PRGM | %LINES=3
+B04 | unit 027 rule 6: two BEEPs in a loop of three passes: six | PRGM CLPGM LBL:A 3 STO:C LBL:B BEEP BEEP DSE:C GTO:B RTN PRGM XEQ:A | %BEEP=6
+B05 | unit 027 rule 6 (ours): BEEP is neutral for lift, as PSE (UG p.B-5): after 5 ENTER the 6 replaces X, so + + gives 11 (16 if BEEP enabled lift) | 5 ENTER BEEP 6 + + | X=11

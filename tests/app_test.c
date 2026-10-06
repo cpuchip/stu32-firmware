@@ -99,6 +99,45 @@ static void run_out(app_state *a, pwr_inputs *in)
     }
 }
 
+/* unit 027: the app's clock for a one-call SOLVE's length, and SYS's facts */
+static uint32_t fake_ms;
+static uint32_t fake_clock(void *ctx)
+{
+    (void)ctx;
+    return fake_ms;
+}
+
+static int64_t rtc_set = -1;
+static void fake_set_wall(void *ctx, int64_t secs)
+{
+    (void)ctx;
+    rtc_set = secs;
+}
+
+static void fake_sysinfo(void *ctx, app_sysinfo *o)
+{
+    (void)ctx;
+    memset(o, 0, sizeof *o);
+    o->soc = 87;
+    o->chg_n = false;           /* charging */
+    o->pgood_n = false;
+    o->vbat_uv = 3920000;
+    o->version = "0.27";
+    o->commit = "abc1234";
+    o->built = "Oct  6 2026";
+    o->flash_free = 98304;
+    o->heap_free = 66771;
+    o->heap_largest = 31744;
+}
+
+/* the soft key whose label is l, -1 none */
+static int soft_of(const screen_ui *ui, const char *l)
+{
+    for (int i = 0; i < SCREEN_SOFT; i++)
+        if (ui->soft[i] && !strcmp(ui->soft[i], l)) return i;
+    return -1;
+}
+
 int main(void)
 {
     static ab_calc c;
@@ -900,14 +939,14 @@ int main(void)
         press(&a, "1 ENTER 0 \xc3\xb7");
         expect(a.tone == 4, "an error sounds at the level set");
         press(&a, "C BLUE 3 k:2");
-        expect(!a.set.beep, "BEEP off");
+        expect(a.set.uses == 0, "BEEP off");
         a.tone = -1;
         press(&a, "1 ENTER 0 \xc3\xb7");
         expect(a.tone == -1, "BEEP off: no error tone");
         press(&a, "C");
         /* CLEAR ALL keeps them, and a settings change is saved */
         press(&a, "GOLD 3 k:1 GOLD \xe2\x86\x90 k:4 k:0");
-        expect(a.set.radix == ',' && !a.set.beep && a.set.off_min == 10, "CLEAR ALL keeps the settings");
+        expect(a.set.radix == ',' && a.set.uses == 0 && a.set.off_min == 10, "CLEAR ALL keeps the settings");
         app_saved(&a);
         press(&a, "GOLD 3 k:0");
         expect(a.dirty, "a settings change is saved (dirty)");
@@ -1137,6 +1176,240 @@ int main(void)
         press(&a, "ENTER 1 +");
         press(&a, "C");
         expect(!a.notice, "a key clears it at once");
+    }
+
+    /* unit 027: MODE, SETUP, SYS each one job; the buzzer's six uses; the clock; BEEP */
+    {
+        pwr_inputs ok = {false, false, 80, false};
+        char k_[16];
+        ab_init(&c);
+        app_init(&a, &c, now);
+        /* MODE: 33s 35s, F3 blank (STU later), F4 RPN marked, F5 blank (ALG later) */
+        press(&a, "BLUE ENTER");
+        app_ui(&a, &ui);
+        expect(ui.soft[0] && !strcmp(ui.soft[0], "33s") && (!ui.soft[2] || !*ui.soft[2]) && ui.soft[3] &&
+                   !strcmp(ui.soft[3], "RPN") && ui.soft_on[3] && (!ui.soft[4] || !*ui.soft[4]),
+               "027 MODE: 33s 35s, blank, RPN marked, blank");
+        press(&a, "C");
+        /* SETUP: OFF VOL BEEP> CLOCK>, the two submenus boxed */
+        press(&a, "BLUE 3");
+        app_ui(&a, &ui);
+        expect(ui.soft[2] && !strcmp(ui.soft[2], "BEEP") && ui.soft_sub[2] && ui.soft[3] && !strcmp(ui.soft[3], "CLOCK") &&
+                   ui.soft_sub[3],
+               "027 SETUP: OFF VOL BEEP> CLOCK>");
+        /* BEEP>: CLICK ERROR PRGM BATT ON >, all on; each toggles and shows it, the menu staying */
+        press(&a, "k:2");
+        app_ui(&a, &ui);
+        expect(soft_of(&ui, "CLICK") == 0 && soft_of(&ui, "ERROR") == 1 && soft_of(&ui, "PRGM") == 2 &&
+                   soft_of(&ui, "BATT") == 3 && soft_of(&ui, "ON") == 4 && ui.soft_sub[5],
+               "027 BEEP>: CLICK ERROR PRGM BATT ON >");
+        bool all_on = true;
+        for (int i = 0; i < 5; i++) all_on = all_on && ui.soft_on[i];
+        expect(all_on && a.set.uses == DEV_USE_ALL, "027: every use on by default");
+        static const int USE1[5] = {DEV_USE_CLICK, DEV_USE_ERROR, DEV_USE_PRGM, DEV_USE_BATT, DEV_USE_ON};
+        bool toggles = true;
+        for (int i = 0; i < 5; i++) {
+            snprintf(k_, sizeof k_, "k:%d", i);
+            press(&a, k_);
+            app_ui(&a, &ui);
+            toggles = toggles && !(a.set.uses & USE1[i]) && !ui.soft_on[i] && a.menu >= 0;
+            press(&a, k_);
+            app_ui(&a, &ui);
+            toggles = toggles && (a.set.uses & USE1[i]) && ui.soft_on[i];
+        }
+        expect(toggles, "027: each of CLICK ERROR PRGM BATT ON toggles, shows it, and the menu stays");
+        press(&a, "k:5");                       /* the next page: DONE ALL */
+        app_ui(&a, &ui);
+        int kd = soft_of(&ui, "DONE"), ka = soft_of(&ui, "ALL");
+        expect(kd >= 0 && ka >= 0 && ui.soft_on[kd], "027 BEEP> page 2: DONE (on) ALL");
+        snprintf(k_, sizeof k_, "k:%d", kd);
+        press(&a, k_);
+        expect(!(a.set.uses & DEV_USE_DONE), "027: DONE toggles off");
+        snprintf(k_, sizeof k_, "k:%d", ka);
+        press(&a, k_);
+        expect(a.set.uses == 0, "027: ALL with any on turns every use off");
+        press(&a, k_);
+        expect(a.set.uses == DEV_USE_ALL, "027: ALL with none on turns every use on");
+        press(&a, "C");
+        /* CLOCK>: SET and 12/24; never set: --:-- with no deadline of its own */
+        app_ui(&a, &ui);
+        expect(!strcmp(ui.clock, "--:--") && !ui.ampm, "027: the clock never set shows --:--");
+        int64_t w;
+        expect(!app_wall(&a, now, &w), "027: app_wall: unset");
+        uint32_t idle_wake = app_next_wake(&a, &ok, now);
+        a.set_wall = fake_set_wall;
+        press(&a, "BLUE 3 k:3");
+        app_ui(&a, &ui);
+        expect(soft_of(&ui, "SET") == 0 && soft_of(&ui, "12/24") == 1 && !ui.soft_on[1], "027 CLOCK>: SET, 12/24 (12)");
+        press(&a, "k:0");
+        app_ui(&a, &ui);
+        expect(ui.prompt && strstr(ui.prompt, "SET") != NULL, "027 SET: a time prompt");
+        press(&a, "1 3 0 5");
+        app_ui(&a, &ui);
+        expect(app_wall(&a, now, &w) && w % 86400 == 13 * 3600 + 5 * 60 && w >= APP_CLOCK_UNSET_S && rtc_set == w,
+               "027 SET 13:05: the wall clock at 13:05:00 (2026-01-01), the RTC told");
+        expect(!strcmp(ui.clock, "1:05") && ui.ampm == 'p', "027: 12-hour form 1:05 p");
+        uint32_t t1 = now;
+        expect(app_next_wake(&a, &ok, t1) <= 60000u && app_next_wake(&a, &ok, t1) < idle_wake,
+               "027: the minute's change is a deadline in app_next_wake");
+        app_set_wall(&a, (int64_t)APP_CLOCK_KEYS_DATE + 13 * 3600 + 5 * 60 + 15, t1);
+        expect(app_next_wake(&a, &ok, t1) == 45000u, "027: at 13:05:15 the next wake is in 45 s");
+        app_tick(&a, &ok, t1 + 45000);
+        app_ui(&a, &ui);
+        expect(!strcmp(ui.clock, "1:06"), "027: at the minute the clock reads 1:06");
+        app_set_wall(&a, (int64_t)APP_CLOCK_KEYS_DATE + 5 * 60, now);
+        app_ui(&a, &ui);
+        expect(!strcmp(ui.clock, "12:05") && ui.ampm == 'a', "027: 00:05 is 12:05 a");
+        app_set_wall(&a, (int64_t)APP_CLOCK_KEYS_DATE + 12 * 3600 + 30 * 60, now);
+        app_ui(&a, &ui);
+        expect(!strcmp(ui.clock, "12:30") && ui.ampm == 'p', "027: 12:30 is 12:30 p");
+        press(&a, "BLUE 3 k:3 k:1");
+        app_set_wall(&a, (int64_t)APP_CLOCK_KEYS_DATE + 13 * 3600 + 5 * 60, now);
+        app_ui(&a, &ui);
+        expect(a.set.h24 && !strcmp(ui.clock, "13:05") && !ui.ampm, "027: 12/24 to 24-hour: 13:05");
+        press(&a, "BLUE 3 k:3 k:1");
+        expect(!a.set.h24, "027: and back to 12");
+        /* SYS: BATT VER FLASH, each a view any key leaves */
+        a.sysinfo = fake_sysinfo;
+        press(&a, "BLUE C");
+        app_ui(&a, &ui);
+        expect(soft_of(&ui, "BATT") == 0 && soft_of(&ui, "VER") == 1 && soft_of(&ui, "FLASH") == 2, "027 SYS: BATT VER FLASH");
+        press(&a, "k:0");
+        app_ui(&a, &ui);
+        bool batt = false, chg = false, volt = false;
+        for (int i = 0; i < 4; i++)
+            if (ui.view[i]) {
+                batt = batt || strstr(ui.view[i], "87%");
+                chg = chg || strstr(ui.view[i], "CHG");
+                volt = volt || strstr(ui.view[i], "3.92");
+            }
+        expect(a.view == APP_VIEW_BATT && batt && chg && volt, "027 SYS BATT: 87%, charging, 3.92 V");
+        double x0 = x_of(&c);
+        press(&a, "7");
+        app_ui(&a, &ui);
+        expect(a.view == APP_VIEW_NONE && !ui.view[0] && x_of(&c) == x0 && !c.entry.active, "027: any key leaves the view, and only that");
+        press(&a, "BLUE C k:1");
+        app_ui(&a, &ui);
+        bool ver = false, com = false;
+        for (int i = 0; i < 4; i++)
+            if (ui.view[i]) {
+                ver = ver || strstr(ui.view[i], "0.27");
+                com = com || strstr(ui.view[i], "abc1234");
+            }
+        expect(a.view == APP_VIEW_VER && ver && com, "027 SYS VER: version and commit");
+        press(&a, "C BLUE C k:2");
+        app_ui(&a, &ui);
+        bool fl = false, heap = false;
+        for (int i = 0; i < 4; i++)
+            if (ui.view[i]) {
+                fl = fl || strstr(ui.view[i], "98304");
+                heap = heap || strstr(ui.view[i], "31744");
+            }
+        expect(a.view == APP_VIEW_FLASH && fl && heap, "027 SYS FLASH: free storage and the heap's largest block");
+        press(&a, "C");
+
+        /* the uses, each exactly when it should */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        a.tone = -1;
+        press(&a, "5");
+        expect(a.tone == a.set.vol && a.tone_use == DEV_USE_CLICK, "027 CLICK: a key ticks");
+        a.set.uses &= (uint8_t)~DEV_USE_CLICK;
+        a.tone = -1;
+        press(&a, "6");
+        expect(a.tone == -1, "027 CLICK off: no tick");
+        press(&a, "ENTER 0 \xc3\xb7");
+        expect(a.tone_use == DEV_USE_ERROR && a.tone == a.set.vol, "027 ERROR: the error tone");
+        press(&a, "C");
+        a.set.uses &= (uint8_t)~DEV_USE_ERROR;
+        a.tone = -1;
+        press(&a, "1 ENTER 0 \xc3\xb7");
+        expect(a.tone == -1, "027 ERROR off: none");
+        press(&a, "C");
+        /* PRGM: a program's BEEP; BEEP typed from FLAGS (F4) in program entry */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        a.set.uses = DEV_USE_PRGM;
+        press(&a, "GOLD 9 k:0 GOLD XEQ ltr:A BLUE 6");
+        app_ui(&a, &ui);
+        expect(ui.soft[3] && !strcmp(ui.soft[3], "BEEP"), "027: FLAGS F4 is BEEP");
+        press(&a, "k:3 BLUE XEQ GOLD 9 k:0");
+        char lt[32];
+        ab_prog_line(&c, 1, NULL, lt, sizeof lt);
+        expect(c.prog_len == 3 && !strcmp(lt, "BEEP"), "027: BEEP keyed into a program, listed BEEP");
+        a.tone = -1;
+        press(&a, "XEQ ltr:A");
+        run_out(&a, &in);
+        expect(a.tone_use == DEV_USE_PRGM && a.tone == a.set.vol && c.beeps == 1, "027 PRGM: the program's BEEP sounds");
+        a.set.uses = 0;
+        a.tone = -1;
+        press(&a, "XEQ ltr:A");
+        run_out(&a, &in);
+        expect(a.tone == -1 && c.beeps == 2, "027 PRGM off: the BEEP is counted, not sounded");
+        /* BATT: once when the charge first reads low, again only after it recovers */
+        a.set.uses = DEV_USE_BATT;
+        pwr_inputs low = {true, true, APP_BATT_LOW_SOC, false}, hi = {true, true, 50, false};
+        a.tone = -1;
+        app_tick(&a, &hi, now += 10);
+        expect(a.tone == -1, "027 BATT: no tone at 50%");
+        app_tick(&a, &low, now += 10);
+        int t_low = a.tone_use;
+        a.tone = -1;
+        app_tick(&a, &low, now += 10);
+        app_tick(&a, &low, now += 10);
+        expect(t_low == DEV_USE_BATT && a.tone == -1, "027 BATT: one tone when it first reads low, not per tick");
+        app_tick(&a, &hi, now += 10);
+        app_tick(&a, &low, now += 10);
+        expect(a.tone_use == DEV_USE_BATT && a.tone >= 0, "027 BATT: again after the charge recovered");
+        /* ON: a wake from OFF chirps; a tick (a light-sleep wake) does not */
+        a.set.uses = DEV_USE_ON;
+        a.tone = -1;
+        app_tick(&a, &hi, now += 10);
+        expect(a.tone == -1, "027 ON: no chirp on a light-sleep wake");
+        app_powered_on(&a);
+        expect(a.tone_use == DEV_USE_ON && a.tone == a.set.vol, "027 ON: the chirp at power-on");
+        /* DONE: a run longer than 2 s, not 1.9 s; a sliced program and a one-call SOLVE */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        a.set.uses = DEV_USE_DONE;
+        ab_do(&c, AB_PRGM);
+        ab_do_arg(&c, AB_LBL, 0);
+        ab_do(&c, AB_K1);
+        ab_do(&c, AB_ADD);
+        ab_do_arg(&c, AB_GTO, 0 * 1000 + 1);
+        ab_do(&c, AB_PRGM);
+        for (int run = 0; run < 2; run++) {
+            uint32_t len = run == 0 ? 1900 : 2000;
+            a.tone = -1;
+            press(&a, "XEQ ltr:A");
+            uint32_t t0 = now;
+            while (a.running && now - t0 < len) app_tick(&a, &ok, now += 50);
+            now = t0 + len;
+            press(&a, "R/S");
+            run_out(&a, &in);
+            app_tick(&a, &ok, now);
+            if (run == 0) expect(a.tone == -1, "027 DONE: a 1.9 s run: no tone");
+            else expect(a.tone_use == DEV_USE_DONE, "027 DONE: a 2 s run: the tone");
+        }
+        a.clock_ms = fake_clock;
+        ab_init(&c);
+        app_init(&a, &c, now);
+        a.set.uses = DEV_USE_DONE;
+        a.clock_ms = fake_clock;
+        ab_eqn_add(&c, "X^2-2");
+        fake_ms = now + 3000;                   /* the SOLVE "took" 3 s by the device's clock */
+        a.tone = -1;
+        press(&a, "1 STO ltr:X 2 GOLD 0 GOLD 7 ltr:X");
+        expect(a.tone_use == DEV_USE_DONE, "027 DONE: a one-call SOLVE of 3 s");
+        /* VOL 0 silences every use */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        a.set.vol = 0;
+        a.tone = -1;
+        press(&a, "5 ENTER 0 \xc3\xb7");
+        app_powered_on(&a);
+        expect(a.tone == -1, "027: VOL 0 silences every use");
+        press(&a, "C");
     }
 
     /* unit 026: an overflow is the largest number with the OVERFLOW notice, not an error (33s p.1-16,

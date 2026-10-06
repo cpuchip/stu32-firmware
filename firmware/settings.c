@@ -14,7 +14,8 @@ void dev_settings_default(dev_settings *s)
     s->group = 1;               /* 1,000: both machines group by default (UG p.1-23, p.B-3; #3965) */
     s->off_min = 10;
     s->vol = PIEZO_LEVELS - 1;
-    s->beep = true;
+    s->uses = DEV_USE_ALL;
+    s->h24 = false;
 }
 
 static void put32(uint8_t *p, uint32_t v)
@@ -40,7 +41,7 @@ size_t dev_image_save(const ab_calc *c, const dev_settings *s, uint8_t *buf, siz
         r[9] = (uint8_t)s->group;
         r[10] = s->off_min;
         r[11] = s->vol;
-        r[12] = s->beep;
+        r[12] = s->uses != 0;
         put32(r + 13, ab_crc32(r, 13));
     }
     return n + REC_LEN;
@@ -52,7 +53,7 @@ static bool read_record(dev_settings *s, const uint8_t *r, size_t n)
     if (n < REC_LEN || memcmp(r, "ABDS", 4) != 0 || (r[4] | r[5] << 8) != DEV_SETTINGS_VERSION ||
         r[6] || r[7] || get32(r + 13) != ab_crc32(r, 13))
         return false;
-    dev_settings t = {(char)r[8], (char)r[9], r[10], r[11], r[12] != 0};
+    dev_settings t = {(char)r[8], (char)r[9], r[10], r[11], (uint8_t)(r[12] ? DEV_USE_ALL : 0), false};
     if ((t.radix != '.' && t.radix != ',') || (t.group != 0 && t.group != 1 && t.group != ' ') ||
         (t.off_min != 2 && t.off_min != 5 && t.off_min != 10 && t.off_min != 30) || t.vol >= PIEZO_LEVELS ||
         r[12] > 1)

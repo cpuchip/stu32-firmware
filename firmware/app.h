@@ -64,6 +64,23 @@
 #define APP_SLICE_LINES 200                 /* program lines per app_tick slice (ours) */
 #define APP_PSE_MS 1000u                    /* PSE's pause, "about 1 second" (UG p.13-19) */
 #define APP_NOTICE_MS 1000u                 /* a brief notice: OVERFLOW "briefly displayed" (33s p.10-3) */
+#define APP_DONE_MS 2000u                   /* DONE's tone after a run longer than this (unit 027) */
+#define APP_BATT_LOW_SOC 10                 /* BATT's tone when the charge first reads at or below this */
+#define APP_BATT_OK_SOC 15                  /* ... and again only after it has read above this (ours) */
+#define APP_CLOCK_UNSET_S 1735689600        /* a wall time before 2025-01-01: the clock was never set */
+#define APP_CLOCK_KEYS_DATE 1767225600      /* the date a time set from the keys takes: 2026-01-01 */
+
+enum { APP_VIEW_NONE = 0, APP_VIEW_BATT, APP_VIEW_VER, APP_VIEW_FLASH };   /* SYS's views (unit 027) */
+
+/* What SYS shows that only the device knows (unit 027 rule 5). */
+typedef struct {
+    int soc;                /* the gauge's percent, -1 not read */
+    bool chg_n, pgood_n;    /* the charger's pins (power.h) */
+    uint32_t vbat_uv;       /* the cell's voltage from the gauge, 0 not known */
+    const char *version, *commit, *built;   /* the firmware's version, the core's commit, the build date */
+    uint32_t flash_free;    /* the state partition's free bytes */
+    uint32_t heap_free, heap_largest;       /* the internal heap's free bytes and largest block */
+} app_sysinfo;
 
 typedef enum {
     APP_IDLE = 0,           /* nothing to do */
@@ -100,7 +117,22 @@ typedef struct {
     pwr_state pwr;
     dev_settings set;       /* the device's settings (unit 022): RADIX and SETUP change them */
     int tone;               /* a tone for the device to sound at this level, -1 none (it clears it):
-                               VOL's new level, or an error with BEEP on (unit 022) */
+                               VOL's new level, or one of the buzzer's uses (unit 022, 027) */
+    int tone_use;           /* that use, DEV_USE_*, 0 for VOL's sample tone (the device picks the sound) */
+    bool wall_set;          /* the wall clock is set (unit 027 rule 4) */
+    int64_t wall_s;         /* the wall time in seconds at wall_ms on the app's clock */
+    uint32_t wall_ms;
+    uint16_t beeps;         /* the core's BEEP count already sounded (ours, unit 027 rule 6) */
+    bool run_timed;         /* a run is going on, begun at run_t0 (DONE's tone) */
+    uint32_t run_t0;
+    bool batt_low;          /* BATT's tone sounded; again only after the charge recovers */
+    int view;               /* APP_VIEW_*: SYS's view showing, any key leaves it */
+    char view_text[4][40];  /* its lines */
+    void (*set_wall)(void *ctx, int64_t secs);  /* the clock set from the keys: the device keeps it
+                                                   (its RTC); may be NULL */
+    uint32_t (*clock_ms)(void *ctx);            /* the app's clock now, for a one-call SOLVE or
+                                                   integral's length (DONE); NULL: not measured */
+    void (*sysinfo)(void *ctx, app_sysinfo *out);   /* SYS's facts; NULL: none known */
     void *ctx;
     void (*busy)(void *ctx, int op);        /* before a call that may take long; may be NULL */
 } app_state;
@@ -120,5 +152,12 @@ uint32_t app_next_wake(const app_state *a, const pwr_inputs *in, uint32_t now_ms
 void app_undo_buffers(app_state *a, uint8_t *b0, uint8_t *b1, size_t cap);
 /* What the screen needs that the core does not hold. */
 void app_ui(const app_state *a, screen_ui *ui);
+/* The wall clock (unit 027 rule 4): secs since 1970 (UTC, shown as is) at now_ms on the app's clock;
+   the device calls it at boot from its RTC (a time before APP_CLOCK_UNSET_S leaves it unset) and the
+   console's TIME. app_wall gives the time at now_ms, false when it is unset. */
+void app_set_wall(app_state *a, int64_t secs, uint32_t now_ms);
+bool app_wall(const app_state *a, uint32_t now_ms, int64_t *secs);
+/* The device woke from OFF (a power-on, not a light-sleep wake): ON's chirp (unit 027). */
+void app_powered_on(app_state *a);
 
 #endif

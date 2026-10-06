@@ -113,8 +113,11 @@ typedef enum {
                                menu setting, nonprogrammable */
     AB_CLEQN,               /* clear the equations, the built-in solvers kept (UG p.1-5: CLEAR's
                                EQN in Equation mode); nonprogrammable (unit 021, review) */
-    AB_EQTOP                /* in Equation mode, the list to EQN LIST TOP (unit 020's NEW, ours);
+    AB_EQTOP,               /* in Equation mode, the list to EQN LIST TOP (unit 020's NEW, ours);
                                nothing elsewhere, and not a program line */
+    AB_BEEP                 /* one short tone, the stack untouched; programmable, in both modes
+                               (ours, unit 027 rule 6: none of the three machines has one). The core
+                               counts it in beeps; the device sounds it */
 } ab_op;
 
 #define AB_OP_LAST AB_EQTOP     /* the last op: loops over every op end here */
@@ -297,6 +300,8 @@ typedef struct {
     bool err_set;           /* recorded already in this call (the innermost wins) */
     int ovf;                /* overflows since the key began (unit 026): flag 5's stop, the device's
                                OVERFLOW notice; not in the state image */
+    uint16_t beeps;         /* BEEP instructions done, counting up (unit 027): the device sounds one
+                               tone per new one; not in the state image */
     bool err_m35;           /* the mode in force when it was recorded (unit 025: INVALID (I) or (i)) */
     int exec_at;            /* the program line being executed while running (unit 025: its label's
                                mode is in force), -1 none */

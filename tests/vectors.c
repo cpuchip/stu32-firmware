@@ -62,7 +62,7 @@ static const struct { const char *name; ab_op op; } NAMED[] = {
     {"SLOPE", AB_SLOPE}, {"YINT", AB_YINT}, {"NSUM", AB_NSUM}, {"SUMX", AB_SUMX},
     {"SUMY", AB_SUMY}, {"SUMX2", AB_SUMX2}, {"SUMY2", AB_SUMY2}, {"SUMXY", AB_SUMXY},
     {"EXPM1", AB_EXPM1}, {"LN1P", AB_LN1P}, {"TWOX", AB_TWOX}, {"LOG2", AB_LOG2},
-    {"CLALL", AB_CLALL}, {"CLEQN", AB_CLEQN},
+    {"CLALL", AB_CLALL}, {"CLEQN", AB_CLEQN}, {"BEEP", AB_BEEP},
 };
 
 /* The last error any key returned in the current vector, for %ERR (unit 012). */
@@ -734,6 +734,8 @@ int vectors_run(const char *name, FILE *f)
                     snprintf(got, sizeof got, "%d", c.prog_len);
                 } else if (strcmp(ex, "%YES") == 0) {
                     snprintf(got, sizeof got, "%d", c.yes ? 1 : 0);
+                } else if (strcmp(ex, "%BEEP") == 0) {     /* BEEPs done (unit 027) */
+                    snprintf(got, sizeof got, "%u", (unsigned)c.beeps);
                 } else if (ex[1] == 'F' && isdigit((unsigned char)ex[2])) {
                     snprintf(got, sizeof got, "%d", ab_flag(&c, atoi(ex + 2)) ? 1 : 0);
                 } else {

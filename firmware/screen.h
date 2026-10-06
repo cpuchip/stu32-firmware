@@ -41,6 +41,9 @@ typedef struct {
     const char *soft[SCREEN_SOFT];  /* the soft keys' labels (UTF-8); NULL or "" for none */
     bool soft_on[SCREEN_SOFT];      /* a label marked as the setting in effect (unit 019: MODE) */
     bool soft_sub[SCREEN_SOFT];     /* a label that opens a submenu: its box marked (abacus #3958) */
+    char clock[8];                  /* the status band's clock ("12:59", "--:--"); "" none (unit 027) */
+    char ampm;                      /* 'a' or 'p' after a 12-hour clock, 0 none */
+    const char *view[4];            /* a view in place of the stack (SYS, unit 027): its lines, NULL none */
 } screen_ui;
 
 void screen_ui_default(screen_ui *ui);

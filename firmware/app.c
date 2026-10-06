@@ -118,7 +118,7 @@ static void do_op(app_state *a, int op, int arg)
         a->notice = arg == 35 ? "(i) MEANS (I)" : "(I) MEANS (i)";
         a->notice_ms = a->last_key_ms;
     }
-    if (c->msg && !msg && a->set.beep && a->set.vol > 0) a->tone = a->set.vol;   /* the error tone (unit 022) */
+    if (c->msg && !msg && (a->set.uses & DEV_USE_ERROR) && a->set.vol > 0) a->tone = a->set.vol;   /* the error tone (unit 022) */
     if (c->stop == AB_STOP_SLICE) {
         a->running = true;
         a->busy_op = op;
@@ -305,7 +305,7 @@ static void setting(app_state *a, const km_action *act)
         s->vol = (uint8_t)((s->vol + 1) % PIEZO_LEVELS);
         a->tone = s->vol;
         break;
-    case KM_DEV_BEEP: s->beep = !s->beep; break;
+    case KM_DEV_BEEP: s->uses = s->uses ? 0 : DEV_USE_ALL; break;
     default: return;
     }
     a->pwr.idle_ms = s->off_min * 60000u;
@@ -477,9 +477,30 @@ void app_ui(const app_state *a, screen_ui *ui)
                 snprintf(vol, sizeof vol, "VOL %u", (unsigned)a->set.vol);
                 ui->soft[i] = vol;
                 break;
-            case KM_DEV_BEEP: ui->soft_on[i] = a->set.beep; break;
+            case KM_DEV_BEEP: ui->soft_on[i] = a->set.uses != 0; break;
             default: break;
             }
         }
     }
+}
+
+/* unit 027 (red): the interfaces, not yet built */
+void app_set_wall(app_state *a, int64_t secs, uint32_t now_ms)
+{
+    (void)a;
+    (void)secs;
+    (void)now_ms;
+}
+
+bool app_wall(const app_state *a, uint32_t now_ms, int64_t *secs)
+{
+    (void)a;
+    (void)now_ms;
+    (void)secs;
+    return false;
+}
+
+void app_powered_on(app_state *a)
+{
+    (void)a;
 }

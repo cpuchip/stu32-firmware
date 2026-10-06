@@ -101,12 +101,12 @@ static int settings_checks(void)
     memset(s2.mem, 0xFF, sizeof s2.mem);
     s2.budget = -1;
     dev_settings_default(&def);
-    CHECK(def.radix == '.' && def.group == 1 && def.off_min == 10 && def.vol == 4 && def.beep,
+    CHECK(def.radix == '.' && def.group == 1 && def.off_min == 10 && def.vol == 4 && def.uses == DEV_USE_ALL && !def.h24,
           "the defaults: radix '.', grouping 1,000 (abacus #3965: UG p.1-23, p.B-3), 10 minutes, the loudest level, BEEP on");
     ab_init(&c);
     ab_do(&c, AB_K7);
     ab_do(&c, AB_ENTER);
-    set = (dev_settings){',', ' ', 30, 2, false};
+    set = (dev_settings){',', ' ', 30, 2, 0, false};
     size_t n = dev_image_save(&c, &set, img, sizeof img);
     CHECK(n > ab_state_save(&c, NULL, 0), "the record follows the core's image");
     CHECK(n > 0 && n <= sizeof img && ab_store_save(&f2, img, (uint32_t)n) == 0, "saved through the store");
@@ -114,7 +114,7 @@ static int settings_checks(void)
     ab_init(&c2);
     back = def;
     CHECK(m == n && dev_image_load(&c2, &back, got, m) == ABN_OK, "loaded back");
-    CHECK(back.radix == ',' && back.group == ' ' && back.off_min == 30 && back.vol == 2 && !back.beep,
+    CHECK(back.radix == ',' && back.group == ' ' && back.off_min == 30 && back.vol == 2 && back.uses == 0,
           "non-default settings load back");
     CHECK(abn_cmp(&c2.x.re, &c.x.re) == 0, "and the state with them");
     /* an image from before unit 022 (the core's alone) loads the defaults */
@@ -124,7 +124,7 @@ static int settings_checks(void)
           "a pre-022 image loads, with the default settings");
     /* a damaged record gives the defaults; the state still loads */
     n = dev_image_save(&c, &set, img, sizeof img);
-    img[n - 8] ^= 0x20;                         /* grouping ' ' to 0: still in range, so only the CRC tells */
+    img[ab_state_save(&c, NULL, 0) + 9] ^= 0x20;    /* grouping ' ' to 0: still in range, so only the CRC tells */
     back = set;
     CHECK(dev_image_load(&c2, &back, img, n) == ABN_OK && !memcmp(&back, &def, sizeof back),
           "a damaged record: the defaults, the state loaded");
@@ -134,6 +134,31 @@ static int settings_checks(void)
     back = set;
     CHECK(dev_image_load(&c2, &back, img, n) == ABN_BAD_IMAGE && !memcmp(&back, &def, sizeof back),
           "a refused core image: BAD_IMAGE, the defaults");
+    /* unit 027: the uses mask and the 12/24 setting survive; a version-1 record (BEEP one switch) loads
+       with every use on if BEEP was on, none if off, and the 12-hour clock */
+    set = (dev_settings){',', ' ', 30, 2, DEV_USE_CLICK | DEV_USE_DONE, true};
+    n = dev_image_save(&c, &set, img, sizeof img);
+    back = def;
+    CHECK(dev_image_load(&c2, &back, img, n) == ABN_OK && back.uses == (DEV_USE_CLICK | DEV_USE_DONE) && back.h24,
+          "unit 027: two uses on and the 24-hour clock load back");
+    for (int on = 0; on <= 1; on++) {
+        size_t core = ab_state_save(&c, img, sizeof img);
+        uint8_t *r = img + core;
+        memcpy(r, "ABDS", 4);
+        r[4] = 1;
+        r[5] = r[6] = r[7] = 0;
+        r[8] = '.';
+        r[9] = 1;
+        r[10] = 10;
+        r[11] = 3;
+        r[12] = (uint8_t)on;
+        uint32_t crc = ab_crc32(r, 13);
+        for (int i = 0; i < 4; i++) r[13 + i] = (uint8_t)(crc >> (8 * i));
+        back = set;
+        CHECK(dev_image_load(&c2, &back, img, core + 17) == ABN_OK && back.uses == (on ? DEV_USE_ALL : 0) &&
+                  !back.h24 && back.vol == 3,
+              on ? "a version-1 record with BEEP on: every use on, 12-hour" : "a version-1 record with BEEP off: none");
+    }
 #undef CHECK
     printf("store_test: settings %d/%d checks\n", checks - bad, checks);
     return bad != 0;
