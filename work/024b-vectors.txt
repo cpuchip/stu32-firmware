@@ -1,0 +1,11 @@
+# Unit 024b (abacus #4179): NO ROOT on a minimum of |f| above zero reports the minimum. B44 is copied verbatim
+# from work/024-review/eqnsolve/vectors.txt; the rest are ours. The x^2 from 1 and 2 and e^x rows pin today's
+# report exactly: with no interior minimum among the search's points, the report is unchanged.
+
+B44 | 33s p.7-6, 32SII p.7-6 NO ROOT FND: X and Y bracket the last interval, Z = f there (x^2-6x+13: about 3, 3, 4) | EQ:X^2-6×X+13 C 0 STO:X 10 EQN SOLVE:X | ERR %ERR=NO_ROOT X#3,1E-3 Y#3,1E-3 Z#4,1E-5
+M01 | ours (33s p.D-8, D-10): x^2-6x+13 from 2 and 4, around the minimum: X and Y about 3, Z = f(X) = 4 | PRGM CLPGM LBL:E RCL:X SQ RCL:X 6 * - 13 + RTN PRGM 2 STO:X 4 FN=:E SOLVE:X | ERR %ERR=NO_ROOT X#3,1E-3 Y#3,1E-3 Z#4,1E-5
+M02 | ours (33s p.D-8, D-10): x^2-6x+13 from 10 and 20, both on one side: X and Y about 3, Z 4 | PRGM CLPGM LBL:E RCL:X SQ RCL:X 6 * - 13 + RTN PRGM 10 STO:X 20 FN=:E SOLVE:X | ERR %ERR=NO_ROOT X#3,1E-3 Y#3,1E-3 Z#4,1E-5
+M03 | ours: x^2 from -1 and 2, a minimum touching zero: the root is found | PRGM CLPGM LBL:E RCL:X SQ RTN PRGM 1 CHS STO:X 2 FN=:E SOLVE:X | X=0 Z=0
+M04 | ours: x^2 from 1 and 2: every point on one side, no interior minimum: reported as before 024b | PRGM CLPGM LBL:E RCL:X SQ RTN PRGM 1 STO:X 2 FN=:E SOLVE:X | ERR %ERR=NO_ROOT X=1.332870794994727251771041216687274E-21 Y=2.156630248913561916644275852583566E-21 Z=1.776544556149876240752493530801354E-42
+M05 | ours: e^x has no minimum: reported as before 024b | PRGM CLPGM LBL:E RCL:X EXP RTN PRGM 0 STO:X 1 FN=:E SOLVE:X | ERR %ERR=NO_ROOT X=-69.23536666105082780490758461806028 Y=-68.54221948049088249549035249660211 Z=8.540087227698968118668531861382948E-31
+M06 | ours: the invariant at the minimum: f at the reported X is Z (x^2-6x+13 from 0 and 10, then XEQ E at X) | PRGM CLPGM LBL:E RCL:X SQ RCL:X 6 * - 13 + RTN PRGM 0 STO:X 10 FN=:E SOLVE:X RDN RDN SAVEX XEQ:E | ERR %ERR=NO_ROOT %SAMEX=same
