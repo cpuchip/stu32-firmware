@@ -362,6 +362,14 @@ void app_saved(app_state *a)
     a->dirty = false;
 }
 
+uint32_t app_next_wake(const app_state *a, const pwr_inputs *in, uint32_t now_ms)
+{
+    (void)a;
+    (void)in;
+    (void)now_ms;
+    return UINT32_MAX;
+}
+
 void app_undo_buffers(app_state *a, uint8_t *b0, uint8_t *b1, size_t cap)
 {
     a->undo[0] = b0;

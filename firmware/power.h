@@ -43,6 +43,9 @@ bool pwr_radio_allowed(uint32_t vbat_uv);
 void pwr_init(pwr_state *p, uint32_t now_ms);
 void pwr_activity(pwr_state *p, uint32_t now_ms);
 pwr_action pwr_check(pwr_state *p, const pwr_inputs *in, uint32_t now_ms);
+/* The ms until pwr_check would turn the calculator off with these inputs (0: it would now), for
+   the device's sleep (unit 023). Not busy: a run's own deadlines are the app's. */
+uint32_t pwr_next(const pwr_state *p, const pwr_inputs *in, uint32_t now_ms);
 bool pwr_charging(const pwr_inputs *in);
 bool pwr_external(const pwr_inputs *in);
 

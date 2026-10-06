@@ -116,6 +116,44 @@ int main(void)
     pwr_init(&p, 0xFFFFFF00u);
     expect(pwr_check(&p, &in, 0xFFFFFF00u + PWR_IDLE_MS - 1) == PWR_STAY, "across the clock's wrap: on");
     expect(pwr_check(&p, &in, 0xFFFFFF00u + PWR_IDLE_MS) == PWR_OFF_IDLE, "across the clock's wrap: off");
+    /* unit 023: pwr_next, the ms until pwr_check would act with these inputs */
+    pwr_init(&p, 1000);
+    expect(pwr_next(&p, &in, 1000) == PWR_IDLE_MS, "pwr_next: the whole 10 minutes at the start");
+    expect(pwr_next(&p, &in, 1000 + PWR_IDLE_MS - 1) == 1, "pwr_next: 1 ms before the auto-off");
+    expect(pwr_next(&p, &in, 1000 + PWR_IDLE_MS) == 0 && pwr_next(&p, &in, 1000 + PWR_IDLE_MS + 5000) == 0,
+           "pwr_next: 0 once it is due");
+    p.idle_ms = 2 * 60000u;
+    expect(pwr_next(&p, &in, 61000) == 60000, "pwr_next: follows the OFF setting (2 minutes, 1 gone)");
+    pwr_init(&p, 0xFFFFFF00u);
+    expect(pwr_next(&p, &in, 0xFFFFFF00u + 100) == PWR_IDLE_MS - 100, "pwr_next: across the clock's wrap");
+    {
+        pwr_inputs low = {true, true, PWR_LOW_SOC - 1, false}, low_usb = {true, false, PWR_LOW_SOC - 1, false};
+        pwr_init(&p, 0);
+        expect(pwr_next(&p, &low, 10) == 0, "pwr_next: a low battery with no input is due now");
+        expect(pwr_next(&p, &low_usb, 10) == PWR_IDLE_MS - 10, "pwr_next: a low battery on USB waits for the auto-off");
+    }
+    {   /* the contract, at random: pwr_check before the deadline stays on, at it turns off */
+        unsigned seed = 12345;
+        bool ok = true;
+        for (int i = 0; i < 2000; i++) {
+            seed = seed * 1103515245u + 12345u;
+            uint32_t start = seed;
+            seed = seed * 1103515245u + 12345u;
+            uint32_t now = start + (seed >> 8) % (PWR_IDLE_MS + 50000u);
+            seed = seed * 1103515245u + 12345u;
+            pwr_inputs ri = {true, (seed >> 4) & 1, (int)((seed >> 8) % 100), false};
+            pwr_init(&p, start);
+            uint32_t w = pwr_next(&p, &ri, now);
+            if (w > 0) {
+                pwr_state q = p;
+                seed = seed * 1103515245u + 12345u;
+                ok = ok && pwr_check(&q, &ri, now + (seed >> 8) % w) == PWR_STAY;
+            }
+            pwr_state q = p;
+            ok = ok && w != UINT32_MAX && pwr_check(&q, &ri, now + w) != PWR_STAY;
+        }
+        expect(ok, "pwr_next's contract over 2000 random states");
+    }
     /* low battery */
     pwr_init(&p, 0);
     in.soc = PWR_LOW_SOC - 1;

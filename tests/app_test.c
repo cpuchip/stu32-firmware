@@ -1000,6 +1000,95 @@ int main(void)
         press(&a, "C");
     }
 
+    /* unit 023: app_next_wake, each deadline */
+    {
+        pwr_inputs bat = {true, true, 80, false};
+        ab_init(&c);
+        app_init(&a, &c, now);
+        expect(app_next_wake(&a, &bat, now) == PWR_IDLE_MS, "a fresh app: only the auto-off, 10 minutes");
+        press(&a, "7");
+        expect(app_next_wake(&a, &bat, now) == 0, "a key: a render is due now");
+        app_tick(&a, &bat, now);                /* the render */
+        expect(app_next_wake(&a, &bat, now + 1000) == APP_QUIET_MS - 1000, "dirty: the quiet save, 29 s on");
+        expect(app_tick(&a, &bat, now + APP_QUIET_MS) == APP_SAVE, "at that time the save is due");
+        app_saved(&a);
+        static const int OFF[] = {30, 2, 5, 10};
+        for (int i = 0; i < 4; i++) {
+            press(&a, "BLUE 3 k:0");
+            app_tick(&a, &bat, now);
+            app_saved(&a);
+            char m[80];
+            snprintf(m, sizeof m, "OFF %d: the auto-off %d minutes on", OFF[i], OFF[i]);
+            expect(app_next_wake(&a, &bat, now) == OFF[i] * 60000u, m);
+        }
+        pwr_inputs low = {true, true, PWR_LOW_SOC - 1, false};
+        expect(app_next_wake(&a, &low, now) == 0, "a low battery with no input: off is due now");
+        /* a running program: 0; its PSE: the rest of the pause */
+        press(&a, "GOLD 9 k:0 GOLD XEQ ltr:P 5 GOLD R/S 6 BLUE XEQ GOLD 9 k:0");
+        run_out(&a, &in);
+        press(&a, "XEQ ltr:P");
+        app_tick(&a, &bat, now);                /* the render */
+        expect(a.pause && app_next_wake(&a, &bat, now + 300) == APP_PSE_MS - 300, "PSE: the rest of the pause, 700 ms");
+        ab_init(&c);
+        app_init(&a, &c, now);
+        press(&a, "GOLD 9 k:0 GOLD XEQ ltr:D GOLD 5 ltr:A GOLD 4 ltr:D BLUE XEQ GOLD 9 k:0 3 0 0 STO ltr:A XEQ ltr:D");
+        expect(a.running && app_next_wake(&a, &bat, now) == 0, "a program running in slices: 0");
+        run_out(&a, &in);
+    }
+
+    /* unit 023: the contract, by property. Random keys and time jumps; at a random t before the
+       deadline app_tick returns APP_IDLE and changes nothing (the app's state and the core's image),
+       and at the deadline it acts */
+    {
+        static const char *const KEYS[] = {"1", "2", "ENTER", "+", "\xc3\x97", "C", "STO ltr:A", "XEQ ltr:P", "XEQ ltr:D",
+                                           "BLUE 3 k:0", "GOLD 9 k:0", "BLUE LN", "k:0", "BLUE \xe2\x86\x90", "R/S"};
+        static app_state before;
+        unsigned seed = 2026;
+        int checked = 0, acted = 0, broken = 0;
+        ab_init(&c);
+        app_init(&a, &c, now);
+        press(&a, "GOLD 9 k:0 GOLD XEQ ltr:P 5 GOLD R/S 6 BLUE XEQ GOLD XEQ ltr:D GOLD 5 ltr:A GOLD 4 ltr:D BLUE XEQ GOLD 9 k:0 4 0 STO ltr:A");
+        for (int step = 0; step < 3000; step++) {
+            seed = seed * 1103515245u + 12345u;
+            pwr_inputs pin = {true, ((seed >> 3) & 7) != 0, ((seed >> 6) & 31) == 0 ? PWR_LOW_SOC - 1 : 70, false};
+            seed = seed * 1103515245u + 12345u;
+            if ((seed >> 9) % 3 == 0) {
+                press(&a, KEYS[(seed >> 12) % (sizeof KEYS / sizeof KEYS[0])]);
+            } else {
+                seed = seed * 1103515245u + 12345u;
+                now += (seed >> 10) % 4 == 0 ? (seed >> 12) % 3000000u : (seed >> 12) % 2000u;
+            }
+            uint32_t w = app_next_wake(&a, &pin, now);
+            if (w > 0 && w != UINT32_MAX) {
+                seed = seed * 1103515245u + 12345u;
+                uint32_t t = now + ((seed >> 8) & 1 ? w - 1 : (seed >> 9) % w);
+                uint32_t crc = img_crc(&c);
+                before = a;
+                app_action r = app_tick(&a, &pin, t);
+                checked++;
+                if (r != APP_IDLE || memcmp(&before, &a, sizeof a) != 0 || img_crc(&c) != crc) {
+                    if (broken++ < 3) printf("app_test: step %d: app_tick at %u ms before the deadline (%u) acted (%d)\n",
+                                             step, (unsigned)(t - now), (unsigned)w, (int)r);
+                }
+            }
+            if (w != UINT32_MAX) {
+                app_action r = app_tick(&a, &pin, now + w);
+                acted += r != APP_IDLE;
+                if (r == APP_IDLE && broken++ < 3) printf("app_test: step %d: idle at the deadline (%u)\n", step, (unsigned)w);
+                now += w;
+                if (r == APP_SAVE) app_saved(&a);
+                if (r == APP_OFF) {             /* power off, and on again */
+                    ab_init(&c);
+                    app_init(&a, &c, now);
+                    press(&a, "GOLD 9 k:0 GOLD XEQ ltr:P 5 GOLD R/S 6 BLUE XEQ GOLD XEQ ltr:D GOLD 5 ltr:A GOLD 4 ltr:D BLUE XEQ GOLD 9 k:0 4 0 STO ltr:A");
+                }
+            }
+        }
+        char m[120];
+        snprintf(m, sizeof m, "app_next_wake's contract: %d checks before deadlines, %d actions at them", checked, acted);
+        expect(broken == 0 && checked > 500 && acted > 500, m);
+    }
+
     /* other menus and the soft keys alone do nothing yet; nothing crashes on any key in any shift */
     ab_init(&c);
     app_init(&a, &c, now);

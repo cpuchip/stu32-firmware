@@ -22,6 +22,14 @@ pwr_action pwr_check(pwr_state *p, const pwr_inputs *in, uint32_t now_ms)
     return (uint32_t)(now_ms - p->last_ms) >= p->idle_ms ? PWR_OFF_IDLE : PWR_STAY;   /* wraps */
 }
 
+uint32_t pwr_next(const pwr_state *p, const pwr_inputs *in, uint32_t now_ms)
+{
+    (void)p;
+    (void)in;
+    (void)now_ms;
+    return UINT32_MAX;
+}
+
 bool pwr_charging(const pwr_inputs *in)
 {
     return !in->chg_n;
