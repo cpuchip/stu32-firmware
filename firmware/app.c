@@ -89,7 +89,9 @@ static void undo(app_state *a)
 {
     if (!a->undo_len) return;
     size_t n = ab_state_save(a->c, a->undo[1], a->undo_cap);
+    uint16_t beeps = a->c->beeps;               /* a count for the device, not state (unit 027) */
     if (n == 0 || n > a->undo_cap || ab_state_load(a->c, a->undo[0], a->undo_len) != ABN_OK) return;
+    a->c->beeps = beeps;
     undo_swap(a, n);
     a->dirty = true;
 }
@@ -120,15 +122,15 @@ static void sound(app_state *a, int use)
 static void after_core(app_state *a, bool msg_before, uint32_t now_ms)
 {
     ab_calc *c = a->c;
-    if (c->beeps != a->beeps) {
-        a->beeps = c->beeps;
-        sound(a, DEV_USE_PRGM);
-    }
-    if (c->msg && !msg_before) sound(a, DEV_USE_ERROR);
     if (a->run_timed && !a->running && !a->pause) {
         a->run_timed = false;
         if ((uint32_t)(now_ms - a->run_t0) >= APP_DONE_MS) sound(a, DEV_USE_DONE);
     }
+    if (c->beeps != a->beeps) {
+        a->beeps = c->beeps;
+        sound(a, DEV_USE_PRGM);
+    }
+    if (c->msg && !msg_before) sound(a, DEV_USE_ERROR);     /* last: an error's tone wins */
 }
 
 /* An op from the keys: the state kept for UNDO first (VIEW changes nothing), the busy callback
@@ -492,7 +494,9 @@ app_action app_tick(app_state *a, const pwr_inputs *in, uint32_t now_ms)
             a->pause_ms = now_ms;
         }
     }
-    after_core(a, msg, now_ms);
+    /* a run that ended in this tick is timed by the device's clock when there is one: its last slice
+       may have held a long SOLVE or integral (unit 027 review) */
+    after_core(a, msg, a->run_timed && !a->running && !a->pause && a->clock_ms ? a->clock_ms(a->ctx) : now_ms);
     if (in->soc >= 0) {                         /* BATT: once when it first reads low (unit 027) */
         if (in->soc <= APP_BATT_LOW_SOC && !a->batt_low) {
             a->batt_low = true;
@@ -508,6 +512,10 @@ app_action app_tick(app_state *a, const pwr_inputs *in, uint32_t now_ms)
         if (app_wall(a, now_ms, &w) && w / 60 != a->clock_min) {
             a->clock_min = w / 60;
             a->render = true;
+            uint32_t gone = (now_ms - a->wall_ms) / 1000u;  /* re-anchored, its phase kept: the ms
+                                                               clock may run 49 days, an int32 25 */
+            a->wall_s += gone;
+            a->wall_ms += gone * 1000u;
         }
     }
     overflow_notice(a, now_ms);
@@ -552,9 +560,12 @@ uint32_t app_next_wake(const app_state *a, const pwr_inputs *in, uint32_t now_ms
     if (a->dirty && (t = left(now_ms, a->last_key_ms, APP_QUIET_MS)) < w) w = t;
     if (a->notice && (t = left(now_ms, a->notice_ms, APP_NOTICE_MS)) < w) w = t;
     int64_t ws;
-    if (app_wall(a, now_ms, &ws)) {             /* the clock's next minute (unit 027 rule 4) */
-        uint32_t into = (uint32_t)(ws % 60) * 1000u + (uint32_t)((now_ms - a->wall_ms) % 1000u);
-        if ((t = 60000u - into % 60000u) < w) w = t;
+    if (app_wall(a, now_ms, &ws)) {             /* the minute after the one drawn (unit 027 rule 4) */
+        if (ws / 60 != a->clock_min) return 0;  /* already past: draw it now */
+        int64_t gone = (int32_t)(now_ms - a->wall_ms) > 0 ? (int32_t)(now_ms - a->wall_ms) : 0;
+        int64_t to = ((a->clock_min + 1) * 60 - a->wall_s) * 1000 - gone;
+        if (to < 1) to = 1;
+        if ((uint64_t)to < w) w = (uint32_t)to;
     }
     return w;
 }

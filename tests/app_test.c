@@ -1112,9 +1112,11 @@ int main(void)
         ab_init(&c);
         app_init(&a, &c, now);
         press(&a, "GOLD 9 k:0 GOLD XEQ ltr:P 5 GOLD R/S 6 BLUE XEQ GOLD XEQ ltr:D GOLD 5 ltr:A GOLD 4 ltr:D BLUE XEQ GOLD 9 k:0 4 0 STO ltr:A");
-        for (int step = 0; step < 3000; step++) {
+        app_set_wall(&a, (int64_t)APP_CLOCK_KEYS_DATE + 12 * 3600 + 59, now);    /* unit 027: the clock set */
+        for (int step = 0; step < 6000; step++) {
             seed = seed * 1103515245u + 12345u;
-            pwr_inputs pin = {true, ((seed >> 3) & 7) != 0, ((seed >> 6) & 31) == 0 ? PWR_LOW_SOC - 1 : 70, false};
+            static const int SOC[] = {PWR_LOW_SOC - 1, 70, APP_BATT_LOW_SOC, APP_BATT_LOW_SOC + 2, APP_BATT_OK_SOC + 1};
+            pwr_inputs pin = {true, ((seed >> 3) & 7) != 0, ((seed >> 6) & 31) == 0 ? SOC[(seed >> 11) % 5] : 70, false};
             seed = seed * 1103515245u + 12345u;
             if ((seed >> 9) % 3 == 0) {
                 press(&a, KEYS[(seed >> 12) % (sizeof KEYS / sizeof KEYS[0])]);
@@ -1399,7 +1401,7 @@ int main(void)
             run_out(&a, &in);
             app_tick(&a, &ok, now);
             if (run == 0) expect(a.tone == -1, "027 DONE: a 1.9 s run: no tone");
-            else expect(a.tone_use == DEV_USE_DONE, "027 DONE: a 2 s run: the tone");
+            else expect(a.tone >= 0 && a.tone_use == DEV_USE_DONE, "027 DONE: a 2 s run: the tone");
         }
         a.clock_ms = fake_clock;
         ab_init(&c);
@@ -1410,7 +1412,7 @@ int main(void)
         fake_ms = now + 3000;                   /* the SOLVE "took" 3 s by the device's clock */
         a.tone = -1;
         press(&a, "1 STO ltr:X 2 GOLD 0 GOLD 7 ltr:X");
-        expect(a.tone_use == DEV_USE_DONE, "027 DONE: a one-call SOLVE of 3 s");
+        expect(a.tone >= 0 && a.tone_use == DEV_USE_DONE, "027 DONE: a one-call SOLVE of 3 s");
         /* VOL 0 silences every use */
         ab_init(&c);
         app_init(&a, &c, now);
@@ -1420,6 +1422,101 @@ int main(void)
         app_powered_on(&a);
         expect(a.tone == -1, "027: VOL 0 silences every use");
         press(&a, "C");
+
+        /* review: UNDO after a BEEP sounds nothing (the count is not state) */
+        {
+            static uint8_t u0[1 << 18], u1[1 << 18];
+            ab_init(&c);
+            app_init(&a, &c, now);
+            app_undo_buffers(&a, u0, u1, sizeof u0);
+            a.set.uses = DEV_USE_PRGM;
+            press(&a, "BLUE 6 k:3");            /* FLAGS' BEEP from the keys */
+            expect(a.tone_use == DEV_USE_PRGM && c.beeps == 1, "027: BEEP from the keys sounds");
+            a.tone = -1;
+            press(&a, "BLUE \xe2\x86\x90");     /* UNDO */
+            app_tick(&a, &ok, now += 10);
+            expect(a.tone == -1, "027 review: UNDO after a BEEP sounds nothing");
+        }
+        /* review: a sliced run that ends by itself after more than 2 s sounds DONE; one whose last
+           slice held a long SOLVE is timed by the device's clock; an error's tone wins over DONE */
+        {
+            ab_init(&c);
+            app_init(&a, &c, now);
+            a.set.uses = DEV_USE_DONE | DEV_USE_ERROR;
+            ab_do(&c, AB_PRGM);
+            ab_do_arg(&c, AB_LBL, 0);           /* A: 3000 STO C, LBL B, DSE C, GTO B, RTN */
+            ab_do(&c, AB_K3);
+            ab_do(&c, AB_K0);
+            ab_do(&c, AB_K0);
+            ab_do(&c, AB_K0);
+            ab_do_arg(&c, AB_STO, 2);
+            ab_do_arg(&c, AB_LBL, 1);
+            ab_do_arg(&c, AB_DSE, 2);
+            ab_do_arg(&c, AB_GTO, 1 * 1000 + 1);
+            ab_do(&c, AB_RTN);
+            ab_do(&c, AB_PRGM);
+            a.tone = -1;
+            press(&a, "XEQ ltr:A");
+            uint32_t t0 = now;
+            while (a.running) app_tick(&a, &ok, now += 50);
+            expect(now - t0 >= 2000 && a.tone >= 0 && a.tone_use == DEV_USE_DONE, "027 review: a sliced run ending by itself after 2 s: DONE");
+            a.tone = -1;
+            press(&a, "1 0 STO ltr:C XEQ ltr:A");
+            run_out(&a, &in);
+            app_tick(&a, &ok, now);
+            expect(a.tone == -1, "027 review: the same run of a few slices: no DONE");
+            /* the last slice "takes" 5 s by the device's clock */
+            a.clock_ms = fake_clock;
+            press(&a, "4 0 0 STO ltr:C XEQ ltr:A");
+            fake_ms = now + 5000;
+            a.tone = -1;
+            while (a.running) app_tick(&a, &ok, now += 1);
+            expect(a.tone >= 0 && a.tone_use == DEV_USE_DONE, "027 review: a run timed by the device's clock at its end (5 s): DONE");
+            a.clock_ms = NULL;
+            /* a long run ending in an error: the error's tone */
+            ab_init(&c);
+            app_init(&a, &c, now);
+            a.set.uses = DEV_USE_DONE | DEV_USE_ERROR;
+            ab_do(&c, AB_PRGM);
+            ab_do_arg(&c, AB_LBL, 0);
+            ab_do(&c, AB_K3);
+            ab_do(&c, AB_K0);
+            ab_do(&c, AB_K0);
+            ab_do(&c, AB_K0);
+            ab_do_arg(&c, AB_STO, 2);
+            ab_do_arg(&c, AB_LBL, 1);
+            ab_do_arg(&c, AB_DSE, 2);
+            ab_do_arg(&c, AB_GTO, 1 * 1000 + 1);
+            ab_do(&c, AB_K0);
+            ab_do(&c, AB_INV);                  /* 1/0: an error at the end */
+            ab_do(&c, AB_PRGM);
+            a.tone = -1;
+            press(&a, "XEQ ltr:A");
+            while (a.running) app_tick(&a, &ok, now += 50);
+            expect(c.msg && a.tone >= 0 && a.tone_use == DEV_USE_ERROR, "027 review: a long run ending in an error sounds the error, not DONE");
+            press(&a, "C");
+        }
+        /* review: the clock through 26 days of minute ticks (the ms clock's int32 half is 24.8 days) */
+        {
+            ab_init(&c);
+            app_init(&a, &c, now);
+            app_set_wall(&a, (int64_t)APP_CLOCK_KEYS_DATE, now);
+            uint32_t t = now;
+            bool mono = true;
+            int64_t prev = 0, w2;
+            for (int m = 0; m < 26 * 24 * 60; m++) {
+                t += 60000u;                    /* a tick each minute (auto-off aside) */
+                app_tick(&a, &ok, t);
+                mono = mono && app_wall(&a, t, &w2) && w2 > prev;
+                prev = w2;
+            }
+            expect(mono && w2 == (int64_t)APP_CLOCK_KEYS_DATE + 26 * 86400, "027 review: 26 days of minutes, the clock never going back");
+            /* review: a minute passed between the last tick and app_next_wake is due at once */
+            app_set_wall(&a, (int64_t)APP_CLOCK_KEYS_DATE + 12 * 3600, t);
+            app_tick(&a, &ok, t);
+            app_tick(&a, &ok, t + 59950);
+            expect(app_next_wake(&a, &ok, t + 60150) == 0, "027 review: the minute already past is due now, not in 59.85 s");
+        }
     }
 
     /* unit 026: an overflow is the largest number with the OVERFLOW notice, not an error (33s p.1-16,
