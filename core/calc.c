@@ -1952,7 +1952,14 @@ static abn_status solve_core(ab_calc *c, abn a, abn b, solve_out *o)
             if (abn_add(&b, &b, &st1) != ABN_OK) goto noroot;
         }
         if ((st = ev(c, &b, &fb, &bad)) != ABN_OK) return st;
-        if (bad) goto noroot_bracket;
+        if (bad) {
+            /* f failed at the new b: report from the last defined point, the old b (now a), so the
+               NO ROOT report's X is a point where f is defined and Z is f there (33s p.7-6, D-12;
+               unit 024 rule 2) */
+            b = a;
+            fb = fa;
+            goto noroot_bracket;
+        }
     }
     /* bisection until the ends are adjacent */
     while (!abn_is_zero(&fb) && c->evals < SOLVE_MAX) {
@@ -3100,7 +3107,8 @@ static bool takes_complex(ab_op op)
 }
 
 /* An error message shows until the next key (unit 017 rule 4, Michael's machines): on the 33s
- * that key clears it and acts; on the 35s it only clears it (also 35s p.F-1). Any error a key
+ * that key clears it and acts, except C and backspace, which only clear it (unit 024 rule 1);
+ * on the 35s every key only clears it (also 35s p.F-1). Any error a key
  * causes leaves a message, a program's error stop included; ABN_CLAMPED (a base-mode result
  * clamped to the word) is a completed operation, not a message. */
 abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
@@ -3108,8 +3116,11 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
     abn_status st;
     ab_val x0 = c->x;
     if (c->msg) {
+        /* the 35s: any key only clears the message; the 33s: C and backspace only clear it, any other
+           key clears it and acts (33s p.1-23 and its error appendix, 32SII p.1-19, E-1; unit 024
+           rule 1, amending 017 rule 4) */
         c->msg = false;
-        if (c->m35) return ABN_OK;
+        if (c->m35 || op == AB_CANCEL || op == AB_KBKSP) return ABN_OK;
     }
     if (ab_view_key(c, op)) return ABN_OK;
     c->err_set = false;
