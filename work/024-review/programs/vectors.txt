@@ -81,7 +81,7 @@ Q16 | 33s p.13-8, 32SII p.13-9 there is no flag 12 | SF:12 | ERR
 Q17 | 33s p.13-8, 32SII p.13-9 every flag is clear by default | | %F0=0 %F1=0 %F2=0 %F3=0 %F4=0 %F5=0 %F6=0 %F7=0 %F8=0 %F9=0 %F10=0 %F11=0
 Q18 | 33s p.13-8, 32SII p.13-9 memory clear clears all flags | SF:0 SF:4 SF:5 SF:10 SF:11 MEMCLR | %F0=0 %F4=0 %F5=0 %F10=0 %F11=0
 Q19 | 33s p.13-8, 32SII p.13-9 CLEAR ALL does not affect the flags | SF:0 SF:4 SF:5 SF:10 SF:11 CLALL | %F0=1 %F4=1 %F5=1 %F10=1 %F11=1
-Q20 | 33s p.13-9, 32SII p.13-9 an overflow in a program sets flag 6, substitutes the largest number and (flag 5 clear) runs on | PRGM CLPGM LBL:A 1 E 499 ENTER 10 * 5 RTN PRGM XEQ:A | X=5 Y=9.99999999999E499 %F6=1
+Q20 | 33s p.13-9, 32SII p.13-9 an overflow in a program sets flag 6, substitutes the largest number and (flag 5 clear) runs on (unit 026: at decimal128's edge, not the HP's E499) | PRGM CLPGM LBL:A 1 E 6144 ENTER 10 * 5 RTN PRGM XEQ:A | X=5 Y=9.999999999999999999999999999999999E6144 %F6=1
 Q21 | 33s p.13-9 the same at our own range's edge (decimal128): flag 6 set, the run goes on | PRGM CLPGM LBL:A 1 E 6000 ENTER * 5 RTN PRGM XEQ:A | X=5 %F6=1
 Q22 | 33s p.13-9, 32SII p.13-10 flag 5 set: the overflow stops the program at the line just after | PRGM CLPGM LBL:A SF:5 1 E 6000 ENTER * 5 RTN PRGM XEQ:A | %PC=A006 %F6=1
 Q23 | 33s p.13-9, 32SII p.13-10 flag 6 can be set by hand and tested | SF:6 FS?:6 | %YES=1

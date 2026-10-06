@@ -4,6 +4,7 @@
 # Unit 025 (work/025-indirect-i-and-program-modes.md): the default is now 33s mode, so these vectors,
 # written from the 35s guide's indirect model, start with MODE35 (the ERR ones added after review, which
 # passed in 33s mode only by failing early: S06): S02.
+# Unit 026 (work/026-overflow-per-the-manuals.md): overflow gives the largest number with flag 6 and underflow gives 0, not errors; amended: S08 S09 S19.
 
 S01 | 35s p.1-5 CLEAR ALL is not a program line: in program entry the menu offers CLPGM instead | PRGM CLPGM CLALL | ERR %ERR=NONPROGRAMMABLE %LINES=0
 S02 | ours: CLVARx is a program line, with its address | MODE35 PRGM CLPGM LBL:A CLVAR:056 RTN PRGM 60 STO:I 6 STO:(I) 50 STO:I 5 STO:(I) XEQ:A | %LINES=3 @#60=0 @#50=5
@@ -12,8 +13,8 @@ S04 | 35s p.B-5 CLVARS is neutral (the contrast for S03) | 5 ENTER CLVARS 7 | X=
 S05 | ours: CLVARx's address stops at 800 | CLVAR:801 | ERR %ERR=DOMAIN
 S06 | ours: CLVARx leaves the defined range ending at the last nonzero variable | MODE35 3 STO:I 1 STO:(I) 70 STO:I 2 STO:(I) CLVAR:050 69 STO:I RCL:(I) | ERR %ERR=DOMAIN
 S07 | 35s p.4-15 gamma beside the pole at 0: x = -1 + 1e-30 | 1 E 30 CHS ENTER 1 - FACT | X^9.999999999999999999999999999994228E+29
-S08 | 35s p.4-15 gamma too large is the range error | 3000.5 FACT | ERR %ERR=RANGE
-S09 | 35s p.4-15 gamma too small is the range error (unit 003 rule 4) | 3000.5 CHS FACT | ERR %ERR=RANGE
+S08 | 35s p.4-15 gamma too large (unit 026: the largest number, flag 6) | 3000.5 FACT | X=9.999999999999999999999999999999999E6144 %F6=1
+S09 | 35s p.4-15 gamma too small (unit 026: underflow is 0) | 3000.5 CHS FACT | X=0 %F6=0
 S10 | 35s p.F-2 a negative integer x! says INVALID x! | 3 CHS FACT | ERR %ERRMSG=INVALID_x!
 S11 | ours: ln(1 + x) at x = -1 says LOG(0), as LN of 0 | 1 CHS LN1P | ERR %ERRMSG=LOG(0)
 S12 | ours: ln(1 + x) below -1 says LOG(NEG) | 2 CHS LN1P | ERR %ERRMSG=LOG(NEG)
@@ -23,7 +24,7 @@ S15 | 35s p.B-6 LAST X keeps the argument | 0.5 LN1P LASTX | X=0.5
 S16 | ours: LOG2 of an exact power of two is exact | 0.0009765625 LOG2 | X=-10
 S17 | ours: LOG2 of 2^112, the largest power of two exact in 34 digits | 5192296858534827628530496329220096 LOG2 | X=112
 S18 | ours: e^x - 1 far below: -1 | 1 CHS E 8 EXPM1 | X=-1
-S19 | ours: e^x - 1 too large is the range error | 1 E 5 EXPM1 | ERR %ERR=RANGE
+S19 | ours: e^x - 1 too large (unit 026: the largest number, flag 6) | 1 E 5 EXPM1 | X=9.999999999999999999999999999999999E6144 %F6=1
 S20 | ours: CLEAR ALL acts in Equation mode too (no silent no-op after CLR ALL? is answered) | 5 STO:A EQN CLALL | @A=0 %EQ=TOP
 S21 | ours: CLEAR ALL acts while an equation is typed, and leaves Equation mode | 5 STO:A EQN RCL:A CLALL 2 ENTER 3 + | @A=0 X=5
 S22 | review of 021: 2^x of a tiny x is 1, not a range error | 1.5 E 6140 CHS TWOX | X=1

@@ -9,6 +9,7 @@
 # written from the 35s guide's indirect model, start with MODE35 (the ERR ones added after review, which
 # passed in 33s mode only by failing early: E07): G02 M26. G02 goes back to MODE33 after its
 # STO (I), as it was written: in 35s mode the key after the error would only clear the message (unit 017).
+# Unit 026 (work/026-overflow-per-the-manuals.md): overflow gives the largest number with flag 6, not an error; amended: G02.
 
 
 M01 | 35s p.12-3 first pair: X is n, y stays in Y, x in LAST X | CLSIGMA 4 ENTER 20 SIGMA+ | X=1 Y=4 L=20
@@ -68,4 +69,4 @@ E27 | ours: correlation | 3 ENTER 2 SIGMA+ 7 ENTER 4 SIGMA+ 4 ENTER 5 SIGMA+ 11 
 
 # --- added after the mutation pass: each pins a behaviour no vector above could see
 G01 | ours (rule 2): sum x^2 by fma, where rounding twice would end ...074 | 4.4131195546244 SIGMA+ 2.2370473083691470407211 SIGMA+ SUMX2 | X=24.48000486328990826696395116527075
-G02 | ours (rule 2): all or nothing when only sum xy leaves the range | MODE35 32 CHS STO:I 9 E 6144 STO:(I) MODE33 1 E 3072 ENTER SIGMA+ NSUM | ERR X=0 Y=1E3072
+G02 | ours (rule 2; unit 026 and abacus #4198: SIGMA+ completes, sum xy at the largest, flag 6) | MODE35 32 CHS STO:I 9 E 6144 STO:(I) MODE33 1 E 3072 ENTER SIGMA+ NSUM SUMXY | X=9.999999999999999999999999999999999E6144 Y=1 %F6=1

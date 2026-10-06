@@ -1,0 +1,40 @@
+# Work unit 026: overflow and underflow as the manuals have them (Michael via abacus decision 45). The
+# review's N24-N27, Q20-Q22 and B18 are copied from work/024-review (Q20 moved from the HP's E499 to our
+# decimal128 edge, as the unit says); the V rows are ours, from the unit's rules and abacus's answers (#4198).
+# The largest number is decimal128's: 9.999999999999999999999999999999999E6144 (34 nines).
+N24 | 33s p.1-16, F-3; 32SII p.1-12, E-3 overflow returns the largest number with a warning and sets flag 6 (no error) | 1 E 6000 ENTER * | X=9.999999999999999999999999999999999E6144 %F6=1
+N25 | 33s p.1-16, 32SII p.1-12 underflow returns zero, no message | 1 E 6000 CHS ENTER * | X=0
+N26 | 33s p.1-16, 32SII p.1-12 underflow inside a function returns zero: e^-20000 | 20000 CHS EXP | X=0 L=-20000
+N27 | 33s p.1-16, F-3; 32SII p.1-12, E-3 overflow inside a function: e^20000 gives the largest number, flag 6 set | 20000 EXP | X=9.999999999999999999999999999999999E6144 %F6=1
+Q20 | 33s p.13-9, 32SII p.13-9 an overflow in a program sets flag 6, substitutes the largest number and (flag 5 clear) runs on (unit 026: at decimal128's edge, not the HP's E499) | PRGM CLPGM LBL:A 1 E 6144 ENTER 10 * 5 RTN PRGM XEQ:A | X=5 Y=9.999999999999999999999999999999999E6144 %F6=1
+Q21 | 33s p.13-9 the same at our own range's edge (decimal128): flag 6 set, the run goes on | PRGM CLPGM LBL:A 1 E 6000 ENTER * 5 RTN PRGM XEQ:A | X=5 %F6=1
+Q22 | 33s p.13-9, 32SII p.13-10 flag 5 set: the overflow stops the program at the line just after | PRGM CLPGM LBL:A SF:5 1 E 6000 ENTER * 5 RTN PRGM XEQ:A | %PC=A006 %F6=1
+B18 | 33s p.10-3 with p.13-9 (flag 6 set on any overflow): the base overflow sets flag 6 | HEX 7 HF HF HF HF HF HF HF HF ENTER 1 +  | ERR %F6=1
+V01 | unit 026 rule 2: the largest number's exact digits (34 nines), the stack dropped and LAST X saved | 7 ENTER 1 E 6144 ENTER 10 * | X=9.999999999999999999999999999999999E6144 Y=7 L=10 %F6=1
+V02 | unit 026 rule 2: a negative overflow gives minus the largest | 1 E 6000 ENTER CHS * | X=-9.999999999999999999999999999999999E6144 %F6=1
+V03 | unit 026 rule 2: the product of two negatives overflows positive | 1 E 6000 ENTER CHS ENTER * | X=9.999999999999999999999999999999999E6144
+V04 | unit 026 rule 2: sums: 9E6144 + 9E6144 and -9E6144 + -9E6144, 9E6144 - -9E6144 | 9 E 6144 ENTER + 9 E 6144 ENTER CHS ENTER + 9 E 6144 ENTER CHS - | X=9.999999999999999999999999999999999E6144 Y=-9.999999999999999999999999999999999E6144 Z=9.999999999999999999999999999999999E6144
+V05 | unit 026 rule 3: flag 6 stays set until CF clears it | 1 E 6000 ENTER * 5 + CF:6 | %F6=0 X=9.999999999999999999999999999999999E6144
+V06 | unit 026 rule 3: FS? 6 after an overflow | 1 E 6000 ENTER * FS?:6 | %YES=1
+V07 | unit 026 rule 3 (33s p.13-9, F-3): flag 5 set: a STOP at the line after, OVERFLOW held as a message; R/S runs on | PRGM CLPGM LBL:A SF:5 1 E 6000 ENTER * 5 RTN PRGM XEQ:A | %PC=A006 %STOP=STOP %ERRMSG=OVERFLOW
+V08 | unit 026 rule 3: R/S after the flag 5 stop runs on from the next line | PRGM CLPGM LBL:A SF:5 1 E 6000 ENTER * 5 RTN PRGM XEQ:A RS | X=5 Y=9.999999999999999999999999999999999E6144 %STOP=DONE
+V09 | unit 026 rule 4: an underflow in a chain: 1E-6000 squared is 0, plus 5 is 5; no flag | 1 E 6000 CHS ENTER * 5 + | X=5 %F6=0
+V10 | unit 026 rule 4: a negative underflow is 0 too | 1 E 6000 CHS ENTER CHS * | X=0
+V11 | unit 026 rule 4: an underflow in a program with flag 5 set does not stop it | PRGM CLPGM LBL:A SF:5 1 E 6000 CHS ENTER * 5 RTN PRGM XEQ:A | X=5 %F6=0 %STOP=DONE
+V12 | unit 026 rule 2: sinh of -20000 overflows negative | 20000 CHS SINH | X=-9.999999999999999999999999999999999E6144 %F6=1 L=-20000
+V13 | unit 026 rule 2: (-10)^7001 overflows negative, (-10)^7000 positive | 10 CHS ENTER 7001 POW 10 CHS ENTER 7000 POW | X=9.999999999999999999999999999999999E6144 Y=-9.999999999999999999999999999999999E6144
+V14 | unit 026 rule 2: x!, nPr and nCr past the range give the largest | 3000 FACT 5000 ENTER 2500 NPR 50000 ENTER 25000 NCR | X=9.999999999999999999999999999999999E6144 Y=9.999999999999999999999999999999999E6144 Z=9.999999999999999999999999999999999E6144
+V15 | unit 026 rule 2: 10^7000 and 2^30000; 2^-30000 underflows to 0 | 7000 TENX 30000 TWOX 30000 CHS TWOX | X=0 Y=9.999999999999999999999999999999999E6144 Z=9.999999999999999999999999999999999E6144
+V16 | unit 026 rule 2: x squared of -1E4000 is the largest, positive | 1 E 4000 ENTER CHS SQ | X=9.999999999999999999999999999999999E6144
+V17 | unit 026 rule 4: 1/x of 9E6144 underflows to 0; 1E6000 / 1E-1000 overflows | 9 E 6144 INV 1 E 6000 ENTER 1 E 1000 CHS / | X=9.999999999999999999999999999999999E6144 Y=0
+V18 | unit 026 rule 2: storage arithmetic: STO× overflows into A; STO÷ underflows B to 0 | 1 E 6000 STO:A STO*:A 1 E 6000 CHS STO:B 1 E 6000 STO/:B | @A=9.999999999999999999999999999999999E6144 @B=0 X=1E6000 %F6=1
+V19 | unit 026 rule 2: RCL× overflows into X | 1 E 6000 STO:A RCL*:A | X=9.999999999999999999999999999999999E6144 %F6=1
+V20 | unit 026 rule 2: percent overflows (Y kept, p.4-6) | 9 E 6144 ENTER 200 PCT | X=9.999999999999999999999999999999999E6144 Y=9E6144
+V21 | unit 026 rule 2: a unit conversion of -9E6144 to F overflows negative | 9 E 6144 ENTER CHS TOF | X=-9.999999999999999999999999999999999E6144
+V22 | unit 026 (abacus #4198): a statistics register that overflows completes at the largest, sign kept | 1 E 4000 ENTER CHS SIGMA+ SUMXY | X=-9.999999999999999999999999999999999E6144 %F6=1
+V23 | unit 026 rule 2 in an equation: A×A with A = 1E4000 is the largest | EQ:A×A C 1 E 4000 STO:A EQN XEQ RS | X=9.999999999999999999999999999999999E6144 %F6=1
+V24 | unit 026 rule 6: SOLVE where f overflows at a guess: e^X - 10 from 1 and 20000 | EQ:EXP(X)-10 C 1 STO:X 20000 EQN SOLVE:X | X#2.302585092994045684017991454684364,1E-30 %F6=1
+V25 | unit 026 rule 6: flag 5 does not stop a SOLVE whose program overflows | PRGM CLPGM LBL:F RCL:X EXP 10 - RTN PRGM SF:5 1 STO:X 20000 FN=:F SOLVE:X | X#2.302585092994045684017991454684364,1E-30 %F6=1
+V26 | unit 026 (abacus #4198): a complex overflow stays an error and sets flag 6 | 1 E 6000 ENTER 1 E 6000 XIY ENTER * | ERR %F6=1
+V27 | unit 026 rule 7: a typed number beyond the range keeps today's behaviour; flag 6 untouched | 1 E 7000 | %F6=0
+V28 | unit 026 rule 3: overflow in a program with flag 5 clear: no stop, the stop is DONE | PRGM CLPGM LBL:A 1 E 6000 ENTER * 5 RTN PRGM XEQ:A | %STOP=DONE

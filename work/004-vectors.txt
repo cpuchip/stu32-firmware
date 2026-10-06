@@ -10,6 +10,7 @@
 # M-vectors: the manual's examples (HP 35s User's Guide ch.4, keys from the rendered pages). Values:
 # CODATA 2022 (physics.nist.gov allascii.txt, fetched 2026-10-03); "=" correctly rounded to 34 digits
 # with Python decimal (ROUND_HALF_EVEN); "^" from mpmath 1.4.1 at 150 digits.
+# Unit 026 (work/026-overflow-per-the-manuals.md): overflow gives the largest number with flag 6 and underflow gives 0, not errors; amended: P06.
 
 M01 | 35s p.4-14 30 degrees to radians | 30 TORAD | X^0.523598775598298873077107230546583814 L=30
 M02 | 35s p.4-14 1 lb to kg | 1 TOKG | X=0.45359237 L=1
@@ -79,7 +80,7 @@ P02 | ours: 36! exact | 36 FACT | X=371993326789901217467999448150835200000000
 P03 | ours: 37! correctly rounded | 37 FACT | X=1.376375309122634504631597958158090E+43
 P04 | ours: 100! correctly rounded | 100 FACT | X=9.332621544394415268169923885626670E+157
 P05 | ours: the largest factorial in range | 2123 FACT | X=1.479907299403249333203306687281203E+6143
-P06 | ours: 2124! is out of range | 2124 FACT | ERR X=2124
+P06 | ours: 2124! is out of range (unit 026: the largest number, flag 6) | 2124 FACT | X=9.999999999999999999999999999999999E6144 %F6=1
 P07 | 35s p.4-15 non-integer x! is gamma (unit 021 rule 1; was deferred: an error) | 2.5 FACT | X^3.323350970447842551184064031264647E+0
 P08 | ours: negative integer factorial is an error | 3 CHS FACT | ERR X=-3
 P09 | ours: permutations | 10 ENTER 3 NPR | X=720 L=3

@@ -5,6 +5,7 @@
 # Unit 025 (work/025-indirect-i-and-program-modes.md): the default is now 33s mode, so these vectors,
 # written from the 35s guide's indirect model, start with MODE35 (the ERR ones added after review, which
 # passed in 33s mode only by failing early: F14): F13.
+# Unit 026 (work/026-overflow-per-the-manuals.md): overflow gives the largest number with flag 6 and underflow gives 0, not errors; amended: F36.
 
 F01 | 35s p.F-1 DIVIDE BY 0 | 1 ENTER 0 / | ERR %ERRMSG=DIVIDE_BY_0
 F02 | 35s p.F-1 DIVIDE BY 0 includes %CHG with Y zero | 0 ENTER 5 PCTCHG | ERR %ERRMSG=DIVIDE_BY_0
@@ -45,7 +46,7 @@ F32 | 35s p.F-2 INVALID VAR | EQ:A+1 SOLVE:B | ERR %ERRMSG=INVALID_VAR
 F33 | 35s p.F-3 NO SOLUTION | EQN SST SOLVE 1 RS 1 RS 1 RS 2 RS 2 RS 3 RS | ERR %ERRMSG=NO_SOLUTION
 F34 | 35s p.F-3 MULT SOLUTION | EQN SST SOLVE 1 RS 1 RS 1 RS 2 RS 2 RS 2 RS | ERR %ERRMSG=MULT_SOLUTION
 F35 | 35s p.F-2 INTERRUPTED | PRGM CLPGM LBL:F RCL:X SQ 2 - RTN PRGM 1 STO:X 2 FN=:F INTR:20 SOLVE:X | ERR %ERRMSG=INTERRUPTED
-F36 | 35s p.F-4 OVERFLOW | 1 E 6000 ENTER 1 E 200 * | ERR %ERRMSG=OVERFLOW
+F36 | 35s p.F-4 OVERFLOW (unit 026: a warning, not an error: the largest number, flag 6) | 1 E 6000 ENTER 1 E 200 * | X=9.999999999999999999999999999999999E6144 %F6=1
 F37 | 33s p.10-3, 32SII p.10-3, 35s p.11-5 OVERFLOW: a base result clamped (a status, not a message: the operation completes; unit 024 rule 3, was TOO BIG) | HEX 7 HF HF HF HF HF HF HF HF ENTER 2 * | ERR %STATUSMSG=OVERFLOW %ERRMSG=none
 F38 | 35s p.F-3, B-3 MEMORY CLEAR: a refused image | SAVE CORRUPT:30 LOAD | ERR %STATUSMSG=MEMORY_CLEAR
 F39 | ours (unit 017 rule 4): the 33s key after an error clears the message | 1 ENTER 0 / 5 | ERR %ERRMSG=none X=5
