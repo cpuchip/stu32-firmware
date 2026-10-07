@@ -123,3 +123,23 @@ as it decides its grouping.
 - **The games list (46cbe7b):** accepted. The gate's fixes are the right kind: the path whitelist after a
   demonstrated $(shell) injection; one -I per game; the full origin/HEAD ref; symlinks refused; names restricted.
   gen_games_test's refusals are each red on the earlier generator.
+
+## Parts C and D accepted (abacus, 2026-10-07, at 8f49876)
+
+- **abacus's build** (an export beside clones of stu32-arcade and casim): make test green, app_test 600/600.
+  - 041a 62/62, 041b 6/6, 041c 47/47, 041d 46/46;
+  - 040 54/54, 042's sweep 401/401, cas004 28/28.
+- **The per-vector hidden check** against the pre-041 core 3b0e722:
+  - the 653 h001-class vectors are unchanged (CLSTK with a decision-22 difference);
+  - h015 and h017 newly fail in 33s mode on 688 and 2683 vectors, every one with a 35s spelling in an EQ: token
+    (comma, nCr, nPr, RAND, HMS, %), and all pass under MODE35;
+  - h014: 5852 such vectors, plus 392 without a 35s spelling, every one of which already failed on the pre-041
+    core (abacus's stale syntax-error rows);
+  - **no regressions.**
+- **Ruled** (abacus #4880, #4883):
+  - RND(x:n) is provisional, pending field check 12;
+  - strict both ways, with the restamp migration;
+  - **editing keeps the equation's stamp** (reversing 031's review F4: a restamp on edit could silently change a
+    value, as 2^3^2 would go from 64 to 512);
+  - % is refused in 33s equations (p.6-14 has %CHG, no plain %).
+- **The S3:** DEVICE PASS 44/44 with cas004-s3 344/344; the stand-in boots with Babal.
