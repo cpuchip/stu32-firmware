@@ -246,6 +246,17 @@ static int cx_pair_of(const km_action *act)
     return -1;
 }
 
+/* The hyperbolic function the 33s's HYP prefix makes of a trig key (unit 041 C, B10; 33s p.4-6), -1 none. */
+static int hyp_of(const km_action *act)
+{
+    static const int TRIG[6] = {AB_SIN, AB_COS, AB_TAN, AB_ASIN, AB_ACOS, AB_ATAN};
+    static const int HYP[6] = {AB_SINH, AB_COSH, AB_TANH, AB_ASINH, AB_ACOSH, AB_ATANH};
+    if (act->kind != KM_OP) return -1;
+    for (int k = 0; k < 6; k++)
+        if (act->op == TRIG[k]) return HYP[k];
+    return -1;
+}
+
 /* The menu named name, -1 if there is none. */
 static int menu_named(const char *name)
 {
@@ -608,6 +619,19 @@ void app_key(app_state *a, int key, uint32_t now_ms)
             if (k >= 0) {
                 a->shift = 0;
                 do_op(a, AB_CMPLX, k);
+                return;
+            }
+        }
+        if (at == menu_named("HYP") && !ab_mode35(a->c)) {
+            /* 33s mode: HYP is also the prefix (unit 041 C, B10; 33s p.4-6): a trig key, or its gold inverse, is
+               the hyperbolic function, on the stack, in program entry or typed; the soft keys stay the menu's; any
+               other key closes it, as a menu. 35s mode and STU keep the menu only. */
+            const km_action *op = km_lookup(key, a->shift);
+            if (op->kind == KM_NONE) op = face;
+            int h = hyp_of(op);
+            if (h >= 0) {
+                a->shift = 0;
+                do_op(a, h, 0);
                 return;
             }
         }
