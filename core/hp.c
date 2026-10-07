@@ -2,6 +2,8 @@
 #include <string.h>
 
 #include "hp.h"
+#include "arena.h"
+#include "xnum.h"
 
 /* pi and ln 10 to 241 digits, truncated (mpmath at 400 and at 1000 digits agree). */
 static const char PI_241[] =
@@ -498,23 +500,62 @@ static int abn_lead(const abn *x)
     return lead;
 }
 
+abn_status hp_norm(abn *out, const abn *el, int n)
+{
+    int m = ar_mark(), top = 0;
+    xnum *sum, *t, *q, *u;
+    abn_status st;
+    bool any = false;
+    for (int i = 0; i < n; i++) {
+        if (abn_is_zero(&el[i])) continue;
+        int l = abn_lead(&el[i]);
+        if (!any || l > top) top = l;
+        any = true;
+    }
+    if (!any) {
+        *out = abn_zero();
+        return ABN_OK;
+    }
+    if (!ar_xn(4, &sum, &t, &q, &u)) {
+        ar_release(m);
+        return ABN_RANGE;
+    }
+    xn_set_int(sum, 0);
+    for (int i = 0; i < n; i++) {
+        /* a part more than 40 digits below the largest adds under 1E-80 of it (three such parts under 3E-80):
+           the root is nearer the root without them than half a unit, and the sum stays short */
+        if (abn_is_zero(&el[i]) || abn_lead(&el[i]) < top - 40) continue;
+        if (!xn_from_abn(q, &el[i]) || !xn_mul(t, q, q) || !xn_add(u, sum, t, false)) {
+            ar_release(m);
+            return ABN_RANGE;
+        }
+        *sum = *u;
+    }
+    st = xn_sqrt_to_abn(out, sum);
+    ar_release(m);
+    return st;
+}
+
 abn_status hp_hypot(abn *out, const abn *x, const abn *y)
 {
-    static sxnum a, b, a2, b2, n;
-    abn ax = abn_abs(x), ay = abn_abs(y);
-    if (abn_is_zero(&ax) || abn_is_zero(&ay)) {
-        *out = abn_is_zero(&ax) ? ay : ax;
-        return ABN_OK;
-    }
-    /* parts more than 40 digits apart: r = |big| (1 + e) with e < 1E-80, nearer |big| than half a unit, and
-       |big| is a number: the rounded result exactly */
-    int d = abn_lead(&ax) - abn_lead(&ay);
-    if (d > 40 || d < -40) {
-        *out = d > 0 ? ax : ay;
-        return ABN_OK;
-    }
-    if (!sxn_from_abn(&a, &ax) || !sxn_from_abn(&b, &ay) || !sxn_mul(&a2, &a, &a) || !sxn_mul(&b2, &b, &b) ||
-        !sxn_add(&n, &a2, &b2, false))
-        return ABN_RANGE;
-    return sxn_sqrt_to_abn(out, &n);
+    abn el[2] = {*x, *y};
+    return hp_norm(out, el, 2);
+}
+
+bool hp_round_sure(abn *out, abn_status *st, hp *v, int p, hp *s)
+{
+    abn a1, a2;
+    abn_status s1, s2;
+    *st = hp_round(out, v);
+    if (hp_is_zero(v)) return true;
+    int k = sb_ndigits(&v->m) - (p - 6);
+    if (k <= 0) return true;                    /* a short value: no digits beyond those formed */
+    sb_set(&s->m, 1);
+    if (!sb_mul_pow10(&s->m, k)) return false;
+    sb_sub(&v->m, &v->m, &s->m);                /* in place: limb by limb, safe */
+    s1 = hp_round(&a1, v);
+    if (!sb_add(&v->m, &v->m, &s->m) || !sb_add(&v->m, &v->m, &s->m)) return false;
+    s2 = hp_round(&a2, v);
+    sb_sub(&v->m, &v->m, &s->m);
+    return s1 == s2 && (s1 != ABN_OK || (abn_cmp(&a1, &a2) == 0 && abn_is_negative(&a1) == abn_is_negative(&a2)));
 }

@@ -38,8 +38,15 @@ bool hp_ln(hp *r, const hp *s, const hp *t, int p);
 bool hp_lgamma_big(hp *r, const hp *w, int p);
 /* The angle of (a, b) in (-pi, pi], radians; not both zero. */
 bool hp_atan2(hp *r, const abn *b, const abn *a, int p);
-/* sqrt(x^2 + y^2), correctly rounded (unit 034): the root of the exact sum of squares, or the larger part
-   when the parts are so far apart that it is the rounded result (no intermediate overflow either way). */
+/* sqrt(x^2 + y^2), and a vector's norm, correctly rounded (unit 034): the root of the exact sum of the squares
+   of the parts within 40 digits of the largest (the rest are below half a unit of the result), in the arena's
+   xnums. No intermediate overflow. */
 abn_status hp_hypot(abn *out, const abn *x, const abn *y);
+abn_status hp_norm(abn *out, const abn *el, int n);
+
+/* v (formed to p digits, good to a few units of its p-th) rounded to the engine's digits into out and *st; true
+   when the rounding is sure: v moved by 10^6 units of its p-th digit either way rounds the same (Ziv: when false,
+   form v again to more digits). s is scratch; v is restored. */
+bool hp_round_sure(abn *out, abn_status *st, hp *v, int p, hp *s);
 
 #endif

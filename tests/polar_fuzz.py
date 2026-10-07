@@ -38,7 +38,8 @@ def num34(e, sign=True):
 
 def rounded(t):
     """t rounded to 34 significant digits, half to even, as engine-comparable Decimal"""
-    return D.create_decimal(mp.nstr(t, 60, min_fixed=-mp.inf, max_fixed=mp.inf).replace("+", ""))
+    return D.create_decimal(mp.nstr(t, 115, min_fixed=-mp.inf, max_fixed=mp.inf).replace("+", ""))   # past a
+                                                                    # near-midpoint's deciding digit
 
 
 def angle(y, x, mode):
@@ -87,6 +88,60 @@ def cases():
     return out
 
 
+def convergents(t, lim=10 ** 34):
+    """the continued fraction's convergents p/q of t below lim"""
+    x, p0, q0, p1, q1, out = t, 0, 1, 1, 0, []
+    for _ in range(200):
+        a = int(mp.floor(x))
+        p0, q0, p1, q1 = p1, q1, a * p1 + p0, a * q1 + q0
+        if p1 >= lim or q1 >= lim:
+            break
+        out.append((p1, q1))
+        if x == a:
+            break
+        x = 1 / (x - a)
+    return out
+
+
+def midpoint_cases():
+    """(mode, x, y) whose theta lies extremely near a rounding midpoint: x/y a convergent of cot(midpoint) (the
+    034 review's construction)"""
+    out = []
+    with mp.workdps(250):
+        for _ in range(N // 5):
+            mode = R.choice(list(UNIT))
+            base = mp.mpf(R.uniform(0.05, {"RAD": 1.5, "DEG": 89.0, "GRAD": 99.0}[mode]))
+            e = int(mp.floor(mp.log10(base)))
+            mid = (mp.floor(base / mp.mpf(10) ** (e - 33)) + mp.mpf("0.5")) * mp.mpf(10) ** (e - 33)
+            th = mid if UNIT[mode] is None else mid * mp.pi / UNIT[mode]
+            for p, q in convergents(mp.tan(th))[-3:]:
+                if q >= 10 ** 25:
+                    out.append((mode, str(q), str(p)))
+                    out.append((mode, str(-q), str(-p)))
+    return out
+
+
+def rec_midpoint_cases():
+    """(mode, r, theta) with r cos theta extremely near a midpoint: r found by an Ostrowski-style walk on cos
+    theta's convergents (the 034 review's construction)"""
+    out = []
+    with mp.workdps(300):
+        for _ in range(N // 5):
+            mode = R.choice(list(UNIT))
+            t = f"{R.uniform(0.1, 1.4):.33f}" if mode == "RAD" else f"{R.uniform(1, 80):.32f}"
+            c = mp.cos(mp.mpf(t)) if UNIT[mode] is None else mp.cospi(mp.mpf(t) / UNIT[mode])
+            rv, d = 0, mp.mpf("0.5")
+            for p, q in convergents(c):
+                th = q * c - p
+                b = int(mp.nint(d / th))
+                if rv + abs(b) * q >= 10 ** 34 or rv + b * q < 0:
+                    b = 0
+                rv, d = rv + b * q, d - b * th
+            if rv >= 10 ** 33:
+                out.append((mode, str(rv), t))
+    return out
+
+
 def in_range(x, y):
     r = mp.sqrt(mp.mpf(x) ** 2 + mp.mpf(y) ** 2)
     return r < TOP and abs(rounded(r)) > 0
@@ -94,7 +149,7 @@ def in_range(x, y):
 
 def main():
     drive = args[0] if args else "build/fn_drive"
-    cs = [c for c in cases() if in_range(c[2], c[3])]
+    cs = [c for c in cases() if in_range(c[2], c[3])] + [("near a midpoint", m, x, y) for m, x, y in midpoint_cases()]
     lines = [f"TOPOL {m} {x} {y}" for _, m, x, y in cs]
     out = subprocess.run([drive], input="\n".join(lines) + "\n", capture_output=True, text=True, check=True).stdout.split("\n")
     count, miss, at = {}, {}, {}
@@ -130,18 +185,30 @@ def main():
             r = rounded(mp.sqrt(mp.mpf(x) ** 2 + mp.mpf(y) ** 2))
             th = angle(y, x, mode)
             rl.append((mode, str(r), str(rounded(th)) if abs(th) >= mp.mpf("1e-6143") else "0"))   # ->POL's theta
+        rl += rec_midpoint_cases()
+        rl += [("RAD", num34(R.randint(-50, 50), sign=False), num34(R.randint(1, 130))) for _ in range(N // 5)]
+        far = [("RAD", num34(0, sign=False), num34(R.randint(170, 6000))) for _ in range(N // 10)]
+        rl += far
         out = subprocess.run([drive], input="\n".join(f"TOREC {m} {r} {t}" for m, r, t in rl) + "\n",
                              capture_output=True, text=True, check=True).stdout.split("\n")
         n = exact = 0
         per = {}
+        far_n = far_ok = 0
         for (mode, r, t), got in zip(rl, out):
+            isfar = (mode, r, t) in far
             if UNIT[mode] is None:
-                cs, sn = mp.cos(mp.mpf(t)), mp.sin(mp.mpf(t))
+                with mp.workdps(120 + max(0, int(mp.log10(abs(mp.mpf(t)) + 1)))):    # big angles reduced exactly
+                    cs, sn = +mp.cos(mp.mpf(t)), +mp.sin(mp.mpf(t))
             else:                               # exact at the unit's multiples (cos 90 = 0, not a pi residue)
                 cs, sn = mp.cospi(mp.mpf(t) / UNIT[mode]), mp.sinpi(mp.mpf(t) / UNIT[mode])
             wx = rounded(mp.mpf(r) * cs) if cs != 0 else decimal.Decimal(0)
             wy = rounded(mp.mpf(r) * sn) if sn != 0 else decimal.Decimal(0)
             parts = got.split()
+            if isfar:                           # past hp's pi (|theta| > 1E169): reported, not judged
+                far_n += 1
+                far_ok += len(parts) == 2 and not got.startswith("ERR") and D.create_decimal(parts[0]) == wx and \
+                    D.create_decimal(parts[1]) == wy
+                continue
             n += 1
             good = (len(parts) == 2 and not got.startswith("ERR") and D.create_decimal(parts[0]) == wx and
                     D.create_decimal(parts[1]) == wy)
@@ -152,6 +219,7 @@ def main():
         ok = ok and exact == n
         print(f"->REC            {n:6d} cases  {exact:6d} correctly rounded  ("
               + ", ".join(f"{m} {g}/{k}" for m, (k, g) in sorted(per.items())) + ")" + ("" if exact == n else "  FAIL"))
+        print(f"->REC past 1E169 {far_n:6d} cases  {far_ok:6d} correctly rounded  (reported: the engine's cosine and sine times r)")
     sys.exit(0 if ok else 1)
 
 

@@ -15,6 +15,7 @@
 #include "base.h"
 #include "arena.h"
 #include "cplx.h"
+#include "hp.h"
 #include "state.h"
 #include "eqn.h"
 #include "lin.h"
@@ -638,17 +639,12 @@ static abn_status two_vector(ab_calc *c, ab_op op)
 }
 
 /* ABS of a vector: the correctly rounded root of the exact sum of squares (UG p.10-3, unit 010
- * rule 3). */
+ * rule 3), less parts too small to change it (hp_norm). */
 static abn_status vec_abs_(abn *r, const ab_val *v)
 {
-    xnum *sum, *t, *p, *u;
-    if (!ar_xn(4, &sum, &t, &p, &u)) return ABN_RANGE;
-    xn_set_int(sum, 0);
-    for (int i = 0; i < v->len; i++) {
-        if (!xn_from_abn(p, cvel(v, i)) || !xn_mul(t, p, p) || !xn_add(u, sum, t, false)) return ABN_RANGE;
-        *sum = *u;
-    }
-    return xn_sqrt_to_abn(r, sum);
+    abn el[3];
+    for (int i = 0; i < v->len; i++) el[i] = *cvel(v, i);
+    return hp_norm(r, el, v->len);      /* unit 034: parts far apart too (they were a range error) */
 }
 
 static abn_status vec_abs(ab_calc *c)

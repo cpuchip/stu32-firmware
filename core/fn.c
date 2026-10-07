@@ -674,13 +674,66 @@ static bool trigx(sbig *v, int *scale, const abn *b, const angle_unit *u, bool w
     return true;
 }
 
-/* sin or cos of a reduced angle, correctly rounded, optionally times r (both exact first). */
+/* Working values for the polar conversions and their trigonometry (unit 034): fn_topol, fn_torec, rect_part and
+   trig_hp use them in turn; none calls another while holding them. Shared to keep the internal RAM they take as it
+   was before (the stand-in's boot needs it). */
+static hp fw[6];
+
+/* sin or cos of an angle a (in degrees or grads, a >= 0), times r (NULL: 1), correctly rounded: the angle in
+   radians a pi / half, the function and the product in hp, each value formed to 60 digits, then 100, then 180
+   until its rounding is sure (unit 034, Ziv). */
+static abn_status trig_hp(abn *out, const abn *a, const angle_unit *u, bool want_cos, const abn *r)
+{
+    static const int P[] = {60, 100, 180};
+    hp *ha = &fw[0], *t1 = &fw[1], *t2 = &fw[2], *hs = &fw[3], *hc = &fw[4], *hr = &fw[5];
+    abn_status st = ABN_RANGE;
+    abn v = abn_zero();
+    int half = (u->half[0] - '0') * 100 + (u->half[1] - '0') * 10 + (u->half[2] - '0');
+    for (int i = 0; i < 3; i++) {
+        int p = P[i];
+        if (!hp_from_abn(ha, a) || !hp_pi(t1, p + 6) || !hp_mul(t2, ha, t1, p + 6)) return ABN_RANGE;
+        hp_set_int(t1, half);
+        if (!hp_div(ha, t2, t1, p + 6) || !hp_sincos(hs, hc, ha, p)) return i ? (*out = v, st) : ABN_RANGE;
+        if (r) {
+            if (!hp_from_abn(hr, r) || !hp_mul(t1, want_cos ? hc : hs, hr, p)) return ABN_RANGE;
+        } else {
+            *t1 = want_cos ? *hc : *hs;
+        }
+        if (hp_round_sure(&v, &st, t1, p, t2)) break;
+    }
+    *out = v;
+    return st;
+}
+
+/* The rounding of m 10^e (good to about 1E-55 relative) is sure: m moved by 10^-52 of itself either way rounds the
+   same. d is scratch; m is restored. */
+static bool sb_round_sure(sbig *m, bool neg, long e, sbig *d)
+{
+    abn a1, a2;
+    int k = sb_ndigits(m) - 52;
+    if (k <= 0) return true;
+    sb_set(d, 1);
+    if (!sb_mul_pow10(d, k)) return false;
+    sb_sub(m, m, d);
+    abn_status s1 = sb_to_abn(&a1, m, neg, e, true);
+    if (!sb_add(m, m, d) || !sb_add(m, m, d)) return false;
+    abn_status s2 = sb_to_abn(&a2, m, neg, e, true);
+    sb_sub(m, m, d);
+    return s1 == s2 && (s1 != ABN_OK || abn_cmp(&a1, &a2) == 0);
+}
+
+/* sin or cos of a reduced angle, correctly rounded, optionally times r (both exact first); when the value is too
+   near a rounding's midpoint for its 58 digits, formed again in hp (unit 034: products from two inputs can lie
+   far nearer a midpoint than one input's function). */
 static abn_status trig_exactish(abn *out, const abn *a, const angle_unit *u, bool want_cos, const abn *r)
 {
     static sbig v, rb, prod;
     int scale;
     if (!trigx(&v, &scale, a, u, want_cos)) return ABN_DOMAIN;  /* caller's tiny-angle path */
-    if (!r) return sb_to_abn(out, &v, false, -scale, true);
+    if (!r) {
+        if (!sb_round_sure(&v, false, -scale, &rb)) return trig_hp(out, a, u, want_cos, NULL);
+        return sb_to_abn(out, &v, false, -scale, true);
+    }
     bool rneg;
     char d[ABN_DIGITS + 1];
     int lead;
@@ -690,7 +743,9 @@ static abn_status trig_exactish(abn *out, const abn *a, const angle_unit *u, boo
         return ABN_OK;
     }
     if (!sb_from_digits(&rb, d, 0) || !sb_mul(&prod, &v, &rb)) return ABN_RANGE;
-    return sb_to_abn(out, &prod, rneg, (long)lead - (long)strlen(d) + 1 - scale, true);
+    long e = (long)lead - (long)strlen(d) + 1 - scale;
+    if (!sb_round_sure(&prod, rneg, e, &rb)) return trig_hp(out, a, u, want_cos, r);
+    return sb_to_abn(out, &prod, rneg, e, true);
 }
 
 /* sin or cos of a in [0, eighth turn], exact at 0 and (degrees) at 30. With the angle as
@@ -1372,18 +1427,23 @@ abn_status fn_topol(abn *r, abn *theta, const abn *x, const abn *y, fn_angle m)
     }
     if (abn_is_zero(x) || abn_is_zero(y)) {
         /* on an axis (radians only here): the engine's atan2, exact to the rounding of pi, and its sign of
-           zero kept (-pi for y = -0, x < 0: today's behaviour) */
+           zero as the engine gives it (the engine keeps no -0, so the negative real axis is +pi, 180 or 200) */
         if ((st = abn_atan2(&th, y, x)) != ABN_OK) return st;
     } else {
-        /* theta correctly rounded (unit 034): atan2 at 56 digits (hp_atan2), into the angle unit there, rounded
-           once; below the range it is 0 */
-        static hp t, k, u, pi;
-        if (!hp_atan2(&t, y, x, 56)) return ABN_RANGE;
-        if (m != FN_RAD) {
-            hp_set_int(&k, m == FN_DEG ? 180 : 200);
-            if (!hp_mul(&u, &t, &k, 56) || !hp_pi(&pi, 60) || !hp_div(&t, &u, &pi, 56)) return ABN_RANGE;
+        /* theta correctly rounded (unit 034): atan2 (hp_atan2) into the angle unit, formed to 56 digits, then 100,
+           then 180 until its rounding is sure (Ziv); below the range it is 0 */
+        static const int P[] = {56, 100, 180};
+        hp *t = &fw[0], *k = &fw[1], *u = &fw[2], *sc = &fw[3];
+        for (int i = 0; i < 3; i++) {
+            int p = P[i];
+            if (!hp_atan2(t, y, x, p)) return ABN_RANGE;
+            if (m != FN_RAD) {
+                hp_set_int(k, m == FN_DEG ? 180 : 200);
+                if (!hp_mul(u, t, k, p + 4) || !hp_pi(k, p + 6) || !hp_div(t, u, k, p)) return ABN_RANGE;
+            }
+            if (hp_round_sure(&th, &st, t, p, sc)) break;
         }
-        if ((st = hp_round(&th, &t)) == ABN_UNDERFLOW) th = abn_zero();
+        if (st == ABN_UNDERFLOW) th = abn_zero();
         else if (st != ABN_OK) return st;
     }
     *r = rr;
@@ -1410,16 +1470,9 @@ static abn_status rect_part(abn *out, const abn *r, const abn *theta, fn_angle m
         abn half = K("0.5");
         vs = abn_mul(&v, r, &half);                 /* r sin 30 = r / 2 */
     } else if ((st = trig_exactish(&v, &rd.a, u, use_cos, r)) == ABN_DOMAIN) {
-        /* below 1E-17 of a unit: the angle in radians, a k (k the unit's radians to beyond 34 digits,
-           to_rad + to_rad_lo), its sine or cosine at 60 digits, times r, rounded once: correctly rounded
-           (unit 034; it was the function rounded, then the product; below the range, unit 026's a k r) */
-        static hp hr, ha, hk, hl, t1, t2, hs, hc;
-        abn k = K(u->to_rad), kl = K(u->to_rad_lo);
-        if (!hp_from_abn(&hr, r) || !hp_from_abn(&ha, &rd.a) || !hp_from_abn(&hk, &k) ||
-            !hp_from_abn(&hl, &kl) || !hp_add(&t1, &hk, &hl, false, 80) || !hp_mul(&t2, &ha, &t1, 80) ||
-            !hp_sincos(&hs, &hc, &t2, 60) || !hp_mul(&t1, use_cos ? &hc : &hs, &hr, 60))
-            return ABN_RANGE;
-        vs = hp_round(&v, &t1);
+        /* below 1E-17 of a unit: in hp, correctly rounded (trig_hp; unit 034: it was the function rounded,
+           then the product; below the range, unit 026's a k r, now 0 by the rounding) */
+        vs = trig_hp(&v, &rd.a, u, use_cos, r);
     } else {
         vs = st;
     }
@@ -1462,21 +1515,36 @@ abn_status fn_torec(abn *x, abn *y, const abn *r, const abn *theta, fn_angle m)
     abn_status st;
     bool over = false;
     if (m == FN_RAD) {
-        /* r cos theta and r sin theta at 60 digits, each rounded once: correctly rounded (unit 034), while hp's
-           pi reaches (|theta| to about 1E180); past it, the engine's cosine and sine times r */
-        static hp ht, hs, hc, hr, t;
-        if (hp_from_abn(&ht, theta) && hp_sincos(&hs, &hc, &ht, 60) && hp_from_abn(&hr, r)) {
+        /* r cos theta and r sin theta in hp, formed to 60 digits, then 100, then 180 until each rounding is sure:
+           correctly rounded (unit 034, Ziv) while hp's pi reaches (|theta| below about 1E169, less at the higher
+           precisions, where the last sure-enough result stands); past it, the engine's cosine and sine times r */
+        static const int P[] = {60, 100, 180};
+        hp *ht = &fw[0], *hs = &fw[1], *hc = &fw[2], *hr = &fw[3], *t = &fw[4], *sc = &fw[5];
+        abn_status sp[2] = {ABN_OK, ABN_OK};
+        bool formed = false, pneg[2] = {false, false};
+        for (int i = 0; i < 3; i++) {
+            int p = P[i];
+            if (!hp_from_abn(ht, theta) || !hp_sincos(hs, hc, ht, p) || !hp_from_abn(hr, r)) break;
+            bool sure = true;
+            for (int part = 0; part < 2; part++) {
+                if (!hp_mul(t, part ? hs : hc, hr, p)) return ABN_RANGE;
+                sure = hp_round_sure(part ? &s : &c, &sp[part], t, p, sc) && sure;
+                pneg[part] = t->neg;            /* an overflow's sign */
+            }
+            formed = true;
+            if (sure) break;
+        }
+        if (formed) {
             for (int part = 0; part < 2; part++) {
                 abn *o = part ? &s : &c;
-                if (!hp_mul(&t, part ? &hs : &hc, &hr, 60)) return ABN_RANGE;
-                if ((st = hp_round(o, &t)) == ABN_UNDERFLOW) {
+                if (sp[part] == ABN_UNDERFLOW) {
                     *o = abn_zero();
-                } else if (st == ABN_OVERFLOW) {
+                } else if (sp[part] == ABN_OVERFLOW) {
                     *o = abn_largest();
-                    if (t.neg) *o = abn_neg(o);
+                    if (pneg[part]) *o = abn_neg(o);
                     over = true;
-                } else if (st != ABN_OK) {
-                    return st;
+                } else if (sp[part] != ABN_OK) {
+                    return sp[part];
                 }
             }
             *x = c;
