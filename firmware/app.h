@@ -59,6 +59,7 @@
 #include "power.h"
 #include "screen.h"
 #include "settings.h"
+#include "apps.h"
 
 #define APP_QUIET_MS 30000u                 /* a change saved after 30 s without keys (ours) */
 #define APP_SLICE_LINES 200                 /* program lines per app_tick slice (ours) */
@@ -121,6 +122,7 @@ typedef struct {
     int tone;               /* a tone for the device to sound at this level, -1 none (it clears it):
                                VOL's new level, or one of the buzzer's uses (unit 022, 027) */
     int tone_use;           /* that use, DEV_USE_*, 0 for VOL's sample tone (the device picks the sound) */
+    uint16_t tone_hz, tone_ms;  /* DEV_USE_APP's: an app's own tone (unit 037), 0 the device's choice */
     uint32_t now_ms;        /* the app's clock at the last key or tick (for app_ui's clock) */
     int64_t clock_min;      /* the minute the clock was last drawn at */
     bool wall_set;          /* the wall clock is set (unit 027 rule 4) */
@@ -137,6 +139,16 @@ typedef struct {
     bool show;              /* unit 030: SHOW held: X's full mantissa in place of the stack */
     bool graphing;          /* unit 033: a graph's samples being computed, a slice at each tick */
     struct app_graph *graph;    /* its buffer (the device's, in PSRAM: app_graph_buffer); NULL: none drawn */
+    /* unit 037: APPS. The apps listed (the registry, or a test's), the one running, its state buffer (the
+       device's), its clock and next tick, the apps' saves (apart from the calculator's image) */
+    const app_def *const *apps;
+    int napps;
+    const app_def *app;
+    void *app_ctx;
+    uint32_t app_ctx_cap;
+    uint32_t app_t0, app_last, app_next;    /* the clock's start, the last tick, the ms to the next (0 none) */
+    struct { uint32_t hash; uint8_t data[APP_SAVE_SIZE]; uint8_t used; } app_saves[8];
+    bool apps_dirty;        /* the apps' saves changed: the device stores them (app_saves_image) */
     bool gr_live;           /* the buffer holds this open graph's plot (else one opened by an image, UNDO or
                                a boot is started afresh: review F1) */
     int show_key;           /* the key holding it: its release ends SHOW (app_key_up) */
@@ -180,6 +192,18 @@ typedef struct app_graph {
     screen_graph s;
 } app_graph;
 void app_graph_buffer(app_state *a, app_graph *g);
+
+/* Unit 037: APPS. The apps APPS lists (app_init: the registry); the running app's state buffer (the
+   device's, at least the largest app's ctx_size; none: an app cannot start); whether an app runs, and
+   whether it wants ticks (the device keeps out of light sleep); its frame (true while an app runs: the
+   device draws it in place of screen_render); the apps' saves as a byte image for the store, and back. */
+void app_apps(app_state *a, const app_def *const *list, int n);
+void app_ctx_buffer(app_state *a, void *buf, uint32_t cap);
+bool app_running(const app_state *a);
+bool app_ticking(const app_state *a);
+bool app_draw(app_state *a, ls027_frame *f);
+size_t app_saves_image(const app_state *a, uint8_t *buf, size_t cap);
+bool app_saves_load(app_state *a, const uint8_t *buf, size_t n);
 /* What the screen needs that the core does not hold. */
 void app_ui(const app_state *a, screen_ui *ui);
 /* The wall clock (unit 027 rule 4): secs since 1970 (UTC, shown as is) at now_ms on the app's clock;

@@ -924,3 +924,14 @@ void app_key_up(app_state *a, int key, uint32_t now_ms)
         a->render = true;
     }
 }
+
+/* unit 037 red: not yet */
+void app_apps(app_state *a, const app_def *const *list, int n) { (void)a; (void)list; (void)n; }
+void app_ctx_buffer(app_state *a, void *buf, uint32_t cap) { (void)a; (void)buf; (void)cap; }
+bool app_running(const app_state *a) { (void)a; return false; }
+bool app_ticking(const app_state *a) { (void)a; return false; }
+bool app_draw(app_state *a, ls027_frame *f) { (void)a; (void)f; return false; }
+size_t app_saves_image(const app_state *a, uint8_t *buf, size_t cap) { (void)a; (void)buf; (void)cap; return 0; }
+bool app_saves_load(app_state *a, const uint8_t *buf, size_t n) { (void)a; (void)buf; (void)n; return false; }
+void app_beep(uint16_t hz, uint16_t ms) { (void)hz; (void)ms; }
+uint32_t app_now_ms(void) { return 0; }

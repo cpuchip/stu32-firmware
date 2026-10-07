@@ -35,7 +35,7 @@ SCREEN := firmware/screen.c firmware/font5x7.c
 build/keymap_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) firmware/keymap.c firmware/keymap.h firmware/keys.c firmware/keys.h firmware/screen.h tests/keymap_test.c | build
 	$(CC) $(CFLAGS) -Icore -Ifirmware -o $@ $(CORE) $(SCREEN) firmware/keymap.c firmware/keys.c tests/keymap_test.c $(ENGINE) $(LIBS)
 
-APP := firmware/app.c firmware/keymap.c firmware/keys.c firmware/power.c firmware/settings.c firmware/piezo.c
+APP := firmware/app.c firmware/apps.c firmware/keymap.c firmware/keys.c firmware/power.c firmware/settings.c firmware/piezo.c
 build/app_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) $(APP) firmware/app.h firmware/keymap.h firmware/power.h firmware/screen.h tests/app_test.c | build
 	$(CC) $(CFLAGS) -Icore -Ifirmware -o $@ $(CORE) $(SCREEN) $(APP) tests/app_test.c $(ENGINE) $(LIBS)
 

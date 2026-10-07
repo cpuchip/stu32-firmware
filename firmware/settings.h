@@ -32,7 +32,8 @@ enum {
     DEV_USE_BATT = 1 << 3,      /* once when the battery first reads low */
     DEV_USE_ON = 1 << 4,        /* a chirp at power-on (a wake from OFF) */
     DEV_USE_DONE = 1 << 5,      /* the end of a run that took longer than 2 s */
-    DEV_USE_ALL = (1 << 6) - 1
+    DEV_USE_APP = 1 << 6,       /* an app's tones (app_beep, unit 037) */
+    DEV_USE_ALL = (1 << 7) - 1
 };
 
 typedef struct {

@@ -51,6 +51,30 @@ static void tap(app_state *a, int key)
     app_key(a, key, now);
 }
 
+/* unit 037: test apps that record what the framework calls (one shared recorder) */
+static struct {
+    int loads, starts, stops, saves, draws, ticks, keys, key, down, beeped;
+    uint32_t key_ms, tick_ms, save_n;
+    uint8_t saved[APP_SAVE_SIZE];
+} rec;
+typedef struct { int count; } tapp_ctx;
+static void t_load(void *ctx, const uint8_t *s, uint32_t n) { rec.loads++; rec.save_n = n; if (n) ((tapp_ctx *)ctx)->count = s[0]; }
+static void t_start(void *ctx) { (void)ctx; rec.starts++; }
+static bool t_key(void *ctx, int key, bool down, uint32_t ms)
+{
+    rec.keys++, rec.key = key, rec.down = down, rec.key_ms = ms;
+    if (down) ((tapp_ctx *)ctx)->count++;
+    if (key == 38) app_beep(880, 50);           /* (the 2 key: a tone) */
+    return key != 37;                           /* (the 1 key: no redraw) */
+}
+static uint32_t t_tick(void *ctx, uint32_t ms) { (void)ctx; rec.ticks++; rec.tick_ms = ms; return 50; }
+static void t_draw(void *ctx, ls027_frame *f) { (void)ctx; rec.draws++; screen_clear(f); screen_fill(f, 0, 0, 10, 10, true); }
+static void t_save(void *ctx, uint8_t *s, uint32_t cap) { rec.saves++; if (cap) s[0] = (uint8_t)((tapp_ctx *)ctx)->count; }
+static void t_stop(void *ctx) { (void)ctx; rec.stops++; }
+#define TAPP(n) {n, sizeof(tapp_ctx), t_load, t_start, t_key, t_tick, t_draw, t_save, t_stop}
+static const app_def tapps[7] = {TAPP("T1"), TAPP("T2"), TAPP("T3"), TAPP("T4"), TAPP("T5"), TAPP("T6"), TAPP("T7")};
+static const app_def *const tlist[7] = {&tapps[0], &tapps[1], &tapps[2], &tapps[3], &tapps[4], &tapps[5], &tapps[6]};
+
 /* press legends separated by blanks; GOLD and BLUE are the shift keys, "k:N" key N, "ltr:X" the
    letter layer's X */
 static void press(app_state *a, const char *s)
@@ -1275,6 +1299,73 @@ int main(void)
                    !strcmp(pg.y.text, "40000000000000000") && !strcmp(pg.x.text, "00000000000000000"),
                "030: a complex X: the real part on T and Z, the imaginary on Y and X");
         app_key_up(&a, 4, now);
+    }
+
+    /* unit 037: APPS (blue 0): the registry's KEYS; a test's seven apps paged; keys and key-ups to the app
+       with the app's clock, C never; ticks at the app's rate; the core never called (the image the same);
+       auto-off suspended; the app's save apart from the calculator's image, through MEMORY CLEAR */
+    {
+        static uint8_t ctxbuf[APP_CTX_MAX];
+        static ls027_frame af;
+        ab_init(&c);
+        app_init(&a, &c, now);
+        app_ctx_buffer(&a, ctxbuf, sizeof ctxbuf);
+        press(&a, "BLUE 0");
+        app_ui(&a, &ui);
+        expect(ui.soft[0] && !strcmp(ui.soft[0], "KEYS"), "037: APPS lists KEYS");
+        press(&a, "k:0");
+        expect(app_running(&a) && app_draw(&a, &af), "037: KEYS starts, its frame in place of the screen");
+        press(&a, "C");
+        expect(!app_running(&a), "037: C ends it");
+        app_apps(&a, tlist, 7);
+        press(&a, "BLUE 0");
+        app_ui(&a, &ui);
+        expect(ui.soft[0] && !strcmp(ui.soft[0], "T1") && ui.soft[4] && !strcmp(ui.soft[4], "T5") && ui.soft[5] &&
+                   !strcmp(ui.soft[5], "more"), "037: seven apps: five a page, then more");
+        press(&a, "k:5");
+        app_ui(&a, &ui);
+        expect(ui.soft[0] && !strcmp(ui.soft[0], "T6") && ui.soft[1] && !strcmp(ui.soft[1], "T7"), "037: the next page");
+        uint32_t img0 = img_crc(&c);
+        memset(&rec, 0, sizeof rec);
+        press(&a, "k:1");                       /* T7 */
+        expect(app_running(&a) && rec.loads == 1 && rec.save_n == 0 && rec.starts == 1 && rec.ticks == 1,
+               "037: load (nothing saved yet), start, the first tick at once");
+        uint32_t t = now;
+        app_key(&a, 31, t + 120);               /* the 4 key, down then up */
+        app_key_up(&a, 31, t + 180);
+        expect(rec.keys == 2 && rec.key == 31 && !rec.down && rec.key_ms == 180, "037: keys and key-ups to the app, on its clock");
+        int draws = rec.draws;
+        app_key(&a, 37, t + 200);               /* the 1 key: no redraw asked */
+        expect(rec.draws == draws, "037: a key returning false is not drawn");
+        app_key(&a, 38, t + 210);               /* the 2 key: a tone */
+        expect(a.tone >= 0 && a.tone_use == DEV_USE_APP && a.tone_hz == 880 && a.tone_ms == 50,
+               "037: app_beep sounds through the buzzer (its hz and ms, the APP use)");
+        expect(app_ticking(&a) && app_next_wake(&a, &(pwr_inputs){false, false, 80, false}, t + 210) <= 50,
+               "037: ticks at the app's rate (50 ms)");
+        a.set.off_min = 2;
+        bool off = false;
+        for (uint32_t ms = 260; ms < 260 + 4 * 60000; ms += 50)
+            off = off || app_tick(&a, &(pwr_inputs){false, false, 80, false}, t + ms) == APP_OFF;
+        expect(!off && rec.ticks > 4000 && rec.tick_ms == 50, "037: auto-off suspended while an app runs; ticks at 50 ms");
+        int keys = rec.keys;
+        app_key(&a, 42, t + 300000);            /* C */
+        app_key_up(&a, 42, t + 300010);
+        expect(!app_running(&a) && rec.keys == keys && rec.saves == 1 && rec.stops == 1 && img_crc(&c) == img0,
+               "037: C ends it, never delivered; saved, stopped; the calculator's image the same");
+        /* the save: apart from the image, through a store image and back, and through MEMORY CLEAR */
+        uint8_t sv[1024];
+        size_t n = app_saves_image(&a, sv, sizeof sv);
+        static app_state a3;
+        app_init(&a3, &c, now);
+        app_apps(&a3, tlist, 7);
+        app_ctx_buffer(&a3, ctxbuf, sizeof ctxbuf);
+        expect(n > 0 && app_saves_load(&a3, sv, n), "037: the apps' saves through a store image");
+        ab_memory_clear(&c);
+        memset(&rec, 0, sizeof rec);
+        press(&a3, "BLUE 0 k:5 k:1");
+        expect(app_running(&a3) && rec.save_n > 0 && rec.loads == 1, "037: T7's save comes back after MEMORY CLEAR");
+        press(&a3, "C");
+        a.set.off_min = 10;
     }
 
     /* unit 038: integer powers up to 64 either way are exact then rounded once, never the slow high-precision
