@@ -184,6 +184,7 @@ accuracy: build/fn_drive build/cx_drive build/vectors
 	$(PYTHON) tests/cx_fuzz.py build/cx_drive
 	$(PYTHON) tests/range_fuzz.py build/fn_drive 1 30
 	$(PYTHON) tests/pow_fuzz.py build/fn_drive 1 3400
+	$(PYTHON) tests/polar_fuzz.py build/fn_drive 1 1500 --rec
 	$(PYTHON) tests/cxkey_fuzz.py 1 5000 > build/cxkey_fuzz.txt
 	./build/vectors build/cxkey_fuzz.txt
 	$(PYTHON) tests/solve_fuzz.py 1 1500 > build/solve_fuzz.txt
