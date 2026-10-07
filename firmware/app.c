@@ -9,6 +9,10 @@
 #include "piezo.h"
 #include "state.h"
 
+#ifndef ESP_PLATFORM
+static uint8_t host_saves[APP_SAVES_IMG_MAX], host_run[APP_SAVE_MAX];    /* a host's own (a device gives PSRAM) */
+#endif
+
 void app_init(app_state *a, ab_calc *c, uint32_t now_ms)
 {
     memset(a, 0, sizeof *a);
@@ -16,6 +20,9 @@ void app_init(app_state *a, ab_calc *c, uint32_t now_ms)
     a->prompt_op = -1;
     a->tgt_label = -1;
     a->idle_limit = true;                       /* (a host may turn it off: abacus #4661) */
+#ifndef ESP_PLATFORM
+    app_save_buffers(a, host_saves, sizeof host_saves, host_run, sizeof host_run);  /* (a device gives its own) */
+#endif
     a->confirm_op = -1;
     a->menu = -1;
     a->last_key_ms = now_ms;
@@ -1114,10 +1121,17 @@ static uint32_t left(uint32_t now_ms, uint32_t since, uint32_t span)
 uint32_t app_next_wake(const app_state *a, const pwr_inputs *in, uint32_t now_ms)
 {
     if (a->running || a->render || a->off || a->graphing || (a->c->gr_on && a->graph && !a->gr_live)) return 0;
-    if (a->app) {                               /* unit 037: the app's next tick, or keys alone */
-        if (!a->app_next) return 3600000u;
-        uint32_t t = now_ms - a->app_t0, due = a->app_last + a->app_next;
-        return due > t ? due - t : 0;
+    if (a->app) {                               /* unit 037: the app's next tick, or keys alone; a tune's next note */
+        uint32_t t = now_ms - a->app_t0, w = 3600000u;
+        if (a->app_next) {
+            uint32_t due = a->app_last + a->app_next;
+            w = due > t ? due - t : 0;
+        }
+        if (a->tune_n) {
+            uint32_t tw = (int32_t)(a->tune_end - t) > 0 ? a->tune_end - t : 0;
+            if (tw < w) w = tw;
+        }
+        return w;
     }
     if (in->soc >= 0 && ((in->soc <= APP_BATT_LOW_SOC && !a->batt_low) || (in->soc > APP_BATT_OK_SOC && a->batt_low)))
         return 0;                               /* BATT's latch changes now (unit 027) */
@@ -1424,18 +1438,66 @@ static uint32_t app_hash(const char *name)      /* FNV-1a of the name: an app's 
     return h;
 }
 
-static int app_save_slot(app_state *a, uint32_t h, bool make)
+/* apps.h v1.2: the saves are records of (hash, 16-bit length, bytes) in the device's buffer. The record of hash h:
+   the offset of its bytes and their length, or -1. */
+static long save_find(const app_state *a, uint32_t h, uint32_t *len)
 {
-    int free_slot = -1;
-    for (int i = 0; i < 8; i++) {
-        if (a->app_saves[i].used && a->app_saves[i].hash == h) return i;
-        if (!a->app_saves[i].used && free_slot < 0) free_slot = i;
+    size_t p = 0;
+    while (a->saves && p + 6 <= a->saves_len) {
+        const uint8_t *r = a->saves + p;
+        uint32_t rh = (uint32_t)r[0] | (uint32_t)r[1] << 8 | (uint32_t)r[2] << 16 | (uint32_t)r[3] << 24;
+        uint32_t rl = (uint32_t)r[4] | (uint32_t)r[5] << 8;
+        if (rh == h) {
+            *len = rl;
+            return (long)(p + 6);
+        }
+        p += 6 + rl;
     }
-    if (!make || free_slot < 0) return -1;
-    a->app_saves[free_slot].used = 1;
-    a->app_saves[free_slot].hash = h;
-    memset(a->app_saves[free_slot].data, 0, APP_SAVE_SIZE);
-    return free_slot;
+    return -1;
+}
+
+static int save_count(const app_state *a)
+{
+    int n = 0;
+    for (size_t p = 0; a->saves && p + 6 <= a->saves_len; p += 6 + ((size_t)a->saves[p + 4] | (size_t)a->saves[p + 5] << 8))
+        n++;
+    return n;
+}
+
+/* h's record set to d[0..n): replaced, or added; false (nothing changed) with no room or APP_SAVES_MAX apps kept */
+static bool save_set(app_state *a, uint32_t h, const uint8_t *d, uint32_t n)
+{
+    uint32_t old = 0;
+    long at = save_find(a, h, &old);
+    size_t without = at >= 0 ? a->saves_len - 6 - old : a->saves_len;
+    if (!a->saves || n > APP_SAVE_MAX || without + 6 + n > a->saves_cap || (at < 0 && save_count(a) >= APP_SAVES_MAX))
+        return false;
+    if (at >= 0) {                              /* the old record out, the rest closed up */
+        size_t start = (size_t)at - 6, end = (size_t)at + old;
+        memmove(a->saves + start, a->saves + end, a->saves_len - end);
+        a->saves_len = without;
+    }
+    uint8_t *r = a->saves + a->saves_len;
+    for (int k = 0; k < 4; k++) r[k] = (uint8_t)(h >> (8 * k));
+    r[4] = (uint8_t)n;
+    r[5] = (uint8_t)(n >> 8);
+    memcpy(r + 6, d, n);
+    a->saves_len += 6 + n;
+    return true;
+}
+
+void app_save_buffers(app_state *a, uint8_t *img, size_t img_cap, uint8_t *run, uint32_t run_cap)
+{
+    a->saves = img;
+    a->saves_cap = img ? img_cap : 0;
+    a->saves_len = 0;
+    a->save_run = run;
+    a->save_run_cap = run ? run_cap : 0;
+}
+
+static uint32_t app_save_size(const app_def *d)
+{
+    return d->save_size ? d->save_size : APP_SAVE_SIZE;
 }
 
 void app_apps(app_state *a, const app_def *const *list, int n)
@@ -1457,14 +1519,16 @@ bool app_running(const app_state *a)
 
 bool app_ticking(const app_state *a)
 {
-    return a->app != NULL && a->app_next > 0;
+    return a->app != NULL && (a->app_next > 0 || a->tune_n);    /* (a tune playing: v1.2) */
 }
 
 /* Starts an app (APPS's soft key): its state zeroed, its save loaded, started, the first tick at once. */
 static void app_start(app_state *a, const app_def *d)
 {
     uint32_t now = a->now_ms;
-    if (!a->app_ctx || d->ctx_size > a->app_ctx_cap || d->ctx_size > APP_CTX_MAX) {
+    uint32_t ss = app_save_size(d);
+    if (!a->app_ctx || d->ctx_size > a->app_ctx_cap || d->ctx_size > APP_CTX_MAX || ss > APP_SAVE_MAX ||
+        !a->save_run || ss > a->save_run_cap) {
         a->notice = "NO MEMORY";
         a->notice_ms = now;
         return;
@@ -1475,8 +1539,13 @@ static void app_start(app_state *a, const app_def *d)
     a->app_t0 = now;
     a->menu = -1;
     a->shift = 0;
-    int s = app_save_slot(a, app_hash(d->name), false);
-    d->load(a->app_ctx, s >= 0 ? a->app_saves[s].data : NULL, s >= 0 ? APP_SAVE_SIZE : 0);
+    uint32_t len = 0;                           /* its save into the running buffer, the rest zero (v1.2) */
+    long at = save_find(a, app_hash(d->name), &len);
+    if (len > ss) len = ss;
+    memset(a->save_run, 0, ss);
+    if (at >= 0) memcpy(a->save_run, a->saves + at, len);
+    a->tune_n = 0;
+    d->load(a->app_ctx, at >= 0 ? a->save_run : NULL, at >= 0 ? len : 0);
     d->start(a->app_ctx);
     a->app_last = 0;
     a->app_next = d->tick(a->app_ctx, 0);       /* the first tick right after start */
@@ -1487,14 +1556,13 @@ static void app_start(app_state *a, const app_def *d)
 static void app_exit(app_state *a)
 {
     const app_def *d = a->app;
-    bool had = app_save_slot(a, app_hash(d->name), false) >= 0;
-    int s = app_save_slot(a, app_hash(d->name), true);
-    if (s >= 0) {                               /* its save, apart from the calculator's image (rule 5) */
-        uint8_t before[APP_SAVE_SIZE];
-        memcpy(before, a->app_saves[s].data, APP_SAVE_SIZE);
-        d->save(a->app_ctx, a->app_saves[s].data, APP_SAVE_SIZE);
-        if (!had || memcmp(before, a->app_saves[s].data, APP_SAVE_SIZE)) a->apps_dirty = true;
-    }
+    uint32_t h = app_hash(d->name), ss = app_save_size(d), len = 0;
+    long at = save_find(a, h, &len);
+    d->save(a->app_ctx, a->save_run, ss);       /* its save, apart from the calculator's image (rule 5), into the
+                                                   running buffer holding what it loaded (v1.2) */
+    if ((at < 0 || len != ss || memcmp(a->saves + at, a->save_run, ss)) && save_set(a, h, a->save_run, ss))
+        a->apps_dirty = true;                   /* stored only when it changed (the flash's wear) */
+    a->tune_n = 0;                              /* the exit stops a tune (v1.2) */
     d->stop(a->app_ctx);
     a->app = NULL;
     app_fw = NULL;
@@ -1515,11 +1583,27 @@ static void app_key_to(app_state *a, int key, bool down, uint32_t now_ms)
     if (a->app->key(a->app_ctx, key, down, now_ms - a->app_t0)) a->render = true;
 }
 
-/* A tick due: the app's tick with the time since the last; auto-off kept away (rule 3). */
+/* v1.2: a tune's note i starting at t on the app's clock (a rest sounds nothing); past the last, the tune is over */
+static void tune_note(app_state *a, uint32_t t)
+{
+    if (a->tune_i >= a->tune_n) {
+        a->tune_n = 0;
+        return;
+    }
+    uint16_t hz = a->tune[2 * a->tune_i], ms = a->tune[2 * a->tune_i + 1];
+    if (hz) app_beep(hz, ms);
+    a->tune_end = t + ms;
+}
+
+/* A tick due: the app's tick with the time since the last; auto-off kept away (rule 3). A tune steps on. */
 static void app_tick_app(app_state *a, uint32_t now_ms)
 {
     uint32_t t = now_ms - a->app_t0;
     a->now_ms = now_ms;                         /* (auto-off: app_tick counts an app as busy, rule 3) */
+    while (a->tune_n && (int32_t)(t - a->tune_end) >= 0) {
+        a->tune_i++;
+        tune_note(a, a->tune_end);
+    }
     if (a->app_next && t - a->app_last >= a->app_next) {
         uint32_t ms = t - a->app_last;
         a->app_last = t;
@@ -1535,40 +1619,52 @@ bool app_draw(app_state *a, ls027_frame *f)
     return true;
 }
 
-/* The saves' image: "ABAP", version 1, eight records (hash, used, 64 bytes), CRC-32 of the rest. */
-#define APP_SAVES_LEN (6 + 8 * (4 + 1 + APP_SAVE_SIZE) + 4)
+/* The saves' image: "ABAP", version 2, the records' count, the records (hash, 16-bit length, bytes), CRC-32 of the
+   rest (apps.h v1.2). Version 1 (unit 037: eight records of hash, used, 64 bytes) still loads, its saves unchanged. */
+#define APP_SAVES_V1_LEN (6 + 8 * (4 + 1 + APP_SAVE_SIZE) + 4)
 
 size_t app_saves_image(const app_state *a, uint8_t *buf, size_t cap)
 {
-    if (cap < APP_SAVES_LEN) return 0;
-    size_t n = 0;
+    size_t n = 6 + a->saves_len + 4;
+    if (cap < n) return 0;
     memcpy(buf, "ABAP", 4);
-    buf[4] = 1;
-    buf[5] = 8;
-    n = 6;
-    for (int i = 0; i < 8; i++) {
-        for (int k = 0; k < 4; k++) buf[n++] = (uint8_t)(a->app_saves[i].hash >> (8 * k));
-        buf[n++] = a->app_saves[i].used;
-        memcpy(buf + n, a->app_saves[i].data, APP_SAVE_SIZE);
-        n += APP_SAVE_SIZE;
-    }
-    uint32_t crc = ab_crc32(buf, n);
-    for (int k = 0; k < 4; k++) buf[n++] = (uint8_t)(crc >> (8 * k));
+    buf[4] = 2;
+    buf[5] = (uint8_t)save_count(a);
+    if (a->saves_len) memcpy(buf + 6, a->saves, a->saves_len);
+    uint32_t crc = ab_crc32(buf, n - 4);
+    for (int k = 0; k < 4; k++) buf[n - 4 + k] = (uint8_t)(crc >> (8 * k));
     return n;
 }
 
 bool app_saves_load(app_state *a, const uint8_t *buf, size_t n)
 {
-    if (n != APP_SAVES_LEN || memcmp(buf, "ABAP", 4) || buf[4] != 1 || buf[5] != 8) return false;
+    if (n < 10 || memcmp(buf, "ABAP", 4)) return false;
     uint32_t crc = (uint32_t)buf[n - 4] | (uint32_t)buf[n - 3] << 8 | (uint32_t)buf[n - 2] << 16 | (uint32_t)buf[n - 1] << 24;
-    if (ab_crc32(buf, n - 4) != crc) return false;
-    size_t p = 6;
-    for (int i = 0; i < 8; i++) {
-        a->app_saves[i].hash = (uint32_t)buf[p] | (uint32_t)buf[p + 1] << 8 | (uint32_t)buf[p + 2] << 16 | (uint32_t)buf[p + 3] << 24;
-        a->app_saves[i].used = buf[p + 4] ? 1 : 0;
-        memcpy(a->app_saves[i].data, buf + p + 5, APP_SAVE_SIZE);
-        p += 5 + APP_SAVE_SIZE;
+    if (ab_crc32(buf, n - 4) != crc || !a->saves) return false;
+    if (buf[4] == 1) {                          /* version 1: each used record, 64 bytes */
+        if (n != APP_SAVES_V1_LEN || buf[5] != 8) return false;
+        a->saves_len = 0;
+        for (size_t p = 6; p + 5 + APP_SAVE_SIZE <= n - 4; p += 5 + APP_SAVE_SIZE) {
+            uint32_t h = (uint32_t)buf[p] | (uint32_t)buf[p + 1] << 8 | (uint32_t)buf[p + 2] << 16 | (uint32_t)buf[p + 3] << 24;
+            if (buf[p + 4] && !save_set(a, h, buf + p + 5, APP_SAVE_SIZE)) return false;
+        }
+        return true;
     }
+    if (buf[4] != 2 || buf[5] > APP_SAVES_MAX || n - 10 > a->saves_cap) return false;
+    size_t p = 6, end = n - 4;
+    int count = 0;
+    while (p < end) {                           /* every record whole, none past APP_SAVE_MAX, no hash twice */
+        if (p + 6 > end) return false;
+        uint32_t len = (uint32_t)buf[p + 4] | (uint32_t)buf[p + 5] << 8;
+        if (len > APP_SAVE_MAX || p + 6 + len > end) return false;
+        for (size_t q = 6; q < p; q += 6 + ((size_t)buf[q + 4] | (size_t)buf[q + 5] << 8))
+            if (!memcmp(buf + q, buf + p, 4)) return false;
+        p += 6 + len;
+        count++;
+    }
+    if (count != buf[5]) return false;
+    memcpy(a->saves, buf + 6, n - 10);
+    a->saves_len = n - 10;
     return true;
 }
 
@@ -1581,6 +1677,38 @@ void app_beep(uint16_t hz, uint16_t ms)
     a->tone_hz = hz;
     a->tone_ms = ms;
 }
+
+void app_tune(const uint16_t *notes, uint8_t n)
+{
+    app_state *a = app_fw;
+    if (!a || !notes) return;
+    if (n > APP_TUNE_MAX) n = APP_TUNE_MAX;
+    memcpy(a->tune, notes, (size_t)n * 2 * sizeof notes[0]);
+    a->tune_n = n;
+    a->tune_i = 0;
+    tune_note(a, a->now_ms - a->app_t0);        /* the first note now (a new call replaces what was playing) */
+}
+
+static bool seed_fixed;                         /* a host's test fixed it (app_seed_set) */
+static uint32_t seed_value;
+
+uint32_t app_seed(void)
+{
+    app_state *a = app_fw;
+    if (seed_fixed) return seed_value;
+    if (a && a->rng) return a->rng(a->ctx);     /* the device's hardware RNG */
+    uint32_t x = (a ? (a->clock_ms ? a->clock_ms(a->ctx) : a->now_ms) : 0) ^ 0x9E3779B9u;   /* a host's choice */
+    x ^= x << 13, x ^= x >> 17, x ^= x << 5;
+    return x;
+}
+
+#ifndef ESP_PLATFORM
+void app_seed_set(uint32_t seed)
+{
+    seed_fixed = true;
+    seed_value = seed;
+}
+#endif
 
 uint32_t app_now_ms(void)
 {

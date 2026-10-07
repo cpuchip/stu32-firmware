@@ -21,6 +21,7 @@
 #include "driver/gpio.h"
 #include "driver/i2c_master.h"
 #include "esp_heap_caps.h"
+#include "esp_random.h"
 #include "esp_lcd_panel_ops.h"
 #include "esp_lcd_panel_rgb.h"
 #include "esp_partition.h"
@@ -53,7 +54,7 @@
 
 enum { EV_KEY = 0, EV_OP, EV_DUMP, EV_SAVE, EV_WIPE, EV_RESTART, EV_TOUCHED, EV_BENCH, EV_TIME, EV_POWBENCH,
        EV_KEYUP, EV_TBLBENCH, EV_GRBENCH, EV_FRAMEBENCH,
-       EV_POLBENCH, EV_ZOOMBENCH, EV_CASBENCH };                          /* EV_KEYUP: a the key released (unit 030: SHOW, held) */
+       EV_POLBENCH, EV_ZOOMBENCH, EV_CASBENCH, EV_DIFFBENCH };                          /* EV_KEYUP: a the key released (unit 030: SHOW, held) */
 static char time_text[16];             /* TIME's argument, for the calc task (unit 027) */
 
 typedef struct {
@@ -206,11 +207,13 @@ static void store_init(void)
 }
 
 /* unit 037: the apps' saves (apart from the calculator's image), stored when they change */
+static uint8_t *apps_buf;               /* apps.h v1.2: the saves' image for the store, in PSRAM (APP_SAVES_IMG_MAX) */
+
 static void apps_save(void)
 {
-    static uint8_t b[1024];
-    if (!app.apps_dirty || !apps_flash.ctx) return;
-    size_t n = app_saves_image(&app, b, sizeof b);
+    uint8_t *b = apps_buf;
+    if (!app.apps_dirty || !apps_flash.ctx || !b) return;
+    size_t n = app_saves_image(&app, b, APP_SAVES_IMG_MAX);
     int rc = n ? ab_store_save(&apps_flash, b, (uint32_t)n) : -1;
     printf("apps: saves %u bytes, %s\n", (unsigned)n, rc == 0 ? "ok" : "FAILED");
     if (rc == 0) app.apps_dirty = false;
@@ -218,8 +221,8 @@ static void apps_save(void)
 
 static void apps_load(void)
 {
-    static uint8_t b[1024];
-    uint32_t n = apps_flash.ctx ? ab_store_load(&apps_flash, b, sizeof b) : 0;
+    uint8_t *b = apps_buf;
+    uint32_t n = apps_flash.ctx && b ? ab_store_load(&apps_flash, b, APP_SAVES_IMG_MAX) : 0;
     printf("apps: %s\n", n && app_saves_load(&app, b, n) ? "saves loaded" : "no saves");
 }
 
@@ -530,6 +533,35 @@ static void zoombench(void)
     heap_caps_free(t);
 }
 
+/* DIFFBENCH (apps.h v1.2 item 1, abacus #4734): ls027_dirty's time on the S3 for a whole frame against the frame last
+   sent, as Rev A keeps it (in PSRAM) and in internal RAM for comparison: no line changed (every row compared to its
+   end), and every line changed (each row's first byte differs). Microseconds a call, over 100. */
+static void diffbench(void)
+{
+    static ls027_frame inner_a;                 /* (internal: the stand-in's own frames are) */
+    ls027_frame *pa = heap_caps_malloc(sizeof *pa, MALLOC_CAP_SPIRAM), *pb = heap_caps_malloc(sizeof *pb, MALLOC_CAP_SPIRAM);
+    if (!pa || !pb) {
+        printf("diffbench: no PSRAM\n");
+        free(pa), free(pb);
+        return;
+    }
+    static bool d[LS027_H];
+    for (int k = 0; k < 4; k++) {
+        bool psram = k < 2, all = k & 1;
+        ls027_frame *shown = psram ? pa : &inner_a, *next = &fb[front];
+        memcpy(shown, next, sizeof *shown);
+        if (all)
+            for (int y = 0; y < LS027_H; y++) shown->px[y][0] ^= 0xFF;
+        int n = 0;
+        int64_t t0 = esp_timer_get_time();
+        for (int r = 0; r < 100; r++) n = ls027_dirty(shown, next, d);
+        int64_t us = esp_timer_get_time() - t0;
+        printf("diffbench: shown in %s, %s: %d rows dirty, %lld.%02lld us a call\n", psram ? "PSRAM" : "internal RAM",
+               all ? "every line changed" : "no line changed", n, us / 100, us % 100);
+    }
+    free(pa), free(pb);
+}
+
 /* CASBENCH (CAS 004 rule 6): each Casimir step's time on the S3 over heavy shapes (near the 191-byte slot, deep
    nests, big expansions, the depth guard), in STU, from the calc task, as the keys reach it: status, the result's
    length, milliseconds, and the task's stack still free. */
@@ -741,6 +773,7 @@ static void console_task(void *arg)
         else if (!strcmp(line, "POLBENCH")) e.kind = EV_POLBENCH;  /* unit 034 rule 3: ->POL before and after */
         else if (!strcmp(line, "ZOOMBENCH")) e.kind = EV_ZOOMBENCH;  /* unit 040: a redraw after each zoom */
         else if (!strcmp(line, "CASBENCH")) e.kind = EV_CASBENCH;    /* CAS 004: each step's time, the stack */
+        else if (!strcmp(line, "DIFFBENCH")) e.kind = EV_DIFFBENCH;  /* apps.h v1.2 item 1: the line diff's time */
         else if (!strncmp(line, "TIME ", 5)) {      /* TIME hh:mm[:ss] (unit 027 rule 4) */
             snprintf(time_text, sizeof time_text, "%.15s", line + 5);
             e.kind = EV_TIME;
@@ -807,6 +840,8 @@ static void calc_task(void *arg)
             zoombench();
         } else if (got && ev.kind == EV_CASBENCH) {
             casbench();
+        } else if (got && ev.kind == EV_DIFFBENCH) {
+            diffbench();
         } else if (got && ev.kind == EV_BENCH) {
             bench();
         } else if (got && ev.kind == EV_TIME) {
@@ -859,6 +894,12 @@ static uint32_t clock_cb(void *ctx)
 }
 
 /* SYS: the stand-in has no gauge and no charger pins; it is on USB */
+static uint32_t rng_cb(void *ctx)        /* apps.h v1.2: app_seed, the hardware RNG */
+{
+    (void)ctx;
+    return esp_random();
+}
+
 static void sysinfo_cb(void *ctx, app_sysinfo *o)
 {
     (void)ctx;
@@ -902,6 +943,7 @@ void app_main(void)
     app.set_wall = dev_set_wall;
     app.clock_ms = clock_cb;
     app.sysinfo = sysinfo_cb;
+    app.rng = rng_cb;                           /* apps.h v1.2: app_seed */
     app_powered_on(&app);
     {   /* UNDO's two images (unit 021), in PSRAM beside the store's; without them UNDO does nothing */
         uint8_t *u0 = heap_caps_malloc(IMAGE_CAP, MALLOC_CAP_SPIRAM), *u1 = heap_caps_malloc(IMAGE_CAP, MALLOC_CAP_SPIRAM);
@@ -914,6 +956,9 @@ void app_main(void)
         app_undo_buffers(&app, u0, u1, IMAGE_CAP);
         app_graph_buffer(&app, heap_caps_malloc(sizeof(app_graph), MALLOC_CAP_SPIRAM));   /* unit 033 */
         app_ctx_buffer(&app, heap_caps_malloc(APP_CTX_MAX, MALLOC_CAP_SPIRAM), APP_CTX_MAX);  /* unit 037 */
+        app_save_buffers(&app, heap_caps_malloc(APP_SAVES_IMG_MAX, MALLOC_CAP_SPIRAM), APP_SAVES_IMG_MAX,
+                         heap_caps_malloc(APP_SAVE_MAX, MALLOC_CAP_SPIRAM), APP_SAVE_MAX);   /* apps.h v1.2 */
+        apps_buf = heap_caps_malloc(APP_SAVES_IMG_MAX, MALLOC_CAP_SPIRAM);
         apps_load();
     }
     printf("standin: heap internal %u (largest block %u), PSRAM %u\n",

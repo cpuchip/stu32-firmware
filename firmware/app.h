@@ -150,8 +150,16 @@ typedef struct {
     void *app_ctx;
     uint32_t app_ctx_cap;
     uint32_t app_t0, app_last, app_next;    /* the clock's start, the last tick, the ms to the next (0 none) */
-    struct { uint32_t hash; uint8_t data[APP_SAVE_SIZE]; uint8_t used; } app_saves[8];
+    uint8_t *saves;         /* apps.h v1.2: the apps' saves, records of (name hash, length, bytes), in the device's
+                               buffer (PSRAM; app_save_buffers); not in app_state, which stays in internal RAM */
+    size_t saves_cap, saves_len;
+    uint8_t *save_run;      /* the running app's save while it runs (the device's buffer, APP_SAVE_MAX) */
+    uint32_t save_run_cap;
     bool apps_dirty;        /* the apps' saves changed: the device stores them (app_saves_image) */
+    uint32_t (*rng)(void *ctx);                 /* v1.2: the device's hardware RNG, for app_seed (NULL: none) */
+    uint16_t tune[2 * APP_TUNE_MAX];            /* v1.2: app_tune's notes, the one playing, and when it ends (the */
+    uint8_t tune_n, tune_i;                     /* app's clock); tune_n 0: none */
+    uint32_t tune_end;
     bool idle_limit;        /* the apps' idle limit applies (abacus #4639); true from app_init, a host may clear it
                                (abacus #4661: the phone never auto-offs) */
     volatile bool computing; /* 040b: a SOLVE, an integral or a graph tool inside its call (C interrupts it) */
@@ -215,6 +223,11 @@ void app_ctx_buffer(app_state *a, void *buf, uint32_t cap);
 bool app_running(const app_state *a);
 bool app_ticking(const app_state *a);
 bool app_draw(app_state *a, ls027_frame *f);
+/* apps.h v1.2: the saves' buffers, the device's (PSRAM): img for every app's save (APP_SAVES_IMG_MAX), run for the
+   running app's (APP_SAVE_MAX). A host build has its own if none are given. */
+#define APP_SAVES_MAX 8         /* apps with a save kept */
+#define APP_SAVES_IMG_MAX (6 + APP_SAVES_MAX * (4 + 2 + APP_SAVE_MAX) + 4)    /* the saves' image at most: 32,826 */
+void app_save_buffers(app_state *a, uint8_t *img, size_t img_cap, uint8_t *run, uint32_t run_cap);
 size_t app_saves_image(const app_state *a, uint8_t *buf, size_t cap);
 bool app_saves_load(app_state *a, const uint8_t *buf, size_t n);
 /* What the screen needs that the core does not hold. */

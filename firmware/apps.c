@@ -74,7 +74,7 @@ static void keys_stop(void *ctx)
 }
 
 static const app_def keys_app = {"KEYS", sizeof(keys_ctx), keys_load, keys_start, keys_key, keys_tick,
-                                 keys_draw, keys_save, keys_stop};
+                                 keys_draw, keys_save, keys_stop, 0};
 
 GAMES_DECLARE
 const app_def *const app_registry[] = {&keys_app GAMES_ENTRIES};

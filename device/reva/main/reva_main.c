@@ -26,6 +26,7 @@
 #include "driver/ledc.h"
 #include "driver/spi_master.h"
 #include "esp_heap_caps.h"
+#include "esp_random.h"
 #include "esp_partition.h"
 #include "esp_pm.h"
 #include "esp_rom_sys.h"
@@ -62,7 +63,7 @@ extern const uint8_t ulp_main_bin_end[] asm("_binary_ulp_main_bin_end");
 static const int ROWS[KB_ROWS] = PIN_ROWS, COLS[KB_COLS] = PIN_COLS;
 static spi_device_handle_t lcd;
 static uint8_t *tx;
-static ls027_frame shown, next;         /* what the panel holds, and what it should */
+static ls027_frame *shown, next;        /* what the panel holds (PSRAM: apps.h v1.2 item 1), and what it should */
 static bool shown_valid;
 static QueueHandle_t keys_q;           /* key n down: n; released: KEY_UP_BASE - n (unit 030); -1 dump,
                                            -2 the time */
@@ -117,8 +118,8 @@ static void lcd_init(bool cold)
         vTaskDelay(pdMS_TO_TICKS(5));
         size_t n = ls027_all_clear(tx);
         lcd_send(tx, n);
-        memset(&shown, 0, sizeof shown);
-        shown_valid = true;
+        if (shown) memset(shown, 0, sizeof *shown);
+        shown_valid = shown != NULL;
         gpio_set_level(PIN_DISP, 1);
         esp_rom_delay_us(30);
     }
@@ -127,16 +128,13 @@ static void lcd_init(bool cold)
 static void lcd_update(void)
 {
     bool dirty[LS027_H];
-    int n_dirty = 0;
-    for (int y = 0; y < LS027_H; y++) {
-        dirty[y] = !shown_valid || memcmp(shown.px[y], next.px[y], LS027_ROW_BYTES) != 0;
-        n_dirty += dirty[y];
-    }
-    if (!n_dirty) return;
+    if (!ls027_dirty(shown_valid ? shown : NULL, &next, dirty)) return;     /* only the lines that changed (v1.2) */
     size_t n = ls027_encode(&next, dirty, tx, TX_CAP);
     if (n <= TX_CAP) lcd_send(tx, n);
-    shown = next;
-    shown_valid = true;
+    if (shown) {
+        *shown = next;
+        shown_valid = true;
+    }
 }
 
 /* ---- keys ---- */
@@ -299,11 +297,13 @@ static int fl_read(void *ctx, uint32_t off, void *dst, uint32_t len)
 
 /* the state image and the device's settings after it (unit 022, settings.h) */
 /* unit 037: the apps' saves (apart from the calculator's image), stored when they change */
+static uint8_t *apps_buf;               /* apps.h v1.2: the saves' image for the store, in PSRAM (APP_SAVES_IMG_MAX) */
+
 static void apps_save(void)
 {
-    static uint8_t b[1024];
-    if (!app.apps_dirty || !apps_flash.ctx) return;
-    size_t n = app_saves_image(&app, b, sizeof b);
+    uint8_t *b = apps_buf;
+    if (!app.apps_dirty || !apps_flash.ctx || !b) return;
+    size_t n = app_saves_image(&app, b, APP_SAVES_IMG_MAX);
     if (n && ab_store_save(&apps_flash, b, (uint32_t)n) == 0) app.apps_dirty = false;
 }
 
@@ -503,6 +503,12 @@ static uint32_t clock_cb(void *ctx)
 }
 
 /* SYS: the gauge's percent and voltage, the charger's pins (unit 027 rule 5) */
+static uint32_t rng_cb(void *ctx)        /* apps.h v1.2: app_seed, the hardware RNG */
+{
+    (void)ctx;
+    return esp_random();
+}
+
 static void sysinfo_cb(void *ctx, app_sysinfo *o)
 {
     (void)ctx;
@@ -540,6 +546,7 @@ void app_main(void)
     gpio_set_direction(PIN_CHG_N, GPIO_MODE_INPUT);
     gpio_set_direction(PIN_PGOOD_N, GPIO_MODE_INPUT);
 
+    shown = heap_caps_malloc(sizeof *shown, MALLOC_CAP_SPIRAM);     /* the frame last sent, 12 KB (apps.h v1.2) */
     lcd_init(!woke);
     if (!woke) {                                    /* EXTCOMIN: the ULP, from the first boot on, started */
         ESP_ERROR_CHECK(ulp_riscv_load_binary(ulp_main_bin_start, (size_t)(ulp_main_bin_end - ulp_main_bin_start)));
@@ -588,10 +595,12 @@ void app_main(void)
         app_undo_buffers(&app, u0, u1, IMAGE_CAP);
         app_graph_buffer(&app, heap_caps_malloc(sizeof(app_graph), MALLOC_CAP_SPIRAM));   /* unit 033 */
         app_ctx_buffer(&app, heap_caps_malloc(APP_CTX_MAX, MALLOC_CAP_SPIRAM), APP_CTX_MAX);  /* unit 037 */
+        app_save_buffers(&app, heap_caps_malloc(APP_SAVES_IMG_MAX, MALLOC_CAP_SPIRAM), APP_SAVES_IMG_MAX,
+                         heap_caps_malloc(APP_SAVE_MAX, MALLOC_CAP_SPIRAM), APP_SAVE_MAX);   /* apps.h v1.2 */
+        apps_buf = heap_caps_malloc(APP_SAVES_IMG_MAX, MALLOC_CAP_SPIRAM);
         {
-            static uint8_t b[1024];
-            uint32_t n = apps_flash.ctx ? ab_store_load(&apps_flash, b, sizeof b) : 0;
-            if (n) app_saves_load(&app, b, n);
+            uint32_t n = apps_flash.ctx && apps_buf ? ab_store_load(&apps_flash, apps_buf, APP_SAVES_IMG_MAX) : 0;
+            if (n) app_saves_load(&app, apps_buf, n);
         }
     }
 
@@ -600,6 +609,7 @@ void app_main(void)
     app.set_wall = dev_set_wall;
     app.clock_ms = clock_cb;
     app.sysinfo = sysinfo_cb;
+    app.rng = rng_cb;                           /* apps.h v1.2: app_seed */
     app.batt_low = rtc_batt_low;                /* the latch, kept through OFF (abacus #4238) */
     if (why == ESP_SLEEP_WAKEUP_TIMER) {            /* the refresh: rewrite the image, sleep again */
         render(0);

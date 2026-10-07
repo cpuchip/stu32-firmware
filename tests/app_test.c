@@ -76,8 +76,34 @@ static uint32_t t_tick(void *ctx, uint32_t ms) { (void)ctx; rec.ticks++; rec.tic
 static void t_draw(void *ctx, ls027_frame *f) { (void)ctx; rec.draws++; screen_clear(f); screen_fill(f, 0, 0, 10, 10, true); }
 static void t_save(void *ctx, uint8_t *s, uint32_t cap) { rec.saves++; if (cap) s[0] = (uint8_t)((tapp_ctx *)ctx)->count; }
 static void t_stop(void *ctx) { (void)ctx; rec.stops++; }
-#define TAPP(n) {n, sizeof(tapp_ctx), t_load, t_start, t_key, t_tick, t_draw, t_save, t_stop}
+#define TAPP(n) {n, sizeof(tapp_ctx), t_load, t_start, t_key, t_tick, t_draw, t_save, t_stop, 0}
 static const app_def tapps[7] = {TAPP("T1"), TAPP("T2"), TAPP("T3"), TAPP("T4"), TAPP("T5"), TAPP("T6"), TAPP("T7")};
+
+/* apps.h v1.2 (abacus #4734): an app with a 300-byte save (item 2) that reads app_seed at start (3) and plays a tune
+   on the 2 key (4); and one with no save_size (64) */
+static struct { uint32_t seed, load_n; uint8_t loaded[400]; } rec2;
+static const uint16_t V_TUNE[6] = {440, 100, 0, 50, 660, 100};
+static uint16_t v_tune17[34];
+static void v_load(void *ctx, const uint8_t *s, uint32_t n) { (void)ctx; rec2.load_n = n; if (n) memcpy(rec2.loaded, s, n < 400 ? n : 400); }
+static void v_start(void *ctx) { (void)ctx; rec2.seed = app_seed(); }
+static bool v_key(void *ctx, int key, bool down, uint32_t ms)
+{
+    (void)ctx, (void)ms;
+    if (down && key == APP_KEY_2) app_tune(V_TUNE, 3);
+    if (down && key == APP_KEY_3) app_tune(v_tune17, 17);   /* 17 notes: 16 played */
+    return false;
+}
+static uint32_t v_tick(void *ctx, uint32_t ms) { (void)ctx, (void)ms; return 0; }
+static void v_draw(void *ctx, ls027_frame *f) { (void)ctx; screen_clear(f); }
+static void v_save(void *ctx, uint8_t *s, uint32_t cap) { (void)ctx; for (uint32_t i = 0; i < cap; i++) s[i] = (uint8_t)(i * 7 + 1); }
+static void v_stop(void *ctx) { (void)ctx; }
+static const app_def vapps[3] = {
+    {"V300", 16, v_load, v_start, v_key, v_tick, v_draw, v_save, v_stop, 300},
+    {"V64", 16, v_load, v_start, v_key, v_tick, v_draw, v_save, v_stop, 0},
+    {"VBIG", 16, v_load, v_start, v_key, v_tick, v_draw, v_save, v_stop, APP_SAVE_MAX + 1},
+};
+static const app_def *const vlist[3] = {&vapps[0], &vapps[1], &vapps[2]};
+static uint32_t fake_rng(void *ctx) { (void)ctx; return 0xC0FFEEu; }
 static const app_def *const tlist[7] = {&tapps[0], &tapps[1], &tapps[2], &tapps[3], &tapps[4], &tapps[5], &tapps[6]};
 
 /* press legends separated by blanks; GOLD and BLUE are the shift keys, "k:N" key N, "ltr:X" the
@@ -978,6 +1004,124 @@ int main(void)
                "041 C: 35s mode, a 33s label: XEQ A records XEQ A001 at once (the 33s's form)");
     }
 
+    /* apps.h v1.2 items 2, 3, 4 (abacus #4734) */
+    {
+        static uint8_t ctxbuf[APP_CTX_MAX];
+        pwr_inputs pin = {true, true, 80, false};
+        ab_init(&c);
+        app_init(&a, &c, now);
+        app_ctx_buffer(&a, ctxbuf, sizeof ctxbuf);
+        app_apps(&a, vlist, 3);
+        a.rng = fake_rng;
+        /* (3) the seed: the device's RNG; a host sets it for a test's replay */
+        memset(&rec2, 0, sizeof rec2);
+        press(&a, "BLUE 0 k:0");
+        expect(app_running(&a) && rec2.seed == 0xC0FFEEu, "v1.2 (3): app_seed is the device's RNG");
+        app_seed_set(1234);
+        expect(app_seed() == 1234, "v1.2 (3): app_seed_set fixes it on a host");
+        /* (4) a tune: three notes in turn on the app's clock, a rest silent, then done */
+        uint32_t t = now;
+        a.tone = -1;
+        app_key(&a, APP_KEY_2, t);
+        expect(a.tone >= 0 && a.tone_use == DEV_USE_APP && a.tone_hz == 440 && a.tone_ms == 100,
+               "v1.2 (4): app_tune: the first note at once");
+        a.tone = -1;
+        a.render = false;                       /* (a redraw due wakes at once: not the tune's doing) */
+        uint32_t w = app_next_wake(&a, &pin, t);
+        app_tick(&a, &pin, t + 100);
+        expect(w <= 100 && a.tone < 0, "v1.2 (4): woken at the note's end; a rest sounds nothing");
+        app_tick(&a, &pin, t + 150);
+        expect(a.tone >= 0 && a.tone_hz == 660 && a.tone_ms == 100, "v1.2 (4): after the rest, the third note");
+        a.tone = -1;
+        app_tick(&a, &pin, t + 250);
+        app_tick(&a, &pin, t + 400);
+        a.render = false;
+        expect(a.tone < 0 && app_next_wake(&a, &pin, t + 400) > 1000, "v1.2 (4): the tune over, no more wakes for it");
+        app_key(&a, APP_KEY_2, t + 500);        /* a new tune replaces the one playing */
+        a.tone = -1;
+        app_key(&a, APP_KEY_2, t + 550);
+        expect(a.tone >= 0 && a.tone_hz == 440, "v1.2 (4): a new call replaces what is playing (from its first note)");
+        a.tone = -1;
+        for (int i = 0; i < 17; i++) v_tune17[2 * i] = (uint16_t)(100 + i), v_tune17[2 * i + 1] = 10;
+        app_key(&a, APP_KEY_3, t + 600);
+        int notes = 0;
+        uint16_t last = 0;
+        for (uint32_t u = t + 600; u < t + 900; u += 10) {
+            app_tick(&a, &pin, u);
+            if (a.tone >= 0) notes++, last = a.tone_hz, a.tone = -1;
+        }
+        expect(notes == 16 && last == 115, "v1.2 (4): at most 16 notes, copied");
+        app_key(&a, APP_KEY_2, t + 1000);
+        a.tone = -1;
+        press(&a, "C");
+        app_tick(&a, &pin, now + 200);
+        app_tick(&a, &pin, now + 400);
+        expect(!app_running(&a) && a.tone < 0 && a.tune_n == 0, "v1.2 (4): C (the exit) stops the tune, nothing left playing");
+        /* (2) a 300-byte save: kept through an exit, given back whole; one with no save_size gets 64 */
+        memset(&rec2, 0, sizeof rec2);
+        press(&a, "BLUE 0 k:0");
+        bool all = rec2.load_n == 300;
+        for (int i = 0; i < 300 && all; i++) all = rec2.loaded[i] == (uint8_t)(i * 7 + 1);
+        expect(all, "v1.2 (2): save_size 300: its save back, all 300 bytes");
+        press(&a, "C");
+        memset(&rec2, 0, sizeof rec2);
+        press(&a, "BLUE 0 k:1 C BLUE 0 k:1");
+        expect(rec2.load_n == APP_SAVE_SIZE, "v1.2 (2): no save_size: 64, as before");
+        press(&a, "C");
+        a.notice = NULL;
+        press(&a, "BLUE 0 k:2");
+        expect(!app_running(&a) && a.notice, "v1.2 (2): a save_size past APP_SAVE_MAX: not started");
+        /* the saves' image round trip, and a version-1 image (8 x 64) loads unchanged */
+        static uint8_t img[APP_SAVES_IMG_MAX];
+        size_t n = app_saves_image(&a, img, sizeof img);
+        app_state b;
+        app_init(&b, &c, now);
+        app_ctx_buffer(&b, ctxbuf, sizeof ctxbuf);
+        app_apps(&b, vlist, 3);
+        expect(n > 0 && app_saves_load(&b, img, n), "v1.2 (2): the saves' image loads back");
+        memset(&rec2, 0, sizeof rec2);
+        press(&b, "BLUE 0 k:0");
+        expect(rec2.load_n == 300 && rec2.loaded[299] == (uint8_t)(299 * 7 + 1), "v1.2 (2): and gives the 300 bytes back");
+        press(&b, "C");
+        static uint8_t v1[6 + 8 * 69 + 4];
+        memcpy(v1, "ABAP", 4);
+        v1[4] = 1, v1[5] = 8;
+        uint32_t h = 2166136261u;
+        for (const char *q = "V64"; *q; q++) h = (h ^ (uint8_t)*q) * 16777619u;
+        for (int k = 0; k < 4; k++) v1[6 + k] = (uint8_t)(h >> (8 * k));
+        v1[10] = 1;
+        for (int i = 0; i < 64; i++) v1[11 + i] = (uint8_t)(200 - i);
+        uint32_t crc = ab_crc32(v1, sizeof v1 - 4);
+        for (int k = 0; k < 4; k++) v1[sizeof v1 - 4 + k] = (uint8_t)(crc >> (8 * k));
+        app_init(&b, &c, now);
+        app_ctx_buffer(&b, ctxbuf, sizeof ctxbuf);
+        app_apps(&b, vlist, 3);
+        expect(app_saves_load(&b, v1, sizeof v1), "v1.2 (2): a version-1 saves image loads");
+        memset(&rec2, 0, sizeof rec2);
+        press(&b, "BLUE 0 k:1");
+        expect(rec2.load_n == 64 && rec2.loaded[0] == 200 && rec2.loaded[63] == 137, "v1.2 (2): its save unchanged");
+        press(&b, "C");
+    }
+
+    /* apps.h v1.2 item 5 (abacus #4734): APP_KEY_* name every key by the layout (app_keys.h, generated as keymap.c,
+       gen_keymap.py --check failing on a stale one); each agrees with the keymap's reading of that key */
+    {
+        static const int DIG[10] = {APP_KEY_0, APP_KEY_1, APP_KEY_2, APP_KEY_3, APP_KEY_4, APP_KEY_5, APP_KEY_6,
+                                    APP_KEY_7, APP_KEY_8, APP_KEY_9};
+        bool ok = true;
+        for (int d = 0; d < 10; d++) ok = ok && km_lookup(DIG[d], 0)->kind == KM_OP && km_lookup(DIG[d], 0)->op == AB_K0 + d;
+        static const int SOFT[6] = {APP_KEY_SOFT1, APP_KEY_SOFT2, APP_KEY_SOFT3, APP_KEY_SOFT4, APP_KEY_SOFT5, APP_KEY_SOFT6};
+        for (int i = 0; i < 6; i++) ok = ok && km_lookup(SOFT[i], 0)->kind == KM_SOFT && km_lookup(SOFT[i], 0)->arg == i;
+        ok = ok && km_lookup(APP_KEY_ENTER, 0)->op == AB_ENTER && km_lookup(APP_KEY_DOT, 0)->op == AB_KPOINT &&
+             km_lookup(APP_KEY_PLUS, 0)->op == AB_ADD && km_lookup(APP_KEY_MINUS, 0)->op == AB_SUB &&
+             km_lookup(APP_KEY_TIMES, 0)->op == AB_MUL && km_lookup(APP_KEY_DIVIDE, 0)->op == AB_DIV &&
+             km_lookup(APP_KEY_BACK, 0)->op == AB_KBKSP && km_lookup(APP_KEY_XEQ, 0)->op == AB_XEQ &&
+             km_lookup(APP_KEY_RS, 0)->op == AB_RS && km_lookup(APP_KEY_EXIT, 0)->op == AB_CANCEL &&
+             km_lookup(APP_KEY_GOLD, 0)->kind == KM_SHIFT && km_lookup(APP_KEY_BLUE, 0)->kind == KM_SHIFT &&
+             km_lookup(APP_KEY_GOLD, 0)->arg == 1 && km_lookup(APP_KEY_BLUE, 0)->arg == 2;
+        expect(ok && APP_KEY_EXIT == 42 && APP_KEY_4 == 31, "apps.h v1.2 (5): APP_KEY_* agree with the keymap");
+    }
+
     /* unit 019: every menu on a key opens with its items on the soft keys (CONST shows its first
        five constants and "more"); in 35s mode, where every menu opens (unit 041 A, decision 58) */
     for (int k = 0; k < KB_KEYS; k++)
@@ -1817,8 +1961,8 @@ int main(void)
         /* apps.h v1.1 (Babal's merge): an app may declare up to 256 KB (Babal 164,656 bytes, its whole level and
            log); one byte more is refused, NO MEMORY */
         {
-            static const app_def big[2] = {{"BIG", 164656, t_load, t_start, t_key, t_tick, t_draw, t_save, t_stop},
-                                           {"OVER", 256 * 1024 + 1, t_load, t_start, t_key, t_tick, t_draw, t_save, t_stop}};
+            static const app_def big[2] = {{"BIG", 164656, t_load, t_start, t_key, t_tick, t_draw, t_save, t_stop, 0},
+                                           {"OVER", 256 * 1024 + 1, t_load, t_start, t_key, t_tick, t_draw, t_save, t_stop, 0}};
             static const app_def *const blist[2] = {&big[0], &big[1]};
             static app_state a4;
             app_init(&a4, &c, now);

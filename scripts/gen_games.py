@@ -33,7 +33,8 @@ No symbolic link may be among what is exported (a source, the manifest, anything
 directory): it could pull a file from outside the game's repo into the build.
 
 Out, in OUT (default build/games): each game exported to OUT/ID/ (with its manifest and .pin); games.mk
-(GAMES_C, and a rule per game building its objects with its flags, -Werror=frame-larger-than=1024 always,
+(GAMES_C, and a rule per game building its objects with its flags, -Werror=frame-larger-than=1024 always and
+-Wno-missing-field-initializers (apps.h v1.2's optional members),
 and its own include directories only: a game's headers never reach the firmware's files or another
 game's); games.cmake (GAMES_SRCS, per-file COMPILE_OPTIONS and INCLUDE_DIRECTORIES); games.h
 (GAMES_DECLARE, GAMES_ENTRIES, GAMES_FOLDERS, GAMES_NAMES for apps.c's registry and app_test); .stamp (the
@@ -217,7 +218,9 @@ def main():
         cs = [f"{rel}/{s}" for s in srcs]
         incs = [f"-I{rel}/{i}" for i in m["include"]]
         allc += cs
-        flags = " ".join(m["flags"] + ["-Werror=frame-larger-than=1024"])
+        # apps.h v1.2: an app_def written for 1.1 leaves the new optional members (save_size) to zero, as promised;
+        # -Wextra would refuse its positional initializer, so not for games
+        flags = " ".join(m["flags"] + ["-Werror=frame-larger-than=1024", "-Wno-missing-field-initializers"])
         mk.append(f"# {g['id']}: {m['name']} ({m['folder']}), {g['licence']}, {g['repo']} at {g['pin']}")
         mk.append(f"GAME_{g['id']}_C := {' '.join(cs)}")
         mk.append(f"GAME_{g['id']}_INC := {' '.join(incs)}")
