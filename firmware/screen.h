@@ -105,8 +105,22 @@ typedef struct {
     char text[64];                  /* the annunciators in order, space-separated */
 } screen_status;
 
+/* Unit 033b: a graph's text as drawn (one source for draw_graph and a checker): the soft band's readout
+   ("x=… y=…" or an erring ENTER's message), the window's ends as labelled (YMIN and YMAX "" until the window
+   is known), and the note (V, L−R, NO VALUES). */
+typedef struct {
+    char readout[100];
+    char xmin[24], xmax[24], ymin[24], ymax[24];
+    char note[12];
+} screen_graph_text;
+
+void screen_graph_texts(const ab_calc *c, const screen_ui *ui, screen_graph_text *t);
+int screen_graph_readout(const ab_calc *c, const screen_ui *ui, char *out, int size);
+
 typedef struct {
     screen_status status;
+    bool graph_on;                  /* a graph shown (unit 033b): its text */
+    screen_graph_text graph;
     screen_line t, z, y, x;
     const char *soft[SCREEN_SOFT];  /* as screen_ui's */
     bool soft_on[SCREEN_SOFT], soft_sub[SCREEN_SOFT];

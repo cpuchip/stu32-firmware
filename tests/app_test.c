@@ -1392,6 +1392,34 @@ int main(void)
             }
         }
         expect(c.gr_on && drawn > 250 && wrong == 0, "033: the frame's plot area is the model's rows and axes");
+        /* unit 033b: the graph's text, one source: each text drawn alone where draw_graph puts it is in the
+           frame; the readout's part of the soft band is exactly that text; screen_lines carries the same */
+        {
+            static ls027_frame tf;
+            static screen_page gp;
+            screen_graph_text gt;
+            screen_graph_texts(&c, &ui, &gt);
+            screen_lines(&c, &ui, &gp);
+            struct { const char *s; int x, y; } T[] = {
+                {gt.xmin, 0, 21 + AB_GRAPH_H - 8}, {gt.xmax, 400 - 6 * screen_cells(gt.xmax), 21 + AB_GRAPH_H - 8},
+                {gt.ymax, 0, 22}, {gt.ymin, 0, 21 + AB_GRAPH_H - 17}, {gt.readout, 136, 206 + 11}};
+            int missing = 0, extra = 0;
+            for (size_t i = 0; i < sizeof T / sizeof T[0]; i++) {
+                screen_clear(&tf);
+                screen_text(&tf, T[i].x, T[i].y, 1, T[i].s, true);
+                for (int y = 0; y < 240; y++)
+                    for (int x = 0; x < 400; x++) {
+                        bool want = tf.px[y][x / 8] >> (x % 8) & 1, got = fr.px[y][x / 8] >> (x % 8) & 1;
+                        if (want && !got) missing++;
+                        if (i == 4 && y >= 206 + 9 && y < 206 + 20 && x >= 136 && got != want) extra++;
+                    }
+            }
+            char ro[100];
+            screen_graph_readout(&c, &ui, ro, sizeof ro);
+            expect(gt.readout[0] == 'x' && gt.ymax[0] && missing == 0 && extra == 0 && !strcmp(ro, gt.readout) &&
+                       gp.graph_on && !strcmp(gp.graph.readout, gt.readout) && !strcmp(gp.graph.ymin, gt.ymin),
+                   "033b: the graph's texts are what the frame shows (labels, readout), and screen_lines carries them");
+        }
         /* the trace through the keys: the bar's right moves it; ENTER takes its value and leaves */
         abn tx;
         ab_val ty;

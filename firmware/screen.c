@@ -463,6 +463,39 @@ static void short_num(const ab_calc *c, const screen_ui *ui, const abn *a, int n
     short_val(c, ui, &v, n, out, size);
 }
 
+void screen_graph_texts(const ab_calc *c, const screen_ui *ui, screen_graph_text *t)
+{
+    const screen_graph *g = ui->graph;
+    char a[48], b[48];
+    memset(t, 0, sizeof *t);
+    if (!g) return;
+    short_num(c, ui, &g->xmin, 9, t->xmin, sizeof t->xmin);
+    short_num(c, ui, &g->xmax, 9, t->xmax, sizeof t->xmax);
+    if (g->ready) {
+        short_num(c, ui, &g->ymax, 9, t->ymax, sizeof t->ymax);
+        short_num(c, ui, &g->ymin, 9, t->ymin, sizeof t->ymin);
+    }
+    snprintf(t->note, sizeof t->note, "%s", g->note);
+    const char *m = ab_error_message(c);        /* an erring ENTER's message, in the readout's place (033 F3) */
+    if (m) {
+        snprintf(t->readout, sizeof t->readout, "%s", m);
+    } else {
+        short_num(c, ui, &g->cx, 12, a, sizeof a);
+        if (g->cst != ABN_OK) snprintf(b, sizeof b, "%s", ab_status_message(g->cst));
+        else short_val(c, ui, &g->cy, 12, b, sizeof b);
+        snprintf(t->readout, sizeof t->readout, "x=%s y=%s", a, b);
+    }
+    for (char *q = t->readout; *q; q++)
+        if (*q == '\n') *q = ' ';
+}
+
+int screen_graph_readout(const ab_calc *c, const screen_ui *ui, char *out, int size)
+{
+    screen_graph_text t;
+    screen_graph_texts(c, ui, &t);
+    return snprintf(out, (size_t)size, "%s", t.readout);
+}
+
 /* A graph (unit 033): the plot area (rows 21..205) with its axes and curve (or, while AUTO's samples are
    computed, a progress bar along its bottom), XMIN and XMAX at the lower corners and YMAX and YMIN at the
    left edge in the small font, the form's note at the top right, the trace's marks at the area's top and
@@ -471,7 +504,8 @@ static void draw_graph(ls027_frame *f, const ab_calc *c, const screen_ui *ui)
 {
     const screen_graph *g = ui->graph;
     const int top = 21, Hh = AB_GRAPH_H;
-    char t[48], u[48];
+    static screen_graph_text tx;                /* (the texts, as screen_graph_texts gives them: 033b) */
+    screen_graph_texts(c, ui, &tx);
     if (g->ready) {
         if (g->xrow >= 0) screen_fill(f, 0, top + g->xrow, W, 1, true);
         if (g->ycol >= 0) screen_fill(f, g->ycol, top, 1, Hh, true);
@@ -480,32 +514,17 @@ static void draw_graph(ls027_frame *f, const ab_calc *c, const screen_ui *ui)
     } else {
         screen_fill(f, 0, top + Hh - 2, g->done, 2, true);
     }
-    short_num(c, ui, &g->xmin, 9, t, sizeof t);
-    screen_text(f, 0, top + Hh - 8, 1, t, true);
-    short_num(c, ui, &g->xmax, 9, t, sizeof t);
-    screen_text(f, W - 6 * screen_cells(t), top + Hh - 8, 1, t, true);
-    if (g->ready) {
-        short_num(c, ui, &g->ymax, 9, t, sizeof t);
-        screen_text(f, 0, top + 1, 1, t, true);
-        short_num(c, ui, &g->ymin, 9, t, sizeof t);
-        screen_text(f, 0, top + Hh - 17, 1, t, true);
-    }
-    if (g->note[0]) screen_text(f, W - 6 * screen_cells(g->note), top + 1, 1, g->note, true);
+    screen_text(f, 0, top + Hh - 8, 1, tx.xmin, true);
+    screen_text(f, W - 6 * screen_cells(tx.xmax), top + Hh - 8, 1, tx.xmax, true);
+    if (tx.ymax[0]) screen_text(f, 0, top + 1, 1, tx.ymax, true);
+    if (tx.ymin[0]) screen_text(f, 0, top + Hh - 17, 1, tx.ymin, true);
+    if (tx.note[0]) screen_text(f, W - 6 * screen_cells(tx.note), top + 1, 1, tx.note, true);
     if (g->cur >= 0 && g->cur < AB_GRAPH_W) {
         screen_fill(f, g->cur, top, 1, 3, true);
         screen_fill(f, g->cur, top + Hh - 3, 1, 3, true);
     }
     soft_band(f, ui);
-    short_num(c, ui, &g->cx, 12, t, sizeof t);
-    if (g->cst != ABN_OK) snprintf(u, sizeof u, "%s", ab_status_message(g->cst));
-    else short_val(c, ui, &g->cy, 12, u, sizeof u);
-    char r[100];
-    const char *m = ab_error_message(c);        /* an erring ENTER's message, in the readout's place (review F3) */
-    if (m) snprintf(r, sizeof r, "%s", m);
-    else snprintf(r, sizeof r, "x=%s y=%s", t, u);
-    for (char *q = r; *q; q++)
-        if (*q == '\n') *q = ' ';
-    screen_text(f, 136, SOFT_Y + 11, 1, r, true);
+    screen_text(f, 136, SOFT_Y + 11, 1, tx.readout, true);
 }
 
 /* A table's row (unit 032): the variable's value at the left, the equation's value at the right (or the
@@ -745,6 +764,10 @@ void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
         page_line(&out->z, &k->z, SCREEN_VALUE, false, "Z");
         page_line(&out->y, &k->y, k->yk, k->prompt, k->prompt ? NULL : "Y");
         page_line(&out->x, &k->x, k->xk, k->x_left, k->x_letter ? "X" : NULL);
+    }
+    if (c->gr_on && ui->graph) {               /* a graph's text (unit 033b) */
+        out->graph_on = true;
+        screen_graph_texts(c, ui, &out->graph);
     }
     /* the status band, as status_band draws it */
     st->shift = ui->shift == 1 || ui->shift == 2 ? ui->shift : 0;
