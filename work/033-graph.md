@@ -115,3 +115,17 @@ once it's written down.
    recomputed, as version 9.
 7. **The notices:** STU ONLY, NO EQUATION and NO VARIABLE, as TABLE's. Accepted.
 8. **V=expr** plots against expr's first variable unless VAR was set. Accepted.
+
+## Accepted (abacus, 2026-10-07, 8b9a471)
+
+- **The hidden set:** 1177/1177 (300 graphs: exact columns, rows clear of boundaries, trace values at 1E-24).
+- **Its oracle mutants go red:** rows from the bottom, and another rounding order.
+- **Evidence:** abacus docs/evidence/2026-10-07-033-review.md.
+- **Choices 1–3 are confirmed** (a flipped plot, ±5% for a lost ±1, an underflowing window at row 0).
+- **The speed unit is accepted, as 038:**
+  - an integer exponent with |n| up to 64, say, computed exactly in the bigint code (repeated squaring of the
+    34-digit coefficient), then rounded once;
+  - a negative n is the reciprocal of the exact power, also one rounding.
+
+  That's correctly rounded by construction. 028's hidden exact set must still pass, and so must a new set on integer
+  powers. Report the S3 plot times before and after.
