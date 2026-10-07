@@ -4466,9 +4466,15 @@ int ab_show_text(const ab_calc *c, char out[2][AB_SHOW_LEN])
         show_digits(&v->re, out[0]);
         return 1;
     }
-    if (v->kind == AB_COMPLEX) {                /* the real part, then the imaginary (answer 3) */
-        show_digits(&v->re, out[0]);
-        show_digits(&v->im, out[1]);
+    if (v->kind == AB_COMPLEX) {                /* the real part, then the imaginary (answer 3); in the
+                                                   polar form r and the angle, what X's place shows (030b) */
+        abn a = v->re, b = v->im;
+        if (c->cpolar) {
+            fn_angle m = c->angle == AB_ANGLE_RAD ? FN_RAD : c->angle == AB_ANGLE_GRAD ? FN_GRAD : FN_DEG;
+            if (fn_topol(&a, &b, &v->re, &v->im, m) != ABN_OK) return 0;
+        }
+        show_digits(&a, out[0]);
+        show_digits(&b, out[1]);
         return 2;
     }
     return 0;                                   /* a vector: nothing for now (answer 3) */
