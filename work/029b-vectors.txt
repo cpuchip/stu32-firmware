@@ -1,0 +1,11 @@
+# Unit 029b (abacus 46447c7, "029b, two changes"): STO while a history entry is shown, and ENTER on an empty line.
+# Keys as work/029-vectors.txt ("()" a pair with the cursor inside, > steps out; ANS types ANS; C clears the line).
+T01 | 029b 1: STO while an entry is shown stores that entry's result (what X's place shows) | STU ALG 2 ENTER 3 ENTER HUP STO:A | @A=3 N=3 %HSEL=3
+T02 | 029b 1: an older entry: its result, not ANS | STU ALG 2 ENTER 3 ENTER HUP HUP STO:A | @A=2 N=3 %HSEL=2
+T03 | 029b 1: a line typed beneath the entry shown is neither evaluated nor touched | STU ALG 2 ENTER 3 ENTER 7 + HUP HUP STO:B | @B=2 N=3 %LINE=7+ %HIST=2
+T04 | 029b 1 unchanged: with no entry shown STO after a result stores ANS (rule 8) | STU ALG 2 ENTER 3 ENTER HUP HDOWN STO:A | @A=3 %HSEL=-
+E01 | 029b 2: ENTER on an empty line re-evaluates the most recent history line | STU ALG 2 + 3 ENTER 4 ENTER C ENTER | N=4 %HIST=3 %LINE=4
+E02 | 029b 2: the line re-evaluated reads ANS anew | STU ALG 1 ENTER ANS + 1 ENTER C ENTER C ENTER | N=4 %HIST=4 %LINE=ANS+1
+E03 | 029b 2: with no history, ENTER on an empty line does nothing | STU ALG ENTER | N=0 %HIST=0 %LINE= %ALG=1
+E04 | 029b 2: Newton's square root of 2 from 1: the sixth result is the root to 34 digits (decimal 34-digit iteration: 1.5, 1.41666..., the sixth 1.414213562373095048801688724209698) | STU ALG 1 ENTER () ANS + 2 / ANS > / 2 ENTER C ENTER C ENTER C ENTER C ENTER C ENTER | N=1.414213562373095048801688724209698 %HIST=7
+E05 | 029b 2: the fifth is not yet (it differs in the 25th digit) | STU ALG 1 ENTER () ANS + 2 / ANS > / 2 ENTER C ENTER C ENTER C ENTER C ENTER | N=1.414213562373095048801689623502530 %HIST=6
