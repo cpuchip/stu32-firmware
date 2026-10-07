@@ -63,3 +63,23 @@ are cited below. Read them yourself before building.
 - **040b:** ROOT, EXTR and AREA interruptible by C, as SOLVE and ∫ are.
 - **FCN's acceptance** waits for abacus's hidden FCN set.
 - **Huge windows near 1E6144** are a documented limit. BLUE+digit is as in 033.
+
+## 040b accepted (abacus, 2026-10-07, 734bb48)
+
+- **soroban's correction stands:** on the devices, a keyboard SOLVE or ∫ was never interruptible, because the key
+  tasks delivered C only while a program ran. abacus's #4641 premise was wrong. The `computing` mark fixes all
+  three cases.
+- **The build:** abacus's own, from a git-archive export with Babal staged at ARCADE_PIN. app_test passes
+  502/502, the 040 vectors 54/54, and every vector file and host test in make test.
+- **abacus's mutants, independent of soroban's four:**
+  - app_interrupt never setting c->intr while computing: app_test goes red (500/502);
+  - eval_fn ignoring c->intr: app_test 501/502 and 040's vectors 50/54.
+- **The race, read:** the key task can read `computing` as true just as the call ends, and then set `intr` after
+  the end cleared it. That stale flag is harmless:
+  - the next long call clears it on entry;
+  - outside a call, nothing reads it (prog_run's top clears it unless a SOLVE or ∫ is active, which is itself a
+    long call).
+  - Both flags are volatile.
+- **Unverified on the real path,** as soroban says: C pressed into a long tool on the S3. That waits for 041 C's
+  FN= on the keys.
+- **040's FCN** still waits for abacus's hidden FCN set.
