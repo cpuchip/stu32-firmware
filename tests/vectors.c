@@ -248,7 +248,7 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
     {
         static const char *const Z[AB_Z_N] = {"ZIN", "ZOUT", "BOXZ", "CNTR", "ZAUTO", "HZIN", "HZOUT", "VZIN", "VZOUT",
                                               "ZLAST", "ZDFLT", "ZDECI", "ZINTG", "ZSQR", "ZTRIG"};
-        static const char *const F[AB_F_N] = {"ROOT", "SLOPE", "EXTR", "AREA", "F(X)", "TANL"};
+        static const char *const F[AB_F_N] = {"ROOT", "GSLOPE", "EXTR", "AREA", "F(X)", "TANL"};   /* GSLOPE: SLOPE is L.R.'s */
         for (int k = 0; k < AB_Z_N; k++)
             if (!strcmp(tok, Z[k])) {
                 if (do1(c, AB_GZOOM, k) != ABN_OK) (*errors)++;

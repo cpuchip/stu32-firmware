@@ -1841,8 +1841,49 @@ static abn_status fn_value(const ab_calc *c, const ab_val *v, abn *f);
 
 /* f(t): the trial value stored in the variable and put in X, the function's label run as a
  * subroutine (it holds the return level SOLVE / integrate took), f the X it returns. */
+/* Unit 040: while GRAPH's tools run SOLVE's or the integral's engine, the function is the plotted curve (1) or its
+   slope (2), evaluated purely (033's eval_at), instead of SOLVE's own (0). */
+static int ev_graph;
+static abn_status eval_at(ab_calc *c, int e, int v, const abn *x, ab_val *y, bool pure);
+
+static abn_status graph_f(ab_calc *c, const abn *x, abn *f)
+{
+    ab_val v;
+    abn_status st = eval_at(c, c->gr_eq, c->gr_v, x, &v, true);
+    if (st == ABN_OK && v.kind != AB_REAL) st = ABN_DOMAIN;    /* (a complex or vector value: not on the curve) */
+    *f = v.re;
+    return st;
+}
+
+/* The curve's slope at x: a 5-point central difference, (f(x-2h) - 8 f(x-h) + 8 f(x+h) - f(x+2h)) / 12h with
+   h = 1E-7 max(1, |x|); its error about h^4 f^(5) / 30 + 1E-34 |f| / h, near 1E-26 relative on smooth curves
+   (unit 040 rule 4: numeric now). */
+static abn_status graph_slope(ab_calc *c, const abn *x, abn *m)
+{
+    abn h, ax = abn_abs(x), one = abn_from_int(1), e7, p, f[4], k8 = abn_from_int(8), k12 = abn_from_int(12), t, u;
+    static const int K[4] = {-2, -1, 1, 2};
+    abn_status st;
+    abn_from_text(&e7, "1E-7");
+    if ((st = abn_mul(&h, abn_cmp(&ax, &one) < 0 ? &one : &ax, &e7)) != ABN_OK) return st;
+    for (int i = 0; i < 4; i++) {
+        abn k = abn_from_int(K[i]);
+        if ((st = abn_mul(&t, &k, &h)) != ABN_OK || (st = abn_add(&p, x, &t)) != ABN_OK ||
+            (st = graph_f(c, &p, &f[i])) != ABN_OK)
+            return st;
+    }
+    if ((st = abn_sub(&t, &f[2], &f[1])) != ABN_OK || (st = abn_mul(&t, &t, &k8)) != ABN_OK ||
+        (st = abn_sub(&u, &f[0], &f[3])) != ABN_OK || (st = abn_add(&t, &t, &u)) != ABN_OK ||
+        (st = abn_mul(&u, &h, &k12)) != ABN_OK)
+        return st;
+    return abn_div(m, &t, &u);
+}
+
 static abn_status eval_fn(ab_calc *c, const abn *t, abn *f)
 {
+    if (ev_graph) {                             /* unit 040 */
+        c->evals++;
+        return ev_graph == 1 ? graph_f(c, t, f) : graph_slope(c, t, f);
+    }
     slot sl;
     abn_status st;
     int pc0 = c->pc, rb0 = c->rbase;
@@ -5328,6 +5369,7 @@ static abn_status graph_move(ab_calc *c, int arg)
     static const int DX[10] = {0, -1, 0, 1, -1, 0, 1, -1, 0, 1}, DY[10] = {0, 1, 1, 1, 0, 0, 0, -1, -1, -1};
     int d = arg % 10, n = arg >= 10 ? 10 : 1;
     if (arg < 1 || arg > 19 || d == 0) return ABN_DOMAIN;
+    c->gr_res_kind = 0;                         /* a move clears the tool's result */
     if (d == 5) {
         c->gr_cur = AB_GRAPH_W / 2, c->gr_row = AB_GRAPH_CROW;
         return ABN_OK;
@@ -5335,6 +5377,90 @@ static abn_status graph_move(ab_calc *c, int arg)
     int col = c->gr_cur + DX[d] * n, row = c->gr_row + (c->gr_trace ? 0 : DY[d] * n);
     c->gr_cur = col < 0 ? 0 : col > AB_GRAPH_W - 1 ? AB_GRAPH_W - 1 : col;
     c->gr_row = row < 0 ? 0 : row > AB_GRAPH_H - 1 ? AB_GRAPH_H - 1 : row;
+    return ABN_OK;
+}
+
+/* SOLVE's engine on the curve (mode 1) or its slope (2), the guesses the cursor's column's x and the next column's
+   (the previous at the right edge): the root, or NO ROOT FND as SOLVE's. */
+static abn_status graph_solve(ab_calc *c, int mode, abn *root)
+{
+    abn a, b;
+    solve_out o;
+    abn_status st;
+    int evals = c->evals;
+    if ((st = graph_x(c, c->gr_cur, &a)) != ABN_OK ||
+        (st = graph_x(c, c->gr_cur < AB_GRAPH_W - 1 ? c->gr_cur + 1 : c->gr_cur - 1, &b)) != ABN_OK)
+        return st;
+    ev_graph = mode;
+    ev_best_set = false;
+    c->evals = 0;
+    st = solve_core(c, a, b, &o);
+    ev_graph = 0;
+    c->evals = evals;
+    if (st != ABN_OK) return st;
+    if (!o.found) return ABN_NO_ROOT;
+    *root = o.x;
+    return ABN_OK;
+}
+
+/* The column nearest x (round((x - XMIN) / (XMAX - XMIN) 399)), or -1 off the window. */
+static int graph_col_of(const ab_calc *c, const abn *x)
+{
+    abn a, b, q, p, n = abn_from_int(AB_GRAPH_W - 1);
+    if (abn_sub(&a, x, &c->gr_xmin) != ABN_OK || abn_sub(&b, &c->gr_xmax, &c->gr_xmin) != ABN_OK || abn_is_zero(&b) ||
+        abn_div(&q, &a, &b) != ABN_OK || abn_mul(&p, &q, &n) != ABN_OK)
+        return -1;
+    int k = round_clamped(&p, -1, AB_GRAPH_W);
+    return k >= 0 && k <= AB_GRAPH_W - 1 ? k : -1;
+}
+
+/* A tool at the cursor (unit 040 rule 4; 50g guide p.12-5, 12-6): its result held for the readout and ENTER. */
+static abn_status graph_fcn(ab_calc *c, int kind)
+{
+    abn x, r = abn_zero(), b = abn_zero(), y;
+    ab_val v;
+    abn_status st;
+    if (kind < 0 || kind >= AB_F_N) return ABN_DOMAIN;
+    if ((st = graph_x(c, c->gr_cur, &x)) != ABN_OK) return st;
+    switch (kind) {
+    case AB_F_ROOT: case AB_F_EXTR: {           /* the curve's root, or its slope's (an extremum's x) */
+        if ((st = graph_solve(c, kind == AB_F_ROOT ? 1 : 2, &r)) != ABN_OK) {
+            c->gr_res_kind = 0;
+            return st;
+        }
+        int k = graph_col_of(c, &r);
+        if (k >= 0) c->gr_cur = k;              /* the cursor to the result's column */
+        break;
+    }
+    case AB_F_SLOPE:
+        if ((st = graph_slope(c, &x, &r)) != ABN_OK) return st;
+        break;
+    case AB_F_AREA: {                           /* from the mark's x to the cursor's, by the integral's engine */
+        abn mx, unc;
+        if (!c->gr_mark) return ABN_DOMAIN;
+        if ((st = graph_x(c, c->gr_mcol, &mx)) != ABN_OK) return st;
+        ev_graph = 1;
+        st = integ_core(c, &mx, &x, &r, &unc);
+        ev_graph = 0;
+        if (st != ABN_OK) return st;
+        c->gr_mark = false;
+        break;
+    }
+    case AB_F_FX:
+        if ((st = graph_sample(c, c->gr_cur, &x, &v, true)) != ABN_OK) return st;
+        r = v.re;
+        break;
+    default:                                    /* AB_F_TANL: y = m x + b through (x, f(x)) */
+        if ((st = graph_slope(c, &x, &r)) != ABN_OK || (st = graph_f(c, &x, &y)) != ABN_OK) return st;
+        {
+            abn t;
+            if ((st = abn_mul(&t, &r, &x)) != ABN_OK || (st = abn_sub(&b, &y, &t)) != ABN_OK) return st;
+        }
+        break;
+    }
+    c->gr_res = r;
+    c->gr_res_b = b;
+    c->gr_res_kind = kind + 1;
     return ABN_OK;
 }
 
@@ -5399,15 +5525,23 @@ static abn_status graph_key(ab_calc *c, ab_op op, int arg)
         c->gr_hf = c->gr_vf = abn_from_int(arg);
         return ABN_OK;
     case AB_GFCN:
-        return ABN_OK;                          /* (the tools follow) */
+        return graph_fcn(c, arg);
     case AB_GLEFT:
         if (c->gr_cur > 0) c->gr_cur--;
+        c->gr_res_kind = 0;
         return ABN_OK;
     case AB_GRIGHT:
         if (c->gr_cur < AB_GRAPH_W - 1) c->gr_cur++;
+        c->gr_res_kind = 0;
         return ABN_OK;
     case AB_ENTER:
+        if (c->gr_res_kind) {                   /* unit 040: a tool's result, as the trace's value */
+            y = ab_real(c->gr_res);
+            c->gr_res_kind = 0;
+            goto place;
+        }
         if ((st = graph_sample(c, c->gr_cur, &x, &y, false)) != ABN_OK) return st;
+    place:
         c->gr_on = false;
         if (c->alg) {
             c->ans = y;

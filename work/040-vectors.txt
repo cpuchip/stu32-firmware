@@ -1,6 +1,6 @@
 # Unit 040: GRAPH's plot menus after the 50g (work/040-graph-plot-menus.md; 50g guide p.12-4 to 12-7, 12-47 to 12-49).
 # Tokens: the zooms by their 50g names (ZIN ZOUT BOXZ CNTR ZAUTO HZIN HZOUT VZIN VZOUT ZLAST ZDFLT ZDECI ZINTG ZSQR
-# ZTRIG), GMOVE:n (the cursor by a numpad digit, n + 10 for ten pixels), GTRACE, GMARK, ZFACT:n; the tools ROOT SLOPE
+# ZTRIG), GMOVE:n (the cursor by a numpad digit, n + 10 for ten pixels), GTRACE, GMARK, ZFACT:n; the tools ROOT GSLOPE
 # EXTR AREA F(X) TANL. Expectations: %XWIN "xmin,xmax" and %GWIN "ymin,ymax" by value; %GCUR and %GROW the cursor's
 # column and row; %GTRACE; %GMARK "col,row" or -; %GCXY the cursor's x,y; %GRES the tool's result (TANL: "m,b").
 # TRACE is on when the graph opens (033); the zoom vectors turn it off first (GTRACE) to zoom about the free
@@ -52,7 +52,7 @@ Z31 | with TRACE on, ZIN centres the traced point (x, f(x)), which lands at (200
 # value; TANL m and b of y = m x + b through (x, f(x)). Expected values: mpmath at 60 digits.
 F01 | ROOT near the cursor (x 1.43): SOLVE's root, sqrt 2 correctly rounded; the cursor moves to its column | STU EQ:X^2-2 C GRAPH GMOVE:16 GMOVE:16 GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 ROOT | %GRES=1.414213562373095048801688724209698 %GCUR=228
 F02 | ROOT where there is none: NO ROOT FND, as SOLVE's | STU EQ:X^2+1 C GRAPH ROOT | ERR %ERR=NO_ROOT %GRES=-
-F03 | SLOPE of X^3 at x 2.03 (3 x^2) | STU EQ:X^3 C GRAPH GMOVE:16 GMOVE:16 GMOVE:16 GMOVE:16 SLOPE | %GRES#=12.36361580643337667476963084402730302448,1E-20
+F03 | SLOPE of X^3 at x 2.03 (3 x^2) | STU EQ:X^3 C GRAPH GMOVE:16 GMOVE:16 GMOVE:16 GMOVE:16 GSLOPE | %GRES#=12.36361580643337667476963084402730302448,1E-20
 F04 | EXTR of (X-1)^2+3 near x 1.03: x 1 | STU EQ:(X-1)^2+3 C GRAPH GMOVE:16 GMOVE:16 EXTR | %GRES#=1,1E-15 %GCUR=219
 F05 | AREA from the mark (x 0.025) to the cursor (x 3.03) under X^2 | STU EQ:X^2 C GRAPH GMARK GMOVE:16 GMOVE:16 GMOVE:16 GMOVE:16 GMOVE:16 GMOVE:16 AREA | %GRES#=9.296424017437076400273867626459676817357,1E-8
 F06 | F(X): the value at the cursor | STU EQ:X^2 C GRAPH F(X) | %GRES=0.0006281367579349375946130991639497742
