@@ -165,6 +165,7 @@ static void fake_sysinfo(void *ctx, app_sysinfo *o)
     o->commit = "abc1234";
     o->built = "Oct  6 2026";
     o->flash_free = 98304;
+    o->slot_size = 65536;       /* MEM's bytes free (unit 041 C) */
     o->heap_free = 66771;
     o->heap_largest = 31744;
 }
@@ -784,6 +785,88 @@ int main(void)
         snprintf(kk, sizeof kk, "C 2 6 +/\xe2\x88\x92 STO k:%d GOLD 9 k:3 k:%d", ki, kj);
         press(&a, kk);
         expect(c.fn == 'Z' - 'A', "041 C: 33s mode: FN= (i) chooses the label i names");
+    }
+
+    /* unit 041 C (B5, abacus #4850): MEM on blue 1. Its menu VAR PGM, with bytes free on X's line: the image's room,
+       the store's slot less the image now (ours); in 35s mode and STU also the indirect count (35s p.3-4). The VAR
+       catalog of the nonzero variables (33s p.3-3): the soft keys up and down, ENTER copies the one shown to X, CLEAR
+       zeroes it, C cancels. The PGM catalog of the labels with LN= their bytes (33s p.12-20): up and down, XEQ or R/S
+       runs the one shown, PRGM opens it in program entry, CLEAR deletes it, C cancels */
+    {
+        char want[40];
+        ab_init(&c);
+        app_init(&a, &c, now);
+        a.sysinfo = fake_sysinfo;
+        press(&a, "BLUE 1");
+        app_ui(&a, &ui);
+        snprintf(want, sizeof want, "%lu B FREE", (unsigned long)(65536 - ab_state_save(&c, NULL, 0)));
+        expect(ui.soft[0] && !strcmp(ui.soft[0], "VAR") && ui.soft[1] && !strcmp(ui.soft[1], "PGM") && ui.prompt &&
+                   !strcmp(ui.prompt, want), "041 C: MEM: VAR, PGM and the image's room");
+        press(&a, "C");
+        ab_do_arg(&c, AB_MODEL, 35);
+        press(&a, "BLUE 1");
+        app_ui(&a, &ui);
+        snprintf(want, sizeof want, "%lu B FREE  0 IND", (unsigned long)(65536 - ab_state_save(&c, NULL, 0)));
+        expect(ui.prompt && !strcmp(ui.prompt, want), "041 C: 35s mode: and the indirect variables in use");
+        press(&a, "C 3 STO ltr:C 4 STO ltr:D C BLUE 1 k:0");
+        app_ui(&a, &ui);
+        expect(a.cat == 1 && ui.view[3] && !strcmp(ui.view[3], "C=3"), "041 C: VAR: the first nonzero variable, C=3");
+        press(&a, "k:1");
+        app_ui(&a, &ui);
+        expect(ui.view[3] && !strcmp(ui.view[3], "D=4"), "041 C: VAR: down, D=4");
+        press(&a, "k:1");
+        app_ui(&a, &ui);
+        expect(ui.view[3] && !strcmp(ui.view[3], "C=3"), "041 C: VAR: down again wraps to C=3");
+        press(&a, "k:0 ENTER");
+        app_ui(&a, &ui);
+        expect(x_of(&c) == 4 && a.cat == 1, "041 C: VAR: ENTER copies D to X, the catalog kept");
+        press(&a, "GOLD \xe2\x86\x90");
+        app_ui(&a, &ui);
+        expect(x_of(&c) == 4 && abn_is_zero(&c.var[3].re) && ui.view[3] && !strcmp(ui.view[3], "C=3"),
+               "041 C: VAR: CLEAR zeroes D; C=3 shown");
+        press(&a, "C");
+        expect(a.cat == 0, "041 C: VAR: C cancels");
+        ab_init(&c);
+        app_init(&a, &c, now);
+        a.sysinfo = fake_sysinfo;
+        ab_do(&c, AB_PRGM);
+        ab_do_arg(&c, AB_LBL, 0);               /* LBL A: CHS */
+        ab_do(&c, AB_KCHS);
+        ab_do(&c, AB_RTN);
+        ab_do_arg(&c, AB_LBL, 1);               /* LBL B: x^2 */
+        ab_do(&c, AB_SQ);
+        ab_do(&c, AB_RTN);
+        ab_do(&c, AB_PRGM);
+        int lines = c.prog_len;
+        press(&a, "BLUE 1 k:1");
+        app_ui(&a, &ui);
+        expect(a.cat == 2 && ui.view[2] && !strcmp(ui.view[2], "LBL A") && ui.view[3] && !strcmp(ui.view[3], "LN=18"),
+               "041 C: PGM: LBL A, LN=18 (three lines of a u16 op and an i32 argument)");
+        expect(ui.soft[0] && ui.soft[1] && ui.soft[2] && !strcmp(ui.soft[2], "XEQ") && ui.soft[3] &&
+                   !strcmp(ui.soft[3], "PRGM"), "041 C: PGM: up, down, XEQ, PRGM on the soft keys");
+        press(&a, "k:1");
+        app_ui(&a, &ui);
+        expect(ui.view[2] && !strcmp(ui.view[2], "LBL B"), "041 C: PGM: down, LBL B");
+        press(&a, "C");                         /* the catalog cancelled; 3, then XEQ from B's catalog line */
+        press(&a, "3 BLUE 1 k:1 k:1 XEQ");
+        run_out(&a, &in);
+        expect(x_of(&c) == 9 && a.cat == 0, "041 C: PGM: XEQ runs LBL B (3 squared), the catalog closed");
+        press(&a, "BLUE 1 k:1 R/S");
+        run_out(&a, &in);
+        expect(x_of(&c) == -9, "041 C: PGM: R/S runs LBL A (CHS)");
+        press(&a, "BLUE 1 k:1 k:1 k:3");
+        expect(c.prgm && c.pc == c.labelpos[1], "041 C: PGM: PRGM opens LBL B in program entry");
+        ab_do(&c, AB_PRGM);
+        press(&a, "C BLUE 1 k:1 GOLD \xe2\x86\x90");
+        app_ui(&a, &ui);
+        expect(c.labelpos[0] < 0 && c.prog_len == lines - 3 && ui.view[2] && !strcmp(ui.view[2], "LBL B"),
+               "041 C: PGM: CLEAR deletes LBL A's program; LBL B shown");
+        press(&a, "C");
+        expect(a.cat == 0, "041 C: PGM: C cancels");
+        ab_init(&c);
+        app_init(&a, &c, now);
+        press(&a, "BLUE 1 k:0");
+        expect(a.cat == 0 && a.notice, "041 C: VAR with no nonzero variable: a notice, no catalog");
     }
 
     /* unit 019: every menu on a key opens with its items on the soft keys (CONST shows its first
