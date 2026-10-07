@@ -3,7 +3,7 @@
  *   build/load_fuzz [iterations] [seed]
  *
  * Seeds: the golden image (tests/golden-v1.img) and images of states built here (unit 029: one in
- * STU's ALG). Each case damages
+ * STU's ALG; unit 031: equations of each model). Each case damages
  * a seed (flipped bits, truncation, inserted or deleted bytes, or wholly random bytes), and half
  * the time repairs the length and checksum so the fields themselves are what is tested. A refused
  * image must leave the calculator exactly as it was (its image unchanged, byte for byte); an
@@ -85,8 +85,8 @@ int main(int argc, char **argv)
 {
     long iters = argc > 1 ? atol(argv[1]) : 20000;
     static ab_calc c;
-    uint8_t *seeds[4];
-    size_t seedn[4];
+    uint8_t *seeds[5];
+    size_t seedn[5];
     long refused = 0, accepted = 0, bad = 0;
     if (argc > 2) rng = (strtoull(argv[2], NULL, 0) * 0x9E3779B97F4A7C15ull) | 1;
 
@@ -108,9 +108,25 @@ int main(int argc, char **argv)
         for (size_t i = 0; i < sizeof K / sizeof K[0]; i++) ab_do(&c, K[i]);
     }
     seeds[3] = save(&c, &seedn[3]);
+    ab_init(&c);                        /* unit 031: equations of each model, listed and in a program */
+    ab_eqn_add(&c, "2^3^2");
+    ab_do_arg(&c, AB_EQN, 0);
+    ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+    ab_eqn_add(&c, "2A+B");
+    ab_do_arg(&c, AB_EQN, 0);
+    ab_do(&c, AB_PRGM);
+    ab_do_arg(&c, AB_LBL, 0);
+    ab_eqn_add(&c, "4^3^2");
+    ab_do(&c, AB_PRGM);
+    ab_do_arg(&c, AB_MODEL, 33);
+    ab_do(&c, AB_PRGM);
+    ab_do_arg(&c, AB_LBL, 1);
+    ab_eqn_add(&c, "X^2");
+    ab_do(&c, AB_PRGM);
+    seeds[4] = save(&c, &seedn[4]);
 
     for (long it = 0; it < iters; it++) {
-        int s = (int)below(4);
+        int s = (int)below(5);
         size_t n = seedn[s], cap = n + 64;
         uint8_t *m = malloc(cap), *before, *after;
         size_t nb, na;
@@ -178,7 +194,7 @@ int main(int argc, char **argv)
         free(before);
         free(after);
     }
-    for (int i = 0; i < 4; i++) free(seeds[i]);
+    for (int i = 0; i < 5; i++) free(seeds[i]);
     printf("load_fuzz: %ld cases, %ld refused, %ld accepted, %ld violations\n", iters, refused, accepted, bad);
     return bad ? 1 : 0;
 }

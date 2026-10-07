@@ -91,7 +91,7 @@ typedef struct {
     bool implied;           /* unit 031: two operands side by side multiply (an STU equation) */
     bool chain;             /* a^b^c at one level was read (the mark, rule 3) */
     int nimp;               /* the implied products: the byte offset of each right operand */
-    int imp[AB_EQN_LEN];
+    uint8_t imp[AB_EQN_LEN];    /* (offsets below AB_EQN_LEN, 192: a byte each, for the stack) */
 } parser;
 
 static int char_at(const char *s, int byte)
@@ -516,7 +516,7 @@ static void parse_mul(parser *p, ab_val *v)
         else if (at(p, "\xc3\xb7")) op = "/";
         else if (p->implied && implied_here(p)) {   /* ranks exactly as a typed x (rule 6) */
             op = "*";
-            p->imp[p->nimp++] = p->i;
+            p->imp[p->nimp++] = (uint8_t)p->i;
         } else break;
         parse_neg(p, &r);
         binop(p, op, v, &r);
@@ -536,6 +536,8 @@ static void parse_add(parser *p, ab_val *v)
         binop(p, op, v, &r);
     }
 }
+
+_Static_assert(AB_EQN_LEN <= 256, "implied-product offsets fit a byte");
 
 static void parse_all(parser *p, bool rhs_only, ab_val *out)
 {

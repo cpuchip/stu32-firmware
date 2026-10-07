@@ -2886,9 +2886,13 @@ static abn_status program_key(ab_calc *c, ab_op op, int arg)
         switch (op) {
         case AB_ENTER:
         case AB_CANCEL:
-        case AB_EQN:
+        case AB_EQN: {
+            char t[AB_EQN_LEN];
+            if (c->ebuf[0] && stored_text(c, c->ebuf, t) != ABN_OK)
+                return ABN_MEMORY_FULL;         /* refused, the text unchanged and still typed (031 answer I) */
             c->eqn_typing = false;
             return c->ebuf[0] ? prog_insert_eqn(c, c->ebuf) : ABN_OK;
+        }
         case AB_KBKSP:
             ed_backspace(c);
             return ABN_OK;
@@ -3043,27 +3047,26 @@ static void eqn_delete(ab_calc *c, int i)
  * replaced; an empty text deletes the entry (UG p.6-4, 6-8). */
 static abn_status eqn_store_typed(ab_calc *c)
 {
+    char t[AB_EQN_LEN];
     if (!c->eqn_typing) return ABN_OK;
+    if (c->ebuf[0] && stored_text(c, c->ebuf, t) != ABN_OK)
+        return ABN_MEMORY_FULL;                 /* STU's x's would not fit: refused, the text unchanged and
+                                                   still typed (unit 031 answer I) */
     c->eqn_typing = false;
     if (c->ebuf[0] == '\0') {
         if (c->eqn_edit >= 0) eqn_delete(c, c->eqn_edit);
         return ABN_OK;
     }
     if (c->eqn_edit >= 0) {
-        char t[AB_EQN_LEN];
-        abn_status st = stored_text(c, c->ebuf, t);
-        if (st != ABN_OK) {
-            c->eqn_typing = true;               /* refused: the text unchanged, still typed (answer I) */
-            return st;
+        if (strcmp(c->ebuf, c->eqn[c->eqn_edit]) != 0) {    /* an edit unchanged keeps its text and stamp
+                                                               (review F4); a changed one was typed now */
+            strcpy(c->eqn[c->eqn_edit], t);
+            c->eqn_model[c->eqn_edit] = typed_model(c);
         }
-        strcpy(c->eqn[c->eqn_edit], t);
-        c->eqn_model[c->eqn_edit] = typed_model(c);     /* typed again: stamped now (rule 3) */
         c->eqn_cur = c->eqn_edit;
         return ABN_OK;
     }
-    abn_status st = eqn_insert(c, c->ebuf);
-    if (st != ABN_OK) c->eqn_typing = true;
-    return st;
+    return eqn_insert(c, c->ebuf);              /* (the list full: MEMORY_FULL, the text gone, as before) */
 }
 
 abn_status ab_eqn_add(ab_calc *c, const char *text)
@@ -3451,6 +3454,7 @@ static abn_status eqn_key(ab_calc *c, ab_op op, int arg)
     case AB_EQN:
     case AB_CANCEL:                                 /* C stores what is typed and leaves (p.6-4) */
         st = eqn_store_typed(c);
+        if (st != ABN_OK && c->eqn_typing) return st;   /* refused and still typed (unit 031 answer I) */
         c->eqn_mode = false;
         return st;
     case AB_ENTER:
