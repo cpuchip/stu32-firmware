@@ -3341,14 +3341,19 @@ static abn_status eqn_evaluate(ab_calc *c, bool enter)
 
 /* A key that types into the equation being edited, starting a new one if none is (UG p.6-4 to 6-6,
  * 6-16; in program entry the text becomes a line, p.13-7). False when the key does not type. */
+/* Whether a key types into the editor (eqn_type would take it). */
+static bool eqn_typable(ab_op op, int arg)
+{
+    return op <= AB_KE || op == AB_KCHS || op == AB_KPAREN || (op == AB_RCL && arg >= 0 && arg <= AB_VAR_SI) ||
+           (op == AB_KREG && arg >= 0 && arg < 4) || (op >= AB_KA && op <= AB_KF) || op == AB_KI ||
+           op == AB_KTHETA || op == AB_KVEC || (op == AB_SUF && (arg == 2 || arg == 8 || arg == 10 || arg == 16)) ||
+           eqn_fname(op) || eqn_token(op);
+}
+
 static bool eqn_type(ab_calc *c, ab_op op, int arg)
 {
     const char *t;
-    if (!(op <= AB_KE || op == AB_KCHS || op == AB_KPAREN || (op == AB_RCL && arg >= 0 && arg <= AB_VAR_SI) ||
-          (op == AB_KREG && arg >= 0 && arg < 4) || (op >= AB_KA && op <= AB_KF) || op == AB_KI ||
-          op == AB_KTHETA || op == AB_KVEC || (op == AB_SUF && (arg == 2 || arg == 8 || arg == 10 || arg == 16)) ||
-          eqn_fname(op) || eqn_token(op)))
-        return false;
+    if (!eqn_typable(op, arg)) return false;
     if (!c->eqn_typing) {
         c->eqn_typing = true;
         c->eqn_edit = -1;
@@ -3598,12 +3603,15 @@ static abn_status alg_key(ab_calc *c, ab_op op, int arg)
     if (op == AB_MODEL || op == AB_ENTRYM || op == AB_DEG || op == AB_RAD || op == AB_GRAD || op == AB_SETFIX ||
         op == AB_SETSCI || op == AB_SETENG || op == AB_SETALL || op == AB_DEC || op == AB_HEX || op == AB_OCT ||
         op == AB_BIN || op == AB_FDISP || op == AB_CLALL || op == AB_CLVARS || op == AB_VIEW || op == AB_FRACFMT ||
-        op == AB_SF || op == AB_CF || op == AB_BEEP)
+        op == AB_SF || op == AB_CF || op == AB_BEEP || op == AB_XIY || op == AB_RTA)
         return do_key(c, op, arg);
+    /* a key with no place on the line (= is ENTER's here) has no meaning on it: RPN ONLY, the line
+       as it was (rule 7; the reviewer's sweep: →POL, CLΣ, LBL, ISG, RCL+, /c and the rest) */
+    if (op == AB_KEQ || !eqn_typable(op, arg)) return ABN_RPN_ONLY;
     if (c->alg_shown && op != AB_ADD && op != AB_SUB && op != AB_MUL && op != AB_DIV && op != AB_POW)
         alg_new_line(c, false);
     if (c->hist_at >= 0) c->hist_at = -1;
-    if (!eqn_type(c, op, arg)) return ABN_OK;       /* a key with no place on the line: nothing */
+    eqn_type(c, op, arg);
     return ABN_OK;
 }
 

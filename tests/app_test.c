@@ -1245,6 +1245,23 @@ int main(void)
         press(&a, "BLUE \xe2\x86\x90");
         expect(c.alg && c.hist_n == 2 && !strcmp(c.ebuf, "2") && !c.alg_shown,
                "029: UNDO puts the line back before its ENTER; the history stays");
+        /* (review) the complex display form is a setting in ALG; a key with no place on the line is
+           RPN ONLY, the line kept */
+        ab_do_arg(&c, AB_RTA, 0);
+        expect(c.alg && c.cpolar && !strcmp(c.ebuf, "2"), "029: r-theta-a acts in ALG, the line kept");
+        press(&a, "C 2 + 3 ENTER");
+        ab_do_arg(&c, AB_TOPOL, 0);
+        app_ui(&a, &ui);
+        expect(!strcmp(c.ebuf, "2+3") && c.alg_shown && !c.msg, "029: ->POL after a result: the line and its result kept");
+        /* (review) an ALG image loaded into a calc not from ab_init (all zero): no entry selected */
+        {
+            static ab_calc z;
+            static uint8_t img[1 << 16];
+            size_t n = ab_state_save(&c, img, sizeof img);
+            memset(&z, 0, sizeof z);
+            expect(n > 0 && ab_state_load(&z, img, n) == ABN_OK && z.alg && z.hist_at == -1,
+                   "029: an ALG image into a zeroed calc: hist_at -1");
+        }
     }
 
     /* unit 027: MODE, SETUP, SYS each one job; the buzzer's six uses; the clock; BEEP */
@@ -1712,6 +1729,18 @@ int main(void)
         press(&a, "k:1");
         app_ui(&a, &ui);
         expect(c.lmode[0] == 35 && !ui.notice, "35s again on a 35s label: no notice, nothing changed");
+        /* unit 029 (review): STU's stamp is the 35s's meaning: no notice from 35s to STU; 33s and back to
+           STU say what the indirect now means */
+        press(&a, "BLUE ENTER k:2");
+        app_ui(&a, &ui);
+        expect(c.lmode[0] == AB_MODEL_STU && !ui.notice, "029: 35s to STU on the LBL line: restamped, no notice");
+        press(&a, "BLUE ENTER k:0");
+        app_ui(&a, &ui);
+        expect(c.lmode[0] == 33 && ui.notice && !strcmp(ui.notice, "(I) MEANS (i)"), "029: STU to 33s: (I) MEANS (i)");
+        press(&a, "BLUE ENTER k:2");
+        app_ui(&a, &ui);
+        expect(c.lmode[0] == AB_MODEL_STU && ui.notice && !strcmp(ui.notice, "(i) MEANS (I)"),
+               "029: 33s to STU: (i) MEANS (I)");
         press(&a, "GOLD 9 k:0");
     }
 

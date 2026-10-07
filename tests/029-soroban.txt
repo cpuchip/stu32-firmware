@@ -5,3 +5,6 @@ Z03 | ours (proposal 5, Equation mode RPN's): an equation added in ALG is refuse
 Z04 | ours: RPN and ALG are not program lines | STU PRGM CLPGM ALG | ERR %ERR=NONPROGRAMMABLE %PC=TOP
 Z05 | unit 025 rule 5 with 029 rule 9: STU on a LBL line restamps it; its lines run as 35s in 33s mode (I = 5: unnamed 5) | MODE33 PRGM CLPGM LBL:A STU 5 STO:I 7 STO:(I) RTN PRGM XEQ:A | @#5=7 %STU=0
 Z06 | ours: UNDO's image keeps the history (RAM, not state) | STU ALG 1 ENTER 2 ENTER SAVE LOAD | %HIST=2 N=2
+Z07 | rule 7 (review): a key with no place on the line after a result shows RPN ONLY and leaves the line and ANS | STU ALG 2 + 3 ENTER TOPOL | ERR %ERR=RPN_ONLY %LINE=2+3 N=5
+Z08 | rule 7 (review): the same while a line is typed | STU ALG 2 + CLSIGMA | ERR %ERR=RPN_ONLY %LINE=2+
+Z09 | rule 7 (ours): = has no place on the line (ENTER is =) | STU ALG 2 = | ERR %ERR=RPN_ONLY %LINE=2

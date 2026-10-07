@@ -158,10 +158,11 @@ static void do_op(app_state *a, int op, int arg)
         a->notice_ms = a->last_key_ms;
     }
     if (st == ABN_CLAMPED || c->ovf > 0) a->ovf_pending = true;
-    if (op == AB_MODEL && st == ABN_OK && on_lbl && was != arg && ab_label_indirect(c, c->prog[c->pc].arg)) {
-        /* a label restamped to the other mode (unit 025 rule 5) whose lines use an indirect: what
-           it now means */
-        a->notice = arg == 35 ? "(i) MEANS (I)" : "(I) MEANS (i)";
+    if (op == AB_MODEL && st == ABN_OK && on_lbl && (was != 33) != (arg != 33) &&
+        ab_label_indirect(c, c->prog[c->pc].arg)) {
+        /* a label restamped to the other mode (unit 025 rule 5; STU's is the 35s's, unit 029) whose
+           lines use an indirect: what it now means */
+        a->notice = arg != 33 ? "(i) MEANS (I)" : "(I) MEANS (i)";
         a->notice_ms = a->last_key_ms;
     }
     if (c->stop == AB_STOP_SLICE) {
