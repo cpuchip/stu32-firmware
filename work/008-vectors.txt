@@ -2,15 +2,16 @@
 # tokens DEC HEX OCT BIN, HA..HF (hex digits A-F), SUF:b SUF:o SUF:d SUF:h (the typed suffix),
 # AND XOR OR NOT NAND NOR. ERR with a register value: the operation reported overflow and kept the
 # substituted result (unit 008 rule 3). Values from Python integers, 36-bit two's complement.
+# Unit 041 Part A (decision 58): moved to 35s mode (MODE35 added), each using a feature now hidden in 33s mode: M03 M04 M05 M06 M07 M08 O08 O09 O11 O12 O13 O14 O19 O20 O21 O22 G02.
 
 M01 | 35s p.11-2 changing base changes only the display | 125 HEX OCT BIN DEC | X=125
 M02 | 35s p.11-2 HEX digits: 24FFh | HEX 2 4 HF HF SUF:h | X=9471
-M03 | 35s p.11-4 AND(1100b,1010b) | 1100 SUF:b ENTER 1010 SUF:b AND | X=8
-M04 | 35s p.11-4 XOR(1101b,1011b) | 1101 SUF:b ENTER 1011 SUF:b XOR | X=6
-M05 | 35s p.11-4 OR(1100b,1010b) | 1100 SUF:b ENTER 1010 SUF:b OR | X=14
-M06 | 35s p.11-4 NAND(1100b,1010b) | 1100 SUF:b ENTER 1010 SUF:b NAND | X=-9
-M07 | 35s p.11-4 NOR(1100b,1010b) | 1100 SUF:b ENTER 1010 SUF:b NOR | X=-15
-M08 | 35s p.11-4 NOT(1011b) is -12 | 1011 SUF:b NOT | X=-12
+M03 | 35s p.11-4 AND(1100b,1010b) | MODE35 1100 SUF:b ENTER 1010 SUF:b AND | X=8
+M04 | 35s p.11-4 XOR(1101b,1011b) | MODE35 1101 SUF:b ENTER 1011 SUF:b XOR | X=6
+M05 | 35s p.11-4 OR(1100b,1010b) | MODE35 1100 SUF:b ENTER 1010 SUF:b OR | X=14
+M06 | 35s p.11-4 NAND(1100b,1010b) | MODE35 1100 SUF:b ENTER 1010 SUF:b NAND | X=-9
+M07 | 35s p.11-4 NOR(1100b,1010b) | MODE35 1100 SUF:b ENTER 1010 SUF:b NOR | X=-15
+M08 | 35s p.11-4 NOT(1011b) is -12 | MODE35 1011 SUF:b NOT | X=-12
 M09 | 35s p.11-5 12Fh + E9Ah = FC9h | HEX 1 2 HF SUF:h ENTER HE 9 HA SUF:h + | X=4041
 M10 | 35s p.11-5 7760o - 4326o = 3432o | OCT 7760 SUF:o ENTER 4326 SUF:o - | X=1818
 M11 | 35s p.11-5 100o / 5o = 14o (the fraction is dropped) | OCT 100 SUF:o ENTER 5 SUF:o / | X=12 L=5
@@ -34,23 +35,23 @@ O04 | ours: hex digit keys are ignored outside HEX | 1 HA 2 ENTER | X=12
 O05 | ours: a key that would leave the range is ignored | HEX 7 HF HF HF HF HF HF HF HF HF ENTER | X=34359738367
 O06 | ours: no point or exponent in a base | HEX 1.5 ENTER | X=21
 O07 | ours: E ignored, the digit after it counts | OCT 1 E 2 ENTER | X=10
-O08 | 35s p.F INVALID DATA: a digit too big for the suffix's base (entry kept) | 1012 SUF:b | ERR X=1012
-O09 | 35s p.11-3 a suffix ends entry without ENTER | 1011 SUF:b 5 | X=5 Y=11
+O08 | 35s p.F INVALID DATA: a digit too big for the suffix's base (entry kept) | MODE35 1012 SUF:b | ERR X=1012
+O09 | 35s p.11-3 a suffix ends entry without ENTER | MODE35 1011 SUF:b 5 | X=5 Y=11
 O10 | ours: CHS during entry in a base | HEX 1 HF CHS ENTER | X=-31
-O11 | 35s p.F INVALID DATA: logic on a fraction | 1.5 ENTER 3 AND | ERR X=3 Y=1.5
-O12 | ours: logic on a decimal beyond the range: clamped and reported | 1 E 20 ENTER 1 AND | ERR X=1
-O13 | B-6 logic leaves LAST X | 9 SQRT 12 ENTER 10 AND | X=8 L=9
-O14 | ours: two-number logic drops the stack like + | 7 ENTER 12 ENTER 10 AND | X=8 Y=7
+O11 | 35s p.F INVALID DATA: logic on a fraction | MODE35 1.5 ENTER 3 AND | ERR X=3 Y=1.5
+O12 | ours: logic on a decimal beyond the range: clamped and reported | MODE35 1 E 20 ENTER 1 AND | ERR X=1
+O13 | B-6 logic leaves LAST X | MODE35 9 SQRT 12 ENTER 10 AND | X=8 L=9
+O14 | ours: two-number logic drops the stack like + | MODE35 7 ENTER 12 ENTER 10 AND | X=8 Y=7
 O15 | ours: base division truncates toward zero | OCT 7 CHS ENTER 2 / | X=-3
 O16 | 35s p.11-4 base arithmetic uses the integer parts | 2.9 ENTER 2.9 HEX + | X=4
 O17 | ours: base multiplication | HEX 10 SUF:h ENTER 10 SUF:h * | X=256
 O18 | ours: base division by zero is an error | HEX 5 ENTER 0 / | ERR X=0 Y=5
-O19 | ours: logic works in DEC on integers | 12 ENTER 10 XOR | X=6
-O20 | ours: NOT of the most negative word | 34359738368 CHS NOT | X=34359738367
-O21 | ours: a suffix in another mode types that base | OCT 12 SUF:h ENTER | X=18
-O22 | ours: suffix d types decimal in HEX | HEX 12 SUF:d ENTER | X=12
+O19 | ours: logic works in DEC on integers | MODE35 12 ENTER 10 XOR | X=6
+O20 | ours: NOT of the most negative word | MODE35 34359738368 CHS NOT | X=34359738367
+O21 | ours: a suffix in another mode types that base | MODE35 OCT 12 SUF:h ENTER | X=18
+O22 | ours: suffix d types decimal in HEX | MODE35 HEX 12 SUF:d ENTER | X=12
 
 # --- added after debugging: the hex digit E and the exponent E are different keys
 G01 | ours: HEX digit E reread by a suffix (it was refused as an exponent) | HEX HE 9 HA SUF:h | X=3738
-G02 | ours: a decimal with an exponent cannot be reread in a base (entry kept) | 1 E 5 SUF:h | ERR X=100000
+G02 | ours: a decimal with an exponent cannot be reread in a base (entry kept) | MODE35 1 E 5 SUF:h | ERR X=100000
 G03 | 35s p.11-7 the largest positive word typed in binary (35 ones; it was cut at 34 digits) | BIN 11111111111111111111111111111111111 SUF:b | X=34359738367

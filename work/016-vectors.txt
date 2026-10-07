@@ -8,6 +8,7 @@
 # Unit 025 (work/025-indirect-i-and-program-modes.md): the default is now 33s mode, so these vectors,
 # written from the 35s guide's indirect model, start with MODE35 (the ERR ones added after review, which
 # passed in 33s mode only by failing early: M13): S01 S02 S03 S04 S05.
+# Unit 041 Part A (decision 58): moved to 35s mode (MODE35 added), each using a feature now hidden in 33s mode: M16.
 
 M01 | 35s p.B-3, B-4 MEMORY CLEAR: degrees (90 SIN is 1) | RAD MEMCLR 90 SIN | X=1
 M02 | 35s p.B-4 MEMORY CLEAR: FIX 4 (RND of pi is 3.1416) | ALL MEMCLR PI RND | X=3.1416
@@ -25,7 +26,7 @@ M17 | 35s p.B-4 CLEAR ALL: FN= null, so a label keyed again is not chosen | PRGM
 M13 | 35s p.B-4 CLEAR ALL: the indirect variables not defined | MODE35 3 STO:I 5 STO:(I) CLALL 3 STO:I RCL:(I) | ERR %ERR=DOMAIN
 M14 | 35s p.B-4 CLEAR ALL keeps the seed | 7 SEED RAND SAVEX 7 SEED CLALL RAND | %SAMEX=same
 M15 | ours: CLEAR ALL clears the statistics registers too (p.1-29: all stored numbers) | 2 ENTER 3 SIGMA+ CLALL NSUM | X=0
-M16 | 35s p.6-6 CLEAR ALL keeps the two built-in solvers | CLALL EQN SST | %EQ=2*2_lin._solve
+M16 | 35s p.6-6 CLEAR ALL keeps the two built-in solvers | MODE35 CLALL EQN SST | %EQ=2*2_lin._solve
 S01 | ours: save, clear memory, load: the stack, variables of every kind, statistics, indirect variables, modes and flags return | MODE35 RAD FIX3 SF:2 1 CI 2 STO:A [ 1 , 2 , 3 STO:B 4 STO:C 2 ENTER 3 SIGMA+ 5 STO:I 9 STO:(I) EQ:A+B×C C EQ:C^2 C PRGM CLPGM LBL:Q INPUT:C RCL:C SQ EQ:C+1 RTN PRGM 7 ENTER 8 SAVE MEMCLR LOAD | X=8 Y=7 @C=4 @B=[1,2,3] %F2=1 %LINES=6 %EQN=2
 S02 | ours: and they compute the same (RAD and FIX 3 kept: RND of pi) | MODE35 RAD FIX3 SF:2 1 CI 2 STO:A [ 1 , 2 , 3 STO:B 4 STO:C 2 ENTER 3 SIGMA+ 5 STO:I 9 STO:(I) EQ:A+B×C C EQ:C^2 C PRGM CLPGM LBL:Q INPUT:C RCL:C SQ EQ:C+1 RTN PRGM 7 ENTER 8 SAVE MEMCLR LOAD PI RND | X=3.142
 S03 | ours: the statistics and the indirect variable return | MODE35 RAD FIX3 SF:2 1 CI 2 STO:A [ 1 , 2 , 3 STO:B 4 STO:C 2 ENTER 3 SIGMA+ 5 STO:I 9 STO:(I) EQ:A+B×C C EQ:C^2 C PRGM CLPGM LBL:Q INPUT:C RCL:C SQ EQ:C+1 RTN PRGM 7 ENTER 8 SAVE MEMCLR LOAD NSUM 5 STO:I RCL:(I) | X=9 Y=5 Z=1

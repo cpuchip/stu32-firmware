@@ -7,6 +7,7 @@
 # INPUT v the vector stores v first and the line is RCL v; VIEW v is PSE; line numbers kept.
 # Unit 025 (work/025-indirect-i-and-program-modes.md): the default is now 33s mode, so these vectors,
 # written from the 35s guide's indirect model, start with MODE35: M26.
+# Unit 041 Part A (decision 58): moved to 35s mode (MODE35 added), each using a feature now hidden in 33s mode: M39 O06 O18 O29.
 
 M01 | 35s p.13-2/13-3 the first program, unlabeled; run off its end (ours: as RTN) | PRGM GTO.. SQ PI * PRGM GTO.. 5 RS | X=78.53981633974483096156608458198758 %PC=TOP %LINES=3
 M02 | 35s p.13-8/13-10 program A, XEQ A | PRGM CLPGM LBL:A SQ PI * RTN PRGM 5 XEQ:A | X=78.53981633974483096156608458198758 %PC=TOP %LINES=5
@@ -46,14 +47,14 @@ M35 | 35s p.14-9 flags 0 to 11 can be set | SF:3 SF:11 SF:5 | %F3=1 %F11=1 %F5=1
 M36 | 35s p.14-9 there is no flag 12 | SF:12 | ERR
 M37 | 35s p.14-12 FS? from the keyboard shows YES | SF:2 FS?:2 | %YES=1
 M38 | 35s p.14-12 FS? of a clear flag is NO | FS?:4 | %YES=0
-M39 | 35s p.14-7, p.F-2 a test on a complex number is INVALID DATA | 1 CI 1 ENTER 0 X=Y? | ERR
+M39 | 35s p.14-7, p.F-2 a test on a complex number is INVALID DATA | MODE35 1 CI 1 ENTER 0 X=Y? | ERR
 M40 | 35s p.14-9 flag 7 is Fraction display (unit 007) | SF:7 | %F7=1
 O01 | ours (rule 2): an endless loop stops at the step budget | PRGM LBL:A GTO:A001 PRGM XEQ:A | ERR
 O02 | ours: running into the next label carries on (labels are only marks) | PRGM LBL:A 1 LBL:B 2 + RTN PRGM XEQ:A | X=3
 O03 | 35s p.B-5 R/S is neutral for lift (no program: it ends at once) | 1 ENTER RS 5 | X=5 Y=1 Z=0
 O04 | ours: ISG from the keyboard with a negative counter | 5.00002 CHS STO:A ISG:A | @A=-3.00002
 O05 | 35s p.14-18 DSE with a final value and a step: 10.00203 becomes 7.00203 | 10.00203 STO:A DSE:A | @A=7.00203
-O06 | 35s p.14-19 a complex counter uses its real part (the imaginary part kept: ours) | 1.005 CI 2 STO:A ISG:A | @A=2.005i2
+O06 | 35s p.14-19 a complex counter uses its real part (the imaginary part kept: ours) | MODE35 1.005 CI 2 STO:A ISG:A | @A=2.005i2
 O07 | ours: a GTO whose target line was deleted has none, and is NONEXISTENT when run | PRGM LBL:A SQ GTO:A002 GTO.:A002 BKSP PRGM | %GO:A002=NONE
 O08 | ours: running a GTO whose target was deleted | PRGM LBL:A SQ GTO:A002 GTO.:A002 BKSP PRGM XEQ:A | ERR
 O09 | ours: an XEQ to a label entered later (targets resolve at run time) | PRGM LBL:A XEQ:B001 RTN LBL:B 7 RTN PRGM XEQ:A | X=7
@@ -65,7 +66,7 @@ O14 | 35s p.13-22 GTO from the keyboard, then R/S runs from there | PRGM LBL:A 1
 O15 | 35s p.14-6 a false test skips the next line | PRGM LBL:A X!=0? 5 RTN PRGM 0 XEQ:A | X=0
 O16 | 35s p.13-21 in program entry SST and BST only move the pointer | PRGM LBL:A SQ SQRT GTO.:A001 SST SST BST PRGM | %PC=A002 X=0
 O17 | 35s p.13-23 clearing all programs | PRGM LBL:A SQ CLPGM PRGM | %LINES=0 %PC=TOP
-O18 | ours: complex and vector numbers as program lines | PRGM LBL:A 1 CI 2 ENTER [ 1 , 2 RTN PRGM XEQ:A | X=[1,2] Y=1i2 %LINES=5
+O18 | ours: complex and vector numbers as program lines | MODE35 PRGM LBL:A 1 CI 2 ENTER [ 1 , 2 RTN PRGM XEQ:A | X=[1,2] Y=1i2 %LINES=5
 O19 | 35s p.13-7 CHS during a number's entry is part of the number line | PRGM LBL:A 5 CHS RTN PRGM XEQ:A | X=-5 %LINES=3
 O20 | ours (A12): R/S after an error stop retries the failing line | PRGM LBL:A 0 INV RTN PRGM XEQ:A 4 RS | ERR X=0.25 %PC=TOP
 O21 | 35s p.13-20 deleting a line moves the pointer to the one before | PRGM LBL:A SQ SQRT BKSP PRGM | %PC=A002 %LINES=2
@@ -76,7 +77,7 @@ O25 | ours: a program's error leaves the stack as the failing line found it | PR
 O26 | ours: XEQ of a label's line beyond its end is NONEXISTENT | PRGM LBL:A RTN PRGM XEQ:A005 | ERR
 O27 | 35s p.14-18 ISG with no final value: 0 to 1 skips (1 > 0) | PRGM LBL:A ISG:N 5 RTN PRGM 9 XEQ:A | @N=1 X=9
 O28 | 35s p.14-18 ISG below the final value does not skip | PRGM LBL:A ISG:N 5 RTN PRGM 0.003 STO:N CLX XEQ:A | @N=1.003 X=5
-O29 | ours: ISG on a vector counter uses its first element | [ 1.002 , 7 STO:A ISG:A | @A=[2.002,7]
+O29 | ours: ISG on a vector counter uses its first element | MODE35 [ 1.002 , 7 STO:A ISG:A | @A=[2.002,7]
 O30 | ours: the program pointer survives leaving program entry | PRGM LBL:A SQ SQRT GTO.:A002 PRGM | %PC=A002
 O31 | ours: XEQ from the keyboard starts with an empty return stack (no stale return after a STOP in a subroutine) | PRGM LBL:A XEQ:B001 7 RTN LBL:B 1 RS 2 RTN LBL:C 5 RTN PRGM XEQ:A XEQ:C | X=5 %PC=TOP
 O32 | 35s p.13-10 XEQ B keyed in a program is stored as XEQ B001 (keyed last, B already there) | PRGM LBL:B RTN GTO.. LBL:A XEQ:B PRGM | %GO:A002=B001

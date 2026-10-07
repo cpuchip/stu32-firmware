@@ -364,9 +364,11 @@ int main(void)
                 expect(it->kind == CL[i].kind && it->op == CL[i].op && it->prompt == CL[i].prompt &&
                            !strcmp(it->legend, CL[i].legend), m);
             }
-            /* CLVARx's three digits are an argument its op records (UG p.1-5's CLVAR056) */
+            /* CLVARx's three digits are an argument its op records (UG p.1-5's CLVAR056); 35s mode's (unit 041 A6,
+               decision 58) */
             char t[64];
             ab_init(&c);
+            ab_do_arg(&c, AB_MODEL, 35);
             ab_do(&c, AB_PRGM);
             abn_status st = ab_do_arg(&c, AB_CLVARX, 56);
             expect(st == ABN_OK && c.prog_len == 1 && ab_prog_line(&c, 0, NULL, t, sizeof t) > 0 && !strcmp(t, "CLVAR056"),

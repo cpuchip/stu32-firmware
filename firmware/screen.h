@@ -62,6 +62,7 @@ typedef struct {
     const char *soft[SCREEN_SOFT];  /* the soft keys' labels (UTF-8); NULL or "" for none */
     bool soft_on[SCREEN_SOFT];      /* a label marked as the setting in effect (unit 019: MODE) */
     bool soft_sub[SCREEN_SOFT];     /* a label that opens a submenu: its box marked (abacus #3958) */
+    bool soft_dim[SCREEN_SOFT];     /* a 35s feature in 33s mode: drawn dimmed, does nothing (unit 041 A) */
     char clock[8];                  /* the status band's clock ("12:59", "--:--"); "" none (unit 027) */
     char ampm;                      /* 'a' or 'p' after a 12-hour clock, 0 none */
     const char *view[4];            /* a view in place of the stack (SYS, unit 027): its lines, NULL none */
@@ -131,7 +132,7 @@ typedef struct {
     screen_graph_text graph;
     screen_line t, z, y, x;
     const char *soft[SCREEN_SOFT];  /* as screen_ui's */
-    bool soft_on[SCREEN_SOFT], soft_sub[SCREEN_SOFT];
+    bool soft_on[SCREEN_SOFT], soft_sub[SCREEN_SOFT], soft_dim[SCREEN_SOFT];
 } screen_page;
 
 void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out);

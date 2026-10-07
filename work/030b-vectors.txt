@@ -1,7 +1,8 @@
 # Unit 030b (abacus 8d8c2a0): in the polar display form SHOW gives r's and theta's digits, what X's place shows
 # (as 029b's STO). Cases whose angle is exact, so the digits test SHOW and not ->POL's last-digit accuracy (3i4's
 # angle is 1 unit off in the 34th digit, within ->POL's accepted bar; reported to abacus, not pinned here).
-P01 | 030b: r theta a, degrees: 1i1 is the root of 2 at 45 degrees | RTA 1 CI 1 ENTER SHOW | %SHOW=1414213562373095048801688724209698/4500000000000000000000000000000000
-P02 | 030b: grads: the same at 50 | GRAD RTA 1 CI 1 ENTER SHOW | %SHOW=1414213562373095048801688724209698/5000000000000000000000000000000000
-P03 | 030b: a negative angle keeps its minus: -1-1i at -135 degrees | RTA 1 CHS CI 1 CHS ENTER SHOW | %SHOW=1414213562373095048801688724209698/-1350000000000000000000000000000000
-P04 | 030b: back in x+yi the parts again | RTA XIY 3 CI 4 ENTER SHOW | %SHOW=3000000000000000000000000000000000/4000000000000000000000000000000000
+# Unit 041 Part A (decision 58): moved to 35s mode (MODE35 added), each using a feature now hidden in 33s mode: P01 P02 P03 P04.
+P01 | 030b: r theta a, degrees: 1i1 is the root of 2 at 45 degrees | MODE35 RTA 1 CI 1 ENTER SHOW | %SHOW=1414213562373095048801688724209698/4500000000000000000000000000000000
+P02 | 030b: grads: the same at 50 | MODE35 GRAD RTA 1 CI 1 ENTER SHOW | %SHOW=1414213562373095048801688724209698/5000000000000000000000000000000000
+P03 | 030b: a negative angle keeps its minus: -1-1i at -135 degrees | MODE35 RTA 1 CHS CI 1 CHS ENTER SHOW | %SHOW=1414213562373095048801688724209698/-1350000000000000000000000000000000
+P04 | 030b: back in x+yi the parts again | MODE35 RTA XIY 3 CI 4 ENTER SHOW | %SHOW=3000000000000000000000000000000000/4000000000000000000000000000000000

@@ -46,5 +46,6 @@ for t in range(N):
         f = {"AND": lambda: a & b, "OR": lambda: a | b, "XOR": lambda: a ^ b, "NAND": lambda: ~(a & b), "NOR": lambda: ~(a | b)}[op]
         r = sgn(f())
     keys = f"{mode} {ka} ENTER {kb} {op}" if op != "NOT" else f"{mode} {kb} {op}"
-    out.append(f"Z{t} | fuzz | {keys} | {'ERR ' if clamped else ''}X={r}")
+    # the logic functions are 35s mode's (unit 041 A5, decision 58)
+    out.append(f"Z{t} | fuzz | MODE35 {keys} | {'ERR ' if clamped else ''}X={r}")
 print("\n".join(out))

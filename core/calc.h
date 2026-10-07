@@ -500,6 +500,9 @@ int ab_graph_form(const ab_calc *c, int e);
    owns it; otherwise (the keyboard, lines before the first label) the calculator's. Every
    mode-dependent behaviour asks here. */
 bool ab_mode35(const ab_calc *c);
+/* Unit 041 Part A: a 35s feature hidden in 33s mode (the mode in force, ab_mode35): its key or menu item does
+   nothing and a program line can't record it. The app dims its legend. */
+bool ab_hidden(const ab_calc *c, int op);
 /* Whether a label's lines use an indirect address ((I), (J), (i), or an equation's), so a restamp
    changes their storage (unit 025 rule 5). */
 bool ab_label_indirect(const ab_calc *c, int label);

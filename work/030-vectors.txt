@@ -2,6 +2,7 @@
 # alone, all 34 (trailing zeros kept), no point, no exponent, a leading - for a negative X; "-" alone: nothing to show.
 # The form is the manuals' pictured SHOW (33s p.1-21, 35s p.1-26): 58.5 at FIX 4, 1/x, SHOW (hold) gives
 # 170940170940, all 12 of their digits, no point. MARK / %SAMEMARK compare the whole state image (rule 2).
+# Unit 041 Part A (decision 58): moved to 35s mode (MODE35 added), each using a feature now hidden in 33s mode: W19 W20 W21.
 W01 | 35s p.1-26, 33s p.1-21: 45 ENTER 1.3 x 1/x at FIX4 shows 0.0171; SHOW gives every digit, no point | FIX4 45 ENTER 1.3 * INV SHOW | %SHOW=1709401709401709401709401709401709 X#0.01709401709401709401709401709401709,1E-40
 W02 | 35s p.1-25: 14.8745632019 at FIX4 shows 14.8746; SHOW gives the hidden digits, trailing zeros to 34 | FIX4 14.8745632019 ENTER SHOW | %SHOW=1487456320190000000000000000000000
 W03 | rule 1: a 34-digit X at FIX2 | FIX2 2 SQRT SHOW | %SHOW=1414213562373095048801688724209698
@@ -20,8 +21,8 @@ W15 | rule 5 (proposal 4): program entry on a number line: that number's digits;
 W16 | rule 5 (proposal 4): program entry on any other line: nothing | PRGM CLPGM LBL:A 1.25 RTN SHOW | %SHOW=-
 W17 | rule 5 (proposal 5): Equation mode: nothing | 2 SQRT EQN SHOW | %SHOW=-
 W18 | proposal 2: zero: 34 zeros | 0 ENTER SHOW | %SHOW=0000000000000000000000000000000000
-W19 | proposal 3 (18259d9): complex X: the real part's digits, then the imaginary part's (lines T Z, then Y X) | 3 CI 4 ENTER SHOW | %SHOW=3000000000000000000000000000000000/4000000000000000000000000000000000
-W20 | proposal 3: complex with a negative part (CHS while the real part is typed) | 1.5 CHS CI 2 ENTER SHOW | %SHOW=-1500000000000000000000000000000000/2000000000000000000000000000000000
-W21 | proposal 3: a vector X: nothing | [ 1 , 2 ENTER SHOW | %SHOW=-
+W19 | proposal 3 (18259d9): complex X: the real part's digits, then the imaginary part's (lines T Z, then Y X) | MODE35 3 CI 4 ENTER SHOW | %SHOW=3000000000000000000000000000000000/4000000000000000000000000000000000
+W20 | proposal 3: complex with a negative part (CHS while the real part is typed) | MODE35 1.5 CHS CI 2 ENTER SHOW | %SHOW=-1500000000000000000000000000000000/2000000000000000000000000000000000
+W21 | proposal 3: a vector X: nothing | MODE35 [ 1 , 2 ENTER SHOW | %SHOW=-
 W22 | proposal 8: a base mode: nothing (the integer is shown whole) | HEX 1 HF SHOW | %SHOW=-
 W23 | answer 5 (review): an equation being typed in program entry: nothing (not the number line before it) | PRGM CLPGM LBL:A 1.25 EQN 2 | %SHOW=-

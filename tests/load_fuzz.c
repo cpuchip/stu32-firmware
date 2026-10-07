@@ -113,11 +113,17 @@ static int line_rule_sweep(void)
             op == AB_KREG || op == AB_EQTOP)
             continue;                   /* Equation mode's keys: no line now, but an older image's such line
                                            still loads (unit 018; calc.c's program_key) */
-        ab_init(&c);
-        ab_do(&c, AB_PRGM);
-        ab_do_arg(&c, (ab_op)op, arg);
-        bool own = c.prog_len == 1 && c.prog[0].op == op && c.prog[0].arg >= 0;
-        if (op == AB_XEQ || op == AB_GTO) own = c.prog_len == 1 && c.prog[0].op == op;
+        /* recorded in 33s mode or in 35s mode: the loader takes both (a 35s feature is hidden from 33s mode's
+           keys, unit 041 A, but a 35s label's line of it loads, and runs) */
+        bool own = false;
+        for (int m = 0; m < 2 && !own; m++) {
+            ab_init(&c);
+            if (m) ab_do_arg(&c, AB_MODEL, 35);
+            ab_do(&c, AB_PRGM);
+            ab_do_arg(&c, (ab_op)op, arg);
+            own = c.prog_len == 1 && c.prog[0].op == op && c.prog[0].arg >= 0;
+            if (op == AB_XEQ || op == AB_GTO) own = c.prog_len == 1 && c.prog[0].op == op;
+        }
         if (own) {                      /* and the image carries it: saved, it loads (unit 039 found the gap) */
             static ab_calc d;
             size_t n;

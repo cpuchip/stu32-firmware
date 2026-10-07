@@ -374,6 +374,7 @@ int main(int argc, char **argv)
 
     /* 20 cells take scale 3, 25 scale 2, and 40 a window */
     ab_init(&c);
+    ab_do_arg(&c, AB_MODEL, 35);   /* complex and vector entry are 35s mode's (unit 041 A, decision 58) */
     keys(&c, "1234567890123456789");          /* 19 digits and the cursor */
     screen_render(&c, &ui, &f);
     expect(text_at(&f, 20, 135, 3, "1234567890123456789_", 1), "20 cells at scale 3");
@@ -561,14 +562,17 @@ int main(int argc, char **argv)
     expect(dark_in(&f, 268, 2, 10, 14) == 0 && dark_in(&f, 292, 2, 10, 14) == 0 && dark_in(&f, 316, 2, 10, 14) == 0,
            "flags 0, 2, 4 clear: nothing");
     ab_init(&c);
+    ab_do_arg(&c, AB_MODEL, 35);   /* complex and vector entry are 35s mode's (unit 041 A, decision 58) */
     keys(&c, "[ 4 , 5");
     screen_render(&c, &ui, &f);
     expect(text_at(&f, 20, 128, 4, "[4,5_]", 1), "a vector being typed, closed after the cursor");
     ab_init(&c);
+    ab_do_arg(&c, AB_MODEL, 35);   /* complex and vector entry are 35s mode's (unit 041 A, decision 58) */
     keys(&c, "3 I 4 ENTER RTA");
     screen_render(&c, &ui, &f);
     expect(find_glyph(&f, 156 - 28, 4, 0x03B8) > 0 || find_glyph(&f, 156 - 21, 3, 0x03B8) > 0, "polar: theta in X");
     ab_init(&c);
+    ab_do_arg(&c, AB_MODEL, 35);   /* complex and vector entry are 35s mode's (unit 041 A, decision 58) */
     keys(&c, "[ 1 E CHS 300 , 2 E CHS 300 , 3 E CHS 300 ENTER");
     screen_render(&c, &ui, &f);
     expect(glyph_at(&f, 388, 142, 2, ']', 1), "a vector too wide at 21 cells: the wide form at scale 2");
@@ -761,17 +765,20 @@ int main(int argc, char **argv)
     keys(&c, "FDISP 1 ENTER 3 / 2 ENTER 3 /");
     frame("08-fractions", &c, &ui);
     ab_init(&c);
+    ab_do_arg(&c, AB_MODEL, 35);   /* complex and vector entry are 35s mode's (unit 041 A, decision 58) */
     keys(&c, "3 I 4 ENTER 5 THETA 3 0");
     frame("09-complex-typing", &c, &ui);
     keys(&c, "ENTER RTA");
     frame("10-complex-polar", &c, &ui);
     ab_init(&c);
+    ab_do_arg(&c, AB_MODEL, 35);   /* complex and vector entry are 35s mode's (unit 041 A, decision 58) */
     keys(&c, "[ 1 , 2 , 3 ENTER [ 4 , 5");
     frame("11-vectors", &c, &ui);
     ab_init(&c);
     keys(&c, "1 ENTER 7 / PI 2 SQRT");
     frame("12-all-digits", &c, &ui);
     ab_init(&c);
+    ab_do_arg(&c, AB_MODEL, 35);   /* complex and vector entry are 35s mode's (unit 041 A, decision 58) */
     keys(&c, "1234567890123456789012345 I 123456789012345");
     frame("13-window", &c, &ui);
     ab_init(&c);

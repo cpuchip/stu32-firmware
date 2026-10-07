@@ -3653,12 +3653,12 @@ static abn_status eqn_key(ab_calc *c, ab_op op, int arg)
         if (!c->eqn_typing) c->eqn_cur = -1;
         return ABN_OK;
     case AB_SST:                                    /* the list wraps through EQN LIST TOP (p.6-7) */
+    case AB_BST:                                    /* in 33s mode without the built-ins (unit 041 A4, 33s p.6-7) */
         if (c->eqn_typing) return ABN_OK;
-        c->eqn_cur = c->eqn_cur + 1 >= c->eqn_count ? -1 : c->eqn_cur + 1;
-        return ABN_OK;
-    case AB_BST:
-        if (c->eqn_typing) return ABN_OK;
-        c->eqn_cur = c->eqn_cur < 0 ? c->eqn_count - 1 : c->eqn_cur - 1;
+        do {
+            if (op == AB_SST) c->eqn_cur = c->eqn_cur + 1 >= c->eqn_count ? -1 : c->eqn_cur + 1;
+            else c->eqn_cur = c->eqn_cur < 0 ? c->eqn_count - 1 : c->eqn_cur - 1;
+        } while (c->eqn_cur >= 0 && eqn_builtin(c, c->eqn_cur) && !ab_mode35(c));
         return ABN_OK;
     case AB_KBKSP:
         if (c->eqn_typing) ed_backspace(c);
@@ -3968,6 +3968,7 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
         c->msg = false;
         if (c->m35 || op == AB_CANCEL || op == AB_KBKSP) return ABN_OK;
     }
+    if (ab_hidden(c, op)) return ABN_OK;       /* unit 041 Part A: a 35s feature, in 33s mode: nothing */
     if (c->tbl_on || c->gr_on) {                /* the table or the graph open: its keys alone (units 032,
                                                    033), each with a fresh error record and overflow count */
         c->err_set = false;
@@ -4028,6 +4029,25 @@ bool ab_mode35(const ab_calc *c)
         if (l >= 0 && c->lmode[l]) return c->lmode[l] != 33;   /* 35 or STU */
     }
     return c->m35;
+}
+
+bool ab_hidden(const ab_calc *c, int op)
+{
+    if (ab_mode35(c)) return false;
+    switch (op) {
+    case AB_KI: case AB_KTHETA: case AB_KCOMMA:     /* typing an equation: the parser refuses (or, i, the variable) */
+        return !c->eqn_typing;
+    case AB_ARG: case AB_XIY: case AB_RTA:          /* A1, A2: one-value complex numbers (33s p.9-1 to 9-3, 1-19) */
+    case AB_KVEC:                                   /* A3: vectors */
+    case AB_AND: case AB_OR: case AB_XOR: case AB_NOT: case AB_NAND: case AB_NOR: case AB_SUF:     /* A5 (p.10-1) */
+    case AB_CLSTK: case AB_CLVARX:                  /* A6 (p.1-6) */
+    case AB_TOKM: case AB_TOMILE:                   /* A7 (p.4-13) */
+    case AB_KREG:                                   /* A11: REGX..REGT, typed (p.6-15) */
+    case AB_TABLE: case AB_GRAPH:                   /* A14: their menus don't open */
+        return true;
+    default:
+        return false;
+    }
 }
 
 bool ab_label_indirect(const ab_calc *c, int label)
@@ -4509,6 +4529,7 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
         return cancel_key(c);
     case AB_EQN:
         c->eqn_mode = true;                     /* neutral (UG p.B-5) */
+        if (!ab_mode35(c) && eqn_builtin(c, c->eqn_cur)) c->eqn_cur = -1;     /* 33s mode: no built-ins (041 A4) */
         return ABN_OK;
     case AB_KEQ:
     case AB_KPAREN:

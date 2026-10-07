@@ -6,62 +6,63 @@
 # Unit 025 (work/025-indirect-i-and-program-modes.md): the default is now 33s mode, so these vectors,
 # written from the 35s guide's indirect model, start with MODE35: O30.
 # Unit 026 (work/026-overflow-per-the-manuals.md): overflow gives the largest number with flag 6 and underflow gives 0, not errors; amended: O41.
+# Unit 041 Part A (decision 58): moved to 35s mode (MODE35 added), each using a feature now hidden in 33s mode: M01 M02 M03 M04 M05 M06 M07 M08 M09 M10 M11 M12 M13 M14 M15 O01 O02 O03 O04 O05 O06 O07 O08 O09 O10 O11 O12 O13 O14 O15 O16 O17 O18 O19 O20 O21 O22 O23 O24 O25 O26 O27 O28 O29 O31 O33 O34 O35 O36 O38 O39 O40 O41 O42 O43 O37.
 
-M01 | 35s p.9-4 sin(2 i 3) | 2 CI 3 SIN | X^9.15449914691142957346729954460983256i-4.16890695996656435075481305885375484 L=2i3
-M02 | 35s p.9-4 z2 + z3 (CHS before and after i) | 23 CI 13 ENTER 2 CHS CI 1 ENTER 4 CI 3 CHS + | X=2i-2 Y=23i13
-M03 | 35s p.9-4 z1 / (z2 + z3) = 2.5 i 9 (the guide prints 2.5000i.9000) | 23 CI 13 ENTER 2 CHS CI 1 ENTER 4 CI 3 CHS + / | X=2.5i9
-M04 | 35s p.9-4/9-5 (4 i -2/5)(3 i -2/3), fractions in the imaginary part | 4 CI .2.5 CHS ENTER 3 CI .2.3 CHS * | X=11.73333333333333333333333333333333i-3.866666666666666666666666666666667
-M05 | 35s p.9-5 (1 i 1)^-2 = 0 i -0.5 (the guide prints 0.0000i-5.0000) | 1 CI 1 ENTER 2 CHS POW | X=0i-0.5
-M06 | 35s p.9-5 then e^ | 1 CI 1 ENTER 2 CHS POW EXP | X^0.877582561890372716116281582603829652i-0.479425538604203000273287935215571388
-M07 | 35s p.9-5/9-6 three loads in DEG, polar entry | DEG RTA 185 CA 62 ENTER 170 CA 143 ENTER 100 CA 261 + + | X^-64.559244096673077216790145316284841i166.885024555235919243003766964117633
-M08 | 35s p.9-7 1 i 1 + 3 theta 10 + 5 theta 30 (DEG) | DEG RTA 1 CI 1 ENTER 3 CA 10 ENTER 5 CA 30 + + | X^8.28455027795881741191884492753324996i4.02094453300079104655514988030794439
-M09 | 35s p.4-11 10 theta 30 in DEG is 8.6603 i 5 (r sin 30 exact) | DEG 10 CA 30 ENTER | X^8.66025403784438646763723170752936183i5
-M10 | 35s p.4-12 RC circuit 77.8 theta -36.5 | DEG 77.8 CA 36.5 CHS ENTER | X^62.5400637560195079838922192711640121i-46.2772128092543524063058498682596464
-M11 | 35s p.4-17 ABS of 3 i 4 is real 5; B-6 saves x | 3 CI 4 ABS | X=5 L=3i4
-M12 | 35s p.4-17 ARG in DEG; B-6 saves x | DEG 3 CI 4 ARG | X^53.1301023541559787031443874409065893 L=3i4
-M13 | 35s p.3-2 a variable holds a complex number | 3 CI 4 STO:A CLX RCL:A | X=3i4
-M14 | 35s p.9-2 LAST X holds a complex number | 3 CI 4 ENTER 1 CI 1 + LASTX | X=1i1 Y=4i5
-M15 | 35s p.9-2 ENTER copies the whole number | 3 CI 4 ENTER | X=3i4 Y=3i4
-O01 | ours (rule 4): exact cases are exact and stay complex | 2 CI 3 ENTER 2 CI 3 CHS * | X=13i0
-O02 | 35s p.9-3 SQRT is not a complex function: INVALID DATA | 3 CI 4 SQRT | ERR X=3i4
-O03 | 35s p.9-3 LOG is not a complex function | 3 CI 4 LOG | ERR X=3i4
-O04 | 35s p.F statistics reject complex data | 3 CI 4 SIGMA+ | ERR X=3i4
-O05 | 35s p.F logic rejects complex | 3 CI 4 ENTER 1 AND | ERR X=1
-O06 | 35s p.F LOG(0): ln of 0 i 0 | 0 CI 0 LN | ERR X=0i0
-O07 | ours (rule 5): 0^z is 0 for Re z > 0 | 0 CI 0 ENTER 1 CI 1 POW | X=0i0
-O08 | 35s p.F INVALID y^x: 0^z with Re z <= 0 | 0 CI 0 ENTER 1 CHS CI 1 POW | ERR X=-1i1 Y=0i0
-O09 | ours (rule 3): a real with a complex is complex | 2 ENTER 1 CI 1 + | X=3i1
-O10 | ours: complex times real | 1 CI 1 ENTER 2 * | X=2i2
-O11 | ours: real to a complex power, principal (rule 5) | 2 ENTER 0 CI 1 POW | X^0.769238901363972126578329993661270701i0.638961276313634801150032911464701784
-O12 | 35s p.B-6 CHS negates both parts and leaves LAST X | 9 SQRT 3 CI 4 ENTER CHS | X=-3i-4 L=9
-O13 | ours: 1/z exact parts | 3 CI 4 INV | X=0.12i-0.16 L=3i4
-O14 | ours: complex trig ignores the angle mode (the guide's sin(2 i 3) is radian in DEG) | DEG 2 CI 3 SIN | X^9.15449914691142957346729954460983256i-4.16890695996656435075481305885375484
-O15 | ours: cos | 1 CI 2 COS | X^2.03272300701966552943634344849951426i-3.05189779915180005751211568689510545
-O16 | ours: tan | 1 CI 2 TAN | X^0.0338128260798966902843705597252873016i1.01479361614663356811705417541796761
-O17 | ours: tan near a pole stays accurate | 1.5707963267948966 CI 0.000001 TAN | X^0.0000192313216916333410015275934808039672i1000000.00000033333333296346737710378
-O18 | ours: ln principal, arg in (-pi, pi] | 1 CHS CI 0 LN | X^0.0i3.14159265358979323846264338327950288
-O19 | ours: ln | 3 CI 4 LN | X^1.60943791243410037460075933322618764i0.927295218001612232428512462922428804
-O20 | ours: e^z | 1 CI 2 EXP | X^-1.13120438375681363843125525551079471i2.47172667200481892761693089355166453
-O21 | ours: z1^z2 = e^(z2 ln z1) | 1 CI 2 ENTER 0.5 CI 0.3 POW | X^0.751230156011476353497023881815657964i0.765781600594168002325293966267315108
-O22 | ours: polar entry in RAD | RAD 2 CA 1 ENTER | X^1.08060461173627943480187321488595321i1.682941969615793013305004643260598
-O23 | ours: polar entry in GRAD, exact at 100 gon | GRAD 3 CA 100 ENTER | X=0i3
-O24 | ours (rule 4): 1 theta 90 is exactly 0 i 1 | DEG 1 CA 90 ENTER | X=0i1
-O25 | ours: only the real part typed: imaginary 0 | 3 CI ENTER | X=3i0
-O26 | ours: i with no number typed starts 0 i ... | CI 5 ENTER | X=0i5
-O27 | ours: backspace through the i returns to a real | 3 CI 4 BKSP BKSP 7 ENTER | X=37
-O28 | ours: recall arithmetic with a complex variable | 3 CI 4 STO:A 1 CI 1 RCL+:A | X=4i5
-O29 | ours: storage arithmetic on a complex variable | 1 CI 1 STO:A 2 STO*:A RCL:A | X=2i2
+M01 | 35s p.9-4 sin(2 i 3) | MODE35 2 CI 3 SIN | X^9.15449914691142957346729954460983256i-4.16890695996656435075481305885375484 L=2i3
+M02 | 35s p.9-4 z2 + z3 (CHS before and after i) | MODE35 23 CI 13 ENTER 2 CHS CI 1 ENTER 4 CI 3 CHS + | X=2i-2 Y=23i13
+M03 | 35s p.9-4 z1 / (z2 + z3) = 2.5 i 9 (the guide prints 2.5000i.9000) | MODE35 23 CI 13 ENTER 2 CHS CI 1 ENTER 4 CI 3 CHS + / | X=2.5i9
+M04 | 35s p.9-4/9-5 (4 i -2/5)(3 i -2/3), fractions in the imaginary part | MODE35 4 CI .2.5 CHS ENTER 3 CI .2.3 CHS * | X=11.73333333333333333333333333333333i-3.866666666666666666666666666666667
+M05 | 35s p.9-5 (1 i 1)^-2 = 0 i -0.5 (the guide prints 0.0000i-5.0000) | MODE35 1 CI 1 ENTER 2 CHS POW | X=0i-0.5
+M06 | 35s p.9-5 then e^ | MODE35 1 CI 1 ENTER 2 CHS POW EXP | X^0.877582561890372716116281582603829652i-0.479425538604203000273287935215571388
+M07 | 35s p.9-5/9-6 three loads in DEG, polar entry | MODE35 DEG RTA 185 CA 62 ENTER 170 CA 143 ENTER 100 CA 261 + + | X^-64.559244096673077216790145316284841i166.885024555235919243003766964117633
+M08 | 35s p.9-7 1 i 1 + 3 theta 10 + 5 theta 30 (DEG) | MODE35 DEG RTA 1 CI 1 ENTER 3 CA 10 ENTER 5 CA 30 + + | X^8.28455027795881741191884492753324996i4.02094453300079104655514988030794439
+M09 | 35s p.4-11 10 theta 30 in DEG is 8.6603 i 5 (r sin 30 exact) | MODE35 DEG 10 CA 30 ENTER | X^8.66025403784438646763723170752936183i5
+M10 | 35s p.4-12 RC circuit 77.8 theta -36.5 | MODE35 DEG 77.8 CA 36.5 CHS ENTER | X^62.5400637560195079838922192711640121i-46.2772128092543524063058498682596464
+M11 | 35s p.4-17 ABS of 3 i 4 is real 5; B-6 saves x | MODE35 3 CI 4 ABS | X=5 L=3i4
+M12 | 35s p.4-17 ARG in DEG; B-6 saves x | MODE35 DEG 3 CI 4 ARG | X^53.1301023541559787031443874409065893 L=3i4
+M13 | 35s p.3-2 a variable holds a complex number | MODE35 3 CI 4 STO:A CLX RCL:A | X=3i4
+M14 | 35s p.9-2 LAST X holds a complex number | MODE35 3 CI 4 ENTER 1 CI 1 + LASTX | X=1i1 Y=4i5
+M15 | 35s p.9-2 ENTER copies the whole number | MODE35 3 CI 4 ENTER | X=3i4 Y=3i4
+O01 | ours (rule 4): exact cases are exact and stay complex | MODE35 2 CI 3 ENTER 2 CI 3 CHS * | X=13i0
+O02 | 35s p.9-3 SQRT is not a complex function: INVALID DATA | MODE35 3 CI 4 SQRT | ERR X=3i4
+O03 | 35s p.9-3 LOG is not a complex function | MODE35 3 CI 4 LOG | ERR X=3i4
+O04 | 35s p.F statistics reject complex data | MODE35 3 CI 4 SIGMA+ | ERR X=3i4
+O05 | 35s p.F logic rejects complex | MODE35 3 CI 4 ENTER 1 AND | ERR X=1
+O06 | 35s p.F LOG(0): ln of 0 i 0 | MODE35 0 CI 0 LN | ERR X=0i0
+O07 | ours (rule 5): 0^z is 0 for Re z > 0 | MODE35 0 CI 0 ENTER 1 CI 1 POW | X=0i0
+O08 | 35s p.F INVALID y^x: 0^z with Re z <= 0 | MODE35 0 CI 0 ENTER 1 CHS CI 1 POW | ERR X=-1i1 Y=0i0
+O09 | ours (rule 3): a real with a complex is complex | MODE35 2 ENTER 1 CI 1 + | X=3i1
+O10 | ours: complex times real | MODE35 1 CI 1 ENTER 2 * | X=2i2
+O11 | ours: real to a complex power, principal (rule 5) | MODE35 2 ENTER 0 CI 1 POW | X^0.769238901363972126578329993661270701i0.638961276313634801150032911464701784
+O12 | 35s p.B-6 CHS negates both parts and leaves LAST X | MODE35 9 SQRT 3 CI 4 ENTER CHS | X=-3i-4 L=9
+O13 | ours: 1/z exact parts | MODE35 3 CI 4 INV | X=0.12i-0.16 L=3i4
+O14 | ours: complex trig ignores the angle mode (the guide's sin(2 i 3) is radian in DEG) | MODE35 DEG 2 CI 3 SIN | X^9.15449914691142957346729954460983256i-4.16890695996656435075481305885375484
+O15 | ours: cos | MODE35 1 CI 2 COS | X^2.03272300701966552943634344849951426i-3.05189779915180005751211568689510545
+O16 | ours: tan | MODE35 1 CI 2 TAN | X^0.0338128260798966902843705597252873016i1.01479361614663356811705417541796761
+O17 | ours: tan near a pole stays accurate | MODE35 1.5707963267948966 CI 0.000001 TAN | X^0.0000192313216916333410015275934808039672i1000000.00000033333333296346737710378
+O18 | ours: ln principal, arg in (-pi, pi] | MODE35 1 CHS CI 0 LN | X^0.0i3.14159265358979323846264338327950288
+O19 | ours: ln | MODE35 3 CI 4 LN | X^1.60943791243410037460075933322618764i0.927295218001612232428512462922428804
+O20 | ours: e^z | MODE35 1 CI 2 EXP | X^-1.13120438375681363843125525551079471i2.47172667200481892761693089355166453
+O21 | ours: z1^z2 = e^(z2 ln z1) | MODE35 1 CI 2 ENTER 0.5 CI 0.3 POW | X^0.751230156011476353497023881815657964i0.765781600594168002325293966267315108
+O22 | ours: polar entry in RAD | MODE35 RAD 2 CA 1 ENTER | X^1.08060461173627943480187321488595321i1.682941969615793013305004643260598
+O23 | ours: polar entry in GRAD, exact at 100 gon | MODE35 GRAD 3 CA 100 ENTER | X=0i3
+O24 | ours (rule 4): 1 theta 90 is exactly 0 i 1 | MODE35 DEG 1 CA 90 ENTER | X=0i1
+O25 | ours: only the real part typed: imaginary 0 | MODE35 3 CI ENTER | X=3i0
+O26 | ours: i with no number typed starts 0 i ... | MODE35 CI 5 ENTER | X=0i5
+O27 | ours: backspace through the i returns to a real | MODE35 3 CI 4 BKSP BKSP 7 ENTER | X=37
+O28 | ours: recall arithmetic with a complex variable | MODE35 3 CI 4 STO:A 1 CI 1 RCL+:A | X=4i5
+O29 | ours: storage arithmetic on a complex variable | MODE35 1 CI 1 STO:A 2 STO*:A RCL:A | X=2i2
 O30 | ours: the unnamed indirect variables hold reals only | MODE35 5 STO:I 1 CI 1 STO:(I) | ERR X=1i1
-O31 | 35s p.9-2 x<>y moves the whole number | 1 CI 1 ENTER 2 XY | X=1i1 Y=2
+O31 | 35s p.9-2 x<>y moves the whole number | MODE35 1 CI 1 ENTER 2 XY | X=1i1 Y=2
 O32 | 35s p.B-5 the display form is neutral for lift | 1 ENTER RTA 3 | X=3 Y=1 Z=0
-O33 | ours: ARG in RAD | RAD 1 CI 1 ARG | X^0.785398163397448309615660845819875721
-O34 | ours: ARG exact on the diagonal in DEG | DEG 1 CI 1 ARG | X=45
-O35 | ours: complex integer power exact | 1 CI 1 ENTER 4 POW | X=-4i0
-O36 | ours: a complex number keeps its parts through R-down | 1 CI 2 ENTER 3 RDN RDN RDN RDN | X=3 Y=1i2
-O38 | ours: ln near 1, both parts tiny, keeps its real part (added at green: mutation run) | 1.000000000000000000000000000001 CI 1 E 30 CHS LN | X^1.0E-30i9.99999999999999999999999999999E-31
-O39 | 35s p.B-5 the display form is neutral after a typed number too (added at green: mutation run) | 1 ENTER 2 RTA 3 | X=3 Y=2 Z=1
-O40 | ours: tan far from the axis is i sgn(b) (added at green: mutation run) | 1 CI 200000 CHS TAN | X=0i-1
-O41 | ours: e^z below the range is 0, as for a real e^x (unit 026; was a range error) | 54215 CHS CI 0 EXP | X=0i0 %F6=0
-O42 | ruled (abacus, unit 009 review): ARG of 0 i 0 is 0, the atan2 convention | 0 CI 0 ARG | X=0 L=0i0
-O43 | ours: 2^(i 10^100) keeps its accuracy, w carried 45 digits past its units (mpmath at 600 and 900 digits agree) | 2 ENTER 0 CI 1 E 100 POW | X^-0.937080888983868554800379160539599618i0.349112313591489661475948449649491559
-O37 | ours (rule 5): 0^z with Re z = 0 exactly is an error (added at green: the mutation run found the boundary untested) | 0 CI 0 ENTER 0 CI 1 POW | ERR X=0i1 Y=0i0
+O33 | ours: ARG in RAD | MODE35 RAD 1 CI 1 ARG | X^0.785398163397448309615660845819875721
+O34 | ours: ARG exact on the diagonal in DEG | MODE35 DEG 1 CI 1 ARG | X=45
+O35 | ours: complex integer power exact | MODE35 1 CI 1 ENTER 4 POW | X=-4i0
+O36 | ours: a complex number keeps its parts through R-down | MODE35 1 CI 2 ENTER 3 RDN RDN RDN RDN | X=3 Y=1i2
+O38 | ours: ln near 1, both parts tiny, keeps its real part (added at green: mutation run) | MODE35 1.000000000000000000000000000001 CI 1 E 30 CHS LN | X^1.0E-30i9.99999999999999999999999999999E-31
+O39 | 35s p.B-5 the display form is neutral after a typed number too (added at green: mutation run) | MODE35 1 ENTER 2 RTA 3 | X=3 Y=2 Z=1
+O40 | ours: tan far from the axis is i sgn(b) (added at green: mutation run) | MODE35 1 CI 200000 CHS TAN | X=0i-1
+O41 | ours: e^z below the range is 0, as for a real e^x (unit 026; was a range error) | MODE35 54215 CHS CI 0 EXP | X=0i0 %F6=0
+O42 | ruled (abacus, unit 009 review): ARG of 0 i 0 is 0, the atan2 convention | MODE35 0 CI 0 ARG | X=0 L=0i0
+O43 | ours: 2^(i 10^100) keeps its accuracy, w carried 45 digits past its units (mpmath at 600 and 900 digits agree) | MODE35 2 ENTER 0 CI 1 E 100 POW | X^-0.937080888983868554800379160539599618i0.349112313591489661475948449649491559
+O37 | ours (rule 5): 0^z with Re z = 0 exactly is an error (added at green: the mutation run found the boundary untested) | MODE35 0 CI 0 ENTER 0 CI 1 POW | ERR X=0i1 Y=0i0

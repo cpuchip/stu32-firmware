@@ -398,10 +398,14 @@ int main(void)
     expect(c.disp_mode == AB_ENG && c.disp_n == 0, "ENG 0");
     press(&a, "GOLD 2 k:3");
     expect(c.disp_mode == AB_ALL, "ALL");
+    press(&a, "GOLD 2 k:5 C");
+    expect(!c.cpolar, "041 A2: 33s mode: r\xce\xb8" "a does nothing");
+    ab_do_arg(&c, AB_MODEL, 35);                /* xiy and r\xce\xb8a are 35s mode's (unit 041 A2, decision 58) */
     press(&a, "GOLD 2 k:5");
     expect(c.cpolar, "r\xce\xb8" "a: complex numbers in polar form");
     press(&a, "GOLD 2 k:4");
     expect(!c.cpolar, "xiy: back to rectangular");
+    ab_do_arg(&c, AB_MODEL, 33);
     ab_do(&c, AB_PRGM);
     press(&a, "GOLD 2 k:0 7");
     {
@@ -455,7 +459,8 @@ int main(void)
         press(&a, "BLUE \xe2\x86\x90");
         expect(img_crc(&c) == before && var_of(&c, 'A') == 0, "UNDO passes over shifts, a menu and VIEW to STO");
 
-        /* UNDO after CLSTK (the CLEAR menu's second item) */
+        /* UNDO after CLSTK (the CLEAR menu's second item; 35s mode's, unit 041 A6, decision 58) */
+        ab_do_arg(&c, AB_MODEL, 35);
         press(&a, "1 ENTER 2 ENTER 3");
         before = img_crc(&c);
         press(&a, "GOLD \xe2\x86\x90 k:1");
@@ -608,8 +613,37 @@ int main(void)
     app_ui(&a, &ui);
     expect(!ui.prompt && c.ind_top == 50 && c.entry.active, "C cancels it; the next 0 is typed");
 
+    /* unit 041 A (decision 58): in 33s mode TABLE and GRAPH don't open, LOGIC and SUFFIX are dimmed and don't open,
+       CMPLX opens (the 33s's prefix) with its items dimmed; in 35s mode none dimmed */
+    {
+        ab_init(&c);
+        app_init(&a, &c, now);
+        press(&a, "BLUE 8");
+        expect(a.menu < 0, "041 A14: 33s mode: TABLE doesn't open");
+        press(&a, "BLUE 7");
+        expect(a.menu < 0, "041 A14: 33s mode: GRAPH doesn't open");
+        press(&a, "C BLUE x\xe2\x86\x94y");
+        app_ui(&a, &ui);
+        expect(ui.soft_dim[4] && ui.soft_dim[5] && !ui.soft_dim[0] && !ui.soft_dim[1],
+               "041 A5: 33s mode: BASE's LOGIC and SUFX dimmed, its bases not");
+        int base_menu = a.menu;
+        press(&a, "k:4");
+        expect(a.menu == base_menu, "041 A5: 33s mode: LOGIC doesn't open");
+        press(&a, "C BLUE +/\xe2\x88\x92");
+        app_ui(&a, &ui);
+        expect(a.menu >= 0 && ui.soft_dim[0] && ui.soft_dim[1] && ui.soft_dim[2] && ui.soft_dim[3],
+               "041 A1: 33s mode: CMPLX opens as the prefix, i theta ARG [ dimmed");
+        press(&a, "C");
+        ab_do_arg(&c, AB_MODEL, 35);
+        press(&a, "BLUE +/\xe2\x88\x92");
+        app_ui(&a, &ui);
+        expect(!ui.soft_dim[0] && !ui.soft_dim[3], "041 A1: 35s mode: CMPLX's items not dimmed");
+        press(&a, "C BLUE 8");
+        expect(a.menu >= 0, "041 A14: 35s mode: TABLE opens (its GO says STU ONLY)");
+    }
+
     /* unit 019: every menu on a key opens with its items on the soft keys (CONST shows its first
-       five constants and "more") */
+       five constants and "more"); in 35s mode, where every menu opens (unit 041 A, decision 58) */
     for (int k = 0; k < KB_KEYS; k++)
         for (int sh = 1; sh < 3; sh++) {
             const km_action *act = km_lookup(k, sh);
@@ -617,6 +651,7 @@ int main(void)
             const km_menu *mn = km_menu_at(act->arg);
             ab_init(&c);
             app_init(&a, &c, now);
+            ab_do_arg(&c, AB_MODEL, 35);
             tap(&a, shift_key(sh));
             tap(&a, k);
             app_ui(&a, &ui);
@@ -643,23 +678,24 @@ int main(void)
 
     /* each soft key does its op: one per menu (work/019 acceptance) */
     {
-        static const struct { const char *keys; double x; const char *what; } S[] = {
-            {"1 BLUE LN k:0", 1.1752011936438014, "HYP SINH 1"},
-            {"1 \xce\xa3+ 3 \xce\xa3+ BLUE \xce\xa3+ k:0", 2, "STAT x-bar of 1 and 3"},
-            {"2 ENTER 1 \xce\xa3+ 4 ENTER 2 \xce\xa3+ BLUE + k:3", 2, "L.R. m of (1,2) (2,4)"},
-            {"2 ENTER 1 \xce\xa3+ 4 ENTER 2 \xce\xa3+ GOLD + k:0", 2, "SUMS n"},
-            {"5 ENTER 2 BLUE \xc3\x97 k:0", 10, "PROB Cn,r 5 2"},
-            {"1 ENTER 2 GOLD 6 k:2 1 0", 10, "x?y: a test from the keys leaves the stack"},
-            {"1 0 BLUE RCL k:4", 25.4, "CONV 10 in to cm"},
-            {"1 GOLD 1 k:2", 1.609344, "UNITS 1 mile to km"},
-            {"1 BLUE SIN k:4", 57.295779513082321, "ANGLE 1 rad to degrees"},
-            {"5 BLUE R\xe2\x86\x93 k:0", 0, "STACK CLSTK"},
-            {"2 . 5 BLUE y\xcb\xa3 k:0", 2, "POW IP 2.5"},
-            {"GOLD RCL k:0", 299792458, "CONST c"},
+        static const struct { const char *keys; double x; const char *what; int m35; } S[] = {   /* m35: 041 A */
+            {"1 BLUE LN k:0", 1.1752011936438014, "HYP SINH 1", 0},
+            {"1 \xce\xa3+ 3 \xce\xa3+ BLUE \xce\xa3+ k:0", 2, "STAT x-bar of 1 and 3", 0},
+            {"2 ENTER 1 \xce\xa3+ 4 ENTER 2 \xce\xa3+ BLUE + k:3", 2, "L.R. m of (1,2) (2,4)", 0},
+            {"2 ENTER 1 \xce\xa3+ 4 ENTER 2 \xce\xa3+ GOLD + k:0", 2, "SUMS n", 0},
+            {"5 ENTER 2 BLUE \xc3\x97 k:0", 10, "PROB Cn,r 5 2", 0},
+            {"1 ENTER 2 GOLD 6 k:2 1 0", 10, "x?y: a test from the keys leaves the stack", 0},
+            {"1 0 BLUE RCL k:4", 25.4, "CONV 10 in to cm", 0},
+            {"1 GOLD 1 k:2", 1.609344, "UNITS 1 mile to km", 1},
+            {"1 BLUE SIN k:4", 57.295779513082321, "ANGLE 1 rad to degrees", 0},
+            {"5 BLUE R\xe2\x86\x93 k:0", 0, "STACK CLSTK", 1},
+            {"2 . 5 BLUE y\xcb\xa3 k:0", 2, "POW IP 2.5", 0},
+            {"GOLD RCL k:0", 299792458, "CONST c", 0},
         };
         for (size_t i = 0; i < sizeof S / sizeof S[0]; i++) {
             ab_init(&c);
             app_init(&a, &c, now);
+            if (S[i].m35) ab_do_arg(&c, AB_MODEL, 35);  /* hidden in 33s mode (unit 041 A, decision 58) */
             press(&a, S[i].keys);
             double x = x_of(&c), e = S[i].x == 0 ? 1e-12 : 1e-12 * (S[i].x < 0 ? -S[i].x : S[i].x);
             app_ui(&a, &ui);
@@ -690,7 +726,9 @@ int main(void)
         expect(c.yes, "FS? 11: yes");
         press(&a, "GOLD x\xe2\x86\x94y k:4 . 1");
         expect(c.yes, "TEST's FS? 11: yes");
-        /* BASE, and BASE > LOGIC > AND (12 AND 10 is 8) */
+        /* BASE, and BASE > LOGIC > AND (12 AND 10 is 8); LOGIC, the suffixes and CMPLX's i are 35s mode's (unit 041
+           A, decision 58) */
+        ab_do_arg(&c, AB_MODEL, 35);
         press(&a, "BLUE x\xe2\x86\x94y k:1");
         expect(c.base == 16, "BASE HEX");
         press(&a, "BLUE x\xe2\x86\x94y k:0 1 2 ENTER 1 0 BLUE x\xe2\x86\x94y k:4");
@@ -841,6 +879,7 @@ int main(void)
         /* the list wraps through EQN LIST TOP (p.6-7); NEW goes to TOP; EDIT on a built-in does nothing */
         ab_init(&c);
         app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, 35);            /* the built-ins are 35s mode's (unit 041 A4, decision 58) */
         ab_eqn_add(&c, "A+1");                  /* (which turns Equation mode on) */
         int n = c.eqn_count, top = c.eqn_cur;
         press(&a, "k:3");
@@ -1309,6 +1348,7 @@ int main(void)
         expect(ui.show_n == 0 && c.entry.active, "030: with releases, a key while SHOW is held ends it and acts");
         a.key_ups = false;
         press(&a, "C");
+        ab_do_arg(&c, AB_MODEL, 35);            /* CMPLX's i is 35s mode's (unit 041 A1, decision 58) */
         press(&a, "C 3 BLUE +/\xe2\x88\x92 k:0 4 ENTER BLUE R\xe2\x86\x93 k:4");    /* 3 i 4 (CMPLX's i, blue +/-) */
         app_ui(&a, &ui);
         screen_lines(&c, &ui, &pg);
@@ -1656,8 +1696,8 @@ int main(void)
         press(&a, "BLUE +/\xe2\x88\x92 5");
         app_ui(&a, &ui);
         expect(!ui.prompt && a.menu < 0 && c.entry.active, "039: another key closes the prefix and acts (5 typed)");
-        press(&a, "C 1 BLUE +/\xe2\x88\x92 k:0 2 ENTER");
-        expect(c.x.kind == AB_COMPLEX, "039: 33s mode keeps the menu's i (1 i 2)");
+        press(&a, "C 1 BLUE +/\xe2\x88\x92 k:0 2 ENTER");      /* was 039's "33s mode keeps the menu's i": decision 58 */
+        expect(c.x.kind == AB_REAL && x_of(&c) == 12, "041 A1: 33s mode: the menu's i does nothing (1 i 2 is 12)");
         /* a shifted operator is not the operator: GOLD LN is LOG, the prefix closed (039 review) */
         press(&a, "C C 1 0 0 BLUE +/\xe2\x88\x92 GOLD LN");
         app_ui(&a, &ui);
@@ -1958,6 +1998,7 @@ int main(void)
         static ls027_frame fr;
         ab_init(&c);
         app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, 35);            /* GRAPH's menu doesn't open in 33s mode (unit 041 A14, decision 58) */
         press(&a, "BLUE 7");
         app_ui(&a, &ui);
         expect(ui.soft[0] && !strcmp(ui.soft[0], "XMIN") && ui.soft[3] && !strcmp(ui.soft[3], "YMAX") && ui.soft[4] &&
@@ -2154,6 +2195,7 @@ int main(void)
         screen_lines(&c, &ui, &pg);
         expect(pg.x.kind != SCREEN_VIEW && pg.x.label && !strchr(pg.y.text, '?'), "035: the next key: the ordinary stack");
         ab_init(&c);
+        ab_do_arg(&c, AB_MODEL, 35);            /* the built-ins are 35s mode's (unit 041 A4, decision 58) */
         ab_do_arg(&c, AB_SETFIX, 4);
         ab_do(&c, AB_EQN);
         ab_do(&c, AB_SST);                      /* 2*2 lin. solve */
@@ -2187,6 +2229,7 @@ int main(void)
         static screen_page pg;
         ab_init(&c);
         app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, 35);            /* TABLE's menu doesn't open in 33s mode (unit 041 A14, decision 58) */
         press(&a, "BLUE 8");
         app_ui(&a, &ui);
         expect(ui.soft[0] && !strcmp(ui.soft[0], "VAR") && ui.soft[1] && !strcmp(ui.soft[1], "START") && ui.soft[2] &&
@@ -2196,7 +2239,7 @@ int main(void)
         ab_eqn_add(&c, "X^2");
         ab_do(&c, AB_EQN);                      /* out of Equation mode, X^2 last shown */
         press(&a, "3 STO ltr:X");
-        c.stu = true;                           /* STU (MODE's keys tested elsewhere) */
+        c.stu = c.m35 = true;                   /* STU, which is 35s mode (MODE's keys tested elsewhere; 041 A14) */
         press(&a, "BLUE 8 k:3");
         app_ui(&a, &ui);
         screen_lines(&c, &ui, &pg);

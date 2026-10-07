@@ -6,6 +6,7 @@
 # Unit 025 (work/025-indirect-i-and-program-modes.md): the default is now 33s mode, so these vectors,
 # written from the 35s guide's indirect model, start with MODE35 (the ERR ones added after review, which
 # passed in 33s mode only by failing early: O05 O22): M28 M29 O01 O02 O03 O04 O06 O12.
+# Unit 041 Part A (decision 58): moved to 35s mode (MODE35 added), each using a feature now hidden in 33s mode: O15.
 
 M01 | 35s p.13-13 INPUT stops and prompts with R's value in X (B-5: lift off while waiting) | PRGM CLPGM LBL:A INPUT:R SQ PI * RTN PRGM XEQ:A | %STOP=INPUT:R X=0 %PC=A002
 M02 | 35s p.13-13 R/S stores the typed value in R and resumes | PRGM CLPGM LBL:A INPUT:R SQ PI * RTN PRGM XEQ:A 5 RS | X=78.53981633974483096156608458198758 @R=5 %STOP=DONE Y=0
@@ -50,7 +51,7 @@ O11 | 35s p.B-5 the prompt's value is overwritten by a typed number, not lifted 
 O12 | ours: storing a complex reply in an unnamed variable is an error; the prompt stays | MODE35 PRGM CLPGM LBL:A INPUT:(I) RTN PRGM 5 STO:I XEQ:A 1 CI 1 RS | ERR %STOP=INPUT:#5 %ERR=DOMAIN
 O13 | ours: a keyboard XEQ after a stop starts fresh | PRGM CLPGM LBL:A INPUT:R SQ PI * RTN PRGM XEQ:A PRGM PRGM 3 XEQ:A | %STOP=INPUT:R
 O14 | ours: VIEW from the keyboard does not stop anything (unit 005) | 4 STO:B VIEW:B 7 | X=7 Y=4 %STOP=NONE
-O15 | ours: an ENTER line run after R/S from a VIEW is an ordinary ENTER (found by prog_fuzz: the stop state outlived the resume) | PRGM CLPGM LBL:A VIEW:H ENTER RTN PRGM 5 STO:H CLSTK XEQ:A RS | X=0 Y=0 %STOP=DONE
+O15 | ours: an ENTER line run after R/S from a VIEW is an ordinary ENTER (found by prog_fuzz: the stop state outlived the resume) | MODE35 PRGM CLPGM LBL:A VIEW:H ENTER RTN PRGM 5 STO:H CLSTK XEQ:A RS | X=0 Y=0 %STOP=DONE
 O16 | 35s p.B-5 lift is on again after R/S from INPUT: the next number lifts the reply (5 + 2) | PRGM CLPGM LBL:A INPUT:R 5 + RTN PRGM XEQ:A 2 RS | X=7
 O17 | 35s p.F-5 a 21st nested XEQ is XEQ OVERFLOW | PRGM CLPGM LBL:A XEQ:B001 RTN LBL:B XEQ:C001 RTN LBL:C XEQ:D001 RTN LBL:D XEQ:E001 RTN LBL:E XEQ:F001 RTN LBL:F XEQ:G001 RTN LBL:G XEQ:H001 RTN LBL:H XEQ:I001 RTN LBL:I XEQ:J001 RTN LBL:J XEQ:K001 RTN LBL:K XEQ:L001 RTN LBL:L XEQ:M001 RTN LBL:M XEQ:N001 RTN LBL:N XEQ:O001 RTN LBL:O XEQ:P001 RTN LBL:P XEQ:Q001 RTN LBL:Q XEQ:R001 RTN LBL:R XEQ:S001 RTN LBL:S XEQ:T001 RTN LBL:T XEQ:U001 RTN LBL:U XEQ:V001 RTN LBL:V 7 RTN PRGM XEQ:A | ERR %ERR=XEQ_OVERFLOW %PC=U002
 O18 | 35s p.F-1 a label keyed twice is DUPLICAT.LBL | PRGM LBL:A LBL:A PRGM | ERR %ERR=DUP_LABEL

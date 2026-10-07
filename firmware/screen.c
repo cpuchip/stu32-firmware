@@ -459,6 +459,9 @@ static void soft_band(ls027_frame *f, const screen_ui *ui)
         line l = {.n = 0, .cursor = -1};
         line_add(&l, s);
         draw_cps(f, x + (64 - span(n, 2)) / 2, SOFT_Y + 8, 2, l.cp, n, !on);
+        if (ui->soft_dim[k])                    /* dimmed: every other pixel cleared, a 50% grey (unit 041 A) */
+            for (int j = SOFT_Y; j < SOFT_Y + 30; j++)
+                for (int i = x + ((x + j) & 1); i < x + 64; i += 2) put(f, i, j, false);
     }
 }
 
@@ -855,6 +858,7 @@ void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
         out->soft[i] = ui->soft[i];
         out->soft_on[i] = ui->soft_on[i];
         out->soft_sub[i] = ui->soft_sub[i];
+        out->soft_dim[i] = ui->soft_dim[i];
     }
 }
 

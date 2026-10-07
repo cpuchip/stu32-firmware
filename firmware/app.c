@@ -262,6 +262,31 @@ static bool cx_prefix(const app_state *a, int menu)
            menu == menu_named("CMPLX");
 }
 
+/* Unit 041 Part A: a menu of the 35s's features, in 33s mode: TABLE and GRAPH (A14), or one whose every item is
+   a hidden op (LOGIC, SUFFIX); CMPLX opens, the 33s's prefix (unit 039), its items dimmed. It doesn't open, and its
+   label is dimmed. */
+static bool menu_hidden(const ab_calc *c, const km_menu *mn)
+{
+    if (!mn || ab_mode35(c)) return false;
+    if (!strcmp(mn->name, "TABLE") || !strcmp(mn->name, "GRAPH")) return true;
+    if (!strcmp(mn->name, "CMPLX")) return false;
+    int n = 0;
+    for (int i = 0; i < KM_SOFT_KEYS; i++) {
+        const km_action *it = &mn->item[i];
+        if (it->kind == KM_NONE) continue;
+        if (it->kind != KM_OP || !ab_hidden(c, it->op)) return false;
+        n++;
+    }
+    return n > 0;
+}
+
+/* Whether an item is a 35s feature in 33s mode (unit 041 A): an op or a prompt for one, or such a menu. */
+static bool item_hidden(const ab_calc *c, const km_action *it)
+{
+    if (it->kind == KM_OP || it->kind == KM_PROMPT) return ab_hidden(c, it->op);
+    return it->kind == KM_MENU && it->arg >= 0 && menu_hidden(c, km_menu_at(it->arg));
+}
+
 /* Equation mode's bar on the soft keys when no menu is open (unit 020): typing's while an equation
    is typed (in program entry too), the list's while Equation mode shows the list; -1 none. */
 static int eqn_bar(const app_state *a)
@@ -562,6 +587,11 @@ void app_key(app_state *a, int key, uint32_t now_ms)
         if (face->kind == KM_SOFT && mn) {
             const km_action *it = &mn->item[face->arg];
             a->shift = 0;
+            if (item_hidden(a->c, it)) {        /* 33s mode: a 35s feature does nothing, the menu kept (unit 041 A) */
+                a->menu = at;
+                a->menu_page = page;
+                return;
+            }
             do_action(a, it);
             if (it->kind == KM_DEVICE && (it->arg == KM_DEV_USE || it->arg == KM_DEV_USEALL))
                 a->menu = at;                   /* the buzzer's uses: toggled with the menu open (ours) */
@@ -676,6 +706,7 @@ static void setting(app_state *a, const km_action *act)
 
 static void do_action(app_state *a, const km_action *act)
 {
+    if (item_hidden(a->c, act)) return;         /* 33s mode: a 35s feature does nothing (unit 041 A) */
     switch (act->kind) {
     case KM_OP:
         if (act->op == AB_ENTRYM && act->arg == 1 && !a->c->stu) break;    /* ALG: shown in STU only */
@@ -1085,6 +1116,7 @@ void app_ui(const app_state *a, screen_ui *ui)
             if (it->kind == KM_OP && it->op == AB_ENTRYM && it->arg == 1 && !c->stu) ui->soft[i] = NULL;   /* STU's */
         }
         ui->soft_sub[i] = it->kind == KM_MENU;  /* a submenu: its box marked (#3958) */
+        ui->soft_dim[i] = item_hidden(a->c, it);   /* unit 041 A */
         if (it->kind == KM_DEVICE) {            /* the settings in effect (unit 022) */
             static char off[8], vol[8];
             switch (it->arg) {

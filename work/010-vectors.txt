@@ -4,64 +4,66 @@
 # element exact. Exact references: python decimal at 500 digits, rounded once to 34 (half even).
 # Unit 025 (work/025-indirect-i-and-program-modes.md): the default is now 33s mode, so these vectors,
 # written from the 35s guide's indirect model, start with MODE35: O22.
+# Unit 041 Part A (decision 58): moved to 35s mode (MODE35 added), each using a feature now hidden in 33s mode: M01 M02 M03 M04 M05 M06 M07 M08 M09 M10 M11 M12 M13 M14 M15 M16 M17 M18 M19 M20 O01 O02 O03 O04 O05 O06 O07 O08 O09 O10 O11 O12 O13 O14 O15 O16 O17 O18 O20 O21 O23 O24 O25 O26 O27 O28 O30 O31 O33 O35 O36 O37 O38 O39 O40.
+# O21 also takes a C before RCL:A: in 35s mode the key after an error only clears it (35s p.F-1; unit 017 rule 4).
 
-M01 | 35s p.10-2 [1.5,-2.2] + [-1.5,2.2]; CHS before the digits; Y gets the old Z | [ 1.5 , CHS 2.2 ENTER [ CHS 1.5 , 2.2 + | X=[0,0] Y=0 L=[-1.5,2.2]
-M02 | 35s p.10-2 ENTER copies the vector | [ 1.5 , CHS 2.2 ENTER | X=[1.5,-2.2] Y=[1.5,-2.2]
-M03 | 35s p.10-2 [-3.4,4.5] - [2.3,1.4] (the guide's ALG example, in RPN) | [ CHS 3.4 , 4.5 ENTER [ 2.3 , 1.4 - | X=[-5.7,3.1]
-M04 | 35s p.10-3 [3,4] x 5: vector in Y, scalar in X | [ 3 , 4 ENTER 5 * | X=[15,20] Y=0 L=5
-M05 | 35s p.10-3 [-2,4] / 2 (ALG example, in RPN) | [ CHS 2 , 4 ENTER 2 / | X=[-1,2]
-M06 | 35s p.10-3 ABS [5,12] is 13 | [ 5 , 12 ABS | X=13 L=[5,12]
-M07 | 35s p.10-4 [1,2] . [3,4] = 11 (ALG example, in RPN: x on two vectors) | [ 1 , 2 ENTER [ 3 , 4 * | X=11
-M08 | 35s p.10-4/10-5 [9,5] . [2,2] = 28 | [ 9 , 5 ENTER [ 2 , 2 * | X=28
-M09 | 35s p.10-5 angle between [1,0] and [0,1] in DEG is 90 | DEG [ 1 , 0 ENTER [ 0 , 1 * [ 1 , 0 ABS / [ 0 , 1 ABS / ACOS | X=90
-M10 | 35s p.10-5 [3,4] . [0,5] = 20 with 90 below | 90 DEG [ 3 , 4 ENTER [ 0 , 5 * | X=20 Y=90
-M11 | 35s p.10-5/10-6 the magnitudes of [3,4] and [0,5] multiply to 25 | 90 DEG [ 3 , 4 ENTER [ 0 , 5 * [ 3 , 4 ABS [ 0 , 5 ABS * | X=25 Y=20 Z=90
-M12 | 35s p.10-6 angle between [3,4] and [0,5] is 36.8699 | 90 DEG [ 3 , 4 ENTER [ 0 , 5 * [ 3 , 4 ABS [ 0 , 5 ABS * / ACOS | X^36.8698976458440212968556125590934107 Y=90
-M13 | 35s p.10-1 + of vectors of different length: INVALID DATA | [ 1 , 2 ENTER [ 1 , 2 , 3 + | ERR X=[1,2,3] Y=[1,2]
-M14 | 35s p.10-4 the dot product of different lengths: INVALID DATA | [ 1 , 2 ENTER [ 1 , 2 , 3 * | ERR X=[1,2,3] Y=[1,2]
-M15 | 35s p.10-1 three elements at most: a fourth comma is ignored (ours) | [ 1 , 2 , 3 , 4 ENTER | X=[1,2,34]
-M16 | 35s p.2-2 a 1-D vector fills part 1 | [ 5 ENTER | X=[5] Y=[5]
-M17 | 35s p.3-2 a variable holds a vector | [ 1 , 2 , 3 STO:A CLX RCL:A | X=[1,2,3]
-M18 | 35s p.5-6 /c of a vector: INVALID DATA | [ 1 , 2 /C | ERR X=[1,2]
-M19 | 35s p.11-4 logic on a vector: INVALID DATA | [ 1 , 2 ENTER 1 AND | ERR X=1 Y=[1,2]
-M20 | 35s p.F statistics reject a vector: INVALID DATA | [ 1 , 2 SIGMA+ | ERR X=[1,2]
-O01 | ours: 3-D sum, one rounding per element | [ 1 , 2 , 3 ENTER [ 0.1 , 0.2 , 0.3 + | X=[1.1,2.2,3.3]
-O02 | ours: division correctly rounded per element | [ 1 , 2 ENTER 3 / | X=[0.3333333333333333333333333333333333,0.6666666666666666666666666666666667]
-O03 | ours (rule 3): the dot product is exact before its one rounding | [ 1 E 20 , 1 , 1 CHS E 20 ENTER [ 1 , 1 , 1 * | X=1
-O04 | ours (rule 3): a dot product rounded once (typed without the leading 0: it would count as one of the 34 digits, unit 001) | [ .1234567890123456789012345678901234 , 3 ENTER [ 3 , .1000000000000000000000000000000001 * | X=0.6703703670370370367037037036703705
-O05 | ours: ABS of a Pythagorean 3-D vector | [ 2 , 3 , 6 ABS | X=7
-O06 | ours (rule 3): ABS correctly rounded | [ 1 , 1 ABS | X=1.414213562373095048801688724209698
-O07 | ours (rule 3): ABS where rounding the sum of squares first would be one unit off | [ 3.718324588177956732429184138590386 , 4.646046906600203 E 15 CHS ABS | X=3.718324588177956732429184138593289
-O08 | ours: a scalar times a vector (scalar in Y) | 2 ENTER [ 1 , 2 * | X=[2,4]
-O09 | ours: a number divided by a vector is INVALID DATA | 2 ENTER [ 1 , 2 / | ERR X=[1,2] Y=2
-O10 | ours (rule 4): a vector divided by 0 is an error | [ 1 , 2 ENTER 0 / | ERR X=0 Y=[1,2]
-O11 | ours: a vector plus a number is INVALID DATA | [ 1 , 2 ENTER 3 + | ERR X=3 Y=[1,2]
-O12 | ours (rule 2): a vector with a complex number is INVALID DATA | [ 1 , 2 ENTER 1 CI 1 * | ERR X=1i1 Y=[1,2]
-O13 | ours: i cannot be typed in a vector | [ 1 CI | ERR X=[1]
-O14 | ours (rule 2): an unlisted function on a vector is INVALID DATA | [ 4 , 9 SQRT | ERR X=[4,9]
-O15 | ours (rule 2): CHS is not listed for a completed vector | [ 4 , 9 ENTER CHS | ERR X=[4,9]
-O16 | ours (rule 4): an element out of range changes nothing | [ 1 E 6000 , 1 ENTER 1 E 200 * | ERR X=1E200 Y=[1E6000,1]
-O17 | ours: LAST X holds the vector x | [ 1 , 2 ENTER [ 3 , 4 + LASTX | X=[3,4] Y=[4,6]
-O18 | ours: backspace through an empty element erases the comma | [ 1 , 2 BKSP BKSP 3 ENTER | X=[13]
+M01 | 35s p.10-2 [1.5,-2.2] + [-1.5,2.2]; CHS before the digits; Y gets the old Z | MODE35 [ 1.5 , CHS 2.2 ENTER [ CHS 1.5 , 2.2 + | X=[0,0] Y=0 L=[-1.5,2.2]
+M02 | 35s p.10-2 ENTER copies the vector | MODE35 [ 1.5 , CHS 2.2 ENTER | X=[1.5,-2.2] Y=[1.5,-2.2]
+M03 | 35s p.10-2 [-3.4,4.5] - [2.3,1.4] (the guide's ALG example, in RPN) | MODE35 [ CHS 3.4 , 4.5 ENTER [ 2.3 , 1.4 - | X=[-5.7,3.1]
+M04 | 35s p.10-3 [3,4] x 5: vector in Y, scalar in X | MODE35 [ 3 , 4 ENTER 5 * | X=[15,20] Y=0 L=5
+M05 | 35s p.10-3 [-2,4] / 2 (ALG example, in RPN) | MODE35 [ CHS 2 , 4 ENTER 2 / | X=[-1,2]
+M06 | 35s p.10-3 ABS [5,12] is 13 | MODE35 [ 5 , 12 ABS | X=13 L=[5,12]
+M07 | 35s p.10-4 [1,2] . [3,4] = 11 (ALG example, in RPN: x on two vectors) | MODE35 [ 1 , 2 ENTER [ 3 , 4 * | X=11
+M08 | 35s p.10-4/10-5 [9,5] . [2,2] = 28 | MODE35 [ 9 , 5 ENTER [ 2 , 2 * | X=28
+M09 | 35s p.10-5 angle between [1,0] and [0,1] in DEG is 90 | MODE35 DEG [ 1 , 0 ENTER [ 0 , 1 * [ 1 , 0 ABS / [ 0 , 1 ABS / ACOS | X=90
+M10 | 35s p.10-5 [3,4] . [0,5] = 20 with 90 below | MODE35 90 DEG [ 3 , 4 ENTER [ 0 , 5 * | X=20 Y=90
+M11 | 35s p.10-5/10-6 the magnitudes of [3,4] and [0,5] multiply to 25 | MODE35 90 DEG [ 3 , 4 ENTER [ 0 , 5 * [ 3 , 4 ABS [ 0 , 5 ABS * | X=25 Y=20 Z=90
+M12 | 35s p.10-6 angle between [3,4] and [0,5] is 36.8699 | MODE35 90 DEG [ 3 , 4 ENTER [ 0 , 5 * [ 3 , 4 ABS [ 0 , 5 ABS * / ACOS | X^36.8698976458440212968556125590934107 Y=90
+M13 | 35s p.10-1 + of vectors of different length: INVALID DATA | MODE35 [ 1 , 2 ENTER [ 1 , 2 , 3 + | ERR X=[1,2,3] Y=[1,2]
+M14 | 35s p.10-4 the dot product of different lengths: INVALID DATA | MODE35 [ 1 , 2 ENTER [ 1 , 2 , 3 * | ERR X=[1,2,3] Y=[1,2]
+M15 | 35s p.10-1 three elements at most: a fourth comma is ignored (ours) | MODE35 [ 1 , 2 , 3 , 4 ENTER | X=[1,2,34]
+M16 | 35s p.2-2 a 1-D vector fills part 1 | MODE35 [ 5 ENTER | X=[5] Y=[5]
+M17 | 35s p.3-2 a variable holds a vector | MODE35 [ 1 , 2 , 3 STO:A CLX RCL:A | X=[1,2,3]
+M18 | 35s p.5-6 /c of a vector: INVALID DATA | MODE35 [ 1 , 2 /C | ERR X=[1,2]
+M19 | 35s p.11-4 logic on a vector: INVALID DATA | MODE35 [ 1 , 2 ENTER 1 AND | ERR X=1 Y=[1,2]
+M20 | 35s p.F statistics reject a vector: INVALID DATA | MODE35 [ 1 , 2 SIGMA+ | ERR X=[1,2]
+O01 | ours: 3-D sum, one rounding per element | MODE35 [ 1 , 2 , 3 ENTER [ 0.1 , 0.2 , 0.3 + | X=[1.1,2.2,3.3]
+O02 | ours: division correctly rounded per element | MODE35 [ 1 , 2 ENTER 3 / | X=[0.3333333333333333333333333333333333,0.6666666666666666666666666666666667]
+O03 | ours (rule 3): the dot product is exact before its one rounding | MODE35 [ 1 E 20 , 1 , 1 CHS E 20 ENTER [ 1 , 1 , 1 * | X=1
+O04 | ours (rule 3): a dot product rounded once (typed without the leading 0: it would count as one of the 34 digits, unit 001) | MODE35 [ .1234567890123456789012345678901234 , 3 ENTER [ 3 , .1000000000000000000000000000000001 * | X=0.6703703670370370367037037036703705
+O05 | ours: ABS of a Pythagorean 3-D vector | MODE35 [ 2 , 3 , 6 ABS | X=7
+O06 | ours (rule 3): ABS correctly rounded | MODE35 [ 1 , 1 ABS | X=1.414213562373095048801688724209698
+O07 | ours (rule 3): ABS where rounding the sum of squares first would be one unit off | MODE35 [ 3.718324588177956732429184138590386 , 4.646046906600203 E 15 CHS ABS | X=3.718324588177956732429184138593289
+O08 | ours: a scalar times a vector (scalar in Y) | MODE35 2 ENTER [ 1 , 2 * | X=[2,4]
+O09 | ours: a number divided by a vector is INVALID DATA | MODE35 2 ENTER [ 1 , 2 / | ERR X=[1,2] Y=2
+O10 | ours (rule 4): a vector divided by 0 is an error | MODE35 [ 1 , 2 ENTER 0 / | ERR X=0 Y=[1,2]
+O11 | ours: a vector plus a number is INVALID DATA | MODE35 [ 1 , 2 ENTER 3 + | ERR X=3 Y=[1,2]
+O12 | ours (rule 2): a vector with a complex number is INVALID DATA | MODE35 [ 1 , 2 ENTER 1 CI 1 * | ERR X=1i1 Y=[1,2]
+O13 | ours: i cannot be typed in a vector | MODE35 [ 1 CI | ERR X=[1]
+O14 | ours (rule 2): an unlisted function on a vector is INVALID DATA | MODE35 [ 4 , 9 SQRT | ERR X=[4,9]
+O15 | ours (rule 2): CHS is not listed for a completed vector | MODE35 [ 4 , 9 ENTER CHS | ERR X=[4,9]
+O16 | ours (rule 4): an element out of range changes nothing | MODE35 [ 1 E 6000 , 1 ENTER 1 E 200 * | ERR X=1E200 Y=[1E6000,1]
+O17 | ours: LAST X holds the vector x | MODE35 [ 1 , 2 ENTER [ 3 , 4 + LASTX | X=[3,4] Y=[4,6]
+O18 | ours: backspace through an empty element erases the comma | MODE35 [ 1 , 2 BKSP BKSP 3 ENTER | X=[13]
 O19 | ours: backspace in an empty first element erases the bracket (X 0, lift off) | 5 ENTER [ BKSP 7 + | X=12
-O20 | ours: storage arithmetic with vectors | [ 1 , 2 STO:A [ 3 , 4 STO+:A RCL:A | X=[4,6]
-O21 | ours: storage arithmetic that fails changes nothing | [ 1 , 2 STO:A 5 STO+:A RCL:A | ERR X=[1,2] Y=5
+O20 | ours: storage arithmetic with vectors | MODE35 [ 1 , 2 STO:A [ 3 , 4 STO+:A RCL:A | X=[4,6]
+O21 | ours: storage arithmetic that fails changes nothing | MODE35 [ 1 , 2 STO:A 5 STO+:A C RCL:A | ERR X=[1,2] Y=5
 O22 | ours: the unnamed indirect variables hold reals only | MODE35 5 STO:I [ 1 , 2 STO:(I) | ERR X=[1,2]
-O23 | ours: CHS after an element's digits | [ 1 , 2 CHS ENTER | X=[1,-2]
-O24 | ours: CHS on the first element | [ 1 CHS , 2 ENTER | X=[-1,2]
-O25 | 35s p.2-4 x<>y moves the whole vector | [ 1 , 2 ENTER 3 XY | X=[1,2] Y=3
-O26 | ours: 1-D vectors add | [ 1 ENTER [ 2 + | X=[3]
-O27 | ours: an exponent inside an element | [ 1.5 E 3 , 2 ENTER | X=[1500,2]
-O28 | ours: fraction entry inside an element | [ .1.4 , 2 ENTER | X=[0.25,2]
+O23 | ours: CHS after an element's digits | MODE35 [ 1 , 2 CHS ENTER | X=[1,-2]
+O24 | ours: CHS on the first element | MODE35 [ 1 CHS , 2 ENTER | X=[-1,2]
+O25 | 35s p.2-4 x<>y moves the whole vector | MODE35 [ 1 , 2 ENTER 3 XY | X=[1,2] Y=3
+O26 | ours: 1-D vectors add | MODE35 [ 1 ENTER [ 2 + | X=[3]
+O27 | ours: an exponent inside an element | MODE35 [ 1.5 E 3 , 2 ENTER | X=[1500,2]
+O28 | ours: fraction entry inside an element | MODE35 [ .1.4 , 2 ENTER | X=[0.25,2]
 O29 | ours: ABS of the zero vector | [ 0 , 0 ABS | X=0
-O30 | ours (rule 3): ABS exact though the sum of squares leaves the range | [ 3 E 3000 , 4 E 3000 ABS | X=5E3000
-O31 | ours: [ ends a number being typed, and the vector lifts | 1 [ 2 , 3 ENTER | X=[2,3] Y=[2,3] Z=1
+O30 | ours (rule 3): ABS exact though the sum of squares leaves the range | MODE35 [ 3 E 3000 , 4 E 3000 ABS | X=5E3000
+O31 | ours: [ ends a number being typed, and the vector lifts | MODE35 1 [ 2 , 3 ENTER | X=[2,3] Y=[2,3] Z=1
 O32 | ours: a comma outside a vector is ignored | 1 , 2 ENTER | X=12
-O33 | ours: a vector divided by a scalar keeps LAST X | [ 3 , 6 ENTER 3 / | X=[1,2] L=3
+O33 | ours: a vector divided by a scalar keeps LAST X | MODE35 [ 3 , 6 ENTER 3 / | X=[1,2] L=3
 O34 | ours: ABS of a 1-D vector is its magnitude | [ 5 CHS ABS | X=5
-O35 | ours: the dot product of 3-D vectors | [ 1 , 2 , 3 ENTER [ 4 , 5 , 6 * | X=32
-O36 | ours: scalar times a 3-D vector, exact per element | [ 1.5 , 2.5 , 3.5 ENTER 2 * | X=[3,5,7]
-O37 | ours: ARG of a vector is INVALID DATA | [ 1 , 1 ARG | ERR X=[1,1]
-O38 | ours: RCL arithmetic, dot product with a vector variable | [ 1 , 2 STO:B CLX [ 3 , 4 RCL*:B | X=11 L=[3,4]
-O39 | ours (rule 3): ABS where the digits past the 34th are 5000 and only the remainder decides (added at green: the mutation run, found by the fuzz) | [ 4.52841970519706827 E 17 CHS , 3.3 E 1 , 4.689544059 CHS E 2 ABS | X=470.1140657468376097748038921424929
-O40 | ours (rule 3): a dot product whose products would each lose a digit (added at green: the mutation run) | [ 1.000000000000000000000000000000001 , 1 ENTER [ 1.000000000000000000000000000000001 , 1 CHS * | X=2.000000000000000000000000000000001E-33
+O35 | ours: the dot product of 3-D vectors | MODE35 [ 1 , 2 , 3 ENTER [ 4 , 5 , 6 * | X=32
+O36 | ours: scalar times a 3-D vector, exact per element | MODE35 [ 1.5 , 2.5 , 3.5 ENTER 2 * | X=[3,5,7]
+O37 | ours: ARG of a vector is INVALID DATA | MODE35 [ 1 , 1 ARG | ERR X=[1,1]
+O38 | ours: RCL arithmetic, dot product with a vector variable | MODE35 [ 1 , 2 STO:B CLX [ 3 , 4 RCL*:B | X=11 L=[3,4]
+O39 | ours (rule 3): ABS where the digits past the 34th are 5000 and only the remainder decides (added at green: the mutation run, found by the fuzz) | MODE35 [ 4.52841970519706827 E 17 CHS , 3.3 E 1 , 4.689544059 CHS E 2 ABS | X=470.1140657468376097748038921424929
+O40 | ours (rule 3): a dot product whose products would each lose a digit (added at green: the mutation run) | MODE35 [ 1.000000000000000000000000000000001 , 1 ENTER [ 1.000000000000000000000000000000001 , 1 CHS * | X=2.000000000000000000000000000000001E-33

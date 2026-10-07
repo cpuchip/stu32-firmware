@@ -4,6 +4,7 @@
 # rendered p.9-2 figure and its text: z1 = Z + iT, z2 = X + iY; the result real in X, imaginary in Y; Z and T keep
 # z1 ("replicated"); a one-number op reads X + iY and leaves Z and T. LAST X gets x (p.B-6).
 # "^" values: mpmath 1.4.1 at 80 digits on the exact typed inputs (soroban; abacus recomputes before pinning).
+# Unit 041 Part A (decision 58): amended in place, the complex value made in 35s mode before MODE33 (CMPLX's i is hidden in 33s mode): C22 C23 C24.
 C01 | p.9-4: sin(2 + i3) = 9.1545 - i4.1689 | MODE33 FIX4 3 ENTER 2 CMPLX:SIN | X^9.154499146911429573467299544609832559159 Y^-4.168906959966564350754813058853754843574 L=2
 C02 | ours (as the complex engine, one_complex): radians whatever the angle mode, as the guide's sin(2 + i3) | MODE33 DEG 3 ENTER 2 CMPLX:SIN | X^9.154499146911429573467299544609832559159 Y^-4.168906959966564350754813058853754843574
 C03 | p.9-4: z2 + z3 (-2 + i, 4 - i3); p.9-2: z1 (here z2) replicated in Z and T | MODE33 1 ENTER 2 CHS ENTER 3 CHS ENTER 4 CMPLX:+ | X=2 Y=-2 Z=-2 T=1 L=4
@@ -25,9 +26,9 @@ C18 | p.9-3: the result lifts the stack as any result does | MODE33 2 ENTER 5 EN
 C19 | ours (as every error): 1/0 changes nothing | MODE33 2 ENTER 5 ENTER 0 ENTER 0 CMPLX:INV | ERR %ERRMSG=DIVIDE_BY_0 X=0 Y=0 Z=5 T=2
 C20 | p.F-2 ("a logarithm of zero or (0 + i0)"): LOG(0), nothing changed | MODE33 0 ENTER 0 CMPLX:LN | ERR %ERRMSG=LOG(0) X=0 Y=0
 C21 | ours: z2 = 0 divides by zero, nothing changed | MODE33 2 ENTER 5 ENTER 0 ENTER 0 CMPLX:/ | ERR %ERRMSG=DIVIDE_BY_0 X=0 Y=0 Z=5 T=2
-C22 | ours (UG p.9-3's INVALID DATA): a complex value in X | MODE33 3 ENTER 1 CI 2 CMPLX:SIN | ERR %ERR=DOMAIN %ERRMSG=INVALID_DATA X=1i2
-C23 | ours: a complex value in Z, read by a two-number op | MODE33 1 CI 2 ENTER 3 ENTER 4 CMPLX:+ | ERR %ERR=DOMAIN X=4 Y=3 Z=1i2
-C24 | ours: a one-number op does not read Z | MODE33 1 CI 2 ENTER 3 ENTER 4 CMPLX:CHS | X=-4 Y=-3 Z=1i2
+C22 | ours (UG p.9-3's INVALID DATA): a complex value in X | MODE35 3 ENTER 1 CI 2 MODE33 CMPLX:SIN | ERR %ERR=DOMAIN %ERRMSG=INVALID_DATA X=1i2
+C23 | ours: a complex value in Z, read by a two-number op | MODE35 1 CI 2 ENTER 3 ENTER 4 MODE33 CMPLX:+ | ERR %ERR=DOMAIN X=4 Y=3 Z=1i2
+C24 | ours: a one-number op does not read Z | MODE35 1 CI 2 ENTER 3 ENTER 4 MODE33 CMPLX:CHS | X=-4 Y=-3 Z=1i2
 C25 | ours (the complex functions are decimal only, UG p.11-4's list): in HEX, INVALID DATA | MODE33 1 ENTER 2 HEX CMPLX:CHS | ERR %ERR=DOMAIN %ERRMSG=INVALID_DATA
 C26 | ours (the complex engine's rule, unit 026): an overflow is an error with flag 6 | MODE33 0 ENTER 20000 CMPLX:EXP | ERR %F6=1 X=20000 Y=0
 C27 | p.G-6/G-7 (names not in key boxes: programmable): a program's CMPLX + | MODE33 PRGM CLPGM LBL:A CMPLX:+ RTN PRGM 2 ENTER 5 ENTER 3 ENTER 1 XEQ:A | X=6 Y=5 Z=5 T=2 %LINES=3

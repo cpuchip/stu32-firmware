@@ -89,6 +89,7 @@ typedef struct {
     int errpos;             /* its character offset */
     bool rtl;               /* unit 031: ^ groups right to left (an STU equation) */
     bool implied;           /* unit 031: two operands side by side multiply (an STU equation) */
+    bool m33;               /* unit 041 Part A: typed in 33s mode, the 35s's features refused (SYNTAX) */
     bool chain;             /* a^b^c at one level was read (the mark, rule 3) */
     int nimp;               /* the implied products: the byte offset of each right operand */
     uint8_t imp[AB_EQN_LEN];    /* (offsets below AB_EQN_LEN, 192: a byte each, for the stack) */
@@ -161,6 +162,14 @@ static void apply2(parser *p, int id, ab_val *a, const ab_val *b)
         kop(p, OPS[id], a, &x);
         if (p->st == ABN_OK && !p->check) *a = x;
     }
+}
+
+/* Unit 041 Part A: the names an equation typed in 33s mode refuses: ARG (A2), to km and to mile (A7), REGX..REGT
+   (A11), the logic functions (A5); not on the 33s's p.6-15 list. */
+static bool m33_hidden(int id)
+{
+    return id == F_ARG || id == F_TOKM || id == F_TOMILE || (id >= F_REGX && id <= F_REGT) || id == F_AND ||
+           id == F_XOR || id == F_OR || id == F_NOT || id == F_NAND || id == F_NOR;
 }
 
 static void apply0(parser *p, int id, ab_val *v)
@@ -260,6 +269,11 @@ static bool parse_number(parser *p, ab_val *v)
     abn a, b;
     abn_status st = ABN_OK;
     if ((n = based_len(s, &base)) > 0) {
+        if (p->m33) {                           /* the 33s has no suffixes (041 A5, 33s p.10-1) */
+            p->i += n;
+            fail(p, ABN_SYNTAX);
+            return true;
+        }
         if (!p->check && p->st == ABN_OK && (st = ab_eqn_based(s, n - 1, base, &a)) == ABN_OK) *v = real_val(a);
         if (st != ABN_OK) fail(p, st);
         p->i += n;
@@ -279,7 +293,7 @@ static bool parse_number(parser *p, ab_val *v)
         return true;
     }
     p->i += n;
-    if (at(p, "i") || at(p, "\xce\xb8")) {
+    if (!p->m33 && (at(p, "i") || at(p, "\xce\xb8"))) {     /* the 33s: no one-value complex numbers (041 A1) */
         bool polar = s[n] != 'i', neg = at(p, "-");
         const char *s2 = p->s + p->i;
         int n2 = decimal_len(s2, &points, &digits);
@@ -316,6 +330,10 @@ static void parse_prim(parser *p, ab_val *v)
         return;
     }
     if (at(p, "[")) {
+        if (p->m33) {                           /* the 33s has no vectors (041 A3) */
+            fail(p, ABN_SYNTAX);
+            return;
+        }
         /* a vector of one to three elements, each an expression with a real value (UG p.10-6,
            10-8) */
         ab_val e[3];
@@ -357,6 +375,10 @@ static void parse_prim(parser *p, ab_val *v)
         if (best >= 0) {
             const fname *f = &NAMES[best];
             p->i += (int)bl;
+            if (p->m33 && m33_hidden(f->id)) {  /* a 35s feature, in an equation typed in 33s mode (041 A) */
+                fail(p, ABN_SYNTAX);
+                return;
+            }
             if (f->kind == K0) {
                 apply0(p, f->id, v);
                 return;
@@ -562,6 +584,7 @@ abn_status eqn_eval(ab_calc *c, const char *text, int model, bool rhs_only, bool
     p.check = check_only;
     p.st = ABN_OK;
     p.rtl = p.implied = model == AB_MODEL_STU;  /* the model it was typed in (unit 031 rule 3) */
+    p.m33 = model == 33;
     parse_all(&p, rhs_only, &l);
     *errpos = p.errpos;
     if (p.st != ABN_OK) return p.st;

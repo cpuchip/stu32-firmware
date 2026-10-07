@@ -26,8 +26,8 @@ H15 | 041 A5: 35s unchanged: 10b is 2 | MODE35 1 0 SUF:b ENTER | X=2
 # A6: CLEAR's STK and VARx; STACK's CLSTK (33s p.1-6)
 H16 | 041 A6: in 33s mode CLSTK does nothing | MODE33 1 ENTER 2 CLSTK | X=2 Y=1
 H17 | 041 A6: 35s unchanged | MODE35 1 ENTER 2 CLSTK | X=0 Y=0
-H18 | 041 A6: in 33s mode CLVARx does nothing | MODE33 0 STO:I 9 STO:(I) 1 STO:I 8 STO:(I) CLVAR:000 | @#0=9 @#1=8
-H19 | 041 A6: 35s unchanged (021 V02) | MODE35 0 STO:I 9 STO:(I) 1 STO:I 8 STO:(I) CLVAR:000 | @#0=9 @#1=0
+H18 | 041 A6: in 33s mode CLVARx does nothing: it isn't recorded (the 33s has no registers past Z for it to clear) | MODE33 PRGM LBL:A CLVAR:000 RTN PRGM | %LINES=2
+H19 | 041 A6: 35s unchanged: recorded | MODE35 PRGM LBL:A CLVAR:000 RTN PRGM | %LINES=3
 # A7: to km and to mile (33s p.4-13)
 H20 | 041 A7: in 33s mode TOKM does nothing | MODE33 1 TOKM | X=1
 H21 | 041 A7: 35s unchanged | MODE35 1 TOKM | X=1.609344
@@ -46,7 +46,7 @@ H32 | 041 A3: an equation typed in 33s mode refuses a vector | MODE33 EQ:[1,2]+[
 H33 | 041 A3: 35s unchanged | MODE35 EQ:[1,2]+[3,4] XEQ | X=[4,6]
 H34 | 041 A1: an equation typed in 33s mode refuses a complex number | MODE33 EQ:2i3+1 XEQ | ERR %ERR=SYNTAX
 H35 | 041 A1: 35s unchanged | MODE35 EQ:2i3+1 XEQ | X=3i3
-H36 | 041 A11: data stays: an equation typed in 35s mode still runs in 33s mode (its stamp decides) | MODE35 4 EQ:REGX+1 MODE33 XEQ | X=5
+H36 | 041 A11: data stays: an equation typed in 35s mode still runs in 33s mode (its stamp decides; C leaves Equation mode, where MODE does nothing) | MODE35 4 EQ:REGX+1 C MODE33 EQN XEQ | X=5
 # A14: TABLE and GRAPH (in 33s mode the menus don't open; the app's check is in app_test)
 H37 | 041 A14: in 33s mode TABLE does nothing (no STU ONLY) | MODE33 EQ:X C TABLE | %ERR=OK
 H38 | 041 A14: 35s unchanged: STU ONLY | MODE35 EQ:X C TABLE | ERR %ERR=STU_ONLY
@@ -54,3 +54,6 @@ H39 | 041 A14: in 33s mode GRAPH does nothing | MODE33 EQ:X C GRAPH | %ERR=OK %G
 # a program line typed in 33s mode can't record a hidden feature
 H40 | 041 A: in 33s mode AND isn't recorded | MODE33 PRGM LBL:A 12 ENTER 10 AND RTN PRGM | %LINES=5
 H41 | 041 A: 35s unchanged | MODE35 PRGM LBL:A 12 ENTER 10 AND RTN PRGM | %LINES=6
+H42 | 041 A4: a built-in shown in 35s mode, then 33s mode: EQN opens at the top, not on it | MODE35 EQN SST C MODE33 EQN | %EQ=TOP
+H43 | 041 A: typing an equation in 33s mode the comma still separates arguments (Part D brings the colon) | MODE33 EQN NCR 5 , 2 ENTER XEQ | %EQ=nCr(5,2) X=10
+H44 | 041 A11: and the other way: an equation typed in 33s mode refuses REGX in 35s mode too (its stamp decides) | MODE33 4 EQ:REGX+1 C MODE35 EQN XEQ | ERR %ERR=SYNTAX

@@ -2,6 +2,7 @@
 # review's N24-N27, Q20-Q22 and B18 are copied from work/024-review (Q20 moved from the HP's E499 to our
 # decimal128 edge, as the unit says); the V rows are ours, from the unit's rules and abacus's answers (#4198).
 # The largest number is decimal128's: 9.999999999999999999999999999999999E6144 (34 nines).
+# Unit 041 Part A (decision 58): moved to 35s mode (MODE35 added), each using a feature now hidden in 33s mode: V26 V29 V42 V45 V52.
 N24 | 33s p.1-16, F-3; 32SII p.1-12, E-3 overflow returns the largest number with a warning and sets flag 6 (no error) | 1 E 6000 ENTER * | X=9.999999999999999999999999999999999E6144 %F6=1
 N25 | 33s p.1-16, 32SII p.1-12 underflow returns zero, no message | 1 E 6000 CHS ENTER * | X=0
 N26 | 33s p.1-16, 32SII p.1-12 underflow inside a function returns zero: e^-20000 | 20000 CHS EXP | X=0 L=-20000
@@ -35,10 +36,10 @@ V22 | unit 026 (abacus #4198): a statistics register that overflows completes at
 V23 | unit 026 rule 2 in an equation: A×A with A = 1E4000 is the largest | EQ:A×A C 1 E 4000 STO:A EQN XEQ RS | X=9.999999999999999999999999999999999E6144 %F6=1
 V24 | unit 026 rule 6: SOLVE where f overflows at a guess: e^X - 10 from 1 and 20000 | EQ:EXP(X)-10 C 1 STO:X 20000 EQN SOLVE:X | X#2.302585092994045684017991454684364,1E-30 %F6=1
 V25 | unit 026 rule 6: flag 5 does not stop a SOLVE whose program overflows | PRGM CLPGM LBL:F RCL:X EXP 10 - RTN PRGM SF:5 1 STO:X 20000 FN=:F SOLVE:X | X#2.302585092994045684017991454684364,1E-30 %F6=1 %ERRMSG=none %STOP=DONE
-V26 | unit 026 (abacus #4198): a complex overflow stays an error and sets flag 6 | 1 E 6000 CI 1 E 6000 ENTER * | ERR %F6=1 %ERRMSG=OVERFLOW
+V26 | unit 026 (abacus #4198): a complex overflow stays an error and sets flag 6 | MODE35 1 E 6000 CI 1 E 6000 ENTER * | ERR %F6=1 %ERRMSG=OVERFLOW
 V27 | unit 026 rule 7: a typed number beyond the range keeps its range error: in an equation (the keys cannot type one: entry refuses the exponent digit that would leave the range); flag 6 untouched | EQ:1E7000+1 C EQN XEQ | ERR %ERR=RANGE %F6=0
 V28 | unit 026 rule 3: overflow in a program with flag 5 clear: no stop, the stop is DONE | PRGM CLPGM LBL:A 1 E 6000 ENTER * 5 RTN PRGM XEQ:A | %STOP=DONE
-V29 | unit 026 rule 4 for a complex result: a part that underflows is 0 (each part is exact, then rounded once): (a + ai)^2 = 2a^2 i with a = 1E-4000 | 1 E 4000 CHS CI 1 E 4000 CHS ENTER * | X=0i0 %F6=0
+V29 | unit 026 rule 4 for a complex result: a part that underflows is 0 (each part is exact, then rounded once): (a + ai)^2 = 2a^2 i with a = 1E-4000 | MODE35 1 E 4000 CHS CI 1 E 4000 CHS ENTER * | X=0i0 %F6=0
 V30 | unit 026 rule 2: x! past the range is positive even right after a negative overflow (its sign is the function's, not the last rounding's) | 1 E 6000 ENTER CHS * 3000 FACT | X=9.999999999999999999999999999999999E6144 Y=-9.999999999999999999999999999999999E6144
 V31 | unit 026 rule 2, review: a step beyond the range is not the result: 50% of 9E6144 is 4.5E6144, no overflow | 9 E 6144 ENTER 50 PCT | X=4.5E6144 %F6=0
 V32 | unit 026, review: %CHG from 1E6144 to 9E6144 is 800 ((x - y) 100 left the range inside) | 1 E 6144 ENTER 9 E 6144 PCTCHG | X=800 %F6=0
@@ -51,15 +52,15 @@ V38 | unit 026, review: cos of a tiny angle in degrees is 1 (the angle in radian
 V39 | unit 026, fuzz: tanh of 9E6112 is 1, of -9E6112 -1 (the engine's tanh left the range inside) | 9 E 6112 TANH 9 E 6112 ENTER CHS TANH | X=-1 Y=9E6112 Z=1 %F6=0
 V40 | unit 026 rule 2, review: ->POL with r beyond the range: r the largest number, theta 45 | DEG 9 E 6144 ENTER TOPOL | X=9.999999999999999999999999999999999E6144 Y=45 %F6=1
 V41 | unit 026 rule 4: ->REC of a tiny r: both parts 0 | 60 ENTER 1 E 6143 CHS TOREC | X=0 Y=0
-V42 | unit 026 rule 2, review: ABS of a complex number is a real result: beyond the range it is the largest number | 9 E 6144 CI 9 E 6144 ABS | X=9.999999999999999999999999999999999E6144 %F6=1
+V42 | unit 026 rule 2, review: ABS of a complex number is a real result: beyond the range it is the largest number | MODE35 9 E 6144 CI 9 E 6144 ABS | X=9.999999999999999999999999999999999E6144 %F6=1
 V43 | unit 026, review: RND of the largest number to 3 digits rounds up past it: the largest number, flag 6 (it gave 0) | 1 E 6000 ENTER * CHS SCI2 RND | X=-9.999999999999999999999999999999999E6144 %F6=1
 V44 | unit 026 rule 6 (ours, second review): an integral beyond the range stays an error, flag 6 set (its sums leave the range before the half-width scales them, so their overflow does not give the integral's value or sign) | PRGM CLPGM LBL:F 9 E 6144 RTN PRGM FN=:F 0 ENTER 10 INTEG:X | ERR %F6=1
-V45 | unit 026 rule 2, review: the built-in 2x2 solver with x beyond the range (1E-6000 x = 1E6000, y = 1): x the largest number, y 1 | EQN SST SOLVE 1 E 6000 CHS RS 0 RS 1 E 6000 RS 0 RS 1 RS 1 RS | X=9.999999999999999999999999999999999E6144 Y=1 %F6=1
+V45 | unit 026 rule 2, review: the built-in 2x2 solver with x beyond the range (1E-6000 x = 1E6000, y = 1): x the largest number, y 1 | MODE35 EQN SST SOLVE 1 E 6000 CHS RS 0 RS 1 E 6000 RS 0 RS 1 RS 1 RS | X=9.999999999999999999999999999999999E6144 Y=1 %F6=1
 V46 | unit 026 rule 6, review: flag 5 does not stop a program after a SOLVE line whose function overflowed | PRGM CLPGM LBL:F RCL:X EXP 10 - RTN LBL:A SF:5 FN=:F 1 STO:X 20000 SOLVE:X 5 RTN PRGM XEQ:A | X=5 %STOP=DONE %F6=1
 V47 | unit 026 rule 2: a dot product is a real result: beyond the range the largest number ([1E6000, 1E6000] . [1E6000, 1E6000] = 2E12000) | [ 1 E 6000 , 1 E 6000 ENTER [ 1 E 6000 , 1 E 6000 * | X=9.999999999999999999999999999999999E6144 %F6=1
 V48 | unit 026, second review: ->REC of a huge r at a tiny angle: r sin theta is in range (sin theta = theta): 9E6144 at 1E-6143 rad is 90 | RAD 1 E 6143 CHS ENTER 9 E 6144 TOREC | X=9E6144 Y=90
 V49 | unit 026, second review: the same in degrees, correctly rounded: 9E6144 sin 1E-6143 degrees | DEG 1 E 6143 CHS ENTER 9 E 6144 TOREC | X=9E6144 Y=1.570796326794896619231321691639751
 V50 | unit 026, second review: -1 Rmdr 1.1E-6143 is 1E-6143 (the truncated remainder underflows inside; x is tiny too) | 1 CHS ENTER 1.1 E 6143 CHS RMDR | X=1E-6143
 V51 | unit 026, second review: ->POL with theta below the range: theta 0 | DEG 1 E 6140 CHS ENTER 1 E 10 TOPOL | X=1E10 Y=0
-V52 | unit 026, second review: ARG of a complex number whose modulus is beyond the range: 45 | DEG 9 E 6144 CI 9 E 6144 ARG | X=45
+V52 | unit 026, second review: ARG of a complex number whose modulus is beyond the range: 45 | MODE35 DEG 9 E 6144 CI 9 E 6144 ARG | X=45
 V53 | unit 026, second review: a result tiny before rounding that rounds to the smallest number is in range: sin and ln(1+x) of 1E-6143 | RAD 1 E 6143 CHS SIN 1 E 6143 CHS LN1P | X=1E-6143 Y=1E-6143 %F6=0

@@ -18,6 +18,7 @@
 # Where the manual's keystroke glyphs were lost in extraction, keys were read from the rendered
 # page; "keys from description" marks the two vectors whose keys follow the page's own
 # step-by-step description rather than a legible key image.
+# Unit 041 Part A (decision 58): moved to 35s mode (MODE35 added), each using a feature now hidden in 33s mode: V34.
 
 V01 | p.2-3 R-down once            | 1 ENTER 2 ENTER 3 ENTER 4 RDN                | X=3 Y=2 Z=1 T=4
 V02 | p.2-3 R-down four times      | 1 ENTER 2 ENTER 3 ENTER 4 RDN RDN RDN RDN    | X=4 Y=3 Z=2 T=1
@@ -52,7 +53,7 @@ V30 | p.1-15 CHS on a completed X  | 6.6261 E 34 CHS ENTER CHS                  
 V31 | p.1-17 ENTER then add        | 123 ENTER 4 +                                | X=127
 V32 | p.1-17 backspace in entry    | 123 BKSP ENTER                               | X=12 Y=12
 V33 | p.1-17, B-5 backspace as CLx | 7 ENTER 123 ENTER BKSP 5                     | X=5 Y=123 Z=7
-V34 | B-5 clear stack disables lift| 1 ENTER 2 ENTER 3 CLSTK 5                    | X=5 Y=0 Z=0 T=0
+V34 | B-5 clear stack disables lift| MODE35 1 ENTER 2 ENTER 3 CLSTK 5                    | X=5 Y=0 Z=0 T=0
 V35 | B-4 arithmetic enables lift  | 2 ENTER 3 + 4                                | X=4 Y=5
 V36 | decimal, not binary          | 0.1 ENTER 0.2 +                              | X=0.3
 V37 | p.2-5 operand order (Y op X) | 9 ENTER 2 -                                  | X=7

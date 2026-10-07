@@ -6,6 +6,7 @@
 # %EQ= the equation shown (TOP at EQN LIST TOP), %EQN= the count, %ERRPOS= a syntax error's place.
 # Prompts are INPUT stops, answered with RS. Expected values: the same chain of single roundings
 # at 34 digits (the guide's 6-12/6-13 figures are its 12-digit chain).
+# Unit 041 Part A (decision 58): moved to 35s mode (MODE35 added), each using a feature now hidden in 33s mode: O19 O28 O31.
 
 M01 | 35s p.6-2 typing V=0.25xpixD^2xL: RCL types a variable, = is the = key, .25 shows 0.25, y^x types ^ | EQN RCL:V = .25 * PI * RCL:D POW 2 * RCL:L ENTER | %EQ=V=0.25×π×D^2×L %EQN=1
 M02 | 35s p.6-2/6-3 ENTER on an assignment prompts for the right side's variables, D first | EQN RCL:V = .25 * PI * RCL:D POW 2 * RCL:L ENTER ENTER | %STOP=INPUT:D
@@ -62,7 +63,7 @@ O15 | 35s p.6-16/6-17 the renamed functions: ALOG, SQ, INV, EXP, IDIV, RMDR, nPr
 O16 | ours: ! is postfix | EQ:5!+1 XEQ | X=121
 O17 | ours: backspace after a function key removes the function and its pair | EQN 2 * SIN BKSP RCL:X ENTER | %EQ=2×X
 O18 | 35s p.6-4, 6-7 the list: new equations go after the one shown; the cursor keys move through it | EQ:1+1 EQ:2+2 EQ:3+3 BST | %EQ=2+2 %EQN=3
-O19 | 35s p.6-7 the list wraps: past the last (the 3*3 solver after them, p.7-3; unit 015) is EQN LIST TOP | EQ:1+1 EQ:2+2 SST SST SST | %EQ=TOP
+O19 | 35s p.6-7 the list wraps: past the last (the 3*3 solver after them, p.7-3; unit 015) is EQN LIST TOP | MODE35 EQ:1+1 EQ:2+2 SST SST SST | %EQ=TOP
 O20 | 35s p.6-9 backspace on a shown equation deletes it | EQ:1+1 EQ:2+2 BKSP | %EQN=1 %EQ=1+1
 O21 | ours (rule 5): the list holds AB_EQN_MAX (64) equations | EQ:0+1 EQ:1+1 EQ:2+1 EQ:3+1 EQ:4+1 EQ:5+1 EQ:6+1 EQ:7+1 EQ:8+1 EQ:9+1 EQ:10+1 EQ:11+1 EQ:12+1 EQ:13+1 EQ:14+1 EQ:15+1 EQ:16+1 EQ:17+1 EQ:18+1 EQ:19+1 EQ:20+1 EQ:21+1 EQ:22+1 EQ:23+1 EQ:24+1 EQ:25+1 EQ:26+1 EQ:27+1 EQ:28+1 EQ:29+1 EQ:30+1 EQ:31+1 EQ:32+1 EQ:33+1 EQ:34+1 EQ:35+1 EQ:36+1 EQ:37+1 EQ:38+1 EQ:39+1 EQ:40+1 EQ:41+1 EQ:42+1 EQ:43+1 EQ:44+1 EQ:45+1 EQ:46+1 EQ:47+1 EQ:48+1 EQ:49+1 EQ:50+1 EQ:51+1 EQ:52+1 EQ:53+1 EQ:54+1 EQ:55+1 EQ:56+1 EQ:57+1 EQ:58+1 EQ:59+1 EQ:60+1 EQ:61+1 EQ:62+1 EQ:63+1 EQ:64+1 | ERR %ERR=MEMORY_FULL %EQN=64
 O22 | 35s p.9-7 a complex variable in an equation (unit 015; unit 014 had it INVALID DATA until then) | 1 CI 1 STO:A EQ:A+1 XEQ RS SAVEX CLSTK 1 CI 1 ENTER 1 + | %SAMEX=same
@@ -71,7 +72,7 @@ O24 | 35s p.6-4, 6-8 C while typing stores the equation and leaves Equation mode
 O25 | 35s p.6-5 a number with an exponent; CHS after E negates the exponent | EQN 1.5 E 3 CHS + 1 ENTER XEQ | %EQ=1.5E-3+1 X=1.0015
 O26 | ours: the angle mode applies inside an equation | DEG EQ:SIN(30) XEQ | X=0.5
 O27 | ours: a unary minus in a product's operand | 3 STO:A EQ:2×-A XEQ RS | X=-6
-O28 | 35s p.6-14 RPN stack at prompts: a prompt puts the value in X with lift off, a typed number replaces it, R/S enables lift so the values stay | CLSTK 1 STO:A 2 STO:B CLSTK EQ:A+B XEQ 3 RS 4 RS | X=7 Y=4 Z=3 T=0 @A=3 @B=4
+O28 | 35s p.6-14 RPN stack at prompts: a prompt puts the value in X with lift off, a typed number replaces it, R/S enables lift so the values stay | MODE35 CLSTK 1 STO:A 2 STO:B CLSTK EQ:A+B XEQ 3 RS 4 RS | X=7 Y=4 Z=3 T=0 @A=3 @B=4
 O29 | 35s p.6-14 C at a prompt cancels the evaluation: a later R/S stores nothing | 5 STO:A EQ:A+1 XEQ C 9 RS | @A=5
 O30 | ours: unary minus nests (--A is A) | 3 STO:A EQ:2×--A XEQ RS | X=6
-O31 | 35s p.6-14 R/S keeping the shown values enables lift too, so each stays on the stack | CLSTK 1 STO:A 2 STO:B CLSTK EQ:A+B XEQ RS RS | X=3 Y=2 Z=1 T=0
+O31 | 35s p.6-14 R/S keeping the shown values enables lift too, so each stays on the stack | MODE35 CLSTK 1 STO:A 2 STO:B CLSTK EQ:A+B XEQ RS RS | X=3 Y=2 Z=1 T=0
