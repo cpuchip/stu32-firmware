@@ -72,7 +72,7 @@ static void prompt_open(app_state *a, int op, int kind)
                        : op == AB_INPUT ? "INPUT" : op == AB_CLVARX ? "CLVAR" : op == AB_SF ? "SF"
                        : op == AB_CF ? "CF" : op == AB_FS ? "FS?" : op == AB_XVAR ? "x<>" : op == AB_SOLVE ? "SOLVE"
                        : op == AB_INTEG ? "\xe2\x88\xab" "FN d" : op == AB_CASD ? "D/DX" : op == AB_CASCOL ? "COLCT"
-                       : op == AB_CASSUB ? "SUBST" : "";
+                       : op == AB_CASSUB ? "SUBST" : op == AB_FN ? "FN=" : "";
     char buf[16] = "";
     if (op >= AB_STOADD && op <= AB_STODIV) snprintf(buf, sizeof buf, "STO%s", ARITH[op - AB_STOADD]);
     else if (op >= AB_RCLADD && op <= AB_RCLDIV) snprintf(buf, sizeof buf, "RCL%s", ARITH[op - AB_RCLADD]);
@@ -559,7 +559,8 @@ void app_key(app_state *a, int key, uint32_t now_ms)
             int arg = km_prompt_arg(a->prompt_kind, l);
             if (!a->c->m35 && l->kind != KL_LETTER) {
                 /* 33s mode (unit 025): the (I) key gives i, the (J) key (i), the 33s's one index */
-                bool var = a->prompt_kind == KM_ARG_VAR, tgt = a->prompt_kind == KM_ARG_TARGET;
+                bool var = a->prompt_kind == KM_ARG_VAR,
+                     tgt = a->prompt_kind == KM_ARG_TARGET || a->prompt_kind == KM_ARG_FN;
                 arg = l->kind == KL_IND_I ? (var ? AB_VAR_SI : -1) : var ? AB_VAR_IND_I : tgt ? AB_TGT_IND_I : -1;
             }
             if (arg != -1) {

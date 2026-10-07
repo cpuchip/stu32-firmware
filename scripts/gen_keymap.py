@@ -76,7 +76,8 @@ GPAGE = ("\u25b8", "KM_DEVICE", "0", "KM_DEV_GPAGE", 0)    # unit 040: the graph
 # LETTERS.
 MENUS = [
     ("PRGM", [("PRGM", "KM_OP", "AB_PRGM", 0, 0), ("LBL", "KM_PROMPT", "AB_LBL", 0, "KM_ARG_LABEL"),
-              ("INPUT", "KM_PROMPT", "AB_INPUT", 0, "KM_ARG_VAR"), ("SST", "KM_OP", "AB_SST", 0, 0),
+              # unit 041 C (B7): FN= in SST's cell (SST is blue R/S; proposed, abacus #4836 reply)
+              ("INPUT", "KM_PROMPT", "AB_INPUT", 0, "KM_ARG_VAR"), ("FN=", "KM_PROMPT", "AB_FN", 0, "KM_ARG_FN"),
               ("BST", "KM_OP", "AB_BST", 0, 0), ("CLPGM", "KM_OP", "AB_CLPGM", 0, 0)]),
     # Michael, #3901: FIX, SCI, ENG then a digit setting (UG p.1-21), ALL; xiy and rθa provisional
     ("DISP", [("FIX", "KM_PROMPT", "AB_SETFIX", 0, "KM_ARG_DIGITS"),
@@ -370,6 +371,9 @@ def emit():
               "               : l->kind == KL_IND_J ? AB_VAR_IND_J : -1;",
               "    case KM_ARG_LABEL:",
               "        return l->kind == KL_LETTER ? l->value : -1;",
+              "    case KM_ARG_FN:                             /* FN='s label, or the one (I) / (J) names (p.14-22) */",
+              "        return l->kind == KL_LETTER ? l->value : l->kind == KL_IND_I ? AB_TGT_IND_I",
+              "               : l->kind == KL_IND_J ? AB_TGT_IND_J : -1;",
               "    case KM_ARG_TARGET:                         /* a label's first line (UG p.13-10), or (I) / (J) */",
               "        return l->kind == KL_LETTER ? l->value * 1000 : l->kind == KL_IND_I ? AB_TGT_IND_I",
               "               : l->kind == KL_IND_J ? AB_TGT_IND_J : -1;",
