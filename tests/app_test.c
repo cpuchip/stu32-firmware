@@ -2273,6 +2273,70 @@ int main(void)
                "043: XEQ while typing 2+3: stored and evaluated, X = 5, no XEQ prompt");
     }
 
+    /* CAS 004 (casim's work/004 rule 4): CAS on EQN LIST's fifth key, STU only; D/DX, COLCT and SUBST prompt for the
+       variable; the result after the original, shown; UNDO removes it; a refusal leaves everything as it was; in 33s
+       and 35s modes no CAS. Expected texts: casim's host CLI at CASIM_PIN (STU, the calculator's DEG). */
+    {
+        static uint8_t u0[1 << 18], u1[1 << 18];
+        ab_init(&c);
+        app_init(&a, &c, now);
+        app_undo_buffers(&a, u0, u1, sizeof u0);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        ab_eqn_add(&c, "X^2+3\xc3\x97X");     /* (Equation mode on, it shown) */
+        app_ui(&a, &ui);
+        expect(ui.soft[4] && !strcmp(ui.soft[4], "CAS") && ui.soft_sub[4], "CAS 004: STU: EQN LIST's fifth key is CAS");
+        press(&a, "k:4");
+        app_ui(&a, &ui);
+        expect(ui.soft[0] && !strcmp(ui.soft[0], "D/DX") && ui.soft[1] && !strcmp(ui.soft[1], "SIMP") && ui.soft[2] &&
+                   !strcmp(ui.soft[2], "EXPND") && ui.soft[3] && !strcmp(ui.soft[3], "COLCT") && ui.soft[4] &&
+                   !strcmp(ui.soft[4], "SUBST"),
+               "CAS 004: its menu: D/DX SIMP EXPND COLCT SUBST");
+        press(&a, "k:0");
+        app_ui(&a, &ui);
+        expect(ui.prompt && !strcmp(ui.prompt, "D/DX _"), "CAS 004: D/DX prompts for the variable");
+        int n = c.eqn_count;
+        press(&a, "ltr:X");
+        expect(c.eqn_count == n + 1 && c.eqn_cur > 0 && !strcmp(c.eqn[c.eqn_cur], "2\xc3\x97X+3") &&
+                   !strcmp(c.eqn[c.eqn_cur - 1], "X^2+3\xc3\x97X"),
+               "CAS 004: D/DX X: 2×X+3 after the original, shown, the original kept");
+        press(&a, "BLUE \xe2\x86\x90");
+        expect(c.eqn_count == n && !strcmp(c.eqn[c.eqn_cur], "X^2+3\xc3\x97X"), "CAS 004: UNDO removes it");
+        press(&a, "k:4 k:3");
+        app_ui(&a, &ui);
+        expect(ui.prompt && !strcmp(ui.prompt, "COLCT _"), "CAS 004: COLCT prompts for the variable");
+        press(&a, "C k:4 k:4");
+        app_ui(&a, &ui);
+        expect(ui.prompt && !strcmp(ui.prompt, "SUBST _"), "CAS 004: SUBST prompts for the variable");
+        press(&a, "ltr:X");
+        expect(c.eqn_typing && c.cas_sub == 'X' - 'A' + 1, "CAS 004: then the editor, for the replacement");
+        press(&a, "RCL ltr:Y + 1 ENTER");
+        expect(!c.eqn_typing && c.eqn_count == n + 1 && !strcmp(c.eqn[c.eqn_cur], "3\xc3\x97Y+(Y+1)^2+3"),
+               "CAS 004: SUBST X by Y+1, typed: 3×Y+(Y+1)^2+3 after it");
+        ab_eqn_add(&c, "IP(X)");
+        n = c.eqn_count;
+        uint32_t before = img_crc(&c);
+        press(&a, "k:4 k:0 ltr:X");
+        app_ui(&a, &ui);
+        {
+            static screen_page pg;
+            screen_lines(&c, &ui, &pg);
+            expect(c.eqn_count == n && strstr(pg.x.text, "UNSUPPORTED IP") != NULL,
+                   "CAS 004: a refusal: UNSUPPORTED IP, the list as it was");
+        }
+        (void)before;
+        for (int m = 0; m < 2; m++) {           /* 33s and 35s: no CAS */
+            ab_init(&c);
+            app_init(&a, &c, now);
+            ab_do_arg(&c, AB_MODEL, m ? 35 : 33);
+            ab_eqn_add(&c, "X^2");
+            app_ui(&a, &ui);
+            int menu0 = a.menu;
+            press(&a, "k:4");
+            expect(!ui.soft[4] && a.menu == menu0 && c.eqn_count == 3,
+                   m ? "CAS 004: 35s mode: no CAS (blank, does nothing)" : "CAS 004: 33s mode: no CAS (blank, does nothing)");
+        }
+    }
+
     /* unit 041 Part B: CONST's pages in 33s mode are the 33s's 40 (eight pages: the eighth "more" wraps to the
        first); in 35s mode a ninth holds e */
     {

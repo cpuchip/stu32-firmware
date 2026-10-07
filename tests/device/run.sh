@@ -15,6 +15,7 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 
 mkdir -p "$ROOT/tests/device/main/generated" "$ROOT/build"
 [ "$TARGET" = esp32c6 ] && DEFAULT_ARGS=--small || DEFAULT_ARGS=
+"$ROOT/scripts/fetch-casim.sh"
 python3 "$ROOT/tests/device/bundle.py" "$ROOT/tests/device/main/generated/bundle.c" ${ABACUS_BUNDLE_ARGS:-$DEFAULT_ARGS}
 docker run --rm -v "$ROOT:/project" -w /project \
     --user "$(id -u):$(id -g)" --group-add "$(stat -c %g "$PORT")" --device "$PORT" \

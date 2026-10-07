@@ -145,7 +145,7 @@ MENUS = [
     # from the core's state: the list's (NEW, ours: EQN LIST TOP) and typing's; REG > is one choice
     # of a register (UG p.B-7), then typing's bar again. On no key, like LOGIC and SUFFIX.
     ("EQN LIST", [o("\u25b2", "AB_BST"), o("\u25bc", "AB_SST"), o("EDIT", "AB_KRIGHT"), o("NEW", "AB_EQTOP"),
-                  NONE, o("EXIT", "AB_EQN")]),
+                  ("CAS", "KM_MENU", "0", "CAS", 0), o("EXIT", "AB_EQN")]),    # CAS: STU's only (CAS 004)
     # unit 032 (abacus #4350, #4353 answers): TABLE on blue 8: the variable prompted, START and STEP from X,
     # GO; while a table is open the app's bar scrolls it
     ("TABLE", [p("VAR", "AB_TVAR", "KM_ARG_VAR"), o("START", "AB_TSTART"), o("STEP", "AB_TSTEP"), o("GO", "AB_TABLE"),
@@ -207,6 +207,10 @@ MENUS = [
     ("CONST", [NONE, NONE, NONE, NONE, NONE, ("more", "KM_NONE", "0", 0, 0)], "AB_CONST"),
     # unit 037: APPS on blue 0, paged as CONST: the app fills soft keys 1-5 with the registered apps
     ("APPS", [NONE, NONE, NONE, NONE, NONE, ("more", "KM_NONE", "0", 0, 0)], "KM_PAGED_APPS"),
+    # CAS 004 (casim's work/004 rule 4, proposed): Casimir on the equation shown, from EQN LIST's fifth key, in STU
+    # only (the app shows no CAS in 33s or 35s mode); D/DX, COLCT and SUBST prompt for the variable as SOLVE does
+    ("CAS", [p("D/DX", "AB_CASD", "KM_ARG_VAR"), o("SIMP", "AB_CASSIMP"), o("EXPND", "AB_CASEXP"),
+             p("COLCT", "AB_CASCOL", "KM_ARG_VAR"), p("SUBST", "AB_CASSUB", "KM_ARG_VAR"), NONE]),
 ]
 # Menu legends that act as plain ops until their menu is ruled (abacus #3867): the EQN menu's
 # first item will take this over.

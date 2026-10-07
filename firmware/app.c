@@ -71,7 +71,8 @@ static void prompt_open(app_state *a, int op, int kind)
                        : op == AB_SETFIX ? "FIX" : op == AB_SETSCI ? "SCI" : op == AB_SETENG ? "ENG"
                        : op == AB_INPUT ? "INPUT" : op == AB_CLVARX ? "CLVAR" : op == AB_SF ? "SF"
                        : op == AB_CF ? "CF" : op == AB_FS ? "FS?" : op == AB_XVAR ? "x<>" : op == AB_SOLVE ? "SOLVE"
-                       : op == AB_INTEG ? "\xe2\x88\xab" "FN d" : "";
+                       : op == AB_INTEG ? "\xe2\x88\xab" "FN d" : op == AB_CASD ? "D/DX" : op == AB_CASCOL ? "COLCT"
+                       : op == AB_CASSUB ? "SUBST" : "";
     char buf[16] = "";
     if (op >= AB_STOADD && op <= AB_STODIV) snprintf(buf, sizeof buf, "STO%s", ARITH[op - AB_STOADD]);
     else if (op >= AB_RCLADD && op <= AB_RCLDIV) snprintf(buf, sizeof buf, "RCL%s", ARITH[op - AB_RCLADD]);
@@ -267,6 +268,7 @@ static bool cx_prefix(const app_state *a, int menu)
    items dimmed, and while an equation is typed (its i is live). It doesn't open, and its label is dimmed. */
 static bool menu_hidden(const ab_calc *c, const km_menu *mn)
 {
+    if (mn && !strcmp(mn->name, "CAS")) return !c->stu;   /* CAS 004: STU's only (in 33s and 35s it doesn't exist) */
     if (!mn || ab_mode35(c)) return false;
     if (!strcmp(mn->name, "TABLE") || !strcmp(mn->name, "GRAPH")) return true;
     if (!strcmp(mn->name, "CMPLX") && c->base == 10 && !c->eqn_mode) return false;   /* where the prefix works */
@@ -1120,6 +1122,8 @@ void app_ui(const app_state *a, screen_ui *ui)
         }
         ui->soft_sub[i] = it->kind == KM_MENU;  /* a submenu: its box marked (#3958) */
         ui->soft_dim[i] = item_hidden(a->c, it);   /* unit 041 A */
+        if (it->kind == KM_MENU && it->arg >= 0 && !strcmp(km_menu_at(it->arg)->name, "CAS") && !a->c->stu)
+            ui->soft[i] = NULL, ui->soft_dim[i] = false;    /* CAS 004: no CAS outside STU, not even dimmed */
         if (it->kind == KM_DEVICE) {            /* the settings in effect (unit 022) */
             static char off[8], vol[8];
             switch (it->arg) {
