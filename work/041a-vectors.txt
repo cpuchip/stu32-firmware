@@ -1,0 +1,56 @@
+# Unit 041 Part A (abacus decisions 56, 58; the 33s-mode audit): the 35s's features hidden in 33s mode, unchanged in 35s
+# and STU. Hidden: the key or menu item does nothing in 33s mode; an equation typed (stamped) in 33s mode refuses the
+# feature (SYNTAX); a program line typed in 33s mode can't record it. Data already there keeps working.
+# Pages are the audit's citations of the 33s guide (p.9-1 checked here: complex numbers are pairs, the CMPLX prefix;
+# p.10-1 checked here: the BASE menu is the four bases). The 35s/STU rows' values are today's (unchanged).
+# A1: one-value complex entry (33s p.9-1 to 9-3): i and theta do nothing, so the digits run on
+H01 | 041 A1: in 33s mode CMPLX's i does nothing (33s p.9-1: complex numbers are two entries) | MODE33 2 CI 3 ENTER | X=23
+H02 | 041 A1: in 33s mode CMPLX's theta does nothing | MODE33 DEG 2 CA 30 ENTER | X=230
+H03 | 041 A1: 35s unchanged: i enters 2i3 | MODE35 2 CI 3 ENTER | X=2i3
+H04 | 041 A1: STU unchanged | STU 2 CI 3 ENTER | X=2i3
+# A2: ARG and DISP's xiy / r-theta-a
+H05 | 041 A2: in 33s mode ARG does nothing (33s p.1-19) | MODE33 DEG 5 CHS ARG | X=-5
+H06 | 041 A2: 35s unchanged: ARG(-5) is 180 | MODE35 DEG 5 CHS ARG | X=180
+H07 | 041 A2: data stays: a complex value made in 35s mode keeps working in 33s mode | MODE35 2 CI 3 ENTER MODE33 2 * | X=4i6
+# A3: vectors
+H08 | 041 A3: in 33s mode [ and , do nothing (not in the 33s's operation index) | MODE33 [ 1 , 2 ENTER | X=12
+H09 | 041 A3: 35s unchanged | MODE35 [ 1 , 2 ENTER [ 3 , 4 + | X=[4,6]
+# A4: the built-in solvers (33s p.6-7: the list starts empty, EQN LIST TOP)
+H10 | 041 A4: in 33s mode the equation list has no built-ins: EQN then SST stays at the top | MODE33 EQN SST | %EQ=TOP
+H11 | 041 A4: 35s unchanged: SST reaches the 2x2 solver | MODE35 EQN SST | %EQ=2*2_lin._solve
+# A5: LOGIC and the suffixes (33s p.10-1: the BASE menu is the four bases)
+H12 | 041 A5: in 33s mode AND does nothing | MODE33 12 ENTER 10 AND | X=10 Y=12
+H13 | 041 A5: 35s unchanged | MODE35 12 ENTER 10 AND | X=8
+H14 | 041 A5: in 33s mode a suffix does nothing | MODE33 1 0 SUF:b ENTER | X=10
+H15 | 041 A5: 35s unchanged: 10b is 2 | MODE35 1 0 SUF:b ENTER | X=2
+# A6: CLEAR's STK and VARx; STACK's CLSTK (33s p.1-6)
+H16 | 041 A6: in 33s mode CLSTK does nothing | MODE33 1 ENTER 2 CLSTK | X=2 Y=1
+H17 | 041 A6: 35s unchanged | MODE35 1 ENTER 2 CLSTK | X=0 Y=0
+H18 | 041 A6: in 33s mode CLVARx does nothing | MODE33 0 STO:I 9 STO:(I) 1 STO:I 8 STO:(I) CLVAR:000 | @#0=9 @#1=8
+H19 | 041 A6: 35s unchanged (021 V02) | MODE35 0 STO:I 9 STO:(I) 1 STO:I 8 STO:(I) CLVAR:000 | @#0=9 @#1=0
+# A7: to km and to mile (33s p.4-13)
+H20 | 041 A7: in 33s mode TOKM does nothing | MODE33 1 TOKM | X=1
+H21 | 041 A7: 35s unchanged | MODE35 1 TOKM | X=1.609344
+H22 | 041 A7: an equation typed in 33s mode refuses KM | MODE33 EQ:→KM(1) XEQ | ERR %ERR=SYNTAX
+H23 | 041 A7: 35s unchanged | MODE35 EQ:→KM(1) XEQ | X=1.609344
+# A11 and the rest in equations: REGX..REGT, ARG, the logic functions, vectors, complex and based numbers (33s p.6-15)
+H24 | 041 A11: an equation typed in 33s mode refuses REGX | MODE33 4 EQ:REGX+1 XEQ | ERR %ERR=SYNTAX
+H25 | 041 A11: 35s unchanged | MODE35 4 EQ:REGX+1 XEQ | X=5
+H26 | 041 A11: an equation typed in 33s mode refuses ARG | MODE33 DEG EQ:ARG(0-1)+1 XEQ | ERR %ERR=SYNTAX
+H27 | 041 A11: 35s unchanged | MODE35 DEG EQ:ARG(0-1)+1 XEQ | X=181
+H28 | 041 A5: an equation typed in 33s mode refuses AND | MODE33 EQ:AND(12,10) XEQ | ERR %ERR=SYNTAX
+H29 | 041 A5: 35s unchanged | MODE35 EQ:AND(12,10) XEQ | X=8
+H30 | 041 A5: an equation typed in 33s mode refuses a based number | MODE33 EQ:1010b+1 XEQ | ERR %ERR=SYNTAX
+H31 | 041 A5: 35s unchanged | MODE35 EQ:1010b+1 XEQ | X=11
+H32 | 041 A3: an equation typed in 33s mode refuses a vector | MODE33 EQ:[1,2]+[3,4] XEQ | ERR %ERR=SYNTAX
+H33 | 041 A3: 35s unchanged | MODE35 EQ:[1,2]+[3,4] XEQ | X=[4,6]
+H34 | 041 A1: an equation typed in 33s mode refuses a complex number | MODE33 EQ:2i3+1 XEQ | ERR %ERR=SYNTAX
+H35 | 041 A1: 35s unchanged | MODE35 EQ:2i3+1 XEQ | X=3i3
+H36 | 041 A11: data stays: an equation typed in 35s mode still runs in 33s mode (its stamp decides) | MODE35 4 EQ:REGX+1 MODE33 XEQ | X=5
+# A14: TABLE and GRAPH (in 33s mode the menus don't open; the app's check is in app_test)
+H37 | 041 A14: in 33s mode TABLE does nothing (no STU ONLY) | MODE33 EQ:X C TABLE | %ERR=OK
+H38 | 041 A14: 35s unchanged: STU ONLY | MODE35 EQ:X C TABLE | ERR %ERR=STU_ONLY
+H39 | 041 A14: in 33s mode GRAPH does nothing | MODE33 EQ:X C GRAPH | %ERR=OK %GRAPH=0
+# a program line typed in 33s mode can't record a hidden feature
+H40 | 041 A: in 33s mode AND isn't recorded | MODE33 PRGM LBL:A 12 ENTER 10 AND RTN PRGM | %LINES=5
+H41 | 041 A: 35s unchanged | MODE35 PRGM LBL:A 12 ENTER 10 AND RTN PRGM | %LINES=6
