@@ -292,6 +292,7 @@ int main(void)
         static ab_calc d;
         ab_init(&c);
         app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, 35);            /* GTO B004, a line number: 35s mode's (unit 041 A, rule 3.2) */
         ab_do(&c, AB_PRGM);
         ab_do_arg(&c, AB_LBL, 1);
         ab_do(&c, AB_K1); ab_do(&c, AB_K0); ab_do(&c, AB_K0); ab_do(&c, AB_K0);
@@ -301,6 +302,7 @@ int main(void)
         ab_do(&c, AB_RTN);
         ab_do(&c, AB_PRGM);
         expect(c.prog_len == 6, "the DSE loop keyed");
+        ab_do_arg(&c, AB_MODEL, 33);            /* back to 33s mode: XEQ's letter acts at once; label B runs as 35s */
         d = c;
         d.slice = 0;
         ab_do_arg(&d, AB_XEQ, 1 * 1000);            /* the unsliced run */
@@ -2699,7 +2701,7 @@ int main(void)
         ab_do_arg(&c, AB_LBL, 0);
         ab_do(&c, AB_K1);
         ab_do(&c, AB_ADD);
-        ab_do_arg(&c, AB_GTO, 0 * 1000 + 1);
+        ab_do_arg(&c, AB_GTO, 0 * 1000);      /* GTO A: the label form (A001), as 33s mode keys it (041 A) */
         ab_do(&c, AB_PRGM);
         {   /* abacus #4238: a run the user stops (R/S after 3 s) sounds no DONE */
             a.tone = -1;
@@ -2733,7 +2735,7 @@ int main(void)
             ab_do_arg(&c, AB_STO, 2);
             ab_do_arg(&c, AB_LBL, 1);
             ab_do_arg(&c, AB_DSE, 2);
-            ab_do_arg(&c, AB_GTO, 1 * 1000 + 1);
+            ab_do_arg(&c, AB_GTO, 1 * 1000);      /* GTO B: the label form (B001), as 33s mode keys it (041 A) */
             ab_do(&c, AB_PSE);
             ab_do(&c, AB_RTN);
             ab_do(&c, AB_PRGM);
@@ -2794,7 +2796,7 @@ int main(void)
             ab_do_arg(&c, AB_STO, 2);
             ab_do_arg(&c, AB_LBL, 1);
             ab_do_arg(&c, AB_DSE, 2);
-            ab_do_arg(&c, AB_GTO, 1 * 1000 + 1);
+            ab_do_arg(&c, AB_GTO, 1 * 1000);      /* GTO B: the label form (B001), as 33s mode keys it (041 A) */
             ab_do(&c, AB_RTN);
             ab_do(&c, AB_PRGM);
             a.tone = -1;
@@ -2837,7 +2839,7 @@ int main(void)
             ab_do_arg(&c, AB_STO, 2);
             ab_do_arg(&c, AB_LBL, 1);
             ab_do_arg(&c, AB_DSE, 2);
-            ab_do_arg(&c, AB_GTO, 1 * 1000 + 1);
+            ab_do_arg(&c, AB_GTO, 1 * 1000);      /* GTO B: the label form (B001), as 33s mode keys it (041 A) */
             ab_do(&c, AB_K0);
             ab_do(&c, AB_INV);                  /* 1/0: an error at the end */
             ab_do(&c, AB_PRGM);

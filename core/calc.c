@@ -3973,6 +3973,9 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
         if (c->m35 || op == AB_CANCEL || op == AB_KBKSP) return ABN_OK;
     }
     if (ab_hidden(c, op)) return ABN_OK;       /* unit 041 Part A: a 35s feature, in 33s mode: nothing */
+    if (!ab_mode35(c) && (op == AB_XEQ || op == AB_GTO) && arg >= 0 && arg % 1000 != 0)
+        return ABN_OK;                          /* nor XEQ or GTO to a line number (33s p.13-4; abacus #4799 rule 3.2;
+                                                   GTO . to one moves the pointer: AB_GTOPOS, p.13-6) */
     if (c->tbl_on || c->gr_on) {                /* the table or the graph open: its keys alone (units 032,
                                                    033), each with a fresh error record and overflow count */
         c->err_set = false;

@@ -622,6 +622,7 @@ int main(int argc, char **argv)
         expect(dot > 0 && text_at(&f, dot + 24, 128, 4, "33", 1), "the LBL line draws its mode: \xc2\xb7" "33");
     }
     ab_init(&c);
+    ab_do_arg(&c, AB_MODEL, 35);   /* the 35s guide's listings: XEQ and GTO to line numbers (unit 041 A, rule 3.2) */
     keys(&c, "PRGM");
     ab_do_arg(&c, AB_LBL, 'Q' - 'A');
     ab_do_arg(&c, AB_INPUT, 'R' - 'A');

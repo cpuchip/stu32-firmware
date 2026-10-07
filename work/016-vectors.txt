@@ -9,6 +9,7 @@
 # written from the 35s guide's indirect model, start with MODE35 (the ERR ones added after review, which
 # passed in 33s mode only by failing early: M13): S01 S02 S03 S04 S05.
 # Unit 041 Part A (decision 58): moved to 35s mode (MODE35 added), each using a feature now hidden in 33s mode: M16.
+# Unit 041 Part A, rule 3.2 (abacus #4799; 33s UG p.13-4: no branch to a line number in a program): moved to 35s mode (MODE35 added), each recording or keying XEQ/GTO to a line number: S25 L05 L07 L08 L09.
 
 M01 | 35s p.B-3, B-4 MEMORY CLEAR: degrees (90 SIN is 1) | RAD MEMCLR 90 SIN | X=1
 M02 | 35s p.B-4 MEMORY CLEAR: FIX 4 (RND of pi is 3.1416) | ALL MEMCLR PI RND | X=3.1416
@@ -51,17 +52,17 @@ S21 | ours: an older version is read (the version-1 golden image) | 7 STO:A LOAD
 S22 | ours: a load keeps the device's slice (not in the image) | PRGM CLPGM LBL:A 1 2 3 4 5 RTN PRGM SAVE SLICE:2 LOAD XEQ:A | %STOP=SLICE
 S23 | ours: an image cut at a section's end, its checksum redone: the header's length refuses it | SAVE 7 STO:A TRUNC:66 FIXCRC LOAD | ERR %ERR=BAD_IMAGE @A=7
 S24 | ours: a zero keeps its sign and exponent (0 SGN gives 0E0, CHS a negative zero) | 0 SGN ENTER 0 CHS SAVE LOAD | %SAMEIMG=same
-S25 | ours: a GTO whose target was deleted is saved and loaded as such | PRGM LBL:A SQ GTO:A002 GTO.:A002 BKSP PRGM SAVE MEMCLR LOAD | %GO:A002=NONE %SAMEIMG=same
+S25 | ours: a GTO whose target was deleted is saved and loaded as such | MODE35 PRGM LBL:A SQ GTO:A002 GTO.:A002 BKSP PRGM SAVE MEMCLR LOAD | %GO:A002=NONE %SAMEIMG=same
 S26 | ours: an image without both built-in solvers is refused (2*2's mark overwritten, checksum redone) | SAVE 7 STO:A SETBYTE:102:88 FIXCRC LOAD | ERR %ERR=BAD_IMAGE @A=7
 L01 | ours: a slice of 2 lines stops the run, the device's loop goes on | PRGM CLPGM LBL:A 1 ENTER 2 + 3 + 4 + 5 + RTN PRGM SLICE:2 XEQ:A | %STOP=SLICE
 L02 | ours: continued to the end, the same as run whole | PRGM CLPGM LBL:A 1 ENTER 2 + 3 + 4 + 5 + RTN PRGM SLICE:2 XEQ:A CONT CONT CONT CONT CONT CONT | X=15 %STOP=DONE
 L03 | 35s p.13-19 an interrupt at a slice stop: stopped, the instruction done, R/S resumes | PRGM CLPGM LBL:A 1 ENTER 2 + 3 + 4 + 5 + RTN PRGM SLICE:2 XEQ:A INTERRUPT | %STOP=STOP %PC=A003
 L04 | 35s p.13-19 R/S resumes it to the end | PRGM CLPGM LBL:A 1 ENTER 2 + 3 + 4 + 5 + RTN PRGM SLICE:2 XEQ:A INTERRUPT SLICE:0 RS | X=15 %STOP=DONE
-L05 | 35s p.13-19 after GTO it cannot be resumed: R/S runs from the GTO's line | PRGM CLPGM LBL:A 1 ENTER 2 + 3 + 4 + 5 + RTN PRGM SLICE:2 XEQ:A INTERRUPT SLICE:0 GTO:A007 RS | X=10 %STOP=DONE
+L05 | 35s p.13-19 after GTO it cannot be resumed: R/S runs from the GTO's line | MODE35 PRGM CLPGM LBL:A 1 ENTER 2 + 3 + 4 + 5 + RTN PRGM SLICE:2 XEQ:A INTERRUPT SLICE:0 GTO:A007 RS | X=10 %STOP=DONE
 L06 | 35s p.13-19 after RTN: R/S runs from the top | PRGM CLPGM 1 ENTER 2 + RTN LBL:A 5 RTN PRGM SLICE:1 XEQ:A INTERRUPT SLICE:0 RTN RS | X=3
-L07 | ours: the budget stays its own stop, counted across slices | PRGM CLPGM LBL:A 1 + GTO:A002 PRGM BUDGET:20 SLICE:7 0 XEQ:A CONT CONT CONT | ERR %ERR=BUDGET %STOP=BUDGET
-L08 | ours: the budget stop is at the same place sliced or not | PRGM CLPGM LBL:A 1 + GTO:A002 PRGM BUDGET:20 0 XEQ:A | ERR %STOP=BUDGET %PC=A003 X=1 Y=6
-L09 | ours: and sliced | PRGM CLPGM LBL:A 1 + GTO:A002 PRGM BUDGET:20 SLICE:3 0 XEQ:A CONT CONT CONT CONT CONT CONT CONT | ERR %STOP=BUDGET %PC=A003 X=1 Y=6
+L07 | ours: the budget stays its own stop, counted across slices | MODE35 PRGM CLPGM LBL:A 1 + GTO:A002 PRGM BUDGET:20 SLICE:7 0 XEQ:A CONT CONT CONT | ERR %ERR=BUDGET %STOP=BUDGET
+L08 | ours: the budget stop is at the same place sliced or not | MODE35 PRGM CLPGM LBL:A 1 + GTO:A002 PRGM BUDGET:20 0 XEQ:A | ERR %STOP=BUDGET %PC=A003 X=1 Y=6
+L09 | ours: and sliced | MODE35 PRGM CLPGM LBL:A 1 + GTO:A002 PRGM BUDGET:20 SLICE:3 0 XEQ:A CONT CONT CONT CONT CONT CONT CONT | ERR %STOP=BUDGET %PC=A003 X=1 Y=6
 L10 | ours: a SOLVE is not sliced (its evaluations run within the call) | PRGM CLPGM LBL:F RCL:X SQ 4 - RTN PRGM SLICE:1 1 STO:X 5 FN=:F SOLVE:X | X=2 @X=2
 I01 | 35s p.13-19 an interrupt while running: stopped after the current instruction | PRGM CLPGM LBL:A 1 ENTER 2 + 3 + 4 + 5 + RTN PRGM INTR:4 XEQ:A | %STOP=STOP %PC=A005
 I02 | 35s p.13-19 R/S resumes: the result as if never interrupted | PRGM CLPGM LBL:A 1 ENTER 2 + 3 + 4 + 5 + RTN PRGM INTR:4 XEQ:A RS | X=15 %STOP=DONE

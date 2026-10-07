@@ -135,10 +135,10 @@ int main(void)
             if (a->kind != KM_OP && a->kind != KM_PROMPT) continue;
             expect(a->op >= 0 && a->op <= AB_OP_LAST, "an op in range");
             if (a->kind != KM_PROMPT) continue;
-            int arg = a->prompt == KM_ARG_VAR ? AB_VAR_A : a->prompt == KM_ARG_LABEL ? 2 : 1 * 1000 + 1;
+            int arg = a->prompt == KM_ARG_VAR ? AB_VAR_A : a->prompt == KM_ARG_LABEL ? 2 : 1 * 1000;
             ab_init(&c);
             ab_do(&c, AB_PRGM);
-            ab_do_arg(&c, AB_LBL, 1);           /* B, the target B001 */
+            ab_do_arg(&c, AB_LBL, 1);           /* B, the target B (B001; the label form 33s mode keys, unit 041 A) */
             int before = c.prog_len;
             abn_status st = ab_do_arg(&c, (ab_op)a->op, arg);
             char t[64];

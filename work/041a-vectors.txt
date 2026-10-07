@@ -68,3 +68,12 @@ H50 | 041 A (fresh eyes F06): a line typed in 33s mode using i, in a 35s label, 
 H51 | 041 A: 33s coverage of 014 O28 (moved for its CLSTK setup) | 1 STO:A 2 STO:B CLX RDN RDN RDN RDN 0 EQ:A+B XEQ 3 RS 4 RS | X=7 Y=4 Z=3 T=0 @A=3 @B=4
 H52 | 041 A: 33s coverage of 012 O15 | PRGM CLPGM LBL:A VIEW:H ENTER RTN PRGM 5 STO:H CLX XEQ:A RS | X=0 Y=0 %STOP=DONE
 H53 | ours (found by 041's save-and-load pass; at aa9781f too, in 35s mode): an edited last equation emptied, then the image saved: it loads (the edit's index cleared) | MODE35 EQN SST SST EQ:A+1 C EQN < BKSP BKSP BKSP ENTER SAVE LOAD | %EQ=3*3_lin._solve %EQN=0
+# Line addresses (abacus #4799 rule 3.2; 33s UG p.13-4, read rendered: "It is not possible to branch to a specific
+# line number during a program"; p.13-6: GTO . label nnnn only moves the pointer): in 33s mode XEQ, GTO and FN= to a
+# line number are hidden (no line recorded, the key does nothing); the label forms and GTO . stay; lines kept run.
+H54 | 041 A (rule 3.2): in 33s mode XEQ to a line number isn't recorded (33s p.13-4) | MODE33 PRGM LBL:A XEQ:A005 RTN PRGM | %LINES=2
+H55 | 041 A (rule 3.2): 35s unchanged: recorded | MODE35 PRGM LBL:A XEQ:A005 RTN PRGM | %LINES=3
+H56 | 041 A (rule 3.2): in 33s mode GTO to a line number isn't recorded either | MODE33 PRGM LBL:A GTO:A003 RTN PRGM | %LINES=2
+H57 | 041 A (rule 3.2): the label form still is (33s p.13-5) | MODE33 PRGM LBL:A XEQ:B RTN PRGM | %LINES=3
+H58 | 041 A (rule 3.2): a 35s label's GTO A005 runs in 33s mode (lines kept run) | MODE35 PRGM LBL:A 1 GTO:A005 2 RTN 3 RTN PRGM MODE33 XEQ:A | X=1
+H59 | 041 A (rule 3.2): GTO . to a line still moves the pointer in 33s mode (33s p.13-6) | MODE35 PRGM LBL:A 1 2 RTN PRGM MODE33 GTO.:A003 | %PC=A003

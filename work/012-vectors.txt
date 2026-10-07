@@ -7,6 +7,7 @@
 # written from the 35s guide's indirect model, start with MODE35 (the ERR ones added after review, which
 # passed in 33s mode only by failing early: O05 O22): M28 M29 O01 O02 O03 O04 O06 O12.
 # Unit 041 Part A (decision 58): moved to 35s mode (MODE35 added), each using a feature now hidden in 33s mode: O15.
+# Unit 041 Part A, rule 3.2 (abacus #4799; 33s UG p.13-4: no branch to a line number in a program): moved to 35s mode (MODE35 added), each recording or keying XEQ/GTO to a line number: M23 M24 M27 O09 O17.
 
 M01 | 35s p.13-13 INPUT stops and prompts with R's value in X (B-5: lift off while waiting) | PRGM CLPGM LBL:A INPUT:R SQ PI * RTN PRGM XEQ:A | %STOP=INPUT:R X=0 %PC=A002
 M02 | 35s p.13-13 R/S stores the typed value in R and resumes | PRGM CLPGM LBL:A INPUT:R SQ PI * RTN PRGM XEQ:A 5 RS | X=78.53981633974483096156608458198758 @R=5 %STOP=DONE Y=0
@@ -30,11 +31,11 @@ M19 | 35s p.13-11, G-9 SST through INPUT: the prompt, then a typed value and SST
 M20 | 35s p.13-11 then x^2 | PRGM CLPGM LBL:A INPUT:R SQ RTN PRGM GTO:A SST SST 3 SST SST | X=9
 M21 | 35s p.13-26/13-27 5x^4 + 2x^3 with INPUT X: 7 gives 12,691 (the number line lifts after INPUT resumes, B-5) | PRGM CLPGM LBL:A INPUT:X 5 RCL:X 4 POW * RCL:X 3 POW 2 * + RTN PRGM XEQ:A 7 RS | X=12691
 M22 | 35s p.13-28 Horner's quartic with INPUTs: 5 2 0 0 0, x = 7 | PRGM CLPGM LBL:A INPUT:A INPUT:B INPUT:C INPUT:D INPUT:E INPUT:X RCL:X RCL*:A RCL+:B RCL*:X RCL+:C RCL*:X RCL+:D RCL*:X RCL+:E RTN PRGM XEQ:A 5 RS 2 RS 0 RS 0 RS 0 RS 7 RS | X=12691 %STOP=DONE
-M23 | 35s p.14-2 subroutine D/E with INPUT and VIEW: 5 gives X = -5 | PRGM CLPGM LBL:D INPUT:X XEQ:E001 STO:X VIEW:X RTN LBL:E CHS RTN PRGM XEQ:D 5 RS | %STOP=VIEW:X @X=-5
-M24 | 35s p.14-3/14-4 nested S and Q with INPUTs: 1 2 3 4 | PRGM CLPGM LBL:S INPUT:A INPUT:B INPUT:C INPUT:D RCL:D RCL:C RCL:B RCL:A SQ XEQ:Q001 XEQ:Q001 XEQ:Q001 SQRT RTN LBL:Q XY SQ + RTN PRGM XEQ:S 1 RS 2 RS 3 RS 4 RS | X=5.477225575051661134569697828008021
+M23 | 35s p.14-2 subroutine D/E with INPUT and VIEW: 5 gives X = -5 | MODE35 PRGM CLPGM LBL:D INPUT:X XEQ:E001 STO:X VIEW:X RTN LBL:E CHS RTN PRGM XEQ:D 5 RS | %STOP=VIEW:X @X=-5
+M24 | 35s p.14-3/14-4 nested S and Q with INPUTs: 1 2 3 4 | MODE35 PRGM CLPGM LBL:S INPUT:A INPUT:B INPUT:C INPUT:D RCL:D RCL:C RCL:B RCL:A SQ XEQ:Q001 XEQ:Q001 XEQ:Q001 SQRT RTN LBL:Q XY SQ + RTN PRGM XEQ:S 1 RS 2 RS 3 RS 4 RS | X=5.477225575051661134569697828008021
 M25 | 35s p.14-13/14-14 the flags program: 1, 1 shows X = 1 | PRGM CLPGM LBL:S CF:0 CF:1 INPUT:X FS?:0 LN STO:X INPUT:Y FS?:1 LN STO:Y VIEW:X VIEW:Y RTN PRGM XEQ:S 1 RS 1 RS | %STOP=VIEW:X @X=1 @Y=1
 M26 | 35s p.14-14 R/S: Y = 1 | PRGM CLPGM LBL:S CF:0 CF:1 INPUT:X FS?:0 LN STO:X INPUT:Y FS?:1 LN STO:Y VIEW:X VIEW:Y RTN PRGM XEQ:S 1 RS 1 RS RS | %STOP=VIEW:Y
-M27 | 35s p.14-17 the GTO loop with INPUTs, A=10 B=3: VIEW A shows 1 | PRGM CLPGM LBL:S INPUT:A INPUT:B RCL:A RCL-:B STO:A RCL:B X<Y? GTO:S004 VIEW:A RTN PRGM XEQ:S 10 RS 3 RS | %STOP=VIEW:A @A=1
+M27 | 35s p.14-17 the GTO loop with INPUTs, A=10 B=3: VIEW A shows 1 | MODE35 PRGM CLPGM LBL:S INPUT:A INPUT:B RCL:A RCL-:B STO:A RCL:B X<Y? GTO:S004 VIEW:A RTN PRGM XEQ:S 10 RS 3 RS | %STOP=VIEW:A @A=1
 M28 | 35s p.14-22 INPUT (I) prompts for the variable I names: -3 is C | MODE35 PRGM CLPGM LBL:A INPUT:(I) RTN PRGM 3 CHS STO:I XEQ:A | %STOP=INPUT:C
 M29 | 35s p.14-22 VIEW (I) shows an unnamed variable | MODE35 PRGM CLPGM LBL:A VIEW:(I) RTN PRGM 5 STO:I 9 STO:(I) XEQ:A | %STOP=VIEW:#5
 O01 | ours (p.14-22 numbering): XEQ (I) with I = -2 calls label B | MODE35 PRGM CLPGM LBL:A 2 CHS STO:I XEQ:(I) 1 + RTN LBL:B 7 RTN PRGM XEQ:A | X=8
@@ -45,7 +46,7 @@ O05 | 35s p.14-22 an index past 800 is INVALID (I) | MODE35 PRGM CLPGM LBL:A 801
 O06 | ours: XEQ (I) from the keyboard | MODE35 PRGM CLPGM LBL:B 7 RTN PRGM 2 CHS STO:I XEQ:(I) | X=7
 O07 | ours (rule 1): a STOP is reported | PRGM CLPGM LBL:A 1 RS 2 RTN PRGM XEQ:A | %STOP=STOP
 O08 | ours (rule 1): an error is reported with its line | PRGM CLPGM LBL:A 0 INV RTN PRGM XEQ:A | ERR %STOP=ERROR %PC=A003 %ERR=DIV_ZERO
-O09 | ours (rule 1): the budget is reported | PRGM CLPGM LBL:A GTO:A001 PRGM XEQ:A | ERR %STOP=BUDGET %ERR=BUDGET
+O09 | ours (rule 1): the budget is reported | MODE35 PRGM CLPGM LBL:A GTO:A001 PRGM XEQ:A | ERR %STOP=BUDGET %ERR=BUDGET
 O10 | ours: INPUT from the keyboard does nothing (it is used only in programs, p.G-9) | 5 INPUT:R | X=5 @R=0
 O11 | 35s p.B-5 the prompt's value is overwritten by a typed number, not lifted | PRGM CLPGM LBL:A INPUT:R SQ PI * RTN PRGM 3 STO:R 9 XEQ:A 5 | X=5 Y=9
 O12 | ours: storing a complex reply in an unnamed variable is an error; the prompt stays | MODE35 PRGM CLPGM LBL:A INPUT:(I) RTN PRGM 5 STO:I XEQ:A 1 CI 1 RS | ERR %STOP=INPUT:#5 %ERR=DOMAIN
@@ -53,7 +54,7 @@ O13 | ours: a keyboard XEQ after a stop starts fresh | PRGM CLPGM LBL:A INPUT:R 
 O14 | ours: VIEW from the keyboard does not stop anything (unit 005) | 4 STO:B VIEW:B 7 | X=7 Y=4 %STOP=NONE
 O15 | ours: an ENTER line run after R/S from a VIEW is an ordinary ENTER (found by prog_fuzz: the stop state outlived the resume) | MODE35 PRGM CLPGM LBL:A VIEW:H ENTER RTN PRGM 5 STO:H CLSTK XEQ:A RS | X=0 Y=0 %STOP=DONE
 O16 | 35s p.B-5 lift is on again after R/S from INPUT: the next number lifts the reply (5 + 2) | PRGM CLPGM LBL:A INPUT:R 5 + RTN PRGM XEQ:A 2 RS | X=7
-O17 | 35s p.F-5 a 21st nested XEQ is XEQ OVERFLOW | PRGM CLPGM LBL:A XEQ:B001 RTN LBL:B XEQ:C001 RTN LBL:C XEQ:D001 RTN LBL:D XEQ:E001 RTN LBL:E XEQ:F001 RTN LBL:F XEQ:G001 RTN LBL:G XEQ:H001 RTN LBL:H XEQ:I001 RTN LBL:I XEQ:J001 RTN LBL:J XEQ:K001 RTN LBL:K XEQ:L001 RTN LBL:L XEQ:M001 RTN LBL:M XEQ:N001 RTN LBL:N XEQ:O001 RTN LBL:O XEQ:P001 RTN LBL:P XEQ:Q001 RTN LBL:Q XEQ:R001 RTN LBL:R XEQ:S001 RTN LBL:S XEQ:T001 RTN LBL:T XEQ:U001 RTN LBL:U XEQ:V001 RTN LBL:V 7 RTN PRGM XEQ:A | ERR %ERR=XEQ_OVERFLOW %PC=U002
+O17 | 35s p.F-5 a 21st nested XEQ is XEQ OVERFLOW | MODE35 PRGM CLPGM LBL:A XEQ:B001 RTN LBL:B XEQ:C001 RTN LBL:C XEQ:D001 RTN LBL:D XEQ:E001 RTN LBL:E XEQ:F001 RTN LBL:F XEQ:G001 RTN LBL:G XEQ:H001 RTN LBL:H XEQ:I001 RTN LBL:I XEQ:J001 RTN LBL:J XEQ:K001 RTN LBL:K XEQ:L001 RTN LBL:L XEQ:M001 RTN LBL:M XEQ:N001 RTN LBL:N XEQ:O001 RTN LBL:O XEQ:P001 RTN LBL:P XEQ:Q001 RTN LBL:Q XEQ:R001 RTN LBL:R XEQ:S001 RTN LBL:S XEQ:T001 RTN LBL:T XEQ:U001 RTN LBL:U XEQ:V001 RTN LBL:V 7 RTN PRGM XEQ:A | ERR %ERR=XEQ_OVERFLOW %PC=U002
 O18 | 35s p.F-1 a label keyed twice is DUPLICAT.LBL | PRGM LBL:A LBL:A PRGM | ERR %ERR=DUP_LABEL
 O19 | 35s p.F-3 XEQ of a label not keyed is NONEXISTENT | XEQ:Q | ERR %ERR=NONEXISTENT
 O20 | 35s p.13-24 FDISP in program entry is refused | PRGM FDISP PRGM | ERR %ERR=NONPROGRAMMABLE
