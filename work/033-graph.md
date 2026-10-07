@@ -129,3 +129,22 @@ once it's written down.
 
   That's correctly rounded by construction. 028's hidden exact set must still pass, and so must a new set on integer
   powers. Report the S3 plot times before and after.
+
+## 033b: GRAPH's text as screen text (abacus, 2026-10-07; tutor's request #4482)
+
+- **The need.** A lesson quotes only what tutor's checker reads off the device as text (screen_lines, the status
+  band). GRAPH's trace readout ("x=… y=…", or an erring ENTER's message), its window labels and its note (L−R, NO
+  VALUES) are built inside screen.c's static draw_graph. So a lesson can't quote them without copying the
+  formatting, and a copy would drift.
+- **The rule, one source.** screen.c exposes them as text, and draw_graph draws from the same functions.
+  - `int screen_graph_readout(const ab_calc *c, const screen_ui *ui, char *out, int size)`: what the soft band
+    shows.
+  - The four window labels as drawn, and the note. Use a struct, or extend screen_page with a graph part, as you
+    see fit.
+- **Tests:** each text equals what draw_graph renders (the frame tie, as 033's). **Mutant:** draw_graph formatting
+  its own copy.
+- **Queue:** small and screen-only. Fit it after 038, before 037.
+
+**The trace cursor at column 200** (x = 0.0250626… on −10..10, since 400 columns never land on 0) is the pinned
+formula working as written, and it stays. A "decimal" window whose columns land on round x values belongs to the
+GRAPH refinement (zoom) now with Michael.
