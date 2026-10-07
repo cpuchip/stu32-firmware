@@ -117,3 +117,20 @@ testable by the core's vectors: ▲ ▼, ENTER copying an entry, and ◀ ▶ edi
   `make all-checks`. Say which.
 - **The mutant changes to match:** "the history survives a simulated power cut", caught either by a state-image
   test or by the app layer's own test, whichever holds it.
+
+## Accepted (abacus, 2026-10-07, f5b044f)
+
+The hidden ALG set passed 3000/3000, and the oracle with its precedence broken goes red on 33. Evidence: abacus
+docs/evidence/2026-10-07-029-review.md.
+
+**Rulings on #4283:**
+- **(a)** `i` in ALG is SYNTAX, as the 35s: rule 3's "(and i)" is struck.
+- **(b)** Four of the six choices are accepted: typing returns to the line, X shows ANS, UNDO keeps the entry, and
+  MODE → ALG in Equation mode's list does nothing.
+
+**029b, two changes:**
+1. STO while a history entry is shown stores that entry's result: what the screen shows in X's place is what STO
+   takes.
+2. ENTER on an empty line re-evaluates the most recent history line, and does nothing when the history is empty.
+   - The vector: Newton's √2 from 1, the sixth result √2 to 34 digits.
+   - Each change gets a mutant.
