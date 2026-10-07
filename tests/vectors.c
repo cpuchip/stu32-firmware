@@ -65,6 +65,7 @@ static const struct { const char *name; ab_op op; } NAMED[] = {
     {"CLALL", AB_CLALL}, {"CLEQN", AB_CLEQN}, {"BEEP", AB_BEEP},
     {"ANS", AB_ANS}, {"HUP", AB_HUP}, {"HDOWN", AB_HDOWN},     /* unit 029 */
     {"SHOW", AB_SHOW},                                          /* unit 030 */
+    {"TABLE", AB_TABLE}, {"TSTART", AB_TSTART}, {"TSTEP", AB_TSTEP}, {"TUP", AB_TUP}, {"TDOWN", AB_TDOWN},   /* 032 */
 };
 
 /* The last error any key returned in the current vector, for %ERR (unit 012). */
@@ -200,7 +201,8 @@ static const char *const STATUS_NAMES[] = {"OK", "DIV_ZERO", "RANGE", "BAD_TEXT"
                                            "MEMORY_FULL", "NONPROGRAMMABLE", "BUDGET", "NO_ROOT",
                                            "SELECT_FN", "NESTED", "SYNTAX", "INVALID_VAR",
                                            "NO_SOLUTION", "MULT_SOLUTION", "INTERRUPTED",
-                                           "BAD_IMAGE", "OVERFLOW", "UNDERFLOW", "RPN_ONLY"};
+                                           "BAD_IMAGE", "OVERFLOW", "UNDERFLOW", "RPN_ONLY", "STU_ONLY",
+                                           "NO_EQN"};
 
 /* Applies one key token. Returns 0, or -1 for an unknown token. */
 static int apply_token(ab_calc *c, const char *tok, int *errors)
@@ -215,7 +217,7 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
         {"STO:", AB_STO}, {"RCL:", AB_RCL}, {"STO+:", AB_STOADD}, {"STO-:", AB_STOSUB},
         {"STO*:", AB_STOMUL}, {"STO/:", AB_STODIV}, {"RCL+:", AB_RCLADD}, {"RCL-:", AB_RCLSUB},
         {"RCL*:", AB_RCLMUL}, {"RCL/:", AB_RCLDIV}, {"XVAR:", AB_XVAR}, {"VIEW:", AB_VIEW},
-        {"INPUT:", AB_INPUT}, {"SOLVE:", AB_SOLVE}, {"INTEG:", AB_INTEG}};
+        {"INPUT:", AB_INPUT}, {"SOLVE:", AB_SOLVE}, {"INTEG:", AB_INTEG}, {"TVAR:", AB_TVAR}};
     for (size_t i = 0; i < sizeof STORE / sizeof STORE[0]; i++) {
         size_t n = strlen(STORE[i].prefix);
         if (strncmp(tok, STORE[i].prefix, n) == 0) {
@@ -764,6 +766,17 @@ int vectors_run(const char *name, FILE *f)
                     if (n == 0) snprintf(got, sizeof got, "-");
                     else if (n == 1) snprintf(got, sizeof got, "%s", sh[0]);
                     else snprintf(got, sizeof got, "%s/%s", sh[0], sh[1]);
+                } else if (strcmp(ex, "%TABLE") == 0) {    /* unit 032: the table open, its row, x, y */
+                    snprintf(got, sizeof got, "%d", c.tbl_on ? 1 : 0);
+                } else if (strcmp(ex, "%TK") == 0) {
+                    snprintf(got, sizeof got, "%ld", (long)c.tbl_k);
+                } else if (strcmp(ex, "%TX") == 0 || strcmp(ex, "%TY") == 0) {
+                    abn tx;
+                    ab_val ty;
+                    abn_status ts = ab_table_row(&c, c.tbl_k, &tx, &ty);
+                    if (strcmp(ex, "%TX") == 0) abn_to_text(&tx, got, sizeof got);
+                    else if (ts != ABN_OK) snprintf(got, sizeof got, "%s", (unsigned)ts < sizeof STATUS_NAMES / sizeof STATUS_NAMES[0] ? STATUS_NAMES[ts] : "?");
+                    else abn_to_text(&ty.re, got, sizeof got);
                 } else if (strcmp(ex, "%BEEP") == 0) {     /* BEEPs done (unit 027) */
                     snprintf(got, sizeof got, "%u", (unsigned)c.beeps);
                 } else if (ex[1] == 'F' && isdigit((unsigned char)ex[2])) {

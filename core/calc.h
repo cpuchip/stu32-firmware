@@ -122,11 +122,14 @@ typedef enum {
     AB_ENTRYM,              /* arg 0 RPN, 1 ALG (MODE's F4, F5): ALG in STU only; nonprogrammable */
     AB_ANS,                 /* types ANS on the expression line (LASTx's key in ALG) */
     AB_HUP, AB_HDOWN,       /* the expression line's history, back and forward (the bar's up, down) */
-    AB_SHOW                 /* unit 030: SHOW, held: X's full mantissa (ab_show_text); neutral, changes
+    AB_SHOW,                /* unit 030: SHOW, held: X's full mantissa (ab_show_text); neutral, changes
                                nothing, nonprogrammable */
+    /* unit 032: TABLE (STU): GO opens the table of the equation shown; its variable (arg a variable code),
+       start and step (from X); a row up, down. Nonprogrammable. */
+    AB_TABLE, AB_TVAR, AB_TSTART, AB_TSTEP, AB_TUP, AB_TDOWN
 } ab_op;
 
-#define AB_OP_LAST AB_SHOW     /* the last op: loops over every op end here */
+#define AB_OP_LAST AB_TDOWN     /* the last op: loops over every op end here */
 
 /* Why the last run stopped (unit 012 rule 1): the device draws it; the core never waits. */
 typedef enum {
@@ -256,6 +259,15 @@ typedef struct {
     char eqn[AB_EQN_MAX + 2][AB_EQN_LEN];   /* the list, with the two built-in linear solvers
                                                (unit 015: text "\x01" then their LCD name) */
     int eqn_count;          /* entries, the built-ins included */
+    /* unit 032: TABLE's settings (in the image): the variable (a variable code, -1 the equation's first),
+       the start (set by START since the variable changed, else the variable's value at GO), the step;
+       and the open table: its equation and the selected row k (rows k-3..k shown, row k = start + k x step) */
+    int tbl_var;
+    bool tbl_start_set;
+    abn tbl_start, tbl_step;
+    bool tbl_on;
+    int tbl_eq;
+    int32_t tbl_k;
     uint8_t eqn_model[AB_EQN_MAX + 2];      /* unit 031: the model each was typed in (33, 35, AB_MODEL_STU):
                                                its meaning wherever it is evaluated (rule 3); in the image */
     int eqn_cur;            /* the equation shown, -1 at EQN LIST TOP */
@@ -397,6 +409,11 @@ int ab_show_text(const ab_calc *c, char out[2][AB_SHOW_LEN]);
    grouping and its chain (a^b^c) would read differently: " ·STU" for one typed in STU shown in 33s or
    35s, " ·35" or " ·33" for one typed there shown in STU; "" otherwise. */
 const char *ab_eqn_mark(const ab_calc *c, const char *text, int model);
+
+/* Unit 032: row k of the open table: *x = start + k x step, *y the equation's value there (L-R for an
+   L=R), with the variable set for the evaluation alone and restored after (rule 3); the status of the
+   row's evaluation (an error is that row's, the table goes on). */
+abn_status ab_table_row(ab_calc *c, int32_t k, abn *x, ab_val *y);
 
 /* Unit 025: the mode in force (33s or 35s): while a program line runs, the mode of the label that
    owns it; otherwise (the keyboard, lines before the first label) the calculator's. Every

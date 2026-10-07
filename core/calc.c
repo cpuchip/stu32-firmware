@@ -4544,3 +4544,12 @@ int ab_show_text(const ab_calc *c, char out[2][AB_SHOW_LEN])
     }
     return 0;                                   /* a vector: nothing for now (answer 3) */
 }
+
+abn_status ab_table_row(ab_calc *c, int32_t k, abn *x, ab_val *y)
+{
+    (void)c;
+    (void)k;
+    *x = abn_zero();
+    memset(y, 0, sizeof *y);
+    return ABN_DOMAIN;                          /* unit 032 red: not yet */
+}

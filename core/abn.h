@@ -54,8 +54,10 @@ typedef enum {
                                largest number, sets flag 6 and warns OVERFLOW (33s p.1-16, F-3) */
     ABN_UNDERFLOW,          /* a nonzero result below the smallest normal value: the calculator
                                gives 0 (33s p.1-16) */
-    ABN_RPN_ONLY            /* a key with no meaning on ALG's expression line: shown briefly, nothing
+    ABN_RPN_ONLY,           /* a key with no meaning on ALG's expression line: shown briefly, nothing
                                done, not an error (unit 029 rule 7) */
+    ABN_STU_ONLY,           /* unit 032: an STU feature asked in 33s or 35s mode (TABLE): shown briefly */
+    ABN_NO_EQN              /* unit 032: TABLE with no equation shown (EQN LIST TOP, a built-in solver) */
 } abn_status;
 
 abn abn_zero(void);

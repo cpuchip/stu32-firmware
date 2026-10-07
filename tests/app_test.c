@@ -1276,6 +1276,44 @@ int main(void)
         app_key_up(&a, 4, now);
     }
 
+    /* unit 032: TABLE: blue 8's menu (VAR START STEP GO); the table on the four lines, x left and the
+       value right, row k on X; the bar's up and down; ENTER takes the row; the status band says TABLE;
+       STU ONLY briefly in 35s mode */
+    {
+        static screen_page pg;
+        ab_init(&c);
+        app_init(&a, &c, now);
+        press(&a, "BLUE 8");
+        app_ui(&a, &ui);
+        expect(ui.soft[0] && !strcmp(ui.soft[0], "VAR") && ui.soft[1] && !strcmp(ui.soft[1], "START") && ui.soft[2] &&
+                   !strcmp(ui.soft[2], "STEP") && ui.soft[3] && !strcmp(ui.soft[3], "GO"),
+               "032: blue 8 is TABLE: VAR START STEP GO");
+        press(&a, "C");
+        ab_eqn_add(&c, "X^2");
+        ab_do(&c, AB_EQN);                      /* out of Equation mode, X^2 last shown */
+        press(&a, "3 STO ltr:X");
+        c.stu = true;                           /* STU (MODE's keys tested elsewhere) */
+        press(&a, "BLUE 8 k:3");
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(c.tbl_on && strstr(pg.x.text, "3.0000") && strstr(pg.x.text, "9.0000") && strstr(pg.t.text, "0.0000"),
+               "032: the table: row 0 (3, 9) on X, row -3 (0, 0) on T");
+        expect(strstr(pg.status.text, "TABLE") != NULL, "032: the status band says TABLE");
+        expect(ui.soft[0] && !strcmp(ui.soft[0], "\xe2\x96\xb2") && ui.soft[1] && !strcmp(ui.soft[1], "\xe2\x96\xbc"),
+               "032: the table's bar: up, down");
+        press(&a, "k:1");
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(c.tbl_k == 1 && strstr(pg.x.text, "16.0000"), "032: down: row 1 (4, 16) on X");
+        press(&a, "ENTER");
+        expect(!c.tbl_on && x_of(&c) == 16, "032: ENTER takes the row's value into X");
+        c.stu = false;
+        c.m35 = true;
+        press(&a, "BLUE 8 k:3");
+        app_ui(&a, &ui);
+        expect(!c.tbl_on && ui.notice && !strcmp(ui.notice, "STU ONLY") && !c.msg, "032: 35s mode: STU ONLY briefly");
+    }
+
     /* unit 031 rule 3, answer C: a chain shown under the other grouping is marked with the model it was
        typed in; under its own grouping, or with no chain, no mark */
     {

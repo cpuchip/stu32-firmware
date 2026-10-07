@@ -1,0 +1,23 @@
+# Unit 032: TABLE (work/032-table.md; proposals #4353). Keys: TABLE opens it (GO), TVAR:A sets its variable,
+# TSTART and TSTEP take X, TUP and TDOWN move a row. %TABLE 1 while open, %TK the selected row k, %TX its
+# variable value (start + k x step), %TY its equation value or the error's status name. EQ: stores an equation.
+B01 | rules 1-2: the defaults: the first variable, its value as the start, step 1; row 0 | STU EQ:X^2 C 3 STO:X TABLE | %TABLE=1 %TK=0 %TX=3 %TY=9
+B02 | rule 4: down a row | STU EQ:X^2 C 3 STO:X TABLE TDOWN | %TK=1 %TX=4 %TY=16
+B03 | rule 4: up past the start: the table goes on below it | STU EQ:X^2 C 3 STO:X TABLE TUP TUP TUP TUP | %TK=-4 %TX=-1 %TY=1
+B04 | rule 1: L=R tabulates L-R | STU EQ:X^2=4 C 3 STO:X TABLE | %TY=5
+B05 | rule 2: the variable, start and step set | STU EQ:A×B C 2 STO:A 5 STO:B TVAR:B 10 TSTART 0.5 TSTEP TABLE TDOWN | %TX=10.5 %TY=21
+B06 | rule 2: a negative fractional step | STU EQ:X^2 C 1 STO:X 0.25 CHS TSTEP TABLE TDOWN TDOWN TDOWN | %TX=0.25 %TY=0.0625
+B07 | rule 3: leaving mid-table leaves the variable as it was | STU EQ:X^2 C 3 STO:X TABLE TDOWN TDOWN C | %TABLE=0 @X=3
+B08 | rule 4: an erring row shows its error and the table goes on; rule 3 the variable kept | STU EQ:1÷X C 5 STO:X 1 CHS TSTART TABLE TDOWN | %TABLE=1 %TX=0 %TY=DIV_ZERO @X=5
+B09 | rule 4: past the erring row | STU EQ:1÷X C 5 STO:X 1 CHS TSTART TABLE TDOWN TDOWN | %TK=2 %TX=1 %TY=1 @X=5
+B10 | rule 5: ENTER puts the row's value in X as a keyed number: after ENTER (lift disabled) it replaces | STU EQ:X^2 C 3 STO:X 7 ENTER TABLE TDOWN ENTER | %TABLE=0 X=16 Y=7
+B11 | rule 5: with lift enabled it lifts | STU EQ:X^2 C 3 STO:X 7 ENTER 1 + TABLE TDOWN ENTER | X=16 Y=8
+B12 | rule 5: C leaves and changes nothing | STU EQ:X^2 C 3 STO:X 8 TABLE TDOWN C | %TABLE=0 X=8 @X=3
+B13 | rule 6: a row equals XEQ at that point, by value (radians) | STU RAD EQ:SIN(X)+X^3 C 0.7 STO:X 0.3 TSTEP TABLE TDOWN TDOWN ENTER SAVEX 1.3 STO:X EQN XEQ RS | %SAMEX=1
+B14 | rule 6: the angle unit in force (degrees) | STU EQ:SIN(X) C 30 STO:X TABLE | %TY=0.5
+B15 | the drift mutant's pin: start 1, step 1/3: row 2 is 1 + 2 x step, not repeated addition | STU EQ:X C 1 STO:X 1 ENTER 3 / TSTEP TABLE TDOWN TDOWN | %TX=1.666666666666666666666666666666667
+B16 | rule 2: the settings and the open row survive the state image | STU EQ:X^2 C 3 STO:X 0.5 TSTEP TABLE TDOWN SAVE MEMCLR LOAD | %TABLE=1 %TK=1 %TX=3.5 %TY=12.25
+B17 | proposal 1: in 35s mode GO says STU ONLY and opens nothing | MODE35 EQ:X^2 C TABLE | ERR %ERR=STU_ONLY %TABLE=0
+B18 | proposal 2: no equation shown: NO EQUATION | STU TABLE | ERR %ERR=NO_EQN %TABLE=0
+B19 | rule 1: other variables read as they stand, no prompt | STU EQ:X+Y C 3 STO:X 10 STO:Y TABLE TDOWN | %TY=14 %STOP=NONE
+B20 | rule 1: the equation last shown, after leaving Equation mode | STU EQ:X^2 EQN 3 STO:X TABLE | %TABLE=1 %TY=9
