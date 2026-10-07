@@ -77,6 +77,10 @@ build/xnum_test: core/xnum.c core/bigint.c core/arena.c $(HDRS) $(ENGINE) tests/
 
 build/fn_drive: core/fn.c core/hp.c core/bigint.c core/arena.c core/sbig.c core/xnum.c $(HDRS) $(ENGINE) tests/fn_drive.c | build
 	$(CC) $(CFLAGS) -Icore -o $@ core/fn.c core/hp.c core/bigint.c core/arena.c core/sbig.c core/xnum.c tests/fn_drive.c $(ENGINE) $(LIBS)
+# unit 034 review: y^x's first precision lowered so that roundings fall near midpoints; the Ziv loop must keep
+# them correctly rounded (tests/pow_exact.py)
+build/fn_drive_p37: core/fn.c core/hp.c core/bigint.c core/arena.c core/sbig.c core/xnum.c $(HDRS) $(ENGINE) tests/fn_drive.c | build
+	$(CC) $(CFLAGS) -DPOW_FIRST=37 -Icore -o $@ core/fn.c core/hp.c core/bigint.c core/arena.c core/sbig.c core/xnum.c tests/fn_drive.c $(ENGINE) $(LIBS)
 
 build/abn_test: $(HDRS) $(ENGINE) tests/abn_test.c tests/norm.h tests/cases.h | build
 	$(CC) $(CFLAGS) -Icore -o $@ tests/abn_test.c $(ENGINE) $(LIBS)
@@ -180,11 +184,13 @@ all-checks:
 	$(MAKE) accuracy PYTHON=$(PYTHON)
 	@echo "all-checks: make test and make accuracy passed"
 
-accuracy: build/fn_drive build/cx_drive build/vectors
+accuracy: build/fn_drive build/fn_drive_p37 build/cx_drive build/vectors
 	$(PYTHON) tests/fn_fuzz.py build/fn_drive
 	$(PYTHON) tests/cx_fuzz.py build/cx_drive
 	$(PYTHON) tests/range_fuzz.py build/fn_drive 1 30
 	$(PYTHON) tests/pow_fuzz.py build/fn_drive 1 3400
+	$(PYTHON) tests/pow_exact.py build/fn_drive 1 4000
+	$(PYTHON) tests/pow_exact.py build/fn_drive_p37 2 4000
 	$(PYTHON) tests/polar_fuzz.py build/fn_drive 1 1500 --rec
 	$(PYTHON) tests/cxkey_fuzz.py 1 5000 > build/cxkey_fuzz.txt
 	./build/vectors build/cxkey_fuzz.txt

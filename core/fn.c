@@ -147,30 +147,47 @@ static abn round_sig(const abn *x, int k)
  * 24000 rounded differently). */
 unsigned long fn_pow_hp_calls;
 
+/* The precisions y^x and the root are formed to in turn until their rounding is sure (Ziv; unit 034's review
+   showed two inputs can put a result within about 1E-68 of a rounding midpoint, beyond any fixed 50 digits). */
+#ifndef POW_FIRST
+#define POW_FIRST FN_HP     /* tests build one at 37 to show the loop at work (make accuracy) */
+#endif
+static const int POW_P[] = {POW_FIRST, 90, 150};
+
 static abn_status pow_hp(abn *out, const abn *y, const abn *e)
 {
     fn_pow_hp_calls++;
     static hp hy, he, one, t, l, w, r;
-    hp_set_int(&one, 1);
-    if (!hp_from_abn(&hy, y) || !hp_from_abn(&he, e) || !hp_add(&t, &hy, &one, true, HP_PMAX) ||
-        !hp_ln(&l, &hy, &t, FN_HP) || !hp_mul(&w, &he, &l, FN_HP))
-        return ABN_RANGE;
-    if (!hp_exp(&r, &w, FN_HP))         /* |e ln y| >= 10^7: beyond the range */
-        return w.neg ? ABN_UNDERFLOW : ABN_OVERFLOW;
-    return hp_round(out, &r);
+    abn_status st = ABN_RANGE;
+    for (int i = 0; i < 3; i++) {
+        int p = POW_P[i];
+        hp_set_int(&one, 1);
+        if (!hp_from_abn(&hy, y) || !hp_from_abn(&he, e) || !hp_add(&t, &hy, &one, true, HP_PMAX) ||
+            !hp_ln(&l, &hy, &t, p) || !hp_mul(&w, &he, &l, p))
+            return i ? st : ABN_RANGE;
+        if (!hp_exp(&r, &w, p))         /* |e ln y| >= 10^7: beyond the range */
+            return w.neg ? ABN_UNDERFLOW : ABN_OVERFLOW;
+        if (hp_round_sure(out, &st, &r, p, &t)) break;      /* t free: the scratch */
+    }
+    return st;
 }
 
-/* The x-th root of y > 0 as e^(ln y / x) in hp, rounded once (unit 028). */
+/* The x-th root of y > 0 as e^(ln y / x) in hp, rounded once its rounding is sure (units 028, 034). */
 static abn_status root_hp(abn *out, const abn *y, const abn *x)
 {
     static hp hy, hx, one, t, l, w, r;
-    hp_set_int(&one, 1);
-    if (!hp_from_abn(&hy, y) || !hp_from_abn(&hx, x) || !hp_add(&t, &hy, &one, true, HP_PMAX) ||
-        !hp_ln(&l, &hy, &t, FN_HP) || !hp_div(&w, &l, &hx, FN_HP))
-        return ABN_RANGE;
-    if (!hp_exp(&r, &w, FN_HP))         /* |ln y / x| >= 10^7: beyond the range */
-        return w.neg ? ABN_UNDERFLOW : ABN_OVERFLOW;
-    return hp_round(out, &r);
+    abn_status st = ABN_RANGE;
+    for (int i = 0; i < 3; i++) {
+        int p = POW_P[i];
+        hp_set_int(&one, 1);
+        if (!hp_from_abn(&hy, y) || !hp_from_abn(&hx, x) || !hp_add(&t, &hy, &one, true, HP_PMAX) ||
+            !hp_ln(&l, &hy, &t, p) || !hp_div(&w, &l, &hx, p))
+            return i ? st : ABN_RANGE;
+        if (!hp_exp(&r, &w, p))         /* |ln y / x| >= 10^7: beyond the range */
+            return w.neg ? ABN_UNDERFLOW : ABN_OVERFLOW;
+        if (hp_round_sure(out, &st, &r, p, &t)) break;
+    }
+    return st;
 }
 
 /* y^e for y > 0 (unit 028): exact by squaring where the integer power is exact (2^10 = 1024), and
