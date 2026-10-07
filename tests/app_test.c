@@ -1363,9 +1363,9 @@ int main(void)
                "037: ticks at the app's rate (50 ms)");
         a.set.off_min = 2;
         bool off = false;
-        for (uint32_t ms = 260; ms < 260 + 4 * 60000; ms += 50)
+        for (uint32_t ms = 260; ms < 260 + 3 * 60000; ms += 50)     /* past auto-off (2 min), short of twice it */
             off = off || app_tick(&a, &(pwr_inputs){false, false, 80, false}, t + ms) == APP_OFF;
-        expect(!off && rec.ticks > 4000 && rec.tick_ms == 50, "037: auto-off suspended while an app runs; ticks at 50 ms");
+        expect(!off && rec.ticks > 3000 && rec.tick_ms == 50, "037: auto-off suspended while an app runs; ticks at 50 ms");
         int keys = rec.keys;
         app_key(&a, 42, t + 300000);            /* C */
         app_key_up(&a, 42, t + 300010);
@@ -1385,6 +1385,36 @@ int main(void)
         expect(app_running(&a3) && rec.save_n > 0 && rec.loads == 1, "037: T7's save comes back after MEMORY CLEAR");
         press(&a3, "C");
         a.set.off_min = 10;
+        /* abacus #4639: the idle limit. After twice the device's auto-off time with no key the app is saved and
+           stopped, and the calculator's auto-off resumes (the device turns off); a key short of it keeps it going */
+        {
+            static app_state a5;
+            uint32_t t0 = now + 1000;
+            app_init(&a5, &c, t0);
+            app_apps(&a5, tlist, 7);
+            app_ctx_buffer(&a5, ctxbuf, sizeof ctxbuf);
+            a5.set.off_min = 2;
+            memset(&rec, 0, sizeof rec);
+            app_key(&a5, 36, t0);               /* BLUE 0 k:0: APPS, T1 */
+            app_key(&a5, 43, t0 + 10);
+            app_key(&a5, 0, t0 + 20);
+            bool off5 = false, run_at_7 = false;
+            const pwr_inputs pin5 = {false, false, 80, false};
+            for (uint32_t ms = 30; ms < 7 * 60000; ms += 50) {
+                if (ms == 3 * 60000 + 30) app_key(&a5, 37, t0 + ms);     /* a key at 3 min: the clock restarts */
+                if (ms == 7 * 60000 - 20) run_at_7 = app_running(&a5);
+                off5 = off5 || app_tick(&a5, &pin5, t0 + ms) == APP_OFF;
+            }
+            bool alive_at_7 = run_at_7 && !off5 && rec.saves == 0;
+            uint32_t off_at = 0;
+            for (uint32_t ms = 7 * 60000; ms < 12 * 60000 && !off5; ms += 50)
+                if ((off5 = app_tick(&a5, &pin5, t0 + ms) == APP_OFF)) off_at = ms;
+            /* the app stops at 7 min (the last key at 3 min, plus twice 2 min); the calculator's auto-off then resumes
+               from there, so the device turns off 2 min later */
+            expect(alive_at_7 && off5 && off_at >= 9 * 60000 - 100 && off_at <= 9 * 60000 + 100 && !app_running(&a5) &&
+                       rec.saves == 1 && rec.stops == 1,
+                   "idle limit: twice auto-off with no key saves and stops the app; auto-off resumes, off 2 min later");
+        }
         /* apps.h v1.1 (Babal's merge): an app may declare up to 256 KB (Babal 164,656 bytes, its whole level and
            log); one byte more is refused, NO MEMORY */
         {
