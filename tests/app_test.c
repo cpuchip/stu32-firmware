@@ -2222,6 +2222,38 @@ int main(void)
                "035: the shifted SST steps to Y=, no program line run");
     }
 
+    /* unit 043: SOLVE on a built-in solver, from the keys, goes straight to A's prompt (35s p.7-6), in 35s mode and STU;
+       on an ordinary equation it asks for the unknown. The guide's example keyed as printed: x = 1, y = 2. The 3*3 case
+       ours: rows (1 1 1 | 6), (1 2 3 | 14), (2 1 1 | 7), x y z = 1 2 3. */
+    {
+        static const int MODES[2] = {35, AB_MODEL_STU};
+        for (int m = 0; m < 2; m++) {
+            const char *nm = m ? "STU" : "35s";
+            char what[96];
+            ab_init(&c);
+            app_init(&a, &c, now);
+            ab_do_arg(&c, AB_MODEL, MODES[m]);
+            press(&a, "GOLD 0 k:0 k:0");        /* EQN, then up twice from the top: 2*2 lin. solve */
+            press(&a, "GOLD 7 1 R/S 2 R/S 5 R/S 3 R/S 4 R/S 1 1 R/S");
+            snprintf(what, sizeof what, "043: %s: 2*2 lin. solve from the keys (35s p.7-6): x = 1, y = 2", nm);
+            expect(var_of(&c, 'X') == 1 && var_of(&c, 'Y') == 2, what);
+            ab_init(&c);
+            app_init(&a, &c, now);
+            ab_do_arg(&c, AB_MODEL, MODES[m]);
+            press(&a, "GOLD 0 k:0");            /* up once from the top: 3*3 lin. solve */
+            press(&a, "GOLD 7 1 R/S 1 R/S 1 R/S 6 R/S 1 R/S 2 R/S 3 R/S 1 4 R/S 2 R/S 1 R/S 1 R/S 7 R/S");
+            snprintf(what, sizeof what, "043: %s: 3*3 lin. solve from the keys: x y z = 1 2 3", nm);
+            expect(var_of(&c, 'X') == 1 && var_of(&c, 'Y') == 2 && var_of(&c, 'Z') == 3, what);
+        }
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, 35);
+        ab_eqn_add(&c, "A+1");                  /* an ordinary equation shown */
+        press(&a, "GOLD 7");
+        app_ui(&a, &ui);
+        expect(ui.prompt && !strcmp(ui.prompt, "SOLVE _"), "043: SOLVE on an ordinary equation still asks for the unknown");
+    }
+
     /* unit 032: TABLE: blue 8's menu (VAR START STEP GO); the table on the four lines, x left and the
        value right, row k on X; the bar's up and down; ENTER takes the row; the status band says TABLE;
        STU ONLY briefly in 35s mode */
