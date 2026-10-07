@@ -1418,6 +1418,24 @@ int main(void)
                        rec.saves == 1 && rec.stops == 1,
                    "idle limit: twice auto-off with no key saves and stops the app; auto-off resumes, off 2 min later");
         }
+        /* abacus #4661: a host may turn the idle limit off (tally's phone never auto-offs; a paused game stays) */
+        {
+            static app_state a6;
+            uint32_t t1 = now + 1000;
+            app_init(&a6, &c, t1);
+            app_apps(&a6, tlist, 7);
+            app_ctx_buffer(&a6, ctxbuf, sizeof ctxbuf);
+            a6.set.off_min = 2;
+            bool dflt = a6.idle_limit;
+            a6.idle_limit = false;
+            app_key(&a6, 36, t1);
+            app_key(&a6, 43, t1 + 10);
+            app_key(&a6, 0, t1 + 20);
+            const pwr_inputs pin6 = {false, false, 80, false};
+            for (uint32_t ms = 30; ms < 10 * 60000; ms += 50) app_tick(&a6, &pin6, t1 + ms);
+            expect(dflt && app_running(&a6), "idle limit off (a host's switch): the app still runs after 10 min, no key");
+            app_key(&a6, 42, t1 + 10 * 60000);
+        }
         /* apps.h v1.1 (Babal's merge): an app may declare up to 256 KB (Babal 164,656 bytes, its whole level and
            log); one byte more is refused, NO MEMORY */
         {
