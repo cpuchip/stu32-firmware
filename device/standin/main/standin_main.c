@@ -53,7 +53,7 @@
 
 enum { EV_KEY = 0, EV_OP, EV_DUMP, EV_SAVE, EV_WIPE, EV_RESTART, EV_TOUCHED, EV_BENCH, EV_TIME, EV_POWBENCH,
        EV_KEYUP, EV_TBLBENCH, EV_GRBENCH, EV_FRAMEBENCH,
-       EV_POLBENCH };                          /* EV_KEYUP: a the key released (unit 030: SHOW, held) */
+       EV_POLBENCH, EV_ZOOMBENCH };                          /* EV_KEYUP: a the key released (unit 030: SHOW, held) */
 static char time_text[16];             /* TIME's argument, for the calc task (unit 027) */
 
 typedef struct {
@@ -443,6 +443,61 @@ static void powbench(void)
     printf("powbench: done\n");
 }
 
+/* ZOOMBENCH (unit 040): the typical cubic, Y fitted; after each zoom the zoom's own time (a fitted Y is sampled
+   to hold it) and a full redraw's (400 samples, the fit where Y is fitted, the rows); then each tool's time at the
+   cursor. */
+static void zoombench(void)
+{
+    static const struct { const char *name; int kind; } Z[] = {
+        {"ZIN", AB_Z_IN}, {"ZOUT", AB_Z_OUT}, {"CNTR", AB_Z_CNTR}, {"HZIN", AB_Z_HIN}, {"VZOUT", AB_Z_VOUT},
+        {"ZDECI", AB_Z_DECI}, {"ZINTG", AB_Z_INTG}, {"ZSQR", AB_Z_SQR}, {"ZTRIG", AB_Z_TRIG}, {"ZLAST", AB_Z_LAST},
+        {"ZDFLT", AB_Z_DFLT}, {"ZAUTO", AB_Z_AUTO}};
+    static const struct { const char *name; int kind; } F[] = {
+        {"ROOT", AB_F_ROOT}, {"SLOPE", AB_F_SLOPE}, {"EXTR", AB_F_EXTR}, {"F(X)", AB_F_FX}, {"TANL", AB_F_TANL}};
+    ab_calc *t = heap_caps_calloc(1, sizeof *t, MALLOC_CAP_SPIRAM);
+    app_graph *g = heap_caps_malloc(sizeof *g, MALLOC_CAP_SPIRAM);
+    if (!t || !g) {
+        printf("zoombench: no memory\n");
+        return;
+    }
+    ab_init(t);
+    ab_do_arg(t, AB_MODEL, AB_MODEL_STU);
+    ab_eqn_add(t, "X^3-6\xc3\x97X^2+4\xc3\x97X+12");
+    ab_do(t, AB_EQN);
+    abn_status go = ab_do(t, AB_GRAPH);
+    for (size_t i = 0; i < sizeof Z / sizeof Z[0]; i++) {
+        int64_t t0 = esp_timer_get_time();
+        abn_status zs = ab_do_arg(t, AB_GZOOM, Z[i].kind);
+        int64_t t1 = esp_timer_get_time();
+        bool okb[AB_GRAPH_W];
+        for (int k = 0; k < AB_GRAPH_W; k++) {
+            abn x;
+            ab_val v;
+            okb[k] = ab_graph_sample(t, k, &x, &v) == ABN_OK;
+            g->y[k] = v.re;
+        }
+        abn lo = t->gr_ymin, hi = t->gr_ymax;
+        if (t->gr_auto) ab_graph_fit(g->y, okb, AB_GRAPH_W, &lo, &hi);
+        for (int k = 0; k < AB_GRAPH_W; k++)
+            if (okb[k]) g->row[k] = (int16_t)ab_graph_row(&g->y[k], &lo, &hi);
+        int64_t t2 = esp_timer_get_time();
+        printf("zoombench: %-6s the zoom %lld ms, a full redraw %lld ms (st %d, Y %s)\n", Z[i].name,
+               (long long)(t1 - t0) / 1000, (long long)(t2 - t1) / 1000, (int)zs, t->gr_auto ? "fitted" : "set");
+    }
+    ab_do_arg(t, AB_GMOVE, 16);                 /* the cursor 10 right of home, x about 0.5 */
+    for (size_t i = 0; i < sizeof F / sizeof F[0]; i++) {
+        int64_t t0 = esp_timer_get_time();
+        abn_status fs = ab_do_arg(t, AB_GFCN, F[i].kind);
+        int64_t t1 = esp_timer_get_time();
+        printf("zoombench: %-6s %lld ms (st %d)\n", F[i].name, (long long)(t1 - t0) / 1000, (int)fs);
+        ab_do_arg(t, AB_GMOVE, 5);
+        ab_do_arg(t, AB_GMOVE, 16);
+    }
+    printf("zoombench: done (GO %d)\n", (int)go);
+    heap_caps_free(g);
+    heap_caps_free(t);
+}
+
 /* POLBENCH (unit 034 rule 3): ->POL's time on the S3, before (the engine's hypot and atan2, and in DEG the one
    product, which was fn_topol's route) and after (fn_topol: hp_hypot, hp_atan2 at 56 digits rounded once); and
    ->REC's in RAD, fn_torec now. Non-integer arguments (a benchmark lesson of unit 032). */
@@ -605,6 +660,7 @@ static void console_task(void *arg)
         else if (!strcmp(line, "GRBENCH")) e.kind = EV_GRBENCH;    /* unit 033 rule 8: a full plot's time */
         else if (!strcmp(line, "FRAMEBENCH")) e.kind = EV_FRAMEBENCH;  /* unit 037 rule 6: full frames a second */
         else if (!strcmp(line, "POLBENCH")) e.kind = EV_POLBENCH;  /* unit 034 rule 3: ->POL before and after */
+        else if (!strcmp(line, "ZOOMBENCH")) e.kind = EV_ZOOMBENCH;  /* unit 040: a redraw after each zoom */
         else if (!strncmp(line, "TIME ", 5)) {      /* TIME hh:mm[:ss] (unit 027 rule 4) */
             snprintf(time_text, sizeof time_text, "%.15s", line + 5);
             e.kind = EV_TIME;
@@ -667,6 +723,8 @@ static void calc_task(void *arg)
             powbench();
         } else if (got && ev.kind == EV_POLBENCH) {
             polbench();
+        } else if (got && ev.kind == EV_ZOOMBENCH) {
+            zoombench();
         } else if (got && ev.kind == EV_BENCH) {
             bench();
         } else if (got && ev.kind == EV_TIME) {

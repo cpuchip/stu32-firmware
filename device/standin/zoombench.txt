@@ -1,0 +1,7 @@
+# unit 040: a redraw's time after each zoom, and each tool's (ZOOMBENCH)
+send RESTART
+wait STANDIN READY 30
+send X
+expect state: 5
+send ZOOMBENCH
+expect zoombench: done 240

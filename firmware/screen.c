@@ -381,6 +381,9 @@ static void var_name(int id, char *out, int size)
 
 /* ---- the bands ---- */
 
+/* A graph's texts as drawn, shared by the status band's readout and draw_graph (one at a time: one buffer). */
+static screen_graph_text graph_tx;
+
 static void status_band(ls027_frame *f, const ab_calc *c, const screen_ui *ui, int ind)
 {
     /* the clock at the left (unit 027 rule 4: Michael's decided layout, "Clock"), its 12-hour a/p
@@ -398,9 +401,8 @@ static void status_band(ls027_frame *f, const ab_calc *c, const screen_ui *ui, i
     if (c->gr_on && ui->graph) {
         /* unit 040: a graph's readout here, small, in place of the annunciators (its soft keys fill the band where
            033 drew it) */
-        static screen_graph_text gt;
-        screen_graph_texts(c, ui, &gt);
-        screen_text(f, SCREEN_READOUT_X, SCREEN_READOUT_Y, 1, gt.readout, true);
+        screen_graph_texts(c, ui, &graph_tx);
+        screen_text(f, SCREEN_READOUT_X, SCREEN_READOUT_Y, 1, graph_tx.readout, true);
         ind = 0;
         goto right;
     }
@@ -525,8 +527,8 @@ static void draw_graph(ls027_frame *f, const ab_calc *c, const screen_ui *ui)
 {
     const screen_graph *g = ui->graph;
     const int top = 21, Hh = AB_GRAPH_H;
-    static screen_graph_text tx;                /* (the texts, as screen_graph_texts gives them: 033b) */
-    screen_graph_texts(c, ui, &tx);
+    screen_graph_text *tx = &graph_tx;          /* (the texts, as screen_graph_texts gives them: 033b) */
+    screen_graph_texts(c, ui, tx);
     if (g->ready) {
         if (g->xrow >= 0) screen_fill(f, 0, top + g->xrow, W, 1, true);
         if (g->ycol >= 0) screen_fill(f, g->ycol, top, 1, Hh, true);
@@ -535,11 +537,11 @@ static void draw_graph(ls027_frame *f, const ab_calc *c, const screen_ui *ui)
     } else {
         screen_fill(f, 0, top + Hh - 2, g->done, 2, true);
     }
-    screen_text(f, 0, top + Hh - 8, 1, tx.xmin, true);
-    screen_text(f, W - 6 * screen_cells(tx.xmax), top + Hh - 8, 1, tx.xmax, true);
-    if (tx.ymax[0]) screen_text(f, 0, top + 1, 1, tx.ymax, true);
-    if (tx.ymin[0]) screen_text(f, 0, top + Hh - 17, 1, tx.ymin, true);
-    if (tx.note[0]) screen_text(f, W - 6 * screen_cells(tx.note), top + 1, 1, tx.note, true);
+    screen_text(f, 0, top + Hh - 8, 1, tx->xmin, true);
+    screen_text(f, W - 6 * screen_cells(tx->xmax), top + Hh - 8, 1, tx->xmax, true);
+    if (tx->ymax[0]) screen_text(f, 0, top + 1, 1, tx->ymax, true);
+    if (tx->ymin[0]) screen_text(f, 0, top + Hh - 17, 1, tx->ymin, true);
+    if (tx->note[0]) screen_text(f, W - 6 * screen_cells(tx->note), top + 1, 1, tx->note, true);
     if (g->cur >= 0 && g->cur < AB_GRAPH_W) {
         screen_fill(f, g->cur, top, 1, 3, true);
         screen_fill(f, g->cur, top + Hh - 3, 1, 3, true);

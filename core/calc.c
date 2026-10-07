@@ -5000,17 +5000,30 @@ static void clamp_big(abn_status st, abn *r, bool neg)
     }
 }
 
+/* One sample into the fit's range: errors and overflows left out (answer 2). */
+static void fit_take(const abn *y, bool ok, abn *lo, abn *hi, bool *any)
+{
+    abn big = abn_largest(), a = abn_abs(y);
+    if (!ok || abn_cmp(&a, &big) == 0) return;
+    if (!*any || abn_cmp(y, lo) < 0) *lo = *y;
+    if (!*any || abn_cmp(y, hi) > 0) *hi = *y;
+    *any = true;
+}
+
+static void fit_finish(abn *lo, abn *hi, bool any);
+
 void ab_graph_fit(const abn *y, const bool *ok, int n, abn *lo, abn *hi)
 {
-    abn big = abn_largest(), m, span, p05;
     bool any = false;
-    for (int i = 0; i < n; i++) {
-        abn a = abn_abs(&y[i]);
-        if (!ok[i] || abn_cmp(&a, &big) == 0) continue;     /* errors and overflows left out (answer 2) */
-        if (!any || abn_cmp(&y[i], lo) < 0) *lo = y[i];
-        if (!any || abn_cmp(&y[i], hi) > 0) *hi = y[i];
-        any = true;
-    }
+    for (int i = 0; i < n; i++) fit_take(&y[i], ok[i], lo, hi, &any);
+    fit_finish(lo, hi, any);
+}
+
+/* The fit from the samples' range (rule 2): none, -10..10; a constant, plus and minus 1 (or 5%); else 5% of the
+   span each way. */
+static void fit_finish(abn *lo, abn *hi, bool any)
+{
+    abn m, span, p05;
     if (!any) {                                 /* no finite sample: -10..10 (answer 2) */
         *lo = abn_from_int(-10);
         *hi = abn_from_int(10);
@@ -5039,8 +5052,8 @@ void ab_graph_fit(const abn *y, const bool *ok, int n, abn *lo, abn *hi)
 
 void ab_graph_window(ab_calc *c, abn *ymin, abn *ymax)
 {
-    static abn y[AB_GRAPH_W];
-    static bool ok[AB_GRAPH_W];
+    bool any = false;                           /* (the range as the samples come: no arrays, unit 040, which
+                                                   brought this onto the device and its 6.8 KB of statics) */
     if (!c->gr_auto) {
         *ymin = c->gr_ymin;
         *ymax = c->gr_ymax;
@@ -5049,10 +5062,9 @@ void ab_graph_window(ab_calc *c, abn *ymin, abn *ymax)
     for (int i = 0; i < AB_GRAPH_W; i++) {
         abn x;
         ab_val v;
-        ok[i] = graph_sample(c, i, &x, &v, true) == ABN_OK;
-        y[i] = v.re;
+        fit_take(&v.re, graph_sample(c, i, &x, &v, true) == ABN_OK, ymin, ymax, &any);
     }
-    ab_graph_fit(y, ok, AB_GRAPH_W, ymin, ymax);
+    fit_finish(ymin, ymax, any);
 }
 
 /* p rounded to an integer, half even, as an int clamped to lo..hi (an integer's digits read back). */
