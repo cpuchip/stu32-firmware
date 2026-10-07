@@ -46,7 +46,7 @@ ARCADE_INC := -Ibuild/arcade/babal -Ibuild/arcade/app
 build/arcade/.pin: ARCADE_PIN
 	scripts/fetch-arcade.sh
 $(ARCADE_C): build/arcade/.pin
-build/arcade-o/%.o: build/arcade/%.c build/arcade/.pin
+build/arcade-o/%.o: build/arcade/%.c build/arcade/.pin firmware/apps.h firmware/ls027.h firmware/font5x7.h   # (the firmware headers it includes: merge gate)
 	@mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -ffp-contract=off -Ifirmware $(ARCADE_INC) -c $< -o $@
 build/app_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) $(APP) $(ARCADE_O) firmware/app.h firmware/keymap.h firmware/power.h firmware/screen.h tests/app_test.c | build

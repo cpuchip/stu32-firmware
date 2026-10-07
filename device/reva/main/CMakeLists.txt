@@ -14,10 +14,18 @@ set(ARCADE "${REPO}/build/arcade")
 if(NOT EXISTS "${ARCADE}/.pin")
     message(FATAL_ERROR "no ${ARCADE}: run scripts/fetch-arcade.sh")
 endif()
-file(GLOB ARCADE_SRCS "${ARCADE}/babal/*.c")
+# a re-export at a new pin reconfigures (the glob's file list) and recompiles every game file: git archive stamps
+# the files with the commit's time, so their mtimes alone do not show the change (merge gate)
+if(CMAKE_SCRIPT_MODE_FILE)                  # (as the core's glob: CONFIGURE_DEPENDS outside script mode)
+    file(GLOB ARCADE_SRCS "${ARCADE}/babal/*.c")
+else()
+    file(GLOB ARCADE_SRCS CONFIGURE_DEPENDS "${ARCADE}/babal/*.c")
+endif()
 list(APPEND ARCADE_SRCS "${ARCADE}/app/babal_app.c" "${ARCADE}/app/render.c")
 if(NOT CMAKE_SCRIPT_MODE_FILE)  # not allowed while IDF expands requirements in script mode
-    set_source_files_properties(${ARCADE_SRCS} PROPERTIES COMPILE_OPTIONS "-ffp-contract=off")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${ARCADE}/.pin")
+    set_source_files_properties(${ARCADE_SRCS} PROPERTIES COMPILE_OPTIONS "-ffp-contract=off"
+                                OBJECT_DEPENDS "${ARCADE}/.pin")
 endif()
 
 idf_component_register(
