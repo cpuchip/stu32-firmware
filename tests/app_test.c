@@ -1455,6 +1455,84 @@ int main(void)
         expect(!ui.prompt && c.pc == pc0, "036: C backs out of the address form, nothing moved");
     }
 
+    /* unit 036b: in 35s and STU mode GTO and XEQ take a letter, then ENTER (its first line) or three digits
+       (35s p.14-6, p.13-10); 33s mode acts on the letter (33s p.13-5); backspace steps back, C backs out */
+    {
+        /* LBL A, 1, R/S, 2, RTN: A001..A005 */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        c.m35 = true;
+        ab_do(&c, AB_PRGM);
+        ab_do_arg(&c, AB_LBL, 0);
+        ab_do(&c, AB_K1);
+        ab_do(&c, AB_RS);
+        ab_do(&c, AB_K2);
+        ab_do(&c, AB_RTN);
+        ab_do(&c, AB_PRGM);
+        int lines = c.prog_len, pc0 = c.pc;
+        char t[32];
+        press(&a, "XEQ ltr:A");
+        app_ui(&a, &ui);
+        expect(ui.prompt && !strcmp(ui.prompt, "XEQ A___") && c.pc == pc0 && c.stop == AB_STOP_NONE && !a.running,
+               "036b: 35s XEQ A waits for ENTER or the line");
+        press(&a, "ENTER");
+        run_out(&a, &in);
+        expect(!a.prompt_text[0] && c.stop == AB_STOP_STOP && x_of(&c) == 1, "036b: 35s XEQ A ENTER runs from A001");
+        press(&a, "XEQ ltr:A 0 0");
+        app_ui(&a, &ui);
+        expect(ui.prompt && !strcmp(ui.prompt, "XEQ A00_") && c.stop == AB_STOP_STOP, "036b: the digits so far");
+        press(&a, "3");
+        run_out(&a, &in);
+        expect(!a.prompt_text[0] && c.stop != AB_STOP_STOP && x_of(&c) == 2, "036b: 35s XEQ A 0 0 3 runs from A003");
+        press(&a, "GOLD 4 ltr:A");
+        app_ui(&a, &ui);
+        expect(ui.prompt && !strcmp(ui.prompt, "GTO A___"), "036b: 35s GTO A waits");
+        press(&a, "ENTER");
+        ab_prog_addr(&c, c.pc, t);
+        expect(!a.prompt_text[0] && !strcmp(t, "A001"), "036b: 35s GTO A ENTER: A001");
+        press(&a, "GOLD 4 ltr:A 0 0 4");
+        ab_prog_addr(&c, c.pc, t);
+        expect(!a.prompt_text[0] && !strcmp(t, "A004") && c.prog_len == lines, "036b: 35s GTO A 0 0 4: A004");
+        press(&a, "GOLD 4 ltr:A 0 0 9");
+        expect(c.msg && c.err_status == ABN_NONEXISTENT, "036b: a missing line: NONEXISTENT");
+        press(&a, "C");
+        /* backspace steps back a digit, then the letter; C leaves, nothing moved */
+        pc0 = c.pc;
+        press(&a, "XEQ ltr:A 0 \xe2\x86\x90");
+        app_ui(&a, &ui);
+        expect(ui.prompt && !strcmp(ui.prompt, "XEQ A___"), "036b: backspace removes a digit");
+        press(&a, "\xe2\x86\x90");
+        app_ui(&a, &ui);
+        expect(ui.prompt && !strcmp(ui.prompt, "XEQ _"), "036b: backspace steps back past the letter");
+        press(&a, "ltr:A C");
+        app_ui(&a, &ui);
+        expect(!ui.prompt && c.pc == pc0 && c.stop == AB_STOP_NONE, "036b: C backs out, nothing run or moved");
+        /* in program entry: the lines XEQ A001 and GTO A003 */
+        press(&a, "GOLD 9 k:0 XEQ ltr:A ENTER GOLD 4 ltr:A 0 0 3 GOLD 9 k:0");
+        expect(c.prog_len == lines + 2 && c.prog[lines].op == AB_XEQ && c.prog[lines].arg == 1 &&
+                   c.prog[lines + 1].op == AB_GTO && c.prog[lines + 1].arg == 3,
+               "036b: in program entry, XEQ A ENTER and GTO A 0 0 3 are the lines XEQ A001 and GTO A003");
+        /* STU behaves as the 35s */
+        c.stu = true;
+        press(&a, "XEQ ltr:A");
+        expect(a.prompt_text[0] && c.stop == AB_STOP_NONE, "036b: STU XEQ A waits");
+        press(&a, "ENTER");
+        run_out(&a, &in);
+        expect(c.stop == AB_STOP_STOP, "036b: STU XEQ A ENTER runs");
+        press(&a, "C GOLD 4 ltr:A 0 0 2");
+        ab_prog_addr(&c, c.pc, t);
+        expect(!strcmp(t, "A002"), "036b: STU GTO A 0 0 2: A002");
+        /* 33s mode: the letter acts at once */
+        c.stu = false;
+        c.m35 = false;
+        press(&a, "C GOLD 4 ltr:A");
+        ab_prog_addr(&c, c.pc, t);
+        expect(!a.prompt_text[0] && !strcmp(t, "A001"), "036b: 33s GTO A acts on the letter");
+        press(&a, "XEQ ltr:A");
+        run_out(&a, &in);
+        expect(!a.prompt_text[0] && c.stop == AB_STOP_STOP, "036b: 33s XEQ A acts on the letter");
+    }
+
     /* unit 033: GRAPH: blue 7's menu; the frame drawn from the model: in the curve's columns (clear of the
        labels at the edges) a pixel of the plot area is dark exactly where the model draws a row or an axis */
     {
