@@ -202,7 +202,7 @@ static const char *const STATUS_NAMES[] = {"OK", "DIV_ZERO", "RANGE", "BAD_TEXT"
                                            "SELECT_FN", "NESTED", "SYNTAX", "INVALID_VAR",
                                            "NO_SOLUTION", "MULT_SOLUTION", "INTERRUPTED",
                                            "BAD_IMAGE", "OVERFLOW", "UNDERFLOW", "RPN_ONLY", "STU_ONLY",
-                                           "NO_EQN"};
+                                           "NO_EQN", "NO_VAR"};
 
 /* Applies one key token. Returns 0, or -1 for an unknown token. */
 static int apply_token(ab_calc *c, const char *tok, int *errors)
@@ -774,9 +774,13 @@ int vectors_run(const char *name, FILE *f)
                     abn tx;
                     ab_val ty;
                     abn_status ts = ab_table_row(&c, c.tbl_k, &tx, &ty);
-                    if (strcmp(ex, "%TX") == 0) abn_to_text(&tx, got, sizeof got);
-                    else if (ts != ABN_OK) snprintf(got, sizeof got, "%s", (unsigned)ts < sizeof STATUS_NAMES / sizeof STATUS_NAMES[0] ? STATUS_NAMES[ts] : "?");
-                    else abn_to_text(&ty.re, got, sizeof got);
+                    abn want, *val = strcmp(ex, "%TX") == 0 ? &tx : &ty.re;
+                    if (val == &ty.re && ts != ABN_OK)  /* an erring row: its status's name */
+                        snprintf(got, sizeof got, "%s", (unsigned)ts < sizeof STATUS_NAMES / sizeof STATUS_NAMES[0] ? STATUS_NAMES[ts] : "?");
+                    else if (abn_from_text(&want, eq + 1) == ABN_OK && abn_cmp(&want, val) == 0)
+                        snprintf(got, sizeof got, "%s", eq + 1);     /* equal by value, as X= compares */
+                    else
+                        abn_to_text(val, got, sizeof got);
                 } else if (strcmp(ex, "%BEEP") == 0) {     /* BEEPs done (unit 027) */
                     snprintf(got, sizeof got, "%u", (unsigned)c.beeps);
                 } else if (ex[1] == 'F' && isdigit((unsigned char)ex[2])) {

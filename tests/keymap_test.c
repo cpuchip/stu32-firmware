@@ -213,6 +213,9 @@ int main(void)
                 /* unit 029: STU at F3, the entry RPN and ALG at F4 and F5 (ALG shown in STU only: the app's) */
                 {"MODE", {O(AB_MODEL, 33, "33s"), O(AB_MODEL, 35, "35s"), O(AB_MODEL, AB_MODEL_STU, "STU"), O(AB_ENTRYM, 0, "RPN"),
                           O(AB_ENTRYM, 1, "ALG"), N}},
+                /* unit 032: TABLE on blue 8, and the open table's bar */
+                {"TABLE", {P(AB_TVAR, KM_ARG_VAR, "VAR"), O(AB_TSTART, 0, "START"), O(AB_TSTEP, 0, "STEP"), O(AB_TABLE, 0, "GO"), N, N}},
+                {"TABLE BAR", {O(AB_TUP, 0, "\xe2\x96\xb2"), O(AB_TDOWN, 0, "\xe2\x96\xbc"), N, N, N, N}},
                 {"ALG LINE", {O(AB_KLEFT, 0, "\xe2\x97\x80"), O(AB_KRIGHT, 0, "\xe2\x96\xb6"), O(AB_KPAREN, 0, "( )"), N,
                               O(AB_HUP, 0, "\xe2\x96\xb2"), O(AB_HDOWN, 0, "\xe2\x96\xbc")}},
                 /* unit 022: the device's settings, a KM_DEVICE action's op its value */
@@ -268,7 +271,8 @@ int main(void)
                 snprintf(m, sizeof m, "menu %s is on its key", D[d].name);
                 bool sub = !strcmp(D[d].name, "LOGIC") || !strcmp(D[d].name, "SUFFIX") || !strcmp(D[d].name, "BEEP") ||
                            !strcmp(D[d].name, "BEEP2") || !strcmp(D[d].name, "CLOCK") ||
-                           !strcmp(D[d].name, "ALG LINE");  /* reached by a menu; ALG LINE the app's bar (unit 029) */
+                           !strcmp(D[d].name, "ALG LINE") || !strcmp(D[d].name, "TABLE BAR");  /* reached by a menu;
+                                                                  the app's bars (units 029, 032) */
                 expect(keyed == !sub, m);
             }
             /* CONST pages the core's constants (rule 3); SOLVE and integrate ask for the variable (rule 4) */
@@ -283,7 +287,7 @@ int main(void)
             expect(in->kind == KM_PROMPT && in->op == AB_INTEG && in->prompt == KM_ARG_VAR && !strcmp(in->legend, "\xe2\x88\xab"),
                    "integrate (gold 8) asks for a variable, then integrates");
             /* rule 5: these stay not defined */
-            static const char *const LATER[] = {"MEM", "GRAPH", "TABLE", "TUTOR", "APPS"};   /* RADIX, SETUP: unit 022; EXP #3958; SYS: unit 027 */
+            static const char *const LATER[] = {"MEM", "GRAPH", "TUTOR", "APPS"};   /* RADIX, SETUP: unit 022; EXP #3958; SYS: unit 027; TABLE: 032 */
             for (size_t i = 0; i < sizeof LATER / sizeof LATER[0]; i++) {
                 bool found = false, undefined = true;
                 for (int k = 0; k < KB_KEYS; k++)

@@ -42,9 +42,11 @@ static void random_key(ab_calc *c)
     ab_op op = (ab_op)below(AB_KREG + 1);
     int arg = 0;
     if (below(16) == 0) {               /* unit 029: the model (STU among them), the entry, the line's keys */
-        static const ab_op L[] = {AB_MODEL, AB_ENTRYM, AB_ANS, AB_HUP, AB_HDOWN};
-        op = L[below(5)];
-        arg = op == AB_MODEL ? (int[]){33, 35, AB_MODEL_STU}[below(3)] : op == AB_ENTRYM ? (int)below(2) : 0;
+        static const ab_op L[] = {AB_MODEL, AB_ENTRYM, AB_ANS, AB_HUP, AB_HDOWN,
+                                  AB_TABLE, AB_TVAR, AB_TSTART, AB_TSTEP, AB_TUP, AB_TDOWN};   /* (032) */
+        op = L[below(11)];
+        arg = op == AB_MODEL ? (int[]){33, 35, AB_MODEL_STU}[below(3)] : op == AB_ENTRYM ? (int)below(2) :
+              op == AB_TVAR ? AB_VAR_A + (int)below(26) : 0;
     }
     switch (op) {
     case AB_LBL: case AB_FN: arg = (int)below(26); break;
@@ -85,8 +87,8 @@ int main(int argc, char **argv)
 {
     long iters = argc > 1 ? atol(argv[1]) : 20000;
     static ab_calc c;
-    uint8_t *seeds[5];
-    size_t seedn[5];
+    uint8_t *seeds[6];
+    size_t seedn[6];
     long refused = 0, accepted = 0, bad = 0;
     if (argc > 2) rng = (strtoull(argv[2], NULL, 0) * 0x9E3779B97F4A7C15ull) | 1;
 
@@ -124,9 +126,18 @@ int main(int argc, char **argv)
     ab_eqn_add(&c, "X^2");
     ab_do(&c, AB_PRGM);
     seeds[4] = save(&c, &seedn[4]);
+    ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);      /* unit 032: a table open on a listed X^2+Y */
+    ab_eqn_add(&c, "X^2+Y");
+    ab_do_arg(&c, AB_TABLE, 0);
+    ab_do(&c, AB_TDOWN);
+    if (!c.tbl_on || c.prgm) {
+        fprintf(stderr, "load_fuzz: the table seed did not open its table\n");
+        return 2;
+    }
+    seeds[5] = save(&c, &seedn[5]);
 
     for (long it = 0; it < iters; it++) {
-        int s = (int)below(5);
+        int s = (int)below(6);
         size_t n = seedn[s], cap = n + 64;
         uint8_t *m = malloc(cap), *before, *after;
         size_t nb, na;
@@ -194,7 +205,7 @@ int main(int argc, char **argv)
         free(before);
         free(after);
     }
-    for (int i = 0; i < 5; i++) free(seeds[i]);
+    for (int i = 0; i < 6; i++) free(seeds[i]);
     printf("load_fuzz: %ld cases, %ld refused, %ld accepted, %ld violations\n", iters, refused, accepted, bad);
     return bad ? 1 : 0;
 }

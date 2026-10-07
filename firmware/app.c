@@ -153,8 +153,9 @@ static void do_op(app_state *a, int op, int arg)
     int was = on_lbl ? c->lmode[c->prog[c->pc].arg] : 0;
     abn_status st = ab_do_arg(c, (ab_op)op, arg);
     a->dirty = true;
-    if (st == ABN_RPN_ONLY) {                   /* STU's line: a brief notice, not a message (unit 029) */
-        a->notice = ab_status_message(ABN_RPN_ONLY);
+    if (st == ABN_RPN_ONLY || st == ABN_STU_ONLY || st == ABN_NO_EQN || st == ABN_NO_VAR) {
+        /* brief notices, not messages: STU's line (unit 029), TABLE's refusals (unit 032) */
+        a->notice = ab_status_message(st);
         a->notice_ms = a->last_key_ms;
     }
     if (st == ABN_CLAMPED || c->ovf > 0) a->ovf_pending = true;
@@ -193,6 +194,7 @@ static int menu_named(const char *name)
    is typed (in program entry too), the list's while Equation mode shows the list; -1 none. */
 static int eqn_bar(const app_state *a)
 {
+    if (a->c->tbl_on) return menu_named("TABLE BAR");                /* a table open (unit 032) */
     if (a->c->alg && !a->c->prgm) return menu_named("ALG LINE");    /* STU's line (unit 029) */
     if (a->c->eqn_typing) return menu_named("EQN TYPE");
     if (a->c->eqn_mode && !a->c->prgm) return menu_named("EQN LIST");

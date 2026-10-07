@@ -395,9 +395,10 @@ static void status_band(ls027_frame *f, const ab_calc *c, const screen_ui *ui, i
     if (c->angle == AB_ANGLE_RAD) screen_text(f, 72, 2, 2, "RAD", true);
     else if (c->angle == AB_ANGLE_GRAD) screen_text(f, 72, 2, 2, "GRAD", true);
     if (c->base != 10) screen_text(f, 124, 2, 2, c->base == 16 ? "HEX" : c->base == 8 ? "OCT" : "BIN", true);
-    if (c->prgm) screen_text(f, 164, 2, 2, "PRGM", true);
+    if (c->tbl_on) screen_text(f, 164, 2, 2, "TABLE", true);  /* a table open (unit 032), over PRGM/EQN */
+    else if (c->prgm) screen_text(f, 164, 2, 2, "PRGM", true);
     else if (c->stu) screen_text(f, 164, 2, 2, c->alg ? "ALG" : "RPN", true);   /* STU's entry (unit 029) */
-    if (c->eqn_mode) screen_text(f, 216, 2, 2, "EQN", true);
+    if (c->eqn_mode && !c->tbl_on) screen_text(f, 216, 2, 2, "EQN", true);
     if (ind) screen_text(f, 255, 2, 2, ind > 0 ? "\xe2\x96\xb2" : "\xe2\x96\xbc", true);
     for (int n = 0; n <= 4; n++) {
         char d[2] = {(char)('0' + n), '\0'};
@@ -441,6 +442,29 @@ static void soft_band(ls027_frame *f, const screen_ui *ui)
     }
 }
 
+/* A table's row (unit 032): the variable's value at the left, the equation's value at the right (or the
+   row's error message), each in the display format in 16 cells, 33 cells in all. The row is computed with
+   the variable set for it alone and everything put back (ab_table_row): c is unchanged. */
+static void table_row_line(ab_calc *c, const screen_ui *ui, int32_t k, line *l)
+{
+    char xs[64], ys[64];
+    abn x;
+    ab_val y, xv;
+    int ind;
+    abn_status st = ab_table_row(c, k, &x, &y);
+    ab_display d = display_of(c, ui, 16);
+    memset(&xv, 0, sizeof xv);
+    xv.kind = AB_REAL;
+    xv.re = x;
+    if (val_text(&xv, &d, xs, sizeof xs, &ind) < 0) snprintf(xs, sizeof xs, "?");
+    if (st != ABN_OK) snprintf(ys, sizeof ys, "%s", ab_status_message(st));
+    else if (val_text(&y, &d, ys, sizeof ys, &ind) < 0) snprintf(ys, sizeof ys, "?");
+    line_add(l, xs);
+    int pad = 33 - screen_cells(xs) - screen_cells(ys);
+    for (int i = 0; i < (pad > 1 ? pad : 1); i++) line_add_cp(l, ' ');
+    line_add(l, ys);
+}
+
 /* What screen_render draws and screen_lines tells: the four lines, how each is drawn, and the
    fraction indicator for the status band. */
 typedef struct {
@@ -448,6 +472,7 @@ typedef struct {
     screen_kind xk, yk;
     bool x_left, x_letter, prompt;
     bool view;              /* SYS's view: four left lines at scale 2, no letters (unit 027) */
+    bool table;             /* a table open (unit 032): four rows, x left and the value right, at scale 2 */
     bool show;              /* SHOW held (unit 030): each part's digits in two halves, left, no letters:
                                one part on Y and X, two on T and Z then Y and X */
     bool alg;               /* STU's ALG: the line in Y's place (left), its result in X's, the entry
@@ -500,6 +525,12 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
         line_add(xl, ui->prompt);
         k->x_left = true;
         k->xk = SCREEN_PROMPT;
+    } else if (c->tbl_on && !ab_error_message(c)) {     /* the table: rows k-3..k, row k on X (unit 032) */
+        line *ls[4] = {&k->t, &k->z, &k->y, &k->x};
+        for (int i = 0; i < 4; i++) table_row_line((ab_calc *)c, ui, c->tbl_k - 3 + i, ls[i]);
+        k->table = k->x_left = true;
+        k->xk = k->yk = SCREEN_VALUE;
+        return;
     } else if (ui->notice) {                    /* a brief notice: OVERFLOW (unit 024 rule 3) */
         line_add(xl, ui->notice);
         k->x_left = true;
@@ -623,7 +654,7 @@ void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
     screen_status *st = &out->status;
     compose(c, ui, k);
     memset(out, 0, sizeof *out);
-    if (k->show) {
+    if (k->table || k->show) {
         page_line(&out->t, &k->t, SCREEN_VALUE, true, NULL);
         page_line(&out->z, &k->z, SCREEN_VALUE, true, NULL);
         page_line(&out->y, &k->y, SCREEN_VALUE, true, NULL);
@@ -665,9 +696,10 @@ void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
     else if (st->clock) parts[np++] = st->clock;
     if (st->angle) parts[np++] = st->angle;
     if (st->base) parts[np++] = st->base;
-    if (st->prgm) parts[np++] = "PRGM";
+    if (c->tbl_on) parts[np++] = "TABLE";      /* unit 032 */
+    else if (st->prgm) parts[np++] = "PRGM";
     else if (st->entry) parts[np++] = st->entry;
-    if (st->eqn) parts[np++] = "EQN";
+    if (st->eqn && !c->tbl_on) parts[np++] = "EQN";
     if (st->frac) parts[np++] = st->frac > 0 ? "\xe2\x96\xb2" : "\xe2\x96\xbc";
     if (nf) parts[np++] = st->flags;
     parts[np++] = st->model;
@@ -688,6 +720,14 @@ void screen_render(const ab_calc *c, const screen_ui *ui, ls027_frame *f)
     screen_clear(f);
     compose(c, ui, k);
     status_band(f, c, ui, k->ind);
+    if (k->table) {                             /* a table: four rows at scale 2 (unit 032) */
+        draw_line(f, BOT_T, 2, &k->t, true);
+        draw_line(f, BOT_Z, 2, &k->z, true);
+        draw_line(f, BOT_Y, 2, &k->y, true);
+        draw_line(f, BOT_X, 2, &k->x, true);
+        soft_band(f, ui);
+        return;
+    }
     if (k->show) {                              /* SHOW: Y and X at scale 3 (18 cells hold a sign and 17
                                                    digits), T and Z at 2 */
         draw_line(f, BOT_T, 2, &k->t, true);

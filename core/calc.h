@@ -263,6 +263,7 @@ typedef struct {
        the start (set by START since the variable changed, else the variable's value at GO), the step;
        and the open table: its equation and the selected row k (rows k-3..k shown, row k = start + k x step) */
     int tbl_var;
+    int tbl_v;              /* the open table's variable (0..25) */
     bool tbl_start_set;
     abn tbl_start, tbl_step;
     bool tbl_on;

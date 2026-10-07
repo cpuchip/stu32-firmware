@@ -35,7 +35,7 @@ static const ab_op V1_OPS[] = {
 #define V1_N ((int)(sizeof V1_OPS / sizeof V1_OPS[0]))
 
 enum { T_MODES = 1, T_STACK, T_VARS, T_STAT, T_IND, T_PROG, T_EQNS, T_ENTRY, T_EDITOR, T_RUN, T_SOLVE, T_MODE25, T_ALG,
-       T_EQMODEL };
+       T_EQMODEL, T_TABLE };
 
 #define BUILTIN2 "\x01" "2*2 lin. solve"
 #define BUILTIN3 "\x01" "3*3 lin. solve"
@@ -353,6 +353,17 @@ size_t ab_state_save(const ab_calc *c, uint8_t *buf, size_t cap)
     }
     sec_end(&w, s);
 
+    s = sec_begin(&w, T_TABLE);                 /* version 8 (unit 032): TABLE's settings and the open table */
+    w8(&w, (unsigned)(uint8_t)(int8_t)c->tbl_var);
+    w8(&w, (unsigned)(uint8_t)(int8_t)c->tbl_v);
+    w8(&w, c->tbl_start_set);
+    wnum(&w, &c->tbl_start);
+    wnum(&w, &c->tbl_step);
+    w8(&w, c->tbl_on);
+    w8(&w, (unsigned)(uint8_t)(int8_t)c->tbl_eq);
+    wi32(&w, c->tbl_k);
+    sec_end(&w, s);
+
     {
         size_t total = w.len + 4;
         for (int i = 0; i < 4; i++)
@@ -526,6 +537,7 @@ bool ab_line_ok(ab_op op, int32_t arg)
     case AB_KPOINT: case AB_KE: case AB_KA: case AB_KB: case AB_KC: case AB_KD: case AB_KE_HEX: case AB_KF:
     case AB_LIT: case AB_EQLINE: case AB_CLALL:
     case AB_ENTRYM: case AB_ANS: case AB_HUP: case AB_HDOWN: case AB_SHOW:     /* never lines (029, 030) */
+    case AB_TABLE: case AB_TVAR: case AB_TSTART: case AB_TSTEP: case AB_TUP: case AB_TDOWN:      /* (032) */
         return false;
     case AB_CLVARX:
         return arg >= 0 && arg <= AB_IND_MAX;
@@ -687,6 +699,31 @@ static void sec_eqmodel(rd *r)
     if (r->bad || !r->c) return;
     memcpy(r->c->eqn_model, lm, n);
     memcpy(r->c->peqn_model, pm, k);    /* the loaded lines take pool slots 0.. in order (sec_prog) */
+}
+
+/* version 8 (unit 032): TABLE's variable (-1 the first), the open table's variable, START set, the start
+   and step, open, its equation (a listed one, not a built-in), the selected row */
+static void sec_table(rd *r)
+{
+    int var = ri8(r), v = ri8(r);
+    unsigned set = r8(r), on;
+    abn start, step;
+    rnum(r, &start);
+    rnum(r, &step);
+    on = r8(r);
+    int eq = ri8(r);
+    int32_t k = ri32(r);
+    need(r, var >= -1 && var < 26 && v >= -1 && v < 26 && flag_byte(set) && flag_byte(on) && eq >= -1);
+    if (!r->bad && on) need(r, v >= 0 && eq >= 0 && eq < r->eqn_count && !r->builtin[eq]);
+    if (r->bad || !r->c) return;
+    r->c->tbl_var = var;
+    r->c->tbl_v = v;
+    r->c->tbl_start_set = set;
+    r->c->tbl_start = start;
+    r->c->tbl_step = step;
+    r->c->tbl_on = on;
+    r->c->tbl_eq = eq;
+    r->c->tbl_k = k;
 }
 
 static void sec_vars(rd *r)
@@ -973,7 +1010,7 @@ static bool parse(rd *r)
         unsigned tag = r16(r);
         uint32_t size = r32(r);
         size_t end;
-        if (r->bad || tag <= last || tag > T_EQMODEL || size > r->len - r->pos) return false;
+        if (r->bad || tag <= last || tag > T_TABLE || size > r->len - r->pos) return false;
         last = tag;
         end = r->pos + size;
         switch (tag) {
@@ -997,6 +1034,10 @@ static bool parse(rd *r)
             break;
         case T_EQMODEL:
             if (r->version >= 7) sec_eqmodel(r);
+            else r->pos = end;
+            break;
+        case T_TABLE:
+            if (r->version >= 8) sec_table(r);
             else r->pos = end;
             break;
         default: sec_solve(r); break;

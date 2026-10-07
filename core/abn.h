@@ -57,7 +57,8 @@ typedef enum {
     ABN_RPN_ONLY,           /* a key with no meaning on ALG's expression line: shown briefly, nothing
                                done, not an error (unit 029 rule 7) */
     ABN_STU_ONLY,           /* unit 032: an STU feature asked in 33s or 35s mode (TABLE): shown briefly */
-    ABN_NO_EQN              /* unit 032: TABLE with no equation shown (EQN LIST TOP, a built-in solver) */
+    ABN_NO_EQN,             /* unit 032: TABLE with no equation shown (EQN LIST TOP, a built-in solver) */
+    ABN_NO_VAR              /* unit 032: TABLE of an equation with no variable (abacus's answer 3) */
 } abn_status;
 
 abn abn_zero(void);

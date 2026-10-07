@@ -46,6 +46,9 @@ static void init_fields(ab_calc *c, bool keep_hist)
     c->x = c->y = c->z = c->t = c->lastx = ab_real(abn_zero());
     c->lift = true;             /* a cleared calculator has stack lift enabled (UG p.B-4) */
     c->ans = ab_real(abn_zero());   /* ANS 0 to begin (unit 029 rule 4) */
+    c->tbl_var = c->tbl_v = c->tbl_eq = -1;     /* TABLE: the first variable, start from it, step 1 (032) */
+    c->tbl_start = abn_zero();
+    c->tbl_step = abn_from_int(1);
     c->angle = AB_ANGLE_DEG;    /* and is in degrees (UG p.B-4) */
     c->disp_mode = AB_ALL;      /* ALL is the default display (ours, unit 002) */
     c->disp_n = 0;
@@ -1191,6 +1194,8 @@ static abn_status logic(ab_calc *c, ab_op op)
 #define TGT_NONE (26 * 1000)    /* a GTO or XEQ whose target line was deleted (ours) */
 
 static abn_status do_key(ab_calc *c, ab_op op, int arg);
+static abn_status table_key(ab_calc *c, ab_op op);    /* unit 032 (at the end) */
+static abn_status table_go(ab_calc *c);
 
 static void prog_labels(ab_calc *c)
 {
@@ -2962,6 +2967,7 @@ static abn_status program_key(ab_calc *c, ab_op op, int arg)
     case AB_ANS:
     case AB_HUP:
     case AB_HDOWN:
+    case AB_TABLE: case AB_TVAR: case AB_TSTART: case AB_TSTEP: case AB_TUP: case AB_TDOWN:   /* 032 */
         return ABN_NONPROGRAMMABLE;
     case AB_FDISP:
     case AB_CLALL:                          /* in program entry the menu offers CLPGM in its place
@@ -3740,6 +3746,10 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
         c->msg = false;
         if (c->m35 || op == AB_CANCEL || op == AB_KBKSP) return ABN_OK;
     }
+    if (c->tbl_on) {                            /* the table open: its keys alone (unit 032) */
+        st = table_key(c, op);
+        goto done;
+    }
     if (op == AB_SHOW) return ABN_OK;           /* unit 030: SHOW changes nothing, in program entry too
                                                    (neutral, appendix B; not a line, 35s p.G-1) */
     if (ab_view_key(c, op)) return ABN_OK;
@@ -3749,9 +3759,12 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
        device has asked CLR ALL? or CLR EQN?) */
     if (c->prgm) st = program_key(c, op, arg);
     else if (c->alg) st = alg_key(c, op, arg);      /* STU's expression line (unit 029) */
-    else if (c->eqn_mode && !c->eqn_pending && op != AB_CLALL && op != AB_CLEQN) st = eqn_key(c, op, arg);
+    else if (c->eqn_mode && !c->eqn_pending && op != AB_CLALL && op != AB_CLEQN && !(op >= AB_TABLE && op <= AB_TSTEP))
+        st = eqn_key(c, op, arg);               /* (TABLE's GO and settings act in Equation mode: 032) */
     else st = do_key(c, op, arg);
-    if (st != ABN_OK && st != ABN_CLAMPED && st != ABN_RPN_ONLY) {
+done:
+    if (st != ABN_OK && st != ABN_CLAMPED && st != ABN_RPN_ONLY && st != ABN_STU_ONLY && st != ABN_NO_EQN &&
+        st != ABN_NO_VAR) {                     /* (the brief notices: not messages) */
         if (st == ABN_OVERFLOW) note_overflow(c);   /* a complex or vector one (unit 026, abacus #4198) */
         c->msg = true;
         err_note(c, op, arg, &x0);
@@ -4330,7 +4343,28 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
     case AB_ANS:
     case AB_HUP:
     case AB_HDOWN:
-        return ABN_OK;                              /* the line's own keys: nothing in RPN */
+    case AB_TUP:
+    case AB_TDOWN:
+        return ABN_OK;                              /* the line's and the table's own keys: nothing here */
+    case AB_TABLE:
+        return table_go(c);
+    case AB_TVAR:                                   /* the variable: the start follows it again (answer 3) */
+        if (arg < AB_VAR_A || arg > AB_VAR_A + 25) return ABN_DOMAIN;
+        c->tbl_var = arg - AB_VAR_A;
+        c->tbl_start_set = false;
+        c->lift = true;                             /* as STO (answer: START and STEP take X as STO does) */
+        return ABN_OK;
+    case AB_TSTART:
+    case AB_TSTEP:
+        if (c->x.kind != AB_REAL) return ABN_DOMAIN;
+        if (op == AB_TSTART) {
+            c->tbl_start = c->x.re;
+            c->tbl_start_set = true;
+        } else {
+            c->tbl_step = c->x.re;
+        }
+        c->lift = true;
+        return ABN_OK;
     case AB_CLVARS:
         /* Clear the direct variables A..Z (UG p.3-5); neutral for stack lift (UG p.B-5). The
            unnamed indirect variables have their own clearing, CLVARx. */
@@ -4542,11 +4576,98 @@ int ab_show_text(const ab_calc *c, char out[2][AB_SHOW_LEN])
     return 0;                                   /* a vector: nothing for now (answer 3) */
 }
 
+static abn_status table_row(ab_calc *c, int32_t k, abn *x, ab_val *y, bool pure);
+
 abn_status ab_table_row(ab_calc *c, int32_t k, abn *x, ab_val *y)
 {
-    (void)c;
-    (void)k;
-    *x = abn_zero();
+    return table_row(c, k, x, y, true);
+}
+
+/* A row; pure (the screen's, the harness's): everything an evaluation may touch put back; not pure
+   (ENTER's): as XEQ, an overflow sets flag 6 (unit 026), the variable still restored (rule 3). */
+static abn_status table_row(ab_calc *c, int32_t k, abn *x, ab_val *y, bool pure)
+{
+    abn kk = abn_from_int(k), p;
+    int pos, v = c->tbl_v, e = c->tbl_eq;
+    abn_status st;
     memset(y, 0, sizeof *y);
-    return ABN_DOMAIN;                          /* unit 032 red: not yet */
+    *x = c->tbl_start;
+    if (v < 0 || v >= 26 || e < 0 || e >= c->eqn_count) return ABN_DOMAIN;
+    /* start + k x step, each rounded once (not repeated addition: the drift mutant, 032) */
+    if ((st = abn_mul(&p, &kk, &c->tbl_step)) != ABN_OK || (st = abn_add(x, &c->tbl_start, &p)) != ABN_OK)
+        return st == ABN_OVERFLOW ? ABN_OVERFLOW : st;
+    /* the row is the equation's value there, as XEQ gives it (rule 6), the variable set for it alone;
+       what an evaluation may touch is put back, so a row (the screen draws them) changes nothing (rule 3) */
+    ab_val keep = c->var[v], ex = c->err_x;
+    uint16_t flags = c->flags;
+    uint64_t rng = c->rng;
+    int eo = c->err_op, ea = c->err_arg, eac = c->err_active, ovf = c->ovf;
+    bool es = c->err_set, em = c->err_m35;
+    abn_status est = c->err_status;
+    c->var[v] = ab_real(*x);
+    st = eqn_eval(c, c->eqn[e], c->eqn_model[e], false, false, y, &pos);
+    c->var[v] = keep;
+    if (!pure) return st;
+    c->flags = flags;
+    c->rng = rng;
+    c->err_op = eo, c->err_arg = ea, c->err_active = eac, c->ovf = ovf, c->err_set = es, c->err_m35 = em;
+    c->err_status = est, c->err_x = ex;
+    return st;
+}
+
+/* A key while the table is open (unit 032 answer 5): up and down a row; ENTER takes the row's value as a
+   keyed number would arrive and leaves (an erring row: its error, the table kept); C leaves; nothing
+   else. */
+static abn_status table_key(ab_calc *c, ab_op op)
+{
+    abn x;
+    ab_val y;
+    abn_status st;
+    switch (op) {
+    case AB_TUP:
+        if (c->tbl_k > INT32_MIN + 3) c->tbl_k--;
+        return ABN_OK;
+    case AB_TDOWN:
+        if (c->tbl_k < INT32_MAX) c->tbl_k++;
+        return ABN_OK;
+    case AB_ENTER:
+        if ((st = table_row(c, c->tbl_k, &x, &y, false)) != ABN_OK) return st;
+        c->tbl_on = false;
+        place_val(c, y);
+        c->lift = true;
+        return ABN_OK;
+    case AB_CANCEL:
+        c->tbl_on = false;
+        return ABN_OK;
+    default:
+        return ABN_OK;
+    }
+}
+
+/* GO (unit 032): the equation shown, or last shown, against its variable from its start. */
+static abn_status table_go(ab_calc *c)
+{
+    int e = c->eqn_cur, vars[27];
+    abn_status st;
+    if (!c->stu) return ABN_STU_ONLY;           /* an STU feature (decision 52; answer 1) */
+    if (c->eqn_mode && c->eqn_typing && (st = eqn_store_typed(c)) != ABN_OK) return st;
+    e = c->eqn_cur;
+    if (e < 0 || e >= c->eqn_count || c->eqn[e][0] == '\x01') return ABN_NO_EQN;   /* answer 2 */
+    int v = c->tbl_var;
+    if (v < 0) {                                /* the equation's first variable (answer 3) */
+        int n = eqn_vars(c->eqn[e], false, false, vars);
+        int i = 0;
+        while (i < n && vars[i] >= 26) i++;
+        if (i == n) return ABN_NO_VAR;
+        v = vars[i];
+    }
+    if (!c->tbl_start_set) {                    /* the variable's value when GO is pressed */
+        if (c->var[v].kind != AB_REAL) return ABN_DOMAIN;
+        c->tbl_start = c->var[v].re;
+    }
+    c->tbl_v = v;
+    c->tbl_eq = e;
+    c->tbl_k = 0;
+    c->tbl_on = true;
+    return ABN_OK;
 }

@@ -39,6 +39,7 @@ const char *ab_status_message(abn_status st)
     case ABN_RPN_ONLY: return "RPN ONLY";                       /* ours: a stack key in ALG (unit 029) */
     case ABN_STU_ONLY: return "STU ONLY";                       /* ours: TABLE outside STU (unit 032) */
     case ABN_NO_EQN: return "NO EQUATION";                      /* ours: TABLE with none shown (unit 032) */
+    case ABN_NO_VAR: return "NO VARIABLE";                      /* ours: TABLE of a constant (unit 032) */
     }
     return "";
 }

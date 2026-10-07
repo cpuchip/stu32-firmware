@@ -1296,15 +1296,16 @@ int main(void)
         press(&a, "BLUE 8 k:3");
         app_ui(&a, &ui);
         screen_lines(&c, &ui, &pg);
-        expect(c.tbl_on && strstr(pg.x.text, "3.0000") && strstr(pg.x.text, "9.0000") && strstr(pg.t.text, "0.0000"),
-               "032: the table: row 0 (3, 9) on X, row -3 (0, 0) on T");
+        expect(c.tbl_on && !strncmp(pg.x.text, "3 ", 2) && strlen(pg.x.text) == 33 && pg.x.text[32] == '9' &&
+                   !strncmp(pg.t.text, "0 ", 2) && pg.t.text[32] == '0',
+               "032: the table: row 0 (3 left, 9 right, 33 cells) on X, row -3 (0, 0) on T (display ALL)");
         expect(strstr(pg.status.text, "TABLE") != NULL, "032: the status band says TABLE");
         expect(ui.soft[0] && !strcmp(ui.soft[0], "\xe2\x96\xb2") && ui.soft[1] && !strcmp(ui.soft[1], "\xe2\x96\xbc"),
                "032: the table's bar: up, down");
         press(&a, "k:1");
         app_ui(&a, &ui);
         screen_lines(&c, &ui, &pg);
-        expect(c.tbl_k == 1 && strstr(pg.x.text, "16.0000"), "032: down: row 1 (4, 16) on X");
+        expect(c.tbl_k == 1 && !strncmp(pg.x.text, "4 ", 2) && !strcmp(pg.x.text + 31, "16"), "032: down: row 1 (4, 16) on X");
         press(&a, "ENTER");
         expect(!c.tbl_on && x_of(&c) == 16, "032: ENTER takes the row's value into X");
         c.stu = false;

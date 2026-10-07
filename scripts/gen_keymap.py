@@ -145,6 +145,11 @@ MENUS = [
     # of a register (UG p.B-7), then typing's bar again. On no key, like LOGIC and SUFFIX.
     ("EQN LIST", [o("\u25b2", "AB_BST"), o("\u25bc", "AB_SST"), o("EDIT", "AB_KRIGHT"), o("NEW", "AB_EQTOP"),
                   NONE, o("EXIT", "AB_EQN")]),
+    # unit 032 (abacus #4350, #4353 answers): TABLE on blue 8: the variable prompted, START and STEP from X,
+    # GO; while a table is open the app's bar scrolls it
+    ("TABLE", [p("VAR", "AB_TVAR", "KM_ARG_VAR"), o("START", "AB_TSTART"), o("STEP", "AB_TSTEP"), o("GO", "AB_TABLE"),
+               NONE, NONE]),
+    ("TABLE BAR", [o("\u25b2", "AB_TUP"), o("\u25bc", "AB_TDOWN"), NONE, NONE, NONE, NONE]),
     # unit 029 proposal 2: STU's expression line, chosen by the app as Equation mode's bars are: the
     # cursor, parentheses, the history up and down (the key for = is ENTER's)
     ("ALG LINE", [o("\u25c0", "AB_KLEFT"), o("\u25b6", "AB_KRIGHT"), o("( )", "AB_KPAREN"), NONE,

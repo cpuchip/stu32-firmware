@@ -52,7 +52,7 @@
 #define GT911_ADDR 0x5D
 
 enum { EV_KEY = 0, EV_OP, EV_DUMP, EV_SAVE, EV_WIPE, EV_RESTART, EV_TOUCHED, EV_BENCH, EV_TIME, EV_POWBENCH,
-       EV_KEYUP };                          /* EV_KEYUP: a the key released (unit 030: SHOW, held) */
+       EV_KEYUP, EV_TBLBENCH };                          /* EV_KEYUP: a the key released (unit 030: SHOW, held) */
 static char time_text[16];             /* TIME's argument, for the calc task (unit 027) */
 
 typedef struct {
@@ -298,6 +298,45 @@ static void dump(void)
 
 /* POWBENCH (unit 028): y^x's time on the S3, the engine's pow (the route before 028 for a non-integer
    exponent) beside fn_pow (028's: exact squaring, else e^(x ln y) in hp), typical and worst cases. */
+/* Unit 032 rule 7: a table's screenful (four rows) of a 190-byte STU equation, timed, on a calculator of
+   its own (in PSRAM) so the user's state is untouched. */
+static void tblbench(void)
+{
+    static const char *const E[][2] = {
+        {"sums", "X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X"
+                 "+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X"},
+        {"sines", "SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+"
+                  "SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+X"},
+        {"powers", "X^2.5+X^3.5+X^4.5+X^5.5+X^6.5+X^7.5+X^8.5+X^9.5+X^1.5+X^2.25+X^3.25+X^4.25+X^5.25+X^6.25+"
+                   "X^7.25+X^8.25+X^9.25+X^1.25+X^2.75+X^3.75+X^4.75+X^5.75+X^6.75+X^7.75+X^8.75+X^9"},
+    };
+    ab_calc *t = heap_caps_calloc(1, sizeof *t, MALLOC_CAP_SPIRAM);
+    if (!t) {
+        printf("tblbench: no memory\n");
+        return;
+    }
+    for (size_t i = 0; i < sizeof E / sizeof E[0]; i++) {
+        ab_init(t);
+        ab_do_arg(t, AB_MODEL, AB_MODEL_STU);
+        ab_eqn_add(t, E[i][1]);
+        ab_do(t, AB_EQN);
+        ab_do(t, AB_K2);
+        ab_do_arg(t, AB_STO, AB_VAR_A + 23);
+        abn_status go = ab_do(t, AB_TABLE);
+        const int reps = 5;
+        abn x;
+        ab_val y;
+        abn_status st = ABN_OK;
+        int64_t t0 = esp_timer_get_time();
+        for (int r = 0; r < reps; r++)
+            for (int k = -3; k <= 0; k++) st = ab_table_row(t, k, &x, &y);
+        int64_t t1 = esp_timer_get_time();
+        printf("tblbench: %-7s %3u bytes  a screenful (4 rows) %lld us  (GO %d, row %d)\n", E[i][0],
+               (unsigned)strlen(t->eqn[t->eqn_cur]), (long long)(t1 - t0) / reps, (int)go, (int)st);
+    }
+    heap_caps_free(t);
+}
+
 static void powbench(void)
 {
     static const char *const C[][3] = {
@@ -446,6 +485,7 @@ static void console_task(void *arg)
         else if (!strcmp(line, "RESTART")) e.kind = EV_RESTART;
         else if (!strcmp(line, "BENCH")) e.kind = EV_BENCH;
         else if (!strcmp(line, "POWBENCH")) e.kind = EV_POWBENCH;
+        else if (!strcmp(line, "TBLBENCH")) e.kind = EV_TBLBENCH;  /* unit 032 rule 7: a screenful's time */
         else if (!strncmp(line, "TIME ", 5)) {      /* TIME hh:mm[:ss] (unit 027 rule 4) */
             snprintf(time_text, sizeof time_text, "%.15s", line + 5);
             e.kind = EV_TIME;
@@ -492,6 +532,8 @@ static void calc_task(void *arg)
         } else if (got && ev.kind == EV_WIPE) {
             printf("wipe: %s\n", flash.ctx && esp_partition_erase_range(flash.ctx, 0, 2 * flash.slot_size) == ESP_OK
                                      ? "both slots erased" : "FAILED");
+        } else if (got && ev.kind == EV_TBLBENCH) {
+            tblbench();
         } else if (got && ev.kind == EV_POWBENCH) {
             powbench();
         } else if (got && ev.kind == EV_BENCH) {
