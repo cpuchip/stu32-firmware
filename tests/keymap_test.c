@@ -30,7 +30,7 @@ typedef struct {
 
 static const want W[] = {
     /* row 1 */
-    OPK(1, 0, KM_FACE, AB_SQRT, "\xe2\x88\x9ax"), OPK(1, 0, KM_GOLD, AB_SQ, "x\xc2\xb2"), OPK(1, 0, KM_BLUE, AB_ABS, "ABS"),
+    OPK(1, 0, KM_FACE, AB_SQRT, "\xe2\x88\x9ax"), OPK(1, 0, KM_GOLD, AB_SQ, "x\xc2\xb2"), OPK(1, 0, KM_BLUE, AB_CUBE, "x\xc2\xb3"),   /* abacus decision 60 (041 C) */
     OPK(1, 1, KM_FACE, AB_EXP, "e\xcb\xa3"), OPK(1, 1, KM_GOLD, AB_TENX, "10\xcb\xa3"), MENU(1, 1, KM_BLUE, "EXP"),
     OPK(1, 2, KM_FACE, AB_LN, "LN"), OPK(1, 2, KM_GOLD, AB_LOG, "LOG"), MENU(1, 2, KM_BLUE, "HYP"),
     OPK(1, 3, KM_FACE, AB_POW, "y\xcb\xa3"), OPK(1, 3, KM_GOLD, AB_XROOT, "\xcb\xa3\xe2\x88\x9ay"), MENU(1, 3, KM_BLUE, "POW"),
@@ -201,7 +201,7 @@ int main(void)
                           O(AB_FRACFMT, 1, "FCTR"), O(AB_FRACFMT, 2, "FIXED")}},
                 /* abacus #3958: EXP as drafted (LN(1+x) shortened to fit five cells) */
                 {"EXP", {O(AB_TWOX, 0, "2\xcb\xa3"), O(AB_LOG2, 0, "LOG\xe2\x82\x82"), O(AB_EXPM1, 0, "e\xcb\xa3\xe2\x88\x92" "1"),
-                         O(AB_LN1P, 0, "LN1+x"), N, N}},
+                         O(AB_LN1P, 0, "LN1+x"), O(AB_CBRT, 0, "\xe2\x88\x9bx"), N}},    /* ∛x: 041 C */
                 {"CONV", {O(AB_TOKG, 0, "\xe2\x86\x92kg"), O(AB_TOLB, 0, "\xe2\x86\x92lb"), O(AB_TOC, 0, "\xe2\x86\x92\xc2\xb0" "C"),
                           O(AB_TOF, 0, "\xe2\x86\x92\xc2\xb0" "F"), O(AB_TOCM, 0, "\xe2\x86\x92" "cm"), O(AB_TOIN, 0, "\xe2\x86\x92in")}},
                 {"UNITS", {O(AB_TOL, 0, "\xe2\x86\x92l"), O(AB_TOGAL, 0, "\xe2\x86\x92gal"), O(AB_TOKM, 0, "\xe2\x86\x92km"),

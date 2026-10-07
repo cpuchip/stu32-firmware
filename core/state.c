@@ -34,6 +34,8 @@ static const ab_op V1_OPS[] = {
     AB_BEEP,
     /* unit 039 (appended) */
     AB_CMPLX,
+    /* unit 041 C (appended) */
+    AB_CUBE, AB_CBRT,
 };
 #define V1_N ((int)(sizeof V1_OPS / sizeof V1_OPS[0]))
 

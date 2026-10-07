@@ -729,7 +729,7 @@ static bool overflow_neg1(ab_op op, const abn *x)
         return false;
     case AB_SINH: case AB_HMS: case AB_HMSINV: case AB_TODEG: case AB_TORAD: case AB_TOKG: case AB_TOLB:
     case AB_TOC: case AB_TOF: case AB_TOCM: case AB_TOIN: case AB_TOL: case AB_TOGAL: case AB_TOKM:
-    case AB_TOMILE: case AB_RND:
+    case AB_TOMILE: case AB_RND: case AB_CUBE:
         return abn_is_negative(x);              /* odd in x, or x times a positive factor; RND keeps x's sign */
     default:
         return abn_overflow_negative();
@@ -771,6 +771,16 @@ static abn_status one_number_fn(ab_calc *c, ab_op op)
     case AB_TENX: st = fn_tenx(&r, &c->x.re); break;
     case AB_LOG: st = fn_log(&r, &c->x.re); break;
     case AB_SQ: st = fn_sq(&r, &c->x.re); break;
+    case AB_CUBE: {                             /* unit 041 C: x³, unit 038's exact power rounded once */
+        abn three = abn_from_int(3);
+        st = fn_pow(&r, &c->x.re, &three);
+        break;
+    }
+    case AB_CBRT: {                             /* ∛x: the real root, through the hp root (unit 028) */
+        abn three = abn_from_int(3);
+        st = fn_xroot(&r, &c->x.re, &three);
+        break;
+    }
     case AB_SQRT: st = fn_sqrt(&r, &c->x.re); break;
     case AB_INV: st = fn_inv(&r, &c->x.re); break;
     case AB_SIN: st = fn_sin(&r, &c->x.re, m); break;
@@ -4016,7 +4026,8 @@ static bool reads_x(ab_op op)
             op != AB_GRAD) ||
            (op >= AB_HMS && op <= AB_TOREC && op != AB_RAND) || op == AB_SIGMAPLUS ||
            op == AB_SIGMAMINUS || op == AB_XHAT || op == AB_YHAT || op == AB_SETC ||
-           (op >= AB_AND && op <= AB_NOR) || op == AB_ARG || (op >= AB_EXPM1 && op <= AB_LOG2);
+           (op >= AB_AND && op <= AB_NOR) || op == AB_ARG || (op >= AB_EXPM1 && op <= AB_LOG2) ||
+           op == AB_CUBE || op == AB_CBRT;
 }
 
 static bool reads_y(ab_op op)
@@ -4066,7 +4077,7 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
         c->msg = false;
         if (c->m35 || op == AB_CANCEL || op == AB_KBKSP) return ABN_OK;
     }
-    if (ab_hidden(c, op)) return ABN_OK;       /* unit 041 Part A: a 35s feature, in 33s mode: nothing */
+    if (ab_hidden(c, op)) return ABN_OK;       /* unit 041 A: a 35s feature in 33s mode, or C: a 33s one in 35s: nothing */
     if (!ab_mode35(c) && (op == AB_XEQ || op == AB_GTO) && arg >= 0 && arg % 1000 != 0)
         return ABN_OK;                          /* nor XEQ or GTO to a line number (33s p.13-4; abacus #4799 rule 3.2;
                                                    GTO . to one moves the pointer: AB_GTOPOS, p.13-6) */
@@ -4135,7 +4146,7 @@ bool ab_mode35(const ab_calc *c)
 
 bool ab_hidden(const ab_calc *c, int op)
 {
-    if (ab_mode35(c)) return false;
+    if (ab_mode35(c)) return op == AB_CUBE || op == AB_CBRT;     /* 33s mode's features the 35s lacks (041 C) */
     switch (op) {
     case AB_KI: case AB_KTHETA: case AB_KCOMMA:     /* typing an equation: the parser refuses (or, i, the variable) */
         return !c->eqn_typing;
@@ -4439,6 +4450,7 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
     case AB_TOL: case AB_TOGAL: case AB_TOKM: case AB_TOMILE:
     case AB_FACT: case AB_IP: case AB_FP: case AB_INTG: case AB_ABS: case AB_SGN: case AB_RND:
     case AB_EXPM1: case AB_LN1P: case AB_TWOX: case AB_LOG2:
+    case AB_CUBE: case AB_CBRT:                 /* unit 041 C */
         return one_number_fn(c, op);
     case AB_TOPOL:
     case AB_TOREC: {

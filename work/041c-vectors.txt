@@ -12,9 +12,10 @@ C07 | 041 C: 33s ∛x of 2, correctly rounded | MODE33 2 CBRT | X=1.259921049894
 C08 | 041 C: 33s ∛x of 10 | MODE33 10 CBRT | X=2.154434690031883721759293566519350
 C09 | 041 C: 33s ∛x of 0.5 | MODE33 .5 CBRT | X=0.7937005259840997373758528196361541
 C10 | 041 C: x³ is a program line in 33s mode | MODE33 PRGM LBL:A CUBE CBRT RTN PRGM | %LINES=4
-C11 | 041 C: and it runs (2 x³ ∛x is 2) | MODE33 PRGM LBL:A CUBE CBRT RTN PRGM 2 XEQ:A | X=2
+C11 | 041 C: and it runs: x³ of 2 in a program is 8 (fresh eyes: 2 x³ ∛x is 2 even with both doing nothing) | MODE33 PRGM LBL:A CUBE RTN PRGM 2 XEQ:A | X=8
 C12 | 041 C: 35s mode: x³ does nothing (the 35s has none) | MODE35 3 ENTER CUBE | X=3
 C13 | 041 C: STU: ∛x does nothing | STU 8 ENTER CBRT | X=8
 C14 | 041 C: x³ is odd in x: a negative overflow is the negative largest, flag 6 set (unit 026) | MODE33 1 E 3000 ENTER CHS CUBE | X=-9.999999999999999999999999999999999E6144 %F6=1
 C15 | 041 C: a complex X (made in 35s mode) is INVALID DATA for x³, nothing changed (UG p.9-3's list) | MODE35 2 CI 3 ENTER MODE33 CUBE | ERR %ERR=DOMAIN X=2i3
 C16 | 041 C: and a vector X for ∛x (unit 010 rule 2) | MODE35 [ 1 , 2 ENTER MODE33 CBRT | ERR %ERR=DOMAIN X=[1,2]
+C17 | 041 C: ∛x of 27 in a program is 3 | MODE33 PRGM LBL:B CBRT RTN PRGM 27 XEQ:B | X=3

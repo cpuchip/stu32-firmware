@@ -197,7 +197,7 @@ int main(void)
     press(&a, "C 9 GOLD GOLD \xe2\x88\x9ax");
     expect(x_of(&c) == 3, "GOLD GOLD then the root key: the shift cancelled, the root");
     press(&a, "C 4 +/\xe2\x88\x92 GOLD BLUE \xe2\x88\x9ax");
-    expect(x_of(&c) == 4, "GOLD BLUE then the root key: blue, ABS");
+    expect(x_of(&c) == -64, "GOLD BLUE then the root key: blue, x^3 (041 C; decision 60 freed the duplicate ABS)");
     press(&a, "GOLD");
     app_ui(&a, &ui);
     expect(ui.shift == 1, "the screen shows the shift held");
@@ -645,6 +645,29 @@ int main(void)
         expect(!ui.soft_dim[0] && !ui.soft_dim[3], "041 A1: 35s mode: CMPLX's items not dimmed");
         press(&a, "C BLUE 8");
         expect(a.menu >= 0, "041 A14: 35s mode: TABLE opens (its GO says STU ONLY)");
+    }
+
+    /* unit 041 C: x³ on blue √x (abacus decision 60: the duplicate ABS's slot), ∛x as EXP's fifth item; the 35s
+       has neither, so in 35s mode blue √x does nothing and ∛x is dimmed with EXP kept open */
+    {
+        ab_init(&c);
+        app_init(&a, &c, now);
+        press(&a, "3 BLUE \xe2\x88\x9ax");
+        expect(x_of(&c) == 27, "041 C: 33s mode: blue root key is x^3");
+        press(&a, "C 6 4 BLUE e\xcb\xa3");
+        app_ui(&a, &ui);
+        expect(ui.soft[4] && !strcmp(ui.soft[4], "\xe2\x88\x9bx") && !ui.soft_dim[4], "041 C: 33s mode: EXP's fifth is cube root, lit");
+        press(&a, "k:4");
+        expect(x_of(&c) == 4, "041 C: 33s mode: EXP cube root of 64");
+        ab_do_arg(&c, AB_MODEL, 35);
+        press(&a, "C 3 +/\xe2\x88\x92 BLUE \xe2\x88\x9ax");
+        expect(x_of(&c) == -3, "041 C: 35s mode: blue root key does nothing (not ABS, not x^3)");
+        press(&a, "C 8 BLUE e\xcb\xa3");
+        app_ui(&a, &ui);
+        expect(ui.soft_dim[4] && !ui.soft_dim[0], "041 C: 35s mode: EXP's cube root dimmed, 2^x not");
+        int exp_menu = a.menu;
+        press(&a, "k:4");
+        expect(x_of(&c) == 8 && a.menu == exp_menu, "041 C: 35s mode: the dimmed cube root does nothing, EXP stays");
     }
 
     /* unit 019: every menu on a key opens with its items on the soft keys (CONST shows its first

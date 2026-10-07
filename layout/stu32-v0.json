@@ -4,7 +4,7 @@
     {"name": "soft", "cols": 6, "shift_legends": false, "keys": [
       {"face": ""}, {"face": ""}, {"face": ""}, {"face": ""}, {"face": ""}, {"face": ""}]},
     {"name": "1", "cols": 6, "keys": [
-      {"letter": "A", "face": "√x", "gold": "x²", "blue": "ABS"},
+      {"letter": "A", "face": "√x", "gold": "x²", "blue": "x³"},
       {"letter": "B", "face": "eˣ", "gold": "10ˣ", "blue": "EXP", "blue_menu": true},
       {"letter": "C", "face": "LN", "gold": "LOG", "blue": "HYP", "blue_menu": true},
       {"letter": "D", "face": "yˣ", "gold": "ˣ√y", "blue": "POW", "blue_menu": true},

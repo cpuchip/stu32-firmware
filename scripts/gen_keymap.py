@@ -32,6 +32,7 @@ MEANING = {
     # arithmetic and functions (ch.1, 4)
     "+": OP("AB_ADD"), "−": OP("AB_SUB"), "×": OP("AB_MUL"), "÷": OP("AB_DIV"),
     "√x": OP("AB_SQRT"), "x²": OP("AB_SQ"), "ABS": OP("AB_ABS"),
+    "x³": OP("AB_CUBE"),                        # 33s p.4-2; blue √x by abacus decision 60 (the duplicate ABS's slot)
     "eˣ": OP("AB_EXP"), "10ˣ": OP("AB_TENX"), "LN": OP("AB_LN"), "LOG": OP("AB_LOG"),
     "yˣ": OP("AB_POW"), "ˣ√y": OP("AB_XROOT"), "1/x": OP("AB_INV"),
     "%": OP("AB_PCT"), "%CHG": OP("AB_PCTCHG"), "π": OP("AB_PI"),
@@ -121,8 +122,9 @@ MENUS = [
     ("FRAC", [o("FDISP", "AB_FDISP"), o("/c", "AB_SETC"), o("RCL/c", "AB_RCLC"), o("PREC", "AB_FRACFMT", 0),
               o("FCTR", "AB_FRACFMT", 1), o("FIXED", "AB_FRACFMT", 2)]),
     # abacus #3958: EXP as drafted, LN(1+x) shortened to fit five cells (ours)
+    # unit 041 C: ∛x (33s p.4-2) in EXP's first free cell (ours)
     ("EXP", [o("2\u02e3", "AB_TWOX"), o("LOG\u2082", "AB_LOG2"), o("e\u02e3\u22121", "AB_EXPM1"), o("LN1+x", "AB_LN1P"),
-             NONE, NONE]),
+             o("\u221bx", "AB_CBRT"), NONE]),
     ("CONV", [o("\u2192kg", "AB_TOKG"), o("\u2192lb", "AB_TOLB"), o("\u2192\u00b0C", "AB_TOC"),
               o("\u2192\u00b0F", "AB_TOF"), o("\u2192cm", "AB_TOCM"), o("\u2192in", "AB_TOIN")]),
     ("UNITS", [o("\u2192l", "AB_TOL"), o("\u2192gal", "AB_TOGAL"), o("\u2192km", "AB_TOKM"),

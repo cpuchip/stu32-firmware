@@ -693,6 +693,13 @@ int main(int argc, char **argv)
                                           "x\xe2\x89\xa0" "0?", "x\xe2\x89\xa4" "0?", "x<0?", "x>0?", "x\xe2\x89\xa5" "0?", "x=0?"};
         for (int t = 0; t < 12; t++) expect_line(&c, t, T[t], "14-7's tests");
     }
+    /* unit 041 C: the 33s's cube and cube root list by their keys' names (33s p.4-2) */
+    ab_init(&c);
+    keys(&c, "PRGM");
+    ab_do(&c, AB_CUBE);
+    ab_do(&c, AB_CBRT);
+    expect_line(&c, 0, "x\xc2\xb3", "041 C: x cubed lists as x³");
+    expect_line(&c, 1, "\xe2\x88\x9bx", "041 C: the cube root lists as ∛x");
     /* every op the core takes as a line has a name the face can draw */
     {
         static const int ARGS[] = {0, 1, 4, 'Z' - 'A', AB_VAR_IND_I, AB_VAR_IND_J, 1001, AB_TGT_IND_I, 40, -1, 26000};

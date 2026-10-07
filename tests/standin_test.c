@@ -236,7 +236,7 @@ int main(int argc, char **argv)
            #3901): with GOLD held, a key's gold legend is gold, its face, blue legend and letter dim */
         ks = (si_keys_state){1, false, -1, false};
         si_draw_keys(keys, &ks);
-        si_key_rect(6, &x, &y, &w, &h);                 /* sqrt x: gold x^2, blue ABS, letter A */
+        si_key_rect(6, &x, &y, &w, &h);                 /* sqrt x: gold x^2, blue x^3 (041 C), letter A */
         expect(count(keys, x, y, w / 2, 20, SI_GOLD) > 0, "GOLD held: the gold legend stays gold");
         expect(count(keys, x, y, w, h, SI_BLUE) == 0, "GOLD held: no blue on the key (dimmed)");
         expect(count(keys, x, y + 22, w, 30, SI_FACE) == 0 && count(keys, x, y + 22, w, 30, SI_DIM) > 0,

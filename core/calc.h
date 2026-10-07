@@ -136,10 +136,11 @@ typedef enum {
     AB_GZOOM, AB_GMOVE, AB_GTRACE, AB_GMARK, AB_GFACT, AB_GFCN,
     /* CAS 004 (Casimir, STU's Equation mode): D/DX and COLCT in arg's variable (0-25), SIMP, EXPND; SUBST in arg's
        variable opens the editor for its replacement, which ENTER substitutes */
-    AB_CASD, AB_CASSIMP, AB_CASEXP, AB_CASCOL, AB_CASSUB
+    AB_CASD, AB_CASSIMP, AB_CASEXP, AB_CASCOL, AB_CASSUB,
+    AB_CUBE, AB_CBRT        /* unit 041 C: x³ and ∛x (33s p.4-2), 33s mode's (the 35s has neither) */
 } ab_op;
 
-#define AB_OP_LAST AB_CASSUB     /* the last op: loops over every op end here */
+#define AB_OP_LAST AB_CBRT     /* the last op: loops over every op end here */
 
 /* Why the last run stopped (unit 012 rule 1): the device draws it; the core never waits. */
 typedef enum {
@@ -505,8 +506,9 @@ int ab_graph_form(const ab_calc *c, int e);
    owns it; otherwise (the keyboard, lines before the first label) the calculator's. Every
    mode-dependent behaviour asks here. */
 bool ab_mode35(const ab_calc *c);
-/* Unit 041 Part A: a 35s feature hidden in 33s mode (the mode in force, ab_mode35): its key or menu item does
-   nothing and a program line can't record it. The app dims its legend. */
+/* Unit 041 Part A: a 35s feature hidden in 33s mode (the mode in force, ab_mode35), and Part C: a 33s feature
+   the 35s lacks (x³, ∛x) hidden in 35s mode: its key or menu item does nothing and a program line can't
+   record it. The app dims its soft key. */
 bool ab_hidden(const ab_calc *c, int op);
 /* Unit 043: Equation mode shows a built-in solver (2*2 or 3*3 lin. solve), so SOLVE takes no letter (35s p.7-6). */
 bool ab_builtin_shown(const ab_calc *c);
