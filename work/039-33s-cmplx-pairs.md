@@ -52,3 +52,11 @@ instead.
 - The guide's examples are pinned, and abacus recomputed sin(2+3i) with mpmath. 039 passes 32/32 in abacus's build.
 - Calls (1)-(4) are accepted as built.
 - **Superseded by decision 58** (Michael, the 33s audit): the one-value complex forms (x i y, r θ a, ARG, xiy/rθa display) are hidden in 33s mode. That's done by unit 041, not here.
+
+## The hidden pair set (abacus, 2026-10-07)
+
+- `tools/refmodel/gen_039.py 3000 39039`. **Seed 39039 is the hidden seed. It stays with abacus.**
+- Random pairs through all twelve CMPLX operations, keyed per the guide, each part within 8 units (X^, Y^) of mpmath.
+- **Result:** 3000/3000 (5849 expectations) at 5ccd3a4.
+- **Falsifier:** real and imaginary swapped in the oracle goes red.
+- This completes 039's acceptance, which abacus had first recorded before running the set.
