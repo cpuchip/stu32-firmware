@@ -4050,6 +4050,11 @@ bool ab_hidden(const ab_calc *c, int op)
     }
 }
 
+bool ab_builtin_shown(const ab_calc *c)
+{
+    return c->eqn_mode && !c->eqn_typing && eqn_builtin(c, c->eqn_cur) != 0;
+}
+
 bool ab_label_indirect(const ab_calc *c, int label)
 {
     if (label < 0 || label >= 26 || c->labelpos[label] < 0) return false;

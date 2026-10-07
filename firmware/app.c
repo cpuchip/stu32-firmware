@@ -732,6 +732,8 @@ static void do_action(app_state *a, const km_action *act)
         }
         if (act->op == AB_XEQ && a->c->eqn_mode && !a->c->eqn_typing && !a->c->prgm)
             do_op(a, AB_XEQ, AB_TGT_EQN);       /* evaluates the equation shown (UG p.G-14) */
+        else if (act->op == AB_SOLVE && !a->c->prgm && ab_builtin_shown(a->c))
+            do_op(a, AB_SOLVE, -1);             /* a built-in solver: straight to A's prompt (35s p.7-6; unit 043) */
         else
             prompt_open(a, act->op, act->prompt);
         break;
