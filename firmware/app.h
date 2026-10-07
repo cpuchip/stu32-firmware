@@ -151,6 +151,8 @@ typedef struct {
     uint32_t app_t0, app_last, app_next;    /* the clock's start, the last tick, the ms to the next (0 none) */
     struct { uint32_t hash; uint8_t data[APP_SAVE_SIZE]; uint8_t used; } app_saves[8];
     bool apps_dirty;        /* the apps' saves changed: the device stores them (app_saves_image) */
+    bool idle_limit;        /* the apps' idle limit applies (abacus #4639); true from app_init, a host may clear it
+                               (abacus #4661: the phone never auto-offs) */
     volatile bool computing; /* 040b: a SOLVE, an integral or a graph tool inside its call (C interrupts it) */
     int gpage;              /* unit 040: the open graph's soft-key page (0 the bar, 1 ZOOM, 2 FCN) */
     bool gxy_off;           /* its readout off ((X,Y)) */

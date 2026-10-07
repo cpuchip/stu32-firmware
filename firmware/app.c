@@ -15,6 +15,7 @@ void app_init(app_state *a, ab_calc *c, uint32_t now_ms)
     a->c = c;
     a->prompt_op = -1;
     a->tgt_label = -1;
+    a->idle_limit = true;                       /* (a host may turn it off: abacus #4661) */
     a->confirm_op = -1;
     a->menu = -1;
     a->last_key_ms = now_ms;
@@ -744,7 +745,7 @@ static void do_action(app_state *a, const km_action *act)
 app_action app_tick(app_state *a, const pwr_inputs *in, uint32_t now_ms)
 {
     bool msg = a->c->msg;
-    if (a->app && now_ms - a->last_key_ms >= 2u * a->set.off_min * 60000u)
+    if (a->app && a->idle_limit && now_ms - a->last_key_ms >= 2u * a->set.off_min * 60000u)
         app_exit(a);                            /* the idle limit (abacus #4639): twice auto-off with no key, the
                                                    app saved and stopped; the calculator's auto-off resumes below */
     if (a->app) {                               /* unit 037: an app's tick; the calculator idle */
