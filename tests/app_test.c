@@ -1276,6 +1276,65 @@ int main(void)
         app_key_up(&a, 4, now);
     }
 
+    /* unit 036: GTO . from the keyboard (33s p.13-5, 35s p.14-6): . . to PRGM TOP; . label and the line's
+       digits (three in 35s and STU mode, four in 33s mode) to that line; nothing recorded; C and backspace
+       back out */
+    {
+        /* LBL A, 1, R/S, 2, RTN: XEQ A stops at the R/S */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        c.m35 = true;
+        ab_do(&c, AB_PRGM);
+        ab_do_arg(&c, AB_LBL, 0);
+        ab_do(&c, AB_K1);
+        ab_do(&c, AB_RS);
+        ab_do(&c, AB_K2);
+        ab_do(&c, AB_RTN);
+        ab_do(&c, AB_PRGM);
+        ab_do_arg(&c, AB_XEQ, 0);
+        int lines = c.prog_len;
+        expect(c.stop == AB_STOP_STOP && c.pc > 0, "036: a program stopped at its R/S");
+        press(&a, "GOLD 4 .");
+        app_ui(&a, &ui);
+        expect(ui.prompt && !strcmp(ui.prompt, "GTO ._"), "036: . at the GTO prompt opens the address form");
+        press(&a, ".");
+        expect(c.pc == AB_PC_TOP && c.prog_len == lines && !a.prompt_text[0], "036: . . goes to PRGM TOP");
+        press(&a, "GOLD 9 k:0 GOLD XEQ ltr:B GOLD 9 k:0");
+        expect(c.prog[0].op == AB_LBL && c.prog[0].arg == 1, "036: a label keyed after GTO . . lands at the top");
+        /* in program entry: moves the pointer, records nothing */
+        press(&a, "GOLD 9 k:0 GOLD 4 . ltr:A 0 0 2");
+        char t[32];
+        ab_prog_addr(&c, c.pc, t);
+        expect(c.prgm && c.prog_len == lines + 1 && !strcmp(t, "A002"), "036: GTO . A002 in program entry: the pointer there, no line");
+        press(&a, "GOLD 4 . .");
+        expect(c.prgm && c.pc == AB_PC_TOP && c.prog_len == lines + 1, "036: GTO . . in program entry: TOP, no line");
+        press(&a, "GOLD 9 k:0");
+        /* a missing line: NONEXISTENT */
+        press(&a, "GOLD 4 . ltr:A 0 0 9");
+        expect(c.msg && c.err_status == ABN_NONEXISTENT, "036: a missing line: NONEXISTENT");
+        press(&a, "C");
+        /* 33s mode: four digits */
+        c.m35 = false;
+        press(&a, "GOLD 4 . ltr:A 0 0 0");
+        app_ui(&a, &ui);
+        expect(ui.prompt && !strcmp(ui.prompt, "GTO .A000_"), "036: 33s mode: four digits (A0005)");
+        press(&a, "3");
+        ab_prog_addr(&c, c.pc, t);
+        expect(!strcmp(t, "A003"), "036: 33s mode: GTO . A0003 goes to A003");
+        c.m35 = true;
+        /* backing out: backspace steps back a digit, the letter, the point; C leaves */
+        press(&a, "GOLD 4 . ltr:A 0 \xe2\x86\x90");
+        app_ui(&a, &ui);
+        expect(ui.prompt && !strcmp(ui.prompt, "GTO .A___"), "036: backspace removes a digit");
+        press(&a, "\xe2\x86\x90 \xe2\x86\x90");
+        app_ui(&a, &ui);
+        expect(ui.prompt && !strcmp(ui.prompt, "GTO _"), "036: backspace steps back past the letter and the point");
+        int pc0 = c.pc;
+        press(&a, ". C");
+        app_ui(&a, &ui);
+        expect(!ui.prompt && c.pc == pc0, "036: C backs out of the address form, nothing moved");
+    }
+
     /* unit 033: GRAPH: blue 7's menu; the frame drawn from the model: in the curve's columns (clear of the
        labels at the edges) a pixel of the plot area is dark exactly where the model draws a row or an axis */
     {
