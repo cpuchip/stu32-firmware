@@ -1260,6 +1260,12 @@ int main(void)
         press(&a, "5");                         /* the console: no release; the next key only ends it */
         app_ui(&a, &ui);
         expect(ui.show_n == 0 && !c.entry.active && img_crc(&c) == before, "030: without a release the next key only ends it");
+        a.key_ups = true;                       /* Rev A's matrix: the finger rolls on from SHOW (review C1) */
+        press(&a, "BLUE R\xe2\x86\x93 k:4 5");
+        app_ui(&a, &ui);
+        expect(ui.show_n == 0 && c.entry.active, "030: with releases, a key while SHOW is held ends it and acts");
+        a.key_ups = false;
+        press(&a, "C");
         press(&a, "C 3 BLUE +/\xe2\x88\x92 k:0 4 ENTER BLUE R\xe2\x86\x93 k:4");    /* 3 i 4 (CMPLX's i, blue +/-) */
         app_ui(&a, &ui);
         screen_lines(&c, &ui, &pg);
@@ -1267,6 +1273,24 @@ int main(void)
                    !strcmp(pg.y.text, "40000000000000000") && !strcmp(pg.x.text, "00000000000000000"),
                "030: a complex X: the real part on T and Z, the imaginary on Y and X");
         app_key_up(&a, 4, now);
+    }
+
+    /* unit 030's review: an equation line typed in program entry is shown as it is typed (UG p.13-7),
+       not the program line before it */
+    {
+        static screen_page pg;
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do(&c, AB_PRGM);
+        ab_do_arg(&c, AB_LBL, 0);
+        ab_do(&c, AB_K1);
+        ab_do(&c, AB_EQN);
+        ab_do(&c, AB_K2);
+        ab_do(&c, AB_ADD);
+        ab_do(&c, AB_K3);
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(c.eqn_typing && !strcmp(pg.x.text, "2+3_") && pg.x.left, "program entry: the equation line being typed is shown");
     }
 
     /* unit 029, ours: ALG's hidden key does nothing outside STU; XEQ is refused before its prompt;

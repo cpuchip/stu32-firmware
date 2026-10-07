@@ -208,10 +208,11 @@ void app_key(app_state *a, int key, uint32_t now_ms)
     a->notice = NULL;                           /* a key ends a brief notice */
     sound(a, DEV_USE_CLICK);                    /* every key ticks (unit 027) */
     a->key_now = key;
-    if (a->show) {                              /* SHOW with no release (unit 030 answer 7): the next key
-                                                   only ends it */
+    if (a->show) {                              /* a key while SHOW shows: with no release (unit 030 answer
+                                                   7) it only ends it; on a keyboard with releases the
+                                                   finger rolled on: it ends it and acts (review C1) */
         a->show = false;
-        return;
+        if (!a->key_ups) return;
     }
     if (a->view) {                              /* SYS's view: any key leaves it, and only that */
         a->view = APP_VIEW_NONE;
@@ -452,10 +453,10 @@ static void do_action(app_state *a, const km_action *act)
         if (act->op == AB_SHOW) {               /* unit 030: held, X's full mantissa; changes nothing, so
                                                    no UNDO mark (a message showing: cleared, as any key) */
             char t[2][AB_SHOW_LEN];
-            bool msg = a->c->msg;
+            bool msg = a->c->msg;               /* (a 35s message: app_key cleared it before this) */
             ab_do_arg(a->c, AB_SHOW, 0);
             if (msg) a->dirty = true;
-            if ((!msg || !a->c->m35) && ab_show_text(a->c, t) > 0) {
+            if (ab_show_text(a->c, t) > 0) {
                 a->show = true;
                 a->show_key = a->key_now;
             }

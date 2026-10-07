@@ -24,3 +24,4 @@ W19 | proposal 3 (18259d9): complex X: the real part's digits, then the imaginar
 W20 | proposal 3: complex with a negative part (CHS while the real part is typed) | 1.5 CHS CI 2 ENTER SHOW | %SHOW=-1500000000000000000000000000000000/2000000000000000000000000000000000
 W21 | proposal 3: a vector X: nothing | [ 1 , 2 ENTER SHOW | %SHOW=-
 W22 | proposal 8: a base mode: nothing (the integer is shown whole) | HEX 1 HF SHOW | %SHOW=-
+W23 | answer 5 (review): an equation being typed in program entry: nothing (not the number line before it) | PRGM CLPGM LBL:A 1.25 EQN 2 | %SHOW=-

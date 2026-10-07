@@ -4451,6 +4451,7 @@ int ab_show_text(const ab_calc *c, char out[2][AB_SHOW_LEN])
        Equation mode shows something else, and in a base mode (the integer is shown whole): answers
        6, 5 and 8 to #4291 */
     if (c->entry.active || c->cpart || c->vlen || c->viewing || c->base != 10) return 0;
+    if (c->eqn_typing && !c->alg) return 0;     /* an equation being typed, in program entry too (answer 5) */
     if (c->prgm) {                              /* the number on the line shown (35s p.G-13); else nothing */
         if (c->pc < 0 || c->pc >= c->prog_len || c->prog[c->pc].op != AB_LIT) return 0;
         int i = c->prog[c->pc].arg;

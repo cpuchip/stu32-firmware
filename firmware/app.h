@@ -135,6 +135,10 @@ typedef struct {
     bool show;              /* unit 030: SHOW held: X's full mantissa in place of the stack */
     int show_key;           /* the key holding it: its release ends SHOW (app_key_up) */
     int key_now;            /* the key app_key is acting on */
+    bool key_ups;           /* the device sends releases (app_key_up) from a keyboard that can roll from
+                               one key to the next (Rev A's matrix): a key pressed while SHOW is held
+                               ends it and acts; false (the console, the one-finger touch panel): the
+                               next key only ends it (unit 030 answer 7) */
     char view_text[4][40];  /* its lines */
     void (*set_wall)(void *ctx, int64_t secs);  /* the clock set from the keys: the device keeps it
                                                    (its RTC); may be NULL */

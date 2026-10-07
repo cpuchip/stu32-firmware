@@ -213,6 +213,10 @@ static void scan_task(void *arg)
     }
     for (;;) {
         kb_scan(&ks, &io);
+        for (int k; (k = kb_next_up(&ks)) >= 0;) {   /* releases first: a pass's order of events */
+            int u = KEY_UP_BASE - k;
+            xQueueSend(keys_q, &u, 0);
+        }
         for (int k; (k = kb_next(&ks)) >= 0;) {
             const km_action *f = km_lookup(k, KM_FACE);
             if (app.running && f->kind == KM_OP && (f->op == AB_CANCEL || f->op == AB_RS)) {
@@ -220,10 +224,6 @@ static void scan_task(void *arg)
                 continue;
             }
             xQueueSend(keys_q, &k, 0);
-        }
-        for (int k; (k = kb_next_up(&ks)) >= 0;) {   /* a release (unit 030: SHOW, held) */
-            int u = KEY_UP_BASE - k;
-            xQueueSend(keys_q, &u, 0);
         }
         if (kb_idle(&ks)) {
             /* unit 023: every key up and every count settled, so kb_scan would change nothing until
@@ -550,6 +550,7 @@ void app_main(void)
     load();
     app_init(&app, calc, now_ms());
     app.busy = on_busy;
+    app.key_ups = true;                         /* the matrix sends releases (unit 030) */
     app.set = loaded;
     piezo_level = app.set.vol;
     {   /* UNDO's two images (unit 021), in PSRAM beside the store's; without them UNDO does nothing */
@@ -576,7 +577,7 @@ void app_main(void)
     piezo_init();                               /* after boot: IO46 has been read */
     app_powered_on(&app);                       /* ON's chirp: a first boot or a wake from OFF, not the
                                                    refresh (above) nor a light-sleep wake (no boot) */
-    keys_q = xQueueCreate(32, sizeof(int));
+    keys_q = xQueueCreate(64, sizeof(int));     /* presses and (unit 030) releases: 32 presses ahead */
     /* unit 023: automatic light sleep. The pins that must keep their level or their pull through it
        are taken out of IDF's sleep isolation, which would otherwise let DISP, BOOST_EN, the LCD's
        lines and the columns float (seen on the stand-in: "isolate all GPIO pins in sleep state") */

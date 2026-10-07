@@ -526,7 +526,8 @@ static void calc_task(void *arg)
             save();
             printf("off\n");
             exio_set(exio & ~EXIO_DISP);        /* the stand-in's off: backlight off until a press */
-            xQueueReceive(events, &ev, portMAX_DELAY);
+            do xQueueReceive(events, &ev, portMAX_DELAY);
+            while (ev.kind == EV_KEYUP);        /* a release (SHOW held past the off time) does not wake it */
             exio_set(exio | EXIO_DISP);
             app.off = false;
             pwr_activity(&app.pwr, now_ms());

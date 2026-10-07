@@ -510,6 +510,7 @@ bool ab_line_ok(ab_op op, int32_t arg)
     case AB_CLPGM: case AB_FDISP: case AB_CANCEL: case AB_EQN: case AB_SUF: case AB_KI: case AB_KTHETA:
     case AB_KPOINT: case AB_KE: case AB_KA: case AB_KB: case AB_KC: case AB_KD: case AB_KE_HEX: case AB_KF:
     case AB_LIT: case AB_EQLINE: case AB_CLALL:
+    case AB_ENTRYM: case AB_ANS: case AB_HUP: case AB_HDOWN: case AB_SHOW:     /* never lines (029, 030) */
         return false;
     case AB_CLVARX:
         return arg >= 0 && arg <= AB_IND_MAX;

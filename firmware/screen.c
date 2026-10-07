@@ -527,6 +527,12 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
         entry_line(c, ui->radix == ',' ? ',' : '.', xl);
         k->x_left = k->x_letter = true;
         k->xk = SCREEN_ENTRY;
+    } else if (c->prgm && c->eqn_typing) {      /* an equation line being typed (UG p.13-7): the text and
+                                                   its cursor, as Equation mode's typing (unit 030's review
+                                                   found the line shown in its place) */
+        eqn_line(c->ebuf, c->ecur, xl);
+        k->x_left = true;
+        k->xk = SCREEN_EQN;
     } else if (c->prgm) {                       /* the pointer's address and its line (list.c) */
         char a[16], t[AB_EQN_LEN];
         ab_prog_addr(c, c->pc, a);
