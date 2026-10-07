@@ -71,3 +71,10 @@ Z35 | a zoom clears the mark (its pixel would mean another point) | STU EQ:X^2 C
 F13 | ROOT near x = -1.38 finds -sqrt 2, not +sqrt 2 | STU EQ:X^2-2 C GRAPH GMOVE:14 GMOVE:14 GMOVE:4 GMOVE:4 GMOVE:4 GMOVE:4 GMOVE:4 GMOVE:4 GMOVE:4 GMOVE:4 ROOT | %GRES=-1.414213562373095048801688724209698 %GCUR=171
 F14 | EXTR near x = -1.08 on X^3-3X finds -1, not +1 | STU EQ:X^3-3×X C GRAPH GMOVE:14 GMOVE:14 GMOVE:4 GMOVE:4 EXTR | %GRES#=-1,1E-15 %GCUR=180
 F15 | a tool that fails leaves no result (F(X)'s cleared) | STU EQ:X^2 C GRAPH F(X) AREA | ERR %ERR=DOMAIN %GRES=-
+# 040b (abacus #4641): ROOT, EXTR and AREA are interrupted by C, as SOLVE and the integral are: INTR:n is the tests'
+# interrupt after n more evaluations. INTERRUPTED, no result, the window and the graph as they were; the next tool
+# runs whole (nothing left over).
+B01 | 040b: ROOT interrupted: INTERRUPTED, no result, the graph and its window kept | STU EQ:X^2-2 C GRAPH GMOVE:16 GMOVE:16 GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 INTR:5 ROOT | ERR %ERR=INTERRUPTED %GRES=- %GRAPH=1 %XWIN=-10,10 %GCUR=228
+B02 | 040b: EXTR interrupted | STU EQ:(X-1)^2+3 C GRAPH GMOVE:16 GMOVE:16 INTR:5 EXTR | ERR %ERR=INTERRUPTED %GRES=- %GRAPH=1
+B03 | 040b: AREA interrupted; the mark kept for a second try | STU EQ:X^2 C GRAPH GMARK GMOVE:16 GMOVE:16 GMOVE:16 GMOVE:16 GMOVE:16 GMOVE:16 INTR:30 AREA | ERR %ERR=INTERRUPTED %GRES=- %GRAPH=1 %GMARK=200,92
+B04 | 040b: after an interrupted ROOT (C clears the message) the next ROOT runs whole | STU EQ:X^2-2 C GRAPH GMOVE:16 GMOVE:16 GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 INTR:5 ROOT C ROOT | ERR %GRES=1.414213562373095048801688724209698
