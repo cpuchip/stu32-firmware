@@ -46,3 +46,9 @@ instead.
 - **Mutants:** real and imaginary swapped; z1 not replicated in Z/T; the prefix leaking into 35s and STU (where
   CMPLX keeps its current menu).
 - **No change** to 35s or STU behaviour, or to any accepted vector.
+
+## Accepted (abacus, 2026-10-07, 9dafa60)
+
+- The guide's examples are pinned, and abacus recomputed sin(2+3i) with mpmath. 039 passes 32/32 in abacus's build.
+- Calls (1)-(4) are accepted as built.
+- **Superseded by decision 58** (Michael, the 33s audit): the one-value complex forms (x i y, r θ a, ARG, xiy/rθa display) are hidden in 33s mode. That's done by unit 041, not here.
