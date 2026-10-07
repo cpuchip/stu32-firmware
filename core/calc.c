@@ -3323,6 +3323,7 @@ static abn_status eqn_solve_finish(ab_calc *c)
        I or i does not move it (the guesses and limits are kept the same way, p.7-11; unit 025) */
     if (var >= 0) code = var == 26 ? AB_VAR_SI : AB_VAR_A + var;
     c->eqn_pending = 0;
+    c->stop = AB_STOP_NONE;                     /* the last prompt answered: none left (unit 035 rule 1) */
     c->x = c->susp.x;
     c->y = c->susp.y;
     c->z = c->susp.z;
@@ -3330,10 +3331,27 @@ static abn_status eqn_solve_finish(ab_calc *c)
     c->lastx = c->susp.lastx;
     c->lift = c->susp.lift;
     c->susp.kind = 0;
-    if (pend >= 5) return lin_key(c, pend - 3);
+    if (pend >= 5) {                            /* x= shown, down to y= (z=): 35s p.7-6, 7-7 */
+        st = lin_key(c, pend - 3);
+        if (st == ABN_OK) {
+            c->viewing = true;
+            c->view_id = pend - 3 == 2 ? AB_VIEW_LIN2 : AB_VIEW_LIN3;
+        }
+        return st;
+    }
     c->fn_eqn = c->eqn_cur;
     st = pend == 3 ? solve_op(c, code) : integ_op(c, code);
     c->fn_eqn = -1;
+    if (st == ABN_OK && pend == 3) {            /* the root VIEWed in its variable (33s, 35s p.7-2) */
+        slot sl;
+        if (resolve(c, code, false, &sl) == ABN_OK) {
+            c->viewing = true;
+            c->view_id = slot_id(c, &sl);
+        }
+    } else if (st == ABN_OK) {                  /* the integral as "∫ =" its value (35s p.8-4) */
+        c->viewing = true;
+        c->view_id = AB_VIEW_INTEG;
+    }
     return st;
 }
 
@@ -3779,6 +3797,15 @@ done:
 bool ab_view_key(ab_calc *c, int op)
 {
     if (!c->viewing) return false;
+    int id = c->view_id;
+    bool lin2 = id == AB_VIEW_LIN2 || id == AB_VIEW_LIN2 - 1, lin3 = id <= AB_VIEW_LIN3 && id >= AB_VIEW_LIN3 - 2;
+    if ((lin2 || lin3) && (op == AB_SST || op == AB_BST)) {   /* a linear solution: down and up step among
+                                                                 its variables, wrapping (35s p.7-7) */
+        int base = lin2 ? AB_VIEW_LIN2 : AB_VIEW_LIN3, n = lin2 ? 2 : 3, j = base - id;
+        j = (j + (op == AB_SST ? 1 : n - 1)) % n;
+        c->view_id = base - j;
+        return true;
+    }
     c->viewing = false;
     return op == AB_CANCEL || op == AB_KBKSP;
 }

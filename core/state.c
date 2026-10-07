@@ -600,7 +600,10 @@ static void sec_modes(rd *r)
     if (r->version >= 4) {
         viewing = r8(r);
         view_id = ri32(r);
-        need(r, flag_byte(viewing) && (viewing ? id_ok(view_id, false) : view_id == 0));
+        need(r, flag_byte(viewing) &&
+                    (viewing ? id_ok(view_id, false) || view_id == AB_VIEW_INTEG || view_id == AB_VIEW_LIN2 ||
+                                   view_id == AB_VIEW_LIN2 - 1 || (view_id <= AB_VIEW_LIN3 && view_id >= AB_VIEW_LIN3 - 2)
+                             : view_id == 0));   /* (unit 035's views) */
     }
     need(r, angle <= AB_ANGLE_GRAD && mode <= AB_ALL && n <= AB_FMT_N_MAX && (mode != AB_ALL || n == 0) &&
                 (base == 2 || base == 8 || base == 10 || base == 16) && flag_byte(fdisp) && fc >= 2 &&

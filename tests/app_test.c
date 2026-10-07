@@ -1276,6 +1276,42 @@ int main(void)
         app_key_up(&a, 4, now);
     }
 
+    /* unit 035: after a keyboard SOLVE the root is VIEWed (W=3.5000), no prompt on Y; the next key gives
+       the ordinary stack; the integral as its labelled result; a linear solution's x= then y= */
+    {
+        static screen_page pg;
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_SETFIX, 4);
+        ab_eqn_add(&c, "A=L\xc3\x97W");
+        ab_do_arg(&c, AB_SOLVE, AB_VAR_A + 22);
+        ab_do(&c, AB_K4); ab_do(&c, AB_K2); ab_do(&c, AB_RS);
+        ab_do(&c, AB_K1); ab_do(&c, AB_K2); ab_do(&c, AB_RS);
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(!strcmp(pg.x.text, "W=3.5000") && pg.x.kind == SCREEN_VIEW && !strchr(pg.y.text, '?') && pg.y.label,
+               "035: after SOLVE W: W=3.5000 viewed, no prompt on Y");
+        press(&a, "ENTER");
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(pg.x.kind != SCREEN_VIEW && pg.x.label && !strchr(pg.y.text, '?'), "035: the next key: the ordinary stack");
+        ab_init(&c);
+        ab_do_arg(&c, AB_SETFIX, 4);
+        ab_do(&c, AB_EQN);
+        ab_do(&c, AB_SST);                      /* 2*2 lin. solve */
+        ab_do_arg(&c, AB_SOLVE, 0);
+        static const ab_op K[] = {AB_K1, AB_K2, AB_K5, AB_K3, AB_K4};
+        for (int i = 0; i < 5; i++) { ab_do(&c, K[i]); ab_do(&c, AB_RS); }
+        ab_do(&c, AB_K1); ab_do(&c, AB_K1); ab_do(&c, AB_RS);
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(!strcmp(pg.x.text, "X=1.0000"), "035: the 2x2 solver ends showing X=1.0000 (35s p.7-7)");
+        ab_do(&c, AB_SST);
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(!strcmp(pg.x.text, "Y=2.0000"), "035: down: Y=2.0000");
+    }
+
     /* unit 032: TABLE: blue 8's menu (VAR START STEP GO); the table on the four lines, x left and the
        value right, row k on X; the bar's up and down; ENTER takes the row; the status band says TABLE;
        STU ONLY briefly in 35s mode */

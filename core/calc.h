@@ -445,6 +445,13 @@ void ab_interrupt(ab_calc *c);
    no op) then acts. ab_do_arg applies it; a device applies it to keys that never reach the core. */
 bool ab_view_key(ab_calc *c, int op);
 
+/* Unit 035: the views a keyboard SOLVE, integral or linear solver ends with (view_id beyond the variables
+   and registers): the integral's result in X ("∫="), the 2x2 solver's X and Y, the 3x3's X, Y and Z
+   (down and up step among them, 35s p.7-7). */
+#define AB_VIEW_INTEG (-33)
+#define AB_VIEW_LIN2 (-40)          /* -40 X, -41 Y */
+#define AB_VIEW_LIN3 (-50)          /* -50 X, -51 Y, -52 Z */
+
 /* Rebuilds the label table after program memory is replaced (state loading). */
 void ab_prog_relabel(ab_calc *c);
 

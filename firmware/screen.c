@@ -373,6 +373,9 @@ static void var_name(int id, char *out, int size)
     else if (id == 26) snprintf(out, (size_t)size, "i");       /* the 33s's i (unit 025) */
     else if (id >= 1000) snprintf(out, (size_t)size, "(%d)", id - 1000);
     else if (id <= -27 && id >= -32) snprintf(out, (size_t)size, "%s", STATS[-id - 27]);
+    else if (id == AB_VIEW_INTEG) snprintf(out, (size_t)size, "\xe2\x88\xab");     /* ∫ (unit 035) */
+    else if (id <= AB_VIEW_LIN2 && id >= AB_VIEW_LIN3 - 2)      /* X, Y, Z of a linear solution */
+        snprintf(out, (size_t)size, "%c", 'X' + (id > AB_VIEW_LIN2 - 10 ? AB_VIEW_LIN2 - id : AB_VIEW_LIN3 - id));
     else if (size > 0) out[0] = '\0';
 }
 
@@ -546,6 +549,9 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
         if (id >= 0 && id <= 26) v = c->var[id];
         else if (id >= 1000 && id - 1000 <= AB_IND_MAX) v.re = c->ind[id - 1000];
         else if (id <= -27 && id >= -32) v.re = c->stat[-id - 27];
+        else if (id == AB_VIEW_INTEG) v = c->x;                 /* unit 035: the integral's result */
+        else if (id <= AB_VIEW_LIN2 && id >= AB_VIEW_LIN3 - 2)  /* a linear solution's X, Y, Z */
+            v = c->var[23 + (id > AB_VIEW_LIN2 - 10 ? AB_VIEW_LIN2 - id : AB_VIEW_LIN3 - id)];
         var_name(id, name, sizeof name);
         line_add(xl, name);
         line_add_cp(xl, '=');

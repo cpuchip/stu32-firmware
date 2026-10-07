@@ -5,7 +5,7 @@ S01 | rules 1-2 (abacus Q1; 33s p.7-2): a root found: no prompt left, the unknow
 S02 | rules 1-2 (abacus Q3; 35s p.7-2): the same in 35s mode | MODE35 FIX4 EQN RCL:A = RCL:L * RCL:W ENTER SOLVE:W 42 RS 12 RS | X=3.5 %STOP=NONE %VIEW=22
 S03 | rule 2: the next key ends the VIEW and acts (35s p.8-4: the next key uses X) | MODE35 FIX4 EQN RCL:A = RCL:L * RCL:W ENTER SOLVE:W 42 RS 12 RS 2 * | X=7 %VIEW=-
 S04 | rule 2: C only clears the VIEW (35s p.7-7: press C to clear the viewed variable) | MODE35 FIX4 EQN RCL:A = RCL:L * RCL:W ENTER SOLVE:W 42 RS 12 RS C | X=3.5 %VIEW=- %STOP=NONE
-S05 | rule 1: the next solve shows no stale prompt either (abacus: W? persisted) | MODE35 FIX4 EQN RCL:A = RCL:L * RCL:W ENTER SOLVE:W 42 RS 12 RS C SOLVE:L 42 RS 3.5 RS | X=12 %STOP=NONE %VIEW=11
+S05 | rule 1: the next solve shows no stale prompt either (abacus: W? persisted) | MODE35 FIX4 EQN RCL:A = RCL:L * RCL:W ENTER SOLVE:W 42 RS 12 RS C EQN SOLVE:L 42 RS 3.5 RS | X=12 %STOP=NONE %VIEW=11
 S06 | rule 3 (33s p.7-7): X the root, Z the equation's value there (0) | MODE33 FIX4 EQN RCL:A = RCL:L * RCL:W ENTER SOLVE:W 42 RS 12 RS | X=3.5 Z=0
 S07 | rule 1: an error ending (NO ROOT FND, 35s p.7-7) leaves no prompt and views nothing | MODE35 FIX4 EQN RCL:A POW 2 + 1 ENTER SOLVE:A | ERR %ERR=NO_ROOT %STOP=NONE %VIEW=-
 S08 | rule 4: a prompt still pending is a real prompt | MODE35 FIX4 EQN RCL:A = RCL:L * RCL:W ENTER SOLVE:W 42 RS | %STOP=INPUT:L %VIEW=-
