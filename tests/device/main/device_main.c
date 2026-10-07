@@ -20,6 +20,7 @@ int vectors_run(const char *name, FILE *f);
 int fmt_vectors_run(const char *name, FILE *fp);
 int diff_test_run(long count, uint64_t seed);
 int abn_test_main(void);
+int draw_test_main(int argc, char **argv);
 int xnum_test_main(void);
 
 #ifndef DIFF_COUNT
@@ -197,6 +198,11 @@ static int run_all(void)
     t = now_us(); step("abn_test", abn_test_main(), t);
     t = now_us(); step("diff_test", diff_test_run(DIFF_COUNT, 0), t);
     t = now_us(); step("xnum_test", xnum_test_main(), t);
+    {   /* apps.h v1.2: sdk/draw where long is 32 bits (a far line once drew nothing there; host builds can't see it) */
+        static char ops[] = "2000", name[] = "draw_test";
+        char *argv[] = {name, ops, NULL};
+        t = now_us(); step("draw_test 2000", draw_test_main(2, argv), t);
+    }
     for (unsigned i = 0; i < BUNDLE_COUNT; i++) {
         t = now_us();
         step(BUNDLE[i].name, run_file(&BUNDLE[i]), t);

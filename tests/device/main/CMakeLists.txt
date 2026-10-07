@@ -35,7 +35,7 @@ idf_component_register(
     SRCS device_main.c "${BUNDLE_C}" ${CORE_SRCS} "${CASIM}/casim.c"
          "${REPO}/tests/vectors.c" "${REPO}/tests/fmt_vectors.c" "${REPO}/tests/diff_test.c"
          "${REPO}/tests/dref.c" "${REPO}/tests/abn_test.c" "${REPO}/tests/xnum_test.c"
-         "${REPO}/firmware/store.c"
+         "${REPO}/firmware/store.c" "${REPO}/firmware/draw.c" "${REPO}/firmware/font5x7.c" "${REPO}/tests/draw_test.c"
     INCLUDE_DIRS . "${REPO}/core" "${REPO}/tests" "${REPO}/firmware" "${CASIM}")
 
 if(NOT EXISTS "${BUNDLE_C}")
@@ -50,6 +50,7 @@ target_compile_definitions(${COMPONENT_LIB} PRIVATE AB_DEVICE TEST_STACK=40960 A
     DECIMAL_CALL_BY_REFERENCE=0 DECIMAL_GLOBAL_ROUNDING=0 DECIMAL_GLOBAL_EXCEPTION_FLAGS=0)
 set_source_files_properties("${REPO}/tests/abn_test.c" PROPERTIES COMPILE_DEFINITIONS "main=abn_test_main")
 set_source_files_properties("${REPO}/tests/xnum_test.c" PROPERTIES COMPILE_DEFINITIONS "main=xnum_test_main")
+set_source_files_properties("${REPO}/tests/draw_test.c" PROPERTIES COMPILE_DEFINITIONS "main=draw_test_main")   # apps.h v1.2: sdk/draw on the ILP32 chip
 target_link_libraries(${COMPONENT_LIB} PRIVATE "${BID_LIB}")
 # On the S3 the pools go to PSRAM, as on the stand-in (sdkconfig.defaults.esp32s3); the C6 has none
 if(target STREQUAL "esp32s3")
