@@ -540,7 +540,8 @@ static void zoombench(void)
    end), and every line changed (each row's first byte differs). Microseconds a call, over 100. */
 static void diffbench(void)
 {
-    static ls027_frame inner_a;                 /* (internal: the stand-in's own frames are) */
+    ls027_frame *inner_a = &fb[1 - front];      /* (internal: the back frame, redrawn whole before it shows; no static
+                                                   12 KB here: internal RAM can't spare it, the S3 said OUT OF MEMORY) */
     ls027_frame *pa = heap_caps_malloc(sizeof *pa, MALLOC_CAP_SPIRAM), *pb = heap_caps_malloc(sizeof *pb, MALLOC_CAP_SPIRAM);
     if (!pa || !pb) {
         printf("diffbench: no PSRAM\n");
@@ -550,7 +551,7 @@ static void diffbench(void)
     static bool d[LS027_H];
     for (int k = 0; k < 4; k++) {
         bool psram = k < 2, all = k & 1;
-        ls027_frame *shown = psram ? pa : &inner_a, *next = &fb[front];
+        ls027_frame *shown = psram ? pa : inner_a, *next = &fb[front];
         memcpy(shown, next, sizeof *shown);
         if (all)
             for (int y = 0; y < LS027_H; y++) shown->px[y][0] ^= 0xFF;
