@@ -184,8 +184,11 @@ static void loop_steps(void)
     loop_step("work/015-vectors.txt", false, "7");
     /* both: a save and load after every key and at every slice stop. Not 016: its vectors watch
        for slice stops themselves, which the harness's slicing resumes (the Makefile's slice runs
-       leave 016-018 out for the same reason) */
-    loop_step("work/012-vectors.txt", true, "7");
+       leave 016-018 out for the same reason). 015, not 012: on the host the save pass multiplies
+       012's slices by about 730 (0.11 s to 80 s), and the S3 ran 012's slices alone in 10.9 s, so
+       about two hours there: it never finished inside capture.py's hour (2026-10-07). 015's is about
+       6 (0.02 s to 0.12 s). */
+    loop_step("work/015-vectors.txt", true, "7");
 }
 
 static int run_all(void)

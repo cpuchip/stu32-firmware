@@ -3,3 +3,10 @@
 CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
 CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
 CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions-8mb.csv"
+# Its 8 MB of octal PSRAM (as the stand-in, device/standin/sdkconfig.defaults) holds the core's arena
+# pool and the CAS arena (device/pool_attr.h): with casim in, internal RAM no longer holds them and
+# the test's calculator together (dram0_0_seg over by 23,592 bytes at 5bc1a26).
+CONFIG_SPIRAM=y
+CONFIG_SPIRAM_MODE_OCT=y
+CONFIG_SPIRAM_SPEED_80M=y
+CONFIG_SPIRAM_ALLOW_BSS_SEG_EXTERNAL_MEMORY=y

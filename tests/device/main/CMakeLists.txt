@@ -22,7 +22,16 @@ if(NOT CMAKE_SCRIPT_MODE_FILE)
     set_source_files_properties("${CASIM}/casim.c" PROPERTIES COMPILE_OPTIONS "-Werror=frame-larger-than=1024")
 endif()
 
+# The S3's PSRAM needs its component in the build (set(COMPONENTS main) brings only main's requirements);
+# naming one requirement ends main's implicit all, so the timer and partition components are named too.
+# The C6 keeps the implicit set.
+set(DEV_REQS)
+if(target STREQUAL "esp32s3")
+    set(DEV_REQS PRIV_REQUIRES esp_psram esp_timer esp_partition)
+endif()
+
 idf_component_register(
+    ${DEV_REQS}
     SRCS device_main.c "${BUNDLE_C}" ${CORE_SRCS} "${CASIM}/casim.c"
          "${REPO}/tests/vectors.c" "${REPO}/tests/fmt_vectors.c" "${REPO}/tests/diff_test.c"
          "${REPO}/tests/dref.c" "${REPO}/tests/abn_test.c" "${REPO}/tests/xnum_test.c"
@@ -42,3 +51,7 @@ target_compile_definitions(${COMPONENT_LIB} PRIVATE AB_DEVICE TEST_STACK=40960 A
 set_source_files_properties("${REPO}/tests/abn_test.c" PROPERTIES COMPILE_DEFINITIONS "main=abn_test_main")
 set_source_files_properties("${REPO}/tests/xnum_test.c" PROPERTIES COMPILE_DEFINITIONS "main=xnum_test_main")
 target_link_libraries(${COMPONENT_LIB} PRIVATE "${BID_LIB}")
+# On the S3 the pools go to PSRAM, as on the stand-in (sdkconfig.defaults.esp32s3); the C6 has none
+if(target STREQUAL "esp32s3")
+    set_source_files_properties("${REPO}/core/arena.c" PROPERTIES COMPILE_OPTIONS "-include;${REPO}/device/pool_attr.h")
+endif()
