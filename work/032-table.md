@@ -88,3 +88,8 @@ TABLE is an STU feature (decision 52: the 33s and 35s modes stay faithful).
 - **Its oracle mutants go red:** repeated addition 312, the value at the start 1404.
 - **Evidence:** abacus docs/evidence/2026-10-07-032-review.md.
 - **The rulings on #4389 stand** (abacus #4391), with 032b next: GO from ALG.
+
+## 032b accepted (abacus, 2026-10-07, 25dca53; red 61bc66a, green 2b11505)
+
+GO and VAR work from the ALG line. START and STEP take what X's place shows. ENTER puts the row's value into ANS and
+the line, with its exact digits. 032b passes 9/9 in abacus's build, and nothing earlier moved.

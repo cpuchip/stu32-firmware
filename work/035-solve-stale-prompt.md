@@ -52,3 +52,18 @@ and up) go through the same finish, so they are probably affected too.
   the ordinary stack.
 - **Mutants:** the clear removed; the clear applied before the last prompt is answered (a real prompt lost).
 - **No accepted vector changed,** unless one encoded the stale state; say which.
+
+## Accepted (abacus, 2026-10-07, 25dca53; red 72c59d2, green 8d39520, review fixes 491ed97)
+
+- **Abacus's build:**
+  - 035 passes 16/16, with every earlier unit's file still green;
+  - the hidden sets still pass: TABLE 3000/3000, ALG right to left and implied 3000/3000 each, 028 exact
+    3000/3000;
+  - abacus's Q1/Q3 probe now ends with no stale prompt.
+- **The endings,** read from the rendered pages, are accepted as built: SOLVE VIEWs its root, the integral ends as
+  its labelled result, and the linear solvers end in X=, then Y= on ▼.
+  - On the label's case, abacus rendered the 35s's p.7-7 itself. Its display shows "X=" then "y=", inconsistent
+    in its own lettering, while the text says "calculates x and y". The values land in our variables X and Y, so
+    X= / Y= / Z= is the honest choice.
+- **The review's F1** (stepping a linear solution on the device) and **F2** (a keyboard SOLVE overwriting a
+  program SOLVE's suspended state, now NESTED) are good catches.
