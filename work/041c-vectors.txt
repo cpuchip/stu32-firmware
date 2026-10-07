@@ -30,3 +30,26 @@ C21 | 041 C (#4850): TOKM into a 33s label, from 35s mode: refused | MODE35 PRGM
 C22 | 041 C (#4850): a line address into a 35s label, from 33s mode: recorded (33s p.13-4 binds 33s programs) | MODE33 PRGM LBL:A MODE35 XEQ:A003 RTN PRGM | %LINES=3
 C23 | 041 C (#4850): CONST's 41st (e) into a 35s label, from 33s mode: recorded | MODE33 PRGM LBL:A MODE35 CONST:e RTN PRGM XEQ:A | %LINES=3 X=2.718281828459045235360287471352662
 C24 | 041 C (#4850): lines before the first label: the mode in force (33s: x³ recorded, TOKM not) | MODE33 PRGM CLPGM CUBE TOKM PRGM | %LINES=1
+# B4: ENG→ (ENGR) and ←ENG (ENGL), the 33s's p.1-20 and the 35s's p.1-23, so in every mode (abacus #4850: the reading
+# approved). A press moves the shown exponent to the next multiple of three below (ENG→) or above (←ENG) the one shown
+# now: the keyed exponent while a number is keyed, the view's while one shows, else the X line's (a plain line is
+# exponent 0). The digits are those shown: as keyed, n + 1 in SCI and ENG n, every shown digit in FIX and ALL. Display
+# only, until the next key; no line, no UNDO mark; a view wider than the screen's 31 stops at the last that fits. No
+# separators in the mantissa (002's rule; the 33s prints 123,460E0). %ENG is the view, - none. Expected views from a
+# Python model of the rule, which reproduces the guides' six (C25-C30).
+C25 | 041 C B4 (33s p.1-20): 12.346E4 keyed, ENG→: 123.46E3 | MODE33 12.346 E 4 ENGR | %ENG=123.46E3 X=123460
+C26 | 041 C B4 (33s p.1-20): ENG→ again: 123460E0 (the guide's 123,460E0; no separator, 002) | MODE33 12.346 E 4 ENGR ENGR | %ENG=123460E0 X=123460
+C27 | 041 C B4 (33s p.1-20): 12.346E4 keyed, ←ENG: 0.12346E6 | MODE33 12.346 E 4 ENGL | %ENG=0.12346E6
+C28 | 041 C B4 (33s p.1-20): ←ENG again: 0.00012346E9 | MODE33 12.346 E 4 ENGL ENGL | %ENG=0.00012346E9
+C29 | 041 C B4 (35s p.1-23): ENG 4, 12.346E4 ENTER (123.46E3), ←ENG: 0.12346E6 | MODE35 ENG4 12.346 E 4 ENTER ENGL | %ENG=0.12346E6
+C30 | 041 C B4 (35s p.1-23): then ENG→: back to 123.46E3 | MODE35 ENG4 12.346 E 4 ENTER ENGL ENGR | %ENG=123.46E3
+C31 | 041 C B4: the view lasts until the next key | MODE33 12.346 E 4 ENGR ENTER | %ENG=- X=123460 Y=123460
+C32 | 041 C B4: no program line | MODE33 PRGM CLPGM ENGR ENGL PRGM | %LINES=0
+C33 | 041 C B4: FIX 4's plain 2.0000 is exponent 0 and five digits: ENG→ 2000.0E-3 | MODE35 FIX4 2 ENTER ENGR | %ENG=2000.0E-3
+C34 | 041 C B4: ALL's 2 is one digit: ←ENG 0.002E3 | MODE35 2 ENTER ENGL | %ENG=0.002E3
+C35 | 041 C B4: SCI 2's 5.85E1: ENG→ 58.5E0 | MODE35 SCI2 58.5 ENTER ENGR | %ENG=58.5E0
+C36 | 041 C B4: SCI 2's 5.85E1: ←ENG 0.0585E3 | MODE35 SCI2 58.5 ENTER ENGL | %ENG=0.0585E3
+C37 | 041 C B4: a view wider than 31 stops at the last that fits (the fourth ←ENG would be 35 wide) | MODE35 1.234567890123456789 ENTER ENGL ENGL ENGL ENGL | %ENG=0.000000001234567890123456789E9
+C38 | 041 C B4: in HEX nothing | MODE35 HEX 1 ENTER ENGR | %ENG=-
+C39 | 041 C B4: a complex X: nothing | MODE35 2 CI 3 ENTER ENGR | %ENG=- X=2i3
+C40 | 041 C B4: STU too (the 35s has them) | STU 12.346 E 4 ENGR | %ENG=123.46E3
