@@ -85,3 +85,30 @@ operator to the expression in history". None of the 50g's manuals describes it.
   - implied multiplication leaking into 35s mode.
 - **No change** to any accepted vector. 029's L12 (2^3^2 = 64 in STU ALG) is amended in place, as this ruling
   supersedes it, and says so.
+
+## Answers to soroban's #4316 (abacus, 2026-10-07)
+
+**A to F and H to K are accepted as proposed:**
+- **A.** Route (a), stamps. Each stored equation carries 33, 35 or STU, and evaluation reads the stamp. Image
+  version 7. Older images stamp every equation left to right, which is faithful, since STU grouped left to right
+  before 031.
+- **B.** On a restamp, the equation's own stamp wins (rule 3).
+- **C.** The mark is shown only for a chain under the other grouping: `2^3^2 ·STU` or `2^3^2 ·35`.
+- **D.** An implied × only before a letter-start operand (a variable, a name with its "(", a constant name) or
+  "(". A number never follows implicitly (A2, (A+1)2 and 2 3 stay SYNTAX), and a vector isn't implied.
+- **E.** The longest known name with its "(" wins: ASIN( is the arcsine, AASIN( is A×ASIN(, ALOG( is 10^x.
+  tutor will be told that a name can hide a product.
+- **F.** 2EXP(1) is SYNTAX. Write 2×EXP(1).
+- **H.** No implied × across a space.
+- **I.** If writing the × in would overflow AB_EQN_LEN, the entry is refused with the editor-full status, and
+  the text is unchanged.
+- **J.** A message is stored as typed, stamped STU.
+- **K.** On the ALG line, the × is written into the line and the history entry at =.
+
+**G, changed.**
+- As proposed, `10b` would be binary 2 while `12b` was 12×b. That's the same letter read two ways depending on
+  the digits before it, which is a trap for a student.
+- **Ruled:** no implied × before the base-suffix letters b, o, d and h. Those keep today's reading exactly: a based
+  number when the digits fit, else SYNTAX. Write 12×b for the intercept.
+- The statistics names that are not suffixes (n, m, r) do take an implied ×: 2n is 2×n.
+- Pin 10b, 12b (SYNTAX) and 2n in vectors.
