@@ -314,6 +314,10 @@ typedef struct {
     abn gr_lxmin, gr_lxmax, gr_lymin, gr_lymax;
     int gr_res_kind;
     abn gr_res, gr_res_b;
+    /* 040 review: the open graph's fitted window, known (RAM only, not in the image: a load starts without it). Valid
+       while the graph is open, which only its own keys can change: GO and every zoom clear it */
+    bool gr_fit_ok;
+    abn gr_fit_lo, gr_fit_hi;
     uint8_t eqn_model[AB_EQN_MAX + 2];      /* unit 031: the model each was typed in (33, 35, AB_MODEL_STU):
                                                its meaning wherever it is evaluated (rule 3); in the image */
     int eqn_cur;            /* the equation shown, -1 at EQN LIST TOP */
@@ -477,6 +481,10 @@ void ab_graph_window(ab_calc *c, abn *ymin, abn *ymax);
 abn_status ab_graph_cursor(ab_calc *c, abn *x, abn *y);
 /* Unit 040's review: the curve's samples taken (a test's probe: a free cursor's readout must not refit the window). */
 extern unsigned long ab_graph_sample_calls;
+
+/* 040 review: the fitted window the app has computed for the open graph (the same model as ab_graph_window's),
+   so that the cursor and a zoom need not sample the 400 columns again. */
+void ab_graph_fit_known(ab_calc *c, const abn *lo, const abn *hi);
 
 /* Unit 040: column col's x (033's pinned order). */
 abn_status ab_graph_x(ab_calc *c, int col, abn *x);

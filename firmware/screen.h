@@ -46,6 +46,7 @@ typedef struct {
     int crow, mcol, mrow;
     bool noxy, tl_on;
     int16_t tl[AB_GRAPH_W];
+    abn tl_m, tl_b;                 /* the tangent tl was drawn for */
 } screen_graph;
 
 typedef struct {

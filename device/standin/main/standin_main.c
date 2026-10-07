@@ -465,6 +465,20 @@ static void zoombench(void)
     ab_eqn_add(t, "X^3-6\xc3\x97X^2+4\xc3\x97X+12");
     ab_do(t, AB_EQN);
     abn_status go = ab_do(t, AB_GRAPH);
+    {   /* the first plot, its fit known to the core as the app makes it known (040 review) */
+        bool okb[AB_GRAPH_W];
+        int64_t t0 = esp_timer_get_time();
+        for (int k = 0; k < AB_GRAPH_W; k++) {
+            abn x;
+            ab_val v;
+            okb[k] = ab_graph_sample(t, k, &x, &v) == ABN_OK;
+            g->y[k] = v.re;
+        }
+        abn lo, hi;
+        ab_graph_fit(g->y, okb, AB_GRAPH_W, &lo, &hi);
+        ab_graph_fit_known(t, &lo, &hi);
+        printf("zoombench: GO      the first plot %lld ms (Y fitted, its fit then known)\n", (long long)(esp_timer_get_time() - t0) / 1000);
+    }
     for (size_t i = 0; i < sizeof Z / sizeof Z[0]; i++) {
         int64_t t0 = esp_timer_get_time();
         abn_status zs = ab_do_arg(t, AB_GZOOM, Z[i].kind);

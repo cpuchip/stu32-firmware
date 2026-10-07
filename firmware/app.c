@@ -748,7 +748,11 @@ app_action app_tick(app_state *a, const pwr_inputs *in, uint32_t now_ms)
         }
         return APP_IDLE;
     }
-    if (a->c->gr_on && a->graph && !a->gr_live) graph_start(a);    /* opened by an image or UNDO (review F1) */
+    if (a->c->gr_on && a->graph && !a->gr_live) {  /* opened by an image or UNDO (review F1): the first page */
+        a->gpage = 0;
+        a->gxy_off = false;
+        graph_start(a);
+    }
     if (!a->c->gr_on) a->gr_live = a->graphing = false;
     if (a->graphing) graph_step(a);             /* unit 033: a slice of the graph's columns */
     if (a->running) {
@@ -945,6 +949,7 @@ static void graph_step(app_state *a)
             bool okb[AB_GRAPH_W];
             for (int i = 0; i < AB_GRAPH_W; i++) okb[i] = g->ok[i];
             ab_graph_fit(g->y, okb, AB_GRAPH_W, &g->s.ymin, &g->s.ymax);
+            ab_graph_fit_known(a->c, &g->s.ymin, &g->s.ymax);     /* the core knows it too (040 review) */
             int finite = 0;
             for (int i = 0; i < AB_GRAPH_W; i++) finite += okb[i];
             if (!finite) snprintf(g->s.note, sizeof g->s.note, "NO VALUES");    /* -10..10 (answer 2) */
@@ -999,9 +1004,11 @@ void app_ui(const app_state *a, screen_ui *ui)
         if (a->c->gr_trace) {
             g->s.cst = ab_graph_sample(a->c, a->c->gr_cur, &g->s.cx, &g->s.cy);
             g->s.crow = -1;
-        } else {                                /* unit 040: the free cursor, its pixel's x and y */
-            abn yv;
-            g->s.cst = ab_graph_cursor(a->c, &g->s.cx, &yv);
+        } else {                                /* unit 040: the free cursor, its pixel's x and y (the window
+                                                   known: a fitted Y once plotted, never sampled again here) */
+            abn yv = abn_zero();
+            if (g->s.ready || !a->c->gr_auto) g->s.cst = ab_graph_cursor(a->c, &g->s.cx, &yv);
+            else g->s.cst = ab_graph_x(a->c, a->c->gr_cur, &g->s.cx);
             memset(&g->s.cy, 0, sizeof g->s.cy);
             g->s.cy.re = yv;
             g->s.crow = a->c->gr_row;
@@ -1010,7 +1017,9 @@ void app_ui(const app_state *a, screen_ui *ui)
         g->s.mrow = a->c->gr_mark ? a->c->gr_mrow : -1;
         g->s.noxy = a->gxy_off;
         if (a->c->gr_res_kind == AB_F_TANL + 1 && g->s.ready) {    /* TANL's line, y = m x + b, by column */
-            if (!g->s.tl_on) {
+            if (!g->s.tl_on || abn_cmp(&g->s.tl_m, &a->c->gr_res) || abn_cmp(&g->s.tl_b, &a->c->gr_res_b)) {
+                g->s.tl_m = a->c->gr_res;       /* (the line drawn is this tangent's: 040 review) */
+                g->s.tl_b = a->c->gr_res_b;
                 for (int i = 0; i < AB_GRAPH_W; i++) {
                     abn x, t, y;
                     g->s.tl[i] = -1;

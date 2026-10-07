@@ -502,6 +502,9 @@ void screen_graph_texts(const ab_calc *c, const screen_ui *ui, screen_graph_text
         }
     } else if (g->noxy) {                       /* (X,Y) off */
         t->readout[0] = '\0';
+    } else if (g->crow >= 0 && !g->ready && c->gr_auto) {     /* the free cursor before the fit: x alone */
+        short_num(c, ui, &g->cx, 12, a, sizeof a);
+        snprintf(t->readout, sizeof t->readout, "x=%s", a);
     } else {
         short_num(c, ui, &g->cx, 12, a, sizeof a);
         if (g->cst != ABN_OK) snprintf(b, sizeof b, "%s", ab_status_message(g->cst));

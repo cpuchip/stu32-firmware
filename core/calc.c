@@ -5062,12 +5062,26 @@ void ab_graph_window(ab_calc *c, abn *ymin, abn *ymax)
         *ymax = c->gr_ymax;
         return;
     }
+    if (c->gr_on && c->gr_fit_ok) {             /* the open graph's fit, known (040 review) */
+        *ymin = c->gr_fit_lo;
+        *ymax = c->gr_fit_hi;
+        return;
+    }
     for (int i = 0; i < AB_GRAPH_W; i++) {
         abn x;
         ab_val v;
         fit_take(&v.re, graph_sample(c, i, &x, &v, true) == ABN_OK, ymin, ymax, &any);
     }
     fit_finish(ymin, ymax, any);
+    if (c->gr_on) c->gr_fit_ok = true, c->gr_fit_lo = *ymin, c->gr_fit_hi = *ymax;
+}
+
+void ab_graph_fit_known(ab_calc *c, const abn *lo, const abn *hi)
+{
+    if (!c->gr_on || !c->gr_auto) return;
+    c->gr_fit_ok = true;
+    c->gr_fit_lo = *lo;
+    c->gr_fit_hi = *hi;
 }
 
 /* p rounded to an integer, half even, as an int clamped to lo..hi (an integer's digits read back). */
@@ -5273,6 +5287,7 @@ static abn_status graph_zoom(ab_calc *c, int kind)
         c->gr_auto = c->gr_last_auto;
         c->gr_lxmin = a, c->gr_lxmax = b, c->gr_lymin = ylo, c->gr_lymax = yhi, c->gr_last_auto = au;
         c->gr_cur = AB_GRAPH_W / 2, c->gr_row = AB_GRAPH_CROW;
+        c->gr_res_kind = 0, c->gr_mark = false, c->gr_fit_ok = false;   /* as every zoom (040 review) */
         return ABN_OK;
     }
     if ((st = graph_x(c, c->gr_cur, &cx)) != ABN_OK) return st;
@@ -5293,13 +5308,14 @@ static abn_status graph_zoom(ab_calc *c, int kind)
         if (kx == 0 || ky == 0) return ABN_DOMAIN;      /* a flat box */
         bx0 = kx < 0 ? mx : cx, bx1 = kx < 0 ? cx : mx, by0 = ky < 0 ? my : cy, by1 = ky < 0 ? cy : my;
     }
+    ZS(abn_sub(&sx, &c->gr_xmax, &c->gr_xmin), &sx);
+    if (kind == AB_Z_DECI && abn_is_zero(&sx)) return ABN_DOMAIN;  /* (before ZLAST's window: 040 review) */
     /* ZLAST's window: this one as drawn */
     c->gr_lxmin = c->gr_xmin, c->gr_lxmax = c->gr_xmax, c->gr_lymin = ylo, c->gr_lymax = yhi;
     c->gr_last_auto = c->gr_auto;
     c->gr_has_last = true;
     c->gr_ymin = ylo, c->gr_ymax = yhi;         /* (a fitted Y held at its values unless refitted) */
     bool keep_auto = c->gr_auto;
-    ZS(abn_sub(&sx, &c->gr_xmax, &c->gr_xmin), &sx);
     ZS(abn_sub(&sy, &yhi, &ylo), &sy);
     switch (kind) {
     case AB_Z_IN: case AB_Z_OUT: case AB_Z_HIN: case AB_Z_HOUT: case AB_Z_VIN: case AB_Z_VOUT: case AB_Z_CNTR: {
@@ -5328,10 +5344,10 @@ static abn_status graph_zoom(ab_calc *c, int kind)
         bool neg;
         char d[ABN_DIGITS + 1], e[24];
         int lead;
-        ZS(abn_div(&q, &sx, &n399), &q);
-        if (abn_is_zero(&q) || abn_is_negative(&q)) return ABN_DOMAIN;
-        abn_digits(&q, &neg, d, &lead);
-        snprintf(e, sizeof e, "1E%d", lead);
+        ZS(abn_div(&q, &sx, &n399), &q);        /* (a reversed window: q < 0, the step too, its direction kept) */
+        abn aq = abn_abs(&q);
+        abn_digits(&aq, &neg, d, &lead);
+        snprintf(e, sizeof e, "%sE%d", abn_is_negative(&q) ? "-1" : "1", lead);
         abn_from_text(&p10, e);
         abn_div(&m, &q, &p10);                  /* the mantissa, 1 <= m < 10 (exact: a power of ten) */
         abn b15, b35, b75;
@@ -5379,6 +5395,8 @@ static abn_status graph_zoom(ab_calc *c, int kind)
     }
     c->gr_cur = AB_GRAPH_W / 2, c->gr_row = AB_GRAPH_CROW;
     c->gr_res_kind = 0;
+    c->gr_mark = false;                         /* (its pixel would mean another point: 040 review) */
+    c->gr_fit_ok = false;
     return ABN_OK;
 }
 
@@ -5440,6 +5458,7 @@ static abn_status graph_fcn(ab_calc *c, int kind)
     abn x, r = abn_zero(), b = abn_zero(), y;
     ab_val v;
     abn_status st;
+    c->gr_res_kind = 0;                         /* a failed tool leaves no result (040 review) */
     if (kind < 0 || kind >= AB_F_N) return ABN_DOMAIN;
     if ((st = graph_x(c, c->gr_cur, &x)) != ABN_OK) return st;
     switch (kind) {
@@ -5459,9 +5478,11 @@ static abn_status graph_fcn(ab_calc *c, int kind)
         abn mx, unc;
         if (!c->gr_mark) return ABN_DOMAIN;
         if ((st = graph_x(c, c->gr_mcol, &mx)) != ABN_OK) return st;
+        int evals = c->evals;
         ev_graph = 1;
         st = integ_core(c, &mx, &x, &r, &unc);
         ev_graph = 0;
+        c->evals = evals;
         if (st != ABN_OK) return st;
         c->gr_mark = false;
         break;
@@ -5512,6 +5533,7 @@ static abn_status graph_go(ab_calc *c)
     c->gr_trace = true;
     c->gr_mark = false;
     c->gr_res_kind = 0;
+    c->gr_fit_ok = false;
     c->gr_on = true;
     return ABN_OK;
 }

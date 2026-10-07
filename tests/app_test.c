@@ -1772,6 +1772,20 @@ int main(void)
             }
         }
         expect(c.gr_res_kind == 0 && wrong == 0, "040: the frame's plot area is the model's, the free cursor's cross apart");
+        /* 040 review: the app's fit is the core's too: a fresh plot, then the free cursor's first readout samples nothing;
+           and while a fitted plot is still being drawn the free cursor's readout samples nothing either */
+        {
+            press(&a, "C");
+            press(&a, "BLUE 7 k:5 k:2");        /* GO, TRACE off at once: the plot under way */
+            unsigned long n1 = ab_graph_sample_calls;
+            app_ui(&a, &ui);
+            bool during = a.graphing && ab_graph_sample_calls - n1 < 10;
+            for (int i = 0; i < 200 && a.graphing; i++) app_tick(&a, &idle, now);
+            n1 = ab_graph_sample_calls;
+            app_ui(&a, &ui);
+            expect(during && c.gr_auto && ab_graph_sample_calls - n1 < 10,
+                   "040: the free cursor reads out with no samples, while the plot is drawn and after (the app's fit known)");
+        }
         /* 040 review: with Y fitted, the free cursor's readout and a key's redraw take no samples (the window known) */
         {
             unsigned long n0 = ab_graph_sample_calls;
@@ -1786,6 +1800,8 @@ int main(void)
         }
         /* 040 review: a second TANL at a moved cursor, with no redraw between, draws its own line */
         {
+            press(&a, "k:4");                   /* ZAUTO: the curve and its tangents in view */
+            for (int i = 0; i < 200 && a.graphing; i++) app_tick(&a, &idle, now);
             press(&a, "k:5 GOLD k:0");
             app_ui(&a, &ui);                    /* (the first tangent's line drawn: cached) */
             for (int k = 0; k < 4; k++) ab_do_arg(&c, AB_GMOVE, 14);    /* moved 40 left and a second TANL with no redraw
@@ -1816,6 +1832,8 @@ int main(void)
             size_t n = ab_state_save(&c, img, sizeof img);
             press(&a, "C");
             ab_state_load(&c, img, n);
+            a.gr_live = false;                  /* (as UNDO leaves it) */
+            app_tick(&a, &idle, now);
             app_ui(&a, &ui);
             expect(c.gr_on && a.gpage == 0, "040: a graph reopened starts on its first page");
         }
