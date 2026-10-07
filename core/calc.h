@@ -121,10 +121,12 @@ typedef enum {
     /* unit 029: STU's ALG (abacus decision 51) */
     AB_ENTRYM,              /* arg 0 RPN, 1 ALG (MODE's F4, F5): ALG in STU only; nonprogrammable */
     AB_ANS,                 /* types ANS on the expression line (LASTx's key in ALG) */
-    AB_HUP, AB_HDOWN        /* the expression line's history, back and forward (the bar's up, down) */
+    AB_HUP, AB_HDOWN,       /* the expression line's history, back and forward (the bar's up, down) */
+    AB_SHOW                 /* unit 030: SHOW, held: X's full mantissa (ab_show_text); neutral, changes
+                               nothing, nonprogrammable */
 } ab_op;
 
-#define AB_OP_LAST AB_HDOWN     /* the last op: loops over every op end here */
+#define AB_OP_LAST AB_SHOW     /* the last op: loops over every op end here */
 
 /* Why the last run stopped (unit 012 rule 1): the device draws it; the core never waits. */
 typedef enum {
@@ -380,6 +382,13 @@ const char *ab_busy_message(ab_op op);
    programs, Equation mode, SOLVE and integration, statistics entry, STO arithmetic, x<>); false
    outside ALG. The device shows the notice before prompting for such an op's argument. */
 bool ab_rpn_only(const ab_calc *c, ab_op op);
+
+/* Unit 030: what SHOW shows, as one or two parts, each a sign (- only) and all ABN_DIGITS significant
+   digits, trailing zeros kept, no point, no exponent (33s p.1-21, 35s p.1-26): X's, a complex X's real
+   then imaginary part, or in program entry the number on the line shown. 0 parts: nothing to show (a
+   vector, a number being typed, Equation mode, a base mode, another program line). */
+#define AB_SHOW_LEN (ABN_DIGITS + 2)
+int ab_show_text(const ab_calc *c, char out[2][AB_SHOW_LEN]);
 
 /* Unit 025: the mode in force (33s or 35s): while a program line runs, the mode of the label that
    owns it; otherwise (the keyboard, lines before the first label) the calculator's. Every

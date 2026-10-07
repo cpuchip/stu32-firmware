@@ -209,7 +209,7 @@ int main(void)
                            O(AB_HMSINV, 0, "HMS\xe2\x86\x92"), O(AB_TODEG, 0, "\xe2\x86\x92" "DEG"), O(AB_TORAD, 0, "\xe2\x86\x92RAD")}},
                 {"VARS", {P(AB_XVAR, KM_ARG_VAR, "x\xe2\x86\x94"), P(AB_VIEW, KM_ARG_VAR, "VIEW"), O(AB_CLVARS, 0, "CLR"), N, N, N}},
                 {"STACK", {O(AB_CLSTK, 0, "CLSTK"), O(AB_LASTX, 0, "LASTx"), O(AB_RUP, 0, "R\xe2\x86\x91"), O(AB_XY, 0, "x\xe2\x86\x94y"),
-                           N, N}},
+                           O(AB_SHOW, 0, "SHOW"), N}},     /* unit 030: SHOW at F5, held */
                 /* unit 029: STU at F3, the entry RPN and ALG at F4 and F5 (ALG shown in STU only: the app's) */
                 {"MODE", {O(AB_MODEL, 33, "33s"), O(AB_MODEL, 35, "35s"), O(AB_MODEL, AB_MODEL_STU, "STU"), O(AB_ENTRYM, 0, "RPN"),
                           O(AB_ENTRYM, 1, "ALG"), N}},

@@ -64,6 +64,7 @@ static const struct { const char *name; ab_op op; } NAMED[] = {
     {"EXPM1", AB_EXPM1}, {"LN1P", AB_LN1P}, {"TWOX", AB_TWOX}, {"LOG2", AB_LOG2},
     {"CLALL", AB_CLALL}, {"CLEQN", AB_CLEQN}, {"BEEP", AB_BEEP},
     {"ANS", AB_ANS}, {"HUP", AB_HUP}, {"HDOWN", AB_HDOWN},     /* unit 029 */
+    {"SHOW", AB_SHOW},                                          /* unit 030 */
 };
 
 /* The last error any key returned in the current vector, for %ERR (unit 012). */
@@ -757,6 +758,12 @@ int vectors_run(const char *name, FILE *f)
                 } else if (strcmp(ex, "%HSEL") == 0) {     /* the history entry shown, - none */
                     const char *h = c.hist_at >= 0 && c.hist_at < c.hist_n ? c.hist[c.hist_at] : "-";
                     snprintf(got, sizeof got, "%.*s", AB_EQN_LEN - 1, h);
+                } else if (strcmp(ex, "%SHOW") == 0) {     /* SHOW's text, parts joined by /, - none (unit 030) */
+                    char sh[2][AB_SHOW_LEN];
+                    int n = ab_show_text(&c, sh);
+                    if (n == 0) snprintf(got, sizeof got, "-");
+                    else if (n == 1) snprintf(got, sizeof got, "%s", sh[0]);
+                    else snprintf(got, sizeof got, "%s/%s", sh[0], sh[1]);
                 } else if (strcmp(ex, "%BEEP") == 0) {     /* BEEPs done (unit 027) */
                     snprintf(got, sizeof got, "%u", (unsigned)c.beeps);
                 } else if (ex[1] == 'F' && isdigit((unsigned char)ex[2])) {

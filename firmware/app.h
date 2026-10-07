@@ -132,6 +132,8 @@ typedef struct {
                                APP_BATT_OK_SOC. The device keeps it through OFF and wake (Rev A: RTC
                                memory), so the tone means "first time low this discharge" (#4238) */
     int view;               /* APP_VIEW_*: SYS's view showing, any key leaves it */
+    bool show;              /* unit 030: SHOW held: X's full mantissa in place of the stack */
+    int show_key;           /* the key holding it: its release ends SHOW (app_key_up) */
     char view_text[4][40];  /* its lines */
     void (*set_wall)(void *ctx, int64_t secs);  /* the clock set from the keys: the device keeps it
                                                    (its RTC); may be NULL */
@@ -144,6 +146,9 @@ typedef struct {
 
 void app_init(app_state *a, ab_calc *c, uint32_t now_ms);
 void app_key(app_state *a, int key, uint32_t now_ms);
+/* A key released (unit 030: SHOW shows while its key is down). A device without releases never
+   calls it, and SHOW then holds until the next key, which only ends it. */
+void app_key_up(app_state *a, int key, uint32_t now_ms);
 /* Between events: runs one slice of a run in progress, and says what the device should do. */
 app_action app_tick(app_state *a, const pwr_inputs *in, uint32_t now_ms);
 void app_saved(app_state *a);               /* the device saved the image */

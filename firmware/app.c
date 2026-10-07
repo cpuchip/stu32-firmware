@@ -700,3 +700,10 @@ void app_powered_on(app_state *a)
 {
     sound(a, DEV_USE_ON);
 }
+
+void app_key_up(app_state *a, int key, uint32_t now_ms)
+{
+    (void)a;
+    (void)key;
+    (void)now_ms;                               /* unit 030 red: not yet */
+}

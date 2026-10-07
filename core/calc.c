@@ -4427,3 +4427,9 @@ void ab_stop_text(const ab_calc *c, char *buf)
     else snprintf(buf, 32, "%s", NAMES[c->stop]);
 }
 
+int ab_show_text(const ab_calc *c, char out[2][AB_SHOW_LEN])
+{
+    (void)c;
+    out[0][0] = out[1][0] = '\0';
+    return 0;                                   /* unit 030 red: not yet */
+}

@@ -1,0 +1,26 @@
+# Unit 030: SHOW, the full precision of X (work/030-show.md). %SHOW is the text SHOW gives: the significant digits
+# alone, all 34 (trailing zeros kept), no point, no exponent, a leading - for a negative X; "-" alone: nothing to show.
+# The form is the manuals' pictured SHOW (33s p.1-21, 35s p.1-26): 58.5 at FIX 4, 1/x, SHOW (hold) gives
+# 170940170940, all 12 of their digits, no point. MARK / %SAMEMARK compare the whole state image (rule 2).
+W01 | 35s p.1-26, 33s p.1-21: 45 ENTER 1.3 x 1/x at FIX4 shows 0.0171; SHOW gives every digit, no point | FIX4 45 ENTER 1.3 * INV SHOW | %SHOW=1709401709401709401709401709401709 X#0.01709401709401709401709401709401709,1E-40
+W02 | 35s p.1-25: 14.8745632019 at FIX4 shows 14.8746; SHOW gives the hidden digits, trailing zeros to 34 | FIX4 14.8745632019 ENTER SHOW | %SHOW=1487456320190000000000000000000000
+W03 | rule 1: a 34-digit X at FIX2 | FIX2 2 SQRT SHOW | %SHOW=1414213562373095048801688724209698
+W04 | rule 1: a tiny number: the mantissa only, no exponent | 2 SQRT 1 E 200 CHS * SHOW | %SHOW=1414213562373095048801688724209698
+W05 | rule 1: a tiny round number: the digit and its zeros | 1.5 E 300 CHS ENTER SHOW | %SHOW=1500000000000000000000000000000000
+W06 | rule 1 (proposal 2): a negative number: a leading minus | 2 SQRT CHS SHOW | %SHOW=-1414213562373095048801688724209698
+W07 | rule 2: SHOW changes nothing: the whole state image, flags set, LASTx | 4 SQRT SF:3 FIX2 MARK SHOW | %SAMEMARK=1 L=4 %F3=1
+W08 | rule 2: a lift-disabled stack after ENTER stays disabled: the number keyed after SHOW replaces the copy | 1 ENTER SHOW 2 | X=2 Y=1 Z=0
+W09 | rule 2: after an operation (lift enabled) it stays enabled | 1 ENTER 2 + SHOW 5 | X=5 Y=3 Z=0
+W10 | rule 2: SHOW is not a program line (35s p.G-1, G-13: its name in a key box) | PRGM CLPGM LBL:A SHOW | %LINES=1
+W11 | rule 1 in 33s mode | MODE33 FIX4 2 SQRT SHOW | %SHOW=1414213562373095048801688724209698
+W12 | rule 1 in 35s mode | MODE35 FIX4 2 SQRT SHOW | %SHOW=1414213562373095048801688724209698
+W13 | rule 1 in STU mode | STU FIX4 2 SQRT SHOW | %SHOW=1414213562373095048801688724209698 %STU=1
+W14 | rule 5 (proposal 6): while a number is typed SHOW shows nothing and the entry goes on | 1.5 SHOW 2 ENTER | X=1.52
+W15 | rule 5 (proposal 4): program entry on a number line: that number's digits; no line added | PRGM CLPGM LBL:A 1.25 RTN BST SHOW | %SHOW=1250000000000000000000000000000000 %LINES=3
+W16 | rule 5 (proposal 4): program entry on any other line: nothing | PRGM CLPGM LBL:A 1.25 RTN SHOW | %SHOW=-
+W17 | rule 5 (proposal 5): Equation mode: nothing | 2 SQRT EQN SHOW | %SHOW=-
+W18 | proposal 2: zero: 34 zeros | 0 ENTER SHOW | %SHOW=0000000000000000000000000000000000
+W19 | proposal 3 (18259d9): complex X: the real part's digits, then the imaginary part's (lines T Z, then Y X) | 3 CI 4 SHOW | %SHOW=3000000000000000000000000000000000/4000000000000000000000000000000000
+W20 | proposal 3: complex with a negative part | 2 SQRT CHS CI 1 ENTER SHOW | %SHOW=-1414213562373095048801688724209698/1000000000000000000000000000000000
+W21 | proposal 3: a vector X: nothing | [ 1 , 2 ENTER SHOW | %SHOW=-
+W22 | proposal 8: a base mode: nothing (the integer is shown whole) | HEX 1 HF SHOW | %SHOW=-

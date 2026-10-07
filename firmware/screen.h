@@ -44,6 +44,8 @@ typedef struct {
     char clock[8];                  /* the status band's clock ("12:59", "--:--"); "" none (unit 027) */
     char ampm;                      /* 'a' or 'p' after a 12-hour clock, 0 none */
     const char *view[4];            /* a view in place of the stack (SYS, unit 027): its lines, NULL none */
+    int show_n;                     /* SHOW held (unit 030): its parts (ab_show_text), 0 none */
+    char show[2][AB_SHOW_LEN];
 } screen_ui;
 
 void screen_ui_default(screen_ui *ui);
