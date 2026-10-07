@@ -243,6 +243,31 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
             return 0;
         }
     }
+    /* unit 040: the open graph's tools: the zooms by their 50g names, GMOVE:n (a numpad digit, +10 for ten
+       pixels), GTRACE, GMARK, ZFACT:n, and the function tools */
+    {
+        static const char *const Z[AB_Z_N] = {"ZIN", "ZOUT", "BOXZ", "CNTR", "ZAUTO", "HZIN", "HZOUT", "VZIN", "VZOUT",
+                                              "ZLAST", "ZDFLT", "ZDECI", "ZINTG", "ZSQR", "ZTRIG"};
+        static const char *const F[AB_F_N] = {"ROOT", "SLOPE", "EXTR", "AREA", "F(X)", "TANL"};
+        for (int k = 0; k < AB_Z_N; k++)
+            if (!strcmp(tok, Z[k])) {
+                if (do1(c, AB_GZOOM, k) != ABN_OK) (*errors)++;
+                return 0;
+            }
+        for (int k = 0; k < AB_F_N; k++)
+            if (!strcmp(tok, F[k])) {
+                if (do1(c, AB_GFCN, k) != ABN_OK) (*errors)++;
+                return 0;
+            }
+        if (!strcmp(tok, "GTRACE") || !strcmp(tok, "GMARK")) {
+            if (do1(c, tok[1] == 'T' ? AB_GTRACE : AB_GMARK, 0) != ABN_OK) (*errors)++;
+            return 0;
+        }
+        if (!strncmp(tok, "GMOVE:", 6) || !strncmp(tok, "ZFACT:", 6)) {
+            if (do1(c, tok[0] == 'G' ? AB_GMOVE : AB_GFACT, atoi(tok + 6)) != ABN_OK) (*errors)++;
+            return 0;
+        }
+    }
     /* unit 039: CMPLX:op, the 33s's CMPLX prefix then the operator (by the runner's own name for it) */
     if (strncmp(tok, "CMPLX:", 6) == 0) {
         static const char *const CXP[AB_CXP_N] = {"+", "-", "*", "/", "POW", "CHS", "INV", "LN", "EXP", "SIN", "COS", "TAN"};
@@ -786,6 +811,35 @@ int vectors_run(const char *name, FILE *f)
                     snprintf(got, sizeof got, "%d", c.gr_on ? 1 : 0);
                 } else if (strcmp(ex, "%GCUR") == 0) {
                     snprintf(got, sizeof got, "%d", c.gr_cur);
+                } else if (strcmp(ex, "%GROW") == 0) {     /* unit 040: the cursor's row, TRACE, the mark */
+                    snprintf(got, sizeof got, "%d", c.gr_row);
+                } else if (strcmp(ex, "%GTRACE") == 0) {
+                    snprintf(got, sizeof got, "%d", c.gr_trace ? 1 : 0);
+                } else if (strcmp(ex, "%GMARK") == 0) {
+                    if (c.gr_mark) snprintf(got, sizeof got, "%d,%d", c.gr_mcol, c.gr_mrow);
+                    else snprintf(got, sizeof got, "-");
+                } else if (strcmp(ex, "%XWIN") == 0 || strcmp(ex, "%GCXY") == 0 || strcmp(ex, "%GRES") == 0) {
+                    /* "lo,hi" by value: the x window; the cursor's x and y; the tool's result (and TANL's b) */
+                    abn lo = abn_zero(), hi = abn_zero(), want_lo, want_hi;
+                    char a[64], b[64], wl[64];
+                    bool two = true;
+                    if (ex[1] == 'X') lo = c.gr_xmin, hi = c.gr_xmax;
+                    else if (ex[2] == 'C') ab_graph_cursor(&c, &lo, &hi);
+                    else if (c.gr_res_kind == 0) two = false, snprintf(a, sizeof a, "-");
+                    else lo = c.gr_res, hi = c.gr_res_b, two = c.gr_res_kind == AB_F_TANL + 1;
+                    const char *sp = strchr(eq + 1, ',');
+                    snprintf(wl, sizeof wl, "%.*s", sp ? (int)(sp - eq - 1) : (int)strlen(eq + 1), eq + 1);
+                    if (ex[2] == 'R' && c.gr_res_kind == 0) {
+                        snprintf(got, sizeof got, "-");
+                    } else if (abn_from_text(&want_lo, wl) == ABN_OK && abn_cmp(&want_lo, &lo) == 0 &&
+                               (two ? sp && abn_from_text(&want_hi, sp + 1) == ABN_OK && abn_cmp(&want_hi, &hi) == 0 : !sp)) {
+                        snprintf(got, sizeof got, "%s", eq + 1);     /* equal by value */
+                    } else {
+                        abn_to_text(&lo, a, sizeof a);
+                        abn_to_text(&hi, b, sizeof b);
+                        if (two) snprintf(got, sizeof got, "%s,%s", a, b);
+                        else snprintf(got, sizeof got, "%s", a);
+                    }
                 } else if (strcmp(ex, "%GWIN") == 0) {
                     abn lo, hi, want_lo, want_hi;
                     char a[64], b[64], wl[64];

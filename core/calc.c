@@ -5101,6 +5101,13 @@ int ab_graph_form(const ab_calc *c, int e)
     return strchr(t, '=') ? -1 : 0;
 }
 
+abn_status ab_graph_cursor(ab_calc *c, abn *x, abn *y)       /* unit 040 (red: a stub) */
+{
+    (void)c;
+    *x = *y = abn_zero();
+    return ABN_DOMAIN;
+}
+
 /* GO (unit 033): the equation shown or last shown, against TABLE's variable (or the first of what is
    plotted), the trace at column 200. */
 static abn_status graph_go(ab_calc *c)

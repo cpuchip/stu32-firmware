@@ -129,10 +129,14 @@ typedef enum {
     AB_TABLE, AB_TVAR, AB_TSTART, AB_TSTEP, AB_TUP, AB_TDOWN,
     /* unit 033: GRAPH (STU): GO; the window's XMIN XMAX YMIN YMAX (from X); AUTO; the trace's left, right */
     AB_GRAPH, AB_XMIN, AB_XMAX, AB_YMIN, AB_YMAX, AB_GAUTO, AB_GLEFT, AB_GRIGHT,
-    AB_CMPLX                /* unit 039: the 33s's CMPLX operation on stack pairs, arg AB_CXP_* */
+    AB_CMPLX,               /* unit 039: the 33s's CMPLX operation on stack pairs, arg AB_CXP_* */
+    /* unit 040: the open graph's tools (after the 50g's plot menus): a zoom (arg AB_Z_*), the cursor moved (arg a
+       numpad digit 1..9, plus 10 for ten pixels), TRACE on or off, MARK the cursor, the zoom factor (arg 1..100),
+       a function tool at the cursor (arg AB_F_*) */
+    AB_GZOOM, AB_GMOVE, AB_GTRACE, AB_GMARK, AB_GFACT, AB_GFCN
 } ab_op;
 
-#define AB_OP_LAST AB_CMPLX     /* the last op: loops over every op end here */
+#define AB_OP_LAST AB_GFCN     /* the last op: loops over every op end here */
 
 /* Why the last run stopped (unit 012 rule 1): the device draws it; the core never waits. */
 typedef enum {
@@ -184,6 +188,11 @@ enum { AB_TEST_NE = 0, AB_TEST_LE, AB_TEST_LT, AB_TEST_GT, AB_TEST_GE, AB_TEST_E
 #define AB_CXP_COS 10
 #define AB_CXP_TAN 11
 #define AB_CXP_N 12
+/* unit 040: AB_GZOOM's zooms and AB_GFCN's tools */
+enum { AB_Z_IN, AB_Z_OUT, AB_Z_BOX, AB_Z_CNTR, AB_Z_AUTO, AB_Z_HIN, AB_Z_HOUT, AB_Z_VIN, AB_Z_VOUT, AB_Z_LAST,
+       AB_Z_DFLT, AB_Z_DECI, AB_Z_INTG, AB_Z_SQR, AB_Z_TRIG, AB_Z_N };
+enum { AB_F_ROOT, AB_F_SLOPE, AB_F_EXTR, AB_F_AREA, AB_F_FX, AB_F_TANL, AB_F_N };
+#define AB_GRAPH_CROW 92            /* the cursor's home row, the plot's middle (184 / 2) */
 #define AB_EQN_MAX 64               /* equations in the list (ours, unit 014 rule 5) */
 #define AB_EQN_LEN 192              /* bytes of one equation's text (UTF-8, as the guide shows it) */
 #define AB_HIST 16                  /* the expression line's history, at least 16 (unit 029 rule 5) */
@@ -293,6 +302,18 @@ typedef struct {
     bool gr_on;
     int gr_eq, gr_v;
     int gr_cur;
+    /* unit 040 (in the image): the cursor's row (gr_cur its column), TRACE (the cursor on the curve), the mark,
+       the zoom factors, ZLAST's window, and the last tool's result (gr_res_kind AB_F_* + 1, 0 none; TANL's line
+       y = gr_res x + gr_res_b) */
+    int gr_row;
+    bool gr_trace;
+    bool gr_mark;
+    int gr_mcol, gr_mrow;
+    abn gr_hf, gr_vf;
+    bool gr_has_last, gr_last_auto;
+    abn gr_lxmin, gr_lxmax, gr_lymin, gr_lymax;
+    int gr_res_kind;
+    abn gr_res, gr_res_b;
     uint8_t eqn_model[AB_EQN_MAX + 2];      /* unit 031: the model each was typed in (33, 35, AB_MODEL_STU):
                                                its meaning wherever it is evaluated (rule 3); in the image */
     int eqn_cur;            /* the equation shown, -1 at EQN LIST TOP */
@@ -451,6 +472,9 @@ abn_status ab_table_row(ab_calc *c, int32_t k, abn *x, ab_val *y);
 abn_status ab_graph_sample(ab_calc *c, int col, abn *x, ab_val *y);
 void ab_graph_fit(const abn *y, const bool *ok, int n, abn *lo, abn *hi);
 void ab_graph_window(ab_calc *c, abn *ymin, abn *ymax);
+/* Unit 040: the cursor's x and y: with TRACE, the column's x and the curve's value there (an erring column: y 0
+   and the status); free, the pixel's (x as graph_x; y = YMAX - row (YMAX - YMIN) / 184, each step rounded once). */
+abn_status ab_graph_cursor(ab_calc *c, abn *x, abn *y);
 int ab_graph_row(const abn *y, const abn *ymin, const abn *ymax);
 bool ab_graph_join(bool prev_ok, int prev_row, int row, int *lo, int *hi);
 bool ab_graph_column(ab_calc *c, int col, const abn *ymin, const abn *ymax, int *lo, int *hi);
