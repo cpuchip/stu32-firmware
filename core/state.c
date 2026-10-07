@@ -40,7 +40,7 @@ static const ab_op V1_OPS[] = {
 #define V1_N ((int)(sizeof V1_OPS / sizeof V1_OPS[0]))
 
 enum { T_MODES = 1, T_STACK, T_VARS, T_STAT, T_IND, T_PROG, T_EQNS, T_ENTRY, T_EDITOR, T_RUN, T_SOLVE, T_MODE25, T_ALG,
-       T_EQMODEL, T_TABLE, T_GRAPH, T_ZOOM, T_CAS };
+       T_EQMODEL, T_TABLE, T_GRAPH, T_ZOOM, T_CAS, T_ENG };
 
 #define BUILTIN2 "\x01" "2*2 lin. solve"
 #define BUILTIN3 "\x01" "3*3 lin. solve"
@@ -405,6 +405,12 @@ size_t ab_state_save(const ab_calc *c, uint8_t *buf, size_t cap)
     wtext(&w, c->cas_bad);
     sec_end(&w, s);
 
+    s = sec_begin(&w, T_ENG);                   /* version 13 (unit 041 C, B4): ENG→ / ←ENG's view of X */
+    w8(&w, c->eng_on);
+    w16(&w, c->eng_on ? (unsigned)(uint16_t)c->eng_e : 0);     /* a view gone keeps no exponent or digits */
+    w8(&w, c->eng_on ? c->eng_n : 0);
+    sec_end(&w, s);
+
     {
         size_t total = w.len + 4;
         for (int i = 0; i < 4; i++)
@@ -587,6 +593,7 @@ bool ab_line_ok(ab_op op, int32_t arg)
     case AB_GRIGHT:                                                                            /* (033) */
     case AB_GZOOM: case AB_GMOVE: case AB_GTRACE: case AB_GMARK: case AB_GFACT: case AB_GFCN:          /* (040) */
     case AB_CASD: case AB_CASSIMP: case AB_CASEXP: case AB_CASCOL: case AB_CASSUB:                    /* (CAS 004) */
+    case AB_ENGL: case AB_ENGR:                                                                       /* (041 C) */
     case AB_FRACFMT: case AB_CLEQN:     /* nonprogrammable since 019 and 021 (load_fuzz's line sweep) */
         return false;
     case AB_CLVARX:
@@ -826,6 +833,20 @@ static void sec_cas(rd *r)
     if (r->bad || !r->c) return;
     r->c->cas_sub = (uint8_t)sub;
     memcpy(r->c->cas_bad, bad, sizeof bad);
+}
+
+/* version 13 (unit 041 C, B4): ENG→ / ←ENG's view: showing, its exponent (a multiple of three) and its digits; only
+   at the keyboard (no program entry, no number keyed: the key completes it) */
+static void sec_eng(rd *r)
+{
+    unsigned on = r8(r);
+    int e = (int16_t)r16(r);
+    unsigned n = r8(r);
+    need(r, on <= 1 && (!on || (n >= 1 && n <= ABN_DIGITS && e % 3 == 0 && !r->prgm && !r->typing_num)));
+    if (r->bad || !r->c) return;
+    r->c->eng_on = on;
+    r->c->eng_e = (int16_t)(on ? e : 0);
+    r->c->eng_n = (uint8_t)(on ? n : 0);
 }
 
 static void sec_zoom(rd *r)
@@ -1142,7 +1163,7 @@ static bool parse(rd *r)
         unsigned tag = r16(r);
         uint32_t size = r32(r);
         size_t end;
-        if (r->bad || tag <= last || tag > T_CAS || size > r->len - r->pos) return false;
+        if (r->bad || tag <= last || tag > T_ENG || size > r->len - r->pos) return false;
         last = tag;
         end = r->pos + size;
         switch (tag) {
@@ -1182,6 +1203,10 @@ static bool parse(rd *r)
             break;
         case T_CAS:
             if (r->version >= 12) sec_cas(r);
+            else r->pos = end;
+            break;
+        case T_ENG:
+            if (r->version >= 13) sec_eng(r);
             else r->pos = end;
             break;
         default: sec_solve(r); break;

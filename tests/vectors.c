@@ -61,7 +61,7 @@ static const struct { const char *name; ab_op op; } NAMED[] = {
     {"PSX", AB_PSX}, {"PSY", AB_PSY}, {"XHAT", AB_XHAT}, {"YHAT", AB_YHAT}, {"CORR", AB_CORR},
     {"SLOPE", AB_SLOPE}, {"YINT", AB_YINT}, {"NSUM", AB_NSUM}, {"SUMX", AB_SUMX},
     {"SUMY", AB_SUMY}, {"SUMX2", AB_SUMX2}, {"SUMY2", AB_SUMY2}, {"SUMXY", AB_SUMXY},
-    {"CUBE", AB_CUBE}, {"CBRT", AB_CBRT}, {"EXPM1", AB_EXPM1}, {"LN1P", AB_LN1P}, {"TWOX", AB_TWOX}, {"LOG2", AB_LOG2},
+    {"CUBE", AB_CUBE}, {"CBRT", AB_CBRT}, {"ENGL", AB_ENGL}, {"ENGR", AB_ENGR}, {"EXPM1", AB_EXPM1}, {"LN1P", AB_LN1P}, {"TWOX", AB_TWOX}, {"LOG2", AB_LOG2},
     {"CLALL", AB_CLALL}, {"CLEQN", AB_CLEQN}, {"BEEP", AB_BEEP},
     {"ANS", AB_ANS}, {"HUP", AB_HUP}, {"HDOWN", AB_HDOWN},     /* unit 029 */
     {"SHOW", AB_SHOW},                                          /* unit 030 */
@@ -817,6 +817,10 @@ int vectors_run(const char *name, FILE *f)
                     if (n == 0) snprintf(got, sizeof got, "-");
                     else if (n == 1) snprintf(got, sizeof got, "%s", sh[0]);
                     else snprintf(got, sizeof got, "%s/%s", sh[0], sh[1]);
+                } else if (strcmp(ex, "%ENG") == 0) {      /* unit 041 C (B4): ENG→ / ←ENG's view, - none */
+                    ab_fmt w = {AB_ENG, 0, AB_FMT_WIDE, '.', 0};
+                    if (!c.eng_on || ab_format_eng_view(&c.x.re, c.eng_n, c.eng_e, &w, got, sizeof got) < 0)
+                        snprintf(got, sizeof got, "-");
                 } else if (strcmp(ex, "%VIEW") == 0) {     /* unit 035: the keyboard VIEW showing: its id, - none */
                     if (c.viewing) snprintf(got, sizeof got, "%d", c.view_id);
                     else snprintf(got, sizeof got, "-");

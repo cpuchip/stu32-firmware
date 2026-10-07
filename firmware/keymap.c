@@ -57,7 +57,7 @@ static const km_action KEYMAP[KB_KEYS][3] = {
 
 static const km_menu MENUS[] = {
     {"PRGM", {{KM_OP, AB_PRGM, 0, 0, "PRGM"}, {KM_PROMPT, AB_LBL, 0, KM_ARG_LABEL, "LBL"}, {KM_PROMPT, AB_INPUT, 0, KM_ARG_VAR, "INPUT"}, {KM_PROMPT, AB_FN, 0, KM_ARG_FN, "FN="}, {KM_OP, AB_BST, 0, 0, "BST"}, {KM_OP, AB_CLPGM, 0, 0, "CLPGM"}}, 0},
-    {"DISP", {{KM_PROMPT, AB_SETFIX, 0, KM_ARG_DIGITS, "FIX"}, {KM_PROMPT, AB_SETSCI, 0, KM_ARG_DIGITS, "SCI"}, {KM_PROMPT, AB_SETENG, 0, KM_ARG_DIGITS, "ENG"}, {KM_OP, AB_SETALL, 0, 0, "ALL"}, {KM_OP, AB_XIY, 0, 0, "xiy"}, {KM_OP, AB_RTA, 0, 0, "r\xce\xb8" "a"}}, 0},
+    {"DISP", {{KM_PROMPT, AB_SETFIX, 0, KM_ARG_DIGITS, "FIX"}, {KM_PROMPT, AB_SETSCI, 0, KM_ARG_DIGITS, "SCI"}, {KM_PROMPT, AB_SETENG, 0, KM_ARG_DIGITS, "ENG"}, {KM_OP, AB_SETALL, 0, 0, "ALL"}, {KM_OP, AB_ENGR, 0, 0, "ENG\xe2\x86\x92"}, {KM_OP, AB_ENGL, 0, 0, "\xe2\x86\x90" "ENG"}}, 0},
     {"\xe2\x88\xa1MODE", {{KM_OP, AB_DEG, 0, 0, "DEG"}, {KM_OP, AB_RAD, 0, 0, "RAD"}, {KM_OP, AB_GRAD, 0, 0, "GRAD"}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}}, 0},
     {"CLEAR", {{KM_OP, AB_CLX, 0, 0, "x"}, {KM_OP, AB_CLSTK, 0, 0, "STK"}, {KM_OP, AB_CLVARS, 0, 0, "VARS"}, {KM_OP, AB_CLSIGMA, 0, 0, "\xce\xa3"}, {KM_CONFIRM, AB_CLALL, 0, 0, "ALL"}, {KM_PROMPT, AB_CLVARX, 0, KM_ARG_ADDR, "VARx"}}, 0},
     {"HYP", {{KM_OP, AB_SINH, 0, 0, "SINH"}, {KM_OP, AB_COSH, 0, 0, "COSH"}, {KM_OP, AB_TANH, 0, 0, "TANH"}, {KM_OP, AB_ASINH, 0, 0, "ASINH"}, {KM_OP, AB_ACOSH, 0, 0, "ACOSH"}, {KM_OP, AB_ATANH, 0, 0, "ATANH"}}, 0},
@@ -72,7 +72,7 @@ static const km_menu MENUS[] = {
     {"BASE", {{KM_OP, AB_DEC, 0, 0, "DEC"}, {KM_OP, AB_HEX, 0, 0, "HEX"}, {KM_OP, AB_OCT, 0, 0, "OCT"}, {KM_OP, AB_BIN, 0, 0, "BIN"}, {KM_MENU, 0, 14, 0, "LOGIC"}, {KM_MENU, 0, 15, 0, "SUFX"}}, 0},
     {"LOGIC", {{KM_OP, AB_AND, 0, 0, "AND"}, {KM_OP, AB_OR, 0, 0, "OR"}, {KM_OP, AB_XOR, 0, 0, "XOR"}, {KM_OP, AB_NOT, 0, 0, "NOT"}, {KM_OP, AB_NAND, 0, 0, "NAND"}, {KM_OP, AB_NOR, 0, 0, "NOR"}}, 0},
     {"SUFFIX", {{KM_OP, AB_SUF, 10, 0, "d"}, {KM_OP, AB_SUF, 16, 0, "h"}, {KM_OP, AB_SUF, 8, 0, "o"}, {KM_OP, AB_SUF, 2, 0, "b"}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}}, 0},
-    {"CMPLX", {{KM_OP, AB_KI, 0, 0, "i"}, {KM_OP, AB_KTHETA, 0, 0, "\xce\xb8"}, {KM_OP, AB_ARG, 0, 0, "ARG"}, {KM_OP, AB_KVEC, 0, 0, "["}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}}, 0},
+    {"CMPLX", {{KM_OP, AB_KI, 0, 0, "i"}, {KM_OP, AB_KTHETA, 0, 0, "\xce\xb8"}, {KM_OP, AB_ARG, 0, 0, "ARG"}, {KM_OP, AB_KVEC, 0, 0, "["}, {KM_OP, AB_XIY, 0, 0, "xiy"}, {KM_OP, AB_RTA, 0, 0, "r\xce\xb8" "a"}}, 0},
     {"FRAC", {{KM_OP, AB_FDISP, 0, 0, "FDISP"}, {KM_OP, AB_SETC, 0, 0, "/c"}, {KM_OP, AB_RCLC, 0, 0, "RCL/c"}, {KM_OP, AB_FRACFMT, 0, 0, "PREC"}, {KM_OP, AB_FRACFMT, 1, 0, "FCTR"}, {KM_OP, AB_FRACFMT, 2, 0, "FIXED"}}, 0},
     {"EXP", {{KM_OP, AB_TWOX, 0, 0, "2\xcb\xa3"}, {KM_OP, AB_LOG2, 0, 0, "LOG\xe2\x82\x82"}, {KM_OP, AB_EXPM1, 0, 0, "e\xcb\xa3\xe2\x88\x92" "1"}, {KM_OP, AB_LN1P, 0, 0, "LN1+x"}, {KM_OP, AB_CBRT, 0, 0, "\xe2\x88\x9bx"}, {KM_NONE, 0, 0, 0, ""}}, 0},
     {"CONV", {{KM_OP, AB_TOKG, 0, 0, "\xe2\x86\x92kg"}, {KM_OP, AB_TOLB, 0, 0, "\xe2\x86\x92lb"}, {KM_OP, AB_TOC, 0, 0, "\xe2\x86\x92\xc2\xb0" "C"}, {KM_OP, AB_TOF, 0, 0, "\xe2\x86\x92\xc2\xb0" "F"}, {KM_OP, AB_TOCM, 0, 0, "\xe2\x86\x92" "cm"}, {KM_OP, AB_TOIN, 0, 0, "\xe2\x86\x92in"}}, 0},

@@ -13,6 +13,8 @@
 typedef enum { AB_FIX, AB_SCI, AB_ENG, AB_ALL } ab_mode;
 
 #define AB_FMT_N_MAX 33     /* digit setting 0..33 (ours, unit 002) */
+#define AB_FMT_LINE 21      /* X's line: what the screen's scale 3 holds (ours, v0) */
+#define AB_FMT_WIDE 31      /* its fall-back width, drawn at scale 2 */
 
 typedef struct {
     ab_mode mode;
@@ -53,5 +55,11 @@ int ab_format_complex(const abn *re, const abn *im, const ab_display *d, char *o
 /* A vector of n elements (1..3) in the guide's bracket form, each element in the decimal format
    (unit 010). Returns the length, or -1 and "" if nothing fits. */
 int ab_format_vector(const abn *el, int n, const ab_display *d, char *out, int size);
+
+/* Unit 041 C (B4): ENG→ / ←ENG's view (33s p.1-20, 35s p.1-23): v rounded to sig significant digits, written as a
+   mantissa times 10^e: the integer digits down to 10^e (0 when v is below it), the radix and the digits after them to
+   the last significant one, then E and e. No separators in the mantissa (002's rule for exponent forms). Returns the
+   length, or -1 and "" if it is wider than f->width. */
+int ab_format_eng_view(const abn *v, int sig, int e, const ab_fmt *f, char *out, int size);
 
 #endif

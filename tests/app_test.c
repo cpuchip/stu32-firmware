@@ -401,11 +401,30 @@ int main(void)
     expect(c.disp_mode == AB_ENG && c.disp_n == 0, "ENG 0");
     press(&a, "GOLD 2 k:3");
     expect(c.disp_mode == AB_ALL, "ALL");
-    press(&a, "GOLD 2 k:5 C");
+    press(&a, "BLUE +/\xe2\x88\x92 k:5 C");          /* CMPLX's sixth since 041 C (abacus #4878 (a)) */
     expect(!c.cpolar, "041 A2: 33s mode: r\xce\xb8" "a does nothing");
     ab_do_arg(&c, AB_MODEL, 35);                /* xiy and r\xce\xb8a are 35s mode's (unit 041 A2, decision 58) */
-    press(&a, "GOLD 2 k:5");
+    press(&a, "BLUE +/\xe2\x88\x92 k:5");
     expect(c.cpolar, "r\xce\xb8" "a: complex numbers in polar form");
+    press(&a, "C BLUE +/\xe2\x88\x92 k:4");
+    expect(!c.cpolar, "xiy: complex numbers in rectangular form, from CMPLX's fifth");
+    /* unit 041 C (B4): DISP's ENG→ and ←ENG: the view, DISP kept open to press again, no UNDO mark */
+    press(&a, "C 1 2 . 3 4 6 E 4 GOLD 2 k:4");
+    expect(c.eng_on && c.eng_e == 3 && c.eng_n == 5 && a.menu >= 0, "041 C: 12.346E4 then DISP's ENG\xe2\x86\x92: E3, five digits, DISP open");
+    size_t undo_was = a.undo_len;
+    uint8_t *undo_copy = malloc(undo_was ? undo_was : 1);
+    if (undo_copy && undo_was) memcpy(undo_copy, a.undo[0], undo_was);
+    press(&a, "k:4");
+    expect(c.eng_on && c.eng_e == 0 && a.undo_len == undo_was && undo_copy &&
+               (!undo_was || !memcmp(undo_copy, a.undo[0], undo_was)),
+           "041 C: ENG\xe2\x86\x92 again: E0, no UNDO mark (the snapshot unchanged)");
+    free(undo_copy);
+    press(&a, "k:5 k:5");
+    expect(c.eng_on && c.eng_e == 6, "041 C: \xe2\x86\x90" "ENG twice: E6");
+    press(&a, "C");
+    expect(c.eng_on && a.menu < 0, "041 C: C closes DISP, as any menu (the core sees no key): the view stays");
+    press(&a, "C");
+    expect(!c.eng_on, "041 C: the next key ends the view");
     press(&a, "GOLD 2 k:4");
     expect(!c.cpolar, "xiy: back to rectangular");
     ab_do_arg(&c, AB_MODEL, 33);

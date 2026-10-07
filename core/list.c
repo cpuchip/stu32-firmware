@@ -58,6 +58,7 @@ static const char *const NAMES[AB_OP_LAST + 1] = {
     [AB_FN] = "FN=", [AB_SOLVE] = "SOLVE", [AB_INTEG] = "\xe2\x88\xab" "FN d",
     [AB_EXPM1] = "e\xcb\xa3-1", [AB_LN1P] = "LN(1+x)", [AB_TWOX] = "2\xcb\xa3", [AB_LOG2] = "LOG2", [AB_CMPLX] = "CMPLX",
     [AB_CUBE] = "x\xc2\xb3", [AB_CBRT] = "\xe2\x88\x9b" "x",
+    [AB_ENGL] = "\xe2\x86\x90" "ENG", [AB_ENGR] = "ENG\xe2\x86\x92",
     [AB_CLVARX] = "CLVAR",
 };
 

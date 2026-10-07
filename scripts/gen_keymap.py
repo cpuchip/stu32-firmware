@@ -79,11 +79,12 @@ MENUS = [
               # unit 041 C (B7): FN= in SST's cell (SST is blue R/S; proposed, abacus #4836 reply)
               ("INPUT", "KM_PROMPT", "AB_INPUT", 0, "KM_ARG_VAR"), ("FN=", "KM_PROMPT", "AB_FN", 0, "KM_ARG_FN"),
               ("BST", "KM_OP", "AB_BST", 0, 0), ("CLPGM", "KM_OP", "AB_CLPGM", 0, 0)]),
-    # Michael, #3901: FIX, SCI, ENG then a digit setting (UG p.1-21), ALL; xiy and rθa provisional
+    # Michael, #3901: FIX, SCI, ENG then a digit setting (UG p.1-21), ALL; then ENG→ and ←ENG (unit 041 C, B4: abacus
+    # #4878 (a)), whose xiy and rθa moved to CMPLX
     ("DISP", [("FIX", "KM_PROMPT", "AB_SETFIX", 0, "KM_ARG_DIGITS"),
               ("SCI", "KM_PROMPT", "AB_SETSCI", 0, "KM_ARG_DIGITS"),
               ("ENG", "KM_PROMPT", "AB_SETENG", 0, "KM_ARG_DIGITS"), ("ALL", "KM_OP", "AB_SETALL", 0, 0),
-              ("xiy", "KM_OP", "AB_XIY", 0, 0), ("r\u03b8a", "KM_OP", "AB_RTA", 0, 0)]),
+              ("ENG\u2192", "KM_OP", "AB_ENGR", 0, 0), ("\u2190ENG", "KM_OP", "AB_ENGL", 0, 0)]),
     # abacus decision 33: the angle modes (UG G-5, G-11, G-8); soft keys 4-6 empty
     ("\u2221MODE", [("DEG", "KM_OP", "AB_DEG", 0, 0), ("RAD", "KM_OP", "AB_RAD", 0, 0),
                     ("GRAD", "KM_OP", "AB_GRAD", 0, 0), ("", "KM_NONE", "0", 0, 0),
@@ -118,7 +119,9 @@ MENUS = [
     ("LOGIC", [o("AND", "AB_AND"), o("OR", "AB_OR"), o("XOR", "AB_XOR"), o("NOT", "AB_NOT"), o("NAND", "AB_NAND"),
                o("NOR", "AB_NOR")]),
     ("SUFFIX", [o("d", "AB_SUF", 10), o("h", "AB_SUF", 16), o("o", "AB_SUF", 8), o("b", "AB_SUF", 2), NONE, NONE]),
-    ("CMPLX", [o("i", "AB_KI"), o("\u03b8", "AB_KTHETA"), o("ARG", "AB_ARG"), o("[", "AB_KVEC"), NONE, NONE]),
+    # xiy and rθa from DISP (abacus #4878 (a), settling #3901's provisional pair)
+    ("CMPLX", [o("i", "AB_KI"), o("\u03b8", "AB_KTHETA"), o("ARG", "AB_ARG"), o("[", "AB_KVEC"), o("xiy", "AB_XIY"),
+               o("r\u03b8a", "AB_RTA")]),
     # the three formats are one core op each, both flags at once (rule 2; UG p.5-6)
     ("FRAC", [o("FDISP", "AB_FDISP"), o("/c", "AB_SETC"), o("RCL/c", "AB_RCLC"), o("PREC", "AB_FRACFMT", 0),
               o("FCTR", "AB_FRACFMT", 1), o("FIXED", "AB_FRACFMT", 2)]),

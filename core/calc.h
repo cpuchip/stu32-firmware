@@ -137,10 +137,12 @@ typedef enum {
     /* CAS 004 (Casimir, STU's Equation mode): D/DX and COLCT in arg's variable (0-25), SIMP, EXPND; SUBST in arg's
        variable opens the editor for its replacement, which ENTER substitutes */
     AB_CASD, AB_CASSIMP, AB_CASEXP, AB_CASCOL, AB_CASSUB,
-    AB_CUBE, AB_CBRT        /* unit 041 C: x³ and ∛x (33s p.4-2), 33s mode's (the 35s has neither) */
+    AB_CUBE, AB_CBRT,       /* unit 041 C: x³ and ∛x (33s p.4-2), 33s mode's (the 35s has neither) */
+    AB_ENGL, AB_ENGR        /* unit 041 C (B4): ←ENG and ENG→ (33s p.1-20, 35s p.1-23): X's view with the exponent a
+                               multiple of three moved up or down; display only, until the next key; nonprogrammable */
 } ab_op;
 
-#define AB_OP_LAST AB_CBRT     /* the last op: loops over every op end here */
+#define AB_OP_LAST AB_ENGR     /* the last op: loops over every op end here */
 
 /* Why the last run stopped (unit 012 rule 1): the device draws it; the core never waits. */
 typedef enum {
@@ -327,6 +329,9 @@ typedef struct {
     int eqn_cur;            /* the equation shown, -1 at EQN LIST TOP */
     uint8_t cas_sub;        /* CAS 004: SUBST's variable + 1 while its replacement is typed, else 0; in the image */
     char cas_bad[16];       /* CAS 004: the construct a refusal names (UNSUPPORTED IP, CAN'T COPY RAND); in the image */
+    bool eng_on;            /* unit 041 C (B4): ENG→ / ←ENG's view of X showing (until the next key); in the image */
+    int16_t eng_e;          /* its exponent, a multiple of three */
+    uint8_t eng_n;          /* its significant digits, 1..34 */
     bool eqn_mode;          /* Equation mode */
     bool eqn_typing;        /* an equation is being typed or edited */
     int eqn_edit;           /* the index being edited, or -1 for a new equation */

@@ -181,7 +181,7 @@ static void do_op(app_state *a, int op, int arg)
         a->run_t0 = a->last_key_ms;
         a->run_stopped = false;
     }
-    if (op != AB_VIEW) undo_mark(a);
+    if (op != AB_VIEW && op != AB_ENGL && op != AB_ENGR) undo_mark(a);    /* ENG's view: no UNDO mark (041 C) */
     /* 040b: a call that may take long (a SOLVE, an integral, a run's first slice, a graph tool) is marked, so that
        the device's key task delivers C into it (app_interrupt); nothing left over before or after */
     bool computing = runs || (op == AB_GFCN && c->gr_on);
@@ -607,8 +607,10 @@ void app_key(app_state *a, int key, uint32_t now_ms)
                 return;
             }
             do_action(a, it);
-            if (it->kind == KM_DEVICE && (it->arg == KM_DEV_USE || it->arg == KM_DEV_USEALL))
-                a->menu = at;                   /* the buzzer's uses: toggled with the menu open (ours) */
+            if ((it->kind == KM_DEVICE && (it->arg == KM_DEV_USE || it->arg == KM_DEV_USEALL)) ||
+                (it->kind == KM_OP && (it->op == AB_ENGL || it->op == AB_ENGR)))
+                a->menu = at;                   /* the buzzer's uses: toggled with the menu open (ours); ENG→ / ←ENG
+                                                   pressed again from DISP (ours, 041 C) */
             return;
         }
         if (cx_prefix(a, at)) {

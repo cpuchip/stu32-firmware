@@ -371,6 +371,16 @@ int main(int argc, char **argv)
     keys(&c, "ENTER");
     screen_render(&c, &ui, &f);
     expect(text_at(&f, 398 - (6 * 24 - 4), 128, 4, "0.0125", 1), "the entry ended: X in ALL, right aligned");
+    ab_do(&c, AB_ENGR);                         /* unit 041 C (B4): ALL's 0.0125 is E0, three digits: ENG→ E-3 */
+    screen_render(&c, &ui, &f);
+    expect(text_at(&f, 398 - (7 * 24 - 4), 128, 4, "12.5E-3", 1), "041 C: ENG\xe2\x86\x92's view on X's line");
+    ui.radix = ',';
+    screen_render(&c, &ui, &f);
+    expect(text_at(&f, 398 - (7 * 24 - 4), 128, 4, "12,5E-3", 1), "041 C: the view with the device's radix mark");
+    ui.radix = '.';
+    ab_do(&c, AB_ENTER);
+    screen_render(&c, &ui, &f);
+    expect(text_at(&f, 398 - (6 * 24 - 4), 128, 4, "0.0125", 1), "041 C: the next key: X in ALL again");
 
     /* 20 cells take scale 3, 25 scale 2, and 40 a window */
     ab_init(&c);

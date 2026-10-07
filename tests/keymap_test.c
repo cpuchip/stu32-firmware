@@ -196,7 +196,8 @@ int main(void)
                 {"LOGIC", {O(AB_AND, 0, "AND"), O(AB_OR, 0, "OR"), O(AB_XOR, 0, "XOR"), O(AB_NOT, 0, "NOT"),
                            O(AB_NAND, 0, "NAND"), O(AB_NOR, 0, "NOR")}},
                 {"SUFFIX", {O(AB_SUF, 10, "d"), O(AB_SUF, 16, "h"), O(AB_SUF, 8, "o"), O(AB_SUF, 2, "b"), N, N}},
-                {"CMPLX", {O(AB_KI, 0, "i"), O(AB_KTHETA, 0, "\xce\xb8"), O(AB_ARG, 0, "ARG"), O(AB_KVEC, 0, "["), N, N}},
+                {"CMPLX", {O(AB_KI, 0, "i"), O(AB_KTHETA, 0, "\xce\xb8"), O(AB_ARG, 0, "ARG"), O(AB_KVEC, 0, "["),
+                           O(AB_XIY, 0, "xiy"), O(AB_RTA, 0, "r\xce\xb8" "a")}},     /* from DISP (041 C, #4878) */
                 {"FRAC", {O(AB_FDISP, 0, "FDISP"), O(AB_SETC, 0, "/c"), O(AB_RCLC, 0, "RCL/c"), O(AB_FRACFMT, 0, "PREC"),
                           O(AB_FRACFMT, 1, "FCTR"), O(AB_FRACFMT, 2, "FIXED")}},
                 /* abacus #3958: EXP as drafted (LN(1+x) shortened to fit five cells) */
@@ -378,7 +379,7 @@ int main(void)
             static const struct { km_kind kind; int op, prompt; const char *legend; } D[6] = {
                 {KM_PROMPT, AB_SETFIX, KM_ARG_DIGITS, "FIX"}, {KM_PROMPT, AB_SETSCI, KM_ARG_DIGITS, "SCI"},
                 {KM_PROMPT, AB_SETENG, KM_ARG_DIGITS, "ENG"}, {KM_OP, AB_SETALL, 0, "ALL"},
-                {KM_OP, AB_XIY, 0, "xiy"}, {KM_OP, AB_RTA, 0, "r\xce\xb8" "a"}};
+                {KM_OP, AB_ENGR, 0, "ENG\xe2\x86\x92"}, {KM_OP, AB_ENGL, 0, "\xe2\x86\x90" "ENG"}};   /* 041 C (#4878) */
             for (int i = 0; i < 6; i++) {
                 const km_action *it = &dm->item[i];
                 snprintf(m, sizeof m, "DISP menu soft key %d: %s", i + 1, D[i].legend);
