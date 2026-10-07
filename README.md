@@ -13,9 +13,9 @@ Work units arrive from the abacus seat (fermion) in `work/`; the core lives in `
 - `make test` builds and runs the host tests; `make all-checks PYTHON=<a python with mpmath>` adds the accuracy
   fuzzers. The decimal library is fetched from netlib and checked against a pinned sha256 by
   `scripts/fetch-intel-dfp.sh` (make runs it).
-- The APPS registry includes Babal from cpuchip/stu32-arcade (PRIVATE), exported at `ARCADE_PIN` by
-  `scripts/fetch-arcade.sh` (make and the device scripts run it) from a local clone beside this repository
-  (`../stu32-arcade`), or from `ARCADE_REPO`. Without git or a clone, stage `build/arcade/` (its `babal/` and
-  `app/` at the pin, and `.pin`) by hand.
+- The APPS registry includes the games in `games.list` (Babal from cpuchip/stu32-arcade, PRIVATE), each exported
+  at its pin by `scripts/gen_games.py` (make and the device scripts run it) from a local clone beside this
+  repository, or in `GAMES_REPOS`; the format and each game's manifest are in that script's header. Without git
+  or a clone, stage `build/games/<id>/` by hand (its files at the pin, its manifest, and `.pin`).
 - Devices: `device/standin/run.sh <port>` and `device/reva/build.sh`, in Espressif's pinned image
   (`espressif/idf:v5.4.2`).

@@ -4,7 +4,7 @@
 #include <string.h>
 
 #include "apps.h"
-#include "babal_app.h" /* Babal (stu32-arcade at ARCADE_PIN, build/arcade) */
+#include "games.h" /* generated from games.list by scripts/gen_games.py: GAMES_DECLARE, GAMES_ENTRIES */
 #include "keymap.h"
 #include "screen.h"
 
@@ -76,5 +76,6 @@ static void keys_stop(void *ctx)
 static const app_def keys_app = {"KEYS", sizeof(keys_ctx), keys_load, keys_start, keys_key, keys_tick,
                                  keys_draw, keys_save, keys_stop};
 
-const app_def *const app_registry[] = {&keys_app, &babal_app};
+GAMES_DECLARE
+const app_def *const app_registry[] = {&keys_app GAMES_ENTRIES};
 const int app_registry_n = sizeof app_registry / sizeof app_registry[0];

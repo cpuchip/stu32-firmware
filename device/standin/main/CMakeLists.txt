@@ -9,30 +9,17 @@ else()
     file(GLOB CORE_SRCS CONFIGURE_DEPENDS "${REPO}/core/*.c")
 endif()
 set(FW "${REPO}/firmware")
-# Babal (stu32-arcade at ARCADE_PIN), exported by scripts/fetch-arcade.sh before the build
-set(ARCADE "${REPO}/build/arcade")
-if(NOT EXISTS "${ARCADE}/.pin")
-    message(FATAL_ERROR "no ${ARCADE}: run scripts/fetch-arcade.sh")
+# The games (games.list), exported and described by scripts/gen_games.py before the build
+if(NOT EXISTS "${REPO}/build/games/games.cmake")
+    message(FATAL_ERROR "no ${REPO}/build/games/games.cmake: run python3 scripts/gen_games.py games.list build/games")
 endif()
-# a re-export at a new pin reconfigures (the glob's file list) and recompiles every game file: git archive stamps
-# the files with the commit's time, so their mtimes alone do not show the change (merge gate)
-if(CMAKE_SCRIPT_MODE_FILE)                  # (as the core's glob: CONFIGURE_DEPENDS outside script mode)
-    file(GLOB ARCADE_SRCS "${ARCADE}/babal/*.c")
-else()
-    file(GLOB ARCADE_SRCS CONFIGURE_DEPENDS "${ARCADE}/babal/*.c")
-endif()
-list(APPEND ARCADE_SRCS "${ARCADE}/app/babal_app.c" "${ARCADE}/app/render.c")
-if(NOT CMAKE_SCRIPT_MODE_FILE)  # not allowed while IDF expands requirements in script mode
-    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${ARCADE}/.pin")
-    set_source_files_properties(${ARCADE_SRCS} PROPERTIES COMPILE_OPTIONS "-ffp-contract=off;-Werror=frame-larger-than=1024"
-                                OBJECT_DEPENDS "${ARCADE}/.pin")
-endif()
+include("${REPO}/build/games/games.cmake")
 
 idf_component_register(
     SRCS standin_main.c ${CORE_SRCS} "${FW}/screen.c" "${FW}/font5x7.c" "${FW}/app.c" "${FW}/apps.c" "${FW}/keymap.c"
          "${FW}/keys.c" "${FW}/power.c" "${FW}/standin.c" "${FW}/store.c" "${FW}/ls027.c" "${FW}/settings.c" "${FW}/piezo.c"
-         ${ARCADE_SRCS}
-    INCLUDE_DIRS . "${REPO}/core" "${FW}" "${REPO}/device" "${ARCADE}/babal" "${ARCADE}/app"
+         ${GAMES_SRCS}
+    INCLUDE_DIRS . "${REPO}/core" "${FW}" "${REPO}/device" ${GAMES_INC} "${REPO}/build/games"
     REQUIRES esp_lcd esp_driver_i2c esp_driver_gpio esp_driver_uart vfs esp_psram esp_partition esp_timer)
 
 if(NOT EXISTS "${BID_LIB}")
