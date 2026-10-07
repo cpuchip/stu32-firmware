@@ -507,6 +507,24 @@ static void zoombench(void)
         ab_do_arg(t, AB_GMOVE, 5);
         ab_do_arg(t, AB_GMOVE, 16);
     }
+    {   /* unit 040c: EXTR at the slope's noise floor (abacus's A00468: x e^(-x/0.8) on 0..5, the cursor at x
+           near 0.79), the check's path on the device: its time, its answer (0.8 within 1E-21) and the stack */
+        ab_init(t);
+        ab_do_arg(t, AB_MODEL, AB_MODEL_STU);
+        ab_eqn_add(t, "X\xc3\x97" "EXP(0-X\xc3\xb7" "0.8)");
+        ab_do(t, AB_EQN);
+        t->gr_xmin = abn_from_int(0), t->gr_xmax = abn_from_int(5);
+        ab_do(t, AB_GRAPH);
+        for (int k = 0; k < 13; k++) ab_do_arg(t, AB_GMOVE, 14);
+        for (int k = 0; k < 9; k++) ab_do_arg(t, AB_GMOVE, 4);
+        int64_t t0 = esp_timer_get_time();
+        abn_status fs = ab_do_arg(t, AB_GFCN, AB_F_EXTR);
+        int64_t t1 = esp_timer_get_time();
+        char r[64] = "-";
+        if (t->gr_res_kind) abn_to_text(&t->gr_res, r, sizeof r);
+        printf("zoombench: EXTR040c %lld ms (st %d) x %s stack-free %u\n", (long long)(t1 - t0) / 1000, (int)fs, r,
+               (unsigned)uxTaskGetStackHighWaterMark(NULL));
+    }
     printf("zoombench: done (GO %d)\n", (int)go);
     heap_caps_free(g);
     heap_caps_free(t);
