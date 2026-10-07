@@ -225,11 +225,9 @@ static abn_status pow_real(abn *out, const abn *y, const abn *e)
         *out = r;
         return ABN_OK;
     }
-    if (abn_is_integer(e) && small_int(e, &n) && (n == 2 || n == -1)) {   /* one engine operation, itself the
-                                                                            exact value rounded once (038) */
-        abn u = one();
-        return n == 2 ? abn_mul(out, y, y) : abn_div(out, &u, y);
-    }
+    if (abn_is_integer(e) && small_int(e, &n) && n == 2)  /* one multiplication: the exact square rounded once
+                                                            (038; x^-1 is the exact path's one division above) */
+        return abn_mul(out, y, y);
     if (abn_is_integer(e) && small_int(e, &n) && n >= -POW_XNUM_MAX && n <= POW_XNUM_MAX && n != 0 && n != 1) {
         abn_status st = pow_xnum(out, y, (uint32_t)(n < 0 ? -n : n), n < 0);
         if (st != ABN_RANGE) return st;         /* (it did not fit: the high-precision route) */

@@ -4,3 +4,4 @@ E02 | ours: a negative base to an odd power overflows negative | 9 CHS E 6000 EN
 E03 | ours: a negative base to an even power overflows positive | 9 CHS E 6000 ENTER 2 POW | X=9.999999999999999999999999999999999E6144
 E04 | ours: 9E6000^-2 underflows to 0 | 9 E 6000 ENTER 2 CHS POW | X=0
 E05 | ours: 0^-3 is an error | 0 ENTER 3 CHS POW | ERR
+E06 | ours: x^-1 is one division: 7^-1 is 1/7 to 34 digits | 7 ENTER 1 CHS POW | X=0.1428571428571428571428571428571429
