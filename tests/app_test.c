@@ -441,6 +441,16 @@ int main(void)
     press(&a, "1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 . 6 7 8 9 0 1 ENTER GOLD 2 k:4");
     expect(a.set.group == 1 && c.eng_on && c.eng_low == -1 && c.eng_e == -3,
            "041 C: ENG\xe2\x86\x92 on a grouped ALL line: the place it shows, 10^-1");
+    {   /* unit 041 D (fresh eyes): a 33s chain shown in STU keeps its ·33 mark with the 33s's names and colon; one in
+           the 35s's spelling, which a 33s equation refuses (a message), shows none */
+        ab_calc t;
+        ab_init(&t);
+        ab_do_arg(&t, AB_MODEL, AB_MODEL_STU);
+        expect(!strcmp(ab_eqn_mark(&t, "2^3^2+CB(1)", 33), " \xc2\xb7" "33") &&
+                   !strcmp(ab_eqn_mark(&t, "2^3^2+IDIV(7:2)", 33), " \xc2\xb7" "33") &&
+                   !strcmp(ab_eqn_mark(&t, "2^3^2+IDIV(7,2)", 33), ""),
+               "041 D: the chain mark reads a 33s equation by its own names and separator");
+    }
     {   /* the image refuses an ENG view the key can't make (fresh eyes): in HEX, or past the key's bounds */
         static uint8_t img[1 << 16];
         ab_calc t;

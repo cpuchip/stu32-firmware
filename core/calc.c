@@ -1379,7 +1379,8 @@ static abn_status prog_insert_lit(ab_calc *c, ab_val v)
 
 /* An equation as a line (UG p.13-7): its text in the equation-line store. */
 /* The model an equation typed now is stamped with (unit 031 rule 3, answer A): in program entry, the stamp of the
- * label the line joins (unit 041 C, abacus #4850: entry follows the label's stamp; its typed names follow too). */
+ * label the line joins (unit 041 C, abacus #4850: entry follows the label's stamp; its typed names follow too); an
+ * equation being edited, its own stamp (041 D, proposed: an edit in the other mode no longer breaks its spellings). */
 static int prog_owner(const ab_calc *c, int i);
 static uint8_t typed_model(const ab_calc *c)
 {
@@ -1387,6 +1388,8 @@ static uint8_t typed_model(const ab_calc *c)
         int l = prog_owner(c, c->pc);
         if (l >= 0 && c->lmode[l]) return c->lmode[l];
     }
+    if (c->eqn_typing && c->eqn_edit >= 0 && c->eqn_edit < c->eqn_count && c->eqn_model[c->eqn_edit])
+        return c->eqn_model[c->eqn_edit];       /* an equation edited keeps its stamp (041 D, fresh eyes; proposed) */
     return c->stu ? AB_MODEL_STU : c->m35 ? 35 : 33;
 }
 
@@ -1596,7 +1599,7 @@ static void slot_of_id(ab_calc *c, int id, slot *sl)
  * integration (p.7-2, 8-3, 15-4). */
 static int eqn_prompt_vars(const ab_calc *c, const char *text, int model, bool rhs_only, int *out)
 {
-    int v[27], n = eqn_vars(text, rhs_only, model == 33, v), k = 0;    /* i a variable by its stamp (041 A) */
+    int v[27], n = eqn_vars(text, rhs_only, model == 33, model, v), k = 0;    /* i a variable by its stamp (041 A) */
     for (int i = 0; i < n; i++)
         if (!(c->susp.kind && v[i] == c->susp.var)) out[k++] = v[i];   /* susp is set while SOLVE runs */
     return k;
@@ -3270,9 +3273,11 @@ static abn_status eqn_store_typed(ab_calc *c)
     }
     if (edit >= 0) {
         if (strcmp(c->ebuf, c->eqn[edit]) != 0) {   /* an edit unchanged keeps its text and stamp (review F4); a
-                                                       changed one was typed now */
+                                                       changed one keeps it too since 041 D (proposed, fresh eyes: a
+                                                       33s Cn,r(5:2) edited in 35s mode would no longer parse), as
+                                                       its typed names did (typed_model) */
             strcpy(c->eqn[edit], t);
-            c->eqn_model[edit] = typed_model(c);
+            if (!c->eqn_model[edit]) c->eqn_model[edit] = typed_model(c);
         }
         c->eqn_cur = edit;
         return ABN_OK;
@@ -3515,7 +3520,7 @@ static abn_status eqn_solve_key(ab_calc *c, ab_op op, int code)
            prompts (33s p.6-18; unit 024 rule 4) */
         if ((st = resolve(c, code, false, &sl)) != ABN_OK) return st;
         if (!sl.val || sl.val < c->var || sl.val >= c->var + 27) return ABN_DOMAIN;  /* p.14-23; i too (unit 025) */
-        n = eqn_vars(t, false, c->eqn_model[c->eqn_cur] == 33, v);
+        n = eqn_vars(t, false, c->eqn_model[c->eqn_cur] == 33, c->eqn_model[c->eqn_cur], v);
         if (op == AB_SOLVE) {
             bool found = false;
             for (int i = 0; i < n; i++) found = found || v[i] == sl.val - c->var;
@@ -3621,7 +3626,7 @@ static abn_status eqn_evaluate(ab_calc *c, bool enter)
     (void)st;
     /* the syntax is checked when the value is calculated, after every prompt is answered (33s
        p.6-18, 32SII p.6-20; unit 024 rule 4): eqn_step's evaluation reports it */
-    c->eqn_nvars = eqn_vars(t, rhs, c->eqn_model[c->eqn_cur] == 33, c->eqn_vars);
+    c->eqn_nvars = eqn_vars(t, rhs, c->eqn_model[c->eqn_cur] == 33, c->eqn_model[c->eqn_cur], c->eqn_vars);
     c->eqn_next = 0;
     c->eqn_pending = enter ? 1 : 2;
     c->eqn_mode = false;
@@ -3698,14 +3703,57 @@ static bool eqn_type(ab_calc *c, ab_op op, int arg)
 /* CAS 004 (casim's work/004 rules 4-5): Casimir's step op (a casim_op) on the equation shown, read as its stamp:
    the result is a new equation after it, stamped STU (the list's mode), and shown; the original stays. A refusal
    changes nothing: its status is the message (#4797). STU only; not at EQN LIST TOP nor on a built-in. */
+#ifdef AB_CASIM
+/* Unit 041 D (fresh eyes): a 33s equation in casim's spelling, which is the 35s's: the colon a comma, Cn,r nCr, Pn,r
+   nPr, →HR HMS→, RANDOM RAND. CB and CBRT casim doesn't have: 1, with the name in bad (UNSUPPORTED CB). 2: too long. */
+static int cas_text33(const char *in, char *out, size_t cap, char *bad, size_t badcap)
+{
+    static const char *const FROM[] = {"Cn,r", "Pn,r", "\xe2\x86\x92HR", "RANDOM", "CBRT", "CB", ":"};
+    static const char *const TO[] = {"nCr", "nPr", "HMS\xe2\x86\x92", "RAND", NULL, NULL, ","};
+    size_t o = 0;
+    while (*in) {
+        size_t k = 0, n = 0;
+        for (; k < sizeof FROM / sizeof FROM[0]; k++)
+            if (!strncmp(in, FROM[k], n = strlen(FROM[k])) && (FROM[k][0] == ':' || FROM[k][0] == 'R' || in[n] == '('))
+                break;
+        if (k < sizeof FROM / sizeof FROM[0]) {
+            if (!TO[k]) {
+                snprintf(bad, badcap, "%s", FROM[k]);
+                return 1;
+            }
+            size_t m = strlen(TO[k]);
+            if (o + m >= cap) return 2;
+            memcpy(out + o, TO[k], m);
+            o += m;
+            in += n;
+        } else {
+            if (o + 1 >= cap) return 2;
+            out[o++] = *in++;
+        }
+    }
+    out[o] = '\0';
+    return 0;
+}
+#endif
+
 static abn_status cas_step(ab_calc *c, int op, int var, const char *repl)
 {
 #ifdef AB_CASIM
-    char out[AB_EQN_LEN];
+    char out[AB_EQN_LEN], t33[AB_EQN_LEN];
     casim_status cs;
     if (!c->stu) return ABN_STU_ONLY;
     if (c->eqn_cur < 0 || eqn_builtin(c, c->eqn_cur)) return ABN_NO_EQN;
-    casim_req rq = {(casim_op)op, c->eqn[c->eqn_cur], c->eqn_model[c->eqn_cur], var, repl, AB_MODEL_STU, c->angle};
+    const char *text = c->eqn[c->eqn_cur];
+    if (c->eqn_model[c->eqn_cur] == 33) {       /* 041 D: what the 33s refuses is refused; its spelling translated */
+        ab_val v;
+        int pos;
+        if (eqn_eval(c, text, 33, false, true, &v, &pos) == ABN_SYNTAX) return ABN_SYNTAX;
+        int r = cas_text33(text, t33, sizeof t33, c->cas_bad, sizeof c->cas_bad);
+        if (r == 1) return ABN_CAS_UNSUPPORTED;
+        if (r == 2) return ABN_CAS_TOO_LONG;
+        text = t33;
+    }
+    casim_req rq = {(casim_op)op, text, c->eqn_model[c->eqn_cur], var, repl, AB_MODEL_STU, c->angle};
     cs = casim_run(&rq, out, sizeof out, ab_cas_arena, sizeof ab_cas_arena);
     switch (cs) {
     case CASIM_OK: {
@@ -5064,7 +5112,7 @@ void ab_stop_text(const ab_calc *c, char *buf)
 const char *ab_eqn_mark(const ab_calc *c, const char *text, int model)
 {
     bool typed_stu = model == AB_MODEL_STU;
-    if (typed_stu == c->stu || !eqn_has_chain((ab_calc *)c, text)) return "";   /* (a check only: unchanged) */
+    if (typed_stu == c->stu || !eqn_has_chain((ab_calc *)c, text, model)) return "";   /* (a check only: unchanged) */
     return typed_stu ? " \xc2\xb7STU" : model == 33 ? " \xc2\xb7" "33" : " \xc2\xb7" "35";
 }
 
@@ -5250,7 +5298,7 @@ static abn_status table_go(ab_calc *c)
     if (e < 0 || e >= c->eqn_count || c->eqn[e][0] == '\x01') return ABN_NO_EQN;   /* answer 2 */
     int v = c->tbl_var;
     if (v < 0) {                                /* the equation's first variable (answer 3) */
-        int n = eqn_vars(c->eqn[e], false, false, vars);
+        int n = eqn_vars(c->eqn[e], false, false, c->eqn_model[e], vars);
         int i = 0;
         while (i < n && vars[i] >= 26) i++;
         if (i == n) return ABN_NO_VAR;
@@ -5279,7 +5327,7 @@ static abn_status eval_at(ab_calc *c, int e, int v, const abn *x, ab_val *y, boo
     int av = eqn_assign_var(t, false);
     bool rhs = false;
     if (av >= 0) {                              /* V=expr: is V in expr? */
-        int n = eqn_vars(t, true, false, vars);
+        int n = eqn_vars(t, true, false, c->eqn_model[e], vars);
         rhs = true;
         for (int i = 0; i < n; i++) rhs = rhs && vars[i] != av;
     }
@@ -5524,7 +5572,7 @@ int ab_graph_form(const ab_calc *c, int e)
     const char *t = c->eqn[e];
     int av = eqn_assign_var(t, false);
     if (av >= 0) {
-        int n = eqn_vars(t, true, false, vars);
+        int n = eqn_vars(t, true, false, c->eqn_model[e], vars);
         bool in = false;
         for (int i = 0; i < n; i++) in = in || vars[i] == av;
         if (!in) return av + 1;
@@ -5937,10 +5985,10 @@ static abn_status graph_go(ab_calc *c)
     int v = c->tbl_var;
     if (v < 0) {
         const char *t = c->eqn[e];
-        int av = eqn_assign_var(t, false), n = eqn_vars(t, av >= 0, false, vars), i = 0;
+        int av = eqn_assign_var(t, false), n = eqn_vars(t, av >= 0, false, c->eqn_model[e], vars), i = 0;
         bool rhs_form = av >= 0;
         for (int j = 0; j < n && rhs_form; j++) rhs_form = vars[j] != av;
-        if (!rhs_form) n = eqn_vars(t, false, false, vars);   /* L-R or an expression: its first variable */
+        if (!rhs_form) n = eqn_vars(t, false, false, c->eqn_model[e], vars);   /* L-R or an expression: its first variable */
         while (i < n && vars[i] >= 26) i++;
         if (i == n) return ABN_NO_VAR;
         v = vars[i];

@@ -2,8 +2,9 @@
 # 33s guide p.6-5, 6-15, 6-16 (rendered): the colon separates a function's arguments (p.6-5: the 35s's comma in 35s and
 # STU); CB and CBRT (x³, ∛x); →HR (the 35s's HMS→); Cn,r and Pn,r (nCr, nPr); RANDOM (RAND); RND with two arguments
 # (PROVISIONAL, abacus #4880: p.6-15 lists it two-argument with no meaning, p.6-14 one-argument; read as x rounded as the
-# display mode would with digit setting n, pending the field check on Michael's 33s). Strict both ways (#4880): a
-# 33s-stamped equation refuses the 35s spellings, a 35s or STU one the 33s spellings. An equation's stamp decides its
+# display mode would with digit setting n, pending the field check on Michael's 33s; in ALL n changes nothing and in
+# fraction display RND gives the fraction's decimal, as the key does). Strict both ways (#4880): a
+# 33s-stamped equation refuses the 35s spellings, a 35s or STU one the 33s spellings: the other model's names aren't names (fresh eyes), so they are refused as the letters they are (a 35s equation refuses adjacent letters after its prompts; STU multiplies them, as before D). An equation's stamp decides its
 # syntax (031). In 33s typing the keys type the 33s names. Expected values: C(28,4) 20475, P(5,2) 20, %CHG(10:15) 50,
 # 7 div 2 = 3 rem 1, 1.30 H.MM 1.5 hours (Python).
 D01 | 041 D (p.6-16): CB(2) is 8 | MODE33 EQ:CB(2) XEQ | X=8
@@ -18,17 +19,18 @@ D09 | 041 D (p.6-15): RMDR(7:2) is 1 | MODE33 EQ:RMDR(7:2) XEQ | X=1
 D10 | 041 D (p.6-15): RANDOM draws as the RAND key (the same seed, the same number) | MODE33 1 SEED EQ:RANDOM XEQ SAVEX C 1 SEED RAND | %SAMEX=same
 D11 | 041 D (p.6-16): %CHG(-X:-2), a negative second argument | MODE33 4 STO:X EQ:%CHG(-X:-2) XEQ RS | X=-50
 D12 | 041 D, PROVISIONAL (#4880, Michael's field check): RND(2.567:1) in FIX 4 is RND as FIX 1: 2.6 | MODE33 FIX4 EQ:RND(2.567:1) XEQ | X=2.6
-D13 | 041 D, PROVISIONAL: RND(2.567:2) in SCI is RND as SCI 2: 2.57 | MODE33 SCI4 EQ:RND(2.567:2) XEQ | X=2.57
+D13 | 041 D, PROVISIONAL: RND(25.67:2) in SCI is RND as SCI 2: 25.7 (FIX 2 would give 25.67: fresh eyes) | MODE33 SCI4 EQ:RND(25.67:2) XEQ | X=25.7
 D14 | 041 D (strict, #4880): a 33s equation refuses the comma | MODE33 EQ:IDIV(7,2) XEQ | ERR %ERR=SYNTAX
-D15 | 041 D (strict): and nCr | MODE33 EQ:nCr(28:4) XEQ | ERR %ERR=SYNTAX
-D16 | 041 D (strict): and HMS→ | MODE33 EQ:HMS→(1.3) XEQ | ERR %ERR=SYNTAX
-D17 | 041 D (strict): and RAND | MODE33 EQ:RAND XEQ | ERR %ERR=SYNTAX
-D18 | 041 D (strict): a 35s equation refuses CB | MODE35 EQ:CB(2) XEQ | ERR %ERR=SYNTAX
-D19 | 041 D (strict): and the colon | MODE35 EQ:IDIV(7:2) XEQ | ERR %ERR=SYNTAX
-D20 | 041 D (strict): and Cn,r | MODE35 EQ:Cn,r(28,4) XEQ | ERR %ERR=SYNTAX
-D21 | 041 D (strict): and →HR | MODE35 EQ:→HR(1.3) XEQ | ERR %ERR=SYNTAX
-D22 | 041 D (strict): and RANDOM | MODE35 EQ:RANDOM XEQ | ERR %ERR=SYNTAX
-D23 | 041 D (strict): an STU equation refuses CBRT | STU EQ:CBRT(8) XEQ | ERR %ERR=SYNTAX
+D15 | 041 D (strict): and nCr | MODE33 EQ:nCr(28:4) XEQ RSALL | ERR %ERR=SYNTAX
+D16 | 041 D (strict): and HMS→ | MODE33 EQ:HMS→(1.3) XEQ RSALL | ERR %ERR=SYNTAX
+D17 | 041 D (strict): and RAND | MODE33 EQ:RAND XEQ RSALL | ERR %ERR=SYNTAX
+D18 | 041 D (strict): a 35s equation refuses CB | MODE35 EQ:CB(2) XEQ RSALL | ERR %ERR=SYNTAX
+D19 | 041 D (strict): and the colon | MODE35 EQ:IDIV(7:2) XEQ RSALL | ERR %ERR=SYNTAX
+D20 | 041 D (strict): and Cn,r | MODE35 EQ:Cn,r(28,4) XEQ RSALL | ERR %ERR=SYNTAX
+D21 | 041 D (strict): and →HR | MODE35 EQ:→HR(1.3) XEQ RSALL | ERR %ERR=SYNTAX
+D22 | 041 D (strict): and RANDOM | MODE35 EQ:RANDOM XEQ RSALL | ERR %ERR=SYNTAX
+D23 | 041 D (fresh eyes): in STU the 33s's names aren't names: CBRT(5) is C×B×R×T×(5) by implied ×, as before D (1, 2, 3, 4: 120) | 1 STO:C 2 STO:B 3 STO:R 4 STO:T STU EQ:CBRT(5) XEQ RSALL | X=120
+D36 | 041 D (fresh eyes): and CB(2) is C×B×(2) (C 2, B 3: 12) | 2 STO:C 3 STO:B STU EQ:CB(2) XEQ RSALL | X=12
 D24 | 041 D: 35s unchanged: nCr(28,4) | MODE35 EQ:nCr(28,4) XEQ | X=20475
 D25 | 041 D: 35s unchanged: HMS→(1.3) | MODE35 EQ:HMS→(1.3) XEQ | X=1.5
 D26 | 041 D: in 33s typing the keys type the 33s's names: nCr then , gives Cn,r(28:4) | MODE33 EQN NCR 28 , 4 ENTER | %EQ=Cn,r(28:4)
@@ -45,3 +47,16 @@ D32 | 041 D migration: a pre-D program line nCr(5,2), likewise | LOADFILE:tests/
 D33 | 041 D migration: an untouched 33 equation stays 33 (2×i: the 33s's variable i, 6) | LOADFILE:tests/golden-v12-041d.img EQN XEQ RS | X=12
 D34 | 041 D: a 33s equation's CB runs in 35s mode too (its stamp decides; the key is hidden there, the name isn't) | MODE33 EQ:CB(3) C MODE35 EQN XEQ | X=27
 D35 | 041 D: RANDOM takes no prompts (not R, A, N, D, O, M: the variable scan takes the longest name, as 015's O10 for RAND) | MODE33 EQ:RANDOM×0+1 XEQ | X=1 %STOP=DONE
+D37 | 041 D (fresh eyes): STU typing C, B, a pair, 2 stores C×B×(2), as before D (CB isn't a name in STU) | STU EQN RCL:C RCL:B () 2 ENTER | %EQ=C×B×(2)
+D38 | 041 D (fresh eyes; proposed): an equation edited in the other mode keeps its stamp and its names: a 33s Cn,r(5:2) edited in 35s mode, +1 appended, runs (11) | MODE33 EQ:Cn,r(5:2) C MODE35 EQN < + 1 ENTER XEQ | X=11
+D39 | 041 D (proposed): and a 35s nCr(5,2) edited in 33s mode, likewise | MODE35 EQ:nCr(5,2) C MODE33 EQN < + 1 ENTER XEQ | X=11
+# CAS on a 33s equation (fresh eyes): casim reads the 35s's spelling, so a 33s equation is checked by the 33s parse and
+# translated (colon to comma, Cn,r to nCr, ...); CB and CBRT, which casim lacks, are UNSUPPORTED. The results are what
+# casim gives the 35s spelling of the same equation (the pre-D core, e81615d, on the same keys), stamped STU.
+D40 | 041 D: CAS SIMP of a 33s X^2+IDIV(X:2) | MODE33 EQ:X^2+IDIV(X:2) C STU EQN CASSIMP | %EQ=IDIV(X,2)+X^2 %EQN=2
+D41 | 041 D: and of a 33s Cn,r(5:2)+X | MODE33 EQ:Cn,r(5:2)+X C STU EQN CASSIMP | %EQ=X+nCr(5,2)
+D42 | 041 D: a 33s equation with the 35s's comma: SYNTAX, as the 33s reads it | MODE33 EQ:X^2+IDIV(X,2) C STU EQN CASSIMP | ERR %ERR=SYNTAX %EQN=1
+D43 | 041 D: CB, which casim doesn't have: UNSUPPORTED CB | MODE33 EQ:CB(X) C STU EQN CASD:X | ERR %ERRMSG=UNSUPPORTED_CB %EQN=1
+D44 | 041 D migration (fresh eyes): a pre-D 33s REGX+1 (already refused by 041 A) stays 33 and refused: the spelling isn't the reason (tests/golden-v12-041d-regx.img, saved by 0138916, which also refuses it) | LOADFILE:tests/golden-v12-041d-regx.img 4 EQN XEQ | ERR %ERR=SYNTAX
+D45 | 041 D (fresh eyes): in 33s typing HMS→ types →HR( | MODE33 EQN HMSINV 1.3 ENTER | %EQ=→HR(1.3)
+D46 | 041 D (fresh eyes): and x³ types CB( | MODE33 EQN CUBE 2 ENTER | %EQ=CB(2)

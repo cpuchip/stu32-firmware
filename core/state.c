@@ -1239,6 +1239,39 @@ static bool parse(rd *r)
     return !r->bad;
 }
 
+/* Unit 041 D: an older image's 33-stamped equation, restamped 35 on load? Below version 11 (041 A's (a)): when the 33s
+   parse refuses it and the 35s parse takes it. At 11 and 12 (D): also only when the 33s parse takes it in the 33s's
+   spelling (the comma a colon, nCr Cn,r, nPr Pn,r, HMS→ →HR, RAND RANDOM), so the spelling was the reason. */
+static bool restamp33(ab_calc *c, const char *t, int version)
+{
+    ab_val v;
+    int pos;
+    if (eqn_eval(c, t, 33, false, true, &v, &pos) != ABN_SYNTAX || eqn_eval(c, t, 35, false, true, &v, &pos) != ABN_OK)
+        return false;
+    if (version < 11) return true;
+    static const char *const FROM[] = {"nCr", "nPr", "HMS\xe2\x86\x92", "RAND", ","};
+    static const char *const TO[] = {"Cn,r", "Pn,r", "\xe2\x86\x92HR", "RANDOM", ":"};
+    char u[AB_EQN_LEN];
+    size_t o = 0;
+    while (*t) {
+        size_t k = 0, n = 0;
+        for (; k < sizeof FROM / sizeof FROM[0]; k++)
+            if (!strncmp(t, FROM[k], n = strlen(FROM[k]))) break;
+        const char *w = k < sizeof FROM / sizeof FROM[0] ? TO[k] : NULL;
+        size_t m = w ? strlen(w) : 1;
+        if (o + m >= sizeof u) return false;
+        if (w) {
+            memcpy(u + o, w, m);
+            t += n;
+        } else {
+            u[o] = *t++;
+        }
+        o += m;
+    }
+    u[o] = '\0';
+    return eqn_eval(c, u, 33, false, true, &v, &pos) == ABN_OK;
+}
+
 abn_status ab_state_load(ab_calc *c, const uint8_t *buf, size_t len)
 {
     rd r;
@@ -1268,24 +1301,18 @@ abn_status ab_state_load(ab_calc *c, const uint8_t *buf, size_t len)
         if (c->prog[i].op == AB_EQLINE && !c->peqn_model[c->prog[i].arg]) c->peqn_model[c->prog[i].arg] = 35;  /* an entry shown stays shown in ALG (one
                                                                   that exists: a calc not from ab_init) */
     if (r.version < 13) {
-        /* an image from before unit 041 (abacus #4799 ruling (a)): an equation stamped 33 that the 33s parse now
-           refuses (a 35s feature: REGX, AND, a vector, ...) but the 35s parse takes is restamped 35, so a line
-           already written keeps working; its meaning is unchanged (both read left to right). Others keep 33.
-           From before 041 D (version 13, abacus #4880): the same, for the 35s's spellings the 33s's equations now
-           refuse (the comma, nCr, nPr, HMS→, RAND). */
-        ab_val v;
-        int pos;
+        /* an image from before unit 041 (version below 11, abacus #4799 ruling (a)): an equation stamped 33 that the
+           33s parse now refuses (a 35s feature: REGX, AND, a vector, ...) but the 35s parse takes is restamped 35, so
+           a line already written keeps working; its meaning is unchanged (both read left to right). Others keep 33.
+           From before 041 D (11 or 12, abacus #4880): the same, but only where the 35s's spelling is the reason
+           (the comma, nCr, nPr, HMS→, RAND): one 041 A already refused stays refused (fresh eyes). */
         for (int i = 0; i < c->eqn_count; i++)
-            if (c->eqn_model[i] == 33 && c->eqn[i][0] != '\x01' &&
-                eqn_eval(c, c->eqn[i], 33, false, true, &v, &pos) == ABN_SYNTAX &&
-                eqn_eval(c, c->eqn[i], 35, false, true, &v, &pos) == ABN_OK)
+            if (c->eqn_model[i] == 33 && c->eqn[i][0] != '\x01' && restamp33(c, c->eqn[i], r.version))
                 c->eqn_model[i] = 35;
         for (int i = 0; i < c->prog_len; i++) {
             if (c->prog[i].op != AB_EQLINE) continue;
             int k = c->prog[i].arg;
-            if (c->peqn_model[k] == 33 && eqn_eval(c, c->peqn[k], 33, false, true, &v, &pos) == ABN_SYNTAX &&
-                eqn_eval(c, c->peqn[k], 35, false, true, &v, &pos) == ABN_OK)
-                c->peqn_model[k] = 35;
+            if (c->peqn_model[k] == 33 && restamp33(c, c->peqn[k], r.version)) c->peqn_model[k] = 35;
         }
     }
     if (!r.mode25) {

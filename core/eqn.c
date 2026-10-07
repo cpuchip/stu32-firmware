@@ -71,6 +71,14 @@ static int name_model(const char *name)
     return 0;
 }
 
+/* Whether name is a name in an equation of model m: the other model's spellings aren't (041 D; fresh eyes: in STU,
+   CB(2) is C×B×(2), RANDOM is RAND×O×M, as before D; in a 35s equation C B is refused as adjacent letters). */
+static bool name_in(const char *name, int m)
+{
+    int nm = name_model(name);
+    return !(nm == 33 && m != 33) && !(nm == 35 && m == 33);
+}
+
 /* The keyboard operation of each name (unit 015: an equation's operations are the keys'). */
 static const ab_op OPS[] = {
     [F_CUBE] = AB_CUBE, [F_CBRT] = AB_CBRT,         /* unit 041 D */
@@ -385,7 +393,8 @@ static void parse_prim(parser *p, ab_val *v)
         size_t bl = 0;
         for (size_t k = 0; k < sizeof NAMES / sizeof NAMES[0]; k++) {
             size_t n = strlen(NAMES[k].name);
-            if (n > bl && strncmp(s, NAMES[k].name, n) == 0 && (NAMES[k].kind == K0 || s[n] == '(')) {
+            if (n > bl && strncmp(s, NAMES[k].name, n) == 0 && (NAMES[k].kind == K0 || s[n] == '(') &&
+                name_in(NAMES[k].name, p->m33 ? 33 : 35)) {
                 best = (int)k;
                 bl = n;
             }
@@ -394,11 +403,6 @@ static void parse_prim(parser *p, ab_val *v)
             const fname *f = &NAMES[best];
             p->i += (int)bl;
             if (p->m33 && m33_hidden(f->id)) {  /* a 35s feature, in an equation typed in 33s mode (041 A) */
-                fail(p, ABN_SYNTAX);
-                return;
-            }
-            int nm = name_model(f->name);       /* the other model's spelling (041 D) */
-            if ((nm == 33 && !p->m33) || (nm == 35 && p->m33)) {
                 fail(p, ABN_SYNTAX);
                 return;
             }
@@ -572,7 +576,9 @@ static bool implied_here(const parser *p)
     if (*s == 'b' || *s == 'o' || *s == 'd' || *s == 'h') return false;
     for (size_t k = 0; k < sizeof NAMES / sizeof NAMES[0]; k++) {
         size_t n = strlen(NAMES[k].name);
-        if (strncmp(s, NAMES[k].name, n) == 0 && (NAMES[k].kind == K0 || s[n] == '(')) return true;
+        if (strncmp(s, NAMES[k].name, n) == 0 && (NAMES[k].kind == K0 || s[n] == '(') &&
+            name_in(NAMES[k].name, p->m33 ? 33 : 35))
+            return true;
     }
     return false;
 }
@@ -667,13 +673,14 @@ int eqn_write_implied(ab_calc *c, const char *text, char *out, int size)
     return 1;
 }
 
-bool eqn_has_chain(ab_calc *c, const char *text)
+bool eqn_has_chain(ab_calc *c, const char *text, int model)
 {
     parser p;
     ab_val l;
     memset(&p, 0, sizeof p);
     p.c = c;
     p.s = text;
+    p.m33 = model == 33;                        /* its names and separator (041 D; fresh eyes) */
     p.check = true;
     p.st = ABN_OK;
     parse_all(&p, false, &l);
@@ -687,7 +694,7 @@ int eqn_assign_var(const char *text, bool with_i)
     return text[0] >= 'A' && text[0] <= 'Z' && text[1] == '=' ? text[0] - 'A' : -1;
 }
 
-int eqn_vars(const char *text, bool rhs_only, bool with_i, int out[27])
+int eqn_vars(const char *text, bool rhs_only, bool with_i, int model, int out[27])
 {
     bool seen[27] = {false};
     int n = 0;
@@ -702,7 +709,8 @@ int eqn_vars(const char *text, bool rhs_only, bool with_i, int out[27])
         size_t best = 0;                        /* the longest, as the parser (RANDOM, not RAND then O M: 041 D) */
         for (size_t k = 0; k < sizeof NAMES / sizeof NAMES[0]; k++) {
             size_t len = strlen(NAMES[k].name);
-            if (len > best && strncmp(s, NAMES[k].name, len) == 0 && (NAMES[k].kind == K0 || s[len] == '('))
+            if (len > best && strncmp(s, NAMES[k].name, len) == 0 && (NAMES[k].kind == K0 || s[len] == '(') &&
+                name_in(NAMES[k].name, model))
                 best = len;
         }
         if (best) {

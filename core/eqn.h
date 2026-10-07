@@ -32,7 +32,7 @@
 /* The variables an equation uses, in order of first appearance (UG p.6-13); with rhs_only, those
    right of an assignment's = only (the ENTER prompts, p.6-11); with with_i (33s mode, unit 025), a
    lone i is the variable i, 26 (33s p.13-23). Returns the count. */
-int eqn_vars(const char *text, bool rhs_only, bool with_i, int out[27]);
+int eqn_vars(const char *text, bool rhs_only, bool with_i, int model, int out[27]);    /* model: its names (041 D) */
 
 /* The length in bytes of a function name and its "(" ending at byte pos of s, or 0 (for the
    editor's backspace, which removes a function as one element). */
@@ -53,6 +53,6 @@ abn_status eqn_eval(ab_calc *c, const char *text, int model, bool rhs_only, bool
    0 when the text does not parse (a message, kept as typed: answer J); -1 when it would not fit
    (answer I). eqn_has_chain: whether the text has a^b^c at one level (rule 3's mark). */
 int eqn_write_implied(ab_calc *c, const char *text, char *out, int size);
-bool eqn_has_chain(ab_calc *c, const char *text);
+bool eqn_has_chain(ab_calc *c, const char *text, int model);
 
 #endif
