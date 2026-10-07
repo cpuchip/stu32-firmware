@@ -11,6 +11,8 @@
 #include "draw.h"
 #include "font5x7.h"
 
+/* The reference's arithmetic is long long: long is 32 bits on the chip, where (long)x1 - x0 overflowed and the
+   reference itself went wrong (soroban, the S3 run). */
 #ifdef ESP_PLATFORM                             /* on the chip (tests/device): the frames in PSRAM, so internal RAM
                                                    still holds the test task's stack (soroban) */
 #include "esp_attr.h"
@@ -49,7 +51,7 @@ static int get(const ls027_frame *f, int x, int y)
 {
     return (f->px[y][x / 8] >> (x % 8)) & 1;
 }
-static void put(ls027_frame *f, long x, long y, int dark)
+static void put(ls027_frame *f, long long x, long long y, int dark)
 {
     if (x < 0 || x >= LS027_W || y < 0 || y >= LS027_H)
         return;
@@ -60,8 +62,8 @@ static void put(ls027_frame *f, long x, long y, int dark)
 }
 static void ref_fill(ls027_frame *f, int x, int y, int w, int h, draw_shade s)
 {
-    for (long r = y; r < (long)y + h; r++)
-        for (long c = x; c < (long)x + w; c++) {
+    for (long long r = y; r < (long long)y + h; r++)
+        for (long long c = x; c < (long long)x + w; c++) {
             uint8_t byte = (uint8_t)((r & 1) ? s >> 8 : s & 0xff);
             put(f, c, r, (byte >> ((c % 8 + 8) % 8)) & 1);
         }
@@ -71,7 +73,7 @@ static void ref_blit(ls027_frame *f, int x, int y, const uint8_t *bits, int w, i
     int stride = (w + 7) / 8;
     for (int r = 0; r < h; r++)
         for (int c = 0; c < w; c++) {
-            long px = (long)x + c, py = (long)y + r;
+            long long px = (long long)x + c, py = (long long)y + r;
             if (px < 0 || px >= LS027_W || py < 0 || py >= LS027_H)
                 continue;
             int on = (bits[r * stride + c / 8] >> (c % 8)) & 1, old = get(f, (int)px, (int)py);
@@ -89,7 +91,7 @@ static void ref_text(ls027_frame *f, int x, int y, int scale, const char *s, int
                         if (FONT5X7[i].rows[r] & (0x10 >> c))
                             for (int sy = 0; sy < scale; sy++)
                                 for (int sx = 0; sx < scale; sx++)
-                                    put(f, (long)x + c * scale + sx, (long)y + r * scale + sy, dark);
+                                    put(f, (long long)x + c * scale + sx, (long long)y + r * scale + sy, dark);
                 break;
             }
 }
@@ -117,8 +119,8 @@ static void line_props(int x0, int y0, int x1, int y1)
             if (get(&l, x, y)) {
                 n++;
                 /* within half a pixel of the true line, measured on the minor axis */
-                long dx = (long)x1 - x0, dy = (long)y1 - y0;
-                if (labs(dx) >= labs(dy) && dx != 0) {
+                long long dx = (long long)x1 - x0, dy = (long long)y1 - y0;
+                if (llabs(dx) >= llabs(dy) && dx != 0) {
                     double ty = y0 + (double)dy * (x - x0) / (double)dx;
                     CHECK(ty - y <= 0.5 + 1e-9 && y - ty <= 0.5 + 1e-9, "line (%d,%d)-(%d,%d): pixel (%d,%d) off", x0, y0, x1, y1, x, y);
                 } else if (dy != 0) {
@@ -155,8 +157,8 @@ static void line_props(int x0, int y0, int x1, int y1)
     }
     int on = x0 >= 0 && x0 < LS027_W && y0 >= 0 && y0 < LS027_H && x1 >= 0 && x1 < LS027_W && y1 >= 0 && y1 < LS027_H;
     if (on) {
-        long want = labs((long)x1 - x0) > labs((long)y1 - y0) ? labs((long)x1 - x0) + 1 : labs((long)y1 - y0) + 1;
-        CHECK(n == want, "line (%d,%d)-(%d,%d): %d pixels, want %ld", x0, y0, x1, y1, n, want);
+        long long want = llabs((long long)x1 - x0) > llabs((long long)y1 - y0) ? llabs((long long)x1 - x0) + 1 : llabs((long long)y1 - y0) + 1;
+        CHECK(n == want, "line (%d,%d)-(%d,%d): %d pixels, want %lld", x0, y0, x1, y1, n, want);
         CHECK(get(&l, x0, y0) && get(&l, x1, y1), "line (%d,%d)-(%d,%d): an end unset", x0, y0, x1, y1);
     }
 }
