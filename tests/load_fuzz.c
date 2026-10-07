@@ -45,10 +45,13 @@ static void random_key(ab_calc *c)
         static const ab_op L[] = {AB_MODEL, AB_ENTRYM, AB_ANS, AB_HUP, AB_HDOWN,
                                   AB_TABLE, AB_TVAR, AB_TSTART, AB_TSTEP, AB_TUP, AB_TDOWN,    /* (032) */
                                   AB_GRAPH, AB_XMIN, AB_XMAX, AB_YMIN, AB_YMAX, AB_GAUTO, AB_GLEFT, AB_GRIGHT,
-                                  AB_CMPLX};                                                    /* (039) */
-        op = L[below(20)];
+                                  AB_CMPLX,                                                     /* (039) */
+                                  AB_GZOOM, AB_GMOVE, AB_GTRACE, AB_GMARK, AB_GFACT, AB_GFCN};  /* (040) */
+        op = L[below(26)];
         arg = op == AB_MODEL ? (int[]){33, 35, AB_MODEL_STU}[below(3)] : op == AB_ENTRYM ? (int)below(2) :
-              op == AB_TVAR ? AB_VAR_A + (int)below(26) : op == AB_CMPLX ? (int)below(AB_CXP_N) : 0;
+              op == AB_TVAR ? AB_VAR_A + (int)below(26) : op == AB_CMPLX ? (int)below(AB_CXP_N) :
+              op == AB_GZOOM ? (int)below(AB_Z_N) : op == AB_GMOVE ? 1 + (int)below(19) :
+              op == AB_GFACT ? (int)below(102) : op == AB_GFCN ? (int)below(AB_F_N) : 0;
     }
     switch (op) {
     case AB_LBL: case AB_FN: arg = (int)below(26); break;

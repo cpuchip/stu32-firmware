@@ -37,7 +37,7 @@ static const ab_op V1_OPS[] = {
 #define V1_N ((int)(sizeof V1_OPS / sizeof V1_OPS[0]))
 
 enum { T_MODES = 1, T_STACK, T_VARS, T_STAT, T_IND, T_PROG, T_EQNS, T_ENTRY, T_EDITOR, T_RUN, T_SOLVE, T_MODE25, T_ALG,
-       T_EQMODEL, T_TABLE, T_GRAPH };
+       T_EQMODEL, T_TABLE, T_GRAPH, T_ZOOM };
 
 #define BUILTIN2 "\x01" "2*2 lin. solve"
 #define BUILTIN3 "\x01" "3*3 lin. solve"
@@ -378,6 +378,25 @@ size_t ab_state_save(const ab_calc *c, uint8_t *buf, size_t cap)
     w16(&w, (unsigned)c->gr_cur);
     sec_end(&w, s);
 
+    s = sec_begin(&w, T_ZOOM);                  /* version 10 (unit 040): the plot screen's cursor, zooms, tool */
+    w16(&w, (unsigned)c->gr_row);
+    w8(&w, c->gr_trace);
+    w8(&w, c->gr_mark);
+    w16(&w, (unsigned)c->gr_mcol);
+    w16(&w, (unsigned)c->gr_mrow);
+    wnum(&w, &c->gr_hf);
+    wnum(&w, &c->gr_vf);
+    w8(&w, c->gr_has_last);
+    w8(&w, c->gr_last_auto);
+    wnum(&w, &c->gr_lxmin);
+    wnum(&w, &c->gr_lxmax);
+    wnum(&w, &c->gr_lymin);
+    wnum(&w, &c->gr_lymax);
+    w8(&w, (unsigned)c->gr_res_kind);
+    wnum(&w, &c->gr_res);
+    wnum(&w, &c->gr_res_b);
+    sec_end(&w, s);
+
     {
         size_t total = w.len + 4;
         for (int i = 0; i < 4; i++)
@@ -558,6 +577,7 @@ bool ab_line_ok(ab_op op, int32_t arg)
     case AB_TABLE: case AB_TVAR: case AB_TSTART: case AB_TSTEP: case AB_TUP: case AB_TDOWN:      /* (032) */
     case AB_GRAPH: case AB_XMIN: case AB_XMAX: case AB_YMIN: case AB_YMAX: case AB_GAUTO: case AB_GLEFT:
     case AB_GRIGHT:                                                                            /* (033) */
+    case AB_GZOOM: case AB_GMOVE: case AB_GTRACE: case AB_GMARK: case AB_GFACT: case AB_GFCN:          /* (040) */
     case AB_FRACFMT: case AB_CLEQN:     /* nonprogrammable since 019 and 021 (load_fuzz's line sweep) */
         return false;
     case AB_CLVARX:
@@ -780,6 +800,34 @@ static void sec_graph(rd *r)
     r->c->gr_eq = eq;
     r->c->gr_v = v;
     r->c->gr_cur = cur;
+}
+
+static void sec_zoom(rd *r)
+{
+    abn hf, vf, l0, l1, l2, l3, res, rb, one = abn_from_int(1), hundred = abn_from_int(100);
+    int row = (int)r16(r);
+    unsigned tr = r8(r), mk = r8(r);
+    int mcol = (int)r16(r), mrow = (int)r16(r);
+    rnum(r, &hf);
+    rnum(r, &vf);
+    unsigned hl = r8(r), la = r8(r);
+    rnum(r, &l0);
+    rnum(r, &l1);
+    rnum(r, &l2);
+    rnum(r, &l3);
+    unsigned rk = r8(r);
+    rnum(r, &res);
+    rnum(r, &rb);
+    need(r, row < AB_GRAPH_H && flag_byte(tr) && flag_byte(mk) && mcol < AB_GRAPH_W && mrow < AB_GRAPH_H &&
+                flag_byte(hl) && flag_byte(la) && rk <= AB_F_N);
+    /* the factors as ZFACT sets them: integers 1 to 100 */
+    need(r, !r->bad && abn_is_integer(&hf) && abn_is_integer(&vf) && abn_cmp(&hf, &one) >= 0 && abn_cmp(&vf, &one) >= 0 &&
+                abn_cmp(&hf, &hundred) <= 0 && abn_cmp(&vf, &hundred) <= 0);
+    if (r->bad || !r->c) return;
+    r->c->gr_row = row, r->c->gr_trace = tr, r->c->gr_mark = mk, r->c->gr_mcol = mcol, r->c->gr_mrow = mrow;
+    r->c->gr_hf = hf, r->c->gr_vf = vf, r->c->gr_has_last = hl, r->c->gr_last_auto = la;
+    r->c->gr_lxmin = l0, r->c->gr_lxmax = l1, r->c->gr_lymin = l2, r->c->gr_lymax = l3;
+    r->c->gr_res_kind = (int)rk, r->c->gr_res = res, r->c->gr_res_b = rb;
 }
 
 static void sec_vars(rd *r)
@@ -1068,7 +1116,7 @@ static bool parse(rd *r)
         unsigned tag = r16(r);
         uint32_t size = r32(r);
         size_t end;
-        if (r->bad || tag <= last || tag > T_GRAPH || size > r->len - r->pos) return false;
+        if (r->bad || tag <= last || tag > T_ZOOM || size > r->len - r->pos) return false;
         last = tag;
         end = r->pos + size;
         switch (tag) {
@@ -1100,6 +1148,10 @@ static bool parse(rd *r)
             break;
         case T_GRAPH:
             if (r->version >= 9) sec_graph(r);
+            else r->pos = end;
+            break;
+        case T_ZOOM:
+            if (r->version >= 10) sec_zoom(r);
             else r->pos = end;
             break;
         default: sec_solve(r); break;

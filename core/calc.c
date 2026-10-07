@@ -55,6 +55,9 @@ static void init_fields(ab_calc *c, bool keep_hist)
     c->gr_auto = true;
     c->gr_eq = c->gr_v = -1;
     c->gr_cur = AB_GRAPH_W / 2;
+    c->gr_row = AB_GRAPH_CROW;      /* unit 040: the cursor home, TRACE on, the factors 4, no ZLAST */
+    c->gr_trace = true;
+    c->gr_hf = c->gr_vf = abn_from_int(4);
     c->angle = AB_ANGLE_DEG;    /* and is in degrees (UG p.B-4) */
     c->disp_mode = AB_ALL;      /* ALL is the default display (ours, unit 002) */
     c->disp_n = 0;
@@ -1235,7 +1238,7 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg);
 static abn_status table_key(ab_calc *c, ab_op op);    /* unit 032 (at the end) */
 static abn_status table_go(ab_calc *c);
 static abn_status graph_go(ab_calc *c);         /* unit 033 (at the end) */
-static abn_status graph_key(ab_calc *c, ab_op op);
+static abn_status graph_key(ab_calc *c, ab_op op, int arg);
 static void num_text(const abn *a, char *out, int size);     /* unit 032b (at the end) */
 
 static void prog_labels(ab_calc *c)
@@ -3011,6 +3014,7 @@ static abn_status program_key(ab_calc *c, ab_op op, int arg)
     case AB_TABLE: case AB_TVAR: case AB_TSTART: case AB_TSTEP: case AB_TUP: case AB_TDOWN:   /* 032 */
     case AB_GRAPH: case AB_XMIN: case AB_XMAX: case AB_YMIN: case AB_YMAX: case AB_GAUTO: case AB_GLEFT:
     case AB_GRIGHT:                                                                      /* 033 */
+    case AB_GZOOM: case AB_GMOVE: case AB_GTRACE: case AB_GMARK: case AB_GFACT: case AB_GFCN:    /* 040 */
         return ABN_NONPROGRAMMABLE;
     case AB_FDISP:
     case AB_CLALL:                          /* in program entry the menu offers CLPGM in its place
@@ -3857,7 +3861,7 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
                                                    033), each with a fresh error record and overflow count */
         c->err_set = false;
         c->ovf = 0;
-        st = c->tbl_on ? table_key(c, op) : graph_key(c, op);
+        st = c->tbl_on ? table_key(c, op) : graph_key(c, op, arg);
         goto done;
     }
     if (op == AB_SHOW) return ABN_OK;           /* unit 030: SHOW changes nothing, in program entry too
@@ -4475,6 +4479,7 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
     case AB_TDOWN:
     case AB_GLEFT:
     case AB_GRIGHT:
+    case AB_GZOOM: case AB_GMOVE: case AB_GTRACE: case AB_GMARK: case AB_GFACT: case AB_GFCN:    /* 040 */
         return ABN_OK;                              /* the line's, the table's, the graph's own keys: nothing */
     case AB_GRAPH:
         return graph_go(c);
@@ -5101,11 +5106,224 @@ int ab_graph_form(const ab_calc *c, int e)
     return strchr(t, '=') ? -1 : 0;
 }
 
-abn_status ab_graph_cursor(ab_calc *c, abn *x, abn *y)       /* unit 040 (red: a stub) */
+/* ---- unit 040: the plot screen's cursor and zooms (50g guide p.12-47 to 12-49; the formulas pinned in
+   work/040-vectors.txt's header) ---- */
+
+/* A row's y: d = YMAX - YMIN, t = row d, u = t / 184, y = YMAX - u, each rounded once (an overflow the largest, as
+   graph_x; nothing set). */
+static abn_status graph_rowy(ab_calc *c, int row, const abn *ymin, const abn *ymax, abn *y)
 {
-    (void)c;
-    *x = *y = abn_zero();
-    return ABN_DOMAIN;
+    abn d, t, u, k = abn_from_int(row), n = abn_from_int(AB_GRAPH_H - 1);
+    uint16_t flags = c->flags;
+    int ovf = c->ovf;
+    abn_status st = settle(c, abn_sub(&d, ymax, ymin), &d, abn_overflow_negative());
+    if (st == ABN_OK) st = settle(c, abn_mul(&t, &k, &d), &t, abn_overflow_negative());
+    if (st == ABN_OK) st = settle(c, abn_div(&u, &t, &n), &u, abn_overflow_negative());
+    if (st == ABN_OK) st = settle(c, abn_sub(y, ymax, &u), y, abn_overflow_negative());
+    c->flags = flags;
+    c->ovf = ovf;
+    return st;
+}
+
+/* The row the cursor shows: TRACE's on the curve (its row, -1 when off the window or erring), else its own. */
+static int graph_vrow(ab_calc *c, const abn *ymin, const abn *ymax)
+{
+    abn x;
+    ab_val v;
+    if (!c->gr_trace) return c->gr_row;
+    if (graph_sample(c, c->gr_cur, &x, &v, true) != ABN_OK) return -1;
+    return ab_graph_row(&v.re, ymin, ymax);
+}
+
+abn_status ab_graph_cursor(ab_calc *c, abn *x, abn *y)
+{
+    abn lo, hi;
+    ab_val v;
+    if (c->gr_trace) {
+        abn_status st = graph_sample(c, c->gr_cur, x, &v, true);
+        *y = st == ABN_OK ? v.re : abn_zero();
+        return st;
+    }
+    abn_status st = graph_x(c, c->gr_cur, x);
+    if (st != ABN_OK) return st;
+    ab_graph_window(c, &lo, &hi);
+    return graph_rowy(c, c->gr_row, &lo, &hi, y);
+}
+
+/* r = v rounded to an integer, half even (exact). */
+static void round_even(abn *r, const abn *v)
+{
+    abn f, fr, half, one = abn_from_int(1), two = abn_from_int(2), q, qf;
+    abn_floor(&f, v);
+    abn_sub(&fr, v, &f);
+    abn_from_text(&half, "0.5");
+    int k = abn_cmp(&fr, &half);
+    *r = f;
+    if (k > 0) abn_add(r, &f, &one);
+    else if (k == 0 && (abn_div(&q, &f, &two), abn_floor(&qf, &q), abn_cmp(&q, &qf) != 0)) abn_add(r, &f, &one);
+}
+
+/* An arithmetic step of a zoom, an overflow the largest and an underflow 0 (as the window's own, unit 033). */
+#define ZS(expr, r) clamp_big((expr), (r), abn_overflow_negative())
+
+/* The window about the cursor (cx, cy) with spans wx and wy (NULL: that direction kept): t = wx 200, u = t / 399,
+   XMIN = cx - u, XMAX = XMIN + wx; h = wy / 2, YMAX = cy + h, YMIN = YMAX - wy. The cursor then at (200, 92). */
+static void zoom_about(ab_calc *c, const abn *cx, const abn *cy, const abn *wx, const abn *wy)
+{
+    abn t, u, h, k200 = abn_from_int(200), n399 = abn_from_int(AB_GRAPH_W - 1), two = abn_from_int(2);
+    if (wx) {
+        ZS(abn_mul(&t, wx, &k200), &t);
+        ZS(abn_div(&u, &t, &n399), &u);
+        ZS(abn_sub(&c->gr_xmin, cx, &u), &c->gr_xmin);
+        ZS(abn_add(&c->gr_xmax, &c->gr_xmin, wx), &c->gr_xmax);
+    }
+    if (wy) {
+        ZS(abn_div(&h, wy, &two), &h);
+        ZS(abn_add(&c->gr_ymax, cy, &h), &c->gr_ymax);
+        ZS(abn_sub(&c->gr_ymin, &c->gr_ymax, wy), &c->gr_ymin);
+        c->gr_auto = false;
+    }
+}
+
+static abn_status graph_zoom(ab_calc *c, int kind)
+{
+    abn ylo, yhi, cx, cy, sx, sy, w, v, t;
+    abn n399 = abn_from_int(AB_GRAPH_W - 1), n184 = abn_from_int(AB_GRAPH_H - 1), two = abn_from_int(2);
+    abn_status st;
+    if (kind < 0 || kind >= AB_Z_N) return ABN_DOMAIN;
+    ab_graph_window(c, &ylo, &yhi);             /* the window as drawn (a fitted Y its values) */
+    if (kind == AB_Z_LAST) {
+        if (!c->gr_has_last) return ABN_DOMAIN;
+        abn a = c->gr_xmin, b = c->gr_xmax;
+        bool au = c->gr_auto;
+        c->gr_xmin = c->gr_lxmin, c->gr_xmax = c->gr_lxmax, c->gr_ymin = c->gr_lymin, c->gr_ymax = c->gr_lymax;
+        c->gr_auto = c->gr_last_auto;
+        c->gr_lxmin = a, c->gr_lxmax = b, c->gr_lymin = ylo, c->gr_lymax = yhi, c->gr_last_auto = au;
+        c->gr_cur = AB_GRAPH_W / 2, c->gr_row = AB_GRAPH_CROW;
+        return ABN_OK;
+    }
+    if ((st = graph_x(c, c->gr_cur, &cx)) != ABN_OK) return st;
+    {   /* the cursor's y: with TRACE the curve's value at its x (the zoom centres the point itself); free, or
+           where the curve errs, its row's */
+        ab_val fv;
+        abn fx;
+        if (c->gr_trace && graph_sample(c, c->gr_cur, &fx, &fv, true) == ABN_OK) cy = fv.re;
+        else if ((st = graph_rowy(c, c->gr_trace ? AB_GRAPH_CROW : c->gr_row, &ylo, &yhi, &cy)) != ABN_OK) return st;
+    }
+    abn bx0 = abn_zero(), bx1 = abn_zero(), by0 = abn_zero(), by1 = abn_zero();
+    if (kind == AB_Z_BOX) {                     /* the mark's and the cursor's x and y, low to high */
+        abn mx, my;
+        if (!c->gr_mark) return ABN_DOMAIN;
+        if ((st = graph_x(c, c->gr_mcol, &mx)) != ABN_OK || (st = graph_rowy(c, c->gr_mrow, &ylo, &yhi, &my)) != ABN_OK)
+            return st;
+        int kx = abn_cmp(&mx, &cx), ky = abn_cmp(&my, &cy);
+        if (kx == 0 || ky == 0) return ABN_DOMAIN;      /* a flat box */
+        bx0 = kx < 0 ? mx : cx, bx1 = kx < 0 ? cx : mx, by0 = ky < 0 ? my : cy, by1 = ky < 0 ? cy : my;
+    }
+    /* ZLAST's window: this one as drawn */
+    c->gr_lxmin = c->gr_xmin, c->gr_lxmax = c->gr_xmax, c->gr_lymin = ylo, c->gr_lymax = yhi;
+    c->gr_last_auto = c->gr_auto;
+    c->gr_has_last = true;
+    c->gr_ymin = ylo, c->gr_ymax = yhi;         /* (a fitted Y held at its values unless refitted) */
+    bool keep_auto = c->gr_auto;
+    ZS(abn_sub(&sx, &c->gr_xmax, &c->gr_xmin), &sx);
+    ZS(abn_sub(&sy, &yhi, &ylo), &sy);
+    switch (kind) {
+    case AB_Z_IN: case AB_Z_OUT: case AB_Z_HIN: case AB_Z_HOUT: case AB_Z_VIN: case AB_Z_VOUT: case AB_Z_CNTR: {
+        bool in = kind == AB_Z_IN || kind == AB_Z_HIN || kind == AB_Z_VIN;
+        bool cn = kind == AB_Z_CNTR;
+        bool hx = kind != AB_Z_VIN && kind != AB_Z_VOUT, hy = kind != AB_Z_HIN && kind != AB_Z_HOUT;
+        if (cn) w = sx, v = sy;
+        else if (in) ZS(abn_div(&w, &sx, &c->gr_hf), &w), ZS(abn_div(&v, &sy, &c->gr_vf), &v);
+        else ZS(abn_mul(&w, &sx, &c->gr_hf), &w), ZS(abn_mul(&v, &sy, &c->gr_vf), &v);
+        zoom_about(c, &cx, &cy, hx ? &w : NULL, hy ? &v : NULL);
+        if (!hy) c->gr_auto = keep_auto;        /* x only: a fitted Y refits */
+        break;
+    }
+    case AB_Z_BOX:
+        c->gr_xmin = bx0, c->gr_xmax = bx1, c->gr_ymin = by0, c->gr_ymax = by1, c->gr_auto = false;
+        c->gr_mark = false;
+        break;
+    case AB_Z_AUTO:
+        c->gr_auto = true;
+        break;
+    case AB_Z_DFLT:                             /* 033's: X -10..10, Y fitted */
+        c->gr_xmin = abn_from_int(-10), c->gr_xmax = abn_from_int(10), c->gr_auto = true;
+        break;
+    case AB_Z_DECI: {                           /* step = span / 399 to the nearest of 1, 2, 5 x 10^k */
+        abn q, m, mant, p10, step, r;
+        bool neg;
+        char d[ABN_DIGITS + 1], e[24];
+        int lead;
+        ZS(abn_div(&q, &sx, &n399), &q);
+        if (abn_is_zero(&q) || abn_is_negative(&q)) return ABN_DOMAIN;
+        abn_digits(&q, &neg, d, &lead);
+        snprintf(e, sizeof e, "1E%d", lead);
+        abn_from_text(&p10, e);
+        abn_div(&m, &q, &p10);                  /* the mantissa, 1 <= m < 10 (exact: a power of ten) */
+        abn b15, b35, b75;
+        abn_from_text(&b15, "1.5"), abn_from_text(&b35, "3.5"), abn_from_text(&b75, "7.5");
+        mant = abn_from_int(abn_cmp(&m, &b15) < 0 ? 1 : abn_cmp(&m, &b35) < 0 ? 2 : abn_cmp(&m, &b75) < 0 ? 5 : 10);
+        ZS(abn_mul(&step, &mant, &p10), &step);
+        ZS(abn_div(&t, &c->gr_xmin, &step), &t);
+        round_even(&r, &t);
+        ZS(abn_mul(&c->gr_xmin, &r, &step), &c->gr_xmin);
+        ZS(abn_mul(&t, &n399, &step), &t);
+        ZS(abn_add(&c->gr_xmax, &c->gr_xmin, &t), &c->gr_xmax);
+        c->gr_auto = keep_auto;
+        break;
+    }
+    case AB_Z_INTG: {                           /* a column a unit and a row a unit about the rounded cursor */
+        abn rx, ry, k199 = abn_from_int(199), k92 = abn_from_int(AB_GRAPH_CROW);
+        round_even(&rx, &cx);
+        round_even(&ry, &cy);
+        ZS(abn_sub(&c->gr_xmin, &rx, &k199), &c->gr_xmin);
+        ZS(abn_add(&c->gr_xmax, &c->gr_xmin, &n399), &c->gr_xmax);
+        ZS(abn_add(&c->gr_ymax, &ry, &k92), &c->gr_ymax);
+        ZS(abn_sub(&c->gr_ymin, &c->gr_ymax, &n184), &c->gr_ymin);
+        c->gr_auto = false;
+        break;
+    }
+    case AB_Z_SQR: {                            /* the x span 399 (YMAX - YMIN) / 184 about the x centre; y kept */
+        abn q, sp, mid, h;
+        ZS(abn_div(&q, &sy, &n184), &q);
+        ZS(abn_mul(&sp, &q, &n399), &sp);
+        ZS(abn_div(&t, &sx, &two), &t);
+        ZS(abn_add(&mid, &c->gr_xmin, &t), &mid);
+        ZS(abn_div(&h, &sp, &two), &h);
+        ZS(abn_sub(&c->gr_xmin, &mid, &h), &c->gr_xmin);
+        ZS(abn_add(&c->gr_xmax, &mid, &h), &c->gr_xmax);
+        c->gr_auto = false;
+        break;
+    }
+    default: {                                  /* AB_Z_TRIG: -pi..pi, y kept */
+        abn pi;
+        abn_from_text(&pi, "3.141592653589793238462643383279503");
+        c->gr_xmin = abn_neg(&pi), c->gr_xmax = pi;
+        c->gr_auto = keep_auto;
+        break;
+    }
+    }
+    c->gr_cur = AB_GRAPH_W / 2, c->gr_row = AB_GRAPH_CROW;
+    c->gr_res_kind = 0;
+    return ABN_OK;
+}
+
+/* The cursor by a numpad digit (8 up, 2 down, 4 left, 6 right, the corners diagonal, 5 home); +10: ten pixels.
+   With TRACE only across. Stops at the edges. */
+static abn_status graph_move(ab_calc *c, int arg)
+{
+    static const int DX[10] = {0, -1, 0, 1, -1, 0, 1, -1, 0, 1}, DY[10] = {0, 1, 1, 1, 0, 0, 0, -1, -1, -1};
+    int d = arg % 10, n = arg >= 10 ? 10 : 1;
+    if (arg < 1 || arg > 19 || d == 0) return ABN_DOMAIN;
+    if (d == 5) {
+        c->gr_cur = AB_GRAPH_W / 2, c->gr_row = AB_GRAPH_CROW;
+        return ABN_OK;
+    }
+    int col = c->gr_cur + DX[d] * n, row = c->gr_row + (c->gr_trace ? 0 : DY[d] * n);
+    c->gr_cur = col < 0 ? 0 : col > AB_GRAPH_W - 1 ? AB_GRAPH_W - 1 : col;
+    c->gr_row = row < 0 ? 0 : row > AB_GRAPH_H - 1 ? AB_GRAPH_H - 1 : row;
+    return ABN_OK;
 }
 
 /* GO (unit 033): the equation shown or last shown, against TABLE's variable (or the first of what is
@@ -5132,6 +5350,10 @@ static abn_status graph_go(ab_calc *c)
     c->gr_eq = e;
     c->gr_v = v;
     c->gr_cur = AB_GRAPH_W / 2;
+    c->gr_row = AB_GRAPH_CROW;      /* unit 040: the cursor home on the curve, no mark, no tool's result */
+    c->gr_trace = true;
+    c->gr_mark = false;
+    c->gr_res_kind = 0;
     c->gr_on = true;
     return ABN_OK;
 }
@@ -5139,12 +5361,33 @@ static abn_status graph_go(ab_calc *c)
 /* A key while the graph is open: the trace's left and right (stopping at the ends); ENTER takes the traced
    value as a keyed number (in ALG into ANS and the line) and leaves, an erring column giving its error;
    C leaves; nothing else (rule 6, answer 5). */
-static abn_status graph_key(ab_calc *c, ab_op op)
+static abn_status graph_key(ab_calc *c, ab_op op, int arg)
 {
     abn x;
     ab_val y;
     abn_status st;
     switch (op) {
+    case AB_GZOOM:                              /* unit 040 */
+        return graph_zoom(c, arg);
+    case AB_GMOVE:
+        return graph_move(c, arg);
+    case AB_GTRACE:
+        c->gr_trace = !c->gr_trace;
+        return ABN_OK;
+    case AB_GMARK: {                            /* the cursor's column and the row it shows */
+        abn lo, hi;
+        ab_graph_window(c, &lo, &hi);
+        int r = graph_vrow(c, &lo, &hi);
+        if (r < 0 || r > AB_GRAPH_H - 1) return ABN_DOMAIN;    /* a traced point off the window */
+        c->gr_mark = true, c->gr_mcol = c->gr_cur, c->gr_mrow = r;
+        return ABN_OK;
+    }
+    case AB_GFACT:
+        if (arg < 1 || arg > 100) return ABN_DOMAIN;
+        c->gr_hf = c->gr_vf = abn_from_int(arg);
+        return ABN_OK;
+    case AB_GFCN:
+        return ABN_OK;                          /* (the tools follow) */
     case AB_GLEFT:
         if (c->gr_cur > 0) c->gr_cur--;
         return ABN_OK;
