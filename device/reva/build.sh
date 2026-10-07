@@ -3,7 +3,7 @@
 set -euo pipefail
 IMAGE="espressif/idf:v5.4.2"
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-"$ROOT/scripts/fetch-arcade.sh"
+python3 "$ROOT/scripts/gen_games.py" "$ROOT/games.list" "$ROOT/build/games"
 docker run --rm -v "$ROOT:/project" -w /project --user "$(id -u):$(id -g)" -e HOME=/tmp "$IMAGE" bash -c '
 set -euo pipefail
 . "$IDF_PATH/export.sh" >/dev/null
