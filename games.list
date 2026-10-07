@@ -3,4 +3,5 @@
 # A game by anyone outside our seats needs Michael's word before it is listed (decision 59); every
 # entry passes soroban's gate. Format and manifest: the header of scripts/gen_games.py.
 # ID   REPO          PIN                                       LICENCE                    MANIFEST
+# Babal: arcade's port of Babal by Christian Mauduit, gitlab.com/liberecofr/babal (public domain, the Unlicense)
 babal  stu32-arcade  7f0e37c0c587450d8bf98f712981c2d6cd91bf88  MIT                        stu32-game.txt

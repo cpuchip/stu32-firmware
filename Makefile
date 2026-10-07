@@ -166,6 +166,7 @@ test: all
 	./build/vectors tests/038-soroban.txt
 	./build/vectors tests/golden-v1.txt
 	./build/load_fuzz 20000
+	bash tests/gen_games_test.sh
 	./build/store_test
 	./build/ls027_test
 	./build/keys_test
