@@ -56,7 +56,7 @@ static const char *const NAMES[AB_OP_LAST + 1] = {
     [AB_LBL] = "LBL", [AB_RTN] = "RTN", [AB_XEQ] = "XEQ", [AB_GTO] = "GTO", [AB_RS] = "STOP", [AB_PSE] = "PSE", [AB_BEEP] = "BEEP",
     [AB_FS] = "FS?", [AB_ISG] = "ISG", [AB_DSE] = "DSE", [AB_INPUT] = "INPUT",
     [AB_FN] = "FN=", [AB_SOLVE] = "SOLVE", [AB_INTEG] = "\xe2\x88\xab" "FN d",
-    [AB_EXPM1] = "e\xcb\xa3-1", [AB_LN1P] = "LN(1+x)", [AB_TWOX] = "2\xcb\xa3", [AB_LOG2] = "LOG2",
+    [AB_EXPM1] = "e\xcb\xa3-1", [AB_LN1P] = "LN(1+x)", [AB_TWOX] = "2\xcb\xa3", [AB_LOG2] = "LOG2", [AB_CMPLX] = "CMPLX",
     [AB_CLVARX] = "CLVAR",
 };
 
@@ -161,6 +161,16 @@ int ab_prog_line(const ab_calc *c, int i, const ab_display *d, char *out, int si
     case AB_SETFIX: case AB_SETSCI: case AB_SETENG: case AB_SF: case AB_CF: case AB_FS:
         snprintf(a, sizeof a, "%d", arg);
         break;
+    case AB_CMPLX: {                            /* the 33s's index (p.G-6/G-7): CMPLX + and CMPLX +/-, CMPLXSIN */
+        static const int OPS[AB_CXP_N] = {AB_ADD, AB_SUB, AB_MUL, AB_DIV, AB_POW, AB_KCHS, AB_INV, AB_LN, AB_EXP,
+                                          AB_SIN, AB_COS, AB_TAN};
+        if (arg < 0 || arg >= AB_CXP_N) {
+            snprintf(out, (size_t)size, "?");
+            return -1;
+        }
+        snprintf(out, (size_t)size, "CMPLX%s%s", arg <= AB_CXP_DIV || arg == AB_CXP_CHS ? " " : "", NAMES[OPS[arg]]);
+        return (int)strlen(out);
+    }
     case AB_CLVARX:                             /* CLVAR056, no space (UG p.1-5) */
         snprintf(out, (size_t)size, "%s%03d", NAMES[op], arg);
         return (int)strlen(out);

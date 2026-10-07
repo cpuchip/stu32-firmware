@@ -31,6 +31,8 @@ static const ab_op V1_OPS[] = {
     AB_EXPM1, AB_LN1P, AB_TWOX, AB_LOG2, AB_CLVARX, AB_CLALL,
     /* unit 027 (appended: the codes before keep their meaning in an image) */
     AB_BEEP,
+    /* unit 039 (appended) */
+    AB_CMPLX,
 };
 #define V1_N ((int)(sizeof V1_OPS / sizeof V1_OPS[0]))
 
@@ -577,6 +579,8 @@ bool ab_line_ok(ab_op op, int32_t arg)
         return arg >= 0 && arg < ab_const_count();
     case AB_KREG:
         return arg >= 0 && arg < 4;
+    case AB_CMPLX:                      /* unit 039 */
+        return arg >= 0 && arg < AB_CXP_N;
     default:
         return op <= AB_K9 ? false : arg == 0;
     }

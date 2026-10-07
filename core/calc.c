@@ -862,6 +862,43 @@ static abn_status two_complex(ab_calc *c, ab_op op)
     return ABN_OK;
 }
 
+/* The 33s's CMPLX operations on stack pairs (unit 039; 33s p.9-1 to 9-3): z1 = Z + iT, z2 = X + iY, each part a
+ * real; the result real in X and imaginary in Y. Z and T keep z1 (p.9-2: "replicated"), and a one-number
+ * operation leaves them. LAST X gets x (p.B-6). The arithmetic is the complex engine's (rule 2; trigonometry in
+ * radians, as one_complex); its errors, overflow included, change nothing. Decimal only, as every complex
+ * function; a complex or vector part is INVALID DATA. */
+static abn_status cmplx_pair(ab_calc *c, int arg)
+{
+    bool two = arg <= AB_CXP_POW;
+    cplx z1, z2, r;
+    abn_status st;
+    if (arg < 0 || arg >= AB_CXP_N || c->base != 10) return ABN_DOMAIN;
+    if (c->x.kind != AB_REAL || c->y.kind != AB_REAL || (two && (c->z.kind != AB_REAL || c->t.kind != AB_REAL)))
+        return ABN_DOMAIN;
+    z1.re = c->z.re, z1.im = c->t.re;
+    z2.re = c->x.re, z2.im = c->y.re;
+    switch (arg) {
+    case AB_CXP_ADD: st = cx_add(&r, &z1, &z2); break;
+    case AB_CXP_SUB: st = cx_sub(&r, &z1, &z2); break;
+    case AB_CXP_MUL: st = cx_mul(&r, &z1, &z2); break;
+    case AB_CXP_DIV: st = cx_div(&r, &z1, &z2); break;
+    case AB_CXP_POW: st = cx_pow(&r, &z1, &z2); break;
+    case AB_CXP_CHS: r = cx_neg(&z2), st = ABN_OK; break;
+    case AB_CXP_INV: st = cx_inv(&r, &z2); break;
+    case AB_CXP_LN: st = cx_ln(&r, &z2); break;
+    case AB_CXP_EXP: st = cx_exp(&r, &z2); break;
+    case AB_CXP_SIN: st = cx_sin(&r, &z2); break;
+    case AB_CXP_COS: st = cx_cos(&r, &z2); break;
+    default: st = cx_tan(&r, &z2); break;
+    }
+    if (st != ABN_OK) return st;
+    c->lastx = c->x;
+    c->x = ab_real(r.re);
+    c->y = ab_real(r.im);
+    c->lift = true;
+    return ABN_OK;
+}
+
 static abn_status two_number_op(ab_calc *c, ab_op op)
 {
     abn r;
@@ -4061,6 +4098,8 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
         return ABN_DOMAIN;
 
     switch (op) {
+    case AB_CMPLX:
+        return cmplx_pair(c, arg);
     case AB_KBKSP:  /* with no entry in progress backspace acts as clear X (UG p.1-17) */
     case AB_CLX:
         /* Clear X puts 0 in X and disables lift, so the next number replaces it

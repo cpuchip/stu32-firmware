@@ -1607,6 +1607,27 @@ int main(void)
         }
         expect(ok, "039: in program entry each CMPLX operator is a line, named as the 33s's index (p.G-6/G-7)");
         press(&a, "GOLD 9 k:0");
+        /* an equation being typed or Equation mode's list: no prefix; the operator key types as ever */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        press(&a, "GOLD 0 RCL ltr:A BLUE +/\xe2\x88\x92");
+        app_ui(&a, &ui);
+        bool np = !ui.prompt || strcmp(ui.prompt, "CMPLX_");
+        press(&a, "+ 2");
+        expect(np && c.eqn_typing && !strcmp(c.ebuf, "A+2"), "039: typing an equation, CMPLX + types + (no prefix)");
+        press(&a, "ENTER");
+        ab_val x0 = c.x, y0 = c.y;
+        press(&a, "BLUE +/\xe2\x88\x92");
+        app_ui(&a, &ui);
+        np = !ui.prompt || strcmp(ui.prompt, "CMPLX_");
+        press(&a, "SIN");
+        expect(np && c.eqn_mode && !memcmp(&c.x, &x0, sizeof x0) && !memcmp(&c.y, &y0, sizeof y0),
+               "039: Equation mode's list: no prefix, the stack untouched");
+        /* an equation typed into a program (Equation mode off, the typing on): the + types too */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        press(&a, "GOLD 9 k:0 GOLD 0 RCL ltr:A BLUE +/\xe2\x88\x92 + 2");
+        expect(c.prgm && !c.eqn_mode && c.eqn_typing && !strcmp(c.ebuf, "A+2"), "039: an equation typed into a program: CMPLX + types +");
         /* 35s and STU: CMPLX is its menu only; SIN closes it and is the real sine */
         for (int m = 0; m < 2; m++) {
             ab_init(&c);

@@ -217,12 +217,30 @@ static void do_op(app_state *a, int op, int arg)
 
 static void do_action(app_state *a, const km_action *act);
 
+/* The 33s's CMPLX operation an action names (unit 039: AB_CXP_*), -1 none. */
+static int cx_pair_of(const km_action *act)
+{
+    static const int OPS[AB_CXP_N] = {AB_ADD, AB_SUB, AB_MUL, AB_DIV, AB_POW, AB_KCHS, AB_INV, AB_LN, AB_EXP,
+                                      AB_SIN, AB_COS, AB_TAN};
+    if (act->kind != KM_OP) return -1;
+    for (int k = 0; k < AB_CXP_N; k++)
+        if (act->op == OPS[k]) return k;
+    return -1;
+}
+
 /* The menu named name, -1 if there is none. */
 static int menu_named(const char *name)
 {
     for (int i = 0; km_menu_at(i); i++)
         if (!strcmp(km_menu_at(i)->name, name)) return i;
     return -1;
+}
+
+/* 33s mode's CMPLX prefix (unit 039): the CMPLX menu open in 33s mode, outside Equation mode and an equation's
+   typing (where the operator keys type, and the 33s's equations take no complex operation) */
+static bool cx_prefix(const app_state *a, int menu)
+{
+    return menu >= 0 && !a->c->m35 && !a->c->eqn_mode && !a->c->eqn_typing && menu == menu_named("CMPLX");
 }
 
 /* Equation mode's bar on the soft keys when no menu is open (unit 020): typing's while an equation
@@ -520,6 +538,18 @@ void app_key(app_state *a, int key, uint32_t now_ms)
             if (it->kind == KM_DEVICE && (it->arg == KM_DEV_USE || it->arg == KM_DEV_USEALL))
                 a->menu = at;                   /* the buzzer's uses: toggled with the menu open (ours) */
             return;
+        }
+        if (cx_prefix(a, at)) {
+            /* 33s mode: CMPLX is also the prefix (unit 039; 33s p.9-2): an operator key does it on the stack
+               pairs; the soft keys stay the menu's (x i y, rule 5); any other key closes it, as a menu */
+            const km_action *op = km_lookup(key, a->shift);
+            if (op->kind == KM_NONE) op = face;
+            int k = cx_pair_of(op);
+            if (k >= 0) {
+                a->shift = 0;
+                do_op(a, AB_CMPLX, k);
+                return;
+            }
         }
         if (face->kind == KM_OP && face->op == AB_CANCEL && a->shift == 0) return;   /* C: only closes it */
     }
@@ -899,6 +929,8 @@ void app_ui(const app_state *a, screen_ui *ui)
     ui->separator = a->set.group;
     ui->busy = a->running ? a->busy_op : 0;
     ui->prompt = a->prompt_op >= 0 ? a->prompt_text : NULL;
+    if (!ui->prompt && cx_prefix(a, a->menu))
+        ui->prompt = "CMPLX_";               /* 33s mode's prefix (unit 039; 33s p.G-6) */
     ui->notice = a->notice;
     {
         int64_t w;                              /* the status band's clock (unit 027 rule 4) */

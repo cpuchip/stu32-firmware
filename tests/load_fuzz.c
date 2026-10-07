@@ -44,10 +44,11 @@ static void random_key(ab_calc *c)
     if (below(16) == 0) {               /* unit 029: the model (STU among them), the entry, the line's keys */
         static const ab_op L[] = {AB_MODEL, AB_ENTRYM, AB_ANS, AB_HUP, AB_HDOWN,
                                   AB_TABLE, AB_TVAR, AB_TSTART, AB_TSTEP, AB_TUP, AB_TDOWN,    /* (032) */
-                                  AB_GRAPH, AB_XMIN, AB_XMAX, AB_YMIN, AB_YMAX, AB_GAUTO, AB_GLEFT, AB_GRIGHT};
-        op = L[below(19)];
+                                  AB_GRAPH, AB_XMIN, AB_XMAX, AB_YMIN, AB_YMAX, AB_GAUTO, AB_GLEFT, AB_GRIGHT,
+                                  AB_CMPLX};                                                    /* (039) */
+        op = L[below(20)];
         arg = op == AB_MODEL ? (int[]){33, 35, AB_MODEL_STU}[below(3)] : op == AB_ENTRYM ? (int)below(2) :
-              op == AB_TVAR ? AB_VAR_A + (int)below(26) : 0;
+              op == AB_TVAR ? AB_VAR_A + (int)below(26) : op == AB_CMPLX ? (int)below(AB_CXP_N) : 0;
     }
     switch (op) {
     case AB_LBL: case AB_FN: arg = (int)below(26); break;
@@ -87,7 +88,8 @@ static uint8_t *file(const char *path, size_t *n)
 /* The loader's line rule against program entry (ab_line_ok): for every op with a valid argument, program
    entry records it as a line of its own exactly when the loader accepts that line. Digits and the other
    entry keys become a number line (AB_LIT), never a line of their own; LIT and EQLINE are lines the loader
-   reads by their own rules. Returns the number of disagreements. */
+   reads by their own rules. A line program entry records must also survive a save and load. Returns the number
+   of disagreements. */
 static int line_rule_sweep(void)
 {
     static ab_calc c;
@@ -113,11 +115,26 @@ static int line_rule_sweep(void)
         ab_do_arg(&c, (ab_op)op, arg);
         bool own = c.prog_len == 1 && c.prog[0].op == op && c.prog[0].arg >= 0;
         if (op == AB_XEQ || op == AB_GTO) own = c.prog_len == 1 && c.prog[0].op == op;
+        if (own) {                      /* and the image carries it: saved, it loads (unit 039 found the gap) */
+            static ab_calc d;
+            size_t n;
+            uint8_t *img = save(&c, &n);
+            ab_init(&d);
+            if (!img || ab_state_load(&d, img, n) != ABN_OK || d.prog_len != 1 || d.prog[0].op != op) {
+                fprintf(stderr, "load_fuzz: op %d arg %d: program entry records a line its image cannot carry\n", op, arg);
+                bad++;
+            }
+            free(img);
+        }
         if (own != ab_line_ok((ab_op)op, arg)) {
             fprintf(stderr, "load_fuzz: op %d arg %d: program entry %s a line, the loader %s it\n", op, arg,
                     own ? "records" : "records no", ab_line_ok((ab_op)op, arg) ? "accepts" : "refuses");
             bad++;
         }
+    }
+    if (!ab_line_ok(AB_CMPLX, AB_CXP_N - 1) || ab_line_ok(AB_CMPLX, AB_CXP_N) || ab_line_ok(AB_CMPLX, -1)) {
+        fprintf(stderr, "load_fuzz: CMPLX's operations are 0..%d as lines\n", AB_CXP_N - 1);   /* unit 039 */
+        bad++;
     }
     return bad;
 }
