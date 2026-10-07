@@ -6,7 +6,9 @@
  *
  * The calls, in order: load (the app's saved bytes, n 0 for none) -> start -> (key | tick)* -> save ->
  * stop. The first tick comes right after start. draw follows every tick, and a key whose call returns
- * true. Times are milliseconds since the app started, one clock for ticks and keys (arcade #4497). */
+ * true. Times are milliseconds since the app started, one clock for ticks and keys (arcade #4497).
+ *
+ * Version 1.1 (2026-10-07, Babal's merge): APP_CTX_MAX raised from 32 KB to 256 KB; nothing else changed. */
 #ifndef APPS_H
 #define APPS_H
 
@@ -16,7 +18,8 @@
 #include "ls027.h"
 
 #define APP_SAVE_SIZE 64        /* each app's own save, apart from the calculator's image */
-#define APP_CTX_MAX (32 * 1024) /* the most state an app may declare (the framework gives it, zeroed) */
+#define APP_CTX_MAX (256 * 1024) /* the most state an app may declare (the framework gives it, zeroed). v1.1 (Babal's
+                                    merge): 32 KB in v1; both devices hold it in PSRAM (Rev A's N16R8: 8 MB) */
 
 typedef struct {
     const char *name;           /* APPS' label: at most 5 cells */

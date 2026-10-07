@@ -1385,6 +1385,24 @@ int main(void)
         expect(app_running(&a3) && rec.save_n > 0 && rec.loads == 1, "037: T7's save comes back after MEMORY CLEAR");
         press(&a3, "C");
         a.set.off_min = 10;
+        /* apps.h v1.1 (Babal's merge): an app may declare up to 256 KB (Babal 164,656 bytes, its whole level and
+           log); one byte more is refused, NO MEMORY */
+        {
+            static const app_def big[2] = {{"BIG", 164656, t_load, t_start, t_key, t_tick, t_draw, t_save, t_stop},
+                                           {"OVER", 256 * 1024 + 1, t_load, t_start, t_key, t_tick, t_draw, t_save, t_stop}};
+            static const app_def *const blist[2] = {&big[0], &big[1]};
+            static app_state a4;
+            app_init(&a4, &c, now);
+            app_apps(&a4, blist, 2);
+            app_ctx_buffer(&a4, ctxbuf, sizeof ctxbuf);
+            press(&a4, "BLUE 0 k:0");
+            bool bigok = app_running(&a4);
+            press(&a4, "C BLUE 0 k:1");
+            app_ui(&a4, &ui);
+            expect(APP_CTX_MAX == 256 * 1024 && bigok && !app_running(&a4) && ui.notice && !strcmp(ui.notice, "NO MEMORY"),
+                   "v1.1: a 164,656-byte app starts; one past 256 KB is refused");
+            press(&a4, "C");
+        }
     }
 
     /* unit 038: integer powers up to 64 either way are exact then rounded once, never the slow high-precision

@@ -1,0 +1,16 @@
+# Babal under APPS on the board (arcade's patch, merge gate): APPS (blue 0) lists KEYS and BABAL; BABAL starts,
+# ticks and draws; C ends it and the calculator comes back
+send RESTART
+wait STANDIN READY 30
+send X
+expect state: 5
+send K36
+send K43
+send K1
+sleep 4
+send X
+expect app: 5
+send K42
+sleep 1
+send X
+expect state: 5
