@@ -670,6 +670,47 @@ int main(void)
         expect(x_of(&c) == 8 && a.menu == exp_menu, "041 C: 35s mode: the dimmed cube root does nothing, EXP stays");
     }
 
+    /* unit 041 C (B10): in 33s mode HYP is also a prefix (33s p.4-6): HYP then SIN is SINH, HYP then GOLD SIN
+       ASINH, in program entry and an equation's typing too; its soft keys stay the menu's; any other key closes it
+       as a menu. In 35s mode and STU, the menu only (the trig keys close it and act) */
+    {
+        char t[24];
+        ab_init(&c);
+        app_init(&a, &c, now);
+        press(&a, "1 BLUE LN SIN");
+        expect(fabs(x_of(&c) - sinh(1.0)) < 1e-12 && a.menu < 0, "041 C: 33s mode: HYP SIN is SINH, the prefix closed");
+        press(&a, "C 1 BLUE LN COS");
+        expect(fabs(x_of(&c) - cosh(1.0)) < 1e-12, "041 C: 33s mode: HYP COS is COSH");
+        press(&a, "C 1 BLUE LN TAN");
+        expect(fabs(x_of(&c) - tanh(1.0)) < 1e-12, "041 C: 33s mode: HYP TAN is TANH");
+        press(&a, "C 2 BLUE LN GOLD SIN");
+        expect(fabs(x_of(&c) - asinh(2.0)) < 1e-12, "041 C: 33s mode: HYP GOLD SIN is ASINH");
+        press(&a, "C 2 BLUE LN GOLD COS");
+        expect(fabs(x_of(&c) - acosh(2.0)) < 1e-12, "041 C: 33s mode: HYP GOLD COS is ACOSH");
+        press(&a, "C . 5 BLUE LN GOLD TAN");
+        expect(fabs(x_of(&c) - atanh(0.5)) < 1e-12, "041 C: 33s mode: HYP GOLD TAN is ATANH");
+        press(&a, "C 2 BLUE LN k:0");
+        expect(fabs(x_of(&c) - sinh(2.0)) < 1e-12, "041 C: 33s mode: the menu's SINH soft key still works");
+        press(&a, "C 2 ENTER 3 BLUE LN +");
+        expect(x_of(&c) == 5 && a.menu < 0, "041 C: 33s mode: another key closes HYP and acts");
+        press(&a, "C");
+        ab_do(&c, AB_PRGM);
+        press(&a, "BLUE LN SIN");
+        ab_prog_line(&c, c.pc, NULL, t, sizeof t);
+        expect(!strcmp(t, "SINH"), "041 C: 33s mode: HYP SIN in program entry records SINH");
+        ab_do(&c, AB_PRGM);
+        press(&a, "C GOLD 0 BLUE LN SIN");
+        expect(c.eqn_typing && !strncmp(c.ebuf, "SINH(", 5), "041 C: 33s mode: HYP SIN in an equation types SINH(");
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, 35);
+        press(&a, "1 BLUE LN SIN");
+        expect(fabs(x_of(&c) - sin(acos(-1.0) / 180)) < 1e-12 && a.menu < 0, "041 C: 35s mode: HYP then SIN closes the menu, SIN acts");
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        press(&a, "C 1 BLUE LN COS");
+        expect(fabs(x_of(&c) - cos(acos(-1.0) / 180)) < 1e-12, "041 C: STU: HYP then COS is COS");
+    }
+
     /* unit 019: every menu on a key opens with its items on the soft keys (CONST shows its first
        five constants and "more"); in 35s mode, where every menu opens (unit 041 A, decision 58) */
     for (int k = 0; k < KB_KEYS; k++)
