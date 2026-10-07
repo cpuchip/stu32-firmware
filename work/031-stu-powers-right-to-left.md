@@ -5,7 +5,9 @@
 ## Why
 
 Michael ruled: "I think 2^3^2 On stu mode should be 512 … right to left: 512. Where as the hp 35s I think would just
-do it left to right or 64". 512 is the textbook's reading, 2^(3^2), and STU is the student's mode.
+do it left to right or 64". 512 is the textbook's reading, 2^(3^2), and STU is the student's mode. It is also the 50g's:
+its Advanced User's Reference, p.E-5, lists "Power (^) from top to bottom (i.e. 2^2^3^4 = 2^(2^(3^4)))"
+(books/hp-calculators/hp50g-aur-en.pdf, fetched 2026-10-07).
 
 The 33s and 35s modes keep left to right (014 O03: 64). None of the three HP guides says how a chain of powers
 groups, so the 35s's behaviour waits on a field check on Michael's own 35s.
