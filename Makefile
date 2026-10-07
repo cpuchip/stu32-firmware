@@ -66,8 +66,8 @@ build/vectors: $(CORE) $(HDRS) $(ENGINE) tests/vectors.c tests/norm.h firmware/s
 build/fmt_vectors: $(CORE) $(HDRS) $(ENGINE) tests/fmt_vectors.c | build
 	$(CC) $(CFLAGS) -Icore -o $@ $(CORE) tests/fmt_vectors.c $(ENGINE) $(LIBS)
 
-build/fmt_drive: core/fmt.c core/fn.c core/hp.c core/frac.c core/bigint.c core/arena.c core/sbig.c core/base.c $(HDRS) $(ENGINE) tests/fmt_drive.c | build
-	$(CC) $(CFLAGS) -Icore -o $@ core/fmt.c core/fn.c core/hp.c core/frac.c core/bigint.c core/arena.c core/sbig.c core/base.c tests/fmt_drive.c $(ENGINE) $(LIBS)
+build/fmt_drive: core/fmt.c core/fn.c core/hp.c core/frac.c core/bigint.c core/arena.c core/sbig.c core/xnum.c core/base.c $(HDRS) $(ENGINE) tests/fmt_drive.c | build
+	$(CC) $(CFLAGS) -Icore -o $@ core/fmt.c core/fn.c core/hp.c core/frac.c core/bigint.c core/arena.c core/sbig.c core/xnum.c core/base.c tests/fmt_drive.c $(ENGINE) $(LIBS)
 
 build/cx_drive: core/cplx.c core/hp.c core/sbig.c core/xnum.c core/bigint.c core/arena.c $(HDRS) $(ENGINE) tests/cx_drive.c | build
 	$(CC) $(CFLAGS) -Icore -o $@ core/cplx.c core/hp.c core/sbig.c core/xnum.c core/bigint.c core/arena.c tests/cx_drive.c $(ENGINE) $(LIBS)
@@ -75,8 +75,8 @@ build/cx_drive: core/cplx.c core/hp.c core/sbig.c core/xnum.c core/bigint.c core
 build/xnum_test: core/xnum.c core/bigint.c core/arena.c $(HDRS) $(ENGINE) tests/xnum_test.c | build
 	$(CC) $(CFLAGS) -Icore -o $@ core/xnum.c core/bigint.c core/arena.c tests/xnum_test.c $(ENGINE) $(LIBS)
 
-build/fn_drive: core/fn.c core/hp.c core/bigint.c core/arena.c core/sbig.c $(HDRS) $(ENGINE) tests/fn_drive.c | build
-	$(CC) $(CFLAGS) -Icore -o $@ core/fn.c core/hp.c core/bigint.c core/arena.c core/sbig.c tests/fn_drive.c $(ENGINE) $(LIBS)
+build/fn_drive: core/fn.c core/hp.c core/bigint.c core/arena.c core/sbig.c core/xnum.c $(HDRS) $(ENGINE) tests/fn_drive.c | build
+	$(CC) $(CFLAGS) -Icore -o $@ core/fn.c core/hp.c core/bigint.c core/arena.c core/sbig.c core/xnum.c tests/fn_drive.c $(ENGINE) $(LIBS)
 
 build/abn_test: $(HDRS) $(ENGINE) tests/abn_test.c tests/norm.h tests/cases.h | build
 	$(CC) $(CFLAGS) -Icore -o $@ tests/abn_test.c $(ENGINE) $(LIBS)
@@ -142,6 +142,7 @@ test: all
 	./build/vectors tests/003-soroban.txt
 	./build/vectors tests/018-soroban.txt
 	./build/vectors tests/029-soroban.txt
+	./build/vectors tests/038-soroban.txt
 	./build/vectors tests/golden-v1.txt
 	./build/load_fuzz 20000
 	./build/store_test

@@ -1,0 +1,6 @@
+# Unit 038, soroban's own: integer powers through the exact route at the range's edges (unit 026's rules).
+E01 | ours: an overflow (9E6000^2) is the largest, flag 6 | 9 E 6000 ENTER 2 POW | X=9.999999999999999999999999999999999E6144 %F6=1
+E02 | ours: a negative base to an odd power overflows negative | 9 CHS E 6000 ENTER 3 POW | X=-9.999999999999999999999999999999999E6144 %F6=1
+E03 | ours: a negative base to an even power overflows positive | 9 CHS E 6000 ENTER 2 POW | X=9.999999999999999999999999999999999E6144
+E04 | ours: 9E6000^-2 underflows to 0 | 9 E 6000 ENTER 2 CHS POW | X=0
+E05 | ours: 0^-3 is an error | 0 ENTER 3 CHS POW | ERR

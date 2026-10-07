@@ -177,6 +177,41 @@ static abn_status root_hp(abn *out, const abn *y, const abn *x)
  * otherwise e^(e ln y) in hp rounded once (pow_hp), so within a unit of the 34th digit everywhere. The
  * engine's pow missed by thousands of units for a base near 1 with a large exponent (6914 at
  * (1 - 2.8E-30)^-1.8E33, unit 026's review) and lost about one unit per power on integer powers. */
+#define POW_XNUM_MAX 64     /* unit 038: integer exponents done exactly in the bigint code, then rounded once */
+
+/* y^n (or y^-n) for 2 <= n <= POW_XNUM_MAX: the exact power by repeated squaring of y's coefficient, then
+   one rounding, half even (a negative n: 1 over the exact power, one rounding): correctly rounded by
+   construction, and in microseconds where the high-precision route takes ~12 ms on the S3. ABN_RANGE
+   when the arena or a bigint would not hold it (the caller takes the high-precision route). */
+static abn_status pow_xnum(abn *out, const abn *y, uint32_t n, bool recip)
+{
+    int m = ar_mark();
+    xnum *r, *b, *t, *u;
+    abn_status st = ABN_RANGE;
+    if (!ar_xn(4, &r, &b, &t, &u) || !xn_from_abn(b, y)) goto done;
+    xn_set_int(r, 1);
+    xn_set_int(u, 1);
+    while (n) {
+        if (n & 1) {
+            if (!xn_mul(t, r, b)) goto done;
+            xnum *s = r;
+            r = t;
+            t = s;
+        }
+        n >>= 1;
+        if (n) {
+            if (!xn_mul(t, b, b)) goto done;
+            xnum *s = b;
+            b = t;
+            t = s;
+        }
+    }
+    st = recip ? xn_div_to_abn(out, u, r) : xn_div_to_abn(out, r, u);
+done:
+    ar_release(m);
+    return st;
+}
+
 static abn_status pow_real(abn *out, const abn *y, const abn *e)
 {
     int32_t n;
@@ -189,6 +224,10 @@ static abn_status pow_real(abn *out, const abn *y, const abn *e)
         }
         *out = r;
         return ABN_OK;
+    }
+    if (abn_is_integer(e) && small_int(e, &n) && n >= -POW_XNUM_MAX && n <= POW_XNUM_MAX && n != 0 && n != 1) {
+        abn_status st = pow_xnum(out, y, (uint32_t)(n < 0 ? -n : n), n < 0);
+        if (st != ABN_RANGE) return st;         /* (it did not fit: the high-precision route) */
     }
     return pow_hp(out, y, e);
 }
