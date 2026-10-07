@@ -1,0 +1,5 @@
+# Unit 031b (abacus ruling on review F2, 5123319): STU program equation lines are stored as typed; their STU stamp
+# fixes their meaning (implied products read as products when evaluated), and messages stay intact.
+M01 | F2 (a): a flag-10 message typed in STU stays as typed | STU PRGM CLPGM LBL:E SF:10 EQN RCL:D RCL:O RCL:N RCL:E ENTER CF:10 RTN PRGM XEQ:E | %MSG=DONE
+M02 | F2 (a): an implied product in an STU program line is still a product when run (its stamp), in 35s mode too | STU PRGM CLPGM LBL:A EQN 2 RCL:A ENTER RTN PRGM 5 STO:A MODE35 XEQ:A | X=10
+M03 | F2 (a): the list keeps rule 7: a listed STU equation gets its x | STU EQ:2A | %EQ=2×A
