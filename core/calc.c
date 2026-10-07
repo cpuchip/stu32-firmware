@@ -1341,10 +1341,11 @@ static abn_status prog_insert_eqn(ab_calc *c, const char *text)
     char t[AB_EQN_LEN];
     for (int i = 0; i < AB_PEQN_MAX && slot < 0; i++)
         if (!c->peqn_used[i]) slot = i;
-    if (slot < 0) return ABN_MEMORY_FULL;
-    abn_status st = stored_text(c, text, t);
+    if (slot < 0 || strlen(text) >= AB_EQN_LEN) return ABN_MEMORY_FULL;
+    strcpy(t, text);                            /* as typed, in STU too: its stamp fixes its meaning and a
+                                                   message stays intact (unit 031b, review F2 ruling (a)) */
+    abn_status st = prog_insert(c, AB_EQLINE, slot);
     if (st != ABN_OK) return st;
-    if ((st = prog_insert(c, AB_EQLINE, slot)) != ABN_OK) return st;
     strcpy(c->peqn[slot], t);
     c->peqn_used[slot] = true;
     c->peqn_model[slot] = typed_model(c);
@@ -2886,13 +2887,9 @@ static abn_status program_key(ab_calc *c, ab_op op, int arg)
         switch (op) {
         case AB_ENTER:
         case AB_CANCEL:
-        case AB_EQN: {
-            char t[AB_EQN_LEN];
-            if (c->ebuf[0] && stored_text(c, c->ebuf, t) != ABN_OK)
-                return ABN_MEMORY_FULL;         /* refused, the text unchanged and still typed (031 answer I) */
+        case AB_EQN:
             c->eqn_typing = false;
             return c->ebuf[0] ? prog_insert_eqn(c, c->ebuf) : ABN_OK;
-        }
         case AB_KBKSP:
             ed_backspace(c);
             return ABN_OK;
