@@ -1910,16 +1910,28 @@ int main(void)
         a.busy = NULL;
         press(&a, "C k:0");                     /* the message cleared; ROOT again, nothing left over */
         expect(cut && c.gr_res_kind == AB_F_ROOT + 1 && !a.computing, "040b: C interrupts ROOT (INTERRUPTED, the window kept); the next ROOT runs whole");
-        /* a keyboard SOLVE of an equation */
+        /* a keyboard SOLVE (of FN='s program, which solves at once, as 016's I03) */
         ab_init(&c);
         app_init(&a, &c, now);
-        ab_eqn_add(&c, "X^2-2");
-        press(&a, "GOLD 0");
+        ab_do(&c, AB_PRGM);
+        ab_do_arg(&c, AB_LBL, 5);               /* LBL F: X^2 - 2 */
+        ab_do_arg(&c, AB_RCL, 23);
+        ab_do(&c, AB_SQ);
+        ab_do(&c, AB_K2);
+        ab_do(&c, AB_SUB);
+        ab_do(&c, AB_RTN);
+        ab_do(&c, AB_PRGM);
+        ab_do_arg(&c, AB_FN, 5);
+        ab_do(&c, AB_K1);
+        ab_do_arg(&c, AB_STO, 23);
+        ab_do(&c, AB_K9);
         busy_app = &a;
         a.busy = busy_interrupt;
         press(&a, "GOLD 7 ltr:X");
-        expect(c.msg && c.err_status == ABN_INTERRUPTED, "040b: C interrupts a keyboard SOLVE of an equation");
+        expect(c.msg && c.err_status == ABN_INTERRUPTED && !a.computing, "040b: C interrupts a keyboard SOLVE");
         a.busy = NULL;
+        press(&a, "C GOLD 7 ltr:X");            /* nothing left over: the next SOLVE finds the root */
+        expect(!c.msg && fabs(x_of(&c) - 1.4142135623730951) < 1e-12, "040b: the next SOLVE runs whole");
     }
 
     /* unit 033: GRAPH: blue 7's menu; the frame drawn from the model: in the curve's columns (clear of the

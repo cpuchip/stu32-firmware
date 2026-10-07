@@ -598,7 +598,7 @@ static void bench(void)
 static void key_pressed(int key)
 {
     const km_action *f = km_lookup(key, KM_FACE);
-    if (app.running && f->kind == KM_OP && (f->op == AB_CANCEL || f->op == AB_RS)) {
+    if ((app.running || app.computing) && f->kind == KM_OP && (f->op == AB_CANCEL || f->op == AB_RS)) {
         app_interrupt(&app);
         event e = {EV_TOUCHED, key, 0};
         xQueueSend(events, &e, 0);
