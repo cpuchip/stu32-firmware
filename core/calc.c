@@ -58,6 +58,7 @@ static void init_fields(ab_calc *c, bool keep_hist)
     c->eqn_cur = -1;
     strcpy(c->eqn[0], EQN_LIN2);    /* the list always holds the linear solvers (UG p.6-6, 7-3) */
     strcpy(c->eqn[1], EQN_LIN3);
+    c->eqn_model[0] = c->eqn_model[1] = 35;
     c->eqn_count = 2;
     c->peq_line = -1;
     c->fn_eqn = -1;
@@ -1313,16 +1314,40 @@ static abn_status prog_insert_lit(ab_calc *c, ab_val v)
 }
 
 /* An equation as a line (UG p.13-7): its text in the equation-line store. */
+/* The model an equation typed now is stamped with (unit 031 rule 3, answer A). */
+static uint8_t typed_model(const ab_calc *c)
+{
+    return c->stu ? AB_MODEL_STU : c->m35 ? 35 : 33;
+}
+
+/* An equation's text as stored (unit 031 rule 7): typed in STU, an explicit x at each implied
+   product; as typed otherwise, and for a message that does not parse (answer J). MEMORY_FULL when
+   the x's would not fit (answer I). */
+static abn_status stored_text(ab_calc *c, const char *text, char *out)
+{
+    if (strlen(text) >= AB_EQN_LEN) return ABN_MEMORY_FULL;
+    if (c->stu) {
+        int w = eqn_write_implied(c, text, out, AB_EQN_LEN);
+        if (w < 0) return ABN_MEMORY_FULL;
+        if (w > 0) return ABN_OK;
+    }
+    strcpy(out, text);
+    return ABN_OK;
+}
+
 static abn_status prog_insert_eqn(ab_calc *c, const char *text)
 {
     int slot = -1;
+    char t[AB_EQN_LEN];
     for (int i = 0; i < AB_PEQN_MAX && slot < 0; i++)
         if (!c->peqn_used[i]) slot = i;
-    if (slot < 0 || strlen(text) >= AB_EQN_LEN) return ABN_MEMORY_FULL;
-    abn_status st = prog_insert(c, AB_EQLINE, slot);
+    if (slot < 0) return ABN_MEMORY_FULL;
+    abn_status st = stored_text(c, text, t);
     if (st != ABN_OK) return st;
-    strcpy(c->peqn[slot], text);
+    if ((st = prog_insert(c, AB_EQLINE, slot)) != ABN_OK) return st;
+    strcpy(c->peqn[slot], t);
     c->peqn_used[slot] = true;
+    c->peqn_model[slot] = typed_model(c);
     return ABN_OK;
 }
 
@@ -1678,7 +1703,7 @@ static abn_status prog_run_lines(ab_calc *c, long limit, bool sst)
             }
             c->peq_ready = false;
             c->peq_line = -1;
-            if ((st = eqn_eval(c, t, false, false, &v, &pos)) != ABN_OK) {
+            if ((st = eqn_eval(c, t, c->peqn_model[arg], false, false, &v, &pos)) != ABN_OK) {
                 c->eqn_errpos = pos;
                 break;
             }
@@ -1793,7 +1818,7 @@ static abn_status eval_fn(ab_calc *c, const abn *t, abn *f)
         ab_val v;
         c->evals++;
         if (c->intr_after > 0 && --c->intr_after == 0) c->intr = true;
-        if ((st = eqn_eval(c, c->eqn[c->fn_eqn], false, false, &v, &pos)) != ABN_OK) return st;
+        if ((st = eqn_eval(c, c->eqn[c->fn_eqn], c->eqn_model[c->fn_eqn], false, false, &v, &pos)) != ABN_OK) return st;
         return fn_value(c, &v, f);
     }
     c->rbase = c->rdepth;
@@ -2991,10 +3016,15 @@ static int eqn_builtin(const ab_calc *c, int i)
 static abn_status eqn_insert(ab_calc *c, const char *text)
 {
     int at = c->eqn_cur + 1;
-    if (c->eqn_count - 2 >= AB_EQN_MAX || strlen(text) >= AB_EQN_LEN) return ABN_MEMORY_FULL;
+    char t[AB_EQN_LEN];
+    if (c->eqn_count - 2 >= AB_EQN_MAX) return ABN_MEMORY_FULL;
+    abn_status st = stored_text(c, text, t);
+    if (st != ABN_OK) return st;
     if (eqn_builtin(c, at - 1) == 2) at++;
     memmove(c->eqn[at + 1], c->eqn[at], (size_t)(c->eqn_count - at) * AB_EQN_LEN);
-    strcpy(c->eqn[at], text);
+    memmove(&c->eqn_model[at + 1], &c->eqn_model[at], (size_t)(c->eqn_count - at));
+    strcpy(c->eqn[at], t);
+    c->eqn_model[at] = typed_model(c);
     c->eqn_count++;
     c->eqn_cur = at;
     return ABN_OK;
@@ -3004,6 +3034,7 @@ static abn_status eqn_insert(ab_calc *c, const char *text)
 static void eqn_delete(ab_calc *c, int i)
 {
     memmove(c->eqn[i], c->eqn[i + 1], (size_t)(c->eqn_count - i - 1) * AB_EQN_LEN);
+    memmove(&c->eqn_model[i], &c->eqn_model[i + 1], (size_t)(c->eqn_count - i - 1));
     c->eqn_count--;
     c->eqn_cur = i - 1;
 }
@@ -3019,11 +3050,20 @@ static abn_status eqn_store_typed(ab_calc *c)
         return ABN_OK;
     }
     if (c->eqn_edit >= 0) {
-        strcpy(c->eqn[c->eqn_edit], c->ebuf);
+        char t[AB_EQN_LEN];
+        abn_status st = stored_text(c, c->ebuf, t);
+        if (st != ABN_OK) {
+            c->eqn_typing = true;               /* refused: the text unchanged, still typed (answer I) */
+            return st;
+        }
+        strcpy(c->eqn[c->eqn_edit], t);
+        c->eqn_model[c->eqn_edit] = typed_model(c);     /* typed again: stamped now (rule 3) */
         c->eqn_cur = c->eqn_edit;
         return ABN_OK;
     }
-    return eqn_insert(c, c->ebuf);
+    abn_status st = eqn_insert(c, c->ebuf);
+    if (st != ABN_OK) c->eqn_typing = true;
+    return st;
 }
 
 abn_status ab_eqn_add(ab_calc *c, const char *text)
@@ -3203,7 +3243,7 @@ static abn_status eqn_step(ab_calc *c)
     }
     if (c->eqn_pending >= 3) return eqn_solve_finish(c);
     c->eqn_pending = 0;
-    st = eqn_eval(c, t, rhs, false, &v, &pos);
+    st = eqn_eval(c, t, c->eqn_model[c->eqn_cur], rhs, false, &v, &pos);
     if (st != ABN_OK) {
         c->eqn_errpos = pos;
         c->stop = AB_STOP_NONE;
@@ -3494,8 +3534,18 @@ static abn_status alg_evaluate(ab_calc *c)
 {
     ab_val v;
     int pos;
+    char t[AB_EQN_LEN];
     c->alg_eval = true;
-    abn_status st = eqn_eval(c, c->ebuf, false, false, &v, &pos);
+    int w = eqn_write_implied(c, c->ebuf, t, sizeof t);    /* the x written in at = (unit 031 answer K) */
+    if (w < 0) {
+        c->alg_eval = false;
+        return ABN_MEMORY_FULL;                 /* refused: the line unchanged (answer I) */
+    }
+    if (w > 0 && strcmp(t, c->ebuf) != 0) {
+        strcpy(c->ebuf, t);
+        c->ecur = (int)strlen(c->ebuf);
+    }
+    abn_status st = eqn_eval(c, c->ebuf, AB_MODEL_STU, false, false, &v, &pos);
     c->alg_eval = false;
     if (st != ABN_OK) {
         if (st == ABN_SYNTAX) {
@@ -3787,6 +3837,7 @@ void ab_clear_all(ab_calc *c)
     c->eqn_count = 2;
     strcpy(c->eqn[0], EQN_LIN2);
     strcpy(c->eqn[1], EQN_LIN3);
+    c->eqn_model[0] = c->eqn_model[1] = 35;
     c->eqn_cur = -1;
     c->fn = -1;
     c->fn_eqn = -1;
@@ -4306,7 +4357,10 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
         for (int i = 0; i < c->eqn_count; i++) {
             if (c->eqn[i][0] != '\x01') continue;
             if (i == c->fn_eqn) fn = n;
-            if (n != i) strcpy(c->eqn[n], c->eqn[i]);
+            if (n != i) {
+                strcpy(c->eqn[n], c->eqn[i]);
+                c->eqn_model[n] = c->eqn_model[i];
+            }
             n++;
         }
         c->eqn_count = n;
@@ -4427,6 +4481,13 @@ void ab_stop_text(const ab_calc *c, char *buf)
     if (c->stop == AB_STOP_PSE && id == -2) snprintf(buf, 32, "PSE:MSG");   /* a message shown */
     else if (named) snprintf(buf, 32, "%s:%s", NAMES[c->stop], v);
     else snprintf(buf, 32, "%s", NAMES[c->stop]);
+}
+
+const char *ab_eqn_mark(const ab_calc *c, const char *text, int model)
+{
+    bool typed_stu = model == AB_MODEL_STU;
+    if (typed_stu == c->stu || !eqn_has_chain((ab_calc *)c, text)) return "";   /* (a check only: unchanged) */
+    return typed_stu ? " \xc2\xb7STU" : model == 33 ? " \xc2\xb7" "33" : " \xc2\xb7" "35";
 }
 
 /* One number's SHOW text: a minus for a negative, then all ABN_DIGITS significant digits, trailing

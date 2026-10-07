@@ -256,6 +256,8 @@ typedef struct {
     char eqn[AB_EQN_MAX + 2][AB_EQN_LEN];   /* the list, with the two built-in linear solvers
                                                (unit 015: text "\x01" then their LCD name) */
     int eqn_count;          /* entries, the built-ins included */
+    uint8_t eqn_model[AB_EQN_MAX + 2];      /* unit 031: the model each was typed in (33, 35, AB_MODEL_STU):
+                                               its meaning wherever it is evaluated (rule 3); in the image */
     int eqn_cur;            /* the equation shown, -1 at EQN LIST TOP */
     bool eqn_mode;          /* Equation mode */
     bool eqn_typing;        /* an equation is being typed or edited */
@@ -270,6 +272,7 @@ typedef struct {
     /* unit 015: equations in programs; SOLVE and integrate of equations */
     char peqn[AB_PEQN_MAX][AB_EQN_LEN];     /* the texts of AB_EQLINE program lines */
     bool peqn_used[AB_PEQN_MAX];
+    uint8_t peqn_model[AB_PEQN_MAX];        /* unit 031: each line's model, as eqn_model */
     int peq_line;           /* the equation line whose flag-11 prompts are pending, -1 none */
     bool peq_ready;         /* its prompts are answered: evaluate it when the line runs again */
     int fn_eqn;             /* the function SOLVE / integrate evaluate is equation fn_eqn of the
@@ -389,6 +392,11 @@ bool ab_rpn_only(const ab_calc *c, ab_op op);
    vector, a number being typed, Equation mode, a base mode, another program line). */
 #define AB_SHOW_LEN (ABN_DIGITS + 2)
 int ab_show_text(const ab_calc *c, char out[2][AB_SHOW_LEN]);
+
+/* Unit 031 rule 3, answer C: the mark after an equation's text when it is shown under the other
+   grouping and its chain (a^b^c) would read differently: " ·STU" for one typed in STU shown in 33s or
+   35s, " ·35" or " ·33" for one typed there shown in STU; "" otherwise. */
+const char *ab_eqn_mark(const ab_calc *c, const char *text, int model);
 
 /* Unit 025: the mode in force (33s or 35s): while a program line runs, the mode of the label that
    owns it; otherwise (the keyboard, lines before the first label) the calculator's. Every

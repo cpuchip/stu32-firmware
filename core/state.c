@@ -34,7 +34,8 @@ static const ab_op V1_OPS[] = {
 };
 #define V1_N ((int)(sizeof V1_OPS / sizeof V1_OPS[0]))
 
-enum { T_MODES = 1, T_STACK, T_VARS, T_STAT, T_IND, T_PROG, T_EQNS, T_ENTRY, T_EDITOR, T_RUN, T_SOLVE, T_MODE25, T_ALG };
+enum { T_MODES = 1, T_STACK, T_VARS, T_STAT, T_IND, T_PROG, T_EQNS, T_ENTRY, T_EDITOR, T_RUN, T_SOLVE, T_MODE25, T_ALG,
+       T_EQMODEL };
 
 #define BUILTIN2 "\x01" "2*2 lin. solve"
 #define BUILTIN3 "\x01" "3*3 lin. solve"
@@ -339,6 +340,19 @@ size_t ab_state_save(const ab_calc *c, uint8_t *buf, size_t cap)
     wval(&w, &c->ans);
     sec_end(&w, s);
 
+    s = sec_begin(&w, T_EQMODEL);               /* version 7 (unit 031): each equation's model, the list's
+                                                   then the program's lines in order */
+    w8(&w, (unsigned)c->eqn_count);
+    for (int i = 0; i < c->eqn_count; i++) w8(&w, c->eqn_model[i]);
+    {
+        int n = 0;
+        for (int i = 0; i < c->prog_len; i++) n += c->prog[i].op == AB_EQLINE;
+        w8(&w, (unsigned)n);
+        for (int i = 0; i < c->prog_len; i++)
+            if (c->prog[i].op == AB_EQLINE) w8(&w, c->peqn_model[c->prog[i].arg]);
+    }
+    sec_end(&w, s);
+
     {
         size_t total = w.len + 4;
         for (int i = 0; i < 4; i++)
@@ -362,6 +376,7 @@ typedef struct {
     unsigned version;       /* the image's: fields a version lacks keep their defaults */
     bool mode25;            /* its version-5 section was read (unit 025) */
     bool m35, prgm, emode, typing;  /* what the ALG section is checked against (unit 029) */
+    int peq_count;                  /* the program's equation lines (unit 031's section) */
     int edit;
 } rd;
 
@@ -648,6 +663,32 @@ static void sec_alg(rd *r)
     r->c->ans = ans;
 }
 
+static bool model_ok(unsigned m)
+{
+    return m == 33 || m == 35 || m == AB_MODEL_STU;
+}
+
+/* version 7 (unit 031): the model of each listed equation, then of each program equation line in order */
+static void sec_eqmodel(rd *r)
+{
+    uint8_t lm[AB_EQN_MAX + 2], pm[AB_PEQN_MAX];
+    unsigned n = r8(r);
+    need(r, (int)n == r->eqn_count);
+    for (unsigned i = 0; i < n && !r->bad; i++) {
+        lm[i] = (uint8_t)r8(r);
+        need(r, model_ok(lm[i]));
+    }
+    unsigned k = r8(r);
+    need(r, (int)k == r->peq_count);
+    for (unsigned i = 0; i < k && !r->bad; i++) {
+        pm[i] = (uint8_t)r8(r);
+        need(r, model_ok(pm[i]));
+    }
+    if (r->bad || !r->c) return;
+    memcpy(r->c->eqn_model, lm, n);
+    memcpy(r->c->peqn_model, pm, k);    /* the loaded lines take pool slots 0.. in order (sec_prog) */
+}
+
 static void sec_vars(rd *r)
 {
     unsigned n = r8(r);
@@ -731,6 +772,7 @@ static void sec_prog(rd *r)
     }
     if (r->bad) return;
     r->prog_len = n;
+    r->peq_count = eqs;
     if (r->c) r->c->prog_len = n;
 }
 
@@ -931,7 +973,7 @@ static bool parse(rd *r)
         unsigned tag = r16(r);
         uint32_t size = r32(r);
         size_t end;
-        if (r->bad || tag <= last || tag > T_ALG || size > r->len - r->pos) return false;
+        if (r->bad || tag <= last || tag > T_EQMODEL || size > r->len - r->pos) return false;
         last = tag;
         end = r->pos + size;
         switch (tag) {
@@ -951,6 +993,10 @@ static bool parse(rd *r)
             break;
         case T_ALG:
             if (r->version >= 6) sec_alg(r);
+            else r->pos = end;
+            break;
+        case T_EQMODEL:
+            if (r->version >= 7) sec_eqmodel(r);
             else r->pos = end;
             break;
         default: sec_solve(r); break;
@@ -981,7 +1027,12 @@ abn_status ab_state_load(ab_calc *c, const uint8_t *buf, size_t len)
     r.len = len;
     r.c = c;
     parse(&r);
-    if (!c->alg || c->hist_at >= c->hist_n) c->hist_at = -1;  /* an entry shown stays shown in ALG (one
+    if (!c->alg || c->hist_at >= c->hist_n) c->hist_at = -1;
+    /* an image from before unit 031: its equations stamped left to right (35), as every mode read them */
+    for (int i = 0; i < c->eqn_count; i++)
+        if (!c->eqn_model[i]) c->eqn_model[i] = 35;
+    for (int i = 0; i < c->prog_len; i++)
+        if (c->prog[i].op == AB_EQLINE && !c->peqn_model[c->prog[i].arg]) c->peqn_model[c->prog[i].arg] = 35;  /* an entry shown stays shown in ALG (one
                                                                   that exists: a calc not from ab_init) */
     if (!r.mode25) {
         /* an image from before unit 025: every label stamped 35s, since (I) followed the 35s model

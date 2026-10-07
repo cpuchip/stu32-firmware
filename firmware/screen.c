@@ -557,7 +557,10 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
         k->xk = SCREEN_EQN;
     } else if (c->eqn_mode) {
         if (c->eqn_cur < 0) line_add(xl, "EQN LIST TOP");
-        else eqn_line(c->eqn[c->eqn_cur], -1, xl);
+        else {
+            eqn_line(c->eqn[c->eqn_cur], -1, xl);
+            line_add(xl, ab_eqn_mark(c, c->eqn[c->eqn_cur], c->eqn_model[c->eqn_cur]));   /* unit 031 rule 3 */
+        }
         k->x_left = true;
         k->xk = SCREEN_EQN;
     } else {

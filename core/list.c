@@ -124,8 +124,8 @@ int ab_prog_line(const ab_calc *c, int i, const ab_display *d, char *out, int si
         return (int)strlen(out);
     }
     if (op == AB_EQLINE) {                      /* an equation line: its text (UG p.13-7) */
-        snprintf(out, (size_t)size, "%s", c->peqn[arg]);
-        return (int)strlen(out);
+        snprintf(out, (size_t)size, "%s%s", c->peqn[arg], ab_eqn_mark(c, c->peqn[arg], c->peqn_model[arg]));
+        return (int)strlen(out);                /* (the mark: unit 031 rule 3) */
     }
     if (op == AB_TEST) {
         snprintf(out, (size_t)size, "%s", arg >= 0 && arg < 12 ? TESTS[arg] : "?");

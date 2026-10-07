@@ -87,6 +87,11 @@ typedef struct {
     bool check;             /* syntax only */
     abn_status st;          /* the first error */
     int errpos;             /* its character offset */
+    bool rtl;               /* unit 031: ^ groups right to left (an STU equation) */
+    bool implied;           /* unit 031: two operands side by side multiply (an STU equation) */
+    bool chain;             /* a^b^c at one level was read (the mark, rule 3) */
+    int nimp;               /* the implied products: the byte offset of each right operand */
+    int imp[AB_EQN_LEN];
 } parser;
 
 static int char_at(const char *s, int byte)
@@ -432,11 +437,41 @@ static void parse_parg(parser *p, ab_val *v)
     parse_post(p, v);
 }
 
-static void parse_pow(parser *p, ab_val *v)
+static void parse_pow_r(parser *p, ab_val *v, bool exponent);
+
+/* An exponent read right to left (unit 031 rule 1): unary minus, then a power, its own chain
+   included (2^-3^2 is 2^(-(3^2))). */
+static void parse_parg_r(parser *p, ab_val *v)
+{
+    if (at(p, "-")) {
+        parse_parg_r(p, v);
+        negate(p, v);
+        return;
+    }
+    parse_pow_r(p, v, true);
+}
+
+static void parse_pow_r(parser *p, ab_val *v, bool exponent)
 {
     parse_post(p, v);
-    while (p->st == ABN_OK && at(p, "^")) {
+    if (p->st == ABN_OK && at(p, "^")) {
         ab_val e;
+        if (exponent) p->chain = true;
+        parse_parg_r(p, &e);
+        binop(p, "^", v, &e);
+    }
+}
+
+static void parse_pow(parser *p, ab_val *v)
+{
+    if (p->rtl) {                               /* STU: a^b^c is a^(b^c) (unit 031 rule 1) */
+        parse_pow_r(p, v, false);
+        return;
+    }
+    parse_post(p, v);
+    for (int n = 0; p->st == ABN_OK && at(p, "^"); n++) {   /* 33s, 35s: left to right (014 O03) */
+        ab_val e;
+        if (n) p->chain = true;
         parse_parg(p, &e);
         binop(p, "^", v, &e);
     }
@@ -452,6 +487,25 @@ static void parse_neg(parser *p, ab_val *v)
     parse_pow(p, v);
 }
 
+/* Whether an implied product starts here (unit 031 rule 5, answers D-H): before "(" or a letter-start
+   operand (a variable, (I), a known name with its "(", a constant name), never before a number, a
+   vector, a space or the base-suffix letters b, o, d, h; an E right after a number's digits is that
+   number's exponent, unfinished (rule 8: 2E, 2EXP(1) SYNTAX). */
+static bool implied_here(const parser *p)
+{
+    const char *s = p->s + p->i;
+    if (*s == '(') return true;
+    if (*s == 'E' && p->i > 0 && ((s[-1] >= '0' && s[-1] <= '9') || s[-1] == '.')) return false;
+    if (*s >= 'A' && *s <= 'Z') return true;
+    if (!strncmp(s, IND_I, 3) || !strncmp(s, IND_J, 3)) return true;
+    if (*s == 'b' || *s == 'o' || *s == 'd' || *s == 'h') return false;
+    for (size_t k = 0; k < sizeof NAMES / sizeof NAMES[0]; k++) {
+        size_t n = strlen(NAMES[k].name);
+        if (strncmp(s, NAMES[k].name, n) == 0 && (NAMES[k].kind == K0 || s[n] == '(')) return true;
+    }
+    return false;
+}
+
 static void parse_mul(parser *p, ab_val *v)
 {
     parse_neg(p, v);
@@ -460,7 +514,10 @@ static void parse_mul(parser *p, ab_val *v)
         ab_val r;
         if (at(p, "\xc3\x97")) op = "*";
         else if (at(p, "\xc3\xb7")) op = "/";
-        else break;
+        else if (p->implied && implied_here(p)) {   /* ranks exactly as a typed x (rule 6) */
+            op = "*";
+            p->imp[p->nimp++] = p->i;
+        } else break;
         parse_neg(p, &r);
         binop(p, op, v, &r);
     }
@@ -480,26 +537,74 @@ static void parse_add(parser *p, ab_val *v)
     }
 }
 
-abn_status eqn_eval(ab_calc *c, const char *text, bool rhs_only, bool check_only, ab_val *out, int *errpos)
+static void parse_all(parser *p, bool rhs_only, ab_val *out)
+{
+    ab_val l, r;
+    parse_add(p, &l);
+    if (p->st == ABN_OK && at(p, "=")) {
+        parse_add(p, &r);
+        if (p->st == ABN_OK && !rhs_only) binop(p, "-", &l, &r);
+        else l = r;
+    }
+    if (p->st == ABN_OK && p->s[p->i] != '\0') fail(p, ABN_SYNTAX);
+    *out = l;
+}
+
+abn_status eqn_eval(ab_calc *c, const char *text, int model, bool rhs_only, bool check_only, ab_val *out, int *errpos)
 {
     parser p;
-    ab_val l, r;
+    ab_val l;
     memset(&p, 0, sizeof p);
     p.c = c;
     p.s = text;
     p.check = check_only;
     p.st = ABN_OK;
-    parse_add(&p, &l);
-    if (p.st == ABN_OK && at(&p, "=")) {
-        parse_add(&p, &r);
-        if (p.st == ABN_OK && !rhs_only) binop(&p, "-", &l, &r);
-        else l = r;
-    }
-    if (p.st == ABN_OK && text[p.i] != '\0') fail(&p, ABN_SYNTAX);
+    p.rtl = p.implied = model == AB_MODEL_STU;  /* the model it was typed in (unit 031 rule 3) */
+    parse_all(&p, rhs_only, &l);
     *errpos = p.errpos;
     if (p.st != ABN_OK) return p.st;
     *out = l;
     return ABN_OK;
+}
+
+int eqn_write_implied(ab_calc *c, const char *text, char *out, int size)
+{
+    parser p;
+    ab_val l;
+    memset(&p, 0, sizeof p);
+    p.c = c;
+    p.s = text;
+    p.check = true;
+    p.st = ABN_OK;
+    p.rtl = p.implied = true;
+    parse_all(&p, false, &l);
+    if (p.st != ABN_OK) return 0;               /* not an expression: kept as typed (answer J) */
+    int len = (int)strlen(text);
+    if (len + 2 * p.nimp >= size || len + 2 * p.nimp >= AB_EQN_LEN) return -1;   /* answer I */
+    int o = 0, from = 0;
+    for (int k = 0; k < p.nimp; k++) {
+        memcpy(out + o, text + from, (size_t)(p.imp[k] - from));
+        o += p.imp[k] - from;
+        memcpy(out + o, "\xc3\x97", 2);
+        o += 2;
+        from = p.imp[k];
+    }
+    memcpy(out + o, text + from, (size_t)(len - from) + 1);
+    return 1;
+}
+
+bool eqn_has_chain(ab_calc *c, const char *text)
+{
+    parser p;
+    ab_val l;
+    memset(&p, 0, sizeof p);
+    p.c = c;
+    p.s = text;
+    p.check = true;
+    p.st = ABN_OK;
+    parse_all(&p, false, &l);
+    return p.chain && p.st == ABN_OK;   /* read left to right: a chain is a chain either way; a message
+                                           (it does not parse) has none */
 }
 
 int eqn_assign_var(const char *text, bool with_i)

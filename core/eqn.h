@@ -45,6 +45,14 @@ int eqn_assign_var(const char *text, bool with_i);
    With check_only, the syntax is checked and nothing is computed. SYNTAX ERROR: ABN_SYNTAX with
    *errpos the character offset of the first error (p.6-19). Every operation is the keyboard's own
    function (unit 014 rule 2). */
-abn_status eqn_eval(ab_calc *c, const char *text, bool rhs_only, bool check_only, ab_val *out, int *errpos);
+abn_status eqn_eval(ab_calc *c, const char *text, int model, bool rhs_only, bool check_only, ab_val *out, int *errpos);
+
+/* Unit 031. model is the model the text was typed in (33, 35, AB_MODEL_STU; 0 as 35): STU's equations
+   group ^ right to left and read two operands side by side as a product (rules 1, 5, 6).
+   eqn_write_implied: text with an explicit x written at each implied product (rule 7) into out: 1;
+   0 when the text does not parse (a message, kept as typed: answer J); -1 when it would not fit
+   (answer I). eqn_has_chain: whether the text has a^b^c at one level (rule 3's mark). */
+int eqn_write_implied(ab_calc *c, const char *text, char *out, int size);
+bool eqn_has_chain(ab_calc *c, const char *text);
 
 #endif

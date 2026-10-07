@@ -9,6 +9,7 @@
 #include "keymap.h"
 #include "const.h"
 #include "state.h"
+#include "eqn.h"
 
 static int bad, checks;
 static uint32_t now;
@@ -1273,6 +1274,61 @@ int main(void)
                    !strcmp(pg.y.text, "40000000000000000") && !strcmp(pg.x.text, "00000000000000000"),
                "030: a complex X: the real part on T and Z, the imaginary on Y and X");
         app_key_up(&a, 4, now);
+    }
+
+    /* unit 031 rule 3, answer C: a chain shown under the other grouping is marked with the model it was
+       typed in; under its own grouping, or with no chain, no mark */
+    {
+        static screen_page pg;
+        char t[64];
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        ab_eqn_add(&c, "2^3^2");
+        c.stu = false;                          /* (MODE's keys do nothing in Equation mode: set directly) */
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(!strcmp(pg.x.text, "2^3^2 \xc2\xb7STU"), "031: an STU chain shown in 35s mode: 2^3^2 \xc2\xb7STU");
+        c.stu = true;
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(!strcmp(pg.x.text, "2^3^2"), "031: shown in STU: no mark");
+        c.stu = false;
+        ab_eqn_add(&c, "2^3");
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(!strcmp(pg.x.text, "2^3"), "031: no chain, no mark");
+        ab_eqn_add(&c, "4^3^2");
+        c.stu = true;
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(!strcmp(pg.x.text, "4^3^2 \xc2\xb7" "35"), "031: a 35s chain shown in STU: 4^3^2 \xc2\xb7" "35");
+        /* a program's equation line, listed */
+        ab_init(&c);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        ab_do(&c, AB_PRGM);
+        ab_do_arg(&c, AB_LBL, 0);
+        ab_eqn_add(&c, "2^3^2");
+        c.stu = c.m35 = false;                  /* 33s mode (MODE is not a program line: set directly) */
+        ab_prog_line(&c, 1, NULL, t, sizeof t);
+        expect(!strcmp(t, "2^3^2 \xc2\xb7STU"), "031: an STU program line listed in 33s mode is marked");
+        /* rule 6 in the parser itself, on text not yet written with its x: an implied product ranks
+           exactly as a typed x (every stored text has its x written first: rule 7) */
+        {
+            ab_val v;
+            int pos;
+            abn two = abn_from_int(2), eighteen = abn_from_int(18);
+            ab_do(&c, AB_PRGM);                 /* (out of program entry) */
+            ab_do(&c, AB_K4);
+            ab_do_arg(&c, AB_STO, AB_VAR_A);
+            expect(eqn_eval(&c, "1\xc3\xb7" "2A", AB_MODEL_STU, false, false, &v, &pos) == ABN_OK && v.kind == AB_REAL &&
+                       abn_cmp(&v.re, &two) == 0,
+                   "031 rule 6: 1/2A read as (1/2)xA = 2 (A = 4)");
+            ab_do(&c, AB_K3);
+            ab_do_arg(&c, AB_STO, AB_VAR_A);
+            expect(eqn_eval(&c, "2A^2", AB_MODEL_STU, false, false, &v, &pos) == ABN_OK && abn_cmp(&v.re, &eighteen) == 0,
+                   "031 rule 6: 2A^2 read as 2x(A^2) = 18 (A = 3)");
+        }
     }
 
     /* unit 030's review: an equation line typed in program entry is shown as it is typed (UG p.13-7),
