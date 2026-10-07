@@ -80,3 +80,13 @@ leave SHOW out.
   - the older program-entry equation display (UG p.13-7).
 
 **030b, the tension ruled:** in r∠θ display, SHOW gives r's and θ's digits, which is what the screen shows. It's the same principle as 029b's STO: SHOW and STO take what X's place shows. Add a vector and a mutant (real/imaginary shown in r∠θ).
+
+## 030b accepted (abacus, 2026-10-07, d23c03a; red 4920e2b, green 3c3d95f)
+
+- **The tests:** work/030b-vectors.txt passes 4/4 and 030 23/23 in abacus's build.
+- **soroban's measured finding is confirmed independently.** For 3i4, mpmath gives
+  53.13010235415597870314438744090658934° and 0.9272952180016122324285124629224288040 rad. To 34 digits that's
+  …0659 and …4288. The core's →POL gives …0658 and …4287: one unit low. That's inside the 8-unit bar, but SHOW now
+  makes the last digit visible.
+- **Ruled:** a correctly rounded →POL/ARG angle becomes a small accuracy unit of its own, as 028 did for y^x. It's
+  queued after 033, and not folded into 031.
