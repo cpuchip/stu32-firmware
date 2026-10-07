@@ -1,0 +1,7 @@
+# Unit 029, soroban's own: behaviour the green found beyond the unit's vectors (ours, each marked).
+Z01 | ours: CLEAR ALL in ALG keeps ALG (a mode) and clears the line, ANS and the history (data); the line types on | STU ALG 2 ENTER 3 + CLALL 5 ENTER | %ALG=1 %STU=1 N=5 %HIST=1 %LINE=5
+Z02 | ours: the state CLEAR ALL leaves in ALG saves and loads | STU ALG 2 ENTER CLALL SAVE MEMCLR LOAD | %ALG=1 N=0 %LINE=
+Z03 | ours (proposal 5, Equation mode RPN's): an equation added in ALG is refused | STU ALG EQ:A+1 | ERR %ERR=RPN_ONLY %ALG=1
+Z04 | ours: RPN and ALG are not program lines | STU PRGM CLPGM ALG | ERR %ERR=NONPROGRAMMABLE %PC=TOP
+Z05 | unit 025 rule 5 with 029 rule 9: STU on a LBL line restamps it; its lines run as 35s in 33s mode (I = 5: unnamed 5) | MODE33 PRGM CLPGM LBL:A STU 5 STO:I 7 STO:(I) RTN PRGM XEQ:A | @#5=7 %STU=0
+Z06 | ours: UNDO's image keeps the history (RAM, not state) | STU ALG 1 ENTER 2 ENTER SAVE LOAD | %HIST=2 N=2

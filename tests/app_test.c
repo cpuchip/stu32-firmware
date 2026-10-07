@@ -586,6 +586,10 @@ int main(void)
             for (int i = 0; i < 6; i++) {
                 const char *want = mn->paged ? (i < 5 ? ab_const_symbol(i) : "more") : mn->item[i].legend;
                 /* SETUP's OFF and VOL show their values after the legend (unit 022) */
+                if (!strcmp(mn->name, "MODE") && i == 4) {     /* ALG: hidden outside STU (unit 029) */
+                    ok = ok && (!ui.soft[i] || !*ui.soft[i]);
+                    continue;
+                }
                 ok = ok && ui.soft[i] && !strncmp(ui.soft[i], want, strlen(want)) &&
                      (!strcmp(ui.soft[i], want) || mn->item[i].kind == KM_DEVICE);
             }
@@ -1224,6 +1228,24 @@ int main(void)
         ab_prog_line(&c, 0, NULL, t, sizeof t);
         expect(!strcmp(t, "LBL A \xc2\xb7STU"), "029: a label written in STU lists LBL A \xc2\xb7STU");
     }
+    /* unit 029, ours: ALG's hidden key does nothing outside STU; XEQ is refused before its prompt;
+       UNDO's image leaves the line's history (RAM, not state) */
+    {
+        static uint8_t u0[1 << 18], u1[1 << 18];
+        ab_init(&c);
+        app_init(&a, &c, now);
+        app_undo_buffers(&a, u0, u1, sizeof u0);
+        press(&a, "BLUE ENTER k:4");
+        expect(!c.alg && !c.msg && !a.notice, "029: ALG's hidden key does nothing outside STU");
+        press(&a, "C BLUE ENTER k:2 BLUE ENTER k:4 XEQ");
+        app_ui(&a, &ui);
+        expect(c.alg && ui.notice && !strcmp(ui.notice, "RPN ONLY") && !ui.prompt, "029: XEQ shows RPN ONLY, no prompt");
+        press(&a, "1 ENTER 2 ENTER");
+        expect(c.hist_n == 2, "029: two lines in the history");
+        press(&a, "BLUE \xe2\x86\x90");
+        expect(c.alg && c.hist_n == 2 && !strcmp(c.ebuf, "2") && !c.alg_shown,
+               "029: UNDO puts the line back before its ENTER; the history stays");
+    }
 
     /* unit 027: MODE, SETUP, SYS each one job; the buzzer's six uses; the clock; BEEP */
     {
@@ -1231,12 +1253,12 @@ int main(void)
         char k_[16];
         ab_init(&c);
         app_init(&a, &c, now);
-        /* MODE: 33s 35s, F3 blank (STU later), F4 RPN marked, F5 blank (ALG later) */
+        /* MODE: 33s 35s, F3 STU (unit 029; blank in 027), F4 RPN marked, F5 blank outside STU */
         press(&a, "BLUE ENTER");
         app_ui(&a, &ui);
-        expect(ui.soft[0] && !strcmp(ui.soft[0], "33s") && (!ui.soft[2] || !*ui.soft[2]) && ui.soft[3] &&
+        expect(ui.soft[0] && !strcmp(ui.soft[0], "33s") && ui.soft[2] && !strcmp(ui.soft[2], "STU") && ui.soft[3] &&
                    !strcmp(ui.soft[3], "RPN") && ui.soft_on[3] && (!ui.soft[4] || !*ui.soft[4]),
-               "027 MODE: 33s 35s, blank, RPN marked, blank");
+               "027 MODE: 33s 35s, STU (029), RPN marked, blank");
         press(&a, "C");
         /* SETUP: OFF VOL BEEP> CLOCK>, the two submenus boxed */
         press(&a, "BLUE 3");

@@ -100,7 +100,7 @@ int ab_prog_line(const ab_calc *c, int i, const ab_display *d, char *out, int si
                 pos = c->labelpos[l];
                 best = l;
             }
-        line_m35 = best >= 0 && c->lmode[best] ? c->lmode[best] == 35 : c->m35;
+        line_m35 = best >= 0 && c->lmode[best] ? c->lmode[best] != 33 : c->m35;   /* STU's as 35s */
     }
     if ((op == AB_LIT && (arg < 0 || arg >= AB_PROG_LITS)) || (op == AB_EQLINE && (arg < 0 || arg >= AB_PEQN_MAX))) {
         snprintf(out, (size_t)size, "?");       /* a pool index out of range: not a line the core makes */
@@ -150,7 +150,8 @@ int ab_prog_line(const ab_calc *c, int i, const ab_display *d, char *out, int si
         target_text(arg, a, sizeof a);
         break;
     case AB_LBL:                                /* with its mode: LBL A ·33 (unit 025 rule 3) */
-        if (arg >= 0 && arg < 26 && c->lmode[arg]) snprintf(a, sizeof a, "%c \xc2\xb7%d", 'A' + arg, c->lmode[arg]);
+        if (arg >= 0 && arg < 26 && c->lmode[arg] == AB_MODEL_STU) snprintf(a, sizeof a, "%c \xc2\xb7STU", 'A' + arg);
+        else if (arg >= 0 && arg < 26 && c->lmode[arg]) snprintf(a, sizeof a, "%c \xc2\xb7%d", 'A' + arg, c->lmode[arg]);
         else snprintf(a, sizeof a, "%c", arg >= 0 && arg < 26 ? 'A' + arg : '?');
         break;
     case AB_FN:                                 /* a label, or (I) / (J) */

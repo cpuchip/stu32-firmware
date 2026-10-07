@@ -396,13 +396,15 @@ static void status_band(ls027_frame *f, const ab_calc *c, const screen_ui *ui, i
     else if (c->angle == AB_ANGLE_GRAD) screen_text(f, 72, 2, 2, "GRAD", true);
     if (c->base != 10) screen_text(f, 124, 2, 2, c->base == 16 ? "HEX" : c->base == 8 ? "OCT" : "BIN", true);
     if (c->prgm) screen_text(f, 164, 2, 2, "PRGM", true);
+    else if (c->stu) screen_text(f, 164, 2, 2, c->alg ? "ALG" : "RPN", true);   /* STU's entry (unit 029) */
     if (c->eqn_mode) screen_text(f, 216, 2, 2, "EQN", true);
     if (ind) screen_text(f, 255, 2, 2, ind > 0 ? "\xe2\x96\xb2" : "\xe2\x96\xbc", true);
     for (int n = 0; n <= 4; n++) {
         char d[2] = {(char)('0' + n), '\0'};
         if (ab_flag(c, n)) screen_text(f, 268 + n * 12, 2, 2, d, true);
     }
-    screen_text(f, 338, 2, 2, c->m35 ? "35" : "33", true);   /* the mode (unit 017), the brief's annunciator */
+    if (c->stu) screen_text(f, 330, 2, 2, "STU", true);     /* unit 029: three cells, clear of the battery */
+    else screen_text(f, 338, 2, 2, c->m35 ? "35" : "33", true);   /* the mode (unit 017), the brief's annunciator */
     frame_box(f, 366, 2, 30, 14);               /* the battery: an outline, its knob, its charge */
     screen_fill(f, 396, 6, 3, 6, true);
     if (ui->battery >= 0) {
@@ -446,6 +448,8 @@ typedef struct {
     screen_kind xk, yk;
     bool x_left, x_letter, prompt;
     bool view;              /* SYS's view: four left lines at scale 2, no letters (unit 027) */
+    bool alg;               /* STU's ALG: the line in Y's place (left), its result in X's, the entry
+                               before in T (left) and Z; no letters (unit 029) */
     int ind;
 } composed;
 
@@ -521,6 +525,8 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
             line_add(xl, t);
         }
         k->x_left = true;
+    } else if (c->alg) {                        /* the result: the entry shown's, else ANS */
+        val_line(c->hist_at >= 0 ? &c->hist_val[c->hist_at] : &c->ans, c, ui, xl, &k->ind);
     } else if (c->eqn_mode && c->eqn_typing) {
         eqn_line(c->ebuf, c->ecur, xl);
         k->x_left = true;
@@ -555,6 +561,24 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
     if (k->prompt) k->yk = SCREEN_PROMPT;
     val_line(&c->z, c, ui, &k->z, &unused);
     val_line(&c->t, c, ui, &k->t, &unused);
+    if (c->alg && !c->prgm) {
+        /* STU's ALG (unit 029 proposal 3): the line, or the history entry shown, in Y's place; the
+           entry before it in T and its value in Z (the newest's when a line is being typed) */
+        int prev = c->hist_at >= 0 ? c->hist_at - 1 : c->alg_shown ? c->hist_n - 2 : c->hist_n - 1;
+        k->alg = true;
+        memset(&k->y, 0, sizeof k->y);
+        memset(&k->z, 0, sizeof k->z);
+        memset(&k->t, 0, sizeof k->t);
+        k->y.cursor = k->z.cursor = k->t.cursor = -1;
+        if (c->hist_at >= 0) eqn_line(c->hist[c->hist_at], -1, &k->y);
+        else eqn_line(c->ebuf, c->alg_shown ? -1 : c->ecur, &k->y);
+        k->yk = SCREEN_EQN;
+        k->prompt = false;
+        if (prev >= 0) {
+            eqn_line(c->hist[prev], -1, &k->t);
+            val_line(&c->hist_val[prev], c, ui, &k->z, &unused);
+        }
+    }
 }
 
 static void page_line(screen_line *o, const line *l, screen_kind kind, bool left, const char *label)
@@ -577,6 +601,11 @@ void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
         page_line(&out->z, &k->z, SCREEN_MESSAGE, true, NULL);
         page_line(&out->y, &k->y, SCREEN_MESSAGE, true, NULL);
         page_line(&out->x, &k->x, SCREEN_MESSAGE, true, NULL);
+    } else if (k->alg) {
+        page_line(&out->t, &k->t, SCREEN_EQN, true, NULL);
+        page_line(&out->z, &k->z, SCREEN_VALUE, false, NULL);
+        page_line(&out->y, &k->y, SCREEN_EQN, true, NULL);
+        page_line(&out->x, &k->x, k->xk, k->x_left, NULL);
     } else {
         page_line(&out->t, &k->t, SCREEN_VALUE, false, "T");
         page_line(&out->z, &k->z, SCREEN_VALUE, false, "Z");
@@ -588,12 +617,13 @@ void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
     st->angle = c->angle == AB_ANGLE_RAD ? "RAD" : c->angle == AB_ANGLE_GRAD ? "GRAD" : NULL;
     st->base = c->base == 16 ? "HEX" : c->base == 8 ? "OCT" : c->base == 2 ? "BIN" : NULL;
     st->prgm = c->prgm;
+    st->entry = c->stu && !c->prgm ? (c->alg ? "ALG" : "RPN") : NULL;
     st->eqn = c->eqn_mode;
     st->frac = k->ind > 0 ? 1 : k->ind < 0 ? -1 : 0;
     int nf = 0;
     for (int n = 0; n <= 4; n++)
         if (ab_flag(c, n)) st->flags[nf++] = (char)('0' + n);
-    st->model = c->m35 ? "35" : "33";
+    st->model = c->stu ? "STU" : c->m35 ? "35" : "33";
     st->battery = ui->battery;
     st->charging = ui->charging;
     const char *parts[9];
@@ -604,6 +634,7 @@ void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
     if (st->angle) parts[np++] = st->angle;
     if (st->base) parts[np++] = st->base;
     if (st->prgm) parts[np++] = "PRGM";
+    else if (st->entry) parts[np++] = st->entry;
     if (st->eqn) parts[np++] = "EQN";
     if (st->frac) parts[np++] = st->frac > 0 ? "\xe2\x96\xb2" : "\xe2\x96\xbc";
     if (nf) parts[np++] = st->flags;
@@ -630,6 +661,14 @@ void screen_render(const ab_calc *c, const screen_ui *ui, ls027_frame *f)
         draw_line(f, BOT_Z, 2, &k->z, true);
         draw_line(f, BOT_Y, 2, &k->y, true);
         draw_line(f, BOT_X, 2, &k->x, true);
+        soft_band(f, ui);
+        return;
+    }
+    if (k->alg) {                               /* STU's ALG: no letters; the lines' own sides */
+        draw_line(f, BOT_T, 2, &k->t, true);
+        draw_line(f, BOT_Z, 2, &k->z, false);
+        draw_line(f, BOT_Y, 2, &k->y, true);
+        draw_line(f, BOT_X, 4, &k->x, k->x_left);
         soft_band(f, ui);
         return;
     }

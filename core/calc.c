@@ -38,6 +38,8 @@ void ab_init(ab_calc *c)
     memset(c, 0, sizeof *c);
     c->x = c->y = c->z = c->t = c->lastx = ab_real(abn_zero());
     c->lift = true;             /* a cleared calculator has stack lift enabled (UG p.B-4) */
+    c->ans = ab_real(abn_zero());   /* ANS 0 to begin (unit 029 rule 4) */
+    c->hist_at = -1;
     c->angle = AB_ANGLE_DEG;    /* and is in degrees (UG p.B-4) */
     c->disp_mode = AB_ALL;      /* ALL is the default display (ours, unit 002) */
     c->disp_n = 0;
@@ -2914,11 +2916,16 @@ static abn_status program_key(ab_calc *c, ab_op op, int arg)
     case AB_MODEL:
         /* on a LBL line, the 33s/35s keys restamp that label (unit 025 rule 5); not a line */
         if (c->pc >= 0 && c->pc < c->prog_len && c->prog[c->pc].op == AB_LBL) {
-            if (arg != 33 && arg != 35) return ABN_DOMAIN;
+            if (arg != 33 && arg != 35 && arg != AB_MODEL_STU) return ABN_DOMAIN;   /* or STU (unit 029) */
             c->lmode[c->prog[c->pc].arg] = (uint8_t)arg;
             return ABN_OK;
         }
         return ABN_NONPROGRAMMABLE;         /* elsewhere, a device menu setting (unit 017) */
+    case AB_ENTRYM:                         /* STU's entry and the line's keys: not lines (unit 029) */
+    case AB_ANS:
+    case AB_HUP:
+    case AB_HDOWN:
+        return ABN_NONPROGRAMMABLE;
     case AB_FDISP:
     case AB_CLALL:                          /* in program entry the menu offers CLPGM in its place
                                                (UG p.1-5) */
@@ -2936,8 +2943,9 @@ static abn_status program_key(ab_calc *c, ab_op op, int arg)
         if (c->labelpos[arg] >= 0) return ABN_DUP_LABEL;
         {
             abn_status st2 = prog_insert(c, AB_LBL, arg);
-            if (st2 == ABN_OK) c->lmode[arg] = c->m35 ? 35 : 33;   /* stamped with the mode it was
-                                                                    entered in (unit 025 rule 3) */
+            if (st2 == ABN_OK)                  /* stamped with the mode it was entered in (unit 025
+                                                   rule 3); STU's run as 35s (unit 029 rule 9) */
+                c->lmode[arg] = c->stu ? AB_MODEL_STU : c->m35 ? 35 : 33;
             return st2;
         }
     case AB_XEQ:
@@ -3010,6 +3018,7 @@ static abn_status eqn_store_typed(ab_calc *c)
 abn_status ab_eqn_add(ab_calc *c, const char *text)
 {
     if (c->prgm) return prog_insert_eqn(c, text);   /* in program entry: a line (p.13-7) */
+    if (c->alg) return ABN_RPN_ONLY;                /* Equation mode is RPN's (unit 029 proposal 5) */
     abn_status st = eqn_insert(c, text);
     if (st == ABN_OK) {
         c->eqn_mode = true;
@@ -3436,6 +3445,157 @@ static abn_status eqn_key(ab_calc *c, ab_op op, int arg)
     return ABN_OK;
 }
 
+/* ---- STU's ALG: the expression line (unit 029; abacus decision 51, answers 153d606) ---- */
+
+/* Leaving ALG: ANS arrives in X as a keyed number would, the stack lifting unless lift is disabled
+ * (rule 6, Michael's ruling); the line is put away. */
+static void alg_leave(ab_calc *c)
+{
+    if (!c->alg) return;
+    c->alg = false;
+    c->eqn_typing = false;
+    c->ebuf[0] = '\0';
+    c->ecur = 0;
+    c->alg_shown = false;
+    c->hist_at = -1;
+    place_val(c, c->ans);
+    c->lift = true;
+}
+
+/* A new line: empty, or ANS before an operator typed after a result (rule 3). */
+static void alg_new_line(ab_calc *c, bool with_ans)
+{
+    strcpy(c->ebuf, with_ans ? "ANS" : "");
+    c->ecur = (int)strlen(c->ebuf);
+    c->alg_shown = false;
+    c->hist_at = -1;
+}
+
+/* = : the line by the equation engine (ANS a name here only), its variables read without prompts;
+ * the result is ANS and the history's newest; the stack untouched. A syntax error puts the cursor
+ * where it is; any error leaves the line editable. */
+static abn_status alg_evaluate(ab_calc *c)
+{
+    ab_val v;
+    int pos;
+    c->alg_eval = true;
+    abn_status st = eqn_eval(c, c->ebuf, false, false, &v, &pos);
+    c->alg_eval = false;
+    if (st != ABN_OK) {
+        if (st == ABN_SYNTAX) {
+            int b = 0;
+            for (int ch = 0; c->ebuf[b] && ch < pos; ch++) b = cp_next(c->ebuf, b);
+            c->ecur = b;
+            c->eqn_errpos = pos;
+        }
+        c->alg_shown = false;
+        return st;
+    }
+    c->ans = v;
+    if (c->hist_n == AB_HIST) {                     /* the oldest goes */
+        memmove(c->hist[0], c->hist[1], sizeof c->hist[0] * (AB_HIST - 1));
+        memmove(&c->hist_val[0], &c->hist_val[1], sizeof c->hist_val[0] * (AB_HIST - 1));
+        c->hist_n--;
+    }
+    snprintf(c->hist[c->hist_n], sizeof c->hist[0], "%s", c->ebuf);
+    c->hist_val[c->hist_n++] = v;
+    c->alg_shown = true;
+    c->ecur = (int)strlen(c->ebuf);
+    c->hist_at = -1;
+    return ABN_OK;
+}
+
+/* A key on the expression line. The stack keys, programs and Equation mode are RPN ONLY (rule 7,
+ * proposal 5); STO stores ANS, or the line's value when one is typed (rule 8); mode and display
+ * settings act as ever. */
+bool ab_rpn_only(const ab_calc *c, ab_op op)
+{
+    if (!c->alg || c->prgm) return false;
+    switch (op) {
+    case AB_RDN: case AB_XY: case AB_RUP: case AB_CLSTK: case AB_PRGM: case AB_RS: case AB_SST: case AB_BST:
+    case AB_EQN: case AB_GTO: case AB_SOLVE: case AB_INTEG: case AB_FN: case AB_SIGMAPLUS: case AB_SIGMAMINUS:
+    case AB_STOADD: case AB_STOSUB: case AB_STOMUL: case AB_STODIV: case AB_XVAR:
+    case AB_XEQ:                                    /* programs are RPN (decision 46) */
+        return true;
+    default:
+        return false;
+    }
+}
+
+static abn_status alg_key(ab_calc *c, ab_op op, int arg)
+{
+    if (ab_rpn_only(c, op)) return ABN_RPN_ONLY;
+    switch (op) {
+    case AB_CANCEL:                                 /* C clears the line; the history stays */
+        alg_new_line(c, false);
+        return ABN_OK;
+    case AB_HUP:
+        if (c->hist_n == 0) return ABN_OK;
+        c->hist_at = c->hist_at < 0 ? c->hist_n - 1 : (c->hist_at > 0 ? c->hist_at - 1 : 0);
+        return ABN_OK;
+    case AB_HDOWN:
+        if (c->hist_at < 0) return ABN_OK;
+        c->hist_at = c->hist_at + 1 < c->hist_n ? c->hist_at + 1 : -1;
+        return ABN_OK;
+    case AB_ENTER:
+        if (c->hist_at >= 0) {                      /* an entry shown: its text to the line */
+            snprintf(c->ebuf, sizeof c->ebuf, "%s", c->hist[c->hist_at]);
+            c->ecur = (int)strlen(c->ebuf);
+            c->hist_at = -1;
+            c->alg_shown = false;
+            return ABN_OK;
+        }
+        return alg_evaluate(c);
+    case AB_KLEFT:
+    case AB_KRIGHT:
+        if (c->hist_at >= 0) {                      /* editing a copy of the entry shown */
+            snprintf(c->ebuf, sizeof c->ebuf, "%s", c->hist[c->hist_at]);
+            c->ecur = op == AB_KLEFT ? (int)strlen(c->ebuf) : 0;
+            c->hist_at = -1;
+            c->alg_shown = false;
+            return ABN_OK;
+        }
+        c->alg_shown = false;
+        c->ecur = op == AB_KLEFT ? (c->ecur > 0 ? cp_prev(c->ebuf, c->ecur) : 0) : cp_next(c->ebuf, c->ecur);
+        return ABN_OK;
+    case AB_KBKSP:
+        c->alg_shown = false;
+        c->hist_at = -1;
+        ed_backspace(c);
+        return ABN_OK;
+    case AB_STO: {
+        /* after a result, ANS; with a line typed, the line evaluated first (ours, rule 8) */
+        abn_status st;
+        if (!c->alg_shown && c->ebuf[0] && (st = alg_evaluate(c)) != ABN_OK) return st;
+        slot sl;
+        if ((st = resolve(c, arg, false, &sl)) != ABN_OK) return st;
+        return store_val(c, &sl, c->ans);
+    }
+    case AB_ANS:
+    case AB_LASTX:                                  /* LASTx's key types ANS (proposal 1) */
+        if (c->alg_shown || c->hist_at >= 0) alg_new_line(c, false);
+        ed_insert(c, "ANS", 0);
+        return ABN_OK;
+    case AB_ADD: case AB_SUB: case AB_MUL: case AB_DIV: case AB_POW:
+        if (c->alg_shown) alg_new_line(c, true);    /* an operator after a result: ANS first */
+        break;
+    default:
+        break;
+    }
+    /* mode and display settings act as ever; a key that types types into the line (a digit or a
+       function after a result starting a new one) */
+    if (op == AB_MODEL || op == AB_ENTRYM || op == AB_DEG || op == AB_RAD || op == AB_GRAD || op == AB_SETFIX ||
+        op == AB_SETSCI || op == AB_SETENG || op == AB_SETALL || op == AB_DEC || op == AB_HEX || op == AB_OCT ||
+        op == AB_BIN || op == AB_FDISP || op == AB_CLALL || op == AB_CLVARS || op == AB_VIEW || op == AB_FRACFMT ||
+        op == AB_SF || op == AB_CF || op == AB_BEEP)
+        return do_key(c, op, arg);
+    if (c->alg_shown && op != AB_ADD && op != AB_SUB && op != AB_MUL && op != AB_DIV && op != AB_POW)
+        alg_new_line(c, false);
+    if (c->hist_at >= 0) c->hist_at = -1;
+    if (!eqn_type(c, op, arg)) return ABN_OK;       /* a key with no place on the line: nothing */
+    return ABN_OK;
+}
+
 abn_status ab_do(ab_calc *c, ab_op op)
 {
     return ab_do_arg(c, op, 0);
@@ -3504,9 +3664,10 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
     /* CLEAR ALL and CLR EQN act in Equation mode too (unit 021: never a silent no-op once the
        device has asked CLR ALL? or CLR EQN?) */
     if (c->prgm) st = program_key(c, op, arg);
+    else if (c->alg) st = alg_key(c, op, arg);      /* STU's expression line (unit 029) */
     else if (c->eqn_mode && !c->eqn_pending && op != AB_CLALL && op != AB_CLEQN) st = eqn_key(c, op, arg);
     else st = do_key(c, op, arg);
-    if (st != ABN_OK && st != ABN_CLAMPED) {
+    if (st != ABN_OK && st != ABN_CLAMPED && st != ABN_RPN_ONLY) {
         if (st == ABN_OVERFLOW) note_overflow(c);   /* a complex or vector one (unit 026, abacus #4198) */
         c->msg = true;
         err_note(c, op, arg, &x0);
@@ -3526,7 +3687,7 @@ bool ab_mode35(const ab_calc *c)
 {
     if (c->running > 0 && c->exec_at >= 0 && c->exec_at < c->prog_len) {
         int l = prog_owner(c, c->exec_at);
-        if (l >= 0 && c->lmode[l]) return c->lmode[l] == 35;
+        if (l >= 0 && c->lmode[l]) return c->lmode[l] != 33;   /* 35 or STU */
     }
     return c->m35;
 }
@@ -3615,6 +3776,12 @@ void ab_clear_all(ab_calc *c)
     c->peq_ready = false;
     c->ev_cached = false;
     c->run_lines = 0;
+    /* STU's ALG is a mode, kept; its line, ANS and history are data, cleared (unit 029) */
+    c->eqn_typing = c->alg;
+    c->alg_shown = false;
+    c->ans = zero;
+    c->hist_n = 0;
+    c->hist_at = -1;
 }
 
 /* MEMORY CLEAR (UG p.B-3, B-4's right column): everything at its default, DEG, DEC, FIX 4, /c 4095,
@@ -4044,9 +4211,31 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
     case AB_MODEL:
         /* the 33s or the 35s behaviour where Michael's machines differ (unit 017 rule 1);
            neutral for lift, as the other mode settings (UG p.B-5) */
-        if (arg != 33 && arg != 35) return ABN_DOMAIN;
-        c->m35 = arg == 35;
+        if (arg != 33 && arg != 35 && arg != AB_MODEL_STU) return ABN_DOMAIN;
+        if (arg != AB_MODEL_STU) alg_leave(c);      /* ALG is STU's: 33s or 35s returns to RPN (rule 2) */
+        c->stu = arg == AB_MODEL_STU;               /* STU behaves as 35s (decision 51, rule 1) */
+        c->m35 = arg != 33;
         return ABN_OK;
+    case AB_ENTRYM:
+        /* RPN or ALG (unit 029 rule 2: ALG in STU only); neutral for lift as the other settings.
+           RPN to ALG sets ANS to X (ours, rule 6); ALG to RPN puts ANS in X (Michael's ruling) */
+        if (arg == 1) {
+            if (!c->stu) return ABN_DOMAIN;
+            if (c->alg) return ABN_OK;
+            c->ans = c->x;
+            c->alg = true;
+            c->eqn_typing = true;
+            c->eqn_edit = -1;
+            alg_new_line(c, false);
+            return ABN_OK;
+        }
+        if (arg != 0) return ABN_DOMAIN;
+        alg_leave(c);
+        return ABN_OK;
+    case AB_ANS:
+    case AB_HUP:
+    case AB_HDOWN:
+        return ABN_OK;                              /* the line's own keys: nothing in RPN */
     case AB_CLVARS:
         /* Clear the direct variables A..Z (UG p.3-5); neutral for stack lift (UG p.B-5). The
            unnamed indirect variables have their own clearing, CLVARx. */

@@ -34,7 +34,7 @@ static const ab_op V1_OPS[] = {
 };
 #define V1_N ((int)(sizeof V1_OPS / sizeof V1_OPS[0]))
 
-enum { T_MODES = 1, T_STACK, T_VARS, T_STAT, T_IND, T_PROG, T_EQNS, T_ENTRY, T_EDITOR, T_RUN, T_SOLVE, T_MODE25 };
+enum { T_MODES = 1, T_STACK, T_VARS, T_STAT, T_IND, T_PROG, T_EQNS, T_ENTRY, T_EDITOR, T_RUN, T_SOLVE, T_MODE25, T_ALG };
 
 #define BUILTIN2 "\x01" "2*2 lin. solve"
 #define BUILTIN3 "\x01" "3*3 lin. solve"
@@ -332,6 +332,13 @@ size_t ab_state_save(const ab_calc *c, uint8_t *buf, size_t cap)
     w8(&w, c->err_m35);
     sec_end(&w, s);
 
+    s = sec_begin(&w, T_ALG);                   /* version 6 (unit 029): STU, ALG and ANS */
+    w8(&w, c->stu);
+    w8(&w, c->alg);
+    w8(&w, c->alg_shown);
+    wval(&w, &c->ans);
+    sec_end(&w, s);
+
     {
         size_t total = w.len + 4;
         for (int i = 0; i < 4; i++)
@@ -354,6 +361,8 @@ typedef struct {
     bool builtin[AB_EQN_MAX + 2];
     unsigned version;       /* the image's: fields a version lacks keep their defaults */
     bool mode25;            /* its version-5 section was read (unit 025) */
+    bool m35, prgm, emode, typing;  /* what the ALG section is checked against (unit 029) */
+    int edit;
 } rd;
 
 static unsigned r8(rd *r)
@@ -566,6 +575,7 @@ static void sec_modes(rd *r)
                 (base == 2 || base == 8 || base == 10 || base == 16) && flag_byte(fdisp) && fc >= 2 &&
                 fc <= 4095 && flag_byte(f8) && flag_byte(f9) && flag_byte(cpolar) && (flags & ~0x0C7Fu) == 0 &&
                 flag_byte(yes) && fn >= -1 && fn < 26 && flag_byte(lift));
+    r->m35 = m35;
     if (r->bad || !r->c) return;
     r->c->angle = (ab_angle)angle;
     r->c->disp_mode = (ab_mode)mode;
@@ -610,7 +620,7 @@ static void sec_mode25(rd *r)
     rval(r, &iv);
     for (int l = 0; l < 26; l++) {
         lm[l] = (uint8_t)r8(r);
-        need(r, lm[l] == 0 || lm[l] == 33 || lm[l] == 35);
+        need(r, lm[l] == 0 || lm[l] == AB_MODEL_STU || lm[l] == 33 || lm[l] == 35);
     }
     unsigned em = r8(r);
     need(r, flag_byte(em));
@@ -619,6 +629,22 @@ static void sec_mode25(rd *r)
     r->c->var[26] = iv;
     memcpy(r->c->lmode, lm, sizeof lm);
     r->c->err_m35 = em;
+}
+
+/* version 6 (unit 029): STU (a 35s), ALG (STU's only: the line typed, no program entry or Equation
+   mode), the line showing its result, ANS */
+static void sec_alg(rd *r)
+{
+    unsigned stu = r8(r), alg = r8(r), shown = r8(r);
+    ab_val ans;
+    rval(r, &ans);
+    need(r, flag_byte(stu) && flag_byte(alg) && flag_byte(shown) && (!stu || r->m35) && (!shown || alg));
+    need(r, !alg || (stu && r->typing && !r->emode && !r->prgm && r->edit == -1));
+    if (r->bad || !r->c) return;
+    r->c->stu = stu;
+    r->c->alg = alg;
+    r->c->alg_shown = shown;
+    r->c->ans = ans;
 }
 
 static void sec_vars(rd *r)
@@ -747,6 +773,7 @@ static void sec_entry(rd *r)
     prgm = r8(r);
     rval(r, c ? &c->plit : NULL);
     need(r, cpart <= 2 && vlen <= 3 && flag_byte(prgm));
+    r->prgm = prgm;
     if (r->bad || !c) return;
     c->cpart = (int)cpart;
     c->vlen = (int)vlen;
@@ -774,6 +801,9 @@ static void sec_editor(rd *r)
                 (edit < 0 || !typing || !r->builtin[edit]) && errpos <= AB_EQN_LEN && pending <= 6 && next <= nvars);
     if (r->bad) return;
     need(r, ecur <= (int)strlen(t) && ((unsigned char)t[ecur] & 0xC0) != 0x80);
+    r->emode = mode;
+    r->typing = typing;
+    r->edit = edit;
     if (r->bad || !r->c) return;
     r->c->eqn_mode = mode;
     r->c->eqn_typing = typing;
@@ -900,7 +930,7 @@ static bool parse(rd *r)
         unsigned tag = r16(r);
         uint32_t size = r32(r);
         size_t end;
-        if (r->bad || tag <= last || tag > T_MODE25 || size > r->len - r->pos) return false;
+        if (r->bad || tag <= last || tag > T_ALG || size > r->len - r->pos) return false;
         last = tag;
         end = r->pos + size;
         switch (tag) {
@@ -917,6 +947,10 @@ static bool parse(rd *r)
         case T_MODE25:
             if (r->version >= 5) sec_mode25(r);
             else r->pos = end;                  /* a version without it: skipped */
+            break;
+        case T_ALG:
+            if (r->version >= 6) sec_alg(r);
+            else r->pos = end;
             break;
         default: sec_solve(r); break;
         }
@@ -935,15 +969,26 @@ abn_status ab_state_load(ab_calc *c, const uint8_t *buf, size_t len)
     /* every byte has passed: from MEMORY CLEAR, the image's state (an interrupt the device or a
        test has pending is the device's, as its budget and slice are: kept) */
     long intr_after = c->intr_after, budget = c->budget;
+    /* the expression line's history (and the entry it shows) is RAM, not state (unit 029 rule 5,
+       abacus #4254): an image loaded over it (UNDO's) leaves it; a boot or MEMORY CLEAR has none */
+    static char hist[AB_HIST][AB_EQN_LEN];
+    static ab_val hist_val[AB_HIST];
+    int hist_n = c->hist_n, hist_at = c->hist_at;
+    memcpy(hist, c->hist, sizeof hist);
+    memcpy(hist_val, c->hist_val, sizeof hist_val);
     ab_memory_clear(c);                         /* (which resets the budget to the core's, #3971) */
     c->intr_after = intr_after;
     c->budget = budget;
+    c->hist_n = hist_n;
+    memcpy(c->hist, hist, sizeof hist);
+    memcpy(c->hist_val, hist_val, sizeof hist_val);
     c->prog_len = 0;
     memset(&r, 0, sizeof r);
     r.p = buf;
     r.len = len;
     r.c = c;
     parse(&r);
+    c->hist_at = c->alg ? hist_at : -1;         /* an entry shown stays shown */
     if (!r.mode25) {
         /* an image from before unit 025: every label stamped 35s, since (I) followed the 35s model
            in either mode then (unit 025 rule 6 as amended, abacus b75640f); i at 0; a message

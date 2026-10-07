@@ -153,6 +153,10 @@ static void do_op(app_state *a, int op, int arg)
     int was = on_lbl ? c->lmode[c->prog[c->pc].arg] : 0;
     abn_status st = ab_do_arg(c, (ab_op)op, arg);
     a->dirty = true;
+    if (st == ABN_RPN_ONLY) {                   /* STU's line: a brief notice, not a message (unit 029) */
+        a->notice = ab_status_message(ABN_RPN_ONLY);
+        a->notice_ms = a->last_key_ms;
+    }
     if (st == ABN_CLAMPED || c->ovf > 0) a->ovf_pending = true;
     if (op == AB_MODEL && st == ABN_OK && on_lbl && was != arg && ab_label_indirect(c, c->prog[c->pc].arg)) {
         /* a label restamped to the other mode (unit 025 rule 5) whose lines use an indirect: what
@@ -188,6 +192,7 @@ static int menu_named(const char *name)
    is typed (in program entry too), the list's while Equation mode shows the list; -1 none. */
 static int eqn_bar(const app_state *a)
 {
+    if (a->c->alg && !a->c->prgm) return menu_named("ALG LINE");    /* STU's line (unit 029) */
     if (a->c->eqn_typing) return menu_named("EQN TYPE");
     if (a->c->eqn_mode && !a->c->prgm) return menu_named("EQN LIST");
     return -1;
@@ -419,7 +424,6 @@ static void setting(app_state *a, const km_action *act)
     case KM_DEV_USE: s->uses ^= (uint8_t)act->op; break;            /* one use on or off (unit 027) */
     case KM_DEV_USEALL: s->uses = s->uses ? 0 : DEV_USE_ALL; break; /* any on: all off; else all on */
     case KM_DEV_H24: s->h24 = !s->h24; break;
-    case KM_DEV_ENTRY: return;                  /* RPN, the only entry logic yet: marked, no change */
     case KM_DEV_CLOCKSET:
         a->prompt_n = a->prompt_val = 0;
         prompt_open(a, 0, KM_ARG_TIME);
@@ -437,9 +441,15 @@ static void do_action(app_state *a, const km_action *act)
 {
     switch (act->kind) {
     case KM_OP:
+        if (act->op == AB_ENTRYM && act->arg == 1 && !a->c->stu) break;    /* ALG: shown in STU only */
         do_op(a, act->op, act->arg);
         break;
     case KM_PROMPT:
+        if (ab_rpn_only(a->c, (ab_op)act->op)) {   /* refused before its argument (unit 029) */
+            a->notice = ab_status_message(ABN_RPN_ONLY);
+            a->notice_ms = a->last_key_ms;
+            break;
+        }
         if (act->op == AB_XEQ && a->c->eqn_mode && !a->c->eqn_typing && !a->c->prgm)
             do_op(a, AB_XEQ, AB_TGT_EQN);       /* evaluates the equation shown (UG p.G-14) */
         else
@@ -632,11 +642,13 @@ void app_ui(const app_state *a, screen_ui *ui)
             /* the mode MODE's keys would change: on a LBL line in program entry, its label's
                (unit 025 rule 5); otherwise the calculator's */
             const ab_calc *c = a->c;
-            int mode = c->m35 ? 35 : 33;
+            int mode = c->stu ? AB_MODEL_STU : c->m35 ? 35 : 33;
             if (c->prgm && c->pc >= 0 && c->pc < c->prog_len && c->prog[c->pc].op == AB_LBL &&
                 c->lmode[c->prog[c->pc].arg])
                 mode = c->lmode[c->prog[c->pc].arg];
-            ui->soft_on[i] = it->kind == KM_OP && it->op == AB_MODEL && it->arg == mode;
+            ui->soft_on[i] = it->kind == KM_OP && ((it->op == AB_MODEL && it->arg == mode) ||
+                                                   (it->op == AB_ENTRYM && (it->arg == 1) == c->alg));
+            if (it->kind == KM_OP && it->op == AB_ENTRYM && it->arg == 1 && !c->stu) ui->soft[i] = NULL;   /* STU's */
         }
         ui->soft_sub[i] = it->kind == KM_MENU;  /* a submenu: its box marked (#3958) */
         if (it->kind == KM_DEVICE) {            /* the settings in effect (unit 022) */
@@ -654,7 +666,6 @@ void app_ui(const app_state *a, screen_ui *ui)
                 break;
             case KM_DEV_USE: ui->soft_on[i] = (a->set.uses & it->op) != 0; break;
             case KM_DEV_H24: ui->soft_on[i] = a->set.h24; break;
-            case KM_DEV_ENTRY: ui->soft_on[i] = it->op == 0; break;     /* RPN */
             default: break;
             }
         }

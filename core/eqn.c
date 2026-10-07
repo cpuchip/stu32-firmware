@@ -380,6 +380,11 @@ static void parse_prim(parser *p, ab_val *v)
             return;
         }
     }
+    if (p->c->alg_eval && at(p, "ANS")) {
+        /* the expression line's last result (unit 029); a name on that line only */
+        if (!p->check && p->st == ABN_OK) *v = p->c->ans;
+        return;
+    }
     if (at(p, IND_I) || at(p, IND_J)) {
         /* the variable or register the number in I (J) names (UG p.14-23) */
         ab_val x;

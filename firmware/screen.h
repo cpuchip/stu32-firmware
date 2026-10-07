@@ -79,7 +79,8 @@ typedef struct {
     bool prgm, eqn;
     int frac;                       /* the fraction indicator: 1 up, -1 down, 0 none */
     char flags[6];                  /* the flags 0-4 that are set, as digits */
-    const char *model;              /* "33" or "35" */
+    const char *model;              /* "33", "35" or "STU" (unit 029) */
+    const char *entry;              /* STU's entry outside program entry: "ALG" or "RPN"; NULL none */
     const char *clock;              /* the clock as the band shows it, NULL none (unit 027) */
     int battery;                    /* percent, -1 not read */
     bool charging;

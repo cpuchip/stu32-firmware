@@ -313,6 +313,7 @@ typedef struct {
     bool stu;               /* STU mode (MODE's F3); in the state image */
     bool alg;               /* ALG entry (MODE's F5, STU only); in the state image */
     ab_val ans;             /* ANS: the last result, 0 to begin; in the state image */
+    bool alg_eval;          /* the line is being evaluated: the parser knows ANS (not in the image) */
     bool alg_shown;         /* the line shows its result: the next digit or function starts a new
                                line, an operator a new line after ANS */
     /* the line's history, in RAM only: not in the state image (rule 5) */
@@ -373,6 +374,11 @@ abn_status ab_eqn_based(const char *digits, int n, int base, abn *out);
 const char *ab_status_message(abn_status st);
 const char *ab_error_message(const ab_calc *c);
 const char *ab_busy_message(ab_op op);
+
+/* STU's ALG (unit 029): whether op is one the expression line refuses with RPN ONLY (the stack keys,
+   programs, Equation mode, SOLVE and integration, statistics entry, STO arithmetic, x<>); false
+   outside ALG. The device shows the notice before prompting for such an op's argument. */
+bool ab_rpn_only(const ab_calc *c, ab_op op);
 
 /* Unit 025: the mode in force (33s or 35s): while a program line runs, the mode of the label that
    owns it; otherwise (the keyboard, lines before the first label) the calculator's. Every

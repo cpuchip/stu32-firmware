@@ -210,7 +210,11 @@ int main(void)
                 {"VARS", {P(AB_XVAR, KM_ARG_VAR, "x\xe2\x86\x94"), P(AB_VIEW, KM_ARG_VAR, "VIEW"), O(AB_CLVARS, 0, "CLR"), N, N, N}},
                 {"STACK", {O(AB_CLSTK, 0, "CLSTK"), O(AB_LASTX, 0, "LASTx"), O(AB_RUP, 0, "R\xe2\x86\x91"), O(AB_XY, 0, "x\xe2\x86\x94y"),
                            N, N}},
-                {"MODE", {O(AB_MODEL, 33, "33s"), O(AB_MODEL, 35, "35s"), N, {KM_DEVICE, 0, KM_DEV_ENTRY, 0, "RPN"}, N, N}},
+                /* unit 029: STU at F3, the entry RPN and ALG at F4 and F5 (ALG shown in STU only: the app's) */
+                {"MODE", {O(AB_MODEL, 33, "33s"), O(AB_MODEL, 35, "35s"), O(AB_MODEL, AB_MODEL_STU, "STU"), O(AB_ENTRYM, 0, "RPN"),
+                          O(AB_ENTRYM, 1, "ALG"), N}},
+                {"ALG LINE", {O(AB_KLEFT, 0, "\xe2\x97\x80"), O(AB_KRIGHT, 0, "\xe2\x96\xb6"), O(AB_KPAREN, 0, "( )"), N,
+                              O(AB_HUP, 0, "\xe2\x96\xb2"), O(AB_HDOWN, 0, "\xe2\x96\xbc")}},
                 /* unit 022: the device's settings, a KM_DEVICE action's op its value */
                 {"RADIX", {{KM_DEVICE, '.', KM_DEV_RADIX, 0, "."}, {KM_DEVICE, ',', KM_DEV_RADIX, 0, ","},
                            {KM_DEVICE, 1, KM_DEV_GROUP, 0, "1,000"}, {KM_DEVICE, ' ', KM_DEV_GROUP, 0, "1 000"},
@@ -263,7 +267,8 @@ int main(void)
                         if (km_lookup(k, sh)->kind == KM_MENU && km_lookup(k, sh)->arg == at) keyed = true;
                 snprintf(m, sizeof m, "menu %s is on its key", D[d].name);
                 bool sub = !strcmp(D[d].name, "LOGIC") || !strcmp(D[d].name, "SUFFIX") || !strcmp(D[d].name, "BEEP") ||
-                           !strcmp(D[d].name, "BEEP2") || !strcmp(D[d].name, "CLOCK");     /* reached by a menu */
+                           !strcmp(D[d].name, "BEEP2") || !strcmp(D[d].name, "CLOCK") ||
+                           !strcmp(D[d].name, "ALG LINE");  /* reached by a menu; ALG LINE the app's bar (unit 029) */
                 expect(keyed == !sub, m);
             }
             /* CONST pages the core's constants (rule 3); SOLVE and integrate ask for the variable (rule 4) */

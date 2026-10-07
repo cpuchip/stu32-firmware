@@ -13,8 +13,8 @@ L01 | rule 3: = evaluates the line by precedence; the line stays | STU ALG 2 + 3
 L02 | rule 3: a function key inserts SIN() with the cursor inside; > steps out (degrees) | STU ALG SIN 30 > + 1 ENTER | %LINE=SIN(30)+1 N=1.5
 L03 | rule 3: variables read their values without a prompt | 5 STO:A STU ALG RCL:A * 2 ENTER | %LINE=A×2 N=10 %STOP=NONE
 L04 | rule 3: a syntax error puts the cursor at its place, the line editable: fixed and evaluated | STU ALG 2 + * 3 ENTER | ERR %ERR=SYNTAX %LINE=2+×3
-L05 | rule 3: after a syntax error the line is edited: < < BKSP removes the + | STU ALG 2 + * 3 ENTER < < BKSP ENTER | %LINE=2×3 N=6
-L06 | rule 3: a math error shows its message; the next key clears it (35s), the line stays editable | STU ALG 1 / 0 ENTER BKSP BKSP 2 ENTER | %LINE=1÷2 N=0.5
+L05 | rule 3: after a syntax error the line is edited: the cursor lands at the error (before the ×); the first key clears the message (35s), BKSP then removes the + | STU ALG 2 + * 3 ENTER BKSP BKSP ENTER | ERR %LINE=2×3 N=6
+L06 | rule 3: a math error shows its message; the next key clears it (35s), the line stays editable | STU ALG 1 / 0 ENTER BKSP BKSP 2 ENTER | ERR %LINE=1÷2 N=0.5
 L07 | rule 3: after a result a digit starts a new line | STU ALG 2 + 3 ENTER 7 ENTER | %LINE=7 N=7
 L08 | rule 3: after a result an operator starts the line with ANS | STU ALG 2 + 3 ENTER + 4 ENTER | %LINE=ANS+4 N=9
 L09 | rule 3: after a result ^ too: ANS^2 | STU ALG 3 ENTER POW 2 ENTER | %LINE=ANS^2 N=9
@@ -25,7 +25,7 @@ L13 | rule 3: -2^2 is -4 (35s p.6-14: power before unary minus) | STU ALG - 2 PO
 L14 | rule 3: the angle unit in force: radians | STU ALG RAD COS 0 ENTER | N=1
 A01 | rule 4: ANS is 0 at its first use | STU ALG ANS + 1 ENTER | N=1 %LINE=ANS+1
 A02 | rule 4: ANS is kept in the state image | STU ALG 6 ENTER SAVE MEMCLR LOAD | N=6
-A03 | rule 4: ANS outside ALG is SYNTAX: a stored equation | EQ:ANS+1 C EQN XEQ | ERR %ERR=SYNTAX
+A03 | rule 4: ANS outside ALG is SYNTAX: a stored equation | EQ:ANS+1 C EQN XEQ RS RS RS | ERR %ERR=SYNTAX
 A04 | rule 4: ANS typed by its key, then used | STU ALG 5 ENTER ANS * ANS ENTER | %LINE=ANS×ANS N=25
 H01 | rule 5: up steps back through the history | STU ALG 1 ENTER 2 ENTER 3 ENTER HUP HUP | %HSEL=2
 H02 | rule 5: down steps forward again | STU ALG 1 ENTER 2 ENTER 3 ENTER HUP HUP HDOWN | %HSEL=3

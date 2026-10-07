@@ -132,9 +132,10 @@ MENUS = [
               NONE, NONE, NONE]),
     ("STACK", [o("CLSTK", "AB_CLSTK"), o("LASTx", "AB_LASTX"), o("R\u2191", "AB_RUP"), o("x\u2194y", "AB_XY"),
                NONE, NONE]),
-    # unit 027: how the calculator behaves; F3 kept for STU, F5 for ALG; RPN marked, the only one yet
-    ("MODE", [o("33s", "AB_MODEL", 33), o("35s", "AB_MODEL", 35), NONE, ("RPN", "KM_DEVICE", "0", "KM_DEV_ENTRY", 0),
-              NONE, NONE]),
+    # unit 027: how the calculator behaves; unit 029: STU (a 35s) at F3, its entry RPN or ALG at F4 and
+    # F5 (ALG shown only in STU: the app hides it); the model and the entry in effect marked
+    ("MODE", [o("33s", "AB_MODEL", 33), o("35s", "AB_MODEL", 35), o("STU", "AB_MODEL", "AB_MODEL_STU"),
+              o("RPN", "AB_ENTRYM", 0), o("ALG", "AB_ENTRYM", 1), NONE]),
     # the parts of a number under the printed legend POW (Michael is asked to rename it PARTS)
     ("POW", [o("IP", "AB_IP"), o("FP", "AB_FP"), o("INTG", "AB_INTG"), o("RND", "AB_RND"), o("SGN", "AB_SGN"),
              o("ABS", "AB_ABS")]),
@@ -143,6 +144,10 @@ MENUS = [
     # of a register (UG p.B-7), then typing's bar again. On no key, like LOGIC and SUFFIX.
     ("EQN LIST", [o("\u25b2", "AB_BST"), o("\u25bc", "AB_SST"), o("EDIT", "AB_KRIGHT"), o("NEW", "AB_EQTOP"),
                   NONE, o("EXIT", "AB_EQN")]),
+    # unit 029 proposal 2: STU's expression line, chosen by the app as Equation mode's bars are: the
+    # cursor, parentheses, the history up and down (the key for = is ENTER's)
+    ("ALG LINE", [o("\u25c0", "AB_KLEFT"), o("\u25b6", "AB_KRIGHT"), o("( )", "AB_KPAREN"), NONE,
+                  o("\u25b2", "AB_HUP"), o("\u25bc", "AB_HDOWN")]),
     ("EQN TYPE", [o("\u25c0", "AB_KLEFT"), o("\u25b6", "AB_KRIGHT"), o("( )", "AB_KPAREN"), o("=", "AB_KEQ"),
                   o("SPC", "AB_KSPACE"), ("REG", "KM_MENU", "0", "REG", 0)]),
     ("REG", [o("REGX", "AB_KREG", 0), o("REGY", "AB_KREG", 1), o("REGZ", "AB_KREG", 2), o("REGT", "AB_KREG", 3),

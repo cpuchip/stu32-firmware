@@ -2,7 +2,8 @@
  *
  *   build/load_fuzz [iterations] [seed]
  *
- * Seeds: the golden image (tests/golden-v1.img) and images of states built here. Each case damages
+ * Seeds: the golden image (tests/golden-v1.img) and images of states built here (unit 029: one in
+ * STU's ALG). Each case damages
  * a seed (flipped bits, truncation, inserted or deleted bytes, or wholly random bytes), and half
  * the time repairs the length and checksum so the fields themselves are what is tested. A refused
  * image must leave the calculator exactly as it was (its image unchanged, byte for byte); an
@@ -40,6 +41,11 @@ static void random_key(ab_calc *c)
 {
     ab_op op = (ab_op)below(AB_KREG + 1);
     int arg = 0;
+    if (below(16) == 0) {               /* unit 029: the model (STU among them), the entry, the line's keys */
+        static const ab_op L[] = {AB_MODEL, AB_ENTRYM, AB_ANS, AB_HUP, AB_HDOWN};
+        op = L[below(5)];
+        arg = op == AB_MODEL ? (int[]){33, 35, AB_MODEL_STU}[below(3)] : op == AB_ENTRYM ? (int)below(2) : 0;
+    }
     switch (op) {
     case AB_LBL: case AB_FN: arg = (int)below(26); break;
     case AB_XEQ: case AB_GTO: case AB_GTOPOS: arg = (int)below(26) * 1000 + (int)below(4); break;
@@ -79,8 +85,8 @@ int main(int argc, char **argv)
 {
     long iters = argc > 1 ? atol(argv[1]) : 20000;
     static ab_calc c;
-    uint8_t *seeds[3];
-    size_t seedn[3];
+    uint8_t *seeds[4];
+    size_t seedn[4];
     long refused = 0, accepted = 0, bad = 0;
     if (argc > 2) rng = (strtoull(argv[2], NULL, 0) * 0x9E3779B97F4A7C15ull) | 1;
 
@@ -94,9 +100,17 @@ int main(int argc, char **argv)
     seeds[1] = save(&c, &seedn[1]);
     for (int i = 0; i < 300; i++) random_key(&c);
     seeds[2] = save(&c, &seedn[2]);
+    ab_init(&c);                        /* unit 029: STU's ALG, a result shown, then a line typed */
+    ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+    ab_do_arg(&c, AB_ENTRYM, 1);
+    {
+        static const ab_op K[] = {AB_K2, AB_ADD, AB_K3, AB_ENTER, AB_MUL, AB_K4};
+        for (size_t i = 0; i < sizeof K / sizeof K[0]; i++) ab_do(&c, K[i]);
+    }
+    seeds[3] = save(&c, &seedn[3]);
 
     for (long it = 0; it < iters; it++) {
-        int s = (int)below(3);
+        int s = (int)below(4);
         size_t n = seedn[s], cap = n + 64;
         uint8_t *m = malloc(cap), *before, *after;
         size_t nb, na;
@@ -164,7 +178,7 @@ int main(int argc, char **argv)
         free(before);
         free(after);
     }
-    for (int i = 0; i < 3; i++) free(seeds[i]);
+    for (int i = 0; i < 4; i++) free(seeds[i]);
     printf("load_fuzz: %ld cases, %ld refused, %ld accepted, %ld violations\n", iters, refused, accepted, bad);
     return bad ? 1 : 0;
 }
