@@ -1,0 +1,12 @@
+# Unit 032b (abacus #4391 answer 2): TABLE from STU's ALG line. GO opens it; START and STEP take what X's place
+# shows (as STO does on the line: an entry shown, the line typed evaluated first, else ANS); ENTER puts the row's
+# value into ANS and the line (its exact digits), the stack untouched.
+A01 | GO from ALG | STU EQ:X^2 C 3 STO:X ALG TABLE | %TABLE=1 %TY=9
+A02 | START takes ANS | STU EQ:X^2 C 3 STO:X ALG 5 ENTER TSTART TABLE | %TX=5 %TY=25
+A03 | START with a line typed evaluates it first (as STO) | STU EQ:X^2 C 3 STO:X ALG 2 + 3 TSTART TABLE | %TX=5 N=5
+A04 | START with a history entry shown takes its result (as 029b's STO) | STU EQ:X^2 C 3 STO:X ALG 7 ENTER 8 ENTER HUP HUP TSTART TABLE | %TX=7
+A05 | STEP takes ANS | STU EQ:X^2 C 3 STO:X ALG 0.5 ENTER TSTEP TABLE TDOWN | %TX=3.5
+A06 | ENTER puts the row's value into ANS and the line; the stack untouched | STU EQ:X^2 C 3 STO:X ALG TABLE TDOWN ENTER | %TABLE=0 %ALG=1 N=16 %LINE=16 X=3
+A07 | the value then acts as a result: an operator continues from ANS | STU EQ:X^2 C 3 STO:X ALG TABLE TDOWN ENTER + 1 ENTER | N=17 %LINE=ANS+1
+A08 | the line keeps the exact digits (a third) | STU EQ:X C 1 STO:X ALG 1 ENTER 3 / TSTEP TABLE TDOWN ENTER | %LINE=1.333333333333333333333333333333333
+A09 | C leaves, ANS and the line as they were | STU EQ:X^2 C 3 STO:X ALG 4 ENTER TABLE TDOWN C | %TABLE=0 N=4 %LINE=4
