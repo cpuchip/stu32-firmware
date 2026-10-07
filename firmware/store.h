@@ -31,6 +31,11 @@ typedef struct {
 /* Writes image (len bytes) to the slot the newest good image is not in. 0 on success. */
 int ab_store_save(const ab_flash *f, const uint8_t *image, uint32_t len);
 
+/* After a partition's slots grew in place (apps.h v1.2: the apps' saves, 8 KB to 36 KB slots), the old second slot
+   (at old_slot_size) lies inside the new first. A good image there newer than every good slot now is saved again into
+   the new layout (buf, cap: room to read it). 1 if one moved, 0 if none, -1 on a failure. Call before loading. */
+int ab_store_migrate(const ab_flash *f, uint32_t old_slot_size, uint8_t *buf, uint32_t cap);
+
 /* Reads the newest good image into buf (cap bytes): its length, or 0 if no slot holds one (or
    it does not fit). A slot is good when its header and payload CRCs match. */
 uint32_t ab_store_load(const ab_flash *f, uint8_t *buf, uint32_t cap);

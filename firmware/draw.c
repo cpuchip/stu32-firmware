@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: MIT */
 /* draw (draw.h). From stu32-arcade sdk/draw.c at 7f0e37c (arcade, MIT), taken into the framework through soroban's
    gate (apps.h v1.2, abacus #4734): int64_t where it widened with long (32 bits on the device). */
+#include <limits.h>
 #include <string.h>
 
 #include "draw.h"
@@ -56,38 +57,46 @@ void draw_fill(ls027_frame *f, int x, int y, int w, int h, draw_shade shade)
         span(f, (int)r, (int)x0, (int)x1, (uint8_t)((r & 1) ? shade >> 8 : shade & 0xff));
 }
 
+/* v to int, saturated (a coordinate past the frame stays past it) */
+static int sat(int64_t v)
+{
+    return v < INT_MIN ? INT_MIN : v > INT_MAX ? INT_MAX : (int)v;
+}
+
 void draw_frame_rect(ls027_frame *f, int x, int y, int w, int h, int dark)
 {
     if (w <= 0 || h <= 0)
         return;
     draw_shade s = dark ? DRAW_DARK : DRAW_LIGHT;
     draw_fill(f, x, y, w, 1, s);
-    draw_fill(f, x, y + h - 1, w, 1, s);
+    draw_fill(f, x, sat((int64_t)y + h - 1), w, 1, s);      /* (int64_t: y + h may pass INT_MAX, soroban's gate) */
     draw_fill(f, x, y, 1, h, s);
-    draw_fill(f, x + w - 1, y, 1, h, s);
+    draw_fill(f, sat((int64_t)x + w - 1), y, 1, h, s);
 }
 
-#define LINE_LIMIT ((int64_t)1 << 29) /* ends are clamped to this, so 2 * k * |d| fits in 64 bits (int64_t: int64_t is 32 on
-                                         the ESP32-S3, soroban's gate) */
-
-static int64_t clamp_end(int v)
+/* floor(k * minor / major + 1/2), exactly, for 0 <= k <= major <= 2^32 and minor <= major: with k = q1 * major + r1
+   (q1 0 or 1), r1 * minor < 2^64 */
+static uint64_t nearest(uint64_t k, uint64_t minor, uint64_t major)
 {
-    return v < -LINE_LIMIT ? -LINE_LIMIT : v > LINE_LIMIT ? LINE_LIMIT : v;
+    uint64_t q1 = k / major, r1 = k % major, p = r1 * minor;
+    uint64_t q = q1 * minor + p / major, r = p % major;
+    return q + (2 * r >= major);
 }
 
 /* Along the major axis, step k (0..|major|) puts the pixel nearest the true line on the minor axis,
  * a tie going away from the start: minor = start + s * floor((2k|minor| + |major|) / (2|major|)).
  * Only the steps that land on the frame are walked, so a line costs at most 400 steps however far
- * its ends lie. */
+ * its ends lie. Exact for any int ends (soroban's gate: the ends were clamped to +-2^29 each, which bent a far
+ * line's slope, and long was 32 bits on the device). */
 void draw_line(ls027_frame *f, int x0, int y0, int x1, int y1, int dark)
 {
-    int64_t ax = clamp_end(x0), ay = clamp_end(y0), bx = clamp_end(x1), by = clamp_end(y1);
+    int64_t ax = x0, ay = y0, bx = x1, by = y1;
     int64_t adx = bx > ax ? bx - ax : ax - bx, ady = by > ay ? by - ay : ay - by;
     int64_t sx = bx >= ax ? 1 : -1, sy = by >= ay ? 1 : -1;
     int xmajor = adx >= ady;
     int64_t major = xmajor ? adx : ady, minor = xmajor ? ady : adx;
     int64_t m0 = xmajor ? ax : ay, n0 = xmajor ? ay : ax, sm = xmajor ? sx : sy, sn = xmajor ? sy : sx;
-    int64_t size = xmajor ? LS027_W : LS027_H;
+    int64_t size = xmajor ? LS027_W : LS027_H, nsize = xmajor ? LS027_H : LS027_W;
     /* the steps k for which m0 + sm * k lies in [0, size) */
     int64_t klo = sm > 0 ? -m0 : m0 - (size - 1), khi = sm > 0 ? size - 1 - m0 : m0;
     if (klo < 0)
@@ -95,12 +104,14 @@ void draw_line(ls027_frame *f, int x0, int y0, int x1, int y1, int dark)
     if (khi > major)
         khi = major;
     for (int64_t k = klo; k <= khi; k++) {
-        int64_t n = major ? n0 + sn * ((2 * k * minor + major) / (2 * major)) : n0;
+        int64_t n = major ? n0 + sn * (int64_t)nearest((uint64_t)k, (uint64_t)minor, (uint64_t)major) : n0;
         int64_t m = m0 + sm * k;
+        if (n < 0 || n >= nsize)
+            continue;
         if (xmajor)
-            draw_pixel(f, (int)m, n < 0 || n >= LS027_H ? -1 : (int)n, dark);
+            draw_pixel(f, (int)m, (int)n, dark);
         else
-            draw_pixel(f, n < 0 || n >= LS027_W ? -1 : (int)n, (int)m, dark);
+            draw_pixel(f, (int)n, (int)m, dark);
     }
 }
 
@@ -138,19 +149,21 @@ static const font_glyph *glyph(uint32_t cp)
 
 int draw_text_width(const char *s, int scale)
 {
-    return (int)strlen(s) * 6 * scale;
+    return sat((int64_t)strlen(s) * 6 * scale);
 }
 
 int draw_text(ls027_frame *f, int x, int y, int scale, const char *s, int dark)
 {
+    int64_t cx = x;                             /* (int64_t: a large scale passed INT_MAX, soroban's gate) */
     for (; *s; s++) {
         const font_glyph *g = glyph((uint8_t)*s);
         if (g)
             for (int r = 0; r < 7; r++)
                 for (int c = 0; c < 5; c++)
                     if (g->rows[r] & (0x10 >> c))
-                        draw_fill(f, x + c * scale, y + r * scale, scale, scale, dark ? DRAW_DARK : DRAW_LIGHT);
-        x += 6 * scale;
+                        draw_fill(f, sat(cx + (int64_t)c * scale), sat((int64_t)y + (int64_t)r * scale), scale, scale,
+                                  dark ? DRAW_DARK : DRAW_LIGHT);
+        cx += (int64_t)6 * scale;
     }
-    return x;
+    return sat(cx);
 }

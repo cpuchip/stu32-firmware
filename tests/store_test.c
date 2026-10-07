@@ -164,6 +164,39 @@ static int settings_checks(void)
     return bad != 0;
 }
 
+/* apps.h v1.2: abapps grew from 8 KB slots to bigger ones in place; the newest image in the old second slot (inside
+   the new first) must not be lost (fresh eyes: it was) */
+static int migrate_checks(void)
+{
+    static sim s;
+    static uint8_t buf[SLOT];
+    int bad = 0;
+    memset(s.mem, 0xFF, sizeof s.mem);
+    s.budget = -1;
+    ab_flash oldf = {&s, SECTOR, 2 * SECTOR, sim_erase, sim_write, sim_read};
+    ab_flash newf = {&s, SECTOR, SLOT, sim_erase, sim_write, sim_read};
+    uint32_t l1, l2, l3;
+    uint8_t *i1 = image_of(1, &l1), *i2 = image_of(2, &l2), *i3 = image_of(3, &l3);
+    if (l1 > 2 * SECTOR - AB_STORE_HEADER || l2 > 2 * SECTOR - AB_STORE_HEADER) bad++;
+    ab_store_save(&oldf, i1, l1);
+    ab_store_save(&oldf, i2, l2);               /* the newest, in the old second slot */
+    uint32_t n = ab_store_load(&newf, buf, sizeof buf);
+    if (!same(buf, n, i1, l1)) bad++;           /* without the migration: the older one (the loss) */
+    if (ab_store_migrate(&newf, 2 * SECTOR, buf, sizeof buf) != 1) bad++;
+    n = ab_store_load(&newf, buf, sizeof buf);
+    if (!same(buf, n, i2, l2)) bad++;           /* with it: the newest */
+    if (ab_store_migrate(&newf, 2 * SECTOR, buf, sizeof buf) != 0) bad++;   /* once only */
+    ab_store_save(&newf, i3, l3);
+    n = ab_store_load(&newf, buf, sizeof buf);
+    if (!same(buf, n, i3, l3) || ab_store_migrate(&newf, 2 * SECTOR, buf, sizeof buf) != 0) bad++;
+    memset(s.mem, 0xFF, sizeof s.mem);          /* one old save only: in the first slot, nothing to move */
+    ab_store_save(&oldf, i1, l1);
+    if (ab_store_migrate(&newf, 2 * SECTOR, buf, sizeof buf) != 0 || !same(buf, ab_store_load(&newf, buf, sizeof buf), i1, l1)) bad++;
+    free(i1), free(i2), free(i3);
+    printf("store_test: migration after the slots grew: %s\n", bad ? "FAIL" : "the newest image kept");
+    return bad != 0;
+}
+
 int main(void)
 {
     static sim s;
@@ -178,7 +211,8 @@ int main(void)
         uint32_t len;
         uint8_t *img = image_of(k, &len);
         /* how many steps this save takes: one per erased sector and per byte written */
-        long steps = (long)(SLOT / SECTOR) + (long)len + AB_STORE_HEADER;
+        long steps = (long)((AB_STORE_HEADER + len + SECTOR - 1) / SECTOR) + (long)len + AB_STORE_HEADER;  /* (v1.2:
+                                                   only the sectors the save takes are erased) */
         static uint8_t snapshot[2 * SLOT];
         memcpy(snapshot, s.mem, sizeof snapshot);
         for (long cut = 0; cut <= steps; cut++) {
@@ -221,5 +255,5 @@ int main(void)
     }
     free(prev);
     printf("store_test: power cut at every moment of 6 saves: %ld/%ld leave a good image\n", good, cases);
-    return (good == cases ? 0 : 1) | settings_checks();
+    return (good == cases ? 0 : 1) | settings_checks() | migrate_checks();
 }

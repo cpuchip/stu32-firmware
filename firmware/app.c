@@ -1430,6 +1430,7 @@ void app_key_up(app_state *a, int key, uint32_t now_ms)
 #define APP_EXIT_KEY 42                         /* C, the HP's ON position: always ends an app (rule 4) */
 
 static app_state *app_fw;                       /* the framework running an app: app_beep's and app_now_ms's */
+static app_state *seed_src;                     /* the framework that last ran an app: app_seed's RNG outside a run */
 
 static uint32_t app_hash(const char *name)      /* FNV-1a of the name: an app's save's key */
 {
@@ -1536,6 +1537,7 @@ static void app_start(app_state *a, const app_def *d)
     memset(a->app_ctx, 0, d->ctx_size);
     a->app = d;
     app_fw = a;
+    seed_src = a;
     a->app_t0 = now;
     a->menu = -1;
     a->shift = 0;
@@ -1558,12 +1560,14 @@ static void app_exit(app_state *a)
     const app_def *d = a->app;
     uint32_t h = app_hash(d->name), ss = app_save_size(d), len = 0;
     long at = save_find(a, h, &len);
+    a->app_exiting = true;                      /* C stops sound: none from save or stop either (v1.2) */
+    a->tune_n = 0;
     d->save(a->app_ctx, a->save_run, ss);       /* its save, apart from the calculator's image (rule 5), into the
                                                    running buffer holding what it loaded (v1.2) */
     if ((at < 0 || len != ss || memcmp(a->saves + at, a->save_run, ss)) && save_set(a, h, a->save_run, ss))
         a->apps_dirty = true;                   /* stored only when it changed (the flash's wear) */
-    a->tune_n = 0;                              /* the exit stops a tune (v1.2) */
     d->stop(a->app_ctx);
+    a->app_exiting = false;
     a->app = NULL;
     app_fw = NULL;
     a->app_next = 0;
@@ -1643,6 +1647,9 @@ bool app_saves_load(app_state *a, const uint8_t *buf, size_t n)
     if (ab_crc32(buf, n - 4) != crc || !a->saves) return false;
     if (buf[4] == 1) {                          /* version 1: each used record, 64 bytes */
         if (n != APP_SAVES_V1_LEN || buf[5] != 8) return false;
+        size_t need = 0;                        /* (it must fit before anything changes: fresh eyes) */
+        for (size_t p = 6; p + 5 + APP_SAVE_SIZE <= n - 4; p += 5 + APP_SAVE_SIZE) need += buf[p + 4] ? 6 + APP_SAVE_SIZE : 0;
+        if (need > a->saves_cap) return false;
         a->saves_len = 0;
         for (size_t p = 6; p + 5 + APP_SAVE_SIZE <= n - 4; p += 5 + APP_SAVE_SIZE) {
             uint32_t h = (uint32_t)buf[p] | (uint32_t)buf[p + 1] << 8 | (uint32_t)buf[p + 2] << 16 | (uint32_t)buf[p + 3] << 24;
@@ -1656,7 +1663,7 @@ bool app_saves_load(app_state *a, const uint8_t *buf, size_t n)
     while (p < end) {                           /* every record whole, none past APP_SAVE_MAX, no hash twice */
         if (p + 6 > end) return false;
         uint32_t len = (uint32_t)buf[p + 4] | (uint32_t)buf[p + 5] << 8;
-        if (len > APP_SAVE_MAX || p + 6 + len > end) return false;
+        if (len == 0 || len > APP_SAVE_MAX || p + 6 + len > end) return false;   /* (a save is never empty) */
         for (size_t q = 6; q < p; q += 6 + ((size_t)buf[q + 4] | (size_t)buf[q + 5] << 8))
             if (!memcmp(buf + q, buf + p, 4)) return false;
         p += 6 + len;
@@ -1671,7 +1678,7 @@ bool app_saves_load(app_state *a, const uint8_t *buf, size_t n)
 void app_beep(uint16_t hz, uint16_t ms)
 {
     app_state *a = app_fw;
-    if (!a || !(a->set.uses & DEV_USE_APP) || a->set.vol == 0) return;
+    if (!a || a->app_exiting || !(a->set.uses & DEV_USE_APP) || a->set.vol == 0) return;
     a->tone = a->set.vol;
     a->tone_use = DEV_USE_APP;
     a->tone_hz = hz;
@@ -1681,7 +1688,11 @@ void app_beep(uint16_t hz, uint16_t ms)
 void app_tune(const uint16_t *notes, uint8_t n)
 {
     app_state *a = app_fw;
-    if (!a || !notes) return;
+    if (!a || a->app_exiting) return;
+    if (!notes || n == 0) {                     /* nothing: what was playing stops (after the note sounding) */
+        a->tune_n = 0;
+        return;
+    }
     if (n > APP_TUNE_MAX) n = APP_TUNE_MAX;
     memcpy(a->tune, notes, (size_t)n * 2 * sizeof notes[0]);
     a->tune_n = n;
@@ -1694,7 +1705,7 @@ static uint32_t seed_value;
 
 uint32_t app_seed(void)
 {
-    app_state *a = app_fw;
+    app_state *a = app_fw ? app_fw : seed_src;
     if (seed_fixed) return seed_value;
     if (a && a->rng) return a->rng(a->ctx);     /* the device's hardware RNG */
     uint32_t x = (a ? (a->clock_ms ? a->clock_ms(a->ctx) : a->now_ms) : 0) ^ 0x9E3779B9u;   /* a host's choice */

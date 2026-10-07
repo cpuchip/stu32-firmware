@@ -91,12 +91,13 @@ static bool v_key(void *ctx, int key, bool down, uint32_t ms)
     (void)ctx, (void)ms;
     if (down && key == APP_KEY_2) app_tune(V_TUNE, 3);
     if (down && key == APP_KEY_3) app_tune(v_tune17, 17);   /* 17 notes: 16 played */
+    if (down && key == APP_KEY_4) app_tune(NULL, 0);        /* nothing: stops */
     return false;
 }
 static uint32_t v_tick(void *ctx, uint32_t ms) { (void)ctx, (void)ms; return 0; }
 static void v_draw(void *ctx, ls027_frame *f) { (void)ctx; screen_clear(f); }
 static void v_save(void *ctx, uint8_t *s, uint32_t cap) { (void)ctx; for (uint32_t i = 0; i < cap; i++) s[i] = (uint8_t)(i * 7 + 1); }
-static void v_stop(void *ctx) { (void)ctx; }
+static void v_stop(void *ctx) { (void)ctx; app_tune(V_TUNE, 3); }   /* (a tune started as it stops: cleared) */
 static const app_def vapps[3] = {
     {"V300", 16, v_load, v_start, v_key, v_tick, v_draw, v_save, v_stop, 300},
     {"V64", 16, v_load, v_start, v_key, v_tick, v_draw, v_save, v_stop, 0},
@@ -1051,6 +1052,9 @@ int main(void)
             if (a.tone >= 0) notes++, last = a.tone_hz, a.tone = -1;
         }
         expect(notes == 16 && last == 115, "v1.2 (4): at most 16 notes, copied");
+        app_key(&a, APP_KEY_2, t + 950);
+        app_key(&a, APP_KEY_4, t + 960);
+        expect(a.tune_n == 0, "v1.2 (4): app_tune(NULL, 0) stops what is playing");
         app_key(&a, APP_KEY_2, t + 1000);
         a.tone = -1;
         press(&a, "C");
@@ -1075,7 +1079,10 @@ int main(void)
         static uint8_t img[APP_SAVES_IMG_MAX];
         size_t n = app_saves_image(&a, img, sizeof img);
         app_state b;
+        static uint8_t bsaves[APP_SAVES_IMG_MAX], brun[APP_SAVE_MAX];  /* b's own (fresh eyes: the host's shared ones
+                                                   let a load that copied nothing pass) */
         app_init(&b, &c, now);
+        app_save_buffers(&b, bsaves, sizeof bsaves, brun, sizeof brun);
         app_ctx_buffer(&b, ctxbuf, sizeof ctxbuf);
         app_apps(&b, vlist, 3);
         expect(n > 0 && app_saves_load(&b, img, n), "v1.2 (2): the saves' image loads back");
@@ -1094,6 +1101,8 @@ int main(void)
         uint32_t crc = ab_crc32(v1, sizeof v1 - 4);
         for (int k = 0; k < 4; k++) v1[sizeof v1 - 4 + k] = (uint8_t)(crc >> (8 * k));
         app_init(&b, &c, now);
+        memset(bsaves, 0, sizeof bsaves);
+        app_save_buffers(&b, bsaves, sizeof bsaves, brun, sizeof brun);
         app_ctx_buffer(&b, ctxbuf, sizeof ctxbuf);
         app_apps(&b, vlist, 3);
         expect(app_saves_load(&b, v1, sizeof v1), "v1.2 (2): a version-1 saves image loads");
@@ -1101,6 +1110,22 @@ int main(void)
         press(&b, "BLUE 0 k:1");
         expect(rec2.load_n == 64 && rec2.loaded[0] == 200 && rec2.loaded[63] == 137, "v1.2 (2): its save unchanged");
         press(&b, "C");
+        {   /* a v1 image too big for the buffer changes nothing; a zero-length record is refused (fresh eyes) */
+            static uint8_t tiny[20], z[6 + 6 + 4];
+            size_t had = b.saves_len;
+            uint8_t *keep = b.saves;
+            size_t keepcap = b.saves_cap;
+            b.saves = tiny, b.saves_cap = sizeof tiny, b.saves_len = 0;
+            bool refused = !app_saves_load(&b, v1, sizeof v1) && b.saves_len == 0;
+            b.saves = keep, b.saves_cap = keepcap, b.saves_len = had;
+            memcpy(z, "ABAP", 4);
+            z[4] = 2, z[5] = 1;
+            memset(z + 6, 0, 6);
+            uint32_t zc = ab_crc32(z, sizeof z - 4);
+            for (int k = 0; k < 4; k++) z[sizeof z - 4 + k] = (uint8_t)(zc >> (8 * k));
+            expect(refused && !app_saves_load(&b, z, sizeof z) && b.saves_len == had,
+                   "v1.2 (2): a v1 image that doesn't fit, or a zero-length record: refused, nothing changed");
+        }
     }
 
     /* apps.h v1.2 item 5 (abacus #4734): APP_KEY_* name every key by the layout (app_keys.h, generated as keymap.c,

@@ -62,7 +62,11 @@ int ab_store_save(const ab_flash *f, const uint8_t *image, uint32_t len)
     else target = 0;
     seq = (a.good && a.seq >= (b.good ? b.seq : 0) ? a.seq : b.good ? b.seq : 0) + 1;
     base = (uint32_t)target * f->slot_size;
-    if (f->erase(f->ctx, base, f->slot_size) != 0) return -1;
+    /* only the sectors the header and image take (apps.h v1.2, fresh eyes: a 36 KB slot erased whole for an
+       80-byte save); the rest of the slot is never read: the header's length and CRCs decide */
+    uint32_t need = (AB_STORE_HEADER + len + f->sector - 1) / f->sector * f->sector;
+    if (need > f->slot_size) need = f->slot_size;
+    if (f->erase(f->ctx, base, need) != 0) return -1;
     if (f->write(f->ctx, base + AB_STORE_HEADER, image, len) != 0) return -1;
     memset(h, 0xFF, sizeof h);
     memcpy(h, "ABST", 4);
@@ -71,6 +75,19 @@ int ab_store_save(const ab_flash *f, const uint8_t *image, uint32_t len)
     put32(h + 12, ab_crc32(image, len));
     put32(h + 16, ab_crc32(h, 16));
     return f->write(f->ctx, base, h, sizeof h);      /* the header last: it commits the save */
+}
+
+int ab_store_migrate(const ab_flash *f, uint32_t old_slot_size, uint8_t *buf, uint32_t cap)
+{
+    ab_flash old = *f;
+    old.slot_size = old_slot_size;
+    if (old_slot_size == 0 || old_slot_size >= f->slot_size) return 0;
+    slot_info ob = examine(&old, 1), a = examine(f, 0), b = examine(f, 1);
+    uint32_t newest = a.good ? a.seq : 0;
+    if (b.good && b.seq > newest) newest = b.seq;
+    if (!ob.good || ((a.good || b.good) && ob.seq <= newest) || ob.len > cap) return 0;
+    if (f->read(f->ctx, old_slot_size + AB_STORE_HEADER, buf, ob.len) != 0 || ab_crc32(buf, ob.len) != ob.crc) return -1;
+    return ab_store_save(f, buf, ob.len) == 0 ? 1 : -1;
 }
 
 uint32_t ab_store_load(const ab_flash *f, uint8_t *buf, uint32_t cap)

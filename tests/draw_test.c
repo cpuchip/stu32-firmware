@@ -41,7 +41,7 @@ static uint32_t rnd(void)
 }
 static int between(int lo, int hi)
 {
-    return lo + (int)(rnd() % (uint32_t)(hi - lo + 1));
+    return (int)(lo + (long long)(((uint64_t)rnd() << 32 | rnd()) % (uint64_t)((long long)hi - lo + 1)));
 }
 
 /* ---- the reference: one pixel at a time ---- */
@@ -212,7 +212,11 @@ int main(int argc, char **argv)
             break;
         }
         default:
-            line_props(between(-50, 450), between(-50, 290), between(-50, 450), between(-50, 290));
+            if (rnd() % 4)
+                line_props(between(-50, 450), between(-50, 290), between(-50, 450), between(-50, 290));
+            else                                /* (soroban's gate) ends far off the frame, any slope */
+                line_props(between(-2000000000, 2000000000), between(-50, 290), between(-2000000000, 2000000000),
+                           between(-2000000000, 2000000000));
             break;
         }
     }
@@ -221,6 +225,11 @@ int main(int argc, char **argv)
     line_props(-2000000000, 0, 2000000000, 100);
     line_props(5, -2000000000, 300, 2000000000);
     line_props(2000000000, 2000000000, -2000000000, -2000000000);
+    line_props(-2000000000, -1000000000, 399, 239);   /* not 1:1: a clamp of each end bent it (fresh eyes) */
+    line_props(2147483647, -2147483647 - 1, -2147483647 - 1, 2147483647);
+    draw_frame_rect(&a, 10, 2000000000, 10, 2000000000, 1);     /* (int overflow: UBSan watches) */
+    draw_text(&a, 0, 0, 400000000, "AB", 1);
+    (void)draw_text_width("ABCDEFGH", 400000000);
     draw_fill(&a, -2000000000, -2000000000, 2147483647, 2147483647, DRAW_HALF);
     if (checks == 0) {
         printf("no checks ran\n");

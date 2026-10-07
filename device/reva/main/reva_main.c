@@ -595,12 +595,14 @@ void app_main(void)
         app_undo_buffers(&app, u0, u1, IMAGE_CAP);
         app_graph_buffer(&app, heap_caps_malloc(sizeof(app_graph), MALLOC_CAP_SPIRAM));   /* unit 033 */
         app_ctx_buffer(&app, heap_caps_malloc(APP_CTX_MAX, MALLOC_CAP_SPIRAM), APP_CTX_MAX);  /* unit 037 */
-        app_save_buffers(&app, heap_caps_malloc(APP_SAVES_IMG_MAX, MALLOC_CAP_SPIRAM), APP_SAVES_IMG_MAX,
-                         heap_caps_malloc(APP_SAVE_MAX, MALLOC_CAP_SPIRAM), APP_SAVE_MAX);   /* apps.h v1.2 */
-        apps_buf = heap_caps_malloc(APP_SAVES_IMG_MAX, MALLOC_CAP_SPIRAM);
-        {
+        if (why != ESP_SLEEP_WAKEUP_TIMER) {    /* (a refresh wake sleeps again at once: no app, no saves) */
+            app_save_buffers(&app, heap_caps_malloc(APP_SAVES_IMG_MAX, MALLOC_CAP_SPIRAM), APP_SAVES_IMG_MAX,
+                             heap_caps_malloc(APP_SAVE_MAX, MALLOC_CAP_SPIRAM), APP_SAVE_MAX);   /* apps.h v1.2 */
+            apps_buf = heap_caps_malloc(APP_SAVES_IMG_MAX, MALLOC_CAP_SPIRAM);
+            if (apps_flash.ctx && apps_buf) ab_store_migrate(&apps_flash, 0x2000, apps_buf, APP_SAVES_IMG_MAX);  /* v1.2:
+                                                   abapps was 2 x 8 KB */
             uint32_t n = apps_flash.ctx && apps_buf ? ab_store_load(&apps_flash, apps_buf, APP_SAVES_IMG_MAX) : 0;
-            if (n) app_saves_load(&app, apps_buf, n);
+            if (n && !app_saves_load(&app, apps_buf, n)) printf("reva: apps' saves refused\n");
         }
     }
 

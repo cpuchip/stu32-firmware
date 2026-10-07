@@ -222,6 +222,8 @@ static void apps_save(void)
 static void apps_load(void)
 {
     uint8_t *b = apps_buf;
+    if (apps_flash.ctx && b && ab_store_migrate(&apps_flash, 0x2000, b, APP_SAVES_IMG_MAX) == 1)
+        printf("apps: saves moved to the grown slots\n");      /* v1.2: abapps was 2 x 8 KB */
     uint32_t n = apps_flash.ctx && b ? ab_store_load(&apps_flash, b, APP_SAVES_IMG_MAX) : 0;
     printf("apps: %s\n", n && app_saves_load(&app, b, n) ? "saves loaded" : "no saves");
 }

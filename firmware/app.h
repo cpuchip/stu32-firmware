@@ -160,6 +160,7 @@ typedef struct {
     uint16_t tune[2 * APP_TUNE_MAX];            /* v1.2: app_tune's notes, the one playing, and when it ends (the */
     uint8_t tune_n, tune_i;                     /* app's clock); tune_n 0: none */
     uint32_t tune_end;
+    bool app_exiting;                           /* the app's save and stop running: no tone or tune (v1.2) */
     bool idle_limit;        /* the apps' idle limit applies (abacus #4639); true from app_init, a host may clear it
                                (abacus #4661: the phone never auto-offs) */
     volatile bool computing; /* 040b: a SOLVE, an integral or a graph tool inside its call (C interrupts it) */
