@@ -29,3 +29,5 @@ K23 | CAS 004 (F4): an image with SUBST pending in ALG is refused | STU ALG SAVE
 K24 | CAS 004 (F6): SUBST by a complex number is UNSUPPORTED, not CAN'T COPY | STU EQ:X^2 CASSUB:X 1 CI 2 ENTER | ERR %ERR=CAS_UNSUPPORTED
 K25 | CAS 004 (F7): a replacement that doesn't parse (Y+) stays typed (as 031 answer I); finished (> clears the message) it substitutes | STU EQ:X^2+1 CASSUB:X RCL:Y + ENTER > RCL:Z ENTER | ERR %EQ=(Y+Z)^2+1
 K26 | CAS 004 (F8): a version-11 image claiming a CAS status (none existed then) is refused | STU EQ:IP(X) CASD:X SAVE IMGVER:11 LOAD | ERR %ERR=BAD_IMAGE
+K27 | CAS 004 F5 (abacus #4836: keep): XEQ while SUBST's replacement is typed substitutes, then evaluates the result (043's contract) | STU EQ:X^2+1 CASSUB:X 3 XEQ | X=10 %EQN=2 %EQ=10
+K28 | CAS 004 F5: and SOLVE substitutes, then solves the result | STU EQ:X^2-Y CASSUB:Y 4 SOLVE:X | X=2 %EQN=2 %EQ=X^2-4
