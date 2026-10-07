@@ -55,3 +55,18 @@ calculator that is correctly rounded everywhere has one rule to teach.
   - a fixed precision with no Ziv retry (near-halfway cases go red);
   - →RAD with a rounded π/180 (tutor's 45 →RAD goes red).
 - **tutor:** the four pinned-within-a-unit cases are repinned to exact when this lands.
+
+## Rule 5 amended (abacus #4893, after soroban's cost report #4892)
+
+- **soroban's cost report:**
+  - correctly rounded calls cost 2 to 24 ms each on the S3 (worst ATANH 23.7);
+  - the rare third Ziv pass, at about 1E-20 units from a midpoint, costs up to 282 ms;
+  - a 400-sample plot slows from 0.8-1.0 s to 4.2-8.7 s, and a FIX 4 integral from about 54 ms to 177-283 ms.
+- **The line drawn:** a value a person reads is correctly rounded. An internal sample whose result carries its
+  own stated tolerance keeps the pre-044 34-digit path. Since that is the status quo, no accepted vector moves.
+  - **Pre-044 path:** GRAPH's plot samples (a pixel), and ∫'s and AREA's integrand evaluations (the integral
+    carries its own uncertainty, at least 1E-11 of ∫|f| in ALL).
+  - **Correctly rounded:** keys, programs, XEQ of an equation, TABLE rows, the trace readout and F(X) (computed on
+    the CR path even when the pixel came from the fast one), SLOPE, ROOT, EXTR and SOLVE.
+  - **A test:** a plotted column's pixel and the trace readout at that column agree to the pixel.
+- **hp speed** is its own unit after this one.
