@@ -711,6 +711,50 @@ int main(void)
         expect(fabs(x_of(&c) - cos(acos(-1.0) / 180)) < 1e-12, "041 C: STU: HYP then COS is COS");
     }
 
+    /* unit 041 C (B7): FN= on the keys (until now only the core's token): PRGM's fourth item, in SST's cell (SST is
+       blue R/S); a letter chooses that label, (I) or (J) the label it names (35s p.15-1, p.14-22); then SOLVE from
+       the keys solves that program */
+    {
+        int ki = -1, kj = -1;
+        for (int k = 0; k < KB_KEYS; k++) {
+            if (km_letter_of(k)->kind == KL_IND_I) ki = k;
+            if (km_letter_of(k)->kind == KL_IND_J) kj = k;
+        }
+        char kk[48];
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do(&c, AB_PRGM);
+        ab_do_arg(&c, AB_LBL, 'Z' - 'A');       /* LBL Z: X^2 - 2 */
+        ab_do_arg(&c, AB_RCL, 23);
+        ab_do(&c, AB_SQ);
+        ab_do(&c, AB_K2);
+        ab_do(&c, AB_SUB);
+        ab_do(&c, AB_RTN);
+        ab_do(&c, AB_PRGM);
+        press(&a, "GOLD 9");
+        app_ui(&a, &ui);
+        expect(ui.soft[3] && !strcmp(ui.soft[3], "FN="), "041 C: PRGM's fourth item is FN=");
+        press(&a, "k:3");
+        app_ui(&a, &ui);
+        expect(ui.prompt && !strcmp(ui.prompt, "FN= _"), "041 C: FN= prompts for a label");
+        press(&a, "ltr:Z");
+        app_ui(&a, &ui);
+        expect(c.fn == 'Z' - 'A' && !ui.prompt, "041 C: FN= Z chooses Z");
+        press(&a, "1 STO ltr:X 9 GOLD 7 ltr:X");
+        expect(!c.msg && fabs(x_of(&c) - sqrt(2.0)) < 1e-12, "041 C: then SOLVE X from the keys solves Z's X^2-2");
+        ab_do_arg(&c, AB_MODEL, 35);
+        press(&a, "C 2 6 +/\xe2\x88\x92 STO ltr:I");     /* I = -26: label Z (p.14-22: -1 to -26 name A to Z; 013's O02) */
+        c.fn = 0;
+        snprintf(kk, sizeof kk, "GOLD 9 k:3 k:%d", ki);
+        press(&a, kk);
+        expect(c.fn == 'Z' - 'A', "041 C: 35s mode: FN= (I) chooses the label I names");
+        ab_do_arg(&c, AB_MODEL, 33);
+        c.fn = 0;                               /* 33s mode: the (I) key is i, the (J) key (i), the 33s's index */
+        snprintf(kk, sizeof kk, "C 2 6 +/\xe2\x88\x92 STO k:%d GOLD 9 k:3 k:%d", ki, kj);
+        press(&a, kk);
+        expect(c.fn == 'Z' - 'A', "041 C: 33s mode: FN= (i) chooses the label i names");
+    }
+
     /* unit 019: every menu on a key opens with its items on the soft keys (CONST shows its first
        five constants and "more"); in 35s mode, where every menu opens (unit 041 A, decision 58) */
     for (int k = 0; k < KB_KEYS; k++)
