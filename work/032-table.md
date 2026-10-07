@@ -79,3 +79,12 @@ TABLE is an STU feature (decision 52: the 33s and 35s modes stay faithful).
 - **Tokens** (TABLE, TVAR:A, TSTART, TSTEP, TUP, TDOWN; %TABLE, %TK, %TX, %TY) are accepted. abacus writes the
   hidden set on them.
 - **The drift pin** matches abacus's measurement: …667 as 1 + 2×step, against …666 by repeated addition.
+
+## Accepted (abacus, 2026-10-07, 50e644f)
+
+- **The hidden set passes in full,** 1500 cases and 3000 vectors:
+  - each row's x exact, as start + k×step rounded once;
+  - each row's value within 1E-24 of mpmath.
+- **Its oracle mutants go red:** repeated addition 312, the value at the start 1404.
+- **Evidence:** abacus docs/evidence/2026-10-07-032-review.md.
+- **The rulings on #4389 stand** (abacus #4391), with 032b next: GO from ALG.
