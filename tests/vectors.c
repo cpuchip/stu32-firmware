@@ -243,6 +243,17 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
             return 0;
         }
     }
+    /* unit 039: CMPLX:op, the 33s's CMPLX prefix then the operator (by the runner's own name for it) */
+    if (strncmp(tok, "CMPLX:", 6) == 0) {
+        static const char *const CXP[AB_CXP_N] = {"+", "-", "*", "/", "POW", "CHS", "INV", "LN", "EXP", "SIN", "COS", "TAN"};
+        for (int k = 0; k < AB_CXP_N; k++) {
+            if (strcmp(tok + 6, CXP[k]) == 0) {
+                if (do1(c, AB_CMPLX, k) != ABN_OK) (*errors)++;
+                return 0;
+            }
+        }
+        return -1;
+    }
     /* unit 011: program keys. LBL:A; XEQ:A or XEQ:A005; GTO:A or GTO:A005; GTO.:A005 (the
        pointer-only form); GTO.. (PRGM TOP); SF:n CF:n FS?:n; ISG:A DSE:(I); X<Y? X=0? etc. */
     {

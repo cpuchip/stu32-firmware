@@ -128,10 +128,11 @@ typedef enum {
        start and step (from X); a row up, down. Nonprogrammable. */
     AB_TABLE, AB_TVAR, AB_TSTART, AB_TSTEP, AB_TUP, AB_TDOWN,
     /* unit 033: GRAPH (STU): GO; the window's XMIN XMAX YMIN YMAX (from X); AUTO; the trace's left, right */
-    AB_GRAPH, AB_XMIN, AB_XMAX, AB_YMIN, AB_YMAX, AB_GAUTO, AB_GLEFT, AB_GRIGHT
+    AB_GRAPH, AB_XMIN, AB_XMAX, AB_YMIN, AB_YMAX, AB_GAUTO, AB_GLEFT, AB_GRIGHT,
+    AB_CMPLX                /* unit 039: the 33s's CMPLX operation on stack pairs, arg AB_CXP_* */
 } ab_op;
 
-#define AB_OP_LAST AB_GRIGHT     /* the last op: loops over every op end here */
+#define AB_OP_LAST AB_CMPLX     /* the last op: loops over every op end here */
 
 /* Why the last run stopped (unit 012 rule 1): the device draws it; the core never waits. */
 typedef enum {
@@ -169,6 +170,20 @@ enum { AB_TEST_NE = 0, AB_TEST_LE, AB_TEST_LT, AB_TEST_GT, AB_TEST_GE, AB_TEST_E
 #define AB_TGT_IND_I (-2)           /* XEQ (I), GTO (I): the label numbered by I (unit 012) */
 #define AB_TGT_IND_J (-3)
 #define AB_TGT_EQN (-5)             /* XEQ in Equation mode: evaluate the equation shown (unit 014) */
+/* unit 039: AB_CMPLX's operations (33s p.9-3): z1 = Z + iT, z2 = X + iY; the result real in X, imaginary in Y */
+#define AB_CXP_ADD 0
+#define AB_CXP_SUB 1
+#define AB_CXP_MUL 2
+#define AB_CXP_DIV 3
+#define AB_CXP_POW 4                /* z1^z2 */
+#define AB_CXP_CHS 5                /* the one-number operations from here */
+#define AB_CXP_INV 6
+#define AB_CXP_LN 7
+#define AB_CXP_EXP 8
+#define AB_CXP_SIN 9
+#define AB_CXP_COS 10
+#define AB_CXP_TAN 11
+#define AB_CXP_N 12
 #define AB_EQN_MAX 64               /* equations in the list (ours, unit 014 rule 5) */
 #define AB_EQN_LEN 192              /* bytes of one equation's text (UTF-8, as the guide shows it) */
 #define AB_HIST 16                  /* the expression line's history, at least 16 (unit 029 rule 5) */

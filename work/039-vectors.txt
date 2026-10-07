@@ -1,0 +1,35 @@
+# Unit 039: the 33s's CMPLX operations on stack pairs (work/039-33s-cmplx-pairs.md; 33s p.9-1 to 9-5, B-6, G-6/G-7).
+# Tokens CMPLX:+ CMPLX:- CMPLX:* CMPLX:/ CMPLX:POW CMPLX:CHS CMPLX:INV CMPLX:LN CMPLX:EXP CMPLX:SIN CMPLX:COS
+# CMPLX:TAN are the operation after the prefix (the runner's own names for the operator). The layout, from the
+# rendered p.9-2 figure and its text: z1 = Z + iT, z2 = X + iY; the result real in X, imaginary in Y; Z and T keep
+# z1 ("replicated"); a one-number op reads X + iY and leaves Z and T. LAST X gets x (p.B-6).
+# "^" values: mpmath 1.4.1 at 80 digits on the exact typed inputs (soroban; abacus recomputes before pinning).
+C01 | p.9-4: sin(2 + i3) = 9.1545 - i4.1689 | MODE33 FIX4 3 ENTER 2 CMPLX:SIN | X^9.154499146911429573467299544609832559159 Y^-4.168906959966564350754813058853754843574 L=2
+C02 | ours (as the complex engine, one_complex): radians whatever the angle mode, as the guide's sin(2 + i3) | MODE33 DEG 3 ENTER 2 CMPLX:SIN | X^9.154499146911429573467299544609832559159 Y^-4.168906959966564350754813058853754843574
+C03 | p.9-4: z2 + z3 (-2 + i, 4 - i3); p.9-2: z1 (here z2) replicated in Z and T | MODE33 1 ENTER 2 CHS ENTER 3 CHS ENTER 4 CMPLX:+ | X=2 Y=-2 Z=-2 T=1 L=4
+C04 | p.9-4: then 1/(z2 + z3) = 0.25 + i0.25; a one-number op leaves Z and T | MODE33 1 ENTER 2 CHS ENTER 3 CHS ENTER 4 CMPLX:+ CMPLX:INV | X=0.25 Y=0.25 Z=-2 T=1 L=2
+C05 | p.9-4: then z1 x [1/(z2 + z3)] with z1 = 23 + i13: 2.5 + i9 | MODE33 1 ENTER 2 CHS ENTER 3 CHS ENTER 4 CMPLX:+ CMPLX:INV 13 ENTER 23 CMPLX:* | X=2.5 Y=9 Z=0.25 T=0.25 L=23
+C06 | p.9-4/9-5: (4 - i2/5)(3 - i2/3) = 11.7333 - i3.8667 (-2/3 as 2 ENTER 3 / CHS, stored first) | MODE33 2 ENTER 3 / CHS STO:B CLSTK 0.4 CHS ENTER 4 ENTER RCL:B ENTER 3 CMPLX:* | X^11.73333333333333333333333333333333332 Y^-3.8666666666666666666666666666666668 Z=4 T=-0.4
+C07 | p.9-5: (1 + i)^(-2 + i0) = -i0.5 (z1 the base, entered first) | MODE33 1 ENTER 1 ENTER 0 ENTER 2 CHS CMPLX:POW | X#0,1E-32 Y#-0.5,1E-32 Z=1 T=1 L=-2
+C08 | p.9-5: then e^z = 0.8776 - i0.4794 | MODE33 1 ENTER 1 ENTER 0 ENTER 2 CHS CMPLX:POW CMPLX:EXP | X#0.8775825618903727161162815826038296519916,1E-32 Y#-0.4794255386042030002732879352155713880818,1E-32
+C09 | p.9-3: z1 - z2, (5 + i2) - (1 + i3) | MODE33 2 ENTER 5 ENTER 3 ENTER 1 CMPLX:- | X=4 Y=-1 Z=5 T=2 L=1
+C10 | p.9-3: z1 / z2 = 1.1 - i1.3 | MODE33 2 ENTER 5 ENTER 3 ENTER 1 CMPLX:/ | X^1.1 Y^-1.3 Z=5 T=2 L=1
+C11 | p.9-3: -z leaves Z and T | MODE33 2 ENTER 5 ENTER 3 ENTER 1 CMPLX:CHS | X=-1 Y=-3 Z=5 T=2 L=1
+C12 | p.9-3: ln(3 + i4) | MODE33 4 ENTER 3 CMPLX:LN | X^1.609437912434100374600759333226187639526 Y^0.9272952180016122324285124629224288040571 L=3
+C13 | p.9-3: cos(2 + i3) | MODE33 3 ENTER 2 CMPLX:COS | X^-4.189625690968807230132555019615973728622 Y^-9.109227893755336597979197262778862121333
+C14 | p.9-3: tan(2 + i3) | MODE33 3 ENTER 2 CMPLX:TAN | X^-0.003764025641504248292751221130322690839631 Y^1.003238627353609801446358597821927259808
+C15 | p.9-3: e^(0.5 + i1.25) | MODE33 1.25 ENTER 0.5 CMPLX:EXP | X^0.5198786860084936573316090217234509960824 Y^1.564611127498819527852434887743260731291 L=0.5
+C16 | p.9-3: (1.5 + i2.5)^(0.5 + i0.25) | MODE33 2.5 ENTER 1.5 ENTER 0.25 ENTER 0.5 CMPLX:POW | X^0.935703092940089662126422767768317093178 Y^0.9306611356017335254445978462757957041932 Z=1.5 T=2.5 L=0.5
+C17 | p.9-3: 1/(2 - i2) | MODE33 2 CHS ENTER 2 CMPLX:INV | X=0.25 Y=0.25
+C18 | p.9-3: the result lifts the stack as any result does | MODE33 2 ENTER 5 ENTER 3 ENTER 1 CMPLX:+ 7 | X=7 Y=6 Z=5 T=5
+C19 | ours (as every error): 1/0 changes nothing | MODE33 2 ENTER 5 ENTER 0 ENTER 0 CMPLX:INV | ERR X=0 Y=0 Z=5 T=2
+C20 | ours: ln 0 changes nothing | MODE33 0 ENTER 0 CMPLX:LN | ERR X=0 Y=0
+C21 | ours: z2 = 0 divides by zero, nothing changed | MODE33 2 ENTER 5 ENTER 0 ENTER 0 CMPLX:/ | ERR X=0 Y=0 Z=5 T=2
+C22 | ours (UG p.9-3's INVALID DATA): a complex value in X | MODE33 3 ENTER 1 CI 2 CMPLX:SIN | ERR %ERR=DOMAIN X=1i2
+C23 | ours: a complex value in Z, read by a two-number op | MODE33 1 CI 2 ENTER 3 ENTER 4 CMPLX:+ | ERR %ERR=DOMAIN X=4 Y=3 Z=1i2
+C24 | ours: a one-number op does not read Z | MODE33 1 CI 2 ENTER 3 ENTER 4 CMPLX:CHS | X=-4 Y=-3 Z=1i2
+C25 | ours (the complex functions are decimal only, UG p.11-4's list): in HEX, INVALID DATA | MODE33 1 ENTER 2 HEX CMPLX:CHS | ERR %ERR=DOMAIN
+C26 | ours (the complex engine's rule, unit 026): an overflow is an error with flag 6 | MODE33 0 ENTER 20000 CMPLX:EXP | ERR %F6=1 X=20000 Y=0
+C27 | p.G-6/G-7 (names not in key boxes: programmable): a program's CMPLX + | MODE33 PRGM CLPGM LBL:A CMPLX:+ RTN PRGM 2 ENTER 5 ENTER 3 ENTER 1 XEQ:A | X=6 Y=5 Z=5 T=2 %LINES=3
+C28 | ours (STU's rule 7): on the ALG line a stack operation is RPN ONLY | STU ALG CMPLX:+ | ERR %ERR=RPN_ONLY
+C29 | ours: the operation itself is any mode's (a 33s program's line runs anywhere); only 33s mode's keys offer it | MODE35 2 ENTER 5 ENTER 3 ENTER 1 CMPLX:+ | X=6 Y=5 Z=5 T=2

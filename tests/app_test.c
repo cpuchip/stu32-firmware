@@ -3,6 +3,7 @@
  * the core. */
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include <string.h>
 
 #include "app.h"
@@ -97,6 +98,14 @@ static double x_of(const ab_calc *c)
     char t[64];
     double v = 0;
     if (abn_to_text(&c->x.re, t, sizeof t) > 0) sscanf(t, "%lf", &v);
+    return v;
+}
+
+static double y_of(const ab_calc *c)
+{
+    char t[64];
+    double v = 0;
+    if (abn_to_text(&c->y.re, t, sizeof t) > 0) sscanf(t, "%lf", &v);
     return v;
 }
 
@@ -1551,6 +1560,67 @@ int main(void)
         press(&a, "XEQ ltr:A");
         run_out(&a, &in);
         expect(!a.prompt_text[0] && c.stop == AB_STOP_STOP, "036b: 33s XEQ A acts on the letter");
+    }
+
+    /* unit 039: 33s mode's CMPLX prefix (33s p.9-2): CMPLX shows "CMPLX_" with its menu kept on the soft keys
+       (x i y stays, 039 rule 5); an operator key does the operation on the stack pairs; a soft key its menu
+       item; C closes it; any other key closes it and acts, as a menu does. 35s and STU keep the menu alone */
+    {
+        static const char *const CXNAME[AB_CXP_N] = {"CMPLX +", "CMPLX -", "CMPLX \xc3\x97", "CMPLX \xc3\xb7",
+                                                     "CMPLXy\xcb\xa3", "CMPLX +/-", "CMPLX1/x", "CMPLXLN",
+                                                     "CMPLXe\xcb\xa3", "CMPLXSIN", "CMPLXCOS", "CMPLXTAN"};
+        ab_init(&c);
+        app_init(&a, &c, now);
+        press(&a, "3 ENTER 2 BLUE +/\xe2\x88\x92");
+        app_ui(&a, &ui);
+        expect(ui.prompt && !strcmp(ui.prompt, "CMPLX_") && a.menu >= 0, "039: 33s CMPLX shows CMPLX_, its menu kept");
+        press(&a, "SIN");
+        app_ui(&a, &ui);
+        expect(fabs(x_of(&c) - 9.154499146911430) < 1e-9 && fabs(y_of(&c) + 4.168906959966564) < 1e-9 && !ui.prompt && a.menu < 0,
+               "039: 33s CMPLX SIN: sin(2 + i3) on the pair, the prefix gone");
+        press(&a, "C 1 ENTER 2 BLUE +/\xe2\x88\x92 +/\xe2\x88\x92");
+        expect(x_of(&c) == -2 && c.y.kind == AB_REAL && y_of(&c) == -1,
+               "039: 33s CMPLX +/-: the pair negated (the prefix's +/- is the operator, not CHS)");
+        press(&a, "BLUE +/\xe2\x88\x92 C");
+        app_ui(&a, &ui);
+        expect(!ui.prompt && a.menu < 0 && x_of(&c) == -2, "039: C closes the prefix, nothing done");
+        press(&a, "BLUE +/\xe2\x88\x92 5");
+        app_ui(&a, &ui);
+        expect(!ui.prompt && a.menu < 0 && c.entry.active, "039: another key closes the prefix and acts (5 typed)");
+        press(&a, "C 1 BLUE +/\xe2\x88\x92 k:0 2 ENTER");
+        expect(c.x.kind == AB_COMPLEX, "039: 33s mode keeps the menu's i (1 i 2)");
+        /* the operators by key: + - x / y^x 1/x LN e^x COS TAN, each a CMPLX line in program entry */
+        press(&a, "GOLD 9 k:0");
+        static const char *const KEY[AB_CXP_N] = {"+", "\xe2\x88\x92", "\xc3\x97", "\xc3\xb7", "y\xcb\xa3", "+/\xe2\x88\x92", "1/x",
+                                                  "LN", "e\xcb\xa3", "SIN", "COS", "TAN"};
+        int ok = c.prgm, base = c.prog_len;
+        for (int k = 0; k < AB_CXP_N; k++) {
+            char keys[48];
+            snprintf(keys, sizeof keys, "BLUE +/\xe2\x88\x92 %s", KEY[k]);
+            press(&a, keys);
+            char line[40];
+            ab_prog_line(&c, c.pc, NULL, line, sizeof line);
+            if (c.prog_len != base + k + 1 || c.prog[c.pc].op != AB_CMPLX || c.prog[c.pc].arg != k || strcmp(line, CXNAME[k])) {
+                ok = 0;
+                fprintf(stderr, "039: key %s: line %d op %d arg %d '%s'\n", KEY[k], c.prog_len, c.prog[c.pc].op, c.prog[c.pc].arg, line);
+            }
+        }
+        expect(ok, "039: in program entry each CMPLX operator is a line, named as the 33s's index (p.G-6/G-7)");
+        press(&a, "GOLD 9 k:0");
+        /* 35s and STU: CMPLX is its menu only; SIN closes it and is the real sine */
+        for (int m = 0; m < 2; m++) {
+            ab_init(&c);
+            app_init(&a, &c, now);
+            c.m35 = true;
+            c.stu = m == 1;
+            c.angle = AB_ANGLE_RAD;
+            press(&a, "3 ENTER 2 BLUE +/\xe2\x88\x92");
+            app_ui(&a, &ui);
+            bool noprefix = !ui.prompt || strcmp(ui.prompt, "CMPLX_");
+            press(&a, "SIN");
+            expect(noprefix && fabs(x_of(&c) - 0.9092974268256817) < 1e-12 && c.y.kind == AB_REAL && y_of(&c) == 3,
+                   m ? "039: STU: CMPLX is the menu; SIN is sin 2" : "039: 35s: CMPLX is the menu; SIN is sin 2");
+        }
     }
 
     /* unit 033: GRAPH: blue 7's menu; the frame drawn from the model: in the curve's columns (clear of the
