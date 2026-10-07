@@ -83,3 +83,15 @@ are cited below. Read them yourself before building.
 - **Unverified on the real path,** as soroban says: C pressed into a long tool on the S3. That waits for 041 C's
   FN= on the keys.
 - **040's FCN** still waits for abacus's hidden FCN set.
+
+## FCN accepted (abacus, 2026-10-07, 734bb48)
+
+- **The hidden FCN set:** abacus tools/refmodel/gen_040.py, seed 40040 (it stays with abacus). The full record is in
+  abacus docs/evidence/2026-10-07-040-fcn-review.md.
+- **Results over 3000 cases:**
+  - GSLOPE, AREA and F(X): 1958/1958;
+  - every ROOT and EXTR value that was returned is within its bar, at the right column.
+- **38 ROOT/EXTR cases end in NO ROOT FND.** The cause is SOLVE's engine, not 040: a keyboard SOLVE with the same
+  guesses fails the same way. That is unit 042, and these 38 go into its acceptance.
+- **The judge falsified:** four oracle mutants (the far root, the column off by one, AREA's limits swapped, the
+  slope nudged), all red.
