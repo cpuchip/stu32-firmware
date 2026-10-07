@@ -84,6 +84,44 @@ static uint8_t *file(const char *path, size_t *n)
     return b;
 }
 
+/* The loader's line rule against program entry (ab_line_ok): for every op with a valid argument, program
+   entry records it as a line of its own exactly when the loader accepts that line. Digits and the other
+   entry keys become a number line (AB_LIT), never a line of their own; LIT and EQLINE are lines the loader
+   reads by their own rules. Returns the number of disagreements. */
+static int line_rule_sweep(void)
+{
+    static ab_calc c;
+    int bad = 0;
+    for (int op = 0; op <= AB_OP_LAST; op++) {
+        int arg = 0;
+        switch (op) {
+        case AB_LBL: case AB_FN: arg = 2; break;
+        case AB_XEQ: case AB_GTO: case AB_GTOPOS: arg = 1001; break;
+        case AB_SF: case AB_CF: case AB_FS: case AB_TEST: arg = 3; break;
+        case AB_SUF: arg = 10; break;
+        case AB_MODEL: arg = 33; break;
+        case AB_TVAR: arg = AB_VAR_A; break;
+        default: break;
+        }
+        if (op == AB_LIT || op == AB_EQLINE) continue;
+        if (op == AB_KEQ || op == AB_KPAREN || op == AB_KLEFT || op == AB_KRIGHT || op == AB_KSPACE ||
+            op == AB_KREG || op == AB_EQTOP)
+            continue;                   /* Equation mode's keys: no line now, but an older image's such line
+                                           still loads (unit 018; calc.c's program_key) */
+        ab_init(&c);
+        ab_do(&c, AB_PRGM);
+        ab_do_arg(&c, (ab_op)op, arg);
+        bool own = c.prog_len == 1 && c.prog[0].op == op && c.prog[0].arg >= 0;
+        if (op == AB_XEQ || op == AB_GTO) own = c.prog_len == 1 && c.prog[0].op == op;
+        if (own != ab_line_ok((ab_op)op, arg)) {
+            fprintf(stderr, "load_fuzz: op %d arg %d: program entry %s a line, the loader %s it\n", op, arg,
+                    own ? "records" : "records no", ab_line_ok((ab_op)op, arg) ? "accepts" : "refuses");
+            bad++;
+        }
+    }
+    return bad;
+}
+
 int main(int argc, char **argv)
 {
     long iters = argc > 1 ? atol(argv[1]) : 20000;
@@ -91,6 +129,7 @@ int main(int argc, char **argv)
     uint8_t *seeds[7];
     size_t seedn[7];
     long refused = 0, accepted = 0, bad = 0;
+    if (line_rule_sweep()) return 1;
     if (argc > 2) rng = (strtoull(argv[2], NULL, 0) * 0x9E3779B97F4A7C15ull) | 1;
 
     /* seeds: the golden image; an empty calculator; a state from random keys */
