@@ -971,24 +971,16 @@ abn_status ab_state_load(ab_calc *c, const uint8_t *buf, size_t len)
     long intr_after = c->intr_after, budget = c->budget;
     /* the expression line's history (and the entry it shows) is RAM, not state (unit 029 rule 5,
        abacus #4254): an image loaded over it (UNDO's) leaves it; a boot or MEMORY CLEAR has none */
-    static char hist[AB_HIST][AB_EQN_LEN];
-    static ab_val hist_val[AB_HIST];
-    int hist_n = c->hist_n, hist_at = c->hist_at;
-    memcpy(hist, c->hist, sizeof hist);
-    memcpy(hist_val, c->hist_val, sizeof hist_val);
-    ab_memory_clear(c);                         /* (which resets the budget to the core's, #3971) */
+    ab_memory_clear_state(c);                         /* (which resets the budget to the core's, #3971) */
     c->intr_after = intr_after;
     c->budget = budget;
-    c->hist_n = hist_n;
-    memcpy(c->hist, hist, sizeof hist);
-    memcpy(c->hist_val, hist_val, sizeof hist_val);
     c->prog_len = 0;
     memset(&r, 0, sizeof r);
     r.p = buf;
     r.len = len;
     r.c = c;
     parse(&r);
-    c->hist_at = c->alg ? hist_at : -1;         /* an entry shown stays shown */
+    if (!c->alg) c->hist_at = -1;               /* an entry shown stays shown in ALG */
     if (!r.mode25) {
         /* an image from before unit 025: every label stamped 35s, since (I) followed the 35s model
            in either mode then (unit 025 rule 6 as amended, abacus b75640f); i at 0; a message

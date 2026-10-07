@@ -3,6 +3,7 @@
  * Behaviour is written from the user's guide's description of the stack, cited by page
  * (UG p.N), in our own words.
  */
+#include <stddef.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -33,13 +34,18 @@ static ab_val ab_real(abn v)
 #define EQN_LIN2 "\x01" "2*2 lin. solve"
 #define EQN_LIN3 "\x01" "3*3 lin. solve"
 
-void ab_init(ab_calc *c)
+/* the history is the struct's tail (calc.h): what is before it is the state */
+_Static_assert(sizeof(ab_calc) - (offsetof(ab_calc, hist_at) + sizeof(int)) < _Alignof(ab_calc),
+               "the history is ab_calc's tail");
+
+/* Every field to its default; the history too unless keep_hist. */
+static void init_fields(ab_calc *c, bool keep_hist)
 {
-    memset(c, 0, sizeof *c);
+    memset(c, 0, keep_hist ? offsetof(ab_calc, hist) : sizeof *c);
+    if (!keep_hist) c->hist_at = -1;
     c->x = c->y = c->z = c->t = c->lastx = ab_real(abn_zero());
     c->lift = true;             /* a cleared calculator has stack lift enabled (UG p.B-4) */
     c->ans = ab_real(abn_zero());   /* ANS 0 to begin (unit 029 rule 4) */
-    c->hist_at = -1;
     c->angle = AB_ANGLE_DEG;    /* and is in degrees (UG p.B-4) */
     c->disp_mode = AB_ALL;      /* ALL is the default display (ours, unit 002) */
     c->disp_n = 0;
@@ -63,6 +69,11 @@ void ab_init(ab_calc *c)
         abn zero = abn_zero();
         fn_seed(&c->rng, &zero);    /* a fixed start: the core has no clock */
     }
+}
+
+void ab_init(ab_calc *c)
+{
+    init_fields(c, false);
 }
 
 /* The stack lifts: T is lost, Z to T, Y to Z, X to Y; X keeps its value (UG p.2-5). */
@@ -3790,13 +3801,23 @@ void ab_clear_all(ab_calc *c)
  * stopped at once).
  * Contrast, the radix mark and the thousands separator are the device's (the core shows numbers in
  * its own form). ab_init differs only in the display: ALL (unit 002, ours). */
-void ab_memory_clear(ab_calc *c)
+static void memory_clear(ab_calc *c, bool keep_hist)
 {
     long slice = c->slice;
-    ab_init(c);
+    init_fields(c, keep_hist);
     c->disp_mode = AB_FIX;
     c->disp_n = 4;
     c->slice = slice;
+}
+
+void ab_memory_clear(ab_calc *c)
+{
+    memory_clear(c, false);
+}
+
+void ab_memory_clear_state(ab_calc *c)
+{
+    memory_clear(c, true);
 }
 
 abn_status ab_eqn_op(ab_calc *c, ab_op op, const ab_val *y, const ab_val *x, ab_val *out)

@@ -316,15 +316,16 @@ typedef struct {
     bool alg_eval;          /* the line is being evaluated: the parser knows ANS (not in the image) */
     bool alg_shown;         /* the line shows its result: the next digit or function starts a new
                                line, an operator a new line after ANS */
-    /* the line's history, in RAM only: not in the state image (rule 5) */
-    char hist[AB_HIST][AB_EQN_LEN];
-    ab_val hist_val[AB_HIST];
-    int hist_n;             /* entries kept, the newest at hist_n - 1 */
-    int hist_at;            /* the entry shown by up and down, -1 none */
     bool err_m35;           /* the mode in force when it was recorded (unit 025: INVALID (I) or (i)) */
     int exec_at;            /* the program line being executed while running (unit 025: its label's
                                mode is in force), -1 none */
     abn_status err_status;  /* the status the message is for */
+    /* unit 029: the line's history, in RAM only: not in the state image (rule 5). The struct's tail,
+       so that an image loaded keeps it by clearing only what is before it (state.c) */
+    char hist[AB_HIST][AB_EQN_LEN];
+    ab_val hist_val[AB_HIST];
+    int hist_n;             /* entries kept, the newest at hist_n - 1 */
+    int hist_at;            /* the entry shown by up and down, -1 none */
 } ab_calc;
 
 void ab_init(ab_calc *c);
@@ -392,6 +393,10 @@ bool ab_label_indirect(const ab_calc *c, int label);
    with the device fields (budget, slice) at their defaults. */
 void ab_clear_all(ab_calc *c);
 void ab_memory_clear(ab_calc *c);
+
+/* MEMORY CLEAR of the state alone: the expression line's history (RAM, not state) kept; the state
+   loader's (unit 029) */
+void ab_memory_clear_state(ab_calc *c);
 
 /* Unit 016, for the device. ab_continue goes on after AB_STOP_SLICE. ab_interrupt is C or R/S
    pressed during a run (UG p.13-19): safe to call from an interrupt handler while a call runs (it
