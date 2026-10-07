@@ -236,11 +236,13 @@ static int menu_named(const char *name)
     return -1;
 }
 
-/* 33s mode's CMPLX prefix (unit 039): the CMPLX menu open in 33s mode, outside Equation mode and an equation's
-   typing (where the operator keys type, and the 33s's equations take no complex operation) */
+/* 33s mode's CMPLX prefix (unit 039): the CMPLX menu open in 33s mode, in decimal (the operations are decimal
+   only, and in HEX some operator keys type digits), outside Equation mode and an equation's typing (where the
+   operator keys type, and the 33s's equations take no complex operation) */
 static bool cx_prefix(const app_state *a, int menu)
 {
-    return menu >= 0 && !a->c->m35 && !a->c->eqn_mode && !a->c->eqn_typing && menu == menu_named("CMPLX");
+    return menu >= 0 && !a->c->m35 && a->c->base == 10 && !a->c->eqn_mode && !a->c->eqn_typing &&
+           menu == menu_named("CMPLX");
 }
 
 /* Equation mode's bar on the soft keys when no menu is open (unit 020): typing's while an equation

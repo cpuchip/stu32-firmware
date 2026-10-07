@@ -1589,6 +1589,19 @@ int main(void)
         expect(!ui.prompt && a.menu < 0 && c.entry.active, "039: another key closes the prefix and acts (5 typed)");
         press(&a, "C 1 BLUE +/\xe2\x88\x92 k:0 2 ENTER");
         expect(c.x.kind == AB_COMPLEX, "039: 33s mode keeps the menu's i (1 i 2)");
+        /* a shifted operator is not the operator: GOLD LN is LOG, the prefix closed (039 review) */
+        press(&a, "C C 1 0 0 BLUE +/\xe2\x88\x92 GOLD LN");
+        app_ui(&a, &ui);
+        expect(!ui.prompt && a.menu < 0 && x_of(&c) == 2, "039: under the prefix GOLD LN is LOG (log 100 = 2)");
+        /* HEX: no prefix (the operations are decimal only); e^x's key types B as ever (039 review) */
+        press(&a, "C");
+        c.base = 16;
+        press(&a, "1 ENTER BLUE +/\xe2\x88\x92");
+        app_ui(&a, &ui);
+        bool hexnp = !ui.prompt || strcmp(ui.prompt, "CMPLX_");
+        press(&a, "e\xcb\xa3");
+        expect(hexnp && c.entry.active && !c.msg, "039: HEX: no CMPLX_, and e^x's key types its digit");
+        c.base = 10;
         /* the operators by key: + - x / y^x 1/x LN e^x COS TAN, each a CMPLX line in program entry */
         press(&a, "GOLD 9 k:0");
         static const char *const KEY[AB_CXP_N] = {"+", "\xe2\x88\x92", "\xc3\x97", "\xc3\xb7", "y\xcb\xa3", "+/\xe2\x88\x92", "1/x",

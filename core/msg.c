@@ -73,6 +73,16 @@ const char *ab_error_message(const ab_calc *c)
         switch (op) {
         case AB_POW: case AB_XROOT:
             return "INVALID y\xcb\xa3";
+        case AB_CMPLX:
+            /* the 33s's pair operations (unit 039), as the complex functions' (F-2): (0 + i0) to a power
+               with a negative real part, or to 0, is INVALID yˣ; ln of (0 + i0) is LOG(0). An error changes
+               nothing, so the operands are still on the stack; a complex or vector part, or a base other than
+               decimal, is INVALID DATA */
+            if (c->base == 10 && c->x.kind == AB_REAL && c->y.kind == AB_REAL) {
+                if (arg == AB_CXP_POW && c->z.kind == AB_REAL && c->t.kind == AB_REAL) return "INVALID y\xcb\xa3";
+                if (arg == AB_CXP_LN) return "LOG(0)";       /* its only error (cx_ln at 0 + i0) */
+            }
+            break;
         case AB_XBAR: case AB_YBAR: case AB_XWBAR: case AB_SX: case AB_SY: case AB_PSX: case AB_PSY:
         case AB_XHAT: case AB_YHAT: case AB_CORR: case AB_SLOPE: case AB_YINT:
             return "STAT ERROR";
