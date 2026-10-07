@@ -1196,6 +1196,7 @@ static abn_status logic(ab_calc *c, ab_op op)
 static abn_status do_key(ab_calc *c, ab_op op, int arg);
 static abn_status table_key(ab_calc *c, ab_op op);    /* unit 032 (at the end) */
 static abn_status table_go(ab_calc *c);
+static void num_text(const abn *a, char *out, int size);     /* unit 032b (at the end) */
 
 static void prog_labels(ab_calc *c)
 {
@@ -3596,6 +3597,20 @@ static abn_status alg_evaluate(ab_calc *c)
     return ABN_OK;
 }
 
+/* What X's place shows on the line, for STO and TABLE's START and STEP: an entry shown, its result
+   (029b); with a line typed, the line evaluated first (ours, rule 8); else ANS. */
+static abn_status alg_x_shown(ab_calc *c, ab_val *v)
+{
+    abn_status st;
+    if (c->hist_at >= 0) {
+        *v = c->hist_val[c->hist_at];
+        return ABN_OK;
+    }
+    if (!c->alg_shown && c->ebuf[0] && (st = alg_evaluate(c)) != ABN_OK) return st;
+    *v = c->ans;
+    return ABN_OK;
+}
+
 /* A key on the expression line. The stack keys, programs and Equation mode are RPN ONLY (rule 7,
  * proposal 5); STO stores ANS, or the line's value when one is typed (rule 8); mode and display
  * settings act as ever. */
@@ -3661,18 +3676,29 @@ static abn_status alg_key(ab_calc *c, ab_op op, int arg)
         ed_backspace(c);
         return ABN_OK;
     case AB_STO: {
-        /* what X's place shows: an entry shown, its result (029b); after a result, ANS; with a line
-           typed, the line evaluated first (ours, rule 8) */
+        ab_val v;
         abn_status st;
         slot sl;
-        if (c->hist_at >= 0) {
-            ab_val v = c->hist_val[c->hist_at];
-            if ((st = resolve(c, arg, false, &sl)) != ABN_OK) return st;
-            return store_val(c, &sl, v);
-        }
-        if (!c->alg_shown && c->ebuf[0] && (st = alg_evaluate(c)) != ABN_OK) return st;
+        if ((st = alg_x_shown(c, &v)) != ABN_OK) return st;
         if ((st = resolve(c, arg, false, &sl)) != ABN_OK) return st;
-        return store_val(c, &sl, c->ans);
+        return store_val(c, &sl, v);
+    }
+    case AB_TABLE:                                  /* TABLE from the line (unit 032b): GO and VAR as ever */
+    case AB_TVAR:
+        return do_key(c, op, arg);
+    case AB_TSTART:                                 /* START and STEP take what X's place shows (032b) */
+    case AB_TSTEP: {
+        ab_val v;
+        abn_status st;
+        if ((st = alg_x_shown(c, &v)) != ABN_OK) return st;
+        if (v.kind != AB_REAL) return ABN_DOMAIN;
+        if (op == AB_TSTART) {
+            c->tbl_start = v.re;
+            c->tbl_start_set = true;
+        } else {
+            c->tbl_step = v.re;
+        }
+        return ABN_OK;
     }
     case AB_ANS:
     case AB_LASTX:                                  /* LASTx's key types ANS (proposal 1) */
@@ -4667,6 +4693,16 @@ static abn_status table_key(ab_calc *c, ab_op op)
     case AB_ENTER:
         if ((st = table_row(c, c->tbl_k, &x, &y, false)) != ABN_OK) return st;
         c->tbl_on = false;
+        if (c->alg) {                           /* on STU's line: into ANS and the line, the stack untouched
+                                                   (unit 032b) */
+            c->ans = y;
+            if (y.kind == AB_REAL) num_text(&y.re, c->ebuf, sizeof c->ebuf);
+            else strcpy(c->ebuf, "ANS");
+            c->ecur = (int)strlen(c->ebuf);
+            c->alg_shown = true;
+            c->hist_at = -1;
+            return ABN_OK;
+        }
         place_val(c, y);
         c->lift = true;
         return ABN_OK;
@@ -4676,6 +4712,44 @@ static abn_status table_key(ab_calc *c, ab_op op)
     default:
         return ABN_OK;
     }
+}
+
+/* A number as the line reads it back exactly (unit 032b): every significant digit, plainly when its leading
+   digit is from 10^-6 to 10^33, else d.ddd E n; zero "0". */
+static void num_text(const abn *a, char *out, int size)
+{
+    bool neg;
+    char d[ABN_DIGITS + 1];
+    int lead, n = 0, k;
+    abn_digits(a, &neg, d, &lead);
+    k = (int)strlen(d);
+    if (k == 0) {
+        snprintf(out, (size_t)size, "0");
+        return;
+    }
+    char t[96];
+    if (neg) t[n++] = '-';
+    if (lead >= 0 && lead < ABN_DIGITS) {
+        for (int i = 0; i <= lead; i++) t[n++] = i < k ? d[i] : '0';
+        if (k > lead + 1) {
+            t[n++] = '.';
+            for (int i = lead + 1; i < k; i++) t[n++] = d[i];
+        }
+    } else if (lead < 0 && lead >= -6) {
+        t[n++] = '0';
+        t[n++] = '.';
+        for (int i = 0; i < -lead - 1; i++) t[n++] = '0';
+        for (int i = 0; i < k; i++) t[n++] = d[i];
+    } else {
+        t[n++] = d[0];
+        if (k > 1) {
+            t[n++] = '.';
+            for (int i = 1; i < k; i++) t[n++] = d[i];
+        }
+        n += snprintf(t + n, sizeof t - (size_t)n, "E%d", lead);
+    }
+    t[n] = '\0';
+    snprintf(out, (size_t)size, "%s", t);
 }
 
 /* GO (unit 032): the equation shown, or last shown, against its variable from its start. */

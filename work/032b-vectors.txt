@@ -8,5 +8,5 @@ A04 | START with a history entry shown takes its result (as 029b's STO) | STU EQ
 A05 | STEP takes ANS | STU EQ:X^2 C 3 STO:X ALG 0.5 ENTER TSTEP TABLE TDOWN | %TX=3.5
 A06 | ENTER puts the row's value into ANS and the line; the stack untouched | STU EQ:X^2 C 3 STO:X ALG TABLE TDOWN ENTER | %TABLE=0 %ALG=1 N=16 %LINE=16 X=3
 A07 | the value then acts as a result: an operator continues from ANS | STU EQ:X^2 C 3 STO:X ALG TABLE TDOWN ENTER + 1 ENTER | N=17 %LINE=ANS+1
-A08 | the line keeps the exact digits (a third) | STU EQ:X C 1 STO:X ALG 1 ENTER 3 / TSTEP TABLE TDOWN ENTER | %LINE=1.333333333333333333333333333333333
+A08 | the line keeps the exact digits (a third) | STU EQ:X C 1 STO:X ALG 1 / 3 ENTER TSTEP TABLE TDOWN ENTER | %LINE=1.333333333333333333333333333333333
 A09 | C leaves, ANS and the line as they were | STU EQ:X^2 C 3 STO:X ALG 4 ENTER TABLE TDOWN C | %TABLE=0 N=4 %LINE=4
