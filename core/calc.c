@@ -3976,6 +3976,7 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
     if (!ab_mode35(c) && (op == AB_XEQ || op == AB_GTO) && arg >= 0 && arg % 1000 != 0)
         return ABN_OK;                          /* nor XEQ or GTO to a line number (33s p.13-4; abacus #4799 rule 3.2;
                                                    GTO . to one moves the pointer: AB_GTOPOS, p.13-6) */
+    if (op == AB_CONST && arg >= ab_consts(c)) return ABN_OK;     /* nor the 35s's 41st constant, e (041 B) */
     if (c->tbl_on || c->gr_on) {                /* the table or the graph open: its keys alone (units 032,
                                                    033), each with a fresh error record and overflow count */
         c->err_set = false;
@@ -4055,6 +4056,11 @@ bool ab_hidden(const ab_calc *c, int op)
     default:
         return false;
     }
+}
+
+int ab_consts(const ab_calc *c)
+{
+    return ab_mode35(c) ? ab_const_count() : AB_CONST_33;
 }
 
 bool ab_builtin_shown(const ab_calc *c)

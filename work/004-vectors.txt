@@ -12,6 +12,7 @@
 # with Python decimal (ROUND_HALF_EVEN); "^" from mpmath 1.4.1 at 150 digits.
 # Unit 026 (work/026-overflow-per-the-manuals.md): overflow gives the largest number with flag 6 and underflow gives 0, not errors; amended: P06.
 # Unit 041 Part A (decision 58): moved to 35s mode (MODE35 added), each using a feature now hidden in 33s mode: M10 M11 U09.
+# Unit 041 Part B (decision 58): K41 (e, the 35s's 41st constant; 33s mode has the 33s's 40) moved to 35s mode.
 
 M01 | 35s p.4-14 30 degrees to radians | 30 TORAD | X^0.523598775598298873077107230546583814 L=30
 M02 | 35s p.4-14 1 lb to kg | 1 TOKG | X=0.45359237 L=1
@@ -74,7 +75,7 @@ K37 | ours: CODATA 2022 gammap (list from 35s p.4-8/4-9) | CONST:gammap | X=2.67
 K38 | ours: CODATA 2022 C1 (list from 35s p.4-8/4-9) | CONST:C1 | X=3.741771852192758011367155555929985E-16
 K39 | ours: CODATA 2022 C2 (list from 35s p.4-8/4-9) | CONST:C2 | X=0.01438776877503933802146671601543912
 K40 | ours: CODATA 2022 G0 (list from 35s p.4-8/4-9) | CONST:G0 | X=0.00007748091729863650646680823323308764
-K41 | ours: CODATA 2022 e (list from 35s p.4-8/4-9) | CONST:e | X=2.718281828459045235360287471352662
+K41 | ours: CODATA 2022 e (list from 35s p.4-8/4-9) | MODE35 CONST:e | X=2.718281828459045235360287471352662
 K42 | constants arrive like a recalled number | 1 ENTER 2 CONST:c | X=299792458 Y=2 Z=1
 P01 | ours: 0! = 1 | 0 FACT | X=1 L=0
 P02 | ours: 36! exact | 36 FACT | X=371993326789901217467999448150835200000000

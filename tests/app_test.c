@@ -797,6 +797,7 @@ int main(void)
        the last holding one) */
     ab_init(&c);
     app_init(&a, &c, now);
+    ab_do_arg(&c, AB_MODEL, 35);                /* the 35s's 41 (in 33s mode the 33s's 40: unit 041 B) */
     press(&a, "GOLD RCL k:5");
     app_ui(&a, &ui);
     expect(ui.soft[0] && !strcmp(ui.soft[0], ab_const_symbol(5)) && !strcmp(ab_const_symbol(5), "R\xe2\x88\x9e") &&
@@ -811,6 +812,7 @@ int main(void)
         abn want;
         ab_calc t;
         ab_init(&t);
+        ab_do_arg(&t, AB_MODEL, 35);            /* the 41st is 35s mode's (unit 041 B) */
         ab_do_arg(&t, AB_CONST, 40);
         want = t.x.re;
         expect(abn_cmp(&c.x.re, &want) == 0 && before == img_crc(&c), "the last page's constant recalled");
@@ -2269,6 +2271,23 @@ int main(void)
         app_ui(&a, &ui);
         expect(x_of(&c) == 5 && !c.eqn_typing && c.eqn_cur >= 0 && !strcmp(c.eqn[c.eqn_cur], "2+3") && !ui.prompt,
                "043: XEQ while typing 2+3: stored and evaluated, X = 5, no XEQ prompt");
+    }
+
+    /* unit 041 Part B: CONST's pages in 33s mode are the 33s's 40 (eight pages: the eighth "more" wraps to the
+       first); in 35s mode a ninth holds e */
+    {
+        const char *e = ab_const_symbol(40), *c0 = ab_const_symbol(0);
+        ab_init(&c);
+        app_init(&a, &c, now);
+        press(&a, "GOLD RCL k:5 k:5 k:5 k:5 k:5 k:5 k:5 k:5");
+        app_ui(&a, &ui);
+        expect(ui.soft[0] && c0 && !strcmp(ui.soft[0], c0), "041 B: 33s mode: CONST's eighth more wraps to c (40, no e)");
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, 35);
+        press(&a, "GOLD RCL k:5 k:5 k:5 k:5 k:5 k:5 k:5 k:5");
+        app_ui(&a, &ui);
+        expect(ui.soft[0] && e && !strcmp(ui.soft[0], e) && !ui.soft[1], "041 B: 35s mode: CONST's ninth page is e alone");
     }
 
     /* the games list (soroban's gate): each game's app_def name is the name its manifest gives (what APPS shows) */

@@ -1,0 +1,10 @@
+# Unit 041 Part B (abacus decisions 56, 58): CONST in 33s mode is the 33s's 40 (33s UG p.4-8: speed of light in
+# vacuum to conductance quantum, the same 40 in the same order as the 35s's first 40, compared here); the 35s's 41st,
+# the mathematical constant e, is not among them: hidden in 33s mode. Values: CODATA 2022 in either mode (the
+# core's table). 35s and STU keep the 41.
+B01 | 041 B: in 33s mode CONST's 41st (e) does nothing (not on 33s p.4-8) | MODE33 5 ENTER CONST:e | X=5
+B02 | 041 B: 35s unchanged: e | MODE35 CONST:e | X=2.718281828459045235360287471352662
+B03 | 041 B: STU unchanged: e | STU CONST:e | X=2.718281828459045235360287471352662
+B04 | 041 B: in 33s mode the 40th is there: the conductance quantum | MODE33 CONST:G0 | X=0.00007748091729863650646680823323308764
+B05 | 041 B: in 33s mode CONST e isn't recorded | MODE33 PRGM LBL:A CONST:e RTN PRGM | %LINES=2
+B06 | 041 B: 35s unchanged: recorded | MODE35 PRGM LBL:A CONST:e RTN PRGM | %LINES=3

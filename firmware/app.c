@@ -573,7 +573,7 @@ void app_key(app_state *a, int key, uint32_t now_ms)
         a->menu = -1;
         if (face->kind == KM_SOFT && mn && mn->paged) {     /* CONST, APPS: five a page, then more */
             bool apps = mn->paged == KM_PAGED_APPS;
-            int n = apps ? a->napps : ab_const_count(), i = page * 5 + face->arg;
+            int n = apps ? a->napps : ab_consts(a->c), i = page * 5 + face->arg;
             a->shift = 0;
             if (face->arg == 5) {
                 a->menu = at;
@@ -1101,7 +1101,7 @@ void app_ui(const app_state *a, screen_ui *ui)
         if (mn->paged && i < 5) {               /* CONST's page: its constants by name; APPS's: the apps */
             int k = a->menu_page * 5 + i;
             if (mn->paged == KM_PAGED_APPS) ui->soft[i] = k < a->napps ? a->apps[k]->name : NULL;
-            else ui->soft[i] = k < ab_const_count() ? ab_const_symbol(k) : NULL;     /* by symbol (#3958) */
+            else ui->soft[i] = k < ab_consts(a->c) ? ab_const_symbol(k) : NULL;     /* by symbol (#3958) */
             continue;
         }
         bool all = it->kind == KM_CONFIRM && it->op == AB_CLALL;

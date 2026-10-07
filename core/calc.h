@@ -505,6 +505,10 @@ bool ab_mode35(const ab_calc *c);
 bool ab_hidden(const ab_calc *c, int op);
 /* Unit 043: Equation mode shows a built-in solver (2*2 or 3*3 lin. solve), so SOLVE takes no letter (35s p.7-6). */
 bool ab_builtin_shown(const ab_calc *c);
+/* Unit 041 Part B: CONST's constants in the mode in force: the 33s's 40 (33s p.4-8), else all of them (the 35s's 41,
+   e the last). */
+#define AB_CONST_33 40
+int ab_consts(const ab_calc *c);
 /* Whether a label's lines use an indirect address ((I), (J), (i), or an equation's), so a restamp
    changes their storage (unit 025 rule 5). */
 bool ab_label_indirect(const ab_calc *c, int label);
