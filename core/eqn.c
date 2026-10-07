@@ -427,8 +427,9 @@ static void parse_prim(parser *p, ab_val *v)
         if (!p->check && p->st == ABN_OK) *v = p->c->var[*s - 'A'];
         return;
     }
-    if (*s == 'i' && !ab_mode35(p->c)) {
-        /* 33s mode: a lone i is the variable i; (i) is the indirect glyph above (33s p.13-23) */
+    if (*s == 'i' && p->m33) {
+        /* typed in 33s mode: a lone i is the variable i; (i) is the indirect glyph above (33s p.13-23); by the
+           equation's stamp, as the rest of its syntax (unit 041 A, fresh eyes; it was the mode in force) */
         p->i++;
         if (!p->check && p->st == ABN_OK) *v = p->c->var[26];
         return;

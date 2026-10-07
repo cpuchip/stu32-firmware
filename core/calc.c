@@ -1552,9 +1552,9 @@ static void slot_of_id(ab_calc *c, int id, slot *sl)
 /* The variables an evaluation of text prompts for, in order of first appearance (UG p.6-11): the
  * right side's only for an assignment's ENTER (rhs_only), never the unknown or the variable of
  * integration (p.7-2, 8-3, 15-4). */
-static int eqn_prompt_vars(const ab_calc *c, const char *text, bool rhs_only, int *out)
+static int eqn_prompt_vars(const ab_calc *c, const char *text, int model, bool rhs_only, int *out)
 {
-    int v[27], n = eqn_vars(text, rhs_only, !ab_mode35(c), v), k = 0;
+    int v[27], n = eqn_vars(text, rhs_only, model == 33, v), k = 0;    /* i a variable by its stamp (041 A) */
     for (int i = 0; i < n; i++)
         if (!(c->susp.kind && v[i] == c->susp.var)) out[k++] = v[i];   /* susp is set while SOLVE runs */
     return k;
@@ -1742,7 +1742,7 @@ static abn_status prog_run_lines(ab_calc *c, long limit, bool sst)
             if (ab_flag(c, 11) && !c->peq_ready && !(c->active && c->solve_phase != 1)) {
                 /* the prompts first, the syntax when the value is calculated (33s p.6-18; unit 024
                    rule 4, applied to a program's equation line as to the keyboard's) */
-                c->eqn_nvars = eqn_prompt_vars(c, t, false, c->eqn_vars);
+                c->eqn_nvars = eqn_prompt_vars(c, t, c->peqn_model[arg], false, c->eqn_vars);
                 if (c->eqn_nvars > 0) {
                     c->peq_line = at;
                     c->eqn_next = 0;
@@ -3202,6 +3202,7 @@ static void eqn_delete(ab_calc *c, int i)
     memmove(&c->eqn_model[i], &c->eqn_model[i + 1], (size_t)(c->eqn_count - i - 1));
     c->eqn_count--;
     c->eqn_cur = i - 1;
+    while (c->eqn_cur >= 0 && eqn_builtin(c, c->eqn_cur) && !ab_mode35(c)) c->eqn_cur--;   /* 33s: past them (041 A4) */
 }
 
 /* ENTER or C while typing stores the text: a new equation after the one shown, or the edited one
@@ -3214,17 +3215,20 @@ static abn_status eqn_store_typed(ab_calc *c)
         return ABN_MEMORY_FULL;                 /* STU's x's would not fit: refused, the text unchanged and
                                                    still typed (unit 031 answer I) */
     c->eqn_typing = false;
+    int edit = c->eqn_edit;
+    c->eqn_edit = -1;                           /* meaningful only while typing: left set, a delete could leave it past
+                                                   the list's end, and the image would not load (unit 041 A, fresh eyes) */
     if (c->ebuf[0] == '\0') {
-        if (c->eqn_edit >= 0) eqn_delete(c, c->eqn_edit);
+        if (edit >= 0) eqn_delete(c, edit);
         return ABN_OK;
     }
-    if (c->eqn_edit >= 0) {
-        if (strcmp(c->ebuf, c->eqn[c->eqn_edit]) != 0) {    /* an edit unchanged keeps its text and stamp
-                                                               (review F4); a changed one was typed now */
-            strcpy(c->eqn[c->eqn_edit], t);
-            c->eqn_model[c->eqn_edit] = typed_model(c);
+    if (edit >= 0) {
+        if (strcmp(c->ebuf, c->eqn[edit]) != 0) {   /* an edit unchanged keeps its text and stamp (review F4); a
+                                                       changed one was typed now */
+            strcpy(c->eqn[edit], t);
+            c->eqn_model[edit] = typed_model(c);
         }
-        c->eqn_cur = c->eqn_edit;
+        c->eqn_cur = edit;
         return ABN_OK;
     }
     return eqn_insert(c, c->ebuf);              /* (the list full: MEMORY_FULL, the text gone, as before) */
@@ -3393,7 +3397,7 @@ static abn_status lin_key(ab_calc *c, int n);
 static abn_status eqn_step(ab_calc *c)
 {
     const char *t = c->eqn[c->eqn_cur];
-    int av = eqn_assign_var(t, !ab_mode35(c)), pos;
+    int av = eqn_assign_var(t, c->eqn_model[c->eqn_cur] == 33), pos;
     bool rhs = c->eqn_pending == 1 && av >= 0;
     ab_val v;
     abn_status st;
@@ -3450,7 +3454,7 @@ static abn_status eqn_solve_key(ab_calc *c, ab_op op, int code)
            prompts (33s p.6-18; unit 024 rule 4) */
         if ((st = resolve(c, code, false, &sl)) != ABN_OK) return st;
         if (!sl.val || sl.val < c->var || sl.val >= c->var + 27) return ABN_DOMAIN;  /* p.14-23; i too (unit 025) */
-        n = eqn_vars(t, false, !ab_mode35(c), v);
+        n = eqn_vars(t, false, c->eqn_model[c->eqn_cur] == 33, v);
         if (op == AB_SOLVE) {
             bool found = false;
             for (int i = 0; i < n; i++) found = found || v[i] == sl.val - c->var;
@@ -3466,7 +3470,7 @@ static abn_status eqn_solve_key(ab_calc *c, ab_op op, int code)
     c->susp.t = c->t;
     c->susp.lastx = c->lastx;
     c->susp.lift = c->lift;
-    if (!b) c->eqn_nvars = eqn_prompt_vars(c, c->eqn[c->eqn_cur], false, c->eqn_vars);
+    if (!b) c->eqn_nvars = eqn_prompt_vars(c, c->eqn[c->eqn_cur], c->eqn_model[c->eqn_cur], false, c->eqn_vars);
     c->eqn_next = 0;
     c->eqn_pending = b ? 3 + b : op == AB_SOLVE ? 3 : 4;
     c->eqn_mode = false;
@@ -3549,14 +3553,14 @@ static abn_status eqn_evaluate(ab_calc *c, bool enter)
     if (c->eqn_cur < 0) return ABN_DOMAIN;         /* EQN LIST TOP: nothing to evaluate (ours) */
     if (eqn_builtin(c, c->eqn_cur)) return ABN_OK; /* a built-in: ENTER, XEQ do nothing (p.7-6) */
     t = c->eqn[c->eqn_cur];
-    av = eqn_assign_var(t, !ab_mode35(c));
+    av = eqn_assign_var(t, c->eqn_model[c->eqn_cur] == 33);
     rhs = enter && av >= 0;
     (void)v;
     (void)pos;
     (void)st;
     /* the syntax is checked when the value is calculated, after every prompt is answered (33s
        p.6-18, 32SII p.6-20; unit 024 rule 4): eqn_step's evaluation reports it */
-    c->eqn_nvars = eqn_vars(t, rhs, !ab_mode35(c), c->eqn_vars);
+    c->eqn_nvars = eqn_vars(t, rhs, c->eqn_model[c->eqn_cur] == 33, c->eqn_vars);
     c->eqn_next = 0;
     c->eqn_pending = enter ? 1 : 2;
     c->eqn_mode = false;

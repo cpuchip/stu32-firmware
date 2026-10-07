@@ -263,13 +263,13 @@ static bool cx_prefix(const app_state *a, int menu)
 }
 
 /* Unit 041 Part A: a menu of the 35s's features, in 33s mode: TABLE and GRAPH (A14), or one whose every item is
-   a hidden op (LOGIC, SUFFIX); CMPLX opens, the 33s's prefix (unit 039), its items dimmed. It doesn't open, and its
-   label is dimmed. */
+   a hidden op (LOGIC, SUFFIX); CMPLX opens where the 33s's prefix works (unit 039: decimal, not Equation mode), its
+   items dimmed, and while an equation is typed (its i is live). It doesn't open, and its label is dimmed. */
 static bool menu_hidden(const ab_calc *c, const km_menu *mn)
 {
     if (!mn || ab_mode35(c)) return false;
     if (!strcmp(mn->name, "TABLE") || !strcmp(mn->name, "GRAPH")) return true;
-    if (!strcmp(mn->name, "CMPLX")) return false;
+    if (!strcmp(mn->name, "CMPLX") && c->base == 10 && !c->eqn_mode) return false;   /* where the prefix works */
     int n = 0;
     for (int i = 0; i < KM_SOFT_KEYS; i++) {
         const km_action *it = &mn->item[i];

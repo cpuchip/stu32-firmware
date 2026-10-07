@@ -7,6 +7,7 @@
 # Unit 025 (work/025-indirect-i-and-program-modes.md): the default is now 33s mode, so these vectors,
 # written from the 35s guide's indirect model, start with MODE35: M51.
 # Unit 041 Part A (decision 58): moved to 35s mode (MODE35 added), each using a feature now hidden in 33s mode: M19 M20 M21 M22 M23 M25 M26 M44 O03 O04 O05 O06 O07 O08 O09 O22.
+# Also M24 and O23 (fresh eyes): they passed vacuously in 33s mode, where SST no longer reaches the built-ins.
 
 M01 | 35s p.13-16/13-17 program C keyed: equation lines (EQN ... ENTER) and a message with blanks; 13 lines | PRGM CLPGM LBL:C INPUT:R INPUT:H EQN PI * RCL:R POW 2 * RCL:H ENTER STO:V EQN 2 * PI * RCL:R * () RCL:R + RCL:H > ENTER STO:S SF:10 EQN RCL:V RCL:O RCL:L SPACE + SPACE RCL:A RCL:R RCL:E RCL:A ENTER CF:10 VIEW:V VIEW:S RTN PRGM | %LINES=13 %STOP=NONE
 M02 | 35s p.13-18 R = 2 1/2, H = 8: flag 10 shows VOL + AREA as a message and stops | PRGM CLPGM LBL:C INPUT:R INPUT:H EQN PI * RCL:R POW 2 * RCL:H ENTER STO:V EQN 2 * PI * RCL:R * () RCL:R + RCL:H > ENTER STO:S SF:10 EQN RCL:V RCL:O RCL:L SPACE + SPACE RCL:A RCL:R RCL:E RCL:A ENTER CF:10 VIEW:V VIEW:S RTN PRGM XEQ:C 2.1.2 RS 8 RS | %STOP=MSG %MSG=VOL_+_AREA X=164.9336143134641450192887776221740
@@ -31,7 +32,7 @@ M20 | 35s p.7-3 above EQN LIST TOP: 3*3 lin. solve (^ from the top) | MODE35 EQN
 M21 | 35s p.7-6 2*2 SOLVE prompts A first, no letter keyed | MODE35 EQN SST SOLVE | %STOP=INPUT:A
 M22 | 35s p.7-6/7-7 x + 2y = 5, 3x + 4y = 11: x = 1, y = 2, in X and Y | MODE35 EQN SST SOLVE 1 RS 2 RS 5 RS 3 RS 4 RS 11 RS | @X=1 @Y=2 X=1 Y=2 @F=11
 M23 | 35s p.7-6 XEQ does nothing on a built-in | MODE35 9 EQN SST XEQ | X=9 %EQ=2*2_lin._solve
-M24 | 35s p.7-6 integrate does nothing on a built-in | 9 EQN SST INTEG:X | X=9
+M24 | 35s p.7-6 integrate does nothing on a built-in | MODE35 9 EQN SST INTEG:X | X=9
 M25 | 35s p.6-8 a built-in cannot be cleared | MODE35 EQN SST BKSP | %EQ=2*2_lin._solve
 M26 | 35s p.6-8 an equation typed with 2*2 shown goes after 3*3 | MODE35 EQN SST 1 + 1 ENTER BST | %EQ=3*3_lin._solve %EQN=1
 M27 | 35s p.8-3 integrate T prompts for X only (the limits 0, pi from the stack when pressed) | RAD FIX4 EQ:COS(X×SIN(T)) C 0 ENTER PI EQN INTEG:T | %STOP=INPUT:X
@@ -82,7 +83,7 @@ O19 | 35s p.15-11 a SOLVE whose equation SOLVEs again: SOLVE(SOLVE) is refused w
 O20 | ours: the first evaluation is not repeated (SOLVE x^2 - 4: the same evaluations as unit 013) | PRGM CLPGM LBL:F RCL:X SQ 4 - RTN PRGM 1 STO:X 5 FN=:F SOLVE:X | X=2 %EVALS<=12
 O21 | ours: an equation's SOLVE and the same function as a program give the same root | EQ:X^3-2 C 1 STO:X 2 EQN SOLVE:X SAVEX PRGM CLPGM LBL:F RCL:X 3 POW 2 - RTN PRGM 1 STO:X 2 FN=:F SOLVE:X | %SAMEX=same
 O22 | ours: REGX in a listed equation reads the stack when evaluated | MODE35 5 EQ:REGX×2 XEQ | X=10
-O23 | ours: the 2*2 solver keeps T (and the stack under its results) as when SOLVE was pressed | 1 ENTER 2 ENTER 3 ENTER 4 EQN SST SOLVE 1 RS 2 RS 5 RS 3 RS 4 RS 11 RS | Z=2 T=1
+O23 | ours: the 2*2 solver keeps T (and the stack under its results) as when SOLVE was pressed | MODE35 1 ENTER 2 ENTER 3 ENTER 4 EQN SST SOLVE 1 RS 2 RS 5 RS 3 RS 4 RS 11 RS | Z=2 T=1
 O24 | ours: an integral's first evaluation is its first node, not an extra one (x^2 on 0..1: one 15-point rule) | PRGM CLPGM LBL:F RCL:X SQ RTN PRGM FIX4 FN=:F 0 ENTER 1 INTEG:X | X^0.3333333333333333333333333333333333 %EVALS<=15
 O25 | 35s p.14-11, 15-10 a message line while SOLVE evaluates is not shown and not evaluated (VIEW likewise) | PRGM CLPGM LBL:F SF:10 EQ:A×B RCL:X 3 - RTN PRGM 0 STO:X 10 FN=:F SOLVE:X | X=3 %STOP=DONE
 O26 | 35s p.14-11 a flag-11 line prompts again the next time it runs | PRGM CLPGM LBL:E SF:11 EQ:A+B RTN PRGM XEQ:E 1 RS 2 RS XEQ:E | %STOP=INPUT:A

@@ -633,7 +633,9 @@ int main(void)
         app_ui(&a, &ui);
         expect(a.menu >= 0 && ui.soft_dim[0] && ui.soft_dim[1] && ui.soft_dim[2] && ui.soft_dim[3],
                "041 A1: 33s mode: CMPLX opens as the prefix, i theta ARG [ dimmed");
-        press(&a, "C");
+        press(&a, "C BLUE x\xe2\x86\x94y k:1 C BLUE +/\xe2\x88\x92");       /* HEX: no prefix (039), so CMPLX holds nothing */
+        expect(a.menu < 0, "041 A1: 33s mode in HEX: CMPLX doesn't open (every item dimmed, no prefix)");
+        press(&a, "C BLUE x\xe2\x86\x94y k:0 C");                         /* DEC again */
         ab_do_arg(&c, AB_MODEL, 35);
         press(&a, "BLUE +/\xe2\x88\x92");
         app_ui(&a, &ui);
@@ -2252,6 +2254,34 @@ int main(void)
         press(&a, "GOLD 7");
         app_ui(&a, &ui);
         expect(ui.prompt && !strcmp(ui.prompt, "SOLVE _"), "043: SOLVE on an ordinary equation still asks for the unknown");
+    }
+
+    /* unit 043 rule 3: letter prompts the token path skips, driven on the real keys to the vectors' results: the
+       integral's (GOLD 8, then the letter), TABLE's VAR, and ISG (BLUE 4) */
+    {
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, 35);
+        ab_eqn_add(&c, "X^2");                  /* listed and shown; C leaves Equation mode */
+        press(&a, "C 0 ENTER 3 GOLD 0 GOLD 8 ltr:X");
+        double v = x_of(&c);
+        expect(v > 9 - 1e-9 && v < 9 + 1e-9, "043: the integral from the keys: X^2 from 0 to 3 is 9");
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        ab_eqn_add(&c, "Y^2");
+        ab_do(&c, AB_EQN);                      /* out of Equation mode, Y^2 last shown */
+        press(&a, "3 STO ltr:Y BLUE 8 k:0 ltr:Y");
+        abn tx, nine = abn_from_int(9);
+        ab_val ty;
+        press(&a, "BLUE 8 k:3");                /* GO */
+        expect(c.tbl_var == 'Y' - 'A' && ab_table_row(&c, 0, &tx, &ty) == ABN_OK && abn_cmp(&ty.re, &nine) == 0,
+               "043: TABLE's VAR from the keys: Y, then GO: row 0 is 3^2 = 9");
+        ab_init(&c);
+        app_init(&a, &c, now);
+        press(&a, "1 . 0 0 3 STO ltr:N BLUE 4 ltr:N");
+        v = var_of(&c, 'N');
+        expect(v > 2.003 - 1e-12 && v < 2.003 + 1e-12, "043: ISG from the keys: N 1.003 becomes 2.003");
     }
 
     /* unit 032: TABLE: blue 8's menu (VAR START STEP GO); the table on the four lines, x left and the

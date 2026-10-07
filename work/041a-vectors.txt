@@ -57,3 +57,14 @@ H41 | 041 A: 35s unchanged | MODE35 PRGM LBL:A 12 ENTER 10 AND RTN PRGM | %LINES
 H42 | 041 A4: a built-in shown in 35s mode, then 33s mode: EQN opens at the top, not on it | MODE35 EQN SST C MODE33 EQN | %EQ=TOP
 H43 | 041 A: typing an equation in 33s mode the comma still separates arguments (Part D brings the colon) | MODE33 EQN NCR 5 , 2 ENTER XEQ | %EQ=nCr(5,2) X=10
 H44 | 041 A11: and the other way: an equation typed in 33s mode refuses REGX in 35s mode too (its stamp decides) | MODE33 4 EQ:REGX+1 C MODE35 EQN XEQ | ERR %ERR=SYNTAX
+# Fresh eyes on 7ad362a: the built-ins reached by a delete; a lone i read by the stamp (it was the mode in force,
+# unit 025's code); 33s-mode coverage kept for rows moved for their setup only (012 O15, 014 O28).
+H45 | 041 A4 (fresh eyes F01): delete an equation after the solvers (typed in 35s mode): 33s mode goes to the top, past them | MODE35 EQN SST EQ:A+1 C MODE33 EQN BKSP | %EQ=TOP
+H46 | 041 A4 (fresh eyes F02): and SOLVE there does nothing | MODE35 EQN SST SST EQ:A+1 C MODE33 EQN BKSP SOLVE | %STOP=NONE
+H47 | 041 A4 (fresh eyes F03): an edited equation emptied lands at the top too | MODE35 EQN SST SST EQ:A+1 C MODE33 EQN < BKSP BKSP BKSP ENTER | %EQ=TOP
+H48 | 041 A (fresh eyes F04): a lone i by the stamp: typed in 33s mode it is the variable i, in 35s mode too | MODE33 5 STO:i EQ:2×i C MODE35 EQN XEQ RS | X=10
+H49 | 041 A (fresh eyes F05): typed in 35s mode, 2×i refuses in 33s mode too | MODE35 EQ:2×i C MODE33 5 STO:i EQN XEQ RS | ERR %ERR=SYNTAX
+H50 | 041 A (fresh eyes F06): a line typed in 33s mode using i, in a 35s label, runs | MODE35 PRGM LBL:A PRGM MODE33 5 STO:i PRGM GTO.:A001 EQ:2×i RTN PRGM XEQ:A | X=10
+H51 | 041 A: 33s coverage of 014 O28 (moved for its CLSTK setup) | 1 STO:A 2 STO:B CLX RDN RDN RDN RDN 0 EQ:A+B XEQ 3 RS 4 RS | X=7 Y=4 Z=3 T=0 @A=3 @B=4
+H52 | 041 A: 33s coverage of 012 O15 | PRGM CLPGM LBL:A VIEW:H ENTER RTN PRGM 5 STO:H CLX XEQ:A RS | X=0 Y=0 %STOP=DONE
+H53 | ours (found by 041's save-and-load pass; at aa9781f too, in 35s mode): an edited last equation emptied, then the image saved: it loads (the edit's index cleared) | MODE35 EQN SST SST EQ:A+1 C EQN < BKSP BKSP BKSP ENTER SAVE LOAD | %EQ=3*3_lin._solve %EQN=0
