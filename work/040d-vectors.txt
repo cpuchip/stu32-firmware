@@ -12,3 +12,14 @@ D08 | 040d guard: a cusp minimum, ABS(X-1)+3 | STU EQ:ABS(X-1)+3 C GRAPH GMOVE:1
 D09 | 040d guard (abacus): 1/X^2 near 0: NO ROOT FND (as before here) | STU EQ:1÷X^2 C GRAPH EXTR | ERR %ERR=NO_ROOT %GRES=-
 D10 | 040d guard (abacus): 1/(X-1)^2 near 1: NO ROOT FND (as before here) | STU EQ:1÷(X-1)^2 C GRAPH GMOVE:16 GMOVE:16 EXTR | ERR %ERR=NO_ROOT %GRES=-
 D11 | 040d guard (abacus): 1E16+X: NO ROOT FND (as before here) | STU EQ:1E16+X C GRAPH EXTR | ERR %ERR=NO_ROOT %GRES=-
+# Fresh eyes on 040d's first green (1819a06): SOLVE's x is a zero of the 5-point slope, up to about 1.4h-2.4h off a flat
+# extremum (h = 1E-7 max(1, |x|)) and off a one-sided cusp; f is bracketed at a widening D, and its departure must grow
+# with distance (a pole's saturates). The tolerances: (X-1)^6 1.41h = 1.4E-7 (allowed 3E-7); (X-2)^8 2.4h = 4.7E-7
+# (allowed 1E-6); the cusps 4.3E-8 and 5.2E-11 off (allowed 1E-7, 1E-10).
+D12 | 040d (fresh eyes b16): a flat minimum, (X-1)^6, SOLVE 1.4h off: found (1819a06: NO ROOT FND) | STU ALL RAD EQ:(X-1)^6 C GRAPH GMOVE:16 GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 EXTR | %GRES#=1,3E-7
+D13 | 040d (fresh eyes d70): a one-sided cusp, ABS(X-0.3)+0.5X: found | STU ALL RAD EQ:ABS(X-0.3)+0.5×X C GRAPH GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 EXTR | %GRES#=0.3,1E-7
+D14 | 040d (fresh eyes d54): a root cusp, SQRT(ABS(X-0.3))+X: found | STU ALL RAD EQ:SQRT(ABS(X-0.3))+X C GRAPH GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 EXTR | %GRES#=0.3,1E-10
+D15 | 040d (fresh eyes d2): an odd pole, X/ABS(X-0.3), SOLVE 3E-14 from it: f's departure saturates: NO ROOT FND | STU ALL RAD EQ:X÷ABS(X-0.3) C GRAPH GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 EXTR | ERR %ERR=NO_ROOT %GRES=-
+D16 | 040d (fresh eyes d30): an even pole, (X+1)/(X-0.7)^2, SOLVE 2.8E-15 from it: NO ROOT FND | STU ALL RAD EQ:(X+1)÷(X-0.7)^2 C GRAPH GMOVE:16 GMOVE:6 GMOVE:6 GMOVE:6 EXTR | ERR %ERR=NO_ROOT %GRES=-
+D17 | 040d (fresh eyes a12): a flatter minimum, (X-2)^8, SOLVE 2.4h off: found | STU ALL RAD EQ:(X-2)^8 C GRAPH GMOVE:16 GMOVE:16 GMOVE:16 GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 GMOVE:6 EXTR | %GRES#=2,1E-6
+D18 | 040d: C during the check itself (SOLVE ends at its second evaluation here; the check makes nine more) | STU EQ:(X-1)^2+3 C GRAPH GMOVE:16 GMOVE:16 INTR:6 EXTR | ERR %ERR=INTERRUPTED %GRES=- %GRAPH=1

@@ -1878,17 +1878,22 @@ static abn_status graph_slope(ab_calc *c, const abn *x, abn *m)
     return abn_div(m, &t, &u);
 }
 
+/* One evaluation for a graph tool, the curve (slope false) or its slope: C during the tool ends it (040b), as between
+   SOLVE's evaluations, and each counts (unit 040; the extremum check's too, 040d). */
+static abn_status graph_eval(ab_calc *c, bool slope, const abn *t, abn *f)
+{
+    if (c->intr) {
+        c->intr = false;
+        return ABN_INTERRUPTED;
+    }
+    c->evals++;
+    if (c->intr_after > 0 && --c->intr_after == 0) c->intr = true;     /* the tests' interrupt */
+    return slope ? graph_slope(c, t, f) : graph_f(c, t, f);
+}
+
 static abn_status eval_fn(ab_calc *c, const abn *t, abn *f)
 {
-    if (ev_graph) {                             /* unit 040 */
-        if (c->intr) {                          /* C during the tool (040b), as between SOLVE's evaluations */
-            c->intr = false;
-            return ABN_INTERRUPTED;
-        }
-        c->evals++;
-        if (c->intr_after > 0 && --c->intr_after == 0) c->intr = true;     /* the tests' interrupt */
-        return ev_graph == 1 ? graph_f(c, t, f) : graph_slope(c, t, f);
-    }
+    if (ev_graph) return graph_eval(c, ev_graph == 2, t, f);              /* unit 040 */
     slot sl;
     abn_status st;
     int pc0 = c->pc, rb0 = c->rbase;
@@ -5473,52 +5478,74 @@ static abn_status graph_move(ab_calc *c, int arg)
 
 /* SOLVE's engine on the curve (mode 1) or its slope (2), the guesses the cursor's column's x and the next column's
    (the previous at the right edge): the root, or NO ROOT FND as SOLVE's. */
-/* Whether x, SOLVE's answer on the slope, is an extremum (unit 040c for an answer not found, 040d for every one).
-   Near an extremum the slope (5-point, its noise about 1E-33 |f| / h at worst) is noise: SOLVE may end not found
-   on it, or found on a noise point, or near a pole on a zero of the estimate itself. So, at the first d of 1E-12,
-   1E-10, ... 1E-4 times max(1, |x|) where the slopes at x + d and x - d are both clear of the noise (|slope| >
-   1E-30 |f(x)| / h, a thousand times it):
-   - the two have opposite signs (040c);
-   - f moves away from f(x) on both sides the way the slopes say (up from a minimum, down from a maximum), at the
-     first D of 10d, 1000d, ... up to 1E-3 max(1, |x|) where both differences are clear of f's noise (1E-30
-     |f(x)|). Near a pole the estimated slope can change sign and grow away from x (so 040d's growth test passes
-     it), but f runs straight through: this is 040d's pole test, proposed as its equivalent.
-   A constant's slope is never clear: no extremum. The answer stays x, as close as the noise allows. Each slope and
-   each f counts as one of SOLVE's evaluations (bounded: 10 slopes and 9 f at most). */
-static bool extr_ok(ab_calc *c, const abn *x)
+/* f's departures from f(x) at x + D and x - D, as magnitudes in a[0], a[1]: ABN_OK when both go the way sg says (up
+   for a minimum, sg > 0), ABN_INTERRUPTED (C), else ABN_DOMAIN (040d). */
+static abn_status f_depart(ab_calc *c, const abn *x, const abn *fx, const abn *D, int sg, abn a[2])
 {
-    abn ax = abn_abs(x), one = abn_from_int(1), h, fx, afx, lim, flim, e, k100 = abn_from_int(100), ten, top;
+    for (int side = 0; side < 2; side++) {
+        abn q;
+        abn_status st;
+        if ((side ? abn_sub(&q, x, D) : abn_add(&q, x, D)) != ABN_OK) return ABN_DOMAIN;
+        if ((st = graph_eval(c, false, &q, &a[side])) != ABN_OK) return st == ABN_INTERRUPTED ? st : ABN_DOMAIN;
+        if (abn_sub(&a[side], &a[side], fx) != ABN_OK || sgn(&a[side]) != sg) return ABN_DOMAIN;
+        a[side] = abn_abs(&a[side]);
+    }
+    return ABN_OK;
+}
+
+/* Whether x, SOLVE's answer on the slope, is an extremum (unit 040c for an answer not found, 040d for every one):
+   *ok, and ABN_OK, or ABN_INTERRUPTED (C). SOLVE's x is a zero of the 5-point slope: near an extremum that slope is
+   noise (about 1E-33 |f| / h at worst), it sits up to about 2.4h off a flat or one-sided extremum, and near a pole
+   it can have a zero of its own. So:
+   - the slope: at the first d of 1E-12, 1E-10, ... 1E-4 times max(1, |x|) where the slopes at x + d and x - d are
+     both clear of the noise (|slope| > 1E-30 |f(x)| / h, a thousand times it), they have opposite signs;
+   - f brackets it: at the first D of 10d, 100d, ... up to 1E-3 max(1, |x|) where f(x + D) and f(x - D) both depart
+     from f(x) the way the slopes say (up from a minimum, down from a maximum); a D where they don't, x off a flat
+     extremum, tries the next;
+   - and the departure grows with distance: at 10D more than 1.5 times at D, on each side (a smooth extremum: 100
+     times; a cusp: 10; ABS(X)^0.5: 3.2). At a pole f(x) is huge and the departure saturates near 1 times: no
+     extremum (040d; the slope's own growth passes a pole, as its stencil straddles it).
+   A constant's slope is never clear: no extremum. The answer stays x, as close as the noise allows. Each slope and
+   f is one of the tool's evaluations: at most 10 slopes and 21 f. (Fresh eyes found no case on which a second
+   growth step or a noise limit on f's departures changed the answer, in 1865; they aren't here.) */
+static abn_status extr_check(ab_calc *c, const abn *x, bool *ok)
+{
+    abn ax = abn_abs(x), one = abn_from_int(1), h, fx, lim, e, ten = abn_from_int(10), top, k15;
     const abn *m = abn_cmp(&ax, &one) > 0 ? &ax : &one;
-    abn_from_text(&e, "1E-7"), abn_from_text(&lim, "1E-30"), abn_from_text(&top, "1E-3");
-    ten = abn_from_int(10);
-    c->evals++;
-    if (abn_mul(&h, m, &e) != ABN_OK || graph_f(c, x, &fx) != ABN_OK || abn_mul(&top, &top, m) != ABN_OK) return false;
-    afx = abn_abs(&fx);
-    if (abn_mul(&flim, &lim, &afx) != ABN_OK || abn_div(&lim, &flim, &h) != ABN_OK) return false;
+    abn_status st;
+    *ok = false;
+    abn_from_text(&e, "1E-7"), abn_from_text(&lim, "1E-30"), abn_from_text(&top, "1E-3"), abn_from_text(&k15, "1.5");
+    if ((st = graph_eval(c, false, x, &fx)) != ABN_OK) return st == ABN_INTERRUPTED ? st : ABN_OK;
+    abn afx = abn_abs(&fx);
+    if (abn_mul(&h, m, &e) != ABN_OK || abn_mul(&top, &top, m) != ABN_OK || abn_mul(&lim, &lim, &afx) != ABN_OK ||
+        abn_div(&lim, &lim, &h) != ABN_OK)
+        return ABN_OK;
     abn_from_text(&e, "1E-12");
-    for (int r = 0; r < 5; r++, abn_mul(&e, &e, &k100)) {
-        abn d, p, sp, sm, ap, am, D;
-        c->evals += 2;
-        if (abn_mul(&d, m, &e) != ABN_OK || abn_add(&p, x, &d) != ABN_OK || graph_slope(c, &p, &sp) != ABN_OK ||
-            abn_sub(&p, x, &d) != ABN_OK || graph_slope(c, &p, &sm) != ABN_OK)
-            return false;
+    for (int r = 0; r < 5; r++, abn_mul(&e, &e, &ten), abn_mul(&e, &e, &ten)) {
+        abn d, p, sp, sm, ap, am, D, a[2], b[2];
+        if (abn_mul(&d, m, &e) != ABN_OK || abn_add(&p, x, &d) != ABN_OK) return ABN_OK;
+        if ((st = graph_eval(c, true, &p, &sp)) != ABN_OK) return st == ABN_INTERRUPTED ? st : ABN_OK;
+        if (abn_sub(&p, x, &d) != ABN_OK) return ABN_OK;
+        if ((st = graph_eval(c, true, &p, &sm)) != ABN_OK) return st == ABN_INTERRUPTED ? st : ABN_OK;
         ap = abn_abs(&sp), am = abn_abs(&sm);
         if (abn_cmp(&ap, &lim) <= 0 || abn_cmp(&am, &lim) <= 0) continue;      /* inside the noise: a wider d */
         int sg = sgn(&sp);
-        if (sg * sgn(&sm) >= 0) return false;                                   /* one sign: none */
-        if (abn_mul(&D, &d, &ten) != ABN_OK) return false;
-        for (;;) {                                  /* f away from f(x): up when sg > 0 (a minimum), else down */
-            abn fp, fm, q;
-            c->evals += 2;
-            if (abn_add(&q, x, &D) != ABN_OK || graph_f(c, &q, &fp) != ABN_OK || abn_sub(&fp, &fp, &fx) != ABN_OK ||
-                abn_sub(&q, x, &D) != ABN_OK || graph_f(c, &q, &fm) != ABN_OK || abn_sub(&fm, &fm, &fx) != ABN_OK)
-                return false;
-            ap = abn_abs(&fp), am = abn_abs(&fm);
-            if (abn_cmp(&ap, &flim) > 0 && abn_cmp(&am, &flim) > 0) return sgn(&fp) == sg && sgn(&fm) == sg;
-            if (abn_cmp(&D, &top) >= 0 || abn_mul(&D, &D, &k100) != ABN_OK) return false;
+        if (sg * sgn(&sm) >= 0) return ABN_OK;                                  /* one sign: none */
+        if (abn_mul(&D, &d, &ten) != ABN_OK) return ABN_OK;
+        for (; abn_cmp(&D, &top) <= 0; abn_mul(&D, &D, &ten)) {
+            abn D10, k;
+            if ((st = f_depart(c, x, &fx, &D, sg, a)) == ABN_INTERRUPTED) return st;
+            if (st != ABN_OK) continue;                                         /* not bracketed: a wider D */
+            if (abn_mul(&D10, &D, &ten) != ABN_OK || (st = f_depart(c, x, &fx, &D10, sg, b)) == ABN_INTERRUPTED)
+                return st == ABN_INTERRUPTED ? st : ABN_OK;
+            for (int side = 0; side < 2; side++)                                /* grows, or saturates: a pole */
+                if (st != ABN_OK || abn_mul(&k, &a[side], &k15) != ABN_OK || abn_cmp(&b[side], &k) <= 0) return ABN_OK;
+            *ok = true;
+            return ABN_OK;
         }
+        return ABN_OK;                                                          /* never bracketed */
     }
-    return false;
+    return ABN_OK;
 }
 
 static abn_status graph_solve(ab_calc *c, int mode, abn *root)
@@ -5534,7 +5561,11 @@ static abn_status graph_solve(ab_calc *c, int mode, abn *root)
     ev_best_set = false;
     c->evals = 0;
     st = solve_core(c, a, b, &o);
-    if (st == ABN_OK && mode == 2) o.found = extr_ok(c, &o.x);     /* EXTR's answer, found or not (040c, 040d) */
+    if (st == ABN_OK && mode == 2) {    /* EXTR's answer, found or not (040c, 040d) */
+        bool ok;
+        st = extr_check(c, &o.x, &ok);
+        o.found = ok;
+    }
     ev_graph = 0;
     c->evals = evals;
     if (st != ABN_OK) return st;
