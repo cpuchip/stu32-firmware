@@ -33,6 +33,11 @@ extern bool ls027_one_is_white;
    the count it needs when cap is too small (at most 2 + 240 * 52). */
 size_t ls027_encode(const ls027_frame *f, const bool *dirty, uint8_t *out, size_t cap);
 
+/* apps.h v1.2 item 1 (abacus #4734): the rows of next that differ from shown, the frame last sent (NULL: none
+   sent, every row), marked in dirty; returns how many. The device keeps shown (PSRAM on Rev A) and sends only those
+   rows with ls027_encode. */
+int ls027_dirty(const ls027_frame *shown, const ls027_frame *next, bool dirty[LS027_H]);
+
 /* The other two commands: display mode (keep the image; 2 bytes) and all clear (2 bytes). */
 size_t ls027_display_mode(uint8_t *out);
 size_t ls027_all_clear(uint8_t *out);

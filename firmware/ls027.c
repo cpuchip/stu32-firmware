@@ -1,6 +1,8 @@
 /* ls027: the memory LCD's serial format (see ls027.h). */
 #include "ls027.h"
 
+#include <string.h>
+
 bool ls027_one_is_white = true;
 
 size_t ls027_encode(const ls027_frame *f, const bool *dirty, uint8_t *out, size_t cap)
@@ -34,4 +36,14 @@ size_t ls027_all_clear(uint8_t *out)
     out[0] = 0x04;                              /* M2 = 1: all clear (p. 18) */
     out[1] = 0x00;
     return 2;
+}
+
+int ls027_dirty(const ls027_frame *shown, const ls027_frame *next, bool dirty[LS027_H])
+{
+    int n = 0;
+    for (int y = 0; y < LS027_H; y++) {
+        dirty[y] = !shown || memcmp(shown->px[y], next->px[y], LS027_ROW_BYTES) != 0;
+        n += dirty[y];
+    }
+    return n;
 }

@@ -89,6 +89,23 @@ int main(void)
     }
     /* the full update's size: 1 + 240 x 52 + 1 */
     if (ls027_encode(&f, NULL, a, sizeof a) != 1 + 240 * 52 + 1) bad++;
+    /* apps.h v1.2 item 1: the framework sends only the lines that changed since the frame last sent */
+    {
+        static ls027_frame shown, next;
+        static bool d[240];
+        memset(&shown, 0, sizeof shown);
+        memset(&next, 0, sizeof next);
+        int same = ls027_dirty(&shown, &next, d), first = ls027_dirty(NULL, &next, d);
+        next.px[7][49] ^= 0x80;                 /* the last pixel of line 7 */
+        next.px[200][0] ^= 0x01;                /* the first of line 200 */
+        int two = ls027_dirty(&shown, &next, d);
+        bool which = true;
+        for (int y = 0; y < 240; y++) which = which && d[y] == (y == 7 || y == 200);
+        if (same != 0 || first != 240 || two != 2 || !which) {
+            printf("ls027_test: ls027_dirty: same %d, first %d, two %d\n", same, first, two);
+            bad++;
+        }
+    }
     printf("ls027_test: %s\n", bad ? "FAIL" : "the encoder matches Sharp's bit order (full, partial, both polarities, p. 20 addresses)");
     return bad ? 1 : 0;
 }
