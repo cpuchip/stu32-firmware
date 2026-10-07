@@ -37,18 +37,20 @@ build/keymap_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) firmware/keymap.c firmwar
 
 APP := firmware/app.c firmware/apps.c firmware/keymap.c firmware/keys.c firmware/power.c firmware/settings.c firmware/piezo.c
 # The games (games.list): scripts/gen_games.py exports each at its pin into build/games and writes
-# build/games/games.mk (GAMES_C, GAMES_O, GAMES_INC, and a rule a game: its manifest's flags, always
+# build/games/games.mk (GAMES_C, GAMES_O, and a rule a game: its manifest's flags and its own include directories, always
 # -Werror=frame-larger-than=1024, every object depending on the export's stamp, since git archive gives
 # files their commit's time) and build/games/games.h (GAMES_DECLARE, GAMES_ENTRIES for apps.c).
 build/games/games.mk: games.list scripts/gen_games.py
 	python3 scripts/gen_games.py games.list build/games
 build/games/.stamp build/games/games.h: build/games/games.mk
+ifeq ($(filter clean,$(MAKECMDGOALS)),)       # (clean needs no games, nor a clone to make them)
 include build/games/games.mk
+endif
 build/app_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) $(APP) $(GAMES_O) build/games/games.h firmware/app.h firmware/keymap.h firmware/power.h firmware/screen.h tests/app_test.c | build
-	$(CC) $(CFLAGS) -Icore -Ifirmware -Ibuild/games $(GAMES_INC) -o $@ $(CORE) $(SCREEN) $(APP) $(GAMES_O) tests/app_test.c $(ENGINE) $(LIBS)
+	$(CC) $(CFLAGS) -Icore -Ifirmware -Ibuild/games -o $@ $(CORE) $(SCREEN) $(APP) $(GAMES_O) tests/app_test.c $(ENGINE) $(LIBS)
 
 build/standin_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) $(APP) $(GAMES_O) build/games/games.h firmware/standin.c firmware/standin.h firmware/app.h firmware/keymap.h firmware/screen.h tests/standin_test.c | build
-	$(CC) $(CFLAGS) -Icore -Ifirmware -Ibuild/games $(GAMES_INC) -o $@ $(CORE) $(SCREEN) $(APP) $(GAMES_O) firmware/standin.c tests/standin_test.c $(ENGINE) $(LIBS)
+	$(CC) $(CFLAGS) -Icore -Ifirmware -Ibuild/games -o $@ $(CORE) $(SCREEN) $(APP) $(GAMES_O) firmware/standin.c tests/standin_test.c $(ENGINE) $(LIBS)
 
 build/power_test: firmware/gauge.c firmware/gauge.h firmware/power.c firmware/power.h firmware/pins.c firmware/pins.h firmware/piezo.c firmware/piezo.h tests/power_test.c | build
 	$(CC) $(CFLAGS) -Ifirmware -o $@ firmware/gauge.c firmware/power.c firmware/pins.c firmware/piezo.c tests/power_test.c -lm

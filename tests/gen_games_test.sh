@@ -88,5 +88,24 @@ rm -rf "$T/repos/bad" "$T/bad.git"; mkrepo bad BAD
     && git push -q origin HEAD:main 2>/dev/null)
 printf 'bad bad %s MIT game.txt\n' "$(git -C "$T/repos/bad" rev-parse HEAD)" > "$T/fw/games.list"; run 1 "a file name with make syntax" "a character outside"
 bad "a source pattern with a space" "s|^sources = .*|sources = src/a b.c|" "match no .c file\\|a character outside"
+bad "a name that would close a C comment" "s|^name = .*|name = */;//|" "letters, digits or blanks"
+# a symbolic link among what is exported: a source, or a file under an include directory (fresh eyes on the gate)
+rm -rf "$T/repos/bad" "$T/bad.git"; mkrepo bad BAD
+(cd "$T/repos/bad" && ln -s /etc/hostname src/z.c && git add -A && git -c user.email=t@t -c user.name=t commit -q -m link \
+    && git push -q origin HEAD:main 2>/dev/null)
+printf 'bad bad %s MIT game.txt\n' "$(git -C "$T/repos/bad" rev-parse HEAD)" > "$T/fw/games.list"; run 1 "a source that is a symbolic link" "symbolic link"
+rm -rf "$T/repos/bad" "$T/bad.git"; mkrepo bad BAD
+(cd "$T/repos/bad" && ln -s ../src/a.c inc/x.h && git add -A && git -c user.email=t@t -c user.name=t commit -q -m link \
+    && git push -q origin HEAD:main 2>/dev/null)
+printf 'bad bad %s MIT game.txt\n' "$(git -C "$T/repos/bad" rev-parse HEAD)" > "$T/fw/games.list"; run 1 "a symbolic link under an include directory" "symbolic link"
+# no refs/remotes/origin/HEAD, and a local branch named origin/main on an unpushed commit (fresh eyes on the gate)
+rm -rf "$T/repos/bad" "$T/bad.git"; mkrepo bad BAD
+(cd "$T/repos/bad" && git remote set-head origin -d && printf 'int u;\n' > src/u.c && git add -A \
+    && git -c user.email=t@t -c user.name=t commit -q -m unpushed && git branch origin/main)
+printf 'bad bad %s MIT game.txt\n' "$(git -C "$T/repos/bad" rev-parse HEAD)" > "$T/fw/games.list"; run 1 "no origin HEAD (a local origin/main branch)" "no refs/remotes/origin/HEAD"
+# a game's include directories reach its own objects only, never the firmware's (fresh eyes on the gate)
+printf 'one one %s MIT game.txt\n' "$PIN1" > "$T/fw/games.list"; run 0 "one game"
+grep -q "^GAME_one_INC := -Ibuild/games/one/inc$" "$mk" && ! grep -q "GAMES_INC" "$mk" && grep -q 'INCLUDE_DIRECTORIES "${REPO}/build/games/one/inc"' "$T/fw/build/games/games.cmake" \
+    && echo "  ok: a game's include directories on its own rule only" || { echo "FAIL: include scope: $(grep INC "$mk")"; ok=0; }
 [ "$ok" = 1 ] && { echo "GAMES-LIST GENERATOR GREEN"; exit 0; }
 echo "GAMES-LIST GENERATOR RED"; exit 1

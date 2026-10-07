@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "app.h"
+#include "games.h"
 #include "keymap.h"
 #include "const.h"
 #include "state.h"
@@ -2254,6 +2255,14 @@ int main(void)
         press(&a, "GOLD 7");
         app_ui(&a, &ui);
         expect(ui.prompt && !strcmp(ui.prompt, "SOLVE _"), "043: SOLVE on an ordinary equation still asks for the unknown");
+    }
+
+    /* the games list (soroban's gate): each game's app_def name is the name its manifest gives (what APPS shows) */
+    {
+        static const char *const names[] = {"KEYS" GAMES_NAMES};
+        bool same = app_registry_n == (int)(sizeof names / sizeof names[0]);
+        for (int i = 0; same && i < app_registry_n; i++) same = !strcmp(app_registry[i]->name, names[i]);
+        expect(same, "games list: every game's APPS name is its manifest's");
     }
 
     /* unit 043 rule 3: letter prompts the token path skips, driven on the real keys to the vectors' results: the
