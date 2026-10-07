@@ -10,7 +10,11 @@ BID_FLAGS := -DDECIMAL_CALL_BY_REFERENCE=0 -DDECIMAL_GLOBAL_ROUNDING=0 \
              -DDECIMAL_GLOBAL_EXCEPTION_FLAGS=0
 CORE := core/calc.c core/fmt.c core/fn.c core/bigint.c core/const.c core/xnum.c core/stat.c core/frac.c core/base.c core/cplx.c core/hp.c core/sbig.c core/arena.c core/eqn.c core/lin.c core/state.c core/msg.c core/list.c
 HDRS := core/abn.h core/calc.h core/fmt.h core/fn.h core/bigint.h core/const.h core/xnum.h core/stat.h core/frac.h core/base.h core/cplx.h core/hp.h core/sbig.h core/bigint_impl.h core/xnum_impl.h core/arena.h core/eqn.h core/lin.h core/state.h
-ENGINE := build/abn_intel.o $(INTEL_LIB)
+# Casimir (casim's computer algebra, CAS 004), its src/ at CASIM_PIN (scripts/fetch-casim.sh): built with no frame
+# above 1 KB, as casim builds it; linked wherever the core is, and the core's CAS step built in (AB_CASIM)
+CASIM_O := build/casim.o
+ENGINE := build/abn_intel.o $(CASIM_O) $(INTEL_LIB)
+CFLAGS += -DAB_CASIM -Ibuild/casim
 LIBS := -lm
 
 .PHONY: all test accuracy all-checks clean device-host
@@ -27,6 +31,11 @@ $(INTEL_LIB):
 	CC="$(CC)" scripts/fetch-intel-dfp.sh
 
 # The library's headers are its own; -isystem keeps our warning flags off them.
+build/casim/.pin build/casim/casim.c build/casim/casim.h: CASIM_PIN
+	scripts/fetch-casim.sh
+$(CASIM_O): build/casim/.pin build/casim/casim.c build/casim/casim.h core/abn.h | build
+	$(CC) $(CFLAGS) -Werror=frame-larger-than=1024 -Icore -c -o $@ build/casim/casim.c
+
 build/abn_intel.o: core/abn_intel.c core/abn.h $(INTEL_LIB) | build
 	@mkdir -p build
 	$(CC) $(CFLAGS) $(BID_FLAGS) -isystem $(INTEL_SRC) -c -o $@ core/abn_intel.c

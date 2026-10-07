@@ -14,12 +14,21 @@ if(NOT EXISTS "${REPO}/build/games/games.cmake")
     message(FATAL_ERROR "no ${REPO}/build/games/games.cmake: run python3 scripts/gen_games.py games.list build/games")
 endif()
 include("${REPO}/build/games/games.cmake")
+# Casimir (CAS 004): build/casim from scripts/fetch-casim.sh, its file under the frame guard, the core's CAS step on
+set(CASIM "${REPO}/build/casim")
+if(NOT EXISTS "${CASIM}/.pin")
+    message(FATAL_ERROR "no ${CASIM}: run scripts/fetch-casim.sh")
+endif()
+if(NOT CMAKE_SCRIPT_MODE_FILE)
+    set_source_files_properties("${CASIM}/casim.c" PROPERTIES COMPILE_OPTIONS "-Werror=frame-larger-than=1024"
+                                OBJECT_DEPENDS "${CASIM}/.pin")
+endif()
 
 idf_component_register(
     SRCS standin_main.c ${CORE_SRCS} "${FW}/screen.c" "${FW}/font5x7.c" "${FW}/app.c" "${FW}/apps.c" "${FW}/keymap.c"
          "${FW}/keys.c" "${FW}/power.c" "${FW}/standin.c" "${FW}/store.c" "${FW}/ls027.c" "${FW}/settings.c" "${FW}/piezo.c"
-         ${GAMES_SRCS}
-    INCLUDE_DIRS . "${REPO}/core" "${FW}" "${REPO}/device" "${REPO}/build/games"
+         ${GAMES_SRCS} "${CASIM}/casim.c"
+    INCLUDE_DIRS . "${REPO}/core" "${FW}" "${REPO}/device" "${REPO}/build/games" "${CASIM}"
     REQUIRES esp_lcd esp_driver_i2c esp_driver_gpio esp_driver_uart vfs esp_psram esp_partition esp_timer)
 
 if(NOT EXISTS "${BID_LIB}")
@@ -34,7 +43,7 @@ add_custom_target(ab_commit ALL
     BYPRODUCTS ${AB_COMMIT_H} VERBATIM)
 add_dependencies(${COMPONENT_LIB} ab_commit)
 target_include_directories(${COMPONENT_LIB} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
-target_compile_definitions(${COMPONENT_LIB} PRIVATE AB_HAVE_COMMIT_H=1)
+target_compile_definitions(${COMPONENT_LIB} PRIVATE AB_HAVE_COMMIT_H=1 AB_CASIM=1)
 target_compile_definitions(${COMPONENT_LIB} PRIVATE
     DECIMAL_CALL_BY_REFERENCE=0 DECIMAL_GLOBAL_ROUNDING=0 DECIMAL_GLOBAL_EXCEPTION_FLAGS=0)
 target_link_libraries(${COMPONENT_LIB} PRIVATE "${BID_LIB}")
