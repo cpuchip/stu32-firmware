@@ -37,7 +37,8 @@ build/keymap_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) firmware/keymap.c firmwar
 
 APP := firmware/app.c firmware/apps.c firmware/keymap.c firmware/keys.c firmware/power.c firmware/settings.c firmware/piezo.c
 # Babal, an app under APPS from stu32-arcade at ARCADE_PIN (scripts/fetch-arcade.sh); its sources
-# build with -ffp-contract=off, as its oracle requires (no fused multiply-adds), and nothing else does.
+# build with -ffp-contract=off, as its oracle requires (no fused multiply-adds), and nothing else does; and with no
+# frame above 1 KB, as arcade builds them (they run on a device task's stack: a 164 KB ctx once sat on it, 7ca157e).
 ARCADE_C := $(addprefix build/arcade/babal/,chacha20.c fake_input.c input_jump.c input_steer.c level.c maths.c \
 	player.c player_event.c points_counter.c row.c row_generator.c skill.c slab.c time_tracker.c timeval.c vec3.c) \
 	build/arcade/app/babal_app.c build/arcade/app/render.c
@@ -48,7 +49,7 @@ build/arcade/.pin: ARCADE_PIN
 $(ARCADE_C): build/arcade/.pin
 build/arcade-o/%.o: build/arcade/%.c build/arcade/.pin firmware/apps.h firmware/ls027.h firmware/font5x7.h   # (the firmware headers it includes: merge gate)
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -ffp-contract=off -Ifirmware $(ARCADE_INC) -c $< -o $@
+	$(CC) $(CFLAGS) -ffp-contract=off -Werror=frame-larger-than=1024 -Ifirmware $(ARCADE_INC) -c $< -o $@
 build/app_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) $(APP) $(ARCADE_O) firmware/app.h firmware/keymap.h firmware/power.h firmware/screen.h tests/app_test.c | build
 	$(CC) $(CFLAGS) -Icore -Ifirmware $(ARCADE_INC) -o $@ $(CORE) $(SCREEN) $(APP) $(ARCADE_O) tests/app_test.c $(ENGINE) $(LIBS)
 

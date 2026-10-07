@@ -24,7 +24,7 @@ endif()
 list(APPEND ARCADE_SRCS "${ARCADE}/app/babal_app.c" "${ARCADE}/app/render.c")
 if(NOT CMAKE_SCRIPT_MODE_FILE)  # not allowed while IDF expands requirements in script mode
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${ARCADE}/.pin")
-    set_source_files_properties(${ARCADE_SRCS} PROPERTIES COMPILE_OPTIONS "-ffp-contract=off"
+    set_source_files_properties(${ARCADE_SRCS} PROPERTIES COMPILE_OPTIONS "-ffp-contract=off;-Werror=frame-larger-than=1024"
                                 OBJECT_DEPENDS "${ARCADE}/.pin")
 endif()
 
