@@ -1657,6 +1657,123 @@ int main(void)
         }
     }
 
+    /* unit 040: the open graph's soft keys in three pages (▸), a shift's bank; the digits move the cursor; a zoom
+       redraws; the free cursor, the mark and BOXZ's box, TANL's line drawn; the readout in the status band */
+    {
+        static ls027_frame fr;
+        static app_graph gbuf;
+        const pwr_inputs idle = {false, false, 80, false};
+        ab_init(&c);
+        app_init(&a, &c, now);
+        c.stu = c.m35 = true;
+        ab_eqn_add(&c, "X^2-30");
+        ab_do(&c, AB_EQN);
+        app_graph_buffer(&a, &gbuf);
+        press(&a, "BLUE 7 k:5");
+        for (int i = 0; i < 200 && a.graphing; i++) app_tick(&a, &idle, now);
+        app_ui(&a, &ui);
+        bool p0 = ui.soft[0] && !strcmp(ui.soft[0], "\xe2\x97\x80") && ui.soft[2] && !strcmp(ui.soft[2], "TRACE") &&
+                  ui.soft[5] && !strcmp(ui.soft[5], "\xe2\x96\xb8");
+        press(&a, "k:5");
+        app_ui(&a, &ui);
+        bool p1 = ui.soft[0] && !strcmp(ui.soft[0], "ZIN") && ui.soft[4] && !strcmp(ui.soft[4], "ZAUTO");
+        press(&a, "GOLD");
+        app_ui(&a, &ui);
+        bool p1g = ui.soft[4] && !strcmp(ui.soft[4], "ZLAST");
+        press(&a, "GOLD BLUE");
+        app_ui(&a, &ui);
+        bool p1b = ui.soft[1] && !strcmp(ui.soft[1], "ZDECI");
+        press(&a, "BLUE k:5");
+        app_ui(&a, &ui);
+        bool p2 = ui.soft[0] && !strcmp(ui.soft[0], "ROOT") && ui.soft[4] && !strcmp(ui.soft[4], "F(X)");
+        press(&a, "k:5");
+        app_ui(&a, &ui);
+        bool back = ui.soft[2] && !strcmp(ui.soft[2], "TRACE");
+        expect(p0 && p1 && p1g && p1b && p2 && back, "040: the graph's pages: the bar, ZOOM (GOLD, BLUE banks), FCN, round again");
+        /* the digits: free cursor 10 right (GOLD 6), 1 up (8) */
+        press(&a, "k:2 GOLD 6 8");
+        expect(!c.gr_trace && c.gr_cur == 210 && c.gr_row == AB_GRAPH_CROW - 1, "040: TRACE off; GOLD 6 ten right, 8 one up");
+        /* MARK, then the cursor 20 right and 20 up: the box drawn between them, the cross at the cursor */
+        press(&a, "k:4 GOLD 9 GOLD 9");
+        app_ui(&a, &ui);
+        screen_render(&c, &ui, &fr);
+        int x0 = 210, x1 = 230, y0 = 21 + AB_GRAPH_CROW - 21, y1 = 21 + AB_GRAPH_CROW - 1, boxbad = 0;
+        for (int x = x0; x <= x1; x++)
+            boxbad += !(fr.px[y0][x / 8] >> (x % 8) & 1) + !(fr.px[y1][x / 8] >> (x % 8) & 1);
+        for (int y = y0; y <= y1; y++)
+            boxbad += !(fr.px[y][x0 / 8] >> (x0 % 8) & 1) + !(fr.px[y][x1 / 8] >> (x1 % 8) & 1);
+        expect(c.gr_mark && c.gr_cur == 230 && boxbad == 0, "040: MARK and the moved cursor: BOXZ's box drawn in the frame");
+        /* the readout: the free cursor's x and y, in the status band */
+        {
+            screen_graph_text gt;
+            screen_graph_texts(&c, &ui, &gt);
+            expect(gt.readout[0] == 'x' && strstr(gt.readout, " y="), "040: the free cursor's readout is x= y=");
+        }
+        /* BOXZ on ZOOM's page: the window is the box, the graph drawn again */
+        abn bx;
+        ab_graph_x(&c, 210, &bx);
+        press(&a, "k:5 k:2");
+        expect(abn_cmp(&c.gr_xmin, &bx) == 0 && !c.gr_mark && a.graphing, "040: BOXZ: the box's window, redrawing");
+        for (int i = 0; i < 200 && a.graphing; i++) app_tick(&a, &idle, now);
+        /* ZLAST back; the GOLD bank's key */
+        press(&a, "GOLD k:4");
+        abn m10 = abn_from_int(-10);
+        expect(abn_cmp(&c.gr_xmin, &m10) == 0, "040: GOLD ZLAST: the window before BOXZ");
+        for (int i = 0; i < 200 && a.graphing; i++) app_tick(&a, &idle, now);
+        /* FCN's ROOT near x = 5.5: the readout names it; ENTER would take it */
+        press(&a, "k:5 5 k:2 GOLD 6 GOLD 6 GOLD 6 GOLD 6 GOLD 6 GOLD 6 GOLD 6 GOLD 6 GOLD 6 GOLD 6 k:0");
+        {
+            screen_graph_text gt;
+            app_ui(&a, &ui);
+            screen_graph_texts(&c, &ui, &gt);
+            expect(c.gr_res_kind == AB_F_ROOT + 1 && !strncmp(gt.readout, "ROOT: 5.477", 11), "040: FCN ROOT near 5.5: ROOT: 5.477... read out");
+        }
+        /* TANL (GOLD bank): its line drawn: a dark pixel on y = m x + b in each column where it is in the window */
+        press(&a, "GOLD k:0");
+        for (int i = 0; i < 200 && a.graphing; i++) app_tick(&a, &idle, now);
+        app_ui(&a, &ui);
+        screen_render(&c, &ui, &fr);
+        int on = 0, lbad = 0;
+        for (int i = 0; i < AB_GRAPH_W; i++)
+            if (gbuf.s.tl[i] >= 0) {
+                on++;
+                lbad += !(fr.px[21 + gbuf.s.tl[i]][i / 8] >> (i % 8) & 1);
+            }
+        expect(c.gr_res_kind == AB_F_TANL + 1 && gbuf.s.tl_on && on > 20 && lbad == 0, "040: TANL's line drawn");
+        /* (X,Y) turns the readout off; ZFACT cycles 2 4 8 10 with a notice */
+        press(&a, "k:5 k:3 6");                 /* (a move clears TANL's result: the readout's own state shows) */
+        {
+            screen_graph_text gt;
+            app_ui(&a, &ui);
+            screen_graph_texts(&c, &ui, &gt);
+            expect(a.gxy_off && !c.gr_res_kind && gt.readout[0] == '\0', "040: (X,Y) turns the readout off");
+        }
+        press(&a, "GOLD k:0");
+        app_ui(&a, &ui);
+        abn k8 = abn_from_int(8);
+        expect(abn_cmp(&c.gr_hf, &k8) == 0 && ui.notice && !strcmp(ui.notice, "ZFACT 8"), "040: ZFACT from 4 to 8, noticed");
+        /* the frame tie with the free cursor: the plot area is the model's rows and axes, but for the cross, the mark */
+        press(&a, "GOLD k:0 GOLD k:0 GOLD k:0");     /* (10, 2, 4: back to 4) */
+        press(&a, "5");
+        app_ui(&a, &ui);
+        screen_render(&c, &ui, &fr);
+        abn lo, hi;
+        ab_graph_window(&c, &lo, &hi);
+        int xrow, ycol, wrong = 0;
+        ab_graph_axes(&c, &lo, &hi, &xrow, &ycol);
+        for (int col = 60; col <= 340; col++) {
+            int rl, rh;
+            bool any = ab_graph_column(&c, col, &lo, &hi, &rl, &rh);
+            for (int r = 0; r < AB_GRAPH_H; r++) {
+                bool dark = fr.px[21 + r][col / 8] >> (col % 8) & 1;
+                if (col == c.gr_cur || (col >= c.gr_cur - 3 && col <= c.gr_cur + 3 && r == c.gr_row)) continue;
+                bool want = (any && r >= rl && r <= rh) || r == xrow || col == ycol;
+                wrong += dark != want;
+            }
+        }
+        expect(c.gr_res_kind == 0 && wrong == 0, "040: the frame's plot area is the model's, the free cursor's cross apart");
+    }
+
     /* unit 033: GRAPH: blue 7's menu; the frame drawn from the model: in the curve's columns (clear of the
        labels at the edges) a pixel of the plot area is dark exactly where the model draws a row or an axis */
     {
@@ -1705,7 +1822,8 @@ int main(void)
             screen_lines(&c, &ui, &gp);
             struct { const char *s; int x, y; } T[] = {
                 {gt.xmin, 0, 21 + AB_GRAPH_H - 8}, {gt.xmax, 400 - 6 * screen_cells(gt.xmax), 21 + AB_GRAPH_H - 8},
-                {gt.ymax, 0, 22}, {gt.ymin, 0, 21 + AB_GRAPH_H - 17}, {gt.readout, 136, 206 + 11}};
+                {gt.ymax, 0, 22}, {gt.ymin, 0, 21 + AB_GRAPH_H - 17},
+                {gt.readout, SCREEN_READOUT_X, SCREEN_READOUT_Y}};      /* unit 040: the readout in the status band */
             int missing = 0, extra = 0;
             for (size_t i = 0; i < sizeof T / sizeof T[0]; i++) {
                 screen_clear(&tf);
@@ -1714,7 +1832,9 @@ int main(void)
                     for (int x = 0; x < 400; x++) {
                         bool want = tf.px[y][x / 8] >> (x % 8) & 1, got = fr.px[y][x / 8] >> (x % 8) & 1;
                         if (want && !got) missing++;
-                        if (i == 4 && y >= 206 + 9 && y < 206 + 20 && x >= 136 && got != want) extra++;
+                        if (i == 4 && y >= SCREEN_READOUT_Y - 1 && y < SCREEN_READOUT_Y + 8 && x >= SCREEN_READOUT_X &&
+                            x < 328 && got != want)
+                            extra++;
                     }
             }
             char ro[100];

@@ -475,6 +475,8 @@ void ab_graph_window(ab_calc *c, abn *ymin, abn *ymax);
 /* Unit 040: the cursor's x and y: with TRACE, the column's x and the curve's value there (an erring column: y 0
    and the status); free, the pixel's (x as graph_x; y = YMAX - row (YMAX - YMIN) / 184, each step rounded once). */
 abn_status ab_graph_cursor(ab_calc *c, abn *x, abn *y);
+/* Unit 040: column col's x (033's pinned order). */
+abn_status ab_graph_x(ab_calc *c, int col, abn *x);
 int ab_graph_row(const abn *y, const abn *ymin, const abn *ymax);
 bool ab_graph_join(bool prev_ok, int prev_row, int row, int *lo, int *hi);
 bool ab_graph_column(ab_calc *c, int col, const abn *ymin, const abn *ymax, int *lo, int *hi);

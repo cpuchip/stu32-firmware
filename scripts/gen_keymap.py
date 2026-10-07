@@ -67,6 +67,7 @@ def t(legend, rel):
 
 
 NONE = ("", "KM_NONE", "0", 0, 0)
+GPAGE = ("\u25b8", "KM_DEVICE", "0", "KM_DEV_GPAGE", 0)    # unit 040: the graph's next page
 
 # The menus (abacus #3877; provisional until Michael rules the menus): a menu's name and its six
 # soft keys, each (legend, kind, op, arg, prompt). PRGM, DISP, the angle modes and CLEAR are
@@ -153,7 +154,23 @@ MENUS = [
     # unit 033: GRAPH on blue 7: the window from X, AUTO, GO; while a graph is open its bar traces it
     ("GRAPH", [o("XMIN", "AB_XMIN"), o("XMAX", "AB_XMAX"), o("YMIN", "AB_YMIN"), o("YMAX", "AB_YMAX"),
                o("AUTO", "AB_GAUTO"), o("GO", "AB_GRAPH")]),
-    ("GRAPH BAR", [o("\u25c0", "AB_GLEFT"), o("\u25b6", "AB_GRIGHT"), NONE, NONE, NONE, NONE]),
+    # unit 040: the open graph's soft keys, three pages after the 50g's plot menus (guide p.12-4 to 12-7, 12-47):
+    # ▸ (F6) moves to the next; a page's GOLD or BLUE bank shows while that shift is armed. The first keeps 033's
+    # trace keys where they were; the digits move the cursor (app.c).
+    ("GRAPH BAR", [o("\u25c0", "AB_GLEFT"), o("\u25b6", "AB_GRIGHT"), o("TRACE", "AB_GTRACE"),
+                   ("(X,Y)", "KM_DEVICE", "0", "KM_DEV_GXY", 0), o("MARK", "AB_GMARK"), GPAGE]),
+    ("GRAPH BAR GOLD", [("ZFACT", "KM_DEVICE", "0", "KM_DEV_GFACT", 0), NONE, NONE, NONE, NONE, GPAGE]),
+    ("GRAPH ZOOM", [o("ZIN", "AB_GZOOM", "AB_Z_IN"), o("ZOUT", "AB_GZOOM", "AB_Z_OUT"), o("BOXZ", "AB_GZOOM", "AB_Z_BOX"),
+                    o("CNTR", "AB_GZOOM", "AB_Z_CNTR"), o("ZAUTO", "AB_GZOOM", "AB_Z_AUTO"), GPAGE]),
+    ("GRAPH ZOOM GOLD", [o("HZIN", "AB_GZOOM", "AB_Z_HIN"), o("HZOUT", "AB_GZOOM", "AB_Z_HOUT"),
+                         o("VZIN", "AB_GZOOM", "AB_Z_VIN"), o("VZOUT", "AB_GZOOM", "AB_Z_VOUT"),
+                         o("ZLAST", "AB_GZOOM", "AB_Z_LAST"), GPAGE]),
+    ("GRAPH ZOOM BLUE", [o("ZDFLT", "AB_GZOOM", "AB_Z_DFLT"), o("ZDECI", "AB_GZOOM", "AB_Z_DECI"),
+                         o("ZINTG", "AB_GZOOM", "AB_Z_INTG"), o("ZSQR", "AB_GZOOM", "AB_Z_SQR"),
+                         o("ZTRIG", "AB_GZOOM", "AB_Z_TRIG"), GPAGE]),
+    ("GRAPH FCN", [o("ROOT", "AB_GFCN", "AB_F_ROOT"), o("SLOPE", "AB_GFCN", "AB_F_SLOPE"), o("EXTR", "AB_GFCN", "AB_F_EXTR"),
+                   o("AREA", "AB_GFCN", "AB_F_AREA"), o("F(X)", "AB_GFCN", "AB_F_FX"), GPAGE]),
+    ("GRAPH FCN GOLD", [o("TANL", "AB_GFCN", "AB_F_TANL"), o("ISECT", "AB_GFCN", "AB_F_ROOT"), NONE, NONE, NONE, GPAGE]),
     # unit 035 (review): a linear solution's X= Y= (Z=): up and down step among them (35s p.7-7)
     ("LIN VIEW", [o("\u25b2", "AB_BST"), o("\u25bc", "AB_SST"), NONE, NONE, NONE, NONE]),
     # unit 029 proposal 2: STU's expression line, chosen by the app as Equation mode's bars are: the

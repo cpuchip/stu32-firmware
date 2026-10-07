@@ -395,6 +395,15 @@ static void status_band(ls027_frame *f, const ab_calc *c, const screen_ui *ui, i
             screen_text(f, 3 + cells * 12, 9, 1, ap, true);     /* 12 px a cell at scale 2 */
         }
     }
+    if (c->gr_on && ui->graph) {
+        /* unit 040: a graph's readout here, small, in place of the annunciators (its soft keys fill the band where
+           033 drew it) */
+        static screen_graph_text gt;
+        screen_graph_texts(c, ui, &gt);
+        screen_text(f, SCREEN_READOUT_X, SCREEN_READOUT_Y, 1, gt.readout, true);
+        ind = 0;
+        goto right;
+    }
     if (c->angle == AB_ANGLE_RAD) screen_text(f, 72, 2, 2, "RAD", true);
     else if (c->angle == AB_ANGLE_GRAD) screen_text(f, 72, 2, 2, "GRAD", true);
     if (c->base != 10) screen_text(f, 124, 2, 2, c->base == 16 ? "HEX" : c->base == 8 ? "OCT" : "BIN", true);
@@ -408,6 +417,7 @@ static void status_band(ls027_frame *f, const ab_calc *c, const screen_ui *ui, i
         char d[2] = {(char)('0' + n), '\0'};
         if (ab_flag(c, n)) screen_text(f, 268 + n * 12, 2, 2, d, true);
     }
+right:
     if (c->stu) screen_text(f, 330, 2, 2, "STU", true);     /* unit 029: three cells, clear of the battery */
     else screen_text(f, 338, 2, 2, c->m35 ? "35" : "33", true);   /* the mode (unit 017), the brief's annunciator */
     frame_box(f, 366, 2, 30, 14);               /* the battery: an outline, its knob, its charge */
@@ -479,6 +489,17 @@ void screen_graph_texts(const ab_calc *c, const screen_ui *ui, screen_graph_text
     const char *m = ab_error_message(c);        /* an erring ENTER's message, in the readout's place (033 F3) */
     if (m) {
         snprintf(t->readout, sizeof t->readout, "%s", m);
+    } else if (c->gr_res_kind) {                /* unit 040: a tool's result, named as the 50g shows it (p.12-5) */
+        static const char *const NAME[AB_F_N] = {"ROOT", "SLOPE", "EXTRM", "AREA", "F(X)", "TANL"};
+        short_num(c, ui, &c->gr_res, 14, a, sizeof a);
+        if (c->gr_res_kind == AB_F_TANL + 1) {
+            short_num(c, ui, &c->gr_res_b, 14, b, sizeof b);
+            snprintf(t->readout, sizeof t->readout, "Y=%s\xc2\xb7X%s%s", a, b[0] == '-' ? "" : "+", b);
+        } else {
+            snprintf(t->readout, sizeof t->readout, "%s: %s", NAME[c->gr_res_kind - 1], a);
+        }
+    } else if (g->noxy) {                       /* (X,Y) off */
+        t->readout[0] = '\0';
     } else {
         short_num(c, ui, &g->cx, 12, a, sizeof a);
         if (g->cst != ABN_OK) snprintf(b, sizeof b, "%s", ab_status_message(g->cst));
@@ -523,8 +544,27 @@ static void draw_graph(ls027_frame *f, const ab_calc *c, const screen_ui *ui)
         screen_fill(f, g->cur, top, 1, 3, true);
         screen_fill(f, g->cur, top + Hh - 3, 1, 3, true);
     }
-    soft_band(f, ui);
-    screen_text(f, 136, SOFT_Y + 11, 1, tx.readout, true);
+    /* unit 040: TANL's line; the mark and, with the free cursor, the box BOXZ would fill; the free cursor, a
+       cross 7 pixels across */
+    if (g->tl_on)
+        for (int i = 0; i < AB_GRAPH_W; i++)
+            if (g->tl[i] >= 0) screen_fill(f, i, top + g->tl[i], 1, 1, true);
+    if (g->mcol >= 0) {
+        screen_fill(f, g->mcol - 1, top + g->mrow - 1, 3, 3, true);
+        if (g->crow >= 0) {
+            int x0 = g->mcol < g->cur ? g->mcol : g->cur, x1 = g->mcol < g->cur ? g->cur : g->mcol;
+            int y0 = g->mrow < g->crow ? g->mrow : g->crow, y1 = g->mrow < g->crow ? g->crow : g->mrow;
+            screen_fill(f, x0, top + y0, x1 - x0 + 1, 1, true);
+            screen_fill(f, x0, top + y1, x1 - x0 + 1, 1, true);
+            screen_fill(f, x0, top + y0, 1, y1 - y0 + 1, true);
+            screen_fill(f, x1, top + y0, 1, y1 - y0 + 1, true);
+        }
+    }
+    if (g->crow >= 0) {
+        screen_fill(f, g->cur - 3, top + g->crow, 7, 1, true);
+        screen_fill(f, g->cur, top + g->crow - 3, 1, 7, true);
+    }
+    soft_band(f, ui);                           /* (the readout: the status band, unit 040) */
 }
 
 /* A table's row (unit 032): the variable's value at the left, the equation's value at the right (or the

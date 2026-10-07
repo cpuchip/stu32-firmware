@@ -169,6 +169,7 @@ int main(void)
 #define O(op, arg, l) {KM_OP, op, arg, 0, l}
 #define P(op, k, l) {KM_PROMPT, op, 0, k, l}
 #define N {KM_NONE, 0, 0, 0, ""}
+#define GP {KM_DEVICE, 0, KM_DEV_GPAGE, 0, "\xe2\x96\xb8"}    /* unit 040: the graph's next page */
 #define T(rel, l) {KM_OP, AB_TEST, rel, 0, l}
             static const struct { const char *name; km_action item[6]; } D[] = {
                 {"HYP", {O(AB_SINH, 0, "SINH"), O(AB_COSH, 0, "COSH"), O(AB_TANH, 0, "TANH"), O(AB_ASINH, 0, "ASINH"),
@@ -219,7 +220,19 @@ int main(void)
                 {"APPS", {N, N, N, N, N, {KM_NONE, 0, 0, 0, "more"}}},     /* unit 037: paged, the apps */
                 {"GRAPH", {O(AB_XMIN, 0, "XMIN"), O(AB_XMAX, 0, "XMAX"), O(AB_YMIN, 0, "YMIN"), O(AB_YMAX, 0, "YMAX"),
                            O(AB_GAUTO, 0, "AUTO"), O(AB_GRAPH, 0, "GO")}},
-                {"GRAPH BAR", {O(AB_GLEFT, 0, "\xe2\x97\x80"), O(AB_GRIGHT, 0, "\xe2\x96\xb6"), N, N, N, N}},
+                /* unit 040: the open graph's three pages (▸ the next), the GOLD and BLUE banks */
+                {"GRAPH BAR", {O(AB_GLEFT, 0, "\xe2\x97\x80"), O(AB_GRIGHT, 0, "\xe2\x96\xb6"), O(AB_GTRACE, 0, "TRACE"),
+                               {KM_DEVICE, 0, KM_DEV_GXY, 0, "(X,Y)"}, O(AB_GMARK, 0, "MARK"), GP}},
+                {"GRAPH BAR GOLD", {{KM_DEVICE, 0, KM_DEV_GFACT, 0, "ZFACT"}, N, N, N, N, GP}},
+                {"GRAPH ZOOM", {O(AB_GZOOM, AB_Z_IN, "ZIN"), O(AB_GZOOM, AB_Z_OUT, "ZOUT"), O(AB_GZOOM, AB_Z_BOX, "BOXZ"),
+                                O(AB_GZOOM, AB_Z_CNTR, "CNTR"), O(AB_GZOOM, AB_Z_AUTO, "ZAUTO"), GP}},
+                {"GRAPH ZOOM GOLD", {O(AB_GZOOM, AB_Z_HIN, "HZIN"), O(AB_GZOOM, AB_Z_HOUT, "HZOUT"), O(AB_GZOOM, AB_Z_VIN, "VZIN"),
+                                     O(AB_GZOOM, AB_Z_VOUT, "VZOUT"), O(AB_GZOOM, AB_Z_LAST, "ZLAST"), GP}},
+                {"GRAPH ZOOM BLUE", {O(AB_GZOOM, AB_Z_DFLT, "ZDFLT"), O(AB_GZOOM, AB_Z_DECI, "ZDECI"), O(AB_GZOOM, AB_Z_INTG, "ZINTG"),
+                                     O(AB_GZOOM, AB_Z_SQR, "ZSQR"), O(AB_GZOOM, AB_Z_TRIG, "ZTRIG"), GP}},
+                {"GRAPH FCN", {O(AB_GFCN, AB_F_ROOT, "ROOT"), O(AB_GFCN, AB_F_SLOPE, "SLOPE"), O(AB_GFCN, AB_F_EXTR, "EXTR"),
+                               O(AB_GFCN, AB_F_AREA, "AREA"), O(AB_GFCN, AB_F_FX, "F(X)"), GP}},
+                {"GRAPH FCN GOLD", {O(AB_GFCN, AB_F_TANL, "TANL"), O(AB_GFCN, AB_F_ROOT, "ISECT"), N, N, N, GP}},
                 {"TABLE BAR", {O(AB_TUP, 0, "\xe2\x96\xb2"), O(AB_TDOWN, 0, "\xe2\x96\xbc"), N, N, N, N}},
                 {"ALG LINE", {O(AB_KLEFT, 0, "\xe2\x97\x80"), O(AB_KRIGHT, 0, "\xe2\x96\xb6"), O(AB_KPAREN, 0, "( )"), N,
                               O(AB_HUP, 0, "\xe2\x96\xb2"), O(AB_HDOWN, 0, "\xe2\x96\xbc")}},
@@ -278,7 +291,8 @@ int main(void)
                 bool sub = !strcmp(D[d].name, "LOGIC") || !strcmp(D[d].name, "SUFFIX") || !strcmp(D[d].name, "BEEP") ||
                            !strcmp(D[d].name, "BEEP2") || !strcmp(D[d].name, "CLOCK") ||
                            !strcmp(D[d].name, "ALG LINE") || !strcmp(D[d].name, "TABLE BAR") ||
-                           !strcmp(D[d].name, "GRAPH BAR");  /* reached by a menu;
+                           !strncmp(D[d].name, "GRAPH BAR", 9) || !strncmp(D[d].name, "GRAPH ZOOM", 10) ||
+                           !strncmp(D[d].name, "GRAPH FCN", 9);  /* reached by a menu;
                                                                   the app's bars (units 029, 032) */
                 expect(keyed == !sub, m);
             }

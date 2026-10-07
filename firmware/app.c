@@ -186,7 +186,12 @@ static void do_op(app_state *a, int op, int arg)
     int was = on_lbl ? c->lmode[c->prog[c->pc].arg] : 0;
     abn_status st = ab_do_arg(c, (ab_op)op, arg);
     a->dirty = true;
-    if (op == AB_GRAPH && st == ABN_OK && c->gr_on) graph_start(a);    /* unit 033 */
+    if (op == AB_GRAPH && st == ABN_OK && c->gr_on) {      /* unit 033; the first page, the readout on (040) */
+        a->gpage = 0;
+        a->gxy_off = false;
+        graph_start(a);
+    }
+    if (op == AB_GZOOM && st == ABN_OK && c->gr_on) graph_start(a);    /* unit 040: a zoom redraws */
     if (!c->gr_on) a->graphing = a->gr_live = false;
     if (st == ABN_RPN_ONLY || st == ABN_STU_ONLY || st == ABN_NO_EQN || st == ABN_NO_VAR) {
         /* brief notices, not messages: STU's line (unit 029), TABLE's refusals (unit 032) */
@@ -250,7 +255,16 @@ static bool cx_prefix(const app_state *a, int menu)
 static int eqn_bar(const app_state *a)
 {
     if (a->c->tbl_on) return menu_named("TABLE BAR");                /* a table open (unit 032) */
-    if (a->c->gr_on) return menu_named("GRAPH BAR");                 /* a graph open (unit 033) */
+    if (a->c->gr_on) {                          /* a graph open (unit 033): its page, a shift's bank (040) */
+        static const char *const PAGE[3] = {"GRAPH BAR", "GRAPH ZOOM", "GRAPH FCN"};
+        char n[24];
+        int m = -1;
+        if (a->shift) {
+            snprintf(n, sizeof n, "%s %s", PAGE[a->gpage % 3], a->shift == 1 ? "GOLD" : "BLUE");
+            m = menu_named(n);
+        }
+        return m >= 0 ? m : menu_named(PAGE[a->gpage % 3]);
+    }
     if (ab_view_linear(a->c)) return menu_named("LIN VIEW");         /* x= y= (z=): unit 035 */
     if (a->c->alg && !a->c->prgm) return menu_named("ALG LINE");    /* STU's line (unit 029) */
     if (a->c->eqn_typing) return menu_named("EQN TYPE");
@@ -556,8 +570,17 @@ void app_key(app_state *a, int key, uint32_t now_ms)
         if (face->kind == KM_OP && face->op == AB_CANCEL && a->shift == 0) return;   /* C: only closes it */
     }
     if (face->kind == KM_SOFT && eqn_bar(a) >= 0) {     /* Equation mode's bar (unit 020) */
+        int bar = eqn_bar(a);                   /* (with the shift's bank: unit 040) */
         a->shift = 0;
-        do_action(a, &km_menu_at(eqn_bar(a))->item[face->arg]);
+        do_action(a, &km_menu_at(bar)->item[face->arg]);
+        return;
+    }
+    if (a->c->gr_on && face->kind == KM_OP && face->op >= AB_K1 && face->op <= AB_K9 && a->shift != 2) {
+        /* unit 040: the open graph's digits move the cursor (the STU-32 has no arrows): 8 up, 2 down, 4 left,
+           6 right, the corners diagonal, 5 home; GOLD first, ten pixels */
+        int d = face->op - AB_K0 + (a->shift == 1 ? 10 : 0);
+        a->shift = 0;
+        do_op(a, AB_GMOVE, d);
         return;
     }
     if (face->kind == KM_SHIFT) {               /* the same shift cancels, the other switches */
@@ -680,6 +703,24 @@ static void do_action(app_state *a, const km_action *act)
         a->confirm_op = act->op != AB_CLALL ? act->op : a->c->prgm ? AB_CLPGM : a->c->eqn_mode ? AB_CLEQN : AB_CLALL;
         break;
     case KM_DEVICE:
+        if (act->arg == KM_DEV_GPAGE) {         /* unit 040: the graph's next page, its readout, ZFACT */
+            a->gpage = (a->gpage + 1) % 3;
+            break;
+        }
+        if (act->arg == KM_DEV_GXY) {
+            a->gxy_off = !a->gxy_off;
+            break;
+        }
+        if (act->arg == KM_DEV_GFACT) {         /* 2, 4, 8, 10 in turn (the digits move the cursor: no typing) */
+            abn k2 = abn_from_int(2), k4 = abn_from_int(4), k8 = abn_from_int(8);
+            int f = !abn_cmp(&a->c->gr_hf, &k2) ? 4 : !abn_cmp(&a->c->gr_hf, &k4) ? 8 : !abn_cmp(&a->c->gr_hf, &k8) ? 10 : 2;
+            static char note[16];
+            do_op(a, AB_GFACT, f);
+            snprintf(note, sizeof note, "ZFACT %d", f);
+            a->notice = note;
+            a->notice_ms = a->last_key_ms;
+            break;
+        }
         if (act->arg == KM_DEV_OFF) a->off = true;
         if (act->arg == KM_DEV_UNDO) undo(a);
         if (act->arg >= KM_DEV_RADIX) setting(a, act);
@@ -955,7 +996,35 @@ void app_ui(const app_state *a, screen_ui *ui)
     if (a->c->gr_on && a->graph && a->gr_live) {    /* a graph (unit 033): its buffer, the trace's sample */
         app_graph *g = a->graph;
         g->s.cur = a->c->gr_cur;
-        g->s.cst = ab_graph_sample(a->c, a->c->gr_cur, &g->s.cx, &g->s.cy);
+        if (a->c->gr_trace) {
+            g->s.cst = ab_graph_sample(a->c, a->c->gr_cur, &g->s.cx, &g->s.cy);
+            g->s.crow = -1;
+        } else {                                /* unit 040: the free cursor, its pixel's x and y */
+            abn yv;
+            g->s.cst = ab_graph_cursor(a->c, &g->s.cx, &yv);
+            memset(&g->s.cy, 0, sizeof g->s.cy);
+            g->s.cy.re = yv;
+            g->s.crow = a->c->gr_row;
+        }
+        g->s.mcol = a->c->gr_mark ? a->c->gr_mcol : -1;
+        g->s.mrow = a->c->gr_mark ? a->c->gr_mrow : -1;
+        g->s.noxy = a->gxy_off;
+        if (a->c->gr_res_kind == AB_F_TANL + 1 && g->s.ready) {    /* TANL's line, y = m x + b, by column */
+            if (!g->s.tl_on) {
+                for (int i = 0; i < AB_GRAPH_W; i++) {
+                    abn x, t, y;
+                    g->s.tl[i] = -1;
+                    if (ab_graph_x(a->c, i, &x) != ABN_OK || abn_mul(&t, &a->c->gr_res, &x) != ABN_OK ||
+                        abn_add(&y, &t, &a->c->gr_res_b) != ABN_OK)
+                        continue;
+                    int r = ab_graph_row(&y, &g->s.ymin, &g->s.ymax);
+                    if (r >= 0 && r <= AB_GRAPH_H - 1) g->s.tl[i] = (int16_t)r;
+                }
+                g->s.tl_on = true;
+            }
+        } else {
+            g->s.tl_on = false;
+        }
         ui->graph = &g->s;
     }
     if (a->show) {                              /* SHOW held in place of the stack (unit 030) */

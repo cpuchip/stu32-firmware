@@ -41,6 +41,11 @@ typedef struct {
     ab_val cy;
     abn_status cst;
     char note[12];
+    /* unit 040: the free cursor's row (-1: TRACE, drawn as 033's marks), the mark (-1 none), the readout off
+       ((X,Y)), and TANL's line as rows by column (tl_on) */
+    int crow, mcol, mrow;
+    bool noxy, tl_on;
+    int16_t tl[AB_GRAPH_W];
 } screen_graph;
 
 typedef struct {
@@ -109,11 +114,13 @@ typedef struct {
    ("x=… y=…" or an erring ENTER's message), the window's ends as labelled (YMIN and YMAX "" until the window
    is known), and the note (V, L−R, NO VALUES). */
 typedef struct {
-    char readout[100];
+    char readout[128];
     char xmin[24], xmax[24], ymin[24], ymax[24];
     char note[12];
 } screen_graph_text;
 
+#define SCREEN_READOUT_X 74         /* unit 040: the readout's place, the status band (small font) */
+#define SCREEN_READOUT_Y 6
 void screen_graph_texts(const ab_calc *c, const screen_ui *ui, screen_graph_text *t);
 int screen_graph_readout(const ab_calc *c, const screen_ui *ui, char *out, int size);
 

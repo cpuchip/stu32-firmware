@@ -151,6 +151,8 @@ typedef struct {
     uint32_t app_t0, app_last, app_next;    /* the clock's start, the last tick, the ms to the next (0 none) */
     struct { uint32_t hash; uint8_t data[APP_SAVE_SIZE]; uint8_t used; } app_saves[8];
     bool apps_dirty;        /* the apps' saves changed: the device stores them (app_saves_image) */
+    int gpage;              /* unit 040: the open graph's soft-key page (0 the bar, 1 ZOOM, 2 FCN) */
+    bool gxy_off;           /* its readout off ((X,Y)) */
     bool gr_live;           /* the buffer holds this open graph's plot (else one opened by an image, UNDO or
                                a boot is started afresh: review F1) */
     int show_key;           /* the key holding it: its release ends SHOW (app_key_up) */

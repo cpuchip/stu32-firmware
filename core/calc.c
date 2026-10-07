@@ -5188,6 +5188,11 @@ static int graph_vrow(ab_calc *c, const abn *ymin, const abn *ymax)
     return ab_graph_row(&v.re, ymin, ymax);
 }
 
+abn_status ab_graph_x(ab_calc *c, int col, abn *x)
+{
+    return graph_x(c, col, x);
+}
+
 abn_status ab_graph_cursor(ab_calc *c, abn *x, abn *y)
 {
     abn lo, hi;

@@ -41,7 +41,9 @@ enum { KM_DEV_OFF = 1, KM_DEV_UNDO,
        KM_DEV_RADIX, KM_DEV_GROUP, KM_DEV_OFFTIME, KM_DEV_VOL,
        /* unit 027: MODE's entry logic (op 0 RPN, marked: the only one yet); a buzzer use (op its
           DEV_USE_* bit) toggled, and all of them; CLOCK's SET and 12/24; SYS's views (op APP_VIEW_*) */
-       KM_DEV_ENTRY, KM_DEV_USE, KM_DEV_USEALL, KM_DEV_CLOCKSET, KM_DEV_H24, KM_DEV_VIEW };
+       KM_DEV_ENTRY, KM_DEV_USE, KM_DEV_USEALL, KM_DEV_CLOCKSET, KM_DEV_H24, KM_DEV_VIEW,
+       /* unit 040: the graph's next page; its readout on or off; ZFACT's factor, 2 4 8 10 in turn */
+       KM_DEV_GPAGE, KM_DEV_GXY, KM_DEV_GFACT };
 
 typedef struct {
     km_kind kind;
