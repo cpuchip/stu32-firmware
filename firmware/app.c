@@ -256,12 +256,13 @@ static bool var_set(const ab_calc *c, int v)
 }
 
 /* A catalog's items in order: the set variables A to Z (1, VAR), or the labels in program order (2, PGM). */
-static int cat_list(const ab_calc *c, int kind, int out[26])
+static int cat_list(const ab_calc *c, int kind, int out[27])
 {
     int n = 0;
     if (kind == 1) {
         for (int v = 0; v < 26; v++)
             if (var_set(c, v)) out[n++] = v;
+        if (!ab_mode35(c) && var_set(c, 26)) out[n++] = 26;    /* the 33s's i (unit 025), after Z (fresh eyes) */
     } else {
         for (int i = 0; i < c->prog_len && n < 26; i++)
             if (c->prog[i].op == AB_LBL && c->labelpos[c->prog[i].arg] == i)
@@ -297,7 +298,8 @@ static void cat_fill(app_state *a)
             abn el[3] = {v->re, v->im, v->p3};
             n = ab_format_vector(el, v->len, &d, t, sizeof t);
         } else n = ab_format_display(&v->re, &d, t, sizeof t, &ind);
-        snprintf(a->cat_text[1], sizeof a->cat_text[1], "%c=%.37s", 'A' + a->cat_at, n < 0 ? "?" : t);
+        if (a->cat_at == 26) snprintf(a->cat_text[1], sizeof a->cat_text[1], "i=%.37s", n < 0 ? "?" : t);
+        else snprintf(a->cat_text[1], sizeof a->cat_text[1], "%c=%.37s", 'A' + a->cat_at, n < 0 ? "?" : t);
     } else {
         snprintf(a->cat_text[0], sizeof a->cat_text[0], "LBL %c", 'A' + a->cat_at);
         snprintf(a->cat_text[1], sizeof a->cat_text[1], "LN=%lu", (unsigned long)ab_state_label_bytes(c, a->cat_at));
@@ -309,7 +311,7 @@ static int menu_named(const char *name);
 /* Shows the catalog's item at position i of its list (wrapping), or closes it when the list is empty. */
 static void cat_show(app_state *a, int i)
 {
-    int list[26], n = cat_list(a->c, a->cat, list);
+    int list[27], n = cat_list(a->c, a->cat, list);
     if (n == 0) {
         a->cat = 0;
         a->menu = -1;
@@ -324,7 +326,7 @@ static void cat_show(app_state *a, int i)
 /* The shown item's position in its list, -1 if it has gone. */
 static int cat_pos(const app_state *a)
 {
-    int list[26], n = cat_list(a->c, a->cat, list);
+    int list[27], n = cat_list(a->c, a->cat, list);
     for (int i = 0; i < n; i++)
         if (list[i] == a->cat_at) return i;
     return -1;
@@ -332,7 +334,7 @@ static int cat_pos(const app_state *a)
 
 static void cat_open(app_state *a, int kind)
 {
-    int list[26];
+    int list[27];
     if (cat_list(a->c, kind, list) == 0) {      /* nothing to list: a notice, no catalog (ours) */
         a->notice = kind == 1 ? "NO VARIABLES" : "NO PROGRAMS";
         a->notice_ms = a->last_key_ms;
@@ -453,6 +455,7 @@ void app_key(app_state *a, int key, uint32_t now_ms)
     a->notice = NULL;                           /* a key ends a brief notice */
     sound(a, DEV_USE_CLICK);                    /* every key ticks (unit 027) */
     a->key_now = key;
+    a->c->disp_group = (uint8_t)a->set.group;  /* X's line as the screen groups it, for ENG's view (041 C) */
     if (a->show) {                              /* a key while SHOW shows: with no release (unit 030 answer
                                                    7) it only ends it; on a keyboard with releases the
                                                    finger rolled on: it ends it and acts (review C1) */
@@ -566,7 +569,7 @@ void app_key(app_state *a, int key, uint32_t now_ms)
         }
         return;
     }
-    if ((a->prompt_op == AB_GTO || a->prompt_op == AB_XEQ) && a->prompt_kind == KM_ARG_TARGET && a->c->m35 &&
+    if ((a->prompt_op == AB_GTO || a->prompt_op == AB_XEQ) && a->prompt_kind == KM_ARG_TARGET && ab_rec35(a->c) &&
         a->gto_dot == 0) {
         /* 35s and STU (unit 036b; 35s p.14-6, p.13-10): GTO and XEQ take a letter, then ENTER for its first
            line or three digits for a line; a line 000 is NONEXISTENT. In program entry they record the line
@@ -669,7 +672,7 @@ void app_key(app_state *a, int key, uint32_t now_ms)
         const km_letter *l = km_letter_of(key);
         if (l->kind == KL_LETTER || l->kind == KL_IND_I || l->kind == KL_IND_J) {
             int arg = km_prompt_arg(a->prompt_kind, l);
-            if (!a->c->m35 && l->kind != KL_LETTER) {
+            if (!ab_rec35(a->c) && l->kind != KL_LETTER) {    /* (in program entry, the edited label's: 041 C) */
                 /* 33s mode (unit 025): the (I) key gives i, the (J) key (i), the 33s's one index */
                 bool var = a->prompt_kind == KM_ARG_VAR,
                      tgt = a->prompt_kind == KM_ARG_TARGET || a->prompt_kind == KM_ARG_FN;
@@ -710,12 +713,23 @@ void app_key(app_state *a, int key, uint32_t now_ms)
             cat_show(a, i < 0 ? 0 : i);         /* the item that followed it, or the first */
             return;
         }
+        if (face->kind == KM_OP && face->op == AB_KBKSP && sh == 0) {
+            a->cat = 0;                         /* back-arrow backs out to MEM (33s p.12-20; 35s p.1-? note) */
+            a->menu = menu_named("MEM");
+            a->menu_page = 0;
+            mem_fill(a);
+            return;
+        }
         if (a->cat == 1 && act->kind == KM_OP && act->op == AB_ENTER) {
-            do_op(a, AB_RCL, AB_VAR_A + a->cat_at);
-            a->menu = bar;
+            if (!a->c->prgm) do_op(a, AB_RCL, a->cat_at == 26 ? AB_VAR_SI : AB_VAR_A + a->cat_at);
+            a->menu = bar;                      /* in program entry: no line (ours, fresh eyes) */
             return;
         }
         if (a->cat == 2 && ((act->kind == KM_PROMPT && act->op == AB_XEQ) || (act->kind == KM_OP && act->op == AB_RS))) {
+            if (a->c->prgm) {                   /* in program entry: no line (ours, fresh eyes) */
+                a->menu = bar;
+                return;
+            }
             int l = a->cat_at;
             a->cat = 0;
             a->menu = -1;
@@ -788,6 +802,8 @@ void app_key(app_state *a, int key, uint32_t now_ms)
             }
         }
         if (face->kind == KM_OP && face->op == AB_CANCEL && a->shift == 0) return;   /* C: only closes it */
+        if (face->kind == KM_OP && face->op == AB_KBKSP && a->shift == 0 && at == menu_named("MEM"))
+            return;                             /* back-arrow backs out of MEM, one level (35s p.1-?; 041 C) */
     }
     if (face->kind == KM_SOFT && eqn_bar(a) >= 0) {     /* Equation mode's bar (unit 020) */
         int bar = eqn_bar(a);                   /* (with the shift's bank: unit 040) */
@@ -956,6 +972,10 @@ static void do_action(app_state *a, const km_action *act)
             break;
         }
         if (act->arg == KM_DEV_CATXEQ) {
+            if (a->c->prgm) {                   /* in program entry: no line (ours, fresh eyes) */
+                a->menu = menu_named("CAT PGM");
+                break;
+            }
             int l = a->cat_at;
             a->cat = 0;
             do_op(a, AB_XEQ, l * 1000);

@@ -64,7 +64,7 @@ H46 | 041 A4 (fresh eyes F02): and SOLVE there does nothing | MODE35 EQN SST SST
 H47 | 041 A4 (fresh eyes F03): an edited equation emptied lands at the top too | MODE35 EQN SST SST EQ:A+1 C MODE33 EQN < BKSP BKSP BKSP ENTER | %EQ=TOP
 H48 | 041 A (fresh eyes F04): a lone i by the stamp: typed in 33s mode it is the variable i, in 35s mode too | MODE33 5 STO:i EQ:2×i C MODE35 EQN XEQ RS | X=10
 H49 | 041 A (fresh eyes F05): typed in 35s mode, 2×i refuses in 33s mode too | MODE35 EQ:2×i C MODE33 5 STO:i EQN XEQ RS | ERR %ERR=SYNTAX
-H50 | 041 A (fresh eyes F06): a line typed in 33s mode using i, in a 35s label, runs | MODE35 PRGM LBL:A PRGM MODE33 5 STO:i PRGM GTO.:A001 EQ:2×i RTN PRGM XEQ:A | X=10
+H50 | 041 A (fresh eyes F06), amended in place by 041 C (abacus #4850, reversing #4799's (b): entry follows the label's stamp): a line typed in 33s mode in a 35s label is a 35s equation, where a lone i is refused (as H49), so it stops at SYNTAX (was: it ran, 10) | MODE35 PRGM LBL:A PRGM MODE33 5 STO:i PRGM GTO.:A001 EQ:2×i RTN PRGM XEQ:A | ERR %ERR=SYNTAX
 H51 | 041 A: 33s coverage of 014 O28 (moved for its CLSTK setup) | 1 STO:A 2 STO:B CLX RDN RDN RDN RDN 0 EQ:A+B XEQ 3 RS 4 RS | X=7 Y=4 Z=3 T=0 @A=3 @B=4
 H52 | 041 A: 33s coverage of 012 O15 | PRGM CLPGM LBL:A VIEW:H ENTER RTN PRGM 5 STO:H CLX XEQ:A RS | X=0 Y=0 %STOP=DONE
 H53 | ours (found by 041's save-and-load pass; at aa9781f too, in 35s mode): an edited last equation emptied, then the image saved: it loads (the edit's index cleared) | MODE35 EQN SST SST EQ:A+1 C EQN < BKSP BKSP BKSP ENTER SAVE LOAD | %EQ=3*3_lin._solve %EQN=0

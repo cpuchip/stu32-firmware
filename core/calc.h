@@ -331,7 +331,9 @@ typedef struct {
     char cas_bad[16];       /* CAS 004: the construct a refusal names (UNSUPPORTED IP, CAN'T COPY RAND); in the image */
     bool eng_on;            /* unit 041 C (B4): ENG→ / ←ENG's view of X showing (until the next key); in the image */
     int16_t eng_e;          /* its exponent, a multiple of three */
-    uint8_t eng_n;          /* its significant digits, 1..34 */
+    int16_t eng_low;        /* the place of the last digit shown (its power of ten): the view rounds X there */
+    uint8_t disp_group;     /* the screen's digit grouping (the device's setting; the app keeps it here): X's line
+                               as shown, for ENG's view (041 C); 0 none */
     bool eqn_mode;          /* Equation mode */
     bool eqn_typing;        /* an equation is being typed or edited */
     int eqn_edit;           /* the index being edited, or -1 for a new equation */
@@ -425,7 +427,7 @@ abn_status ab_do(ab_calc *c, ab_op op);
 abn_status ab_do_arg(ab_calc *c, ab_op op, int arg);
 /* Unit 041 C (B5): MEM's catalogs (33s p.3-3, p.12-20). Deletes label l's program (its LBL line and the lines after
    it to the next label), the pointer to the line before it, ending what R/S could resume; ABN_NONEXISTENT if there
-   is no such label. Clears variable v (0..25) to zero. Neither runs while a program runs. */
+   is no such label. Clears variable v (0..25; 26 the 33s's i) to zero. Neither runs while a program runs. */
 abn_status ab_prog_delete_label(ab_calc *c, int l);
 abn_status ab_var_clear(ab_calc *c, int v);
 
@@ -525,6 +527,7 @@ bool ab_hidden(const ab_calc *c, int op);
    while a line runs, and otherwise (the keyboard, lines before the first label), ab_mode35. ab_hidden, ab_consts and
    the line-address gate ask here. */
 bool ab_rec35(const ab_calc *c);
+#define AB_ENG_LIMIT 6400   /* unit 041 C (B4): the furthest exponent or last place an ENG view keeps (beyond decimal128's) */
 /* Unit 043: Equation mode shows a built-in solver (2*2 or 3*3 lin. solve), so SOLVE takes no letter (35s p.7-6). */
 bool ab_builtin_shown(const ab_calc *c);
 /* Unit 041 Part B: CONST's constants in the mode in force: the 33s's 40 (33s p.4-8), else all of them (the 35s's 41,

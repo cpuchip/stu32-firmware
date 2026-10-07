@@ -407,8 +407,8 @@ size_t ab_state_save(const ab_calc *c, uint8_t *buf, size_t cap)
 
     s = sec_begin(&w, T_ENG);                   /* version 13 (unit 041 C, B4): ENG→ / ←ENG's view of X */
     w8(&w, c->eng_on);
-    w16(&w, c->eng_on ? (unsigned)(uint16_t)c->eng_e : 0);     /* a view gone keeps no exponent or digits */
-    w8(&w, c->eng_on ? c->eng_n : 0);
+    w16(&w, c->eng_on ? (unsigned)(uint16_t)c->eng_e : 0);     /* a view gone keeps no exponent or place */
+    w16(&w, c->eng_on ? (unsigned)(uint16_t)c->eng_low : 0);
     sec_end(&w, s);
 
     {
@@ -450,6 +450,8 @@ typedef struct {
     bool m35, prgm, emode, typing;  /* what the ALG section is checked against (unit 029) */
     int peq_count;                  /* the program's equation lines (unit 031's section) */
     bool stu, typing_num;           /* what the TABLE section is checked against (unit 032) */
+    unsigned base;                  /* and the ENG view (041 C): the base, and whether X is real */
+    bool xreal;
     bool entry_seen;                /* (rentry: the last entry read was active) */
     bool table_on;                  /* an open table: no open graph beside it (unit 033) */
     int edit;
@@ -646,6 +648,7 @@ static void sec_modes(rd *r)
     unsigned yes = r8(r);
     int fn = ri8(r);
     unsigned lift = r8(r), m35 = 0, msg = 0, ecode = 0xFFFF, eactive = 0, estatus = 0;
+    r->base = base;
     int32_t earg = 0;
     ab_val ex;
     memset(&ex, 0, sizeof ex);
@@ -711,7 +714,11 @@ static void sec_modes(rd *r)
 static void sec_stack(rd *r)
 {
     ab_calc *c = r->c;
-    rval(r, c ? &c->x : NULL);
+    ab_val x;
+    memset(&x, 0, sizeof x);
+    rval(r, &x);
+    if (c) c->x = x;
+    r->xreal = x.kind == AB_REAL;
     rval(r, c ? &c->y : NULL);
     rval(r, c ? &c->z : NULL);
     rval(r, c ? &c->t : NULL);
@@ -849,18 +856,20 @@ static void sec_cas(rd *r)
     memcpy(r->c->cas_bad, bad, sizeof bad);
 }
 
-/* version 13 (unit 041 C, B4): ENG→ / ←ENG's view: showing, its exponent (a multiple of three) and its digits; only
-   at the keyboard (no program entry, no number keyed: the key completes it) */
+/* version 13 (unit 041 C, B4): ENG→ / ←ENG's view: showing, its exponent (a multiple of three) and the place of its
+   last digit; only at the keyboard, in decimal, on a real X (no program entry, no number keyed: the key completes it),
+   and within the key's bounds (fresh eyes: a HEX view, an exponent past them) */
 static void sec_eng(rd *r)
 {
     unsigned on = r8(r);
-    int e = (int16_t)r16(r);
-    unsigned n = r8(r);
-    need(r, on <= 1 && (!on || (n >= 1 && n <= ABN_DIGITS && e % 3 == 0 && !r->prgm && !r->typing_num)));
+    int e = (int16_t)r16(r), low = (int16_t)r16(r);
+    need(r, on <= 1 && (!on || (e % 3 == 0 && e >= -AB_ENG_LIMIT && e <= AB_ENG_LIMIT && low >= -AB_ENG_LIMIT &&
+                                low <= AB_ENG_LIMIT && !r->prgm && !r->typing_num && r->base == 10 && r->xreal)));
+    need(r, on || (e == 0 && low == 0));
     if (r->bad || !r->c) return;
     r->c->eng_on = on;
-    r->c->eng_e = (int16_t)(on ? e : 0);
-    r->c->eng_n = (uint8_t)(on ? n : 0);
+    r->c->eng_e = (int16_t)e;
+    r->c->eng_low = (int16_t)low;
 }
 
 static void sec_zoom(rd *r)

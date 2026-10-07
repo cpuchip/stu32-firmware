@@ -56,10 +56,10 @@ int ab_format_complex(const abn *re, const abn *im, const ab_display *d, char *o
    (unit 010). Returns the length, or -1 and "" if nothing fits. */
 int ab_format_vector(const abn *el, int n, const ab_display *d, char *out, int size);
 
-/* Unit 041 C (B4): ENG→ / ←ENG's view (33s p.1-20, 35s p.1-23): v rounded to sig significant digits, written as a
-   mantissa times 10^e: the integer digits down to 10^e (0 when v is below it), the radix and the digits after them to
-   the last significant one, then E and e. No separators in the mantissa (002's rule for exponent forms). Returns the
-   length, or -1 and "" if it is wider than f->width. */
-int ab_format_eng_view(const abn *v, int sig, int e, const ab_fmt *f, char *out, int size);
+/* Unit 041 C (B4): ENG→ / ←ENG's view (33s p.1-20, 35s p.1-23): v rounded at 10^low (the last place the display
+   showed), written as a mantissa times 10^e: the integer digits down to 10^e (0 when v is below it), the radix and
+   the digits after them down to 10^low, then E and e. No separators in the mantissa (002's rule for exponent forms).
+   Returns the length, or -1 and "" if it is wider than f->width. */
+int ab_format_eng_view(const abn *v, int low, int e, const ab_fmt *f, char *out, int size);
 
 #endif

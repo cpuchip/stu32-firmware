@@ -53,3 +53,13 @@ C37 | 041 C B4: a view wider than 31 stops at the last that fits (the fourth ←
 C38 | 041 C B4: in HEX nothing | MODE35 HEX 1 ENTER ENGR | %ENG=-
 C39 | 041 C B4: a complex X: nothing | MODE35 2 CI 3 ENTER ENGR | %ENG=- X=2i3
 C40 | 041 C B4: STU too (the 35s has them) | STU 12.346 E 4 ENGR | %ENG=123.46E3
+# Fresh eyes on B4: the view keeps the place of the last digit shown, not a digit count, so it shows the value the
+# display showed (C41, C42: FIX 2 shows 9.999 as 10.00); zero (C43, C44); the 35s's E with no mantissa, as any key,
+# shows SYNTAX ERROR (C45). Views from the Python model, now by place.
+C41 | 041 C B4 (fresh eyes): FIX 2's 10.00 for 9.999: ENG→ 10000E-3 | MODE35 FIX2 9.999 ENTER ENGR | %ENG=10000E-3
+C42 | 041 C B4 (fresh eyes): and ←ENG 0.01000E3 | MODE35 FIX2 9.999 ENTER ENGL | %ENG=0.01000E3
+C43 | 041 C B4 (fresh eyes): ALL's 0: ENG→ 0E-3 | MODE35 0 ENTER ENGR | %ENG=0E-3
+C44 | 041 C B4 (fresh eyes): and ←ENG 0.000E3 | MODE35 0 ENTER ENGL | %ENG=0.000E3
+C45 | 041 C B4 (fresh eyes): the 35s's E with no mantissa: SYNTAX ERROR shown, as any key (unit 017 rule 3) | MODE35 E 3 ENGR | ERR %ERR=SYNTAX %ERRMSG=SYNTAX_ERROR
+C46 | 041 C (#4850, fresh eyes): an equation line typed into a 35s label from 33s mode is a 35s equation: REGX+1 (a 35s feature) runs | MODE33 PRGM LBL:A MODE35 EQN REG:X + 1 ENTER RTN PRGM 4 XEQ:A | X=5
+C47 | 041 C (#4850): and into a 33s label from 35s mode, a 33s one: typed Cn,r(5:2), it runs | MODE35 PRGM LBL:A MODE33 EQN NCR 5 , 2 ENTER RTN PRGM 9 XEQ:A | X=10

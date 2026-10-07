@@ -736,10 +736,10 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
         }
         k->x_left = true;
         k->xk = SCREEN_EQN;
-    } else if (c->eng_on && c->x.kind == AB_REAL) {   /* unit 041 C (B4): ENG→ / ←ENG's view, until the next key */
+    } else if (c->eng_on && c->x.kind == AB_REAL && c->base == 10) {   /* unit 041 C (B4): ENG's view, until the next key */
         char buf[64];
         ab_display d = display_of(c, ui, FMT_WIDE);
-        if (ab_format_eng_view(&c->x.re, c->eng_n, c->eng_e, &d.dec, buf, sizeof buf) < 0)
+        if (ab_format_eng_view(&c->x.re, c->eng_low, c->eng_e, &d.dec, buf, sizeof buf) < 0)
             snprintf(buf, sizeof buf, "?");
         line_add(xl, buf);
         k->x_letter = true;

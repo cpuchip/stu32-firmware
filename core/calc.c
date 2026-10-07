@@ -1378,9 +1378,15 @@ static abn_status prog_insert_lit(ab_calc *c, ab_val v)
 }
 
 /* An equation as a line (UG p.13-7): its text in the equation-line store. */
-/* The model an equation typed now is stamped with (unit 031 rule 3, answer A). */
+/* The model an equation typed now is stamped with (unit 031 rule 3, answer A): in program entry, the stamp of the
+ * label the line joins (unit 041 C, abacus #4850: entry follows the label's stamp; its typed names follow too). */
+static int prog_owner(const ab_calc *c, int i);
 static uint8_t typed_model(const ab_calc *c)
 {
+    if (c->prgm && c->running <= 0 && c->pc >= 0 && c->pc < c->prog_len) {
+        int l = prog_owner(c, c->pc);
+        if (l >= 0 && c->lmode[l]) return c->lmode[l];
+    }
     return c->stu ? AB_MODEL_STU : c->m35 ? 35 : 33;
 }
 
@@ -1455,7 +1461,7 @@ abn_status ab_prog_delete_label(ab_calc *c, int l)
 
 abn_status ab_var_clear(ab_calc *c, int v)
 {
-    if (c->running || v < 0 || v >= 26) return ABN_OK;
+    if (c->running || v < 0 || v > 26) return ABN_OK;     /* 26: the 33s's i */
     c->var[v] = ab_real(abn_zero());
     return ABN_OK;
 }
@@ -4104,13 +4110,13 @@ static bool takes_complex(ab_op op)
  * on the 35s every key only clears it (also 35s p.F-1). Any error a key
  * causes leaves a message, a program's error stop included; ABN_CLAMPED (a base-mode result
  * clamped to the word) is a completed operation, not a message. */
-/* Unit 041 C (B4): the exponent a line of X shows (after its E; none, 0) and its significant digits (the mantissa's
-   digits from the first nonzero one, trailing zeros shown included; at least one). exp_neg: a keyed exponent's sign,
-   which the entry keeps apart from its text. */
-static void shown_form(const char *s, int len, bool exp_neg, int *e, int *n)
+/* Unit 041 C (B4): the exponent a line of X shows (after its E; none, 0) and the place of its last digit: the
+   exponent less the digits after the radix ('.': the core's text and the entry; separators skipped). exp_neg: a keyed
+   exponent's sign, which the entry keeps apart from its text. */
+static void shown_form(const char *s, int len, bool exp_neg, int *e, int *low)
 {
-    int digits = 0, ex = 0;
-    bool lead = true, in_exp = false, neg = exp_neg;
+    int frac = 0, ex = 0;
+    bool point = false, in_exp = false, neg = exp_neg;
     for (int i = 0; i < len && s[i]; i++) {
         char ch = s[i];
         if (ch == 'E') {
@@ -4118,13 +4124,14 @@ static void shown_form(const char *s, int len, bool exp_neg, int *e, int *n)
         } else if (in_exp) {
             if (ch == '-') neg = true;
             else if (ch >= '0' && ch <= '9' && ex < 100000) ex = ex * 10 + (ch - '0');
-        } else if (ch >= '0' && ch <= '9') {
-            if (ch != '0') lead = false;
-            if (!lead) digits++;
+        } else if (ch == '.') {
+            point = true;
+        } else if (ch >= '0' && ch <= '9' && point) {
+            frac++;
         }
     }
     *e = neg ? -ex : ex;
-    *n = digits < 1 ? 1 : digits > ABN_DIGITS ? ABN_DIGITS : digits;
+    *low = *e - frac;
 }
 
 static int floor3(int x)
@@ -4135,12 +4142,13 @@ static int floor3(int x)
 /* Unit 041 C (B4): ENG→ (op AB_ENGR) and ←ENG (AB_ENGL), abacus #4850 approving soroban's reading of 33s p.1-20 and
    35s p.1-23: the shown exponent moves to the next multiple of three below or above the one shown now (the keyed
    number's, which the key completes; the view's; else the X line's as the core's format draws it at the screen's
-   width), keeping the shown digits. Display only: X, the stack and lift as any completed entry leaves them. A view
+   widths, with the device's grouping), keeping the shown digits: the view rounds X at the last place shown, so it
+   shows the value the display showed (fresh eyes: FIX 2's 10.00 for 9.999). Display only: X, the stack and lift as any completed entry leaves them. A view
    wider than the screen's widest line is not taken: the last that fits stays. At the RPN keyboard, in decimal, with a
    real X; elsewhere nothing. */
 static abn_status eng_key(ab_calc *c, ab_op op)
 {
-    int ref, n;
+    int ref, low;
     char t[AB_ENTRY_TEXT + 8];
     if (c->base != 10 || c->cpart || c->vlen || c->prgm || c->eqn_mode || c->alg || c->tbl_on || c->gr_on ||
         c->viewing || c->x.kind != AB_REAL)
@@ -4154,30 +4162,32 @@ static abn_status eng_key(ab_calc *c, ab_op op)
         int dots = 0;
         for (int i = 0; i < c->entry.len; i++) dots += c->entry.text[i] == '.';
         fraction = dots > 1;                    /* a keyed fraction shows no exponent: read as formatted */
-        if (!fraction) shown_form(c->entry.text, c->entry.len, c->entry.exp_neg, &ref, &n);
+        if (!fraction) shown_form(c->entry.text, c->entry.len, c->entry.exp_neg, &ref, &low);
         c->entry.active = false;
         c->entry.back = 0;
         c->lift = true;
     }
     if (c->eng_on && !keyed) {
         ref = c->eng_e;
-        n = c->eng_n;
+        low = c->eng_low;
     } else if (!keyed || fraction) {
-        ab_fmt f = {c->disp_mode, c->disp_n, AB_FMT_LINE, '.', 0};
+        ab_fmt f = {c->disp_mode, c->disp_n, AB_FMT_LINE, '.', (char)c->disp_group};
         int len = ab_format(&c->x.re, &f, t, sizeof t);
         if (len < 0) {
             f.width = AB_FMT_WIDE;
             len = ab_format(&c->x.re, &f, t, sizeof t);
         }
         if (len < 0) return ABN_OK;
-        shown_form(t, len, false, &ref, &n);
+        shown_form(t, len, false, &ref, &low);
     }
     int e = op == AB_ENGR ? floor3(ref - 1) * 3 : (floor3(ref) + 1) * 3;
     ab_fmt w = {AB_ENG, 0, AB_FMT_WIDE, '.', 0};
-    if (e < -32000 || e > 32000 || ab_format_eng_view(&c->x.re, n, e, &w, t, sizeof t) < 0) return ABN_OK;
+    if (e < -AB_ENG_LIMIT || e > AB_ENG_LIMIT || low < -AB_ENG_LIMIT || low > AB_ENG_LIMIT ||
+        ab_format_eng_view(&c->x.re, low, e, &w, t, sizeof t) < 0)
+        return ABN_OK;
     c->eng_on = true;
     c->eng_e = (int16_t)e;
-    c->eng_n = (uint8_t)n;
+    c->eng_low = (int16_t)low;
     return ABN_OK;
 }
 
@@ -4192,7 +4202,10 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
         c->msg = false;
         if (c->m35 || op == AB_CANCEL || op == AB_KBKSP) return ABN_OK;
     }
-    if (op == AB_ENGL || op == AB_ENGR) return eng_key(c, op);     /* unit 041 C (B4) */
+    if (op == AB_ENGL || op == AB_ENGR) {      /* unit 041 C (B4); a 35s SYNTAX shows its message (fresh eyes) */
+        st = eng_key(c, op);
+        goto done;
+    }
     c->eng_on = false;                          /* the view lasts until the next key */
     if (ab_hidden(c, op)) return ABN_OK;       /* unit 041 A: a 35s feature in 33s mode, or C: a 33s one in 35s: nothing */
     if (!ab_rec35(c) && (op == AB_XEQ || op == AB_GTO) && arg >= 0 && arg % 1000 != 0)

@@ -819,7 +819,7 @@ int vectors_run(const char *name, FILE *f)
                     else snprintf(got, sizeof got, "%s/%s", sh[0], sh[1]);
                 } else if (strcmp(ex, "%ENG") == 0) {      /* unit 041 C (B4): ENG→ / ←ENG's view, - none */
                     ab_fmt w = {AB_ENG, 0, AB_FMT_WIDE, '.', 0};
-                    if (!c.eng_on || ab_format_eng_view(&c.x.re, c.eng_n, c.eng_e, &w, got, sizeof got) < 0)
+                    if (!c.eng_on || ab_format_eng_view(&c.x.re, c.eng_low, c.eng_e, &w, got, sizeof got) < 0)
                         snprintf(got, sizeof got, "-");
                 } else if (strcmp(ex, "%VIEW") == 0) {     /* unit 035: the keyboard VIEW showing: its id, - none */
                     if (c.viewing) snprintf(got, sizeof got, "%d", c.view_id);

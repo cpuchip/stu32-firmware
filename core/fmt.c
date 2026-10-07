@@ -269,24 +269,18 @@ int ab_format(const abn *value, const ab_fmt *f, char *out, int size)
     return t.len;
 }
 
-int ab_format_eng_view(const abn *value, int sig, int e, const ab_fmt *f, char *out, int size)
+int ab_format_eng_view(const abn *value, int low, int e, const ab_fmt *f, char *out, int size)
 {
     dec v, r;
     text t;
     abn_digits(value, &v.neg, v.d, &v.lead);
     v.n = (int)strlen(v.d);
-    if (sig < 1) sig = 1;
-    if (is_zero(&v)) {
-        v.lead = 0;
-        r = v;
-    } else {
-        r = round_sig(&v, sig);
-    }
-    int low = r.lead - sig + 1;                 /* the last significant digit's place */
+    r = round_at(&v, low);                      /* the value the display showed */
     start(&t, f->width > 0 ? f->width : 0);
-    if (r.neg) put(&t, '-');
-    if (r.lead < e) put(&t, '0');
-    for (int p = r.lead; p >= e; p--) put(&t, digit_at(&r, p));
+    if (r.neg && !is_zero(&r)) put(&t, '-');
+    if (is_zero(&r) || r.lead < e) put(&t, '0');
+    else
+        for (int p = r.lead; p >= e; p--) put(&t, digit_at(&r, p));
     if (low < e) {
         put(&t, f->radix);
         for (int p = e - 1; p >= low; p--) put(&t, digit_at(&r, p));

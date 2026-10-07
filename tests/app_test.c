@@ -170,6 +170,14 @@ static void fake_sysinfo(void *ctx, app_sysinfo *o)
     o->heap_largest = 31744;
 }
 
+/* the menu named name, -1 none (unit 041 C) */
+static int menu_named_t(const char *name)
+{
+    for (int i = 0; km_menu_at(i); i++)
+        if (!strcmp(km_menu_at(i)->name, name)) return i;
+    return -1;
+}
+
 /* the soft key whose label is l, -1 none */
 static int soft_of(const screen_ui *ui, const char *l)
 {
@@ -411,7 +419,7 @@ int main(void)
     expect(!c.cpolar, "xiy: complex numbers in rectangular form, from CMPLX's fifth");
     /* unit 041 C (B4): DISP's ENG→ and ←ENG: the view, DISP kept open to press again, no UNDO mark */
     press(&a, "C 1 2 . 3 4 6 E 4 GOLD 2 k:4");
-    expect(c.eng_on && c.eng_e == 3 && c.eng_n == 5 && a.menu >= 0, "041 C: 12.346E4 then DISP's ENG\xe2\x86\x92: E3, five digits, DISP open");
+    expect(c.eng_on && c.eng_e == 3 && c.eng_low == 1 && a.menu >= 0, "041 C: 12.346E4 then DISP's ENG\xe2\x86\x92: E3, the last digit at 10^1, DISP open");
     size_t undo_was = a.undo_len;
     uint8_t *undo_copy = malloc(undo_was ? undo_was : 1);
     if (undo_copy && undo_was) memcpy(undo_copy, a.undo[0], undo_was);
@@ -426,6 +434,30 @@ int main(void)
     expect(c.eng_on && a.menu < 0, "041 C: C closes DISP, as any menu (the core sees no key): the view stays");
     press(&a, "C");
     expect(!c.eng_on, "041 C: the next key ends the view");
+    /* fresh eyes: the view measures X's line as the screen draws it, grouping included (both machines group by
+       default): ALL's 123,456,789,012,345.7 (21 cells; ungrouped, .67890 would fit), so the last place 10^-1 */
+    ab_init(&c);
+    app_init(&a, &c, now);
+    press(&a, "1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 . 6 7 8 9 0 1 ENTER GOLD 2 k:4");
+    expect(a.set.group == 1 && c.eng_on && c.eng_low == -1 && c.eng_e == -3,
+           "041 C: ENG\xe2\x86\x92 on a grouped ALL line: the place it shows, 10^-1");
+    {   /* the image refuses an ENG view the key can't make (fresh eyes): in HEX, or past the key's bounds */
+        static uint8_t img[1 << 16];
+        ab_calc t;
+        ab_init(&t);
+        t.eng_on = true;
+        t.eng_e = 3;
+        t.eng_low = 0;
+        size_t n = ab_state_save(&t, img, sizeof img);
+        expect(n > 0 && ab_state_load(&t, img, n) == ABN_OK, "041 C: an ENG view in the image loads");
+        t.base = 16;
+        n = ab_state_save(&t, img, sizeof img);
+        expect(n > 0 && ab_state_load(&t, img, n) == ABN_BAD_IMAGE, "041 C: an ENG view in HEX: refused");
+        t.base = 10;
+        t.eng_e = 30000 - 30000 % 3;
+        n = ab_state_save(&t, img, sizeof img);
+        expect(n > 0 && ab_state_load(&t, img, n) == ABN_BAD_IMAGE, "041 C: an ENG exponent past the key's bounds: refused");
+    }
     press(&a, "GOLD 2 k:4");
     expect(!c.cpolar, "xiy: back to rectangular");
     ab_do_arg(&c, AB_MODEL, 33);
@@ -867,6 +899,69 @@ int main(void)
         app_init(&a, &c, now);
         press(&a, "BLUE 1 k:0");
         expect(a.cat == 0 && a.notice, "041 C: VAR with no nonzero variable: a notice, no catalog");
+        /* fresh eyes: back-arrow backs out of a catalog to MEM (33s p.12-20: "C to cancel the catalog or back-arrow to
+           back out"), X untouched; in program entry the catalog's ENTER, XEQ and R/S record nothing (ours) */
+        press(&a, "C 7 STO ltr:C 9 BLUE 1 k:0 \xe2\x86\x90");
+        app_ui(&a, &ui);
+        expect(a.cat == 0 && a.menu == menu_named_t("MEM") && x_of(&c) == 9, "041 C: back-arrow: back to MEM, X kept");
+        press(&a, "C");
+        ab_do(&c, AB_PRGM);
+        ab_do_arg(&c, AB_LBL, 1);
+        ab_do(&c, AB_RTN);
+        lines = c.prog_len;
+        press(&a, "BLUE 1 k:0 ENTER C BLUE 1 k:1 XEQ R/S C");
+        expect(c.prgm && c.prog_len == lines, "041 C: in program entry the catalogs record no line");
+        ab_do(&c, AB_PRGM);
+        /* the indirect count in 35s mode, nonzero; in 33s mode the VAR catalog shows the 33s's i */
+        int ki = -1;
+        for (int k = 0; k < KB_KEYS; k++)
+            if (km_letter_of(k)->kind == KL_IND_I) ki = k;
+        char kk[48];
+        ab_init(&c);
+        app_init(&a, &c, now);
+        a.sysinfo = fake_sysinfo;
+        ab_do_arg(&c, AB_MODEL, 35);
+        snprintf(kk, sizeof kk, "5 STO ltr:I 7 STO k:%d BLUE 1", ki);
+        press(&a, kk);
+        app_ui(&a, &ui);
+        snprintf(want, sizeof want, "%lu B FREE  6 IND", (unsigned long)(65536 - ab_state_save(&c, NULL, 0)));
+        expect(c.ind_top == 5 && ui.prompt && !strcmp(ui.prompt, want), "041 C: 35s mode: registers 0 to 5 in use, 6 IND");
+        ab_init(&c);
+        app_init(&a, &c, now);
+        snprintf(kk, sizeof kk, "6 STO k:%d BLUE 1 k:0", ki);
+        press(&a, kk);
+        app_ui(&a, &ui);
+        expect(a.cat == 1 && ui.view[3] && !strcmp(ui.view[3], "i=6"), "041 C: 33s mode: the VAR catalog shows i");
+    }
+    /* fresh eyes: the XEQ prompt follows the edited label's stamp (abacus #4850): in 33s mode, editing a 35s label,
+       XEQ A 0 0 3 records XEQ A003 (the 35s's form); in 35s mode, editing a 33s label, XEQ A records XEQ A001 at once */
+    {
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do(&c, AB_PRGM);
+        ab_do_arg(&c, AB_LBL, 0);
+        ab_do_arg(&c, AB_MODEL, 35);
+        press(&a, "XEQ ltr:A 0 0 3");
+        expect(c.prog[c.pc].op == AB_XEQ && c.prog[c.pc].arg == 3, "041 C: 33s mode, a 35s label: XEQ A 0 0 3 is XEQ A003");
+        {
+            int ki2 = -1;
+            char k2[24];
+            for (int k = 0; k < KB_KEYS; k++)
+                if (km_letter_of(k)->kind == KL_IND_I) ki2 = k;
+            snprintf(k2, sizeof k2, "STO k:%d", ki2);
+            press(&a, k2);
+            expect(c.prog[c.pc].op == AB_STO && c.prog[c.pc].arg == AB_VAR_IND_I,
+                   "041 C: 33s mode, a 35s label: the (I) key is the 35s's (I), not the 33s's i");
+        }
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, 35);
+        ab_do(&c, AB_PRGM);
+        ab_do_arg(&c, AB_LBL, 0);
+        ab_do_arg(&c, AB_MODEL, 33);
+        press(&a, "XEQ ltr:A");
+        expect(c.prog[c.pc].op == AB_XEQ && c.prog[c.pc].arg == 1 && !a.prompt_text[0],
+               "041 C: 35s mode, a 33s label: XEQ A records XEQ A001 at once (the 33s's form)");
     }
 
     /* unit 019: every menu on a key opens with its items on the soft keys (CONST shows its first
