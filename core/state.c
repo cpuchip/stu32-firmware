@@ -1258,10 +1258,12 @@ abn_status ab_state_load(ab_calc *c, const uint8_t *buf, size_t len)
     for (int i = 0; i < c->prog_len; i++)
         if (c->prog[i].op == AB_EQLINE && !c->peqn_model[c->prog[i].arg]) c->peqn_model[c->prog[i].arg] = 35;  /* an entry shown stays shown in ALG (one
                                                                   that exists: a calc not from ab_init) */
-    if (r.version < 11) {
+    if (r.version < 13) {
         /* an image from before unit 041 (abacus #4799 ruling (a)): an equation stamped 33 that the 33s parse now
            refuses (a 35s feature: REGX, AND, a vector, ...) but the 35s parse takes is restamped 35, so a line
-           already written keeps working; its meaning is unchanged (both read left to right). Others keep 33. */
+           already written keeps working; its meaning is unchanged (both read left to right). Others keep 33.
+           From before 041 D (version 13, abacus #4880): the same, for the 35s's spellings the 33s's equations now
+           refuse (the comma, nCr, nPr, HMS→, RAND). */
         ab_val v;
         int pos;
         for (int i = 0; i < c->eqn_count; i++)

@@ -45,5 +45,5 @@ D06 | 35s p.4-2 58 INT÷ 9 = 6 and Rmdr 4 unchanged | 58 ENTER 9 IDIV 58 ENTER 9
 D07 | ours (rule 5): the floor of the exact quotient: -6.000...001 / 3 is just below -2, though it rounds to -2 | 6.000000000000000000000000000000001 CHS ENTER 3 IDIV | X=-3
 D08 | ours (rule 5): its remainder, exact | 6.000000000000000000000000000000001 CHS ENTER 3 RMDR | X=2.999999999999999999999999999999999
 D09 | ours (rule 5): an exact quotient is not moved: -15 INT÷ 5 = -3, Rmdr 0 | 15 CHS ENTER 5 IDIV 15 CHS ENTER 5 RMDR | X=0 Y=-3
-D10 | 35s p.6-16 (rule 5): equations' IDIV and RMDR are the keys' | EQ:IDIV(-17,5)×10+RMDR(17,-5) XEQ | X=-43
+D10 | 35s p.6-16 (rule 5): equations' IDIV and RMDR are the keys' (041 D: moved to 35s mode, decision 58: the 35s's comma) | MODE35 EQ:IDIV(-17,5)×10+RMDR(17,-5) XEQ | X=-43
 D11 | ours (rule 5): in both modes | MODE35 17 CHS ENTER 5 IDIV | X=-4

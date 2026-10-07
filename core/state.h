@@ -22,7 +22,8 @@
 
 #include "calc.h"
 
-#define AB_STATE_VERSION 13     /* 13 (unit 041 C, B4): ENG→ / ←ENG's view; 12 (CAS 004): SUBST's replacement typed (its variable); 11 (unit 041): no new field; an older image's 33s-stamped equations that fail
+#define AB_STATE_VERSION 13     /* 13 (unit 041 C, B4): ENG→ / ←ENG's view; and (041 D) an older image's 33s-stamped
+                                   equations using the 35s's spellings load stamped 35, as 11's; 12 (CAS 004): SUBST's replacement typed (its variable); 11 (unit 041): no new field; an older image's 33s-stamped equations that fail
                                    the 33s parse and pass the 35s one load stamped 35 (abacus #4799 (a)); */
                                 /* 2 (unit 017): the 33s/35s mode, the message, entries'
                                    insertion points; 3 (unit 018): what the message says; 4: a

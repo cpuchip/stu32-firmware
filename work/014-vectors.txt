@@ -20,11 +20,11 @@ M09 | 35s p.6-15 precedence: AxB^3=C is a x (b^3) = c (2, 3, 4) | 2 STO:A 3 STO:
 M10 | 35s p.6-15 (AxB)^3=C | 2 STO:A 3 STO:B 4 STO:C EQ:(A×B)^3=C XEQ RS RS RS | X=212
 M11 | 35s p.6-15 A+B/C=12 is a + (b/c) | 2 STO:A 3 STO:B 4 STO:C EQ:A+B÷C=12 XEQ RS RS RS | X=-9.25
 M12 | 35s p.6-15 (A+B)/C=12 | 2 STO:A 3 STO:B 4 STO:C EQ:(A+B)÷C=12 XEQ RS RS RS | X=-10.75
-M13 | 35s p.6-15 %CHG(T+12,A-6)^2 squares the %CHG (T 8, A 46: %CHG(20,40) = 100) | 8 STO:T 46 STO:A EQ:%CHG(T+12,A-6)^2 XEQ RS RS | X=10000
-M14 | 35s p.6-16 XROOT(3,-8): the index first, the radicand second (RPN's order reversed) | EQ:XROOT(3,-8) XEQ | X=-2
-M15 | 35s p.6-16 nCr(28,4): RPN's Y, X order kept | EQ:nCr(28,4) XEQ | X=20475
-M16 | 35s p.6-17 %CHG(-X,-2) is valid (X = 3) | 3 STO:X EQ:%CHG(-X,-2) XEQ RS | X^-33.3333333333333333333333333333333333
-M17 | 35s p.6-17 %CHG(X,(-Y)) is valid (X 4, Y 2) | 4 STO:X 2 STO:Y EQ:%CHG(X,(-Y)) XEQ RS RS | X=-150
+M13 | 35s p.6-15 %CHG(T+12,A-6)^2 squares the %CHG (T 8, A 46: %CHG(20,40) = 100) (041 D: moved to 35s mode, decision 58: the 35s's comma and names) | MODE35 8 STO:T 46 STO:A EQ:%CHG(T+12,A-6)^2 XEQ RS RS | X=10000
+M14 | 35s p.6-16 XROOT(3,-8): the index first, the radicand second (RPN's order reversed) (041 D: moved to 35s mode, decision 58: the 35s's comma and names) | MODE35 EQ:XROOT(3,-8) XEQ | X=-2
+M15 | 35s p.6-16 nCr(28,4): RPN's Y, X order kept (041 D: moved to 35s mode, decision 58: the 35s's comma and names) | MODE35 EQ:nCr(28,4) XEQ | X=20475
+M16 | 35s p.6-17 %CHG(-X,-2) is valid (X = 3) (041 D: moved to 35s mode, decision 58: the 35s's comma and names) | MODE35 3 STO:X EQ:%CHG(-X,-2) XEQ RS | X^-33.3333333333333333333333333333333333
+M17 | 35s p.6-17 %CHG(X,(-Y)) is valid (X 4, Y 2) (041 D: moved to 35s mode, decision 58: the 35s's comma and names) | MODE35 4 STO:X 2 STO:Y EQ:%CHG(X,(-Y)) XEQ RS RS | X=-150
 M18 | 35s p.6-17/6-18 the trapezoid perimeter (DEG; A 2 B 5 H 1, 30 and 45 degrees) | DEG 2 STO:A 5 STO:B 1 STO:H 30 STO:T 45 STO:F EQ:P=A+B+H×(1÷SIN(T)+1÷SIN(F)) ENTER RS RS RS RS RS | X=10.41421356237309504880168872420970 @P=10.41421356237309504880168872420970
 M19 | 35s p.6-18 the same with INV | DEG 2 STO:A 5 STO:B 1 STO:H 30 STO:T 45 STO:F EQ:P=A+B+H×(INV(SIN(T))+INV(SIN(F))) ENTER RS RS RS RS RS | X=10.41421356237309504880168872420970
 M20 | 35s p.6-18/6-19 the polygon area (RAD: the guide does not say) N = 6, D = 1 | RAD 6 STO:N 1 STO:D EQ:A=0.25×N×D^2×COS(π÷N)÷SIN(π÷N) ENTER RS RS | X^2.59807621135331594029116951225880863
@@ -59,7 +59,7 @@ O11 | ours: LAST X is untouched by an evaluation (not in p.B-6's list) | 9 SQRT 
 O12 | 35s p.6-14 C cancels the prompt, the variable's value in X | 4 STO:A EQ:A+1 XEQ C | X=4 %STOP=CANCELLED
 O13 | ours: pi in an equation | EQ:2×π XEQ | X=6.283185307179586476925286766559006
 O14 | 35s p.G-12 RND rounds to the display setting | FIX2 EQ:RND(π) XEQ | X=3.14
-O15 | 35s p.6-16/6-17 the renamed functions: ALOG, SQ, INV, EXP, IDIV, RMDR, nPr | EQ:ALOG(2)+SQ(3)+INV(4)+EXP(0)+IDIV(7,2)+RMDR(7,2)+nPr(5,2) XEQ | X=134.25
+O15 | 35s p.6-16/6-17 the renamed functions: ALOG, SQ, INV, EXP, IDIV, RMDR, nPr (041 D: moved to 35s mode, decision 58: the 35s's comma and names) | MODE35 EQ:ALOG(2)+SQ(3)+INV(4)+EXP(0)+IDIV(7,2)+RMDR(7,2)+nPr(5,2) XEQ | X=134.25
 O16 | ours: ! is postfix | EQ:5!+1 XEQ | X=121
 O17 | ours: backspace after a function key removes the function and its pair | EQN 2 * SIN BKSP RCL:X ENTER | %EQ=2×X
 O18 | 35s p.6-4, 6-7 the list: new equations go after the one shown; the cursor keys move through it | EQ:1+1 EQ:2+2 EQ:3+3 BST | %EQ=2+2 %EQN=3

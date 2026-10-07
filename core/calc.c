@@ -3411,6 +3411,21 @@ static const char *eqn_fname(ab_op op)
     }
 }
 
+/* Unit 041 D: in 33s typing, the 33s's spellings (33s p.6-15, 6-16): a function with its pair, then a token. */
+static const char *eqn_fname33(ab_op op)
+{
+    switch (op) {
+    case AB_NCR: return "Cn,r"; case AB_NPR: return "Pn,r"; case AB_HMSINV: return "\xe2\x86\x92HR";
+    case AB_CUBE: return "CB"; case AB_CBRT: return "CBRT";
+    default: return NULL;
+    }
+}
+
+static const char *eqn_token33(ab_op op)
+{
+    return op == AB_RAND ? "RANDOM" : op == AB_KCOMMA ? ":" : NULL;     /* the colon separates (p.6-5) */
+}
+
 static const char *eqn_token(ab_op op)
 {
     switch (op) {
@@ -3615,7 +3630,7 @@ static bool eqn_typable(ab_op op, int arg)
     return op <= AB_KE || op == AB_KCHS || op == AB_KPAREN || (op == AB_RCL && arg >= 0 && arg <= AB_VAR_SI) ||
            (op == AB_KREG && arg >= 0 && arg < 4) || (op >= AB_KA && op <= AB_KF) || op == AB_KI ||
            op == AB_KTHETA || op == AB_KVEC || (op == AB_SUF && (arg == 2 || arg == 8 || arg == 10 || arg == 16)) ||
-           eqn_fname(op) || eqn_token(op);
+           eqn_fname(op) || eqn_token(op) || op == AB_CUBE || op == AB_CBRT;  /* (041 D: the 33s's CB, CBRT) */
 }
 
 static bool eqn_type(ab_calc *c, ab_op op, int arg)
@@ -3660,13 +3675,15 @@ static bool eqn_type(ab_calc *c, ab_op op, int arg)
         ed_insert(c, "[]", 1);                      /* a vector's brackets, the cursor inside (p.10-8) */
     } else if (op == AB_SUF) {
         ed_insert(c, arg == 2 ? "b" : arg == 8 ? "o" : arg == 10 ? "d" : "h", 0);   /* p.11-3 */
-    } else if ((t = eqn_fname(op)) != NULL) {
+    } else if ((t = typed_model(c) == 33 ? eqn_fname33(op) : NULL) != NULL || (t = eqn_fname(op)) != NULL) {
         char buf[24];
         strcpy(buf, t);
         strcat(buf, "()");
         ed_insert(c, buf, 1);
-    } else {
-        ed_insert(c, eqn_token(op), 0);
+    } else if ((t = typed_model(c) == 33 ? eqn_token33(op) : NULL) != NULL) {
+        ed_insert(c, t, 0);
+    } else if ((t = eqn_token(op)) != NULL) {
+        ed_insert(c, t, 0);
     }
     return true;
 }

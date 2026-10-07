@@ -168,6 +168,7 @@ test: all
 	./build/vectors work/041a-vectors.txt
 	./build/vectors work/041b-vectors.txt
 	./build/vectors work/041c-vectors.txt
+	./build/vectors work/041d-vectors.txt
 	./build/vectors work/cas004-vectors.txt
 	./build/vectors work/033-vectors.txt
 	AB_SAVELOAD=1 AB_STORE=1 ./build/vectors work/033-vectors.txt

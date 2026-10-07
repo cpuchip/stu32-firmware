@@ -44,9 +44,9 @@ B35 | 35s p.11-4 NAND(1100b,1010b) | MODE35 BIN EQ:NAND(1100b,1010b) XEQ SAVEX C
 B36 | 35s p.11-4 NOR(1100b,1010b) | MODE35 BIN EQ:NOR(1100b,1010b) XEQ SAVEX CLSTK BIN 1 1 0 0 ENTER 1 0 1 0 NOR | %SAMEX=same
 B37 | 35s p.11-4 typing a logic function: the LOGIC item types its name and a pair | MODE35 BIN EQN AND 1 1 0 0 SUF:b , 1 0 1 0 SUF:b ENTER | %EQ=AND(1100b,1010b)
 B38 | 35s p.11-4 a complex argument to a logic function: INVALID DATA | MODE35 EQ:AND(1i1,1) XEQ | ERR %ERR=DOMAIN
-B39 | ours: % in an equation is %(y,x) = y x / 100, two arguments like %CHG (p.G-2 gives no form) | EQ:%(200,15) XEQ | X=30
-B40 | ours: % typed: the key types %( ) with the cursor inside | EQN PCT 2 0 0 , 1 5 ENTER | %EQ=%(200,15)
-B41 | 35s p.6-16 %CHG is still read as %CHG (the longer name) | EQ:%CHG(50,75) XEQ | X=50
+B39 | ours: % in an equation is %(y,x) = y x / 100, two arguments like %CHG (p.G-2 gives no form) (041 D: moved to 35s mode, decision 58: the 35s's comma) | MODE35 EQ:%(200,15) XEQ | X=30
+B40 | ours: % typed: the key types %( ) with the cursor inside (041 D: moved to 35s mode, decision 58: the 35s's comma) | MODE35 EQN PCT 2 0 0 , 1 5 ENTER | %EQ=%(200,15)
+B41 | 35s p.6-16 %CHG is still read as %CHG (the longer name) (041 D: moved to 35s mode, decision 58: the 35s's comma) | MODE35 EQ:%CHG(50,75) XEQ | X=50
 B42 | 35s p.11-3 an octal number: 17o is 15 | MODE35 EQ:17o XEQ | X=15
 B43 | 35s p.11-3 a decimal mark: 15d is 15 | MODE35 HEX EQ:15d XEQ | X=15
 B44 | ours: 12b is no binary number: 12 then the name b, two operands side by side (no implied multiplication) | EQ:12b XEQ | ERR %ERR=SYNTAX

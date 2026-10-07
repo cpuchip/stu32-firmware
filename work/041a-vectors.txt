@@ -55,7 +55,7 @@ H39 | 041 A14: in 33s mode GRAPH does nothing | MODE33 EQ:X C GRAPH | %ERR=OK %G
 H40 | 041 A: in 33s mode AND isn't recorded | MODE33 PRGM LBL:A 12 ENTER 10 AND RTN PRGM | %LINES=5
 H41 | 041 A: 35s unchanged | MODE35 PRGM LBL:A 12 ENTER 10 AND RTN PRGM | %LINES=6
 H42 | 041 A4: a built-in shown in 35s mode, then 33s mode: EQN opens at the top, not on it | MODE35 EQN SST C MODE33 EQN | %EQ=TOP
-H43 | 041 A: typing an equation in 33s mode the comma still separates arguments (Part D brings the colon) | MODE33 EQN NCR 5 , 2 ENTER XEQ | %EQ=nCr(5,2) X=10
+H43 | 041 A, amended in place by 041 D (abacus #4880; decision 58): typing an equation in 33s mode, the 33s's names and its colon (was: nCr(5,2)) | MODE33 EQN NCR 5 , 2 ENTER XEQ | %EQ=Cn,r(5:2) X=10
 H44 | 041 A11: and the other way: an equation typed in 33s mode refuses REGX in 35s mode too (its stamp decides) | MODE33 4 EQ:REGX+1 C MODE35 EQN XEQ | ERR %ERR=SYNTAX
 # Fresh eyes on 7ad362a: the built-ins reached by a delete; a lone i read by the stamp (it was the mode in force,
 # unit 025's code); 33s-mode coverage kept for rows moved for their setup only (012 O15, 014 O28).

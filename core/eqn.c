@@ -23,7 +23,8 @@ enum {
     F_RAND, F_PI, F_SX, F_SY, F_PSX, F_PSY, F_XBAR, F_YBAR, F_XWBAR, F_XHAT, F_YHAT, F_CORR,
     F_SLOPE, F_YINT, F_N, F_SUMX, F_SUMY, F_SUMX2, F_SUMY2, F_SUMXY,
     F_REGX, F_REGY, F_REGZ, F_REGT,
-    F_AND, F_XOR, F_OR, F_NOT, F_NAND, F_NOR, F_PCT
+    F_AND, F_XOR, F_OR, F_NOT, F_NAND, F_NOR, F_PCT,
+    F_CUBE, F_CBRT
 };
 
 static const fname NAMES[] = {
@@ -52,10 +53,27 @@ static const fname NAMES[] = {
        usable in equations and gives no form) (unit 015) */
     {"AND", K2, F_AND}, {"XOR", K2, F_XOR}, {"OR", K2, F_OR}, {"NOT", K1, F_NOT},
     {"NAND", K2, F_NAND}, {"NOR", K2, F_NOR}, {"%", K2, F_PCT},
+    /* unit 041 D: the 33s's spellings, in 33s-stamped equations only (33s p.6-15, 6-16; name33) */
+    {"CB", K1, F_CUBE}, {"CBRT", K1, F_CBRT}, {"\xe2\x86\x92HR", K1, F_HMSINV}, {"Cn,r", K2, F_NCR},
+    {"Pn,r", K2, F_NPR}, {"RANDOM", K0, F_RAND},
 };
+
+/* Unit 041 D (abacus #4880, strict both ways): a name only the 33s's equations take (33), only the 35s's and STU's (35),
+   or both (0). The 33s spells nCr, nPr, HMS→ and RAND as Cn,r, Pn,r, →HR and RANDOM (p.6-15) and has CB and CBRT. */
+static int name_model(const char *name)
+{
+    static const char *const ONLY33[] = {"CB", "CBRT", "\xe2\x86\x92HR", "Cn,r", "Pn,r", "RANDOM"};
+    static const char *const ONLY35[] = {"nCr", "nPr", "HMS\xe2\x86\x92", "RAND"};
+    for (size_t k = 0; k < sizeof ONLY33 / sizeof ONLY33[0]; k++)
+        if (!strcmp(name, ONLY33[k])) return 33;
+    for (size_t k = 0; k < sizeof ONLY35 / sizeof ONLY35[0]; k++)
+        if (!strcmp(name, ONLY35[k])) return 35;
+    return 0;
+}
 
 /* The keyboard operation of each name (unit 015: an equation's operations are the keys'). */
 static const ab_op OPS[] = {
+    [F_CUBE] = AB_CUBE, [F_CBRT] = AB_CBRT,         /* unit 041 D */
     [F_LN] = AB_LN, [F_LOG] = AB_LOG, [F_EXP] = AB_EXP, [F_ALOG] = AB_TENX, [F_SQ] = AB_SQ,
     [F_SQRT] = AB_SQRT, [F_INV] = AB_INV, [F_IP] = AB_IP, [F_FP] = AB_FP, [F_RND] = AB_RND,
     [F_ABS] = AB_ABS, [F_SGN] = AB_SGN, [F_INTG] = AB_INTG, [F_IDIV] = AB_IDIV, [F_RMDR] = AB_RMDR,
@@ -379,15 +397,45 @@ static void parse_prim(parser *p, ab_val *v)
                 fail(p, ABN_SYNTAX);
                 return;
             }
+            int nm = name_model(f->name);       /* the other model's spelling (041 D) */
+            if ((nm == 33 && !p->m33) || (nm == 35 && p->m33)) {
+                fail(p, ABN_SYNTAX);
+                return;
+            }
             if (f->kind == K0) {
                 apply0(p, f->id, v);
                 return;
             }
             p->i++;                     /* the "(" */
             parse_add(p, v);
+            if (f->id == F_RND && p->m33 && p->st == ABN_OK && at(p, ":")) {
+                /* PROVISIONAL (abacus #4880; Michael's field check on his 33s): RND(x:n), p.6-15's two arguments,
+                   read as x rounded as the display mode would with digit setting n */
+                ab_val nv;
+                parse_add(p, &nv);
+                if (!at(p, ")")) {
+                    fail(p, ABN_SYNTAX);
+                    return;
+                }
+                if (p->check || p->st != ABN_OK) return;
+                int n = -1;
+                for (int k = 0; k <= AB_FMT_N_MAX && n < 0 && nv.kind == AB_REAL; k++) {
+                    abn kk = abn_from_int(k);
+                    if (!abn_cmp(&nv.re, &kk)) n = k;   /* a digit setting, 0..33 */
+                }
+                if (n >= 0) {
+                    int was = p->c->disp_n;
+                    p->c->disp_n = n;
+                    kop(p, AB_RND, NULL, v);
+                    p->c->disp_n = was;
+                } else {
+                    fail(p, ABN_DOMAIN);
+                }
+                return;
+            }
             if (f->kind == K2) {
                 ab_val b;
-                if (!at(p, ",")) {
+                if (!at(p, p->m33 ? ":" : ",")) {     /* the 33s's colon, the 35s's comma (041 D; 33s p.6-5) */
                     fail(p, ABN_SYNTAX);
                     return;
                 }
@@ -651,15 +699,16 @@ int eqn_vars(const char *text, bool rhs_only, bool with_i, int out[27])
     for (; *s; s++) {
         /* names are skipped as the parser reads them: a function name with its "(", a name that
            takes none (RAND, REGX) anywhere (unit 015: RAND was read as R, A, N, D) */
-        bool name = false;
-        for (size_t k = 0; k < sizeof NAMES / sizeof NAMES[0] && !name; k++) {
+        size_t best = 0;                        /* the longest, as the parser (RANDOM, not RAND then O M: 041 D) */
+        for (size_t k = 0; k < sizeof NAMES / sizeof NAMES[0]; k++) {
             size_t len = strlen(NAMES[k].name);
-            if (strncmp(s, NAMES[k].name, len) == 0 && (NAMES[k].kind == K0 || s[len] == '(')) {
-                s += len - 1;
-                name = true;
-            }
+            if (len > best && strncmp(s, NAMES[k].name, len) == 0 && (NAMES[k].kind == K0 || s[len] == '('))
+                best = len;
         }
-        if (name) continue;
+        if (best) {
+            s += best - 1;
+            continue;
+        }
         if (*s == 'E' && s > text && ((s[-1] >= '0' && s[-1] <= '9') || s[-1] == '.')) continue;  /* exponent */
         {
             int base, n = (s == text || !((s[-1] >= '0' && s[-1] <= '9') || (s[-1] >= 'A' && s[-1] <= 'F')))

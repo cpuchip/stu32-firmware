@@ -70,7 +70,7 @@ O06 | ours: x + y = 1, 2x + 2y = 2: MULT SOLUTION | MODE35 EQN SST SOLVE 1 RS 1 
 O07 | ours: 0x + 0y = 1, 0x + 0y = 2: NO SOLUTION (ranks 0 and 1; Cramer's numerators are both 0) | MODE35 EQN SST SOLVE 0 RS 0 RS 1 RS 0 RS 0 RS 2 RS | ERR %ERR=NO_SOLUTION
 O08 | ours: a singular 3*3 with consistent constants: MULT SOLUTION | MODE35 EQN SST SST SOLVE 1 RS 2 RS 3 RS 6 RS 2 RS 4 RS 6 RS 12 RS 1 RS 1 RS 1 RS 3 RS | ERR %ERR=MULT_SOLUTION
 O09 | ours: the solution is exact before its one rounding (1E20 and 1 in one row) | MODE35 EQN SST SOLVE 1 E 20 RS 1 RS 1 E 20 RS 1 RS 1 RS 2 RS | X=0.9999999999999999999900000000000000 Y=1.000000000000000000010000000000000
-O10 | unit 014 fix: RAND takes no prompts (it was read as R, A, N, D) | EQ:RAND×0+1 XEQ | X=1 %STOP=DONE
+O10 | unit 014 fix: RAND takes no prompts (it was read as R, A, N, D) (041 D: moved to 35s mode, decision 58: RAND is the 35s's spelling; 041d D35 has the 33s's RANDOM) | MODE35 EQ:RAND×0+1 XEQ | X=1 %STOP=DONE
 O11 | ours: C at a SOLVE prompt (a listed equation) cancels it, the stack as it was | 4 STO:B EQ:A-B C 9 EQN SOLVE:A C | %STOP=CANCELLED
 O12 | ours: C at a prompt of the first evaluation abandons the SOLVE, the guess kept | PRGM CLPGM LBL:F INPUT:Y RCL:X RCL:Y - RTN PRGM 1 STO:X 9 FN=:F SOLVE:X C | %STOP=CANCELLED @X=1 X=9
 O13 | 35s p.15-6 a SOLVE line whose function prompts: R/S answers and the program goes on | PRGM CLPGM LBL:F INPUT:Y RCL:X SQ RCL:Y - RTN LBL:M 1 STO:X 5 FN=:F SOLVE:X VIEW:X RTN PRGM XEQ:M 4 RS | %STOP=VIEW:X X=2 @Y=4
