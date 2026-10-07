@@ -1313,6 +1313,45 @@ int main(void)
         press(&a, "BLUE 8 k:3");
         app_ui(&a, &ui);
         expect(!c.tbl_on && ui.notice && !strcmp(ui.notice, "STU ONLY") && !c.msg, "032: 35s mode: STU ONLY briefly");
+        /* review F2: an ENTER that overflows and then errs leaves no OVERFLOW notice behind for C */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        c.stu = true;
+        ab_eqn_add(&c, "X\xc3\x97" "1E6000+1\xc3\xb7(X-1E6000)");
+        ab_do(&c, AB_EQN);
+        press(&a, "1 E 6 0 0 0 STO ltr:X BLUE 8 k:3 ENTER C C");
+        app_ui(&a, &ui);
+        expect(!c.tbl_on && !ui.notice, "032: C after an erring ENTER leaves no OVERFLOW notice");
+        /* review F4: an image with an open table and STU off, in program entry, a number typed, or no room
+           above its row is refused */
+        {
+            static ab_calc z;
+            static uint8_t img[1 << 16];
+            ab_init(&c);
+            c.stu = c.m35 = true;               /* (STU is a 35s: the loader holds it so) */
+            ab_eqn_add(&c, "X^2");
+            ab_do(&c, AB_EQN);
+            ab_do_arg(&c, AB_TABLE, 0);
+            size_t n = ab_state_save(&c, img, sizeof img);
+            expect(c.tbl_on && ab_state_load(&z, img, n) == ABN_OK, "032: an open table's image loads");
+            c.stu = false;
+            n = ab_state_save(&c, img, sizeof img);
+            expect(ab_state_load(&z, img, n) == ABN_BAD_IMAGE, "032: an open table with STU off is refused");
+            c.stu = true;
+            c.prgm = true;
+            n = ab_state_save(&c, img, sizeof img);
+            expect(ab_state_load(&z, img, n) == ABN_BAD_IMAGE, "032: an open table in program entry is refused");
+            c.prgm = false;
+            c.entry.active = true;
+            c.entry.len = 1;
+            c.entry.text[0] = '5';
+            n = ab_state_save(&c, img, sizeof img);
+            expect(ab_state_load(&z, img, n) == ABN_BAD_IMAGE, "032: an open table with a number typed is refused");
+            memset(&c.entry, 0, sizeof c.entry);
+            c.tbl_k = INT32_MIN;
+            n = ab_state_save(&c, img, sizeof img);
+            expect(ab_state_load(&z, img, n) == ABN_BAD_IMAGE, "032: an open table at INT32_MIN is refused");
+        }
     }
 
     /* unit 031 rule 3, answer C: a chain shown under the other grouping is marked with the model it was

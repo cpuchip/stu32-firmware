@@ -3746,7 +3746,10 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
         c->msg = false;
         if (c->m35 || op == AB_CANCEL || op == AB_KBKSP) return ABN_OK;
     }
-    if (c->tbl_on) {                            /* the table open: its keys alone (unit 032) */
+    if (c->tbl_on) {                            /* the table open: its keys alone (unit 032), each with a
+                                                   fresh error record and overflow count (review F1, F2) */
+        c->err_set = false;
+        c->ovf = 0;
         st = table_key(c, op);
         goto done;
     }
@@ -4593,19 +4596,23 @@ static abn_status table_row(ab_calc *c, int32_t k, abn *x, ab_val *y, bool pure)
     memset(y, 0, sizeof *y);
     *x = c->tbl_start;
     if (v < 0 || v >= 26 || e < 0 || e >= c->eqn_count) return ABN_DOMAIN;
-    /* start + k x step, each rounded once (not repeated addition: the drift mutant, 032) */
-    if ((st = abn_mul(&p, &kk, &c->tbl_step)) != ABN_OK || (st = abn_add(x, &c->tbl_start, &p)) != ABN_OK)
-        return st == ABN_OVERFLOW ? ABN_OVERFLOW : st;
-    /* the row is the equation's value there, as XEQ gives it (rule 6), the variable set for it alone;
-       what an evaluation may touch is put back, so a row (the screen draws them) changes nothing (rule 3) */
+    /* what an evaluation may touch, put back after a pure row, so a row (the screen draws them)
+       changes nothing (rule 3) */
     ab_val keep = c->var[v], ex = c->err_x;
     uint16_t flags = c->flags;
     uint64_t rng = c->rng;
     int eo = c->err_op, ea = c->err_arg, eac = c->err_active, ovf = c->ovf;
     bool es = c->err_set, em = c->err_m35;
     abn_status est = c->err_status;
-    c->var[v] = ab_real(*x);
-    st = eqn_eval(c, c->eqn[e], c->eqn_model[e], false, false, y, &pos);
+    /* start + k x step, each rounded once (not repeated addition: the drift mutant, 032); an overflow
+       gives the largest, flag 6 set, an underflow 0 (unit 026: review F3) */
+    st = settle(c, abn_mul(&p, &kk, &c->tbl_step), &p, abn_overflow_negative());
+    if (st == ABN_OK) st = settle(c, abn_add(x, &c->tbl_start, &p), x, abn_overflow_negative());
+    /* the row is the equation's value there, as XEQ gives it (rule 6), the variable set for it alone */
+    if (st == ABN_OK) {
+        c->var[v] = ab_real(*x);
+        st = eqn_eval(c, c->eqn[e], c->eqn_model[e], false, false, y, &pos);
+    }
     c->var[v] = keep;
     if (!pure) return st;
     c->flags = flags;

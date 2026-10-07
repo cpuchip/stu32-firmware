@@ -26,3 +26,6 @@ B22 | answer 5: any other key does nothing while the table is open (a digit, a f
 B23 | answer 3: VAR makes the start follow the variable again (the latest thing done) | STU EQ:X+Y C 3 STO:X 7 STO:Y 100 TSTART TVAR:Y TABLE | %TX=7 %TY=10
 B24 | rule 3: drawing a row changes nothing: an overflowing row leaves flag 6 clear | STU EQ:X×1E6000 C 1 E 6000 STO:X CF:6 TABLE | %TY=9.999999999999999999999999999999999E6144 %F6=0
 B25 | rule 6: ENTER on that row sets flag 6 as XEQ would (unit 026) | STU EQ:X×1E6000 C 1 E 6000 STO:X CF:6 TABLE ENTER | X=9.999999999999999999999999999999999E6144 %F6=1
+B26 | answer 7 (review F1): a second erring row names its own error (LOG(0) after LOG(NEG)) | STU EQ:LN(X)+1÷(X-1) C 1 CHS STO:X 1 CHS TSTART TABLE ENTER C TDOWN ENTER | ERR %ERRMSG=LOG(0)
+B27 | unit 026 (review F3): a row whose x overflows has the largest x, and the row goes on | STU EQ:X C 3 STO:X 9 E 6144 TSTEP CF:6 TABLE TDOWN TDOWN | %TX=9.999999999999999999999999999999999E6144 %TY=9.999999999999999999999999999999999E6144 %F6=0
+B28 | unit 026 (review F3): ENTER on it gives the largest, no error, flag 6 set | STU EQ:X C 3 STO:X 9 E 6144 TSTEP CF:6 TABLE TDOWN TDOWN ENTER | X=9.999999999999999999999999999999999E6144 %F6=1 %TABLE=0

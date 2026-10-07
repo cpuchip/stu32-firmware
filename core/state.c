@@ -388,6 +388,8 @@ typedef struct {
     bool mode25;            /* its version-5 section was read (unit 025) */
     bool m35, prgm, emode, typing;  /* what the ALG section is checked against (unit 029) */
     int peq_count;                  /* the program's equation lines (unit 031's section) */
+    bool stu, typing_num;           /* what the TABLE section is checked against (unit 032) */
+    bool entry_seen;                /* (rentry: the last entry read was active) */
     int edit;
 } rd;
 
@@ -503,6 +505,7 @@ static void rentry(rd *r, ab_entry *out)
     ab_entry e;
     memset(&e, 0, sizeof e);
     e.active = r8(r) != 0;
+    r->entry_seen = e.active;
     e.len = (int)r8(r);
     need(r, e.len < AB_ENTRY_TEXT);
     for (int i = 0; i < e.len && !r->bad; i++) {
@@ -668,6 +671,7 @@ static void sec_alg(rd *r)
     rval(r, &ans);
     need(r, flag_byte(stu) && flag_byte(alg) && flag_byte(shown) && (!stu || r->m35) && (!shown || alg));
     need(r, !alg || (stu && r->typing && !r->emode && !r->prgm && r->edit == -1));
+    r->stu = stu;
     if (r->bad || !r->c) return;
     r->c->stu = stu;
     r->c->alg = alg;
@@ -714,7 +718,11 @@ static void sec_table(rd *r)
     int eq = ri8(r);
     int32_t k = ri32(r);
     need(r, var >= -1 && var < 26 && v >= -1 && v < 26 && flag_byte(set) && flag_byte(on) && eq >= -1);
-    if (!r->bad && on) need(r, v >= 0 && eq >= 0 && eq < r->eqn_count && !r->builtin[eq]);
+    if (!r->bad && on)                          /* an open table: in STU, not in program entry, no number
+                                                   being typed (drawing a row must change nothing), its row
+                                                   with room for the three above it (review F4) */
+        need(r, v >= 0 && eq >= 0 && eq < r->eqn_count && !r->builtin[eq] && r->stu && !r->prgm && !r->typing_num &&
+                    k >= INT32_MIN + 3);
     if (r->bad || !r->c) return;
     r->c->tbl_var = var;
     r->c->tbl_v = v;
@@ -845,6 +853,7 @@ static void sec_entry(rd *r)
     ab_calc *c = r->c;
     unsigned cpart, vlen, prgm;
     rentry(r, c ? &c->entry : NULL);
+    r->typing_num = r->entry_seen;
     rentry(r, c ? &c->entry1 : NULL);
     cpart = r8(r);
     rentry(r, c ? &c->ventry[0] : NULL);
@@ -854,6 +863,7 @@ static void sec_entry(rd *r)
     rval(r, c ? &c->plit : NULL);
     need(r, cpart <= 2 && vlen <= 3 && flag_byte(prgm));
     r->prgm = prgm;
+    r->typing_num = r->typing_num || cpart || vlen;
     if (r->bad || !c) return;
     c->cpart = (int)cpart;
     c->vlen = (int)vlen;

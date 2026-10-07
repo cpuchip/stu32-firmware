@@ -527,7 +527,9 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
         k->xk = SCREEN_PROMPT;
     } else if (c->tbl_on && !ab_error_message(c)) {     /* the table: rows k-3..k, row k on X (unit 032) */
         line *ls[4] = {&k->t, &k->z, &k->y, &k->x};
-        for (int i = 0; i < 4; i++) table_row_line((ab_calc *)c, ui, c->tbl_k - 3 + i, ls[i]);
+        for (int i = 0; i < 4; i++)             /* (64-bit: k is at least INT32_MIN + 3, the core's and the
+                                                   loader's bound) */
+            table_row_line((ab_calc *)c, ui, (int32_t)((int64_t)c->tbl_k - 3 + i), ls[i]);
         k->table = k->x_left = true;
         k->xk = k->yk = SCREEN_VALUE;
         return;
