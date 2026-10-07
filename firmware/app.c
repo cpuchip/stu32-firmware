@@ -137,6 +137,9 @@ static void after_core(app_state *a, bool msg_before, uint32_t now_ms)
 
 /* An op from the keys: the state kept for UNDO first (VIEW changes nothing), the busy callback
    when it may take long, and a run that has not ended goes on from app_tick. */
+static void graph_start(app_state *a);    /* unit 033 (below) */
+static void graph_step(app_state *a);
+
 static void do_op(app_state *a, int op, int arg)
 {
     ab_calc *c = a->c;
@@ -153,6 +156,8 @@ static void do_op(app_state *a, int op, int arg)
     int was = on_lbl ? c->lmode[c->prog[c->pc].arg] : 0;
     abn_status st = ab_do_arg(c, (ab_op)op, arg);
     a->dirty = true;
+    if (op == AB_GRAPH && st == ABN_OK && c->gr_on) graph_start(a);    /* unit 033 */
+    if (!c->gr_on) a->graphing = false;
     if (st == ABN_RPN_ONLY || st == ABN_STU_ONLY || st == ABN_NO_EQN || st == ABN_NO_VAR) {
         /* brief notices, not messages: STU's line (unit 029), TABLE's refusals (unit 032) */
         a->notice = ab_status_message(st);
@@ -195,6 +200,7 @@ static int menu_named(const char *name)
 static int eqn_bar(const app_state *a)
 {
     if (a->c->tbl_on) return menu_named("TABLE BAR");                /* a table open (unit 032) */
+    if (a->c->gr_on) return menu_named("GRAPH BAR");                 /* a graph open (unit 033) */
     if (ab_view_linear(a->c)) return menu_named("LIN VIEW");         /* x= y= (z=): unit 035 */
     if (a->c->alg && !a->c->prgm) return menu_named("ALG LINE");    /* STU's line (unit 029) */
     if (a->c->eqn_typing) return menu_named("EQN TYPE");
@@ -513,6 +519,7 @@ static void do_action(app_state *a, const km_action *act)
 app_action app_tick(app_state *a, const pwr_inputs *in, uint32_t now_ms)
 {
     bool msg = a->c->msg;
+    if (a->graphing) graph_step(a);             /* unit 033: a slice of the graph's columns */
     if (a->running) {
         ab_continue(a->c);
         if (a->c->ovf > 0) a->ovf_pending = true;
@@ -601,7 +608,7 @@ static uint32_t left(uint32_t now_ms, uint32_t since, uint32_t span)
 
 uint32_t app_next_wake(const app_state *a, const pwr_inputs *in, uint32_t now_ms)
 {
-    if (a->running || a->render || a->off) return 0;
+    if (a->running || a->render || a->off || a->graphing) return 0;
     if (in->soc >= 0 && ((in->soc <= APP_BATT_LOW_SOC && !a->batt_low) || (in->soc > APP_BATT_OK_SOC && a->batt_low)))
         return 0;                               /* BATT's latch changes now (unit 027) */
     pwr_state p = a->pwr;
@@ -619,6 +626,95 @@ uint32_t app_next_wake(const app_state *a, const pwr_inputs *in, uint32_t now_ms
         if ((uint64_t)to < w) w = (uint32_t)to;
     }
     return w;
+}
+
+void app_graph_buffer(app_state *a, app_graph *g)
+{
+    a->graph = g;
+}
+
+/* The graph's rows once its window is known: each computed column's row and join (the core's model). */
+static void graph_rows(app_state *a, int from, int to)
+{
+    app_graph *g = a->graph;
+    for (int i = from; i < to; i++) {
+        g->s.lo[i] = 1;
+        g->s.hi[i] = 0;
+        if (!g->ok[i]) continue;
+        g->row[i] = (int16_t)ab_graph_row(&g->y[i], &g->s.ymin, &g->s.ymax);
+        int lo, hi;
+        bool pok = i > 0 && g->ok[i - 1];
+        if (ab_graph_join(pok, pok ? g->row[i - 1] : 0, g->row[i], &lo, &hi)) {
+            g->s.lo[i] = (int16_t)lo;
+            g->s.hi[i] = (int16_t)hi;
+        }
+    }
+}
+
+static void graph_ready(app_state *a)
+{
+    app_graph *g = a->graph;
+    g->s.ready = true;
+    ab_graph_axes(a->c, &g->s.ymin, &g->s.ymax, &g->s.xrow, &g->s.ycol);
+}
+
+/* GO accepted (unit 033 rule 8): with Y set the window is known and columns draw as computed; with AUTO
+   the samples come first (a progress bar), then the fit, then the drawing. */
+static void graph_start(app_state *a)
+{
+    app_graph *g = a->graph;
+    const ab_calc *c = a->c;
+    if (!g) return;
+    memset(&g->s, 0, sizeof g->s);
+    g->s.xmin = c->gr_xmin;
+    g->s.xmax = c->gr_xmax;
+    g->s.ymin = c->gr_ymin;
+    g->s.ymax = c->gr_ymax;
+    {   /* the form's note: V=expr labels its axis V, any other L=R says L-R (rule 1) */
+        const char *t = c->eqn[c->gr_eq];
+        const char *eq = strchr(t, '=');
+        if (eq && t[1] == '=' && t[0] >= 'A' && t[0] <= 'Z' && !strchr(eq + 1, t[0]))
+            snprintf(g->s.note, sizeof g->s.note, "%c", t[0]);
+        else if (eq)
+            snprintf(g->s.note, sizeof g->s.note, "L\xe2\x88\x92R");
+    }
+    if (!c->gr_auto) graph_ready(a);
+    a->graphing = true;
+    a->render = true;
+}
+
+/* A slice of columns (at most 8 a tick, so C and the screen keep up). */
+static void graph_step(app_state *a)
+{
+    app_graph *g = a->graph;
+    if (!g || !a->c->gr_on) {
+        a->graphing = false;
+        return;
+    }
+    int from = g->s.done;
+    for (int k = 0; k < 8 && g->s.done < AB_GRAPH_W; k++) {
+        abn x;
+        ab_val v;
+        int i = g->s.done;
+        g->ok[i] = ab_graph_sample(a->c, i, &x, &v) == ABN_OK;
+        g->y[i] = v.re;
+        g->s.done++;
+    }
+    if (g->s.ready) graph_rows(a, from, g->s.done);
+    if (g->s.done == AB_GRAPH_W) {
+        a->graphing = false;
+        if (!g->s.ready) {
+            bool okb[AB_GRAPH_W];
+            for (int i = 0; i < AB_GRAPH_W; i++) okb[i] = g->ok[i];
+            ab_graph_fit(g->y, okb, AB_GRAPH_W, &g->s.ymin, &g->s.ymax);
+            int finite = 0;
+            for (int i = 0; i < AB_GRAPH_W; i++) finite += okb[i];
+            if (!finite) snprintf(g->s.note, sizeof g->s.note, "NO VALUES");    /* -10..10 (answer 2) */
+            graph_ready(a);
+            graph_rows(a, 0, AB_GRAPH_W);
+        }
+    }
+    a->render = true;
 }
 
 void app_undo_buffers(app_state *a, uint8_t *b0, uint8_t *b1, size_t cap)
@@ -656,6 +752,12 @@ void app_ui(const app_state *a, screen_ui *ui)
     if (a->view) {                              /* SYS's view in place of the stack */
         for (int i = 0; i < 4; i++) ui->view[i] = a->view_text[i][0] ? a->view_text[i] : NULL;
         return;
+    }
+    if (a->c->gr_on && a->graph) {              /* a graph (unit 033): its buffer, and the trace's sample */
+        app_graph *g = a->graph;
+        g->s.cur = a->c->gr_cur;
+        g->s.cst = ab_graph_sample(a->c, a->c->gr_cur, &g->s.cx, &g->s.cy);
+        ui->graph = &g->s;
     }
     if (a->show) {                              /* SHOW held in place of the stack (unit 030) */
         ui->show_n = ab_show_text(a->c, ui->show);

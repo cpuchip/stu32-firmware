@@ -49,6 +49,11 @@ static void init_fields(ab_calc *c, bool keep_hist)
     c->tbl_var = c->tbl_v = c->tbl_eq = -1;     /* TABLE: the first variable, start from it, step 1 (032) */
     c->tbl_start = abn_zero();
     c->tbl_step = abn_from_int(1);
+    c->gr_xmin = c->gr_ymin = abn_from_int(-10);    /* GRAPH: X -10..10, Y fitted (033 rule 2) */
+    c->gr_xmax = c->gr_ymax = abn_from_int(10);
+    c->gr_auto = true;
+    c->gr_eq = c->gr_v = -1;
+    c->gr_cur = AB_GRAPH_W / 2;
     c->angle = AB_ANGLE_DEG;    /* and is in degrees (UG p.B-4) */
     c->disp_mode = AB_ALL;      /* ALL is the default display (ours, unit 002) */
     c->disp_n = 0;
@@ -1196,6 +1201,8 @@ static abn_status logic(ab_calc *c, ab_op op)
 static abn_status do_key(ab_calc *c, ab_op op, int arg);
 static abn_status table_key(ab_calc *c, ab_op op);    /* unit 032 (at the end) */
 static abn_status table_go(ab_calc *c);
+static abn_status graph_go(ab_calc *c);         /* unit 033 (at the end) */
+static abn_status graph_key(ab_calc *c, ab_op op);
 static void num_text(const abn *a, char *out, int size);     /* unit 032b (at the end) */
 
 static void prog_labels(ab_calc *c)
@@ -2969,6 +2976,8 @@ static abn_status program_key(ab_calc *c, ab_op op, int arg)
     case AB_HUP:
     case AB_HDOWN:
     case AB_TABLE: case AB_TVAR: case AB_TSTART: case AB_TSTEP: case AB_TUP: case AB_TDOWN:   /* 032 */
+    case AB_GRAPH: case AB_XMIN: case AB_XMAX: case AB_YMIN: case AB_YMAX: case AB_GAUTO: case AB_GLEFT:
+    case AB_GRIGHT:                                                                      /* 033 */
         return ABN_NONPROGRAMMABLE;
     case AB_FDISP:
     case AB_CLALL:                          /* in program entry the menu offers CLPGM in its place
@@ -3599,6 +3608,15 @@ static abn_status alg_evaluate(ab_calc *c)
     return ABN_OK;
 }
 
+/* XMIN, XMAX, YMIN, YMAX set to a; YMIN and YMAX turn the fit off (033 rule 2). */
+static void graph_set(ab_calc *c, ab_op op, const abn *a)
+{
+    if (op == AB_XMIN) c->gr_xmin = *a;
+    else if (op == AB_XMAX) c->gr_xmax = *a;
+    else if (op == AB_YMIN) c->gr_ymin = *a, c->gr_auto = false;
+    else c->gr_ymax = *a, c->gr_auto = false;
+}
+
 /* What X's place shows on the line, for STO and TABLE's START and STEP: an entry shown, its result
    (029b); with a line typed, the line evaluated first (ours, rule 8); else ANS. */
 static abn_status alg_x_shown(ab_calc *c, ab_val *v)
@@ -3687,7 +3705,17 @@ static abn_status alg_key(ab_calc *c, ab_op op, int arg)
     }
     case AB_TABLE:                                  /* TABLE from the line (unit 032b): GO and VAR as ever */
     case AB_TVAR:
+    case AB_GRAPH:                                  /* GRAPH from the line too (033, as 032b) */
+    case AB_GAUTO:
         return do_key(c, op, arg);
+    case AB_XMIN: case AB_XMAX: case AB_YMIN: case AB_YMAX: {   /* what X's place shows (as 032b) */
+        ab_val v;
+        abn_status st;
+        if ((st = alg_x_shown(c, &v)) != ABN_OK) return st;
+        if (v.kind != AB_REAL) return ABN_DOMAIN;
+        graph_set(c, op, &v.re);
+        return ABN_OK;
+    }
     case AB_TSTART:                                 /* START and STEP take what X's place shows (032b) */
     case AB_TSTEP: {
         ab_val v;
@@ -3792,11 +3820,11 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
         c->msg = false;
         if (c->m35 || op == AB_CANCEL || op == AB_KBKSP) return ABN_OK;
     }
-    if (c->tbl_on) {                            /* the table open: its keys alone (unit 032), each with a
-                                                   fresh error record and overflow count (review F1, F2) */
+    if (c->tbl_on || c->gr_on) {                /* the table or the graph open: its keys alone (units 032,
+                                                   033), each with a fresh error record and overflow count */
         c->err_set = false;
         c->ovf = 0;
-        st = table_key(c, op);
+        st = c->tbl_on ? table_key(c, op) : graph_key(c, op);
         goto done;
     }
     if (op == AB_SHOW) return ABN_OK;           /* unit 030: SHOW changes nothing, in program entry too
@@ -3808,7 +3836,8 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
        device has asked CLR ALL? or CLR EQN?) */
     if (c->prgm) st = program_key(c, op, arg);
     else if (c->alg) st = alg_key(c, op, arg);      /* STU's expression line (unit 029) */
-    else if (c->eqn_mode && !c->eqn_pending && op != AB_CLALL && op != AB_CLEQN && !(op >= AB_TABLE && op <= AB_TSTEP))
+    else if (c->eqn_mode && !c->eqn_pending && op != AB_CLALL && op != AB_CLEQN && !(op >= AB_TABLE && op <= AB_TSTEP) &&
+             !(op >= AB_GRAPH && op <= AB_GAUTO))
         st = eqn_key(c, op, arg);               /* (TABLE's GO and settings act in Equation mode: 032) */
     else st = do_key(c, op, arg);
 done:
@@ -4409,7 +4438,20 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
     case AB_HDOWN:
     case AB_TUP:
     case AB_TDOWN:
-        return ABN_OK;                              /* the line's and the table's own keys: nothing here */
+    case AB_GLEFT:
+    case AB_GRIGHT:
+        return ABN_OK;                              /* the line's, the table's, the graph's own keys: nothing */
+    case AB_GRAPH:
+        return graph_go(c);
+    case AB_GAUTO:                                  /* Y fitted again (033 rule 2) */
+        c->gr_auto = true;
+        c->lift = true;
+        return ABN_OK;
+    case AB_XMIN: case AB_XMAX: case AB_YMIN: case AB_YMAX:
+        if (c->x.kind != AB_REAL) return ABN_DOMAIN;
+        graph_set(c, op, &c->x.re);
+        c->lift = true;
+        return ABN_OK;
     case AB_TABLE:
         return table_go(c);
     case AB_TVAR:                                   /* the variable: the start follows it again (answer 3) */
@@ -4788,49 +4830,273 @@ static abn_status table_go(ab_calc *c)
     return ABN_OK;
 }
 
-/* unit 033 red: the graph model, not yet */
-abn_status ab_graph_sample(ab_calc *c, int col, abn *x, ab_val *y)
+/* ---- GRAPH (unit 033): the model ---- */
+
+/* The equation e at x for variable v: rule 1's form (V=expr with V not in expr: expr; any other L=R:
+   L-R; an expression: its value), evaluated with the variable set for it alone; pure: everything an
+   evaluation may touch put back (rule 7, as TABLE's rule 3). */
+static abn_status eval_at(ab_calc *c, int e, int v, const abn *x, ab_val *y, bool pure)
 {
-    (void)c; (void)col;
+    int pos, vars[27];
+    const char *t = c->eqn[e];
+    int av = eqn_assign_var(t, false);
+    bool rhs = false;
+    if (av >= 0) {                              /* V=expr: is V in expr? */
+        int n = eqn_vars(t, true, false, vars);
+        rhs = true;
+        for (int i = 0; i < n; i++) rhs = rhs && vars[i] != av;
+    }
+    ab_val keep = c->var[v], ex = c->err_x;
+    uint16_t flags = c->flags;
+    uint64_t rng = c->rng;
+    int eo = c->err_op, ea = c->err_arg, eac = c->err_active, ovf = c->ovf;
+    bool es = c->err_set, em = c->err_m35;
+    abn_status est = c->err_status;
+    memset(y, 0, sizeof *y);
+    c->var[v] = ab_real(*x);
+    abn_status st = eqn_eval(c, t, c->eqn_model[e], rhs, false, y, &pos);
+    c->var[v] = keep;
+    if (!pure) return st;
+    c->flags = flags;
+    c->rng = rng;
+    c->err_op = eo, c->err_arg = ea, c->err_active = eac, c->ovf = ovf, c->err_set = es, c->err_m35 = em;
+    c->err_status = est, c->err_x = ex;
+    return st;
+}
+
+/* Column col's x: d = XMAX - XMIN, t = col x d, u = t / 399, x = XMIN + u, each rounded once (answer (a)). */
+static abn_status graph_x(ab_calc *c, int col, abn *x)
+{
+    abn d, t, u, k = abn_from_int(col), n = abn_from_int(AB_GRAPH_W - 1);
+    uint16_t flags = c->flags;
+    int ovf = c->ovf;
+    abn_status st = settle(c, abn_sub(&d, &c->gr_xmax, &c->gr_xmin), &d, abn_overflow_negative());
+    if (st == ABN_OK) st = settle(c, abn_mul(&t, &k, &d), &t, abn_overflow_negative());
+    if (st == ABN_OK) st = settle(c, abn_div(&u, &t, &n), &u, abn_overflow_negative());
+    if (st == ABN_OK) st = settle(c, abn_add(x, &c->gr_xmin, &u), x, abn_overflow_negative());
+    c->flags = flags;                           /* (an x is part of drawing: nothing set) */
+    c->ovf = ovf;
+    return st;
+}
+
+static abn_status graph_sample(ab_calc *c, int col, abn *x, ab_val *y, bool pure)
+{
+    abn_status st;
     *x = abn_zero();
     memset(y, 0, sizeof *y);
-    return ABN_DOMAIN;
+    if (c->gr_eq < 0 || c->gr_eq >= c->eqn_count || c->gr_v < 0 || c->gr_v >= 26 || col < 0 || col >= AB_GRAPH_W)
+        return ABN_DOMAIN;
+    if ((st = graph_x(c, col, x)) != ABN_OK) return st;
+    st = eval_at(c, c->gr_eq, c->gr_v, x, y, pure);
+    if (st == ABN_OK && y->kind != AB_REAL) st = ABN_DOMAIN;    /* (a complex or vector value: not plotted) */
+    return st;
+}
+
+abn_status ab_graph_sample(ab_calc *c, int col, abn *x, ab_val *y)
+{
+    return graph_sample(c, col, x, y, true);
+}
+
+static void clamp_big(abn_status st, abn *r, bool neg)
+{
+    if (st == ABN_OVERFLOW) {
+        abn m = abn_largest();
+        *r = neg ? abn_neg(&m) : m;
+    } else if (st == ABN_UNDERFLOW) {
+        *r = abn_zero();
+    }
 }
 
 void ab_graph_fit(const abn *y, const bool *ok, int n, abn *lo, abn *hi)
 {
-    (void)y; (void)ok; (void)n;
-    *lo = *hi = abn_zero();
+    abn big = abn_largest(), m, span, p05;
+    bool any = false;
+    for (int i = 0; i < n; i++) {
+        abn a = abn_abs(&y[i]);
+        if (!ok[i] || abn_cmp(&a, &big) == 0) continue;     /* errors and overflows left out (answer 2) */
+        if (!any || abn_cmp(&y[i], lo) < 0) *lo = y[i];
+        if (!any || abn_cmp(&y[i], hi) > 0) *hi = y[i];
+        any = true;
+    }
+    if (!any) {                                 /* no finite sample: -10..10 (answer 2) */
+        *lo = abn_from_int(-10);
+        *hi = abn_from_int(10);
+        return;
+    }
+    if (abn_cmp(lo, hi) == 0) {                 /* a constant: +-1 */
+        abn one = abn_from_int(1);
+        abn_sub(lo, lo, &one);
+        abn_add(hi, hi, &one);
+        return;
+    }
+    abn_from_text(&p05, "0.05");
+    clamp_big(abn_sub(&span, hi, lo), &span, false);    /* (huge finite values: the window clamps to the
+                                                           largest, as an overflow does, unit 026) */
+    clamp_big(abn_mul(&m, &span, &p05), &m, false);
+    clamp_big(abn_sub(lo, lo, &m), lo, true);
+    clamp_big(abn_add(hi, hi, &m), hi, false);
 }
 
 void ab_graph_window(ab_calc *c, abn *ymin, abn *ymax)
 {
-    (void)c;
-    *ymin = *ymax = abn_zero();
+    static abn y[AB_GRAPH_W];
+    static bool ok[AB_GRAPH_W];
+    if (!c->gr_auto) {
+        *ymin = c->gr_ymin;
+        *ymax = c->gr_ymax;
+        return;
+    }
+    for (int i = 0; i < AB_GRAPH_W; i++) {
+        abn x;
+        ab_val v;
+        ok[i] = graph_sample(c, i, &x, &v, true) == ABN_OK;
+        y[i] = v.re;
+    }
+    ab_graph_fit(y, ok, AB_GRAPH_W, ymin, ymax);
+}
+
+/* p rounded to an integer, half even, as an int clamped to lo..hi (an integer's digits read back). */
+static int round_clamped(const abn *p, int lo, int hi)
+{
+    abn f, fr, half, one = abn_from_int(1), r;
+    if (abn_floor(&f, p) != ABN_OK) return abn_is_negative(p) ? lo : hi;
+    abn_sub(&fr, p, &f);
+    abn_from_text(&half, "0.5");
+    int c = abn_cmp(&fr, &half);
+    r = f;
+    if (c > 0) abn_add(&r, &f, &one);
+    else if (c == 0) {                          /* a tie: to the even integer */
+        abn two = abn_from_int(2), q, qf;
+        abn_div(&q, &f, &two);
+        abn_floor(&qf, &q);
+        if (abn_cmp(&q, &qf) != 0) abn_add(&r, &f, &one);
+    }
+    abn lo_n = abn_from_int(lo), hi_n = abn_from_int(hi);
+    if (abn_cmp(&r, &lo_n) <= 0) return lo;
+    if (abn_cmp(&r, &hi_n) >= 0) return hi;
+    bool neg;
+    char d[ABN_DIGITS + 1];
+    int lead, v = 0;
+    abn_digits(&r, &neg, d, &lead);
+    for (int i = 0; i <= lead; i++) v = v * 10 + (i < (int)strlen(d) ? d[i] - '0' : 0);
+    return neg ? -v : v;
 }
 
 int ab_graph_row(const abn *y, const abn *ymin, const abn *ymax)
 {
-    (void)y; (void)ymin; (void)ymax;
-    return -1;
+    abn a, b, q, p, n = abn_from_int(AB_GRAPH_H - 1);
+    abn_status st = abn_sub(&a, ymax, y);       /* a = YMAX - y; b = YMAX - YMIN; q = a / b; p = q x 184 */
+    if (st == ABN_OVERFLOW) return abn_overflow_negative() ? AB_GRAPH_H : -1;
+    if (abn_sub(&b, ymax, ymin) != ABN_OK || abn_is_zero(&b) || abn_is_negative(&b)) return -1;
+    st = abn_div(&q, &a, &b);
+    if (st == ABN_OVERFLOW) return abn_is_negative(&a) ? -1 : AB_GRAPH_H;
+    if (st == ABN_UNDERFLOW) q = abn_zero();
+    st = abn_mul(&p, &q, &n);
+    if (st == ABN_OVERFLOW) return abn_is_negative(&q) ? -1 : AB_GRAPH_H;
+    if (st == ABN_UNDERFLOW) p = abn_zero();
+    return round_clamped(&p, -1, AB_GRAPH_H);
 }
 
 bool ab_graph_join(bool prev_ok, int prev_row, int row, int *lo, int *hi)
 {
-    (void)prev_ok; (void)prev_row; (void)row;
-    *lo = *hi = 0;
-    return false;
+    int a = row, b = row;
+    if (prev_ok && !((prev_row == -1 && row == AB_GRAPH_H) || (prev_row == AB_GRAPH_H && row == -1))) {
+        if (prev_row < row) a = prev_row + 1;   /* row and every row strictly between (answer 1) */
+        else if (prev_row > row) b = prev_row - 1;
+    }
+    if (a < 0) a = 0;
+    if (b > AB_GRAPH_H - 1) b = AB_GRAPH_H - 1;
+    *lo = a;
+    *hi = b;
+    return a <= b;
 }
 
 bool ab_graph_column(ab_calc *c, int col, const abn *ymin, const abn *ymax, int *lo, int *hi)
 {
-    (void)c; (void)col; (void)ymin; (void)ymax;
+    abn x;
+    ab_val y, py;
     *lo = *hi = 0;
-    return false;
+    if (graph_sample(c, col, &x, &y, true) != ABN_OK) return false;
+    int r = ab_graph_row(&y.re, ymin, ymax), pr = 0;
+    bool pok = col > 0 && graph_sample(c, col - 1, &x, &py, true) == ABN_OK;
+    if (pok) pr = ab_graph_row(&py.re, ymin, ymax);
+    return ab_graph_join(pok, pr, r, lo, hi);
 }
 
 void ab_graph_axes(const ab_calc *c, const abn *ymin, const abn *ymax, int *xrow, int *ycol)
 {
-    (void)c; (void)ymin; (void)ymax;
-    *xrow = *ycol = -1;
+    abn zero = abn_zero(), a, b, q, p, n = abn_from_int(AB_GRAPH_W - 1);
+    int r = ab_graph_row(&zero, ymin, ymax);
+    *xrow = r >= 0 && r <= AB_GRAPH_H - 1 ? r : -1;
+    *ycol = -1;                                 /* a = 0 - XMIN; b = XMAX - XMIN; q = a / b; p = q x 399 */
+    if (abn_sub(&a, &zero, &c->gr_xmin) != ABN_OK || abn_sub(&b, &c->gr_xmax, &c->gr_xmin) != ABN_OK ||
+        abn_is_zero(&b) || abn_div(&q, &a, &b) != ABN_OK || abn_mul(&p, &q, &n) != ABN_OK)
+        return;
+    int k = round_clamped(&p, -1, AB_GRAPH_W);
+    if (k >= 0 && k <= AB_GRAPH_W - 1) *ycol = k;
+}
+
+/* GO (unit 033): the equation shown or last shown, against TABLE's variable (or the first of what is
+   plotted), the trace at column 200. */
+static abn_status graph_go(ab_calc *c)
+{
+    int e, vars[27];
+    abn_status st;
+    if (!c->stu) return ABN_STU_ONLY;
+    if (c->eqn_mode && c->eqn_typing && (st = eqn_store_typed(c)) != ABN_OK) return st;
+    e = c->eqn_cur;
+    if (e < 0 || e >= c->eqn_count || c->eqn[e][0] == '\x01') return ABN_NO_EQN;
+    int v = c->tbl_var;
+    if (v < 0) {
+        const char *t = c->eqn[e];
+        int av = eqn_assign_var(t, false), n = eqn_vars(t, av >= 0, false, vars), i = 0;
+        bool rhs_form = av >= 0;
+        for (int j = 0; j < n && rhs_form; j++) rhs_form = vars[j] != av;
+        if (!rhs_form) n = eqn_vars(t, false, false, vars);   /* L-R or an expression: its first variable */
+        while (i < n && vars[i] >= 26) i++;
+        if (i == n) return ABN_NO_VAR;
+        v = vars[i];
+    }
+    c->gr_eq = e;
+    c->gr_v = v;
+    c->gr_cur = AB_GRAPH_W / 2;
+    c->gr_on = true;
+    return ABN_OK;
+}
+
+/* A key while the graph is open: the trace's left and right (stopping at the ends); ENTER takes the traced
+   value as a keyed number (in ALG into ANS and the line) and leaves, an erring column giving its error;
+   C leaves; nothing else (rule 6, answer 5). */
+static abn_status graph_key(ab_calc *c, ab_op op)
+{
+    abn x;
+    ab_val y;
+    abn_status st;
+    switch (op) {
+    case AB_GLEFT:
+        if (c->gr_cur > 0) c->gr_cur--;
+        return ABN_OK;
+    case AB_GRIGHT:
+        if (c->gr_cur < AB_GRAPH_W - 1) c->gr_cur++;
+        return ABN_OK;
+    case AB_ENTER:
+        if ((st = graph_sample(c, c->gr_cur, &x, &y, false)) != ABN_OK) return st;
+        c->gr_on = false;
+        if (c->alg) {
+            c->ans = y;
+            num_text(&y.re, c->ebuf, sizeof c->ebuf);
+            c->ecur = (int)strlen(c->ebuf);
+            c->alg_shown = true;
+            c->hist_at = -1;
+            return ABN_OK;
+        }
+        place_val(c, y);
+        c->lift = true;
+        return ABN_OK;
+    case AB_CANCEL:
+        c->gr_on = false;
+        return ABN_OK;
+    default:
+        return ABN_OK;
+    }
 }

@@ -134,6 +134,7 @@ typedef struct {
     int view;               /* APP_VIEW_*: SYS's view showing, any key leaves it */
     bool show;              /* unit 030: SHOW held: X's full mantissa in place of the stack */
     bool graphing;          /* unit 033: a graph's samples being computed, a slice at each tick */
+    struct app_graph *graph;    /* its buffer (the device's, in PSRAM: app_graph_buffer); NULL: none drawn */
     int show_key;           /* the key holding it: its release ends SHOW (app_key_up) */
     int key_now;            /* the key app_key is acting on */
     bool key_ups;           /* the device sends releases (app_key_up) from a keyboard that can roll from
@@ -166,6 +167,15 @@ uint32_t app_next_wake(const app_state *a, const pwr_inputs *in, uint32_t now_ms
 /* UNDO's two image buffers of cap bytes each (unit 021; the device's PSRAM): without them UNDO
    does nothing. */
 void app_undo_buffers(app_state *a, uint8_t *b0, uint8_t *b1, size_t cap);
+
+/* Unit 033: the graph's working buffer: the samples and what screen_render draws (about 13 KB). */
+typedef struct app_graph {
+    abn y[AB_GRAPH_W];
+    uint8_t ok[AB_GRAPH_W];
+    int16_t row[AB_GRAPH_W];
+    screen_graph s;
+} app_graph;
+void app_graph_buffer(app_state *a, app_graph *g);
 /* What the screen needs that the core does not hold. */
 void app_ui(const app_state *a, screen_ui *ui);
 /* The wall clock (unit 027 rule 4): secs since 1970 (UTC, shown as is) at now_ms on the app's clock;

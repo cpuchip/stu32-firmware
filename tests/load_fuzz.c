@@ -43,8 +43,9 @@ static void random_key(ab_calc *c)
     int arg = 0;
     if (below(16) == 0) {               /* unit 029: the model (STU among them), the entry, the line's keys */
         static const ab_op L[] = {AB_MODEL, AB_ENTRYM, AB_ANS, AB_HUP, AB_HDOWN,
-                                  AB_TABLE, AB_TVAR, AB_TSTART, AB_TSTEP, AB_TUP, AB_TDOWN};   /* (032) */
-        op = L[below(11)];
+                                  AB_TABLE, AB_TVAR, AB_TSTART, AB_TSTEP, AB_TUP, AB_TDOWN,    /* (032) */
+                                  AB_GRAPH, AB_XMIN, AB_XMAX, AB_YMIN, AB_YMAX, AB_GAUTO, AB_GLEFT, AB_GRIGHT};
+        op = L[below(19)];
         arg = op == AB_MODEL ? (int[]){33, 35, AB_MODEL_STU}[below(3)] : op == AB_ENTRYM ? (int)below(2) :
               op == AB_TVAR ? AB_VAR_A + (int)below(26) : 0;
     }
@@ -87,8 +88,8 @@ int main(int argc, char **argv)
 {
     long iters = argc > 1 ? atol(argv[1]) : 20000;
     static ab_calc c;
-    uint8_t *seeds[6];
-    size_t seedn[6];
+    uint8_t *seeds[7];
+    size_t seedn[7];
     long refused = 0, accepted = 0, bad = 0;
     if (argc > 2) rng = (strtoull(argv[2], NULL, 0) * 0x9E3779B97F4A7C15ull) | 1;
 
@@ -135,9 +136,17 @@ int main(int argc, char **argv)
         return 2;
     }
     seeds[5] = save(&c, &seedn[5]);
+    ab_do(&c, AB_CANCEL);                       /* unit 033: the table left, a graph open, the trace moved */
+    ab_do_arg(&c, AB_GRAPH, 0);
+    ab_do(&c, AB_GRIGHT);
+    if (!c.gr_on) {
+        fprintf(stderr, "load_fuzz: the graph seed did not open its graph\n");
+        return 2;
+    }
+    seeds[6] = save(&c, &seedn[6]);
 
     for (long it = 0; it < iters; it++) {
-        int s = (int)below(6);
+        int s = (int)below(7);
         size_t n = seedn[s], cap = n + 64;
         uint8_t *m = malloc(cap), *before, *after;
         size_t nb, na;
@@ -205,7 +214,7 @@ int main(int argc, char **argv)
         free(before);
         free(after);
     }
-    for (int i = 0; i < 6; i++) free(seeds[i]);
+    for (int i = 0; i < 7; i++) free(seeds[i]);
     printf("load_fuzz: %ld cases, %ld refused, %ld accepted, %ld violations\n", iters, refused, accepted, bad);
     return bad ? 1 : 0;
 }

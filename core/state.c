@@ -35,7 +35,7 @@ static const ab_op V1_OPS[] = {
 #define V1_N ((int)(sizeof V1_OPS / sizeof V1_OPS[0]))
 
 enum { T_MODES = 1, T_STACK, T_VARS, T_STAT, T_IND, T_PROG, T_EQNS, T_ENTRY, T_EDITOR, T_RUN, T_SOLVE, T_MODE25, T_ALG,
-       T_EQMODEL, T_TABLE };
+       T_EQMODEL, T_TABLE, T_GRAPH };
 
 #define BUILTIN2 "\x01" "2*2 lin. solve"
 #define BUILTIN3 "\x01" "3*3 lin. solve"
@@ -364,6 +364,18 @@ size_t ab_state_save(const ab_calc *c, uint8_t *buf, size_t cap)
     wi32(&w, c->tbl_k);
     sec_end(&w, s);
 
+    s = sec_begin(&w, T_GRAPH);                 /* version 9 (unit 033): GRAPH's window and the open graph */
+    wnum(&w, &c->gr_xmin);
+    wnum(&w, &c->gr_xmax);
+    wnum(&w, &c->gr_ymin);
+    wnum(&w, &c->gr_ymax);
+    w8(&w, c->gr_auto);
+    w8(&w, c->gr_on);
+    w8(&w, (unsigned)(uint8_t)(int8_t)c->gr_eq);
+    w8(&w, (unsigned)(uint8_t)(int8_t)c->gr_v);
+    w16(&w, (unsigned)c->gr_cur);
+    sec_end(&w, s);
+
     {
         size_t total = w.len + 4;
         for (int i = 0; i < 4; i++)
@@ -390,6 +402,7 @@ typedef struct {
     int peq_count;                  /* the program's equation lines (unit 031's section) */
     bool stu, typing_num;           /* what the TABLE section is checked against (unit 032) */
     bool entry_seen;                /* (rentry: the last entry read was active) */
+    bool table_on;                  /* an open table: no open graph beside it (unit 033) */
     int edit;
 } rd;
 
@@ -726,6 +739,7 @@ static void sec_table(rd *r)
                                                    with room for the three above it (review F4) */
         need(r, v >= 0 && eq >= 0 && eq < r->eqn_count && !r->builtin[eq] && r->stu && !r->prgm && !r->typing_num &&
                     k >= INT32_MIN + 3);
+    r->table_on = on && !r->bad;
     if (r->bad || !r->c) return;
     r->c->tbl_var = var;
     r->c->tbl_v = v;
@@ -735,6 +749,30 @@ static void sec_table(rd *r)
     r->c->tbl_on = on;
     r->c->tbl_eq = eq;
     r->c->tbl_k = k;
+}
+
+/* version 9 (unit 033): the window, the fit on, the open graph (its equation a listed one, its variable,
+   the trace column), as an open table is checked */
+static void sec_graph(rd *r)
+{
+    abn x0, x1, y0, y1;
+    rnum(r, &x0);
+    rnum(r, &x1);
+    rnum(r, &y0);
+    rnum(r, &y1);
+    unsigned au = r8(r), on = r8(r);
+    int eq = ri8(r), v = ri8(r), cur = (int)r16(r);
+    need(r, flag_byte(au) && flag_byte(on) && eq >= -1 && v >= -1 && v < 26 && cur < AB_GRAPH_W);
+    if (!r->bad && on)
+        need(r, v >= 0 && eq >= 0 && eq < r->eqn_count && !r->builtin[eq] && r->stu && !r->prgm && !r->typing_num &&
+                    !r->table_on);
+    if (r->bad || !r->c) return;
+    r->c->gr_xmin = x0, r->c->gr_xmax = x1, r->c->gr_ymin = y0, r->c->gr_ymax = y1;
+    r->c->gr_auto = au;
+    r->c->gr_on = on;
+    r->c->gr_eq = eq;
+    r->c->gr_v = v;
+    r->c->gr_cur = cur;
 }
 
 static void sec_vars(rd *r)
@@ -1023,7 +1061,7 @@ static bool parse(rd *r)
         unsigned tag = r16(r);
         uint32_t size = r32(r);
         size_t end;
-        if (r->bad || tag <= last || tag > T_TABLE || size > r->len - r->pos) return false;
+        if (r->bad || tag <= last || tag > T_GRAPH || size > r->len - r->pos) return false;
         last = tag;
         end = r->pos + size;
         switch (tag) {
@@ -1051,6 +1089,10 @@ static bool parse(rd *r)
             break;
         case T_TABLE:
             if (r->version >= 8) sec_table(r);
+            else r->pos = end;
+            break;
+        case T_GRAPH:
+            if (r->version >= 9) sec_graph(r);
             else r->pos = end;
             break;
         default: sec_solve(r); break;

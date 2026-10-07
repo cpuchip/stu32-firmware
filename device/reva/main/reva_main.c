@@ -562,6 +562,7 @@ void app_main(void)
             u0 = u1 = NULL;
         }
         app_undo_buffers(&app, u0, u1, IMAGE_CAP);
+        app_graph_buffer(&app, heap_caps_malloc(sizeof(app_graph), MALLOC_CAP_SPIRAM));   /* unit 033 */
     }
 
     /* unit 027: the clock from the RTC (it ran through deep sleep; unset after the cell was out) */

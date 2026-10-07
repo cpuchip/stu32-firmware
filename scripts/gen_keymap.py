@@ -150,6 +150,10 @@ MENUS = [
     ("TABLE", [p("VAR", "AB_TVAR", "KM_ARG_VAR"), o("START", "AB_TSTART"), o("STEP", "AB_TSTEP"), o("GO", "AB_TABLE"),
                NONE, NONE]),
     ("TABLE BAR", [o("\u25b2", "AB_TUP"), o("\u25bc", "AB_TDOWN"), NONE, NONE, NONE, NONE]),
+    # unit 033: GRAPH on blue 7: the window from X, AUTO, GO; while a graph is open its bar traces it
+    ("GRAPH", [o("XMIN", "AB_XMIN"), o("XMAX", "AB_XMAX"), o("YMIN", "AB_YMIN"), o("YMAX", "AB_YMAX"),
+               o("AUTO", "AB_GAUTO"), o("GO", "AB_GRAPH")]),
+    ("GRAPH BAR", [o("\u25c0", "AB_GLEFT"), o("\u25b6", "AB_GRIGHT"), NONE, NONE, NONE, NONE]),
     # unit 035 (review): a linear solution's X= Y= (Z=): up and down step among them (35s p.7-7)
     ("LIN VIEW", [o("\u25b2", "AB_BST"), o("\u25bc", "AB_SST"), NONE, NONE, NONE, NONE]),
     # unit 029 proposal 2: STU's expression line, chosen by the app as Equation mode's bars are: the

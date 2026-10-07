@@ -52,7 +52,7 @@
 #define GT911_ADDR 0x5D
 
 enum { EV_KEY = 0, EV_OP, EV_DUMP, EV_SAVE, EV_WIPE, EV_RESTART, EV_TOUCHED, EV_BENCH, EV_TIME, EV_POWBENCH,
-       EV_KEYUP, EV_TBLBENCH };                          /* EV_KEYUP: a the key released (unit 030: SHOW, held) */
+       EV_KEYUP, EV_TBLBENCH, EV_GRBENCH };                          /* EV_KEYUP: a the key released (unit 030: SHOW, held) */
 static char time_text[16];             /* TIME's argument, for the calc task (unit 027) */
 
 typedef struct {
@@ -337,6 +337,54 @@ static void tblbench(void)
     heap_caps_free(t);
 }
 
+/* Unit 033 rule 8: a full plot (400 samples and their rows), AUTO and Y set, for a typical equation and a
+   long one, on a calculator of its own (PSRAM), timed. */
+static void grbench(void)
+{
+    static const char *const E[][2] = {
+        {"typical", "X^3-6\xc3\x97X^2+4\xc3\x97X+12"},
+        {"sines", "SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+"
+                  "SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+SIN(X)+X"},
+        {"powers", "X^2.5+X^3.5+X^4.5+X^5.5+X^6.5+X^7.5+X^8.5+X^9.5+X^1.5+X^2.25+X^3.25+X^4.25+X^5.25+X^6.25+"
+                   "X^7.25+X^8.25+X^9.25+X^1.25+X^2.75+X^3.75+X^4.75+X^5.75+X^6.75+X^7.75+X^8.75+X^9"},
+    };
+    ab_calc *t = heap_caps_calloc(1, sizeof *t, MALLOC_CAP_SPIRAM);
+    app_graph *g = heap_caps_malloc(sizeof *g, MALLOC_CAP_SPIRAM);
+    if (!t || !g) {
+        printf("grbench: no memory\n");
+        return;
+    }
+    for (size_t i = 0; i < sizeof E / sizeof E[0]; i++) {
+        ab_init(t);
+        ab_do_arg(t, AB_MODEL, AB_MODEL_STU);
+        ab_eqn_add(t, E[i][1]);
+        ab_do(t, AB_EQN);
+        if (i > 0) {                            /* the powers need X > 0: 0.5..10 for all three past the first */
+            ab_do(t, AB_KPOINT); ab_do(t, AB_K5); ab_do_arg(t, AB_XMIN, 0);
+        }
+        abn_status go = ab_do(t, AB_GRAPH);
+        int64_t t0 = esp_timer_get_time();
+        bool okb[AB_GRAPH_W];
+        int fin = 0;
+        for (int k = 0; k < AB_GRAPH_W; k++) {
+            abn x;
+            ab_val v;
+            okb[k] = ab_graph_sample(t, k, &x, &v) == ABN_OK;
+            g->y[k] = v.re;
+            fin += okb[k];
+        }
+        abn lo, hi;
+        ab_graph_fit(g->y, okb, AB_GRAPH_W, &lo, &hi);
+        for (int k = 0; k < AB_GRAPH_W; k++)
+            if (okb[k]) g->row[k] = (int16_t)ab_graph_row(&g->y[k], &lo, &hi);
+        int64_t t1 = esp_timer_get_time();
+        printf("grbench: %-8s %3u bytes  a full plot (400 samples, fit, rows) %lld ms  (GO %d, %d finite)\n", E[i][0],
+               (unsigned)strlen(t->eqn[t->eqn_cur]), (long long)(t1 - t0) / 1000, (int)go, fin);
+    }
+    heap_caps_free(g);
+    heap_caps_free(t);
+}
+
 static void powbench(void)
 {
     static const char *const C[][3] = {
@@ -486,6 +534,7 @@ static void console_task(void *arg)
         else if (!strcmp(line, "BENCH")) e.kind = EV_BENCH;
         else if (!strcmp(line, "POWBENCH")) e.kind = EV_POWBENCH;
         else if (!strcmp(line, "TBLBENCH")) e.kind = EV_TBLBENCH;  /* unit 032 rule 7: a screenful's time */
+        else if (!strcmp(line, "GRBENCH")) e.kind = EV_GRBENCH;    /* unit 033 rule 8: a full plot's time */
         else if (!strncmp(line, "TIME ", 5)) {      /* TIME hh:mm[:ss] (unit 027 rule 4) */
             snprintf(time_text, sizeof time_text, "%.15s", line + 5);
             e.kind = EV_TIME;
@@ -532,6 +581,8 @@ static void calc_task(void *arg)
         } else if (got && ev.kind == EV_WIPE) {
             printf("wipe: %s\n", flash.ctx && esp_partition_erase_range(flash.ctx, 0, 2 * flash.slot_size) == ESP_OK
                                      ? "both slots erased" : "FAILED");
+        } else if (got && ev.kind == EV_GRBENCH) {
+            grbench();
         } else if (got && ev.kind == EV_TBLBENCH) {
             tblbench();
         } else if (got && ev.kind == EV_POWBENCH) {
@@ -638,6 +689,7 @@ void app_main(void)
             u0 = u1 = NULL;
         }
         app_undo_buffers(&app, u0, u1, IMAGE_CAP);
+        app_graph_buffer(&app, heap_caps_malloc(sizeof(app_graph), MALLOC_CAP_SPIRAM));   /* unit 033 */
     }
     printf("standin: heap internal %u (largest block %u), PSRAM %u\n",
            (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL),

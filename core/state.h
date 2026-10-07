@@ -22,12 +22,12 @@
 
 #include "calc.h"
 
-#define AB_STATE_VERSION 8      /* 2 (unit 017): the 33s/35s mode, the message, entries'
+#define AB_STATE_VERSION 9      /* 2 (unit 017): the 33s/35s mode, the message, entries'
                                    insertion points; 3 (unit 018): what the message says; 4: a
                                    keyboard VIEW's display (abacus #3982); 5 (unit 025): i, each
                                    label's mode, the message's mode; 6 (unit 029): STU, ALG, ANS (the
                                    history is RAM: not in the image); 7 (unit 031): each equation's
-                                   model; 8 (unit 032): TABLE's settings and the open table; an older image gives what it
+                                   model; 8 (unit 032): TABLE's settings and the open table; 9 (unit 033): GRAPH's window and the open graph; an older image gives what it
                                    lacks its default (its labels stamped with its own mode) */
 
 /* Writes the image into buf when it fits in cap; returns its length either way (call with cap 0

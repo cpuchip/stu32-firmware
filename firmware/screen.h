@@ -28,6 +28,21 @@
 #define SCREEN_SOFT 6
 
 /* What the device knows that the core does not. */
+/* Unit 033: a graph as the app has computed it so far, for screen_render: the columns done, and once the
+   window is known each column's drawn rows (lo > hi: none), the axes, the window's ends for the labels, the
+   trace column, the traced sample, and the plotted form's note ("L-R", the V of V=expr, "NO VALUES"). */
+typedef struct {
+    int done;
+    bool ready;
+    int16_t lo[AB_GRAPH_W], hi[AB_GRAPH_W];
+    int xrow, ycol, cur;
+    abn xmin, xmax, ymin, ymax;
+    abn cx;                         /* the trace: its x, its value or the error */
+    ab_val cy;
+    abn_status cst;
+    char note[12];
+} screen_graph;
+
 typedef struct {
     int shift;              /* 0 none, 1 gold, 2 blue (the layout's two shift keys) */
     int battery;            /* charge in percent, 0..100; -1 not read yet */
@@ -44,6 +59,7 @@ typedef struct {
     char clock[8];                  /* the status band's clock ("12:59", "--:--"); "" none (unit 027) */
     char ampm;                      /* 'a' or 'p' after a 12-hour clock, 0 none */
     const char *view[4];            /* a view in place of the stack (SYS, unit 027): its lines, NULL none */
+    const screen_graph *graph;      /* a graph open (unit 033), NULL none */
     int show_n;                     /* SHOW held (unit 030): its parts (ab_show_text), 0 none */
     char show[2][AB_SHOW_LEN];
 } screen_ui;

@@ -399,9 +399,10 @@ static void status_band(ls027_frame *f, const ab_calc *c, const screen_ui *ui, i
     else if (c->angle == AB_ANGLE_GRAD) screen_text(f, 72, 2, 2, "GRAD", true);
     if (c->base != 10) screen_text(f, 124, 2, 2, c->base == 16 ? "HEX" : c->base == 8 ? "OCT" : "BIN", true);
     if (c->tbl_on) screen_text(f, 164, 2, 2, "TABLE", true);  /* a table open (unit 032), over PRGM/EQN */
+    else if (c->gr_on) screen_text(f, 164, 2, 2, "GRAPH", true);  /* a graph open (unit 033) */
     else if (c->prgm) screen_text(f, 164, 2, 2, "PRGM", true);
     else if (c->stu) screen_text(f, 164, 2, 2, c->alg ? "ALG" : "RPN", true);   /* STU's entry (unit 029) */
-    if (c->eqn_mode && !c->tbl_on) screen_text(f, 216, 2, 2, "EQN", true);
+    if (c->eqn_mode && !c->tbl_on && !c->gr_on) screen_text(f, 216, 2, 2, "EQN", true);
     if (ind) screen_text(f, 255, 2, 2, ind > 0 ? "\xe2\x96\xb2" : "\xe2\x96\xbc", true);
     for (int n = 0; n <= 4; n++) {
         char d[2] = {(char)('0' + n), '\0'};
@@ -443,6 +444,64 @@ static void soft_band(ls027_frame *f, const screen_ui *ui)
         line_add(&l, s);
         draw_cps(f, x + (64 - span(n, 2)) / 2, SOFT_Y + 8, 2, l.cp, n, !on);
     }
+}
+
+/* A value in at most n cells, in the display format (a graph's labels and readout, unit 033). */
+static void short_val(const ab_calc *c, const screen_ui *ui, const ab_val *v, int n, char *out, int size)
+{
+    int ind;
+    ab_display d = display_of(c, ui, n);
+    if (val_text(v, &d, out, size, &ind) < 0) snprintf(out, (size_t)size, "?");
+}
+
+static void short_num(const ab_calc *c, const screen_ui *ui, const abn *a, int n, char *out, int size)
+{
+    ab_val v;
+    memset(&v, 0, sizeof v);
+    v.kind = AB_REAL;
+    v.re = *a;
+    short_val(c, ui, &v, n, out, size);
+}
+
+/* A graph (unit 033): the plot area (rows 21..205) with its axes and curve (or, while AUTO's samples are
+   computed, a progress bar along its bottom), XMIN and XMAX at the lower corners and YMAX and YMIN at the
+   left edge in the small font, the form's note at the top right, the trace's marks at the area's top and
+   bottom; the soft band: the bar's left and right, then the trace's x and value. */
+static void draw_graph(ls027_frame *f, const ab_calc *c, const screen_ui *ui)
+{
+    const screen_graph *g = ui->graph;
+    const int top = 21, Hh = AB_GRAPH_H;
+    char t[48], u[48];
+    if (g->ready) {
+        if (g->xrow >= 0) screen_fill(f, 0, top + g->xrow, W, 1, true);
+        if (g->ycol >= 0) screen_fill(f, g->ycol, top, 1, Hh, true);
+        for (int i = 0; i < g->done && i < AB_GRAPH_W; i++)
+            if (g->lo[i] <= g->hi[i]) screen_fill(f, i, top + g->lo[i], 1, g->hi[i] - g->lo[i] + 1, true);
+    } else {
+        screen_fill(f, 0, top + Hh - 2, g->done, 2, true);
+    }
+    short_num(c, ui, &g->xmin, 9, t, sizeof t);
+    screen_text(f, 0, top + Hh - 8, 1, t, true);
+    short_num(c, ui, &g->xmax, 9, t, sizeof t);
+    screen_text(f, W - 6 * screen_cells(t), top + Hh - 8, 1, t, true);
+    if (g->ready) {
+        short_num(c, ui, &g->ymax, 9, t, sizeof t);
+        screen_text(f, 0, top + 1, 1, t, true);
+        short_num(c, ui, &g->ymin, 9, t, sizeof t);
+        screen_text(f, 0, top + Hh - 17, 1, t, true);
+    }
+    if (g->note[0]) screen_text(f, W - 6 * screen_cells(g->note), top + 1, 1, g->note, true);
+    if (g->cur >= 0 && g->cur < AB_GRAPH_W) {
+        screen_fill(f, g->cur, top, 1, 3, true);
+        screen_fill(f, g->cur, top + Hh - 3, 1, 3, true);
+    }
+    soft_band(f, ui);
+    short_num(c, ui, &g->cx, 12, t, sizeof t);
+    if (g->cst != ABN_OK) snprintf(u, sizeof u, "%s", ab_status_message(g->cst));
+    else short_val(c, ui, &g->cy, 12, u, sizeof u);
+    char r[100];
+    snprintf(r, sizeof r, "x=%s y=%s", t, u);
+    screen_text(f, 136, SOFT_Y + 11, 1, r, true);
 }
 
 /* A table's row (unit 032): the variable's value at the left, the equation's value at the right (or the
@@ -705,9 +764,10 @@ void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
     if (st->angle) parts[np++] = st->angle;
     if (st->base) parts[np++] = st->base;
     if (c->tbl_on) parts[np++] = "TABLE";      /* unit 032 */
+    else if (c->gr_on) parts[np++] = "GRAPH";  /* unit 033 */
     else if (st->prgm) parts[np++] = "PRGM";
     else if (st->entry) parts[np++] = st->entry;
-    if (st->eqn && !c->tbl_on) parts[np++] = "EQN";
+    if (st->eqn && !c->tbl_on && !c->gr_on) parts[np++] = "EQN";
     if (st->frac) parts[np++] = st->frac > 0 ? "\xe2\x96\xb2" : "\xe2\x96\xbc";
     if (nf) parts[np++] = st->flags;
     parts[np++] = st->model;
@@ -728,6 +788,10 @@ void screen_render(const ab_calc *c, const screen_ui *ui, ls027_frame *f)
     screen_clear(f);
     compose(c, ui, k);
     status_band(f, c, ui, k->ind);
+    if (c->gr_on && ui->graph) {                /* a graph in place of the stack (unit 033) */
+        draw_graph(f, c, ui);
+        return;
+    }
     if (k->table) {                             /* a table: four rows at scale 2 (unit 032) */
         draw_line(f, BOT_T, 2, &k->t, true);
         draw_line(f, BOT_Z, 2, &k->z, true);

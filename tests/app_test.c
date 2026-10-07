@@ -1291,6 +1291,8 @@ int main(void)
         c.stu = c.m35 = true;
         ab_eqn_add(&c, "X^2-30");
         ab_do(&c, AB_EQN);
+        static app_graph gbuf;
+        app_graph_buffer(&a, &gbuf);
         press(&a, "BLUE 7 k:5");
         for (int i = 0; i < 200 && a.graphing; i++) app_tick(&a, &(pwr_inputs){false, false, 80, false}, now);
         app_ui(&a, &ui);
@@ -1306,12 +1308,63 @@ int main(void)
             for (int r = 0; r < AB_GRAPH_H; r++) {
                 int y = 21 + r;
                 bool dark = fr.px[y][col / 8] >> (col % 8) & 1;
+                if (col == c.gr_cur) continue;  /* (the trace's marks: not the model's) */
                 bool want = (any && r >= rl && r <= rh) || r == xrow || col == ycol;
                 wrong += dark != want;
             }
         }
         expect(c.gr_on && drawn > 250 && wrong == 0, "033: the frame's plot area is the model's rows and axes");
+        /* the trace through the keys: the bar's right moves it; ENTER takes its value and leaves */
+        abn tx;
+        ab_val ty;
+        press(&a, "k:1");
+        ab_graph_sample(&c, 201, &tx, &ty);
+        expect(c.gr_cur == 201, "033: the bar's right moves the trace a column");
+        press(&a, "ENTER");
+        expect(!c.gr_on && !a.graphing && abn_cmp(&c.x.re, &ty.re) == 0, "033: ENTER takes the traced value into X");
+        /* Y set: the columns draw as they're computed, a slice a tick (rule 8) */
+        press(&a, "5 +/\xe2\x88\x92 BLUE 7 k:2 5 0 BLUE 7 k:3 BLUE 7 k:5");
+        app_tick(&a, &(pwr_inputs){false, false, 80, false}, now);
+        expect(c.gr_on && a.graphing && gbuf.s.ready && gbuf.s.done == 8, "033: Y set: drawing as computed (8 columns a tick)");
+        /* C interrupts: the graph left, nothing computed further, the variable as it was */
+        ab_val keep = c.var[23];
         press(&a, "C");
+        app_tick(&a, &(pwr_inputs){false, false, 80, false}, now);
+        expect(!c.gr_on && !a.graphing && gbuf.s.done == 8 && !memcmp(&keep, &c.var[23], sizeof keep),
+               "033: C interrupts a plot, the variable kept");
+        /* AUTO: the samples first, the window unknown until all are in */
+        press(&a, "BLUE 7 k:4 BLUE 7 k:5");
+        app_tick(&a, &(pwr_inputs){false, false, 80, false}, now);
+        expect(c.gr_on && a.graphing && !gbuf.s.ready, "033: AUTO: samples first, under a progress bar");
+        for (int i = 0; i < 200 && a.graphing; i++) app_tick(&a, &(pwr_inputs){false, false, 80, false}, now);
+        expect(gbuf.s.ready && gbuf.s.done == AB_GRAPH_W, "033: AUTO: then the fit and the drawing");
+        press(&a, "C");
+        {   /* the fit alone (answer 2): an overflowed sample left out; a constant +-1; none finite -10..10;
+               huge values clamp to the largest instead of overflowing */
+            abn yv[3] = {abn_largest(), abn_from_int(1), abn_from_int(2)}, lo2, hi2, want_lo, want_hi;
+            bool okv[3] = {true, true, true};
+            ab_graph_fit(yv, okv, 3, &lo2, &hi2);
+            abn_from_text(&want_lo, "0.95");
+            abn_from_text(&want_hi, "2.05");
+            expect(abn_cmp(&lo2, &want_lo) == 0 && abn_cmp(&hi2, &want_hi) == 0, "033: an overflowed sample is left out of the fit");
+            okv[1] = okv[2] = false;
+            ab_graph_fit(yv, okv, 3, &lo2, &hi2);
+            want_lo = abn_from_int(-10);
+            want_hi = abn_from_int(10);
+            expect(abn_cmp(&lo2, &want_lo) == 0 && abn_cmp(&hi2, &want_hi) == 0, "033: no finite sample: -10..10");
+            abn_from_text(&yv[0], "-9E6144");
+            abn_from_text(&yv[1], "9E6144");
+            okv[0] = okv[1] = true;
+            ab_graph_fit(yv, okv, 2, &lo2, &hi2);
+            abn_from_text(&want_lo, "-9.5E6144");     /* the span clamps to the largest, 5% of it is 5E6143 */
+            abn_from_text(&want_hi, "9.5E6144");
+            expect(abn_cmp(&lo2, &want_lo) == 0 && abn_cmp(&hi2, &want_hi) == 0,
+                   "033: a span past the range clamps to the largest (the window +-9.5E6144)");
+        }
+        c.stu = false;
+        press(&a, "BLUE 7 k:5");
+        app_ui(&a, &ui);
+        expect(!c.gr_on && ui.notice && !strcmp(ui.notice, "STU ONLY"), "033: 35s mode: STU ONLY briefly");
     }
 
     /* unit 035: after a keyboard SOLVE the root is VIEWed (W=3.5000), no prompt on Y; the next key gives
