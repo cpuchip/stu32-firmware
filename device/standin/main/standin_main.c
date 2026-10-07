@@ -52,7 +52,8 @@
 #define GT911_ADDR 0x5D
 
 enum { EV_KEY = 0, EV_OP, EV_DUMP, EV_SAVE, EV_WIPE, EV_RESTART, EV_TOUCHED, EV_BENCH, EV_TIME, EV_POWBENCH,
-       EV_KEYUP, EV_TBLBENCH, EV_GRBENCH, EV_FRAMEBENCH };                          /* EV_KEYUP: a the key released (unit 030: SHOW, held) */
+       EV_KEYUP, EV_TBLBENCH, EV_GRBENCH, EV_FRAMEBENCH,
+       EV_POLBENCH };                          /* EV_KEYUP: a the key released (unit 030: SHOW, held) */
 static char time_text[16];             /* TIME's argument, for the calc task (unit 027) */
 
 typedef struct {
@@ -442,6 +443,50 @@ static void powbench(void)
     printf("powbench: done\n");
 }
 
+/* POLBENCH (unit 034 rule 3): ->POL's time on the S3, before (the engine's hypot and atan2, and in DEG the one
+   product, which was fn_topol's route) and after (fn_topol: hp_hypot, hp_atan2 at 56 digits rounded once); and
+   ->REC's in RAD, fn_torec now. Non-integer arguments (a benchmark lesson of unit 032). */
+static void polbench(void)
+{
+    static const char *const C[][3] = {
+        {"typical", "3.7", "2.5"},
+        {"typed, quadrant 2", "-923.37", "72.68"},
+        {"34 digits", "1.234567890123456789012345678901234", "-9.876543210987654321098765432109876"},
+        {"near an axis", "6.3553389498124625953E-755", "-8.9764145955087792958E2042"},
+        {"range ends", "7.6297677379534555E6140", "-2.0816875126460719E6144"},
+    };
+    for (size_t i = 0; i < sizeof C / sizeof C[0]; i++) {
+        abn x, y, r, th, d;
+        abn_from_text(&x, C[i][1]);
+        abn_from_text(&y, C[i][2]);
+        abn_from_text(&d, "57.29577951308232087679815481410517");
+        const int reps = 50;
+        int64_t t0 = esp_timer_get_time();
+        for (int n = 0; n < reps; n++) {
+            abn_hypot(&r, &x, &y);
+            abn_atan2(&th, &y, &x);
+            abn_mul(&th, &th, &d);
+        }
+        int64_t t1 = esp_timer_get_time();
+        abn_status s1 = ABN_OK, s2 = ABN_OK;
+        for (int n = 0; n < reps; n++) {
+            int m = ar_mark();
+            s1 = fn_topol(&r, &th, &x, &y, FN_DEG);
+            ar_release(m);
+        }
+        int64_t t2 = esp_timer_get_time();
+        for (int n = 0; n < reps; n++) {
+            int m = ar_mark();
+            s2 = fn_torec(&r, &th, &x, &y, FN_RAD);
+            ar_release(m);
+        }
+        int64_t t3 = esp_timer_get_time();
+        printf("polbench: %-18s before %lld us  ->POL DEG %lld us (st %d)  ->REC RAD %lld us (st %d)\n", C[i][0],
+               (long long)(t1 - t0) / reps, (long long)(t2 - t1) / reps, (int)s1, (long long)(t3 - t2) / reps, (int)s2);
+    }
+    printf("polbench: done\n");
+}
+
 /* BENCH: what PSRAM costs and gives (decision 34's ECC question: measure before turning it on). A
    second calculator in PSRAM, as Rev A's two-calculator state would be; a 2,000-line program run in
    it (its arena pool in PSRAM too); 200 saves and loads of the state image in PSRAM. */
@@ -559,6 +604,7 @@ static void console_task(void *arg)
         else if (!strcmp(line, "TBLBENCH")) e.kind = EV_TBLBENCH;  /* unit 032 rule 7: a screenful's time */
         else if (!strcmp(line, "GRBENCH")) e.kind = EV_GRBENCH;    /* unit 033 rule 8: a full plot's time */
         else if (!strcmp(line, "FRAMEBENCH")) e.kind = EV_FRAMEBENCH;  /* unit 037 rule 6: full frames a second */
+        else if (!strcmp(line, "POLBENCH")) e.kind = EV_POLBENCH;  /* unit 034 rule 3: ->POL before and after */
         else if (!strncmp(line, "TIME ", 5)) {      /* TIME hh:mm[:ss] (unit 027 rule 4) */
             snprintf(time_text, sizeof time_text, "%.15s", line + 5);
             e.kind = EV_TIME;
@@ -619,6 +665,8 @@ static void calc_task(void *arg)
             tblbench();
         } else if (got && ev.kind == EV_POWBENCH) {
             powbench();
+        } else if (got && ev.kind == EV_POLBENCH) {
+            polbench();
         } else if (got && ev.kind == EV_BENCH) {
             bench();
         } else if (got && ev.kind == EV_TIME) {
