@@ -1,0 +1,54 @@
+# Unit 031 (work/031-stu-powers-right-to-left.md and its Answers): STU's ^ right to left, equations stamped with the
+# model they were typed in (route a), and implied multiplication in STU with the x written in. Keys as unit 029
+# ("-" on a line is the minus, () a pair with the cursor inside, > steps out); EQ:text stores an equation as typed
+# in the mode in force; %EQ the equation shown, %LINE the ALG line, %HSEL the history entry shown.
+G01 | rule 1: 2^3^2 on STU's ALG line is 2^(3^2) = 512 | STU ALG 2 POW 3 POW 2 ENTER | N=512 %LINE=2^3^2
+G02 | rule 1: in STU Equation mode | STU EQ:2^3^2 C EQN XEQ | X=512
+G03 | rule 2: 35s mode keeps left to right (014 O03) | MODE35 EQ:2^3^2 C EQN XEQ | X=64
+G04 | rule 2: 33s mode keeps left to right | MODE33 EQ:2^3^2 C EQN XEQ | X=64
+G05 | rule 3: typed in STU, evaluated in 35s mode: still 512 | STU EQ:2^3^2 MODE35 C EQN XEQ | X=512
+G06 | rule 3: typed in 35s mode, evaluated in STU: still 64 | MODE35 EQ:2^3^2 STU C EQN XEQ | X=64
+G07 | rule 1: a program's equation line typed in STU, run in 35s mode | STU PRGM CLPGM LBL:A EQN 2 POW 3 POW 2 ENTER RTN PRGM MODE35 XEQ:A | X=512
+G08 | rule 3: a program's equation line typed in 35s mode, run in STU | MODE35 PRGM CLPGM LBL:A EQN 2 POW 3 POW 2 ENTER RTN PRGM STU XEQ:A | X=64
+G09 | answer B: a 35s label restamped to STU keeps its equation line's stamp | MODE35 PRGM CLPGM LBL:A EQN 2 POW 3 POW 2 ENTER RTN BST BST STU PRGM XEQ:A | X=64
+G10 | a four-high chain in STU: 2^(1^(2^3)) = 2 | STU ALG 2 POW 1 POW 2 POW 3 ENTER | N=2
+G11 | the same in 35s mode: ((2^1)^2)^3 = 64 | MODE35 EQ:2^1^2^3 C EQN XEQ | X=64
+G12 | the same in 33s mode | MODE33 EQ:2^1^2^3 C EQN XEQ | X=64
+G13 | rule 4: -2^2 = -4 in STU | STU ALG - 2 POW 2 ENTER | N=-4
+G14 | rule 4: -2^2 = -4 in 35s mode | MODE35 EQ:-2^2 C EQN XEQ | X=-4
+G15 | rule 4: -2^2 = -4 in 33s mode | MODE33 EQ:-2^2 C EQN XEQ | X=-4
+G16 | rule 4: 2^-2 = 0.25 in STU | STU ALG 2 POW - 2 ENTER | N=0.25
+G17 | answer A: the stamp survives the state image (version 7) | STU EQ:2^3^2 SAVE MEMCLR LOAD MODE35 C EQN XEQ | X=512
+G18 | rule 1: a parenthesised chain unchanged: (2^3)^2 = 64 in STU | STU ALG () 2 POW 3 > POW 2 ENTER | N=64
+I01 | rule 5: 2A, the x written into the line at = (rule 7, answer K) | 5 STO:A STU ALG 2 RCL:A ENTER | N=10 %LINE=2×A
+I02 | rule 5: 2(3) | STU ALG 2 () 3 > ENTER | N=6 %LINE=2×(3)
+I03 | rule 5: 2SIN(X) (degrees) | 30 STO:X STU ALG 2 SIN RCL:X > ENTER | N=1 %LINE=2×SIN(X)
+I04 | rule 5: (A+1)(A-1) | 5 STO:A STU ALG () RCL:A + 1 > () RCL:A - 1 > ENTER | N=24 %LINE=(A+1)×(A-1)
+I05 | rule 5: (A+1)B | 5 STO:A 3 STO:B STU ALG () RCL:A + 1 > RCL:B ENTER | N=18 %LINE=(A+1)×B
+I06 | rule 5: A(B+1) | 5 STO:A 3 STO:B STU ALG RCL:A () RCL:B + 1 > ENTER | N=20 %LINE=A×(B+1)
+I07 | rule 5: XSIN(X) is X times SIN(X) | 30 STO:X STU ALG RCL:X SIN RCL:X > ENTER | N=15 %LINE=X×SIN(X)
+I08 | rule 5: AB | 5 STO:A 3 STO:B STU ALG RCL:A RCL:B ENTER | N=15 %LINE=A×B
+I09 | rule 6: 1/2A is (1/2)xA = A/2 | 4 STO:A STU ALG 1 / 2 RCL:A ENTER | N=2 %LINE=1÷2×A
+I10 | rule 6: 2A^2 is 2x(A^2) | 3 STO:A STU ALG 2 RCL:A POW 2 ENTER | N=18 %LINE=2×A^2
+I11 | rule 7: a stored STU equation keeps its x | STU EQ:(A+1)(A-1) | %EQ=(A+1)×(A-1)
+I12 | rule 7: typed in STU Equation mode from the keys | STU EQN 2 RCL:A ENTER | %EQ=2×A
+I13 | rule 7: the history shows what was computed | 5 STO:A STU ALG 2 RCL:A ENTER HUP | %HSEL=2×A
+I14 | rule 7, rule 3: the stored text means the same in 35s mode | 5 STO:A STU EQ:2A MODE35 C EQN XEQ RS | X=10
+I15 | rule 8: 2E3 is 2000 | STU ALG 2 E 3 ENTER | N=2000 %LINE=2E3
+I16 | rule 8: 2E is an unfinished exponent | STU ALG 2 E ENTER | ERR %ERR=SYNTAX
+I17 | answer E: ASIN( is the arcsine, not AxSIN( | STU EQ:ASIN(1) C EQN XEQ | X=90 %EQ=ASIN(1)
+I18 | answer E: AASIN( is AxASIN( | 2 STO:A STU EQ:AASIN(1) C EQN XEQ RS | X=180 %EQ=A×ASIN(1)
+I19 | answer E: ALOG( is 10^x | STU EQ:ALOG(2) C EQN XEQ | X=100
+I20 | answer F: 2EXP(1) is SYNTAX | STU ALG 2 EXP 1 > ENTER | ERR %ERR=SYNTAX
+I21 | answer G: 10b is binary 2 | STU ALG 1 0 SUF:b ENTER | N=2
+I22 | answer G: 12b is SYNTAX, not 12xb | STU ALG 1 2 SUF:b ENTER | ERR %ERR=SYNTAX
+I23 | answer G: 2n is 2xn (the statistics count) | 1 SIGMA+ 1 SIGMA+ 1 SIGMA+ STU ALG 2 NSUM ENTER | N=6 %LINE=2×n
+I24 | answer D: A2 stays SYNTAX (a number never follows implicitly) | STU ALG RCL:A 2 ENTER | ERR %ERR=SYNTAX
+I25 | answer D: (A+1)2 stays SYNTAX | STU ALG () RCL:A + 1 > 2 ENTER | ERR %ERR=SYNTAX
+I26 | answer H: no implied x across a space | STU ALG 2 SPACE RCL:A ENTER | ERR %ERR=SYNTAX
+I27 | answer I: writing the x in would overflow: refused, the text unchanged | STU EQ:ABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABAB | ERR %ERR=MEMORY_FULL %EQN=0
+I28 | answer J: a message (not parseable) is stored as typed, stamped STU | STU EQ:HELLO_THERE | %EQ=HELLO_THERE %EQN=1
+I29 | rule 5: 33s mode keeps SYNTAX for 2A | 5 STO:A MODE33 EQ:2A C EQN XEQ RS | ERR %ERR=SYNTAX
+I30 | rule 5: 35s mode keeps SYNTAX for 2A | 5 STO:A MODE35 EQ:2A C EQN XEQ RS | ERR %ERR=SYNTAX
+I31 | rule 5 with constants: 2pi | STU ALG 2 PI ENTER | N#6.283185307179586476925286766559006,1E-30 %LINE=2×π
+I32 | rule 5 on the ALG line: 2ANS | STU ALG 3 ENTER 2 ANS ENTER | N=6 %LINE=2×ANS

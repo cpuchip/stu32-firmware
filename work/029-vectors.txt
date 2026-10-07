@@ -20,7 +20,7 @@ L08 | rule 3: after a result an operator starts the line with ANS | STU ALG 2 + 
 L09 | rule 3: after a result ^ too: ANS^2 | STU ALG 3 ENTER POW 2 ENTER | %LINE=ANS^2 N=9
 L10 | rule 3: after a result a function starts a new line | STU ALG 4 ENTER SQRT 9 ENTER | %LINE=SQRT(9) N=3
 L11 | rule 3: C clears the line, the history kept | STU ALG 2 ENTER 3 + C | %LINE= %HIST=1
-L12 | rule 3: precedence (decided 153d606): powers left to right, power before unary minus | STU ALG 2 POW 3 POW 2 ENTER | N=64
+L12 | rule 3: precedence: powers right to left in STU (amended in place by unit 031, decision 52: was left to right, 64, decided 153d606) | STU ALG 2 POW 3 POW 2 ENTER | N=512
 L13 | rule 3: -2^2 is -4 (35s p.6-14: power before unary minus) | STU ALG - 2 POW 2 ENTER | N=-4
 L14 | rule 3: the angle unit in force: radians | STU ALG RAD COS 0 ENTER | N=1
 A01 | rule 4: ANS is 0 at its first use | STU ALG ANS + 1 ENTER | N=1 %LINE=ANS+1
