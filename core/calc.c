@@ -3561,6 +3561,12 @@ static abn_status alg_key(ab_calc *c, ab_op op, int arg)
             c->alg_shown = false;
             return ABN_OK;
         }
+        if (!c->ebuf[0]) {                          /* an empty line: the most recent history line again,
+                                                       nothing with none (029b) */
+            if (c->hist_n == 0) return ABN_OK;
+            snprintf(c->ebuf, sizeof c->ebuf, "%s", c->hist[c->hist_n - 1]);
+            c->ecur = (int)strlen(c->ebuf);
+        }
         return alg_evaluate(c);
     case AB_KLEFT:
     case AB_KRIGHT:
@@ -3580,10 +3586,16 @@ static abn_status alg_key(ab_calc *c, ab_op op, int arg)
         ed_backspace(c);
         return ABN_OK;
     case AB_STO: {
-        /* after a result, ANS; with a line typed, the line evaluated first (ours, rule 8) */
+        /* what X's place shows: an entry shown, its result (029b); after a result, ANS; with a line
+           typed, the line evaluated first (ours, rule 8) */
         abn_status st;
-        if (!c->alg_shown && c->ebuf[0] && (st = alg_evaluate(c)) != ABN_OK) return st;
         slot sl;
+        if (c->hist_at >= 0) {
+            ab_val v = c->hist_val[c->hist_at];
+            if ((st = resolve(c, arg, false, &sl)) != ABN_OK) return st;
+            return store_val(c, &sl, v);
+        }
+        if (!c->alg_shown && c->ebuf[0] && (st = alg_evaluate(c)) != ABN_OK) return st;
         if ((st = resolve(c, arg, false, &sl)) != ABN_OK) return st;
         return store_val(c, &sl, c->ans);
     }
