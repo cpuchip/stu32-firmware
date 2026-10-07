@@ -36,11 +36,24 @@ build/keymap_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) firmware/keymap.c firmwar
 	$(CC) $(CFLAGS) -Icore -Ifirmware -o $@ $(CORE) $(SCREEN) firmware/keymap.c firmware/keys.c tests/keymap_test.c $(ENGINE) $(LIBS)
 
 APP := firmware/app.c firmware/apps.c firmware/keymap.c firmware/keys.c firmware/power.c firmware/settings.c firmware/piezo.c
-build/app_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) $(APP) firmware/app.h firmware/keymap.h firmware/power.h firmware/screen.h tests/app_test.c | build
-	$(CC) $(CFLAGS) -Icore -Ifirmware -o $@ $(CORE) $(SCREEN) $(APP) tests/app_test.c $(ENGINE) $(LIBS)
+# Babal, an app under APPS from stu32-arcade at ARCADE_PIN (scripts/fetch-arcade.sh); its sources
+# build with -ffp-contract=off, as its oracle requires (no fused multiply-adds), and nothing else does.
+ARCADE_C := $(addprefix build/arcade/babal/,chacha20.c fake_input.c input_jump.c input_steer.c level.c maths.c \
+	player.c player_event.c points_counter.c row.c row_generator.c skill.c slab.c time_tracker.c timeval.c vec3.c) \
+	build/arcade/app/babal_app.c build/arcade/app/render.c
+ARCADE_O := $(ARCADE_C:build/arcade/%.c=build/arcade-o/%.o)
+ARCADE_INC := -Ibuild/arcade/babal -Ibuild/arcade/app
+build/arcade/.pin: ARCADE_PIN
+	scripts/fetch-arcade.sh
+$(ARCADE_C): build/arcade/.pin
+build/arcade-o/%.o: build/arcade/%.c build/arcade/.pin
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -ffp-contract=off -Ifirmware $(ARCADE_INC) -c $< -o $@
+build/app_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) $(APP) $(ARCADE_O) firmware/app.h firmware/keymap.h firmware/power.h firmware/screen.h tests/app_test.c | build
+	$(CC) $(CFLAGS) -Icore -Ifirmware $(ARCADE_INC) -o $@ $(CORE) $(SCREEN) $(APP) $(ARCADE_O) tests/app_test.c $(ENGINE) $(LIBS)
 
-build/standin_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) $(APP) firmware/standin.c firmware/standin.h firmware/app.h firmware/keymap.h firmware/screen.h tests/standin_test.c | build
-	$(CC) $(CFLAGS) -Icore -Ifirmware -o $@ $(CORE) $(SCREEN) $(APP) firmware/standin.c tests/standin_test.c $(ENGINE) $(LIBS)
+build/standin_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) $(APP) $(ARCADE_O) firmware/standin.c firmware/standin.h firmware/app.h firmware/keymap.h firmware/screen.h tests/standin_test.c | build
+	$(CC) $(CFLAGS) -Icore -Ifirmware $(ARCADE_INC) -o $@ $(CORE) $(SCREEN) $(APP) $(ARCADE_O) firmware/standin.c tests/standin_test.c $(ENGINE) $(LIBS)
 
 build/power_test: firmware/gauge.c firmware/gauge.h firmware/power.c firmware/power.h firmware/pins.c firmware/pins.h firmware/piezo.c firmware/piezo.h tests/power_test.c | build
 	$(CC) $(CFLAGS) -Ifirmware -o $@ firmware/gauge.c firmware/power.c firmware/pins.c firmware/piezo.c tests/power_test.c -lm

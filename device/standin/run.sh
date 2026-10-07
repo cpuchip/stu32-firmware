@@ -12,6 +12,7 @@ SCRIPT="${2:-}"
 IMAGE="espressif/idf:v5.4.2"
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 mkdir -p "$ROOT/build"
+[ "${FLASH:-1}" = 1 ] && "$ROOT/scripts/fetch-arcade.sh"
 docker run --rm -i -v "$ROOT:/project" -w /project \
     --user "$(id -u):$(id -g)" --group-add "$(stat -c %g "$PORT")" --device "$PORT" \
     -e HOME=/tmp -e PORT="$PORT" -e FLASH="${FLASH:-1}" -e SCRIPT="$SCRIPT" "$IMAGE" bash -c '

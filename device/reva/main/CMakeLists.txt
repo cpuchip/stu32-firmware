@@ -9,11 +9,22 @@ else()
     file(GLOB CORE_SRCS CONFIGURE_DEPENDS "${REPO}/core/*.c")
 endif()
 set(FW "${REPO}/firmware")
+# Babal (stu32-arcade at ARCADE_PIN), exported by scripts/fetch-arcade.sh before the build
+set(ARCADE "${REPO}/build/arcade")
+if(NOT EXISTS "${ARCADE}/.pin")
+    message(FATAL_ERROR "no ${ARCADE}: run scripts/fetch-arcade.sh")
+endif()
+file(GLOB ARCADE_SRCS "${ARCADE}/babal/*.c")
+list(APPEND ARCADE_SRCS "${ARCADE}/app/babal_app.c" "${ARCADE}/app/render.c")
+if(NOT CMAKE_SCRIPT_MODE_FILE)  # not allowed while IDF expands requirements in script mode
+    set_source_files_properties(${ARCADE_SRCS} PROPERTIES COMPILE_OPTIONS "-ffp-contract=off")
+endif()
 
 idf_component_register(
     SRCS reva_main.c ${CORE_SRCS} "${FW}/screen.c" "${FW}/font5x7.c" "${FW}/app.c" "${FW}/apps.c" "${FW}/keymap.c"
          "${FW}/keys.c" "${FW}/power.c" "${FW}/store.c" "${FW}/ls027.c" "${FW}/gauge.c" "${FW}/pins.c" "${FW}/piezo.c" "${FW}/settings.c"
-    INCLUDE_DIRS . "${REPO}/core" "${FW}" "${REPO}/device"
+         ${ARCADE_SRCS}
+    INCLUDE_DIRS . "${REPO}/core" "${FW}" "${REPO}/device" "${ARCADE}/babal" "${ARCADE}/app"
     REQUIRES esp_driver_spi esp_driver_i2c esp_driver_gpio esp_driver_ledc esp_psram esp_partition esp_timer ulp esp_hw_support)
 
 set(ulp_app_name ulp_${COMPONENT_NAME})
