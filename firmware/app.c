@@ -31,6 +31,21 @@ static void prompt_close(app_state *a)
     a->prompt_tens = false;
     a->prompt_n = a->prompt_val = 0;
     a->prompt_text[0] = '\0';
+    a->gto_dot = 0;
+}
+
+/* GTO's address form (unit 036): "GTO ._", then "GTO .A___" with the digits so far (three in 35s and STU
+   mode, 35s p.14-6; four in 33s mode, 33s p.13-5). */
+static void gto_text(app_state *a)
+{
+    int need = a->c->m35 ? 3 : 4;
+    char d[8] = "";
+    if (a->gto_dot == 1) {
+        snprintf(a->prompt_text, sizeof a->prompt_text, "GTO ._");
+        return;
+    }
+    if (a->prompt_n) snprintf(d, sizeof d, "%0*d", a->prompt_n, a->prompt_val);
+    snprintf(a->prompt_text, sizeof a->prompt_text, "GTO .%c%s%s", 'A' + a->gto_label, d, &"____"[4 - (need - a->prompt_n)]);
 }
 
 /* "STO _", "STO+ _": the op's name as listed (UG Appendix G; list.c's spacing), then the cursor */
@@ -331,6 +346,60 @@ void app_key(app_state *a, int key, uint32_t now_ms)
             prompt_close(a);
         }
         return;
+    }
+    if (a->prompt_op == AB_GTO && a->prompt_kind == KM_ARG_TARGET) {
+        /* GTO . from the keyboard (unit 036; 33s p.13-5, 35s p.14-6): . . to PRGM TOP; . label and the
+           line's digits to that line, the pointer only (AB_GTOPOS: never a line, in program entry too);
+           backspace steps back, C backs out */
+        int need = a->c->m35 ? 3 : 4;
+        bool dot = face->kind == KM_OP && face->op == AB_KPOINT && a->shift == 0;
+        bool bk = face->kind == KM_OP && face->op == AB_KBKSP, cancel = face->kind == KM_OP && face->op == AB_CANCEL;
+        if (a->gto_dot == 0 && dot) {
+            a->gto_dot = 1;
+            gto_text(a);
+            return;
+        }
+        if (a->gto_dot == 1) {
+            const km_letter *l = km_letter_of(key);
+            if (dot) {
+                prompt_close(a);
+                do_op(a, AB_GTOPOS, AB_PC_TOP);
+            } else if (bk) {
+                a->gto_dot = 0;
+                prompt_open(a, AB_GTO, KM_ARG_TARGET);
+            } else if (cancel) {
+                prompt_close(a);
+            } else if (l->kind == KL_LETTER) {
+                a->gto_dot = 2;
+                a->gto_label = l->value;
+                a->prompt_n = a->prompt_val = 0;
+                gto_text(a);
+            }
+            return;
+        }
+        if (a->gto_dot == 2) {
+            if (face->kind == KM_OP && face->op >= AB_K0 && face->op <= AB_K9) {
+                a->prompt_val = a->prompt_val * 10 + face->op - AB_K0;
+                if (++a->prompt_n == need) {
+                    int line = a->prompt_val, lab = a->gto_label;
+                    prompt_close(a);
+                    do_op(a, AB_GTOPOS, line >= 1 && line <= 999 ? lab * 1000 + line : -2);   /* -2: NONEXISTENT */
+                } else {
+                    gto_text(a);
+                }
+            } else if (bk) {
+                if (a->prompt_n > 0) {
+                    a->prompt_n--;
+                    a->prompt_val /= 10;
+                } else {
+                    a->gto_dot = 1;
+                }
+                gto_text(a);
+            } else if (cancel) {
+                prompt_close(a);
+            }
+            return;
+        }
     }
     if (a->prompt_op >= 0) {                    /* the letter layer */
         const km_letter *l = km_letter_of(key);
