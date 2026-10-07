@@ -1,0 +1,47 @@
+# Unit 041 Part D (abacus decisions 56, 58; #4879/#4880): the 33s's equation syntax in 33s-stamped equations, per the
+# 33s guide p.6-5, 6-15, 6-16 (rendered): the colon separates a function's arguments (p.6-5: the 35s's comma in 35s and
+# STU); CB and CBRT (x³, ∛x); →HR (the 35s's HMS→); Cn,r and Pn,r (nCr, nPr); RANDOM (RAND); RND with two arguments
+# (PROVISIONAL, abacus #4880: p.6-15 lists it two-argument with no meaning, p.6-14 one-argument; read as x rounded as the
+# display mode would with digit setting n, pending the field check on Michael's 33s). Strict both ways (#4880): a
+# 33s-stamped equation refuses the 35s spellings, a 35s or STU one the 33s spellings. An equation's stamp decides its
+# syntax (031). In 33s typing the keys type the 33s names. Expected values: C(28,4) 20475, P(5,2) 20, %CHG(10:15) 50,
+# 7 div 2 = 3 rem 1, 1.30 H.MM 1.5 hours (Python).
+D01 | 041 D (p.6-16): CB(2) is 8 | MODE33 EQ:CB(2) XEQ | X=8
+D02 | 041 D (p.6-16): CBRT(-8) is -2 | MODE33 EQ:CBRT(-8) XEQ | X=-2
+D03 | 041 D (p.6-15): →HR(1.3) is 1.5 | MODE33 EQ:→HR(1.3) XEQ | X=1.5
+D04 | 041 D (p.6-15's example): Cn,r(28:4) is 20475 | MODE33 EQ:Cn,r(28:4) XEQ | X=20475
+D05 | 041 D (p.6-15): Pn,r(5:2) is 20 | MODE33 EQ:Pn,r(5:2) XEQ | X=20
+D06 | 041 D (p.6-15's example): XROOT(3:-8) is -2 (the root first) | MODE33 EQ:XROOT(3:-8) XEQ | X=-2
+D07 | 041 D (p.6-15): %CHG(10:15) is 50 | MODE33 EQ:%CHG(10:15) XEQ | X=50
+D08 | 041 D (p.6-15): IDIV(7:2) is 3 | MODE33 EQ:IDIV(7:2) XEQ | X=3
+D09 | 041 D (p.6-15): RMDR(7:2) is 1 | MODE33 EQ:RMDR(7:2) XEQ | X=1
+D10 | 041 D (p.6-15): RANDOM draws as the RAND key (the same seed, the same number) | MODE33 1 SEED EQ:RANDOM XEQ SAVEX C 1 SEED RAND | %SAMEX=same
+D11 | 041 D (p.6-16): %CHG(-X:-2), a negative second argument | MODE33 4 STO:X EQ:%CHG(-X:-2) XEQ RS | X=-50
+D12 | 041 D, PROVISIONAL (#4880, Michael's field check): RND(2.567:1) in FIX 4 is RND as FIX 1: 2.6 | MODE33 FIX4 EQ:RND(2.567:1) XEQ | X=2.6
+D13 | 041 D, PROVISIONAL: RND(2.567:2) in SCI is RND as SCI 2: 2.57 | MODE33 SCI4 EQ:RND(2.567:2) XEQ | X=2.57
+D14 | 041 D (strict, #4880): a 33s equation refuses the comma | MODE33 EQ:IDIV(7,2) XEQ | ERR %ERR=SYNTAX
+D15 | 041 D (strict): and nCr | MODE33 EQ:nCr(28:4) XEQ | ERR %ERR=SYNTAX
+D16 | 041 D (strict): and HMS→ | MODE33 EQ:HMS→(1.3) XEQ | ERR %ERR=SYNTAX
+D17 | 041 D (strict): and RAND | MODE33 EQ:RAND XEQ | ERR %ERR=SYNTAX
+D18 | 041 D (strict): a 35s equation refuses CB | MODE35 EQ:CB(2) XEQ | ERR %ERR=SYNTAX
+D19 | 041 D (strict): and the colon | MODE35 EQ:IDIV(7:2) XEQ | ERR %ERR=SYNTAX
+D20 | 041 D (strict): and Cn,r | MODE35 EQ:Cn,r(28,4) XEQ | ERR %ERR=SYNTAX
+D21 | 041 D (strict): and →HR | MODE35 EQ:→HR(1.3) XEQ | ERR %ERR=SYNTAX
+D22 | 041 D (strict): and RANDOM | MODE35 EQ:RANDOM XEQ | ERR %ERR=SYNTAX
+D23 | 041 D (strict): an STU equation refuses CBRT | STU EQ:CBRT(8) XEQ | ERR %ERR=SYNTAX
+D24 | 041 D: 35s unchanged: nCr(28,4) | MODE35 EQ:nCr(28,4) XEQ | X=20475
+D25 | 041 D: 35s unchanged: HMS→(1.3) | MODE35 EQ:HMS→(1.3) XEQ | X=1.5
+D26 | 041 D: in 33s typing the keys type the 33s's names: nCr then , gives Cn,r(28:4) | MODE33 EQN NCR 28 , 4 ENTER | %EQ=Cn,r(28:4)
+D27 | 041 D: and HMS→ types →HR(, RAND RANDOM | MODE33 EQN HMSINV 1.3 ENTER C EQN RAND ENTER | %EQ=RANDOM %EQN=2
+D28 | 041 D: and x³ types CB(, ∛x CBRT( | MODE33 EQN CUBE 2 ENTER C EQN CBRT 8 ENTER | %EQ=CBRT(8) %EQN=2
+D29 | 041 D: 35s typing unchanged: nCr(28,4) | MODE35 EQN NCR 28 , 4 ENTER | %EQ=nCr(28,4)
+# The migration (abacus #4880, as 041 A's (a)): tests/golden-v12-041d.img, saved by the core at 0138916 (image version
+# 12, before Part D): in 33s mode i = 6, the equations IDIV(7,2), nCr(5,2) and 2×i, and program A's equation line
+# nCr(5,2), all stamped 33. On load, an equation stamped 33 that fails the 33s parse and passes the 35s one is
+# restamped 35; others stay 33. The values are what 0138916 gives on the same keys.
+D30 | 041 D migration: a pre-D 33s comma equation loads restamped 35 and runs | LOADFILE:tests/golden-v12-041d.img EQN BST BST XEQ | X=3 %EQ=IDIV(7,2)
+D31 | 041 D migration: a pre-D 33s nCr equation, likewise | LOADFILE:tests/golden-v12-041d.img EQN BST XEQ | X=10 %EQ=nCr(5,2)
+D32 | 041 D migration: a pre-D program line nCr(5,2), likewise | LOADFILE:tests/golden-v12-041d.img XEQ:A | X=10
+D33 | 041 D migration: an untouched 33 equation stays 33 (2×i: the 33s's variable i, 6) | LOADFILE:tests/golden-v12-041d.img EQN XEQ RS | X=12
+D34 | 041 D: a 33s equation's CB runs in 35s mode too (its stamp decides; the key is hidden there, the name isn't) | MODE33 EQ:CB(3) C MODE35 EQN XEQ | X=27
+D35 | 041 D: RANDOM takes no prompts (not R, A, N, D, O, M: the variable scan takes the longest name, as 015's O10 for RAND) | MODE33 EQ:RANDOM×0+1 XEQ | X=1 %STOP=DONE
