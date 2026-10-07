@@ -4972,8 +4972,11 @@ static abn_status graph_x(ab_calc *c, int col, abn *x)
     return st;
 }
 
+unsigned long ab_graph_sample_calls;
+
 static abn_status graph_sample(ab_calc *c, int col, abn *x, ab_val *y, bool pure)
 {
+    ab_graph_sample_calls++;
     abn_status st;
     *x = abn_zero();
     memset(y, 0, sizeof *y);

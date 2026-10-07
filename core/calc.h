@@ -475,6 +475,9 @@ void ab_graph_window(ab_calc *c, abn *ymin, abn *ymax);
 /* Unit 040: the cursor's x and y: with TRACE, the column's x and the curve's value there (an erring column: y 0
    and the status); free, the pixel's (x as graph_x; y = YMAX - row (YMAX - YMIN) / 184, each step rounded once). */
 abn_status ab_graph_cursor(ab_calc *c, abn *x, abn *y);
+/* Unit 040's review: the curve's samples taken (a test's probe: a free cursor's readout must not refit the window). */
+extern unsigned long ab_graph_sample_calls;
+
 /* Unit 040: column col's x (033's pinned order). */
 abn_status ab_graph_x(ab_calc *c, int col, abn *x);
 int ab_graph_row(const abn *y, const abn *ymin, const abn *ymax);

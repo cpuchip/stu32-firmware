@@ -1772,6 +1772,53 @@ int main(void)
             }
         }
         expect(c.gr_res_kind == 0 && wrong == 0, "040: the frame's plot area is the model's, the free cursor's cross apart");
+        /* 040 review: with Y fitted, the free cursor's readout and a key's redraw take no samples (the window known) */
+        {
+            unsigned long n0 = ab_graph_sample_calls;
+            press(&a, "6");
+            app_ui(&a, &ui);
+            app_ui(&a, &ui);
+            expect(c.gr_auto && !c.gr_trace && ab_graph_sample_calls - n0 < 10, "040: the free cursor moves and reads out without refitting the window");
+            n0 = ab_graph_sample_calls;
+            press(&a, "k:5 k:0");               /* ZIN from the fitted window: the fit known, not sampled again */
+            expect(ab_graph_sample_calls - n0 < 10, "040: ZIN from a fitted Y takes the known fit, not 400 samples");
+            for (int i = 0; i < 200 && a.graphing; i++) app_tick(&a, &idle, now);
+        }
+        /* 040 review: a second TANL at a moved cursor, with no redraw between, draws its own line */
+        {
+            press(&a, "k:5 GOLD k:0");
+            app_ui(&a, &ui);                    /* (the first tangent's line drawn: cached) */
+            for (int k = 0; k < 4; k++) ab_do_arg(&c, AB_GMOVE, 14);    /* moved 40 left and a second TANL with no redraw
+                                                                           between (press redraws each key) */
+            ab_do_arg(&c, AB_GFCN, AB_F_TANL);
+            app_ui(&a, &ui);
+            int bad = 0;
+            for (int i = 0; i < AB_GRAPH_W; i++) {
+                abn x, t, y;
+                ab_graph_x(&c, i, &x);
+                abn_mul(&t, &c.gr_res, &x);
+                abn_add(&y, &t, &c.gr_res_b);
+                int r = ab_graph_row(&y, &gbuf.s.ymin, &gbuf.s.ymax);
+                int want = r >= 0 && r <= AB_GRAPH_H - 1 ? r : -1;
+                bad += gbuf.s.tl[i] != want;
+            }
+            abn tx0, ty0;
+            ab_val tv;
+            ab_graph_sample(&c, c.gr_cur, &tx0, &tv);
+            int trow = ab_graph_row(&tv.re, &gbuf.s.ymin, &gbuf.s.ymax);
+            expect(c.gr_res_kind == AB_F_TANL + 1 && bad == 0 && gbuf.s.tl[c.gr_cur] == trow && trow >= 0,
+                   "040: TANL's line is the latest tangent's, through the cursor's point");
+            (void)ty0;
+        }
+        /* 040 review: a graph opened again (an image, UNDO) starts on the first page */
+        {
+            static uint8_t img[262144];
+            size_t n = ab_state_save(&c, img, sizeof img);
+            press(&a, "C");
+            ab_state_load(&c, img, n);
+            app_ui(&a, &ui);
+            expect(c.gr_on && a.gpage == 0, "040: a graph reopened starts on its first page");
+        }
     }
 
     /* unit 033: GRAPH: blue 7's menu; the frame drawn from the model: in the curve's columns (clear of the

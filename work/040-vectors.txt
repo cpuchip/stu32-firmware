@@ -62,3 +62,12 @@ F09 | a cursor move clears the result | STU EQ:X^2-2 C GRAPH GMOVE:16 GMOVE:16 G
 F10 | AREA with no mark: INVALID DATA | STU EQ:X^2 C GRAPH AREA | ERR %ERR=DOMAIN
 F11 | a zoom clears the result | STU EQ:X^2 C GRAPH F(X) ZIN | %GRES=-
 F12 | EXTR with none (a line): NO ROOT FND | STU EQ:2X+1 C GRAPH EXTR | ERR %ERR=NO_ROOT
+# 040 review: ZLAST clears a result; a failed zoom leaves ZLAST's window; ZDECI on a reversed window; a zoom clears
+# the mark; ROOT and EXTR find the cursor's root and extremum, not another; a failed tool leaves no result.
+Z32 | ZLAST clears a tool's result, as every zoom | STU EQ:X^2 C 5 CHS YMIN 105 YMAX GRAPH GTRACE ZIN F(X) ZLAST | %GRES=-
+Z33 | a zoom that fails (ZDECI on a zero x span) leaves ZLAST's window: ZLAST undoes the VZIN before it | STU EQ:X^2 C 1 XMIN 1 XMAX 5 CHS YMIN 105 YMAX GRAPH GTRACE VZIN ZDECI ZLAST | ERR %GWIN=-5,105
+Z34 | ZDECI on a reversed window keeps its direction: step -0.05 | STU EQ:X^2 C 10 XMIN 10 CHS XMAX 5 CHS YMIN 105 YMAX GRAPH GTRACE ZDECI | %XWIN=10,-9.95
+Z35 | a zoom clears the mark (its pixel would mean another point) | STU EQ:X^2 C 5 CHS YMIN 105 YMAX GRAPH GTRACE GMARK ZIN | %GMARK=-
+F13 | ROOT near x = -1.38 finds -sqrt 2, not +sqrt 2 | STU EQ:X^2-2 C GRAPH GMOVE:14 GMOVE:14 GMOVE:4 GMOVE:4 GMOVE:4 GMOVE:4 GMOVE:4 GMOVE:4 GMOVE:4 GMOVE:4 ROOT | %GRES=-1.414213562373095048801688724209698 %GCUR=171
+F14 | EXTR near x = -1.08 on X^3-3X finds -1, not +1 | STU EQ:X^3-3×X C GRAPH GMOVE:14 GMOVE:14 GMOVE:4 GMOVE:4 EXTR | %GRES#=-1,1E-15 %GCUR=180
+F15 | a tool that fails leaves no result (F(X)'s cleared) | STU EQ:X^2 C GRAPH F(X) AREA | ERR %ERR=DOMAIN %GRES=-
