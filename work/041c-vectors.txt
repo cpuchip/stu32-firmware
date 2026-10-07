@@ -1,0 +1,20 @@
+# Unit 041 Part C (abacus decisions 56, 58, 60): the 33s's features added in 33s mode. x³ and ∛x: the 33s guide p.4-2
+# (cube and cube root of x, shifted keys); the 35s has neither, so in 35s and STU they're hidden (the unit: "also in 35s
+# and STU wherever the 35s has them"). x³ through unit 038's exact power (correctly rounded); ∛x through the hp root.
+# Expected values: Python's decimal at 80 digits, rounded once to 34 half-even (Newton's method for the roots).
+C01 | 041 C: 33s x³ of 3 | MODE33 3 CUBE | X=27 L=3
+C02 | 041 C: 33s x³ of 1.1, exact | MODE33 1.1 CUBE | X=1.331
+C03 | 041 C: 33s x³ correctly rounded | MODE33 7.123456789 CUBE | X=361.470102813125790095860897069
+C04 | 041 C: 33s x³ near 1 (the exact power, then one rounding) | MODE33 1.000000000000000000000000000000001 CUBE | X=1.000000000000000000000000000000003
+C05 | 041 C: 33s ∛x of 27 is exactly 3 | MODE33 27 CBRT | X=3 L=27
+C06 | 041 C: 33s ∛x of -8 is -2 (the real root) | MODE33 8 CHS CBRT | X=-2
+C07 | 041 C: 33s ∛x of 2, correctly rounded | MODE33 2 CBRT | X=1.259921049894873164767210607278228
+C08 | 041 C: 33s ∛x of 10 | MODE33 10 CBRT | X=2.154434690031883721759293566519350
+C09 | 041 C: 33s ∛x of 0.5 | MODE33 .5 CBRT | X=0.7937005259840997373758528196361541
+C10 | 041 C: x³ is a program line in 33s mode | MODE33 PRGM LBL:A CUBE CBRT RTN PRGM | %LINES=4
+C11 | 041 C: and it runs (2 x³ ∛x is 2) | MODE33 PRGM LBL:A CUBE CBRT RTN PRGM 2 XEQ:A | X=2
+C12 | 041 C: 35s mode: x³ does nothing (the 35s has none) | MODE35 3 ENTER CUBE | X=3
+C13 | 041 C: STU: ∛x does nothing | STU 8 ENTER CBRT | X=8
+C14 | 041 C: x³ is odd in x: a negative overflow is the negative largest, flag 6 set (unit 026) | MODE33 1 E 3000 ENTER CHS CUBE | X=-9.999999999999999999999999999999999E6144 %F6=1
+C15 | 041 C: a complex X (made in 35s mode) is INVALID DATA for x³, nothing changed (UG p.9-3's list) | MODE35 2 CI 3 ENTER MODE33 CUBE | ERR %ERR=DOMAIN X=2i3
+C16 | 041 C: and a vector X for ∛x (unit 010 rule 2) | MODE35 [ 1 , 2 ENTER MODE33 CBRT | ERR %ERR=DOMAIN X=[1,2]
