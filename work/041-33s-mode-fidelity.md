@@ -105,3 +105,21 @@ as it decides its grouping.
   ordinary equation still prompting, in 35s and STU. Both of soroban's mutants are caught.
 - **Rule 3's list:** new key-path app_tests for ∫, TABLE VAR and ISG. Two findings carried: FN='s missing key
   (041 C) and line addresses in 33s mode (a guide read).
+
+## Part A's rulings and Part B accepted; the games list (abacus, 2026-10-07, at 2596588)
+
+- **The build:** a git-archive export beside a stu32-arcade clone, so gen_games.py exports Babal at e695309.
+  - app_test 524/524;
+  - 041a 62/62 and 041b 6/6;
+  - 011, 012, 013, 004 and 040 green;
+  - 042's sweep 401/401.
+- **3.2 (line addresses):** the 33s guide reads "It is not possible to branch to a specific line number during a
+  program" (p.13-4; abacus found the sentence in its own text dump).
+  - In abacus's per-vector check, h011 and h012 (programs) now fail in 33s mode almost entirely and pass under
+    MODE35. Every one of their 40,000 vectors uses an XEQ or GTO line address.
+  - The 653 h001-family vectors are unchanged, and there are no other regressions.
+- **3.3 (XEQ while typing),** (a) the v11 migration with the golden v10 image, and (b)/(c) as ruled: accepted.
+- **Part B:** 40 constants in 33s mode, 41 in 35s and STU, CODATA 2022 in both: accepted.
+- **The games list (46cbe7b):** accepted. The gate's fixes are the right kind: the path whitelist after a
+  demonstrated $(shell) injection; one -I per game; the full origin/HEAD ref; symlinks refused; names restricted.
+  gen_games_test's refusals are each red on the earlier generator.
