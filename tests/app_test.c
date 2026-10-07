@@ -2314,16 +2314,18 @@ int main(void)
                "CAS 004: SUBST X by Y+1, typed: 3×Y+(Y+1)^2+3 after it");
         ab_eqn_add(&c, "IP(X)");
         n = c.eqn_count;
-        uint32_t before = img_crc(&c);
+        ab_val x0 = c.x, y0 = c.y;
+        int cur0 = c.eqn_cur;
         press(&a, "k:4 k:0 ltr:X");
         app_ui(&a, &ui);
         {
             static screen_page pg;
             screen_lines(&c, &ui, &pg);
-            expect(c.eqn_count == n && strstr(pg.x.text, "UNSUPPORTED IP") != NULL,
-                   "CAS 004: a refusal: UNSUPPORTED IP, the list as it was");
+            expect(c.eqn_count == n && c.eqn_cur == cur0 && !strcmp(c.eqn[c.eqn_cur], "IP(X)") &&
+                       abn_cmp(&c.x.re, &x0.re) == 0 && abn_cmp(&c.y.re, &y0.re) == 0 &&
+                       strstr(pg.x.text, "UNSUPPORTED IP") != NULL,
+                   "CAS 004: a refusal: UNSUPPORTED IP, the list, the equation shown and the stack as they were");
         }
-        (void)before;
         for (int m = 0; m < 2; m++) {           /* 33s and 35s: no CAS */
             ab_init(&c);
             app_init(&a, &c, now);

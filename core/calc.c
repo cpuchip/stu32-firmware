@@ -3053,7 +3053,7 @@ static abn_status program_key(ab_calc *c, ab_op op, int arg)
         case AB_ENTER:
         case AB_CANCEL:
         case AB_EQN:
-            c->eqn_typing = false;
+            c->eqn_typing = false; c->cas_sub = 0;
             return c->ebuf[0] ? prog_insert_eqn(c, c->ebuf) : ABN_OK;
         case AB_KBKSP:
             ed_backspace(c);
@@ -3223,7 +3223,7 @@ static abn_status eqn_store_typed(ab_calc *c)
     if (c->ebuf[0] && stored_text(c, c->ebuf, t) != ABN_OK)
         return ABN_MEMORY_FULL;                 /* STU's x's would not fit: refused, the text unchanged and
                                                    still typed (unit 031 answer I) */
-    c->eqn_typing = false;
+    c->eqn_typing = false; c->cas_sub = 0;
     int edit = c->eqn_edit;
     c->eqn_edit = -1;                           /* meaningful only while typing: left set, a delete could leave it past
                                                    the list's end, and the image would not load (unit 041 A, fresh eyes) */
@@ -3250,7 +3250,7 @@ abn_status ab_eqn_add(ab_calc *c, const char *text)
     abn_status st = eqn_insert(c, text);
     if (st == ABN_OK) {
         c->eqn_mode = true;
-        c->eqn_typing = false;
+        c->eqn_typing = false; c->cas_sub = 0;
     }
     return st;
 }
@@ -3654,11 +3654,21 @@ static abn_status cas_step(ab_calc *c, int op, int var, const char *repl)
     casim_req rq = {(casim_op)op, c->eqn[c->eqn_cur], c->eqn_model[c->eqn_cur], var, repl, AB_MODEL_STU, c->angle};
     cs = casim_run(&rq, out, sizeof out, ab_cas_arena, sizeof ab_cas_arena);
     switch (cs) {
-    case CASIM_OK: return eqn_insert(c, out);
+    case CASIM_OK: {
+        abn_status st = eqn_insert(c, out);
+        ab_val v;
+        int pos;
+        /* stamped STU, the list's; but a result that only the 33s reads (the variable i, from a 33s equation: STU
+           refuses a lone i) keeps 33, so it still means what it meant (fresh eyes F3) */
+        if (st == ABN_OK && eqn_eval(c, out, AB_MODEL_STU, false, true, &v, &pos) == ABN_SYNTAX &&
+            eqn_eval(c, out, 33, false, true, &v, &pos) == ABN_OK)
+            c->eqn_model[c->eqn_cur] = 33;
+        return st;
+    }
     case CASIM_SYNTAX: return ABN_SYNTAX;
     case CASIM_NOT_DIFFERENTIABLE:          /* out names it; subst's only refusal of a name is a draw copied */
         snprintf(c->cas_bad, sizeof c->cas_bad, "%.15s", out);      /* (a name: a few bytes) */
-        return op == CASIM_SUBST ? ABN_CAS_COPY : ABN_CAS_UNSUPPORTED;
+        return op == CASIM_SUBST && (!strcmp(out, "RAND") || !strcmp(out, "SEED")) ? ABN_CAS_COPY : ABN_CAS_UNSUPPORTED;
     case CASIM_TOO_LONG: return ABN_CAS_TOO_LONG;
     case CASIM_NO_ROOM: return ABN_CAS_NO_ROOM;
     default: return ABN_DOMAIN;             /* BAD_ARG: INVALID DATA */
@@ -3699,10 +3709,11 @@ static abn_status cas_subst_done(ab_calc *c, bool run)
 {
     int var = c->cas_sub - 1;
     char t[AB_EQN_LEN];
+    if (run && c->ebuf[0] && eqn_write_implied(c, c->ebuf, t, sizeof t) != 1)
+        return ABN_SYNTAX;                      /* doesn't parse (or won't fit): still typed, as 031 answer I */
     c->cas_sub = 0;
     c->eqn_typing = false;
     if (!run || !c->ebuf[0]) return ABN_OK;
-    if (eqn_write_implied(c, c->ebuf, t, sizeof t) != 1) return ABN_SYNTAX;   /* (doesn't parse, or won't fit) */
 #ifdef AB_CASIM
     return cas_step(c, CASIM_SUBST, var, t);
 #else
@@ -3781,7 +3792,7 @@ static void alg_leave(ab_calc *c)
 {
     if (!c->alg) return;
     c->alg = false;
-    c->eqn_typing = false;
+    c->eqn_typing = false; c->cas_sub = 0;
     c->ebuf[0] = '\0';
     c->ecur = 0;
     c->alg_shown = false;
@@ -4223,7 +4234,7 @@ void ab_clear_all(ab_calc *c)
     c->cpart = c->vlen = 0;
     c->prgm = false;
     c->plit = zero;
-    c->eqn_mode = c->eqn_typing = false;
+    c->eqn_mode = c->eqn_typing = false; c->cas_sub = 0;
     c->eqn_edit = -1;
     c->ebuf[0] = '\0';
     c->ecur = 0;
@@ -4782,7 +4793,7 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
         c->eqn_count = n;
         c->fn_eqn = fn;
         c->eqn_cur = -1;
-        c->eqn_typing = false;
+        c->eqn_typing = false; c->cas_sub = 0;
         c->eqn_edit = -1;
         c->ebuf[0] = '\0';
         c->ecur = 0;

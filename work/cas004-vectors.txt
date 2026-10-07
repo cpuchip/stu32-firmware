@@ -19,3 +19,13 @@ K14 | CAS 004 rule 5: an equation that doesn't parse: SYNTAX ERROR | STU EQ:X+ C
 K15 | CAS 004 rule 4: not in 35s mode (the menu doesn't exist there): STU ONLY, nothing added | MODE35 EQ:X^2 CASD:X | ERR %ERR=STU_ONLY %EQN=1
 K16 | CAS 004 rule 4: nor on a built-in solver, nor at the list's top | STU EQN CASSIMP | ERR %ERR=NO_EQN %EQN=0
 K17 | CAS 004: SUBST's replacement cancelled by C: nothing added, the original shown | STU EQ:X^2+1 CASSUB:X RCL:Y C | %EQN=1 %EQ=X^2+1
+# Fresh eyes on 541b7ca (rows V01-V10 of its review; V09, XEQ while the replacement is typed, waits on a ruling).
+K18 | CAS 004 (fresh eyes F1): CLR EQN while SUBST's replacement is typed: SUBST is gone, the image still loads | STU EQ:X^2+1 CASSUB:X RCL:Y CLEQN SAVE LOAD | %ERR=OK
+K19 | CAS 004 (F1): and a new equation typed after it is stored, not substituted | STU EQ:X^2+1 CASSUB:X RCL:Y CLEQN EQ:X^3 RCL:Y ENTER | %EQN=2 %EQ=Y
+K20 | CAS 004 (F1): CLR ALL mid-SUBST, then EQN, A, ENTER: stored | STU EQ:X^2+1 CASSUB:X RCL:Y CLALL EQN RCL:A ENTER | %EQN=1 %EQ=A
+K21 | CAS 004 rule 5 (F2): a D/DX result of 201 bytes is RESULT TOO LONG (casim's CLI, its 64 KB buffer, prints it: casim's to settle) | STU RAD EQ:A×X^5+B×X^4+C×X^3+D×X^2+E×X+F+G×SIN(X)+H×COS(X)+I×EXP(X)+J×LN(X)+K×TAN(X)+L×X^6+M×X^7+N×X^8+O×X^9+P×X^10+Q×SQRT(X)+R×X^11+S×X^12+T×X^13+U×X^14 CASD:X | ERR %ERRMSG=RESULT_TOO_LONG %EQN=1
+K22 | CAS 004 (F3): a 33s equation's variable i: D/DX's 2×X×i keeps 33 (STU refuses a lone i), and evaluates (i 3, X 1: 6) | 3 STO:i 1 STO:X MODE33 EQ:i×X^2 C STU EQN CASD:X XEQ RSALL | X=6
+K23 | CAS 004 (F4): an image with SUBST pending in ALG is refused | STU ALG SAVE SETBYTE:699:3 FIXCRC LOAD | ERR %ERR=BAD_IMAGE
+K24 | CAS 004 (F6): SUBST by a complex number is UNSUPPORTED, not CAN'T COPY | STU EQ:X^2 CASSUB:X 1 CI 2 ENTER | ERR %ERR=CAS_UNSUPPORTED
+K25 | CAS 004 (F7): a replacement that doesn't parse (Y+) stays typed (as 031 answer I); finished (> clears the message) it substitutes | STU EQ:X^2+1 CASSUB:X RCL:Y + ENTER > RCL:Z ENTER | ERR %EQ=(Y+Z)^2+1
+K26 | CAS 004 (F8): a version-11 image claiming a CAS status (none existed then) is refused | STU EQ:IP(X) CASD:X SAVE IMGVER:11 LOAD | ERR %ERR=BAD_IMAGE

@@ -639,7 +639,7 @@ static void sec_modes(rd *r)
         estatus = r8(r);
         rval(r, &ex);
         need(r, (ecode == 0xFFFF || ecode < (unsigned)V1_N) && eactive <= 2 &&
-                    (estatus <= ABN_UNDERFLOW || (estatus >= ABN_CAS_TOO_LONG && estatus <= ABN_CAS_COPY)));   /* unit 026
+                    (estatus <= ABN_UNDERFLOW || (estatus >= ABN_CAS_TOO_LONG && estatus <= ABN_CAS_COPY && r->version >= 12)));   /* unit 026
                                                    added two; CAS 004 four */
     } else {
         msg = 0;                                /* an older image: no message to say */
@@ -818,7 +818,9 @@ static void sec_cas(rd *r)
     unsigned sub = r8(r);
     char bad[16];
     rtext(r, bad, sizeof bad, false);
-    need(r, sub <= 26 && (!sub || r->typing));
+    /* pending only while a new text is typed in Equation mode (no edit, no program entry; so never in ALG, which
+       has Equation mode off): fresh eyes F4 */
+    need(r, sub <= 26 && (!sub || (r->typing && r->emode && !r->prgm && r->edit == -1)));
     if (r->bad || !r->c) return;
     r->c->cas_sub = (uint8_t)sub;
     memcpy(r->c->cas_bad, bad, sizeof bad);
