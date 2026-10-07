@@ -714,7 +714,7 @@ void app_key(app_state *a, int key, uint32_t now_ms)
             return;
         }
         if (face->kind == KM_OP && face->op == AB_KBKSP && sh == 0) {
-            a->cat = 0;                         /* back-arrow backs out to MEM (33s p.12-20; 35s p.1-? note) */
+            a->cat = 0;                         /* back-arrow backs out to MEM (33s p.12-20; 35s p.1-9) */
             a->menu = menu_named("MEM");
             a->menu_page = 0;
             mem_fill(a);
@@ -801,9 +801,9 @@ void app_key(app_state *a, int key, uint32_t now_ms)
                 return;
             }
         }
-        if (face->kind == KM_OP && face->op == AB_CANCEL && a->shift == 0) return;   /* C: only closes it */
-        if (face->kind == KM_OP && face->op == AB_KBKSP && a->shift == 0 && at == menu_named("MEM"))
-            return;                             /* back-arrow backs out of MEM, one level (35s p.1-?; 041 C) */
+        if (face->kind == KM_OP && (face->op == AB_CANCEL || face->op == AB_KBKSP) && a->shift == 0)
+            return;                             /* C or back-arrow only closes it (35s p.1-9: "cancels any other
+                                                   menu"; back-arrow backs out of MEM one level: 041 C) */
     }
     if (face->kind == KM_SOFT && eqn_bar(a) >= 0) {     /* Equation mode's bar (unit 020) */
         int bar = eqn_bar(a);                   /* (with the shift's bank: unit 040) */

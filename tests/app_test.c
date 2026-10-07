@@ -904,6 +904,10 @@ int main(void)
         press(&a, "C 7 STO ltr:C 9 BLUE 1 k:0 \xe2\x86\x90");
         app_ui(&a, &ui);
         expect(a.cat == 0 && a.menu == menu_named_t("MEM") && x_of(&c) == 9, "041 C: back-arrow: back to MEM, X kept");
+        press(&a, "\xe2\x86\x90");
+        expect(a.menu < 0 && x_of(&c) == 9, "041 C: back-arrow again: MEM closed, X kept (35s p.1-9)");
+        press(&a, "C 7 ENTER GOLD 2 \xe2\x86\x90");
+        expect(a.menu < 0 && x_of(&c) == 7, "35s p.1-9: back-arrow cancels any menu, acting on nothing (041 C, a sibling)");
         press(&a, "C");
         ab_do(&c, AB_PRGM);
         ab_do_arg(&c, AB_LBL, 1);
