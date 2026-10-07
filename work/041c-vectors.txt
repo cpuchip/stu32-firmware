@@ -19,3 +19,14 @@ C14 | 041 C: x³ is odd in x: a negative overflow is the negative largest, flag 
 C15 | 041 C: a complex X (made in 35s mode) is INVALID DATA for x³, nothing changed (UG p.9-3's list) | MODE35 2 CI 3 ENTER MODE33 CUBE | ERR %ERR=DOMAIN X=2i3
 C16 | 041 C: and a vector X for ∛x (unit 010 rule 2) | MODE35 [ 1 , 2 ENTER MODE33 CBRT | ERR %ERR=DOMAIN X=[1,2]
 C17 | 041 C: ∛x of 27 in a program is 3 | MODE33 PRGM LBL:B CBRT RTN PRGM 27 XEQ:B | X=3
+# Program entry follows the label's stamp (abacus #4850, reversing #4799's (b); decision 58's notes, abacus 08f4cd2): what
+# a key records into a label is checked against that label's stamp, not the mode in force. MODE35/MODE33 on a LBL line
+# restamps the label only (025 rule 5), so these rows edit a label of the other mode. A new LBL takes the mode in force;
+# lines before the first label, the mode in force; lines already recorded keep running.
+C18 | 041 C (#4850): x³ into a 35s label, from 33s mode: refused | MODE33 PRGM LBL:A MODE35 CUBE RTN PRGM | %LINES=2
+C19 | 041 C (#4850): TOKM into a 35s label, from 33s mode: recorded, and it runs (its label's mode) | MODE33 PRGM LBL:A MODE35 TOKM RTN PRGM 5 XEQ:A | %LINES=3 X=8.04672
+C20 | 041 C (#4850): x³ into a 33s label, from 35s mode: recorded, and it runs | MODE35 PRGM LBL:A MODE33 CUBE RTN PRGM 2 XEQ:A | %LINES=3 X=8
+C21 | 041 C (#4850): TOKM into a 33s label, from 35s mode: refused | MODE35 PRGM LBL:A MODE33 TOKM RTN PRGM | %LINES=2
+C22 | 041 C (#4850): a line address into a 35s label, from 33s mode: recorded (33s p.13-4 binds 33s programs) | MODE33 PRGM LBL:A MODE35 XEQ:A003 RTN PRGM | %LINES=3
+C23 | 041 C (#4850): CONST's 41st (e) into a 35s label, from 33s mode: recorded | MODE33 PRGM LBL:A MODE35 CONST:e RTN PRGM XEQ:A | %LINES=3 X=2.718281828459045235360287471352662
+C24 | 041 C (#4850): lines before the first label: the mode in force (33s: x³ recorded, TOKM not) | MODE33 PRGM CLPGM CUBE TOKM PRGM | %LINES=1
