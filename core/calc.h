@@ -441,6 +441,8 @@ bool ab_graph_join(bool prev_ok, int prev_row, int row, int *lo, int *hi);
 bool ab_graph_column(ab_calc *c, int col, const abn *ymin, const abn *ymax, int *lo, int *hi);
 /* The axes (rule 5, answer 3): the x axis's row (y = 0) and the y axis's column (x = 0), -1 when outside. */
 void ab_graph_axes(const ab_calc *c, const abn *ymin, const abn *ymax, int *xrow, int *ycol);
+/* Rule 1's form of equation e: 0 an expression, V + 1 for V=expr (V = 0..25), -1 L-R. */
+int ab_graph_form(const ab_calc *c, int e);
 
 /* Unit 025: the mode in force (33s or 35s): while a program line runs, the mode of the label that
    owns it; otherwise (the keyboard, lines before the first label) the calculator's. Every

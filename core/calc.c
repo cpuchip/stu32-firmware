@@ -4923,10 +4923,17 @@ void ab_graph_fit(const abn *y, const bool *ok, int n, abn *lo, abn *hi)
         *hi = abn_from_int(10);
         return;
     }
-    if (abn_cmp(lo, hi) == 0) {                 /* a constant: +-1 */
-        abn one = abn_from_int(1);
-        abn_sub(lo, lo, &one);
-        abn_add(hi, hi, &one);
+    if (abn_cmp(lo, hi) == 0) {                 /* a constant: +-1, or 5% of it where 1 is lost to rounding
+                                                   (review F6: 1E40) */
+        abn one = abn_from_int(1), c0 = *lo, m, p05, mag = abn_abs(&c0);
+        clamp_big(abn_sub(lo, &c0, &one), lo, true);
+        clamp_big(abn_add(hi, &c0, &one), hi, false);
+        if (abn_cmp(lo, hi) == 0 || abn_cmp(lo, &c0) == 0 || abn_cmp(hi, &c0) == 0) {
+            abn_from_text(&p05, "0.05");
+            clamp_big(abn_mul(&m, &mag, &p05), &m, false);
+            clamp_big(abn_sub(lo, &c0, &m), lo, true);
+            clamp_big(abn_add(hi, &c0, &m), hi, false);
+        }
         return;
     }
     abn_from_text(&p05, "0.05");
@@ -4986,8 +4993,16 @@ int ab_graph_row(const abn *y, const abn *ymin, const abn *ymax)
 {
     abn a, b, q, p, n = abn_from_int(AB_GRAPH_H - 1);
     abn_status st = abn_sub(&a, ymax, y);       /* a = YMAX - y; b = YMAX - YMIN; q = a / b; p = q x 184 */
-    if (st == ABN_OVERFLOW) return abn_overflow_negative() ? AB_GRAPH_H : -1;
-    if (abn_sub(&b, ymax, ymin) != ABN_OK || abn_is_zero(&b) || abn_is_negative(&b)) return -1;
+    if (st == ABN_OVERFLOW) return abn_overflow_negative() ? -1 : AB_GRAPH_H;  /* y far above: -1 (review F2) */
+    if (st == ABN_UNDERFLOW) a = abn_zero();    /* (review F5) */
+    st = abn_sub(&b, ymax, ymin);
+    if (st == ABN_OVERFLOW) {                   /* a window past the range: its span the largest (review F6) */
+        b = abn_largest();
+        if (abn_overflow_negative()) b = abn_neg(&b);
+    } else if (st == ABN_UNDERFLOW) {
+        b = abn_zero();
+    }
+    if (abn_is_zero(&b)) return -1;             /* (a negative b, YMIN above YMAX: the formula flips the plot) */
     st = abn_div(&q, &a, &b);
     if (st == ABN_OVERFLOW) return abn_is_negative(&a) ? -1 : AB_GRAPH_H;
     if (st == ABN_UNDERFLOW) q = abn_zero();
@@ -5034,6 +5049,21 @@ void ab_graph_axes(const ab_calc *c, const abn *ymin, const abn *ymax, int *xrow
         return;
     int k = round_clamped(&p, -1, AB_GRAPH_W);
     if (k >= 0 && k <= AB_GRAPH_W - 1) *ycol = k;
+}
+
+int ab_graph_form(const ab_calc *c, int e)
+{
+    int vars[27];
+    if (e < 0 || e >= c->eqn_count) return 0;
+    const char *t = c->eqn[e];
+    int av = eqn_assign_var(t, false);
+    if (av >= 0) {
+        int n = eqn_vars(t, true, false, vars);
+        bool in = false;
+        for (int i = 0; i < n; i++) in = in || vars[i] == av;
+        if (!in) return av + 1;
+    }
+    return strchr(t, '=') ? -1 : 0;
 }
 
 /* GO (unit 033): the equation shown or last shown, against TABLE's variable (or the first of what is

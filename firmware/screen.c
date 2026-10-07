@@ -500,7 +500,11 @@ static void draw_graph(ls027_frame *f, const ab_calc *c, const screen_ui *ui)
     if (g->cst != ABN_OK) snprintf(u, sizeof u, "%s", ab_status_message(g->cst));
     else short_val(c, ui, &g->cy, 12, u, sizeof u);
     char r[100];
-    snprintf(r, sizeof r, "x=%s y=%s", t, u);
+    const char *m = ab_error_message(c);        /* an erring ENTER's message, in the readout's place (review F3) */
+    if (m) snprintf(r, sizeof r, "%s", m);
+    else snprintf(r, sizeof r, "x=%s y=%s", t, u);
+    for (char *q = r; *q; q++)
+        if (*q == '\n') *q = ' ';
     screen_text(f, 136, SOFT_Y + 11, 1, r, true);
 }
 

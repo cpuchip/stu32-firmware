@@ -1339,6 +1339,66 @@ int main(void)
         for (int i = 0; i < 200 && a.graphing; i++) app_tick(&a, &(pwr_inputs){false, false, 80, false}, now);
         expect(gbuf.s.ready && gbuf.s.done == AB_GRAPH_W, "033: AUTO: then the fit and the drawing");
         press(&a, "C");
+        {   /* review F1: a graph open in a loaded image (a boot) is plotted afresh; so is one UNDO brings back */
+            static ab_calc c2;
+            static app_state a2;
+            static app_graph g2;
+            static uint8_t img[1 << 16];
+            ab_init(&c);
+            c.stu = c.m35 = true;
+            ab_eqn_add(&c, "X^2");
+            ab_do(&c, AB_EQN);
+            ab_do_arg(&c, AB_GRAPH, 0);
+            size_t n = ab_state_save(&c, img, sizeof img);
+            ab_do(&c, AB_CANCEL);               /* (c's graph left: the checks below use c) */
+            ab_init(&c2);
+            expect(ab_state_load(&c2, img, n) == ABN_OK && c2.gr_on, "033 F1: an open graph in the image loads");
+            app_init(&a2, &c2, now);
+            app_graph_buffer(&a2, &g2);
+            for (int i = 0; i < 200 && (a2.graphing || !g2.s.ready); i++)
+                app_tick(&a2, &(pwr_inputs){false, false, 80, false}, now);
+            expect(g2.s.ready && g2.s.done == AB_GRAPH_W, "033 F1: after a boot it is plotted afresh");
+            {   /* and one UNDO brings back after C mid-plot */
+                static uint8_t u0[1 << 18], u1[1 << 18];
+                app_undo_buffers(&a2, u0, u1, sizeof u0);
+                press(&a2, "C");
+                press(&a2, "BLUE 7 k:5");       /* GO again (AUTO): an undo point before it */
+                app_tick(&a2, &(pwr_inputs){false, false, 80, false}, now);
+                press(&a2, "C");                /* left mid-plot */
+                press(&a2, "BLUE \xe2\x86\x90");    /* UNDO: the graph open again */
+                for (int i = 0; i < 200 && (a2.graphing || !g2.s.ready); i++)
+                    app_tick(&a2, &(pwr_inputs){false, false, 80, false}, now);
+                expect(c2.gr_on && g2.s.ready && g2.s.done == AB_GRAPH_W, "033 F1: a graph UNDO brings back is plotted afresh");
+                app_undo_buffers(&a2, NULL, NULL, 0);
+            }
+            /* the form's note from the core's own test (review F4): S=SIN(X) plots SIN(X), noted S */
+            ab_init(&c2);
+            c2.stu = c2.m35 = true;
+            ab_eqn_add(&c2, "S=SIN(X)");
+            ab_do(&c2, AB_EQN);
+            app_init(&a2, &c2, now);
+            app_graph_buffer(&a2, &g2);
+            ab_do_arg(&c2, AB_GRAPH, 0);
+            app_tick(&a2, &(pwr_inputs){false, false, 80, false}, now);
+            expect(!strcmp(g2.s.note, "S"), "033 F4: S=SIN(X) is noted S, not L-R");
+            /* review F3: an erring ENTER's message shows in the readout's place */
+            static ls027_frame f0, f1;
+            ab_init(&c2);
+            c2.stu = c2.m35 = true;
+            ab_eqn_add(&c2, "SQRT(X)");
+            ab_do(&c2, AB_EQN);
+            app_init(&a2, &c2, now);
+            app_graph_buffer(&a2, &g2);
+            press(&a2, "BLUE 7 k:5");
+            for (int i = 0; i < 200 && a2.graphing; i++) app_tick(&a2, &(pwr_inputs){false, false, 80, false}, now);
+            press(&a2, "k:0");
+            app_ui(&a2, &ui);
+            screen_render(&c2, &ui, &f0);
+            press(&a2, "ENTER");
+            app_ui(&a2, &ui);
+            screen_render(&c2, &ui, &f1);
+            expect(c2.msg && c2.gr_on && memcmp(&f0, &f1, sizeof f0) != 0, "033 F3: an erring ENTER's message is shown");
+        }
         {   /* the fit alone (answer 2): an overflowed sample left out; a constant +-1; none finite -10..10;
                huge values clamp to the largest instead of overflowing */
             abn yv[3] = {abn_largest(), abn_from_int(1), abn_from_int(2)}, lo2, hi2, want_lo, want_hi;

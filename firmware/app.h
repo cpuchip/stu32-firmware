@@ -135,6 +135,8 @@ typedef struct {
     bool show;              /* unit 030: SHOW held: X's full mantissa in place of the stack */
     bool graphing;          /* unit 033: a graph's samples being computed, a slice at each tick */
     struct app_graph *graph;    /* its buffer (the device's, in PSRAM: app_graph_buffer); NULL: none drawn */
+    bool gr_live;           /* the buffer holds this open graph's plot (else one opened by an image, UNDO or
+                               a boot is started afresh: review F1) */
     int show_key;           /* the key holding it: its release ends SHOW (app_key_up) */
     int key_now;            /* the key app_key is acting on */
     bool key_ups;           /* the device sends releases (app_key_up) from a keyboard that can roll from
