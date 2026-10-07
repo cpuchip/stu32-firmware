@@ -191,11 +191,11 @@ static void apply2(parser *p, int id, ab_val *a, const ab_val *b)
 }
 
 /* Unit 041 Part A: the names an equation typed in 33s mode refuses: ARG (A2), to km and to mile (A7), REGX..REGT
-   (A11), the logic functions (A5); not on the 33s's p.6-15 list. */
+   (A11), the logic functions (A5); not on the 33s's p.6-15 list. And % (041 D, abacus #4883: p.6-14 has %CHG, no %). */
 static bool m33_hidden(int id)
 {
     return id == F_ARG || id == F_TOKM || id == F_TOMILE || (id >= F_REGX && id <= F_REGT) || id == F_AND ||
-           id == F_XOR || id == F_OR || id == F_NOT || id == F_NAND || id == F_NOR;
+           id == F_XOR || id == F_OR || id == F_NOT || id == F_NAND || id == F_NOR || id == F_PCT;
 }
 
 static void apply0(parser *p, int id, ab_val *v)

@@ -3648,6 +3648,7 @@ static bool eqn_type(ab_calc *c, ab_op op, int arg)
 {
     const char *t;
     if (!eqn_typable(op, arg)) return false;
+    if (op == AB_PCT && typed_model(c) == 33) return true;     /* a 33s equation has no plain % (041 D, abacus #4883) */
     if (!c->eqn_typing) {
         c->eqn_typing = true;
         c->eqn_edit = -1;

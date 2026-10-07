@@ -60,3 +60,5 @@ D43 | 041 D: CB, which casim doesn't have: UNSUPPORTED CB | MODE33 EQ:CB(X) C ST
 D44 | 041 D migration (fresh eyes): a pre-D 33s REGX+1 (already refused by 041 A) stays 33 and refused: the spelling isn't the reason (tests/golden-v12-041d-regx.img, saved by 0138916, which also refuses it) | LOADFILE:tests/golden-v12-041d-regx.img 4 EQN XEQ | ERR %ERR=SYNTAX
 D45 | 041 D (fresh eyes): in 33s typing HMS→ types →HR( | MODE33 EQN HMSINV 1.3 ENTER | %EQ=→HR(1.3)
 D46 | 041 D (fresh eyes): and x³ types CB( | MODE33 EQN CUBE 2 ENTER | %EQ=CB(2)
+D47 | 041 D (abacus #4883): a 33s equation refuses % (p.6-14 has %CHG, no plain %), as 041 A5's logic functions | MODE33 EQ:%(200:15) XEQ | ERR %ERR=SYNTAX
+D48 | 041 D (#4883): and in 33s typing the % key types nothing | MODE33 EQN PCT 2 ENTER | %EQ=2
