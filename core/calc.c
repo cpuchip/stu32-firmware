@@ -1439,6 +1439,27 @@ static void prog_clear(ab_calc *c)
     prog_labels(c);
 }
 
+abn_status ab_prog_delete_label(ab_calc *c, int l)
+{
+    if (c->running) return ABN_OK;
+    if (l < 0 || l >= 26 || c->labelpos[l] < 0) return ABN_NONEXISTENT;
+    int start = c->labelpos[l], end = start + 1;
+    while (end < c->prog_len && c->prog[end].op != AB_LBL) end++;
+    for (int k = end - 1; k >= start; k--) prog_delete(c, k);
+    c->pc = start - 1 >= 0 ? start - 1 : AB_PC_TOP;
+    c->rdepth = 0;
+    c->stop = AB_STOP_NONE;
+    prog_labels(c);
+    return ABN_OK;
+}
+
+abn_status ab_var_clear(ab_calc *c, int v)
+{
+    if (c->running || v < 0 || v >= 26) return ABN_OK;
+    c->var[v] = ab_real(abn_zero());
+    return ABN_OK;
+}
+
 /* GTO . label nnn and GTO . . : the pointer only (UG p.14-6; neutral, p.B-5). Like any GTO from the
  * keyboard it ends what R/S could resume (UG p.13-19), so the return stack is emptied (ours). */
 static abn_status prog_goto_pos(ab_calc *c, int arg)

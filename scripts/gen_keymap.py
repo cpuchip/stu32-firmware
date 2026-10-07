@@ -206,6 +206,15 @@ MENUS = [
     # unit 027 rule 4 (SETUP's F4 its provisional home): SET prompts HH MM; 12/24 toggles the form
     ("CLOCK", [("SET", "KM_DEVICE", "0", "KM_DEV_CLOCKSET", 0), ("12/24", "KM_DEVICE", "0", "KM_DEV_H24", 0),
                NONE, NONE, NONE, NONE]),
+    # unit 041 C (B5, abacus #4850): MEM (blue 1): its catalogs (33s p.1-24); the catalogs' bars: up and down (the
+    # STU-32 has no arrows), and in PGM the label's run and program entry (also XEQ, R/S; CLEAR deletes, C cancels)
+    ("MEM", [("VAR", "KM_DEVICE", "1", "KM_DEV_CAT", 0), ("PGM", "KM_DEVICE", "2", "KM_DEV_CAT", 0), NONE, NONE, NONE,
+             NONE]),
+    ("CAT VAR", [("\u25b2", "KM_DEVICE", "0", "KM_DEV_CATUP", 0), ("\u25bc", "KM_DEVICE", "0", "KM_DEV_CATDN", 0),
+                 NONE, NONE, NONE, NONE]),
+    ("CAT PGM", [("\u25b2", "KM_DEVICE", "0", "KM_DEV_CATUP", 0), ("\u25bc", "KM_DEVICE", "0", "KM_DEV_CATDN", 0),
+                 ("XEQ", "KM_DEVICE", "0", "KM_DEV_CATXEQ", 0), ("PRGM", "KM_DEVICE", "0", "KM_DEV_CATPRGM", 0),
+                 NONE, NONE]),
     # unit 027 rule 5 (as amended: FLASH, Michael's SYS card): views any key leaves (the op APP_VIEW_*)
     ("SYS", [("BATT", "KM_DEVICE", "1", "KM_DEV_VIEW", 0), ("VER", "KM_DEVICE", "2", "KM_DEV_VIEW", 0),
              ("FLASH", "KM_DEVICE", "3", "KM_DEV_VIEW", 0), NONE, NONE, NONE]),

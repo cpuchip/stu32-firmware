@@ -866,7 +866,8 @@ static void sysinfo_cb(void *ctx, app_sysinfo *o)
     o->chg_n = true;
     o->pgood_n = false;
     o->vbat_uv = 0;
-    dev_sysinfo_common(o, flash.ctx && last_image <= flash.slot_size ? flash.slot_size - last_image : 0);
+    dev_sysinfo_common(o, flash.ctx && last_image <= flash.slot_size ? flash.slot_size - last_image : 0,
+                       flash.ctx ? flash.slot_size : 0);
 }
 
 void app_main(void)

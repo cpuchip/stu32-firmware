@@ -421,6 +421,20 @@ size_t ab_state_save(const ab_calc *c, uint8_t *buf, size_t cap)
     }
 }
 
+size_t ab_state_label_bytes(const ab_calc *c, int l)
+{
+    if (l < 0 || l >= 26 || c->labelpos[l] < 0 || c->labelpos[l] >= c->prog_len) return 0;
+    wr w = {NULL, 0, 0};                        /* counts only */
+    for (int i = c->labelpos[l]; i < c->prog_len && (i == c->labelpos[l] || c->prog[i].op != AB_LBL); i++) {
+        int op = c->prog[i].op;
+        w16(&w, (unsigned)op_code((ab_op)op));
+        if (op == AB_LIT) wval(&w, &c->lit[c->prog[i].arg]);
+        else if (op == AB_EQLINE) wtext(&w, c->peqn[c->prog[i].arg]);
+        else wi32(&w, c->prog[i].arg);
+    }
+    return w.len;
+}
+
 /* ---- reading ---- */
 
 typedef struct {

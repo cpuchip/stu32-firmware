@@ -35,6 +35,10 @@
 /* Writes the image into buf when it fits in cap; returns its length either way (call with cap 0
    to size the buffer). 0 if the calculator is in the middle of a run (it never is between calls). */
 size_t ab_state_save(const ab_calc *c, uint8_t *buf, size_t cap);
+/* Unit 041 C (B5): the bytes label l's program takes in the image (its LBL line and the lines after it to the next
+   label), MEM's LN= (33s p.12-20; our bytes, not the 33s's); 0 if there is no such label. ab_state_save(c, NULL, 0)
+   is the whole image's size. */
+size_t ab_state_label_bytes(const ab_calc *c, int l);
 
 /* Replaces the state with the image's, keeping the device's settings. ABN_BAD_IMAGE, nothing
    changed, for a wrong checksum, a truncated image, a version from the future or any field out

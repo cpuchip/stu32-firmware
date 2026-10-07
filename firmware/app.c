@@ -246,6 +246,118 @@ static int cx_pair_of(const km_action *act)
     return -1;
 }
 
+/* ---- unit 041 C (B5, abacus #4850): MEM and its catalogs (33s p.1-24, p.3-3, p.12-20; 35s p.3-4) ---- */
+
+/* Whether variable v holds anything but zero: the VAR catalog shows those (33s p.3-3). */
+static bool var_set(const ab_calc *c, int v)
+{
+    const ab_val *x = &c->var[v];
+    return !abn_is_zero(&x->re) || (x->kind != AB_REAL && (!abn_is_zero(&x->im) || !abn_is_zero(&x->p3)));
+}
+
+/* A catalog's items in order: the set variables A to Z (1, VAR), or the labels in program order (2, PGM). */
+static int cat_list(const ab_calc *c, int kind, int out[26])
+{
+    int n = 0;
+    if (kind == 1) {
+        for (int v = 0; v < 26; v++)
+            if (var_set(c, v)) out[n++] = v;
+    } else {
+        for (int i = 0; i < c->prog_len && n < 26; i++)
+            if (c->prog[i].op == AB_LBL && c->labelpos[c->prog[i].arg] == i)
+                out[n++] = c->prog[i].arg;
+    }
+    return n;
+}
+
+/* The catalog's lines for the item shown: Variable=Value in the display's format, or LBL L over LN=its bytes. */
+static void cat_fill(app_state *a)
+{
+    const ab_calc *c = a->c;
+    memset(a->cat_text, 0, sizeof a->cat_text);
+    if (a->cat == 1) {
+        const ab_val *v = &c->var[a->cat_at];
+        ab_display d;
+        memset(&d, 0, sizeof d);
+        d.dec.mode = c->disp_mode;
+        d.dec.n = c->disp_n;
+        d.dec.width = AB_FMT_WIDE - 2;
+        d.dec.radix = a->set.radix == ',' ? ',' : '.';
+        d.dec.separator = a->set.group;
+        d.fdisp = c->fdisp;
+        d.c = c->frac_c;
+        d.frac_format = !c->flag8 ? 0 : (c->flag9 ? 2 : 1);
+        d.base = c->base;
+        d.polar = c->cpolar;
+        d.angle = (int)c->angle;
+        char t[64];
+        int ind = 0, n;
+        if (v->kind == AB_COMPLEX) n = ab_format_complex(&v->re, &v->im, &d, t, sizeof t);
+        else if (v->kind == AB_VECTOR) {
+            abn el[3] = {v->re, v->im, v->p3};
+            n = ab_format_vector(el, v->len, &d, t, sizeof t);
+        } else n = ab_format_display(&v->re, &d, t, sizeof t, &ind);
+        snprintf(a->cat_text[1], sizeof a->cat_text[1], "%c=%.37s", 'A' + a->cat_at, n < 0 ? "?" : t);
+    } else {
+        snprintf(a->cat_text[0], sizeof a->cat_text[0], "LBL %c", 'A' + a->cat_at);
+        snprintf(a->cat_text[1], sizeof a->cat_text[1], "LN=%lu", (unsigned long)ab_state_label_bytes(c, a->cat_at));
+    }
+}
+
+static int menu_named(const char *name);
+
+/* Shows the catalog's item at position i of its list (wrapping), or closes it when the list is empty. */
+static void cat_show(app_state *a, int i)
+{
+    int list[26], n = cat_list(a->c, a->cat, list);
+    if (n == 0) {
+        a->cat = 0;
+        a->menu = -1;
+        return;
+    }
+    a->cat_at = list[((i % n) + n) % n];
+    cat_fill(a);
+    a->menu = menu_named(a->cat == 1 ? "CAT VAR" : "CAT PGM");
+    a->menu_page = 0;
+}
+
+/* The shown item's position in its list, -1 if it has gone. */
+static int cat_pos(const app_state *a)
+{
+    int list[26], n = cat_list(a->c, a->cat, list);
+    for (int i = 0; i < n; i++)
+        if (list[i] == a->cat_at) return i;
+    return -1;
+}
+
+static void cat_open(app_state *a, int kind)
+{
+    int list[26];
+    if (cat_list(a->c, kind, list) == 0) {      /* nothing to list: a notice, no catalog (ours) */
+        a->notice = kind == 1 ? "NO VARIABLES" : "NO PROGRAMS";
+        a->notice_ms = a->last_key_ms;
+        return;
+    }
+    a->cat = kind;
+    cat_show(a, 0);
+}
+
+/* MEM's line: the image's room, the store's slot less the image now (ours: our bytes, not the 33s's 31 KB), and in
+   35s mode and STU the indirect variables in use (35s p.3-4). */
+static void mem_fill(app_state *a)
+{
+    app_sysinfo si;
+    memset(&si, 0, sizeof si);
+    si.soc = -1;
+    if (a->sysinfo) a->sysinfo(a->ctx, &si);
+    size_t size = ab_state_save(a->c, NULL, 0);
+    char room[16];
+    if (si.slot_size) snprintf(room, sizeof room, "%lu", (unsigned long)(si.slot_size > size ? si.slot_size - size : 0));
+    else snprintf(room, sizeof room, "--");
+    if (ab_mode35(a->c)) snprintf(a->mem_text, sizeof a->mem_text, "%s B FREE  %d IND", room, a->c->ind_top + 1);
+    else snprintf(a->mem_text, sizeof a->mem_text, "%s B FREE", room);
+}
+
 /* The hyperbolic function the 33s's HYP prefix makes of a trig key (unit 041 C, B10; 33s p.4-6), -1 none. */
 static int hyp_of(const km_action *act)
 {
@@ -576,6 +688,43 @@ void app_key(app_state *a, int key, uint32_t now_ms)
         }
         return;
     }
+    if (a->cat && face->kind != KM_SHIFT && face->kind != KM_SOFT) {
+        /* unit 041 C (B5): MEM's catalog (33s p.3-3, p.12-20): C cancels; CLEAR clears the variable shown or deletes
+           the program; in VAR, ENTER copies the variable to X; in PGM, XEQ or R/S runs the label. The soft keys are
+           the catalog's bar; a shift arms; any other key leaves the catalog and acts. */
+        const km_action *act = km_lookup(key, a->shift);
+        if (act->kind == KM_NONE) act = face;
+        int sh = a->shift, bar = a->menu;
+        a->shift = 0;
+        if (face->kind == KM_OP && face->op == AB_CANCEL && sh == 0) {
+            a->cat = 0;
+            a->menu = -1;
+            return;
+        }
+        if (act->kind == KM_MENU && act->arg >= 0 && act->arg == menu_named("CLEAR")) {
+            int i = cat_pos(a);
+            undo_mark(a);
+            if (a->cat == 1) ab_var_clear(a->c, a->cat_at);
+            else ab_prog_delete_label(a->c, a->cat_at);
+            a->dirty = true;
+            cat_show(a, i < 0 ? 0 : i);         /* the item that followed it, or the first */
+            return;
+        }
+        if (a->cat == 1 && act->kind == KM_OP && act->op == AB_ENTER) {
+            do_op(a, AB_RCL, AB_VAR_A + a->cat_at);
+            a->menu = bar;
+            return;
+        }
+        if (a->cat == 2 && ((act->kind == KM_PROMPT && act->op == AB_XEQ) || (act->kind == KM_OP && act->op == AB_RS))) {
+            int l = a->cat_at;
+            a->cat = 0;
+            a->menu = -1;
+            do_op(a, AB_XEQ, l * 1000);
+            return;
+        }
+        a->cat = 0;                             /* any other key: the catalog left, the key acts */
+        a->shift = sh;
+    }
     if (a->menu >= 0 && face->kind == KM_SHIFT) {     /* a shift arms, switches or cancels; the menu stays
                                                          (ruling #3828, abacus #3971) */
         a->shift = a->shift == face->arg ? 0 : face->arg;
@@ -771,6 +920,7 @@ static void do_action(app_state *a, const km_action *act)
         if (act->arg >= 0 && km_menu_at(act->arg)) {
             a->menu = act->arg;
             a->menu_page = 0;
+            if (act->arg == menu_named("MEM")) mem_fill(a);    /* unit 041 C (B5) */
         }
         break;
     case KM_CONFIRM:                            /* ALL is PGM in program entry, EQN in Equation
@@ -794,6 +944,28 @@ static void do_action(app_state *a, const km_action *act)
             snprintf(note, sizeof note, "ZFACT %d", f);
             a->notice = note;
             a->notice_ms = a->last_key_ms;
+            break;
+        }
+        if (act->arg == KM_DEV_CAT) {           /* unit 041 C (B5): MEM's catalogs */
+            cat_open(a, act->op);
+            break;
+        }
+        if (act->arg == KM_DEV_CATUP || act->arg == KM_DEV_CATDN) {
+            int i = cat_pos(a);
+            cat_show(a, (i < 0 ? 0 : i) + (act->arg == KM_DEV_CATUP ? -1 : 1));
+            break;
+        }
+        if (act->arg == KM_DEV_CATXEQ) {
+            int l = a->cat_at;
+            a->cat = 0;
+            do_op(a, AB_XEQ, l * 1000);
+            break;
+        }
+        if (act->arg == KM_DEV_CATPRGM) {       /* the label in program entry: the pointer on its LBL line */
+            int l = a->cat_at;
+            a->cat = 0;
+            do_op(a, AB_GTOPOS, l * 1000);
+            if (!a->c->prgm) do_op(a, AB_PRGM, 0);
             break;
         }
         if (act->arg == KM_DEV_OFF) a->off = true;
@@ -1057,6 +1229,12 @@ void app_ui(const app_state *a, screen_ui *ui)
     ui->prompt = a->prompt_op >= 0 ? a->prompt_text : NULL;
     if (!ui->prompt && cx_prefix(a, a->menu))
         ui->prompt = "CMPLX_";               /* 33s mode's prefix (unit 039; 33s p.G-6) */
+    if (!ui->prompt && a->menu >= 0 && a->menu == menu_named("MEM"))
+        ui->prompt = a->mem_text;            /* unit 041 C (B5): the bytes free */
+    if (a->cat) {                            /* unit 041 C (B5): MEM's catalog on Y's and X's lines */
+        ui->view[2] = a->cat_text[0][0] ? a->cat_text[0] : NULL;
+        ui->view[3] = a->cat_text[1];
+    }
     ui->notice = a->notice;
     {
         int64_t w;                              /* the status band's clock (unit 027 rule 4) */

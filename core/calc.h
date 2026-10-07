@@ -423,6 +423,11 @@ abn_status ab_do(ab_calc *c, ab_op op);
 /* An operation that takes an argument: AB_CONST (a constant's index) and AB_FIX, AB_SCI, AB_ENG
    (the digit setting). ab_do(c, op) is ab_do_arg(c, op, 0). */
 abn_status ab_do_arg(ab_calc *c, ab_op op, int arg);
+/* Unit 041 C (B5): MEM's catalogs (33s p.3-3, p.12-20). Deletes label l's program (its LBL line and the lines after
+   it to the next label), the pointer to the line before it, ending what R/S could resume; ABN_NONEXISTENT if there
+   is no such label. Clears variable v (0..25) to zero. Neither runs while a program runs. */
+abn_status ab_prog_delete_label(ab_calc *c, int l);
+abn_status ab_var_clear(ab_calc *c, int v);
 
 /* Program memory, for displays and tests (unit 011). The address of line i ("A005", "0003" for a
    line before any label, "TOP" for AB_PC_TOP) into buf (at least 8 bytes); the index of the line

@@ -80,6 +80,7 @@ typedef struct {
     uint32_t vbat_uv;       /* the cell's voltage from the gauge, 0 not known */
     const char *version, *commit, *built;   /* the firmware's version, the core's commit, the build date */
     uint32_t flash_free;    /* the state partition's free bytes */
+    uint32_t slot_size;     /* the state image's slot: its most bytes (MEM's bytes free, unit 041 C); 0 not known */
     uint32_t heap_free, heap_largest;       /* the internal heap's free bytes and largest block */
 } app_sysinfo;
 
@@ -165,6 +166,11 @@ typedef struct {
                                ends it and acts; false (the console, the one-finger touch panel): the
                                next key only ends it (unit 030 answer 7) */
     char view_text[4][40];  /* its lines */
+    int cat;                /* unit 041 C (B5): MEM's catalog showing: 0 none, 1 VAR, 2 PGM */
+    int cat_at;             /* the variable (0..25) or label (0..25) it shows */
+    char cat_text[2][40];   /* its lines */
+    char mem_text[40];      /* MEM's line while its menu shows: the bytes free, and in 35s mode and STU the
+                               indirect count */
     void (*set_wall)(void *ctx, int64_t secs);  /* the clock set from the keys: the device keeps it
                                                    (its RTC); may be NULL */
     uint32_t (*clock_ms)(void *ctx);            /* the app's clock now, for a one-call SOLVE or

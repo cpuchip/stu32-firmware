@@ -44,7 +44,9 @@ enum { KM_DEV_OFF = 1, KM_DEV_UNDO,
           DEV_USE_* bit) toggled, and all of them; CLOCK's SET and 12/24; SYS's views (op APP_VIEW_*) */
        KM_DEV_ENTRY, KM_DEV_USE, KM_DEV_USEALL, KM_DEV_CLOCKSET, KM_DEV_H24, KM_DEV_VIEW,
        /* unit 040: the graph's next page; its readout on or off; ZFACT's factor, 2 4 8 10 in turn */
-       KM_DEV_GPAGE, KM_DEV_GXY, KM_DEV_GFACT };
+       KM_DEV_GPAGE, KM_DEV_GXY, KM_DEV_GFACT,
+       /* unit 041 C (B5): MEM's catalogs: open one (op 1 VAR, 2 PGM); up, down; run and open the label shown */
+       KM_DEV_CAT, KM_DEV_CATUP, KM_DEV_CATDN, KM_DEV_CATXEQ, KM_DEV_CATPRGM };
 
 typedef struct {
     km_kind kind;

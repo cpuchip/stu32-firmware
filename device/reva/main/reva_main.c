@@ -510,7 +510,8 @@ static void sysinfo_cb(void *ctx, app_sysinfo *o)
     o->chg_n = gpio_get_level(PIN_CHG_N);
     o->pgood_n = gpio_get_level(PIN_PGOOD_N);
     o->vbat_uv = vbat_uv;
-    dev_sysinfo_common(o, flash.ctx && last_image <= flash.slot_size ? flash.slot_size - last_image : 0);
+    dev_sysinfo_common(o, flash.ctx && last_image <= flash.slot_size ? flash.slot_size - last_image : 0,
+                       flash.ctx ? flash.slot_size : 0);
 }
 
 void app_main(void)

@@ -309,7 +309,14 @@ int main(void)
             expect(in->kind == KM_PROMPT && in->op == AB_INTEG && in->prompt == KM_ARG_VAR && !strcmp(in->legend, "\xe2\x88\xab"),
                    "integrate (gold 8) asks for a variable, then integrates");
             /* rule 5: these stay not defined */
-            static const char *const LATER[] = {"MEM", "TUTOR"};   /* APPS: unit 037 */   /* RADIX, SETUP: unit 022; EXP #3958; SYS: unit 027; TABLE: 032 */
+            static const char *const LATER[] = {"TUTOR"};   /* APPS: unit 037; MEM: 041 C */   /* RADIX, SETUP: unit 022; EXP #3958; SYS: unit 027; TABLE: 032 */
+            {   /* unit 041 C (B5): MEM (blue 1) opens VAR and PGM */
+                const km_action *mem = km_lookup(37, 2);
+                const km_menu *mm = mem->kind == KM_MENU && mem->arg >= 0 ? km_menu_at(mem->arg) : NULL;
+                expect(mm && !strcmp(mm->name, "MEM") && mm->item[0].kind == KM_DEVICE && mm->item[0].arg == KM_DEV_CAT &&
+                           mm->item[0].op == 1 && mm->item[1].kind == KM_DEVICE && mm->item[1].op == 2,
+                       "041 C: MEM (blue 1) is a menu: VAR, PGM");
+            }
             for (size_t i = 0; i < sizeof LATER / sizeof LATER[0]; i++) {
                 bool found = false, undefined = true;
                 for (int k = 0; k < KB_KEYS; k++)

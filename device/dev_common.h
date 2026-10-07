@@ -42,8 +42,9 @@ static bool dev_parse_time(const app_state *a, uint32_t now, const char *s, int6
 }
 
 /* SYS's facts the SDK knows; the board fills the gauge's and the charger's */
-static void dev_sysinfo_common(app_sysinfo *o, uint32_t flash_free)
+static void dev_sysinfo_common(app_sysinfo *o, uint32_t flash_free, uint32_t slot_size)
 {
+    o->slot_size = slot_size;                   /* MEM's bytes free: this less the image now (unit 041 C) */
     o->version = AB_FW_VERSION;
     o->commit = AB_CORE_COMMIT;
     o->built = AB_BUILT;
