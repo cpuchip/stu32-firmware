@@ -53,7 +53,7 @@
 
 enum { EV_KEY = 0, EV_OP, EV_DUMP, EV_SAVE, EV_WIPE, EV_RESTART, EV_TOUCHED, EV_BENCH, EV_TIME, EV_POWBENCH,
        EV_KEYUP, EV_TBLBENCH, EV_GRBENCH, EV_FRAMEBENCH,
-       EV_POLBENCH, EV_ZOOMBENCH };                          /* EV_KEYUP: a the key released (unit 030: SHOW, held) */
+       EV_POLBENCH, EV_ZOOMBENCH, EV_CASBENCH };                          /* EV_KEYUP: a the key released (unit 030: SHOW, held) */
 static char time_text[16];             /* TIME's argument, for the calc task (unit 027) */
 
 typedef struct {
@@ -530,6 +530,53 @@ static void zoombench(void)
     heap_caps_free(t);
 }
 
+/* CASBENCH (CAS 004 rule 6): each Casimir step's time on the S3 over heavy shapes (near the 191-byte slot, deep
+   nests, big expansions, the depth guard), in STU, from the calc task, as the keys reach it: status, the result's
+   length, milliseconds, and the task's stack still free. */
+static void casbench(void)
+{
+    static const struct { const char *name; int op, var; const char *eqn, *repl; } K[] = {
+        {"D/DX nest", AB_CASD, 23, "SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(X))))))))))))))))))))", NULL},
+        {"D/DX product", AB_CASD, 23, "X" "\xc3\x97" "SIN(X)" "\xc3\x97" "COS(X)" "\xc3\x97" "EXP(X)" "\xc3\x97" "LN(X)" "\xc3\x97"
+                                      "TAN(X)" "\xc3\x97" "SQRT(X)" "\xc3\x97" "ASIN(X)" "\xc3\x97" "ATAN(X)" "\xc3\x97" "SINH(X)", NULL},
+        {"D/DX product 6", AB_CASD, 23, "X" "\xc3\x97" "SIN(X)" "\xc3\x97" "COS(X)" "\xc3\x97" "EXP(X)" "\xc3\x97" "LN(X)" "\xc3\x97" "TAN(X)", NULL},
+        {"D/DX quotient", AB_CASD, 23, "(X^3+2\xc3\x97X^2-X+1)\xc3\xb7(X^2+1)^3\xc3\x97SQRT(X^2+X+1)\xc3\xb7LN(X^2+2)", NULL},
+        {"SIMP sum", AB_CASSIMP, 0, "X+2\xc3\x97X+3\xc3\x97Y+4\xc3\x97X\xc3\x97Y+5\xc3\x97Y\xc3\x97X+6\xc3\x97X^2+7\xc3\x97X\xc3\x97X-8\xc3\x97Y^2+9\xc3\x97Y\xc3\x97Y+X\xc3\xb7X+(X+Y)\xc3\x97(X+Y)-(X-Y)^2+SIN(X)^2+COS(X)^2", NULL},
+        {"EXPND (X+Y+1)^5", AB_CASEXP, 0, "(X+Y+1)^5", NULL},
+        {"EXPND (X+1)^9(Y+1)^3", AB_CASEXP, 0, "(X+1)^9\xc3\x97(Y+1)^3", NULL},
+        {"COLCT (X+Y+Z)^4", AB_CASCOL, 23, "(X+Y+Z)^4", NULL},
+        {"SUBST poly", AB_CASSUB, 23, "X^5+X^4+X^3+X^2+X+1", "(Y+1)^2"},
+        {"guard X^X^..60", AB_CASSIMP, 0, NULL, NULL},
+    };
+    char chain[200];
+    ab_calc *t = heap_caps_calloc(1, sizeof *t, MALLOC_CAP_SPIRAM);
+    if (!t) {
+        printf("casbench: no memory\n");
+        return;
+    }
+    for (int i = 0; i < 60; i++) chain[2 * i] = 'X', chain[2 * i + 1] = '^';
+    chain[119] = '\0';
+    for (size_t k = 0; k < sizeof K / sizeof K[0]; k++) {
+        ab_init(t);
+        ab_do_arg(t, AB_MODEL, AB_MODEL_STU);
+        ab_eqn_add(t, K[k].eqn ? K[k].eqn : chain);
+        int n = t->eqn_count;
+        int64_t t0 = esp_timer_get_time();
+        abn_status st = ab_do_arg(t, (ab_op)K[k].op, K[k].var);
+        if (K[k].op == AB_CASSUB && st == ABN_OK) {
+            snprintf(t->ebuf, sizeof t->ebuf, "%s", K[k].repl);
+            t->ecur = (int)strlen(t->ebuf);
+            st = ab_do(t, AB_ENTER);
+        }
+        int64_t t1 = esp_timer_get_time();
+        printf("casbench: %-22s %lld us st %d added %d len %d stack-free %u\n", K[k].name, (long long)(t1 - t0),
+               (int)st, t->eqn_count - n, t->eqn_count > n ? (int)strlen(t->eqn[t->eqn_cur]) : 0,
+               (unsigned)uxTaskGetStackHighWaterMark(NULL));
+    }
+    printf("casbench: done heap %u\n", (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL));
+    heap_caps_free(t);
+}
+
 /* POLBENCH (unit 034 rule 3): ->POL's time on the S3, before (the engine's hypot and atan2, and in DEG the one
    product, which was fn_topol's route) and after (fn_topol: hp_hypot, hp_atan2 at 56 digits rounded once); and
    ->REC's in RAD, fn_torec now. Non-integer arguments (a benchmark lesson of unit 032). */
@@ -693,6 +740,7 @@ static void console_task(void *arg)
         else if (!strcmp(line, "FRAMEBENCH")) e.kind = EV_FRAMEBENCH;  /* unit 037 rule 6: full frames a second */
         else if (!strcmp(line, "POLBENCH")) e.kind = EV_POLBENCH;  /* unit 034 rule 3: ->POL before and after */
         else if (!strcmp(line, "ZOOMBENCH")) e.kind = EV_ZOOMBENCH;  /* unit 040: a redraw after each zoom */
+        else if (!strcmp(line, "CASBENCH")) e.kind = EV_CASBENCH;    /* CAS 004: each step's time, the stack */
         else if (!strncmp(line, "TIME ", 5)) {      /* TIME hh:mm[:ss] (unit 027 rule 4) */
             snprintf(time_text, sizeof time_text, "%.15s", line + 5);
             e.kind = EV_TIME;
@@ -757,6 +805,8 @@ static void calc_task(void *arg)
             polbench();
         } else if (got && ev.kind == EV_ZOOMBENCH) {
             zoombench();
+        } else if (got && ev.kind == EV_CASBENCH) {
+            casbench();
         } else if (got && ev.kind == EV_BENCH) {
             bench();
         } else if (got && ev.kind == EV_TIME) {
