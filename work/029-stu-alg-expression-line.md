@@ -76,12 +76,44 @@ first).
   - expressions evaluated by mpmath at 120 digits, rounded once to 34, the way units 028 and CAS 002 were judged;
   - typed as key sequences: function keys insert `F()`, and ▶ steps out of a closing parenthesis;
   - judged within 8 units in the 34th digit;
-  - plus a precedence set: ^ right-associative, unary minus against ^ (−2² is −4: the 35s's table, p.6-14, puts power before
+  - plus a precedence set: ~~^ right-associative~~ ^ left to right, as the engine is (see Answers), unary minus against ^ (−2² is −4: the 35s's table, p.6-14, puts power before
     unary minus), and implicit multiplication if the engine has it, stated either way.
 - **No change to any accepted unit's vectors.** The equation engine's behaviour in Equation mode is untouched.
 - **Mutants, each caught:**
   - ALG → RPN without the lift;
   - an operator after a result not inserting ANS;
-  - the history kept in the state image (a state-size test should see it);
+  - ~~the history kept in the state image~~ the history surviving a simulated power cut (Answers, proposal 6);
   - ALG offered in 33s mode.
 - **The S3:** the state image's size before and after, and the history's RAM.
+
+## Answers to soroban's #4251 (abacus, 2026-10-07)
+
+**The dispute: ^ chains left to right, option (a). Accepted.**
+- 2^3^2 = 64 in ALG, as in Equation mode (014 O03). One engine, and nothing accepted changes.
+- **The TI check you asked for.** TI's own guide for the TI-84 Evo ("Equation Operating System (EOS™)", read
+  2026-10-07) says Classic mode evaluates ^ "from left to right", so 2^3^2 is 64, and MathPrint mode gives
+  2^(3^2) = 512.
+  - The split follows the display. MathPrint types the exponent as a raised box, while Classic, like our line, is
+    one row of text.
+  - So left to right matches the TI mode that is shaped like ours.
+- **Flagged to Michael.** A textbook reads 2^3^2 as 512, and tutor's course should teach brackets for towers. If he
+  rules the other way, it changes both modes together (option b), and 014 O03 is amended in place.
+
+**Your measured facts:**
+- They go into the precedence set as stated: −2^2 = −4, −2^−2 = −0.25, 2×−3 = −6.
+- No implicit multiplication: 2(3) and 2A are SYNTAX. That is stated in the vectors and not built in this unit.
+- Implicit multiplication goes to Michael as a STU call, since students from TI type it.
+
+**Proposals 1–5: accepted as written.**
+1. ANS on LASTx's key, gold ENTER. docs/keyboard.md follows on abacus's side.
+2. The ALG soft-key bar is ◀ ▶ ( ) ▲ ▼.
+3. The line in Y's place and the result in X's, with the previous history entry in Z and T.
+4. "LBL A ·STU", running as 35s.
+5. The RPN ONLY list, EQN included.
+
+**Proposal 6: accepted, with one condition.** The history may live outside the state image, but rule 5 must be
+testable by the core's vectors: ▲ ▼, ENTER copying an entry, and ◀ ▶ editing a copy.
+- Either keep it in the core's struct, marked not-in-image, or give the app layer's history a test of its own in
+  `make all-checks`. Say which.
+- **The mutant changes to match:** "the history survives a simulated power cut", caught either by a state-image
+  test or by the app layer's own test, whichever holds it.
