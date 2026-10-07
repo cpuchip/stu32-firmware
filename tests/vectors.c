@@ -818,6 +818,21 @@ int vectors_run(const char *name, FILE *f)
                 } else if (strcmp(ex, "%GMARK") == 0) {
                     if (c.gr_mark) snprintf(got, sizeof got, "%d,%d", c.gr_mcol, c.gr_mrow);
                     else snprintf(got, sizeof got, "-");
+                } else if (strcmp(ex, "%GRES#") == 0 || strcmp(ex, "%GRESB#") == 0) {
+                    /* "%GRES#=v,t": the tool's result within t of v (TANL's b: %GRESB#) (unit 040) */
+                    bool isb = ex[5] == 'B';
+                    const char *vs = eq + 1, *cm = strchr(vs, ',');
+                    char wv[64];
+                    abn want, tol, d;
+                    snprintf(wv, sizeof wv, "%.*s", cm ? (int)(cm - vs) : 0, vs);
+                    const abn *val = isb ? &c.gr_res_b : &c.gr_res;
+                    if (c.gr_res_kind != 0 && cm && abn_from_text(&want, wv) == ABN_OK && abn_from_text(&tol, cm + 1) == ABN_OK &&
+                        abn_sub(&d, val, &want) == ABN_OK && (d = abn_abs(&d), abn_cmp(&d, &tol) <= 0))
+                        snprintf(got, sizeof got, "%s", eq + 1);
+                    else if (c.gr_res_kind == 0)
+                        snprintf(got, sizeof got, "-");
+                    else
+                        abn_to_text(val, got, sizeof got);
                 } else if (strcmp(ex, "%XWIN") == 0 || strcmp(ex, "%GCXY") == 0 || strcmp(ex, "%GRES") == 0) {
                     /* "lo,hi" by value: the x window; the cursor's x and y; the tool's result (and TANL's b) */
                     abn lo = abn_zero(), hi = abn_zero(), want_lo, want_hi;

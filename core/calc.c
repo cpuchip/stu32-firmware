@@ -2638,16 +2638,17 @@ static abn_status gk15(ab_calc *c, const abn *a, const abn *b, abn *res, abn *er
  * is below U / 10, or INTEG_PARTS pieces; Y = U + the error estimate, so it covers the error of
  * the rule as well as that of f's digits. The ends are never evaluated (p.8-5). An error in the
  * function stops the integral (the guide's integrator cannot proceed either), nothing changed. */
-static abn_status integ_finish(ab_calc *c)
+/* The adaptive rule from lo to hi (above): *tot the integral, *unc its uncertainty U + the error estimate (unit 040
+   draws it out of integ_finish for GRAPH's AREA; integ_finish's behaviour unchanged). */
+static abn_status integ_core(ab_calc *c, const abn *lo, const abn *hi, abn *tot_out, abn *unc_out)
 {
     abn_status st;
-    ab_val ox = c->susp.x, oy = c->susp.y;
     int n = 1, mode = c->disp_mode, digits = c->disp_n;
-    abn tot, err, rab, u, tenth, t;
+    abn tot = abn_zero(), err, rab, u = abn_zero(), tenth, t;
     if (mode == AB_ALL) digits = 11;
     abn_from_text(&tenth, "0.1");
-    ia[0] = oy.re;
-    ib[0] = ox.re;
+    ia[0] = *lo;
+    ib[0] = *hi;
     st = gk15(c, &ia[0], &ib[0], &ires[0], &ierr[0], &iabs[0]);
     while (st == ABN_OK) {
         int worst = 0;
@@ -2664,7 +2665,7 @@ static abn_status integ_finish(ab_calc *c)
             if ((st = abn_pow10(&p, -digits)) != ABN_OK) break;
             if (mode == AB_FIX) {
                 abn w;
-                if ((st = abn_sub(&w, &ox.re, &oy.re)) != ABN_OK) break;
+                if ((st = abn_sub(&w, hi, lo)) != ABN_OK) break;
                 w = abn_abs(&w);
                 st = abn_mul(&u, &w, &p);
             } else {
@@ -2690,6 +2691,17 @@ static abn_status integ_finish(ab_calc *c)
     }
     if (st == ABN_OK) st = abn_add(&t, &u, &err);
     if (st != ABN_OK) return st;
+    *tot_out = tot;
+    *unc_out = t;
+    return ABN_OK;
+}
+
+static abn_status integ_finish(ab_calc *c)
+{
+    abn_status st;
+    ab_val ox = c->susp.x, oy = c->susp.y;
+    abn tot, t;
+    if ((st = integ_core(c, &oy.re, &ox.re, &tot, &t)) != ABN_OK) return st;
     {
         slot sl;
         slot_of_id(c, c->susp.var, &sl);
