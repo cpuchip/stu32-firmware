@@ -180,11 +180,22 @@ static void do_op(app_state *a, int op, int arg)
         a->run_stopped = false;
     }
     if (op != AB_VIEW) undo_mark(a);
-    if (runs && a->busy) a->busy(a->ctx, op);
+    /* 040b: a call that may take long (a SOLVE, an integral, a run's first slice, a graph tool) is marked, so that
+       the device's key task delivers C into it (app_interrupt); nothing left over before or after */
+    bool computing = runs || (op == AB_GFCN && c->gr_on);
+    if (computing) {
+        c->intr = false;
+        a->computing = true;
+    }
+    if ((runs || computing) && a->busy) a->busy(a->ctx, op);
     bool msg = c->msg;
     bool on_lbl = c->prgm && c->pc >= 0 && c->pc < c->prog_len && c->prog[c->pc].op == AB_LBL;
     int was = on_lbl ? c->lmode[c->prog[c->pc].arg] : 0;
     abn_status st = ab_do_arg(c, (ab_op)op, arg);
+    if (computing) {
+        a->computing = false;
+        if (c->stop != AB_STOP_SLICE) c->intr = false;  /* (a C that came as it ended: spent) */
+    }
     a->dirty = true;
     if (op == AB_GRAPH && st == ABN_OK && c->gr_on) {      /* unit 033; the first page, the readout on (040) */
         a->gpage = 0;
@@ -1113,7 +1124,8 @@ bool app_wall(const app_state *a, uint32_t now_ms, int64_t *secs)
 
 void app_interrupt(app_state *a)
 {
-    ab_interrupt(a->c);
+    if (a->computing) a->c->intr = true;        /* inside the call: read between evaluations or lines (040b) */
+    else ab_interrupt(a->c);
     if (a->run_timed) a->run_stopped = true;
 }
 

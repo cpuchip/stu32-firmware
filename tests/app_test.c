@@ -58,6 +58,9 @@ static struct {
     uint32_t key_ms, tick_ms, save_n;
     uint8_t saved[APP_SAVE_SIZE];
 } rec;
+/* 040b: a C arriving while a long computation runs (the device's key task calls app_interrupt from its own task) */
+static app_state *busy_app;
+static void busy_interrupt(void *ctx, int op) { (void)ctx; (void)op; app_interrupt(busy_app); }
 typedef struct { int count; } tapp_ctx;
 static void t_load(void *ctx, const uint8_t *s, uint32_t n) { rec.loads++; rec.save_n = n; if (n) ((tapp_ctx *)ctx)->count = s[0]; }
 static void t_start(void *ctx) { (void)ctx; rec.starts++; }
@@ -1885,6 +1888,50 @@ int main(void)
             app_ui(&a, &ui);
             expect(c.gr_on && a.gpage == 0, "040: a graph reopened starts on its first page");
         }
+    }
+
+    /* 040b (abacus #4641): C during a graph tool interrupts it, the window kept; and, the same way, C during a
+       keyboard SOLVE of an equation (the devices delivered C only between a program's slices, so neither could be) */
+    {
+        static app_graph gb;
+        ab_init(&c);
+        app_init(&a, &c, now);
+        c.stu = c.m35 = true;
+        ab_eqn_add(&c, "X^2-30");
+        ab_do(&c, AB_EQN);
+        app_graph_buffer(&a, &gb);
+        press(&a, "BLUE 7 k:5");
+        for (int i = 0; i < 200 && a.graphing; i++) app_tick(&a, &(pwr_inputs){false, false, 80, false}, now);
+        abn x0 = c.gr_xmin;
+        busy_app = &a;
+        a.busy = busy_interrupt;
+        press(&a, "k:5 k:5 k:0");               /* FCN's ROOT, C pressed while it runs */
+        bool cut = c.gr_on && c.gr_res_kind == 0 && c.msg && c.err_status == ABN_INTERRUPTED && !abn_cmp(&c.gr_xmin, &x0);
+        a.busy = NULL;
+        press(&a, "C k:0");                     /* the message cleared; ROOT again, nothing left over */
+        expect(cut && c.gr_res_kind == AB_F_ROOT + 1 && !a.computing, "040b: C interrupts ROOT (INTERRUPTED, the window kept); the next ROOT runs whole");
+        /* a keyboard SOLVE (of FN='s program, which solves at once, as 016's I03) */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do(&c, AB_PRGM);
+        ab_do_arg(&c, AB_LBL, 5);               /* LBL F: X^2 - 2 */
+        ab_do_arg(&c, AB_RCL, 23);
+        ab_do(&c, AB_SQ);
+        ab_do(&c, AB_K2);
+        ab_do(&c, AB_SUB);
+        ab_do(&c, AB_RTN);
+        ab_do(&c, AB_PRGM);
+        ab_do_arg(&c, AB_FN, 5);
+        ab_do(&c, AB_K1);
+        ab_do_arg(&c, AB_STO, 23);
+        ab_do(&c, AB_K9);
+        busy_app = &a;
+        a.busy = busy_interrupt;
+        press(&a, "GOLD 7 ltr:X");
+        expect(c.msg && c.err_status == ABN_INTERRUPTED && !a.computing, "040b: C interrupts a keyboard SOLVE");
+        a.busy = NULL;
+        press(&a, "C GOLD 7 ltr:X");            /* nothing left over: the next SOLVE finds the root */
+        expect(!c.msg && fabs(x_of(&c) - 1.4142135623730951) < 1e-12, "040b: the next SOLVE runs whole");
     }
 
     /* unit 033: GRAPH: blue 7's menu; the frame drawn from the model: in the curve's columns (clear of the

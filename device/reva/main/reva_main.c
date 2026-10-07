@@ -220,7 +220,7 @@ static void scan_task(void *arg)
         }
         for (int k; (k = kb_next(&ks)) >= 0;) {
             const km_action *f = km_lookup(k, KM_FACE);
-            if (app.running && f->kind == KM_OP && (f->op == AB_CANCEL || f->op == AB_RS)) {
+            if ((app.running || app.computing) && f->kind == KM_OP && (f->op == AB_CANCEL || f->op == AB_RS)) {
                 app_interrupt(&app);                         /* at once; the press is spent */
                 continue;
             }

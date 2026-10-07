@@ -1582,7 +1582,7 @@ static abn_status prog_run(ab_calc *c, long limit)
     bool top = c->running == 0, sst = top && limit == 1 && !continuing;
     if (top && !continuing) {
         c->run_lines = 0;
-        c->intr = false;
+        if (!c->active) c->intr = false;        /* (inside a SOLVE or integral a C is for that: kept, 040b) */
     }
     continuing = false;
     c->running++;
@@ -1881,7 +1881,12 @@ static abn_status graph_slope(ab_calc *c, const abn *x, abn *m)
 static abn_status eval_fn(ab_calc *c, const abn *t, abn *f)
 {
     if (ev_graph) {                             /* unit 040 */
+        if (c->intr) {                          /* C during the tool (040b), as between SOLVE's evaluations */
+            c->intr = false;
+            return ABN_INTERRUPTED;
+        }
         c->evals++;
+        if (c->intr_after > 0 && --c->intr_after == 0) c->intr = true;     /* the tests' interrupt */
         return ev_graph == 1 ? graph_f(c, t, f) : graph_slope(c, t, f);
     }
     slot sl;
