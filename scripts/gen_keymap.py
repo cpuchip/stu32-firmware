@@ -130,8 +130,9 @@ MENUS = [
                o("HMS\u2192", "AB_HMSINV"), o("\u2192DEG", "AB_TODEG"), o("\u2192RAD", "AB_TORAD")]),
     ("VARS", [p("x\u2194", "AB_XVAR", "KM_ARG_VAR"), p("VIEW", "AB_VIEW", "KM_ARG_VAR"), o("CLR", "AB_CLVARS"),
               NONE, NONE, NONE]),
+    # unit 030: SHOW at F5, held (abacus #4292: no shift position is free on the layout)
     ("STACK", [o("CLSTK", "AB_CLSTK"), o("LASTx", "AB_LASTX"), o("R\u2191", "AB_RUP"), o("x\u2194y", "AB_XY"),
-               NONE, NONE]),
+               o("SHOW", "AB_SHOW"), NONE]),
     # unit 027: how the calculator behaves; unit 029: STU (a 35s) at F3, its entry RPN or ALG at F4 and
     # F5 (ALG shown only in STU: the app hides it); the model and the entry in effect marked
     ("MODE", [o("33s", "AB_MODEL", 33), o("35s", "AB_MODEL", 35), o("STU", "AB_MODEL", "AB_MODEL_STU"),

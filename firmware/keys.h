@@ -35,6 +35,8 @@ typedef struct {
     bool down[KB_KEYS];                 /* the debounced state */
     uint8_t q[32];                      /* key-down events not yet taken */
     int qh, qn;
+    uint8_t uq[32];                     /* key-up events not yet taken (unit 030: SHOW, held) */
+    int uqh, uqn;
 } kb_state;
 
 /* Whether (row, col) is a key of the layout. */
@@ -44,6 +46,8 @@ void kb_init(kb_state *k);
 void kb_scan(kb_state *k, const kb_io *io);
 /* The next key-down event (row * 6 + col), or -1. */
 int kb_next(kb_state *k);
+/* The next key-up event: a debounced release, in the order taken; -1 none (unit 030). */
+int kb_next_up(kb_state *k);
 /* Whether the scan may stop (unit 023): every key reads up and every debounce integrator has
    settled at 0, so kb_scan would change nothing until a key goes down. */
 bool kb_idle(const kb_state *k);

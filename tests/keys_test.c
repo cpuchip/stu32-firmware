@@ -55,9 +55,11 @@ int main(void)
         for (int t = 0; t < 50; t++) kb_scan(&k, &io);
         expect(kb_next(&k) == key, "a key alone gives its own event", key, 0);
         expect(kb_next(&k) == -1, "a held key gives one event", key, 0);
+        expect(kb_next_up(&k) == -1, "a held key gives no release", key, 0);
         m.closed[key] = false;
         for (int t = 0; t < 50; t++) kb_scan(&k, &io);
-        expect(kb_next(&k) == -1, "a release gives no event", key, 0);
+        expect(kb_next(&k) == -1, "a release gives no key-down event", key, 0);
+        expect(kb_next_up(&k) == key && kb_next_up(&k) == -1, "a release gives one key-up event (unit 030)", key, 0);
     }
     /* every pair, pressed one after the other and held together: two events in that order and no
        third (no ghost: a shared row or column makes no phantom key) */
@@ -106,13 +108,16 @@ int main(void)
             m.closed[key] = t & 1;
             kb_scan(&k, &io);
         }
+        int held = kb_next_up(&k);                      /* chatter shorter than the debounce: still held */
         m.closed[key] = false;
         for (int t = 0; t < 30; t++) kb_scan(&k, &io);
-        int none = kb_next(&k);
+        int none = kb_next(&k), up = kb_next_up(&k), up2 = kb_next_up(&k);
         m.closed[key] = true;
         for (int t = 0; t < 30; t++) kb_scan(&k, &io);
         int second = kb_next(&k);
         expect(first == key && none == -1 && second == key && kb_next(&k) == -1, "bounce: one event per press", (int)seed, first);
+        expect(held == -1 && up == key && up2 == -1, "bounce: one key-up per release, none in the chatter (unit 030)",
+               (int)seed, up);
     }
     /* a tap shorter than the debounce is no key */
     kb_init(&k);
@@ -121,7 +126,7 @@ int main(void)
     for (int t = 0; t < KB_DEBOUNCE - 1; t++) kb_scan(&k, &io);
     m.closed[3] = false;
     for (int t = 0; t < 30; t++) kb_scan(&k, &io);
-    expect(kb_next(&k) == -1, "a tap shorter than the debounce is no key", 3, 0);
+    expect(kb_next(&k) == -1 && kb_next_up(&k) == -1, "a tap shorter than the debounce is no key, and no release", 3, 0);
     expect(keys == 43, "the layout has 43 keys", keys, 0);
 
     /* unit 023: kb_idle, when the scan may stop. Idle from the start; not while a key is down or

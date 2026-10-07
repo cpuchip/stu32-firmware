@@ -448,6 +448,8 @@ typedef struct {
     screen_kind xk, yk;
     bool x_left, x_letter, prompt;
     bool view;              /* SYS's view: four left lines at scale 2, no letters (unit 027) */
+    bool show;              /* SHOW held (unit 030): each part's digits in two halves, left, no letters:
+                               one part on Y and X, two on T and Z then Y and X */
     bool alg;               /* STU's ALG: the line in Y's place (left), its result in X's, the entry
                                before in T (left) and Z; no letters (unit 029) */
     int ind;
@@ -471,6 +473,22 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
             if (ui->view[i]) line_add(ls[i], ui->view[i]);
         k->view = k->x_left = true;
         k->xk = k->yk = SCREEN_MESSAGE;
+        return;
+    }
+    if (ui->show_n > 0) {                       /* SHOW (unit 030): a sign with the first 17 digits, then the
+                                                   last 17 */
+        line *ls[4] = {&k->t, &k->z, &k->y, &k->x};
+        for (int p = 0; p < ui->show_n && p < 2; p++) {
+            const char *s = ui->show[p];
+            int sign = s[0] == '-', half = sign + (ABN_DIGITS + 1) / 2;
+            char a[AB_SHOW_LEN];
+            line **two = ui->show_n == 2 ? &ls[2 * p] : &ls[2];
+            snprintf(a, sizeof a, "%.*s", half, s);
+            line_add(two[0], a);
+            line_add(two[1], s + ((int)strlen(s) > half ? half : (int)strlen(s)));
+        }
+        k->show = k->x_left = true;
+        k->xk = k->yk = SCREEN_VALUE;
         return;
     }
     /* the X line, first that applies (screen.h) */
@@ -596,7 +614,12 @@ void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
     screen_status *st = &out->status;
     compose(c, ui, k);
     memset(out, 0, sizeof *out);
-    if (k->view) {
+    if (k->show) {
+        page_line(&out->t, &k->t, SCREEN_VALUE, true, NULL);
+        page_line(&out->z, &k->z, SCREEN_VALUE, true, NULL);
+        page_line(&out->y, &k->y, SCREEN_VALUE, true, NULL);
+        page_line(&out->x, &k->x, SCREEN_VALUE, true, NULL);
+    } else if (k->view) {
         page_line(&out->t, &k->t, SCREEN_MESSAGE, true, NULL);
         page_line(&out->z, &k->z, SCREEN_MESSAGE, true, NULL);
         page_line(&out->y, &k->y, SCREEN_MESSAGE, true, NULL);
@@ -656,6 +679,15 @@ void screen_render(const ab_calc *c, const screen_ui *ui, ls027_frame *f)
     screen_clear(f);
     compose(c, ui, k);
     status_band(f, c, ui, k->ind);
+    if (k->show) {                              /* SHOW: Y and X at scale 3 (18 cells hold a sign and 17
+                                                   digits), T and Z at 2 */
+        draw_line(f, BOT_T, 2, &k->t, true);
+        draw_line(f, BOT_Z, 2, &k->z, true);
+        draw_line(f, BOT_Y, 3, &k->y, true);
+        draw_line(f, BOT_X, 3, &k->x, true);
+        soft_band(f, ui);
+        return;
+    }
     if (k->view) {                              /* SYS's view: four lines at scale 2 */
         draw_line(f, BOT_T, 2, &k->t, true);
         draw_line(f, BOT_Z, 2, &k->z, true);

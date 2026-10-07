@@ -134,6 +134,7 @@ typedef struct {
     int view;               /* APP_VIEW_*: SYS's view showing, any key leaves it */
     bool show;              /* unit 030: SHOW held: X's full mantissa in place of the stack */
     int show_key;           /* the key holding it: its release ends SHOW (app_key_up) */
+    int key_now;            /* the key app_key is acting on */
     char view_text[4][40];  /* its lines */
     void (*set_wall)(void *ctx, int64_t secs);  /* the clock set from the keys: the device keeps it
                                                    (its RTC); may be NULL */

@@ -20,7 +20,7 @@ W15 | rule 5 (proposal 4): program entry on a number line: that number's digits;
 W16 | rule 5 (proposal 4): program entry on any other line: nothing | PRGM CLPGM LBL:A 1.25 RTN SHOW | %SHOW=-
 W17 | rule 5 (proposal 5): Equation mode: nothing | 2 SQRT EQN SHOW | %SHOW=-
 W18 | proposal 2: zero: 34 zeros | 0 ENTER SHOW | %SHOW=0000000000000000000000000000000000
-W19 | proposal 3 (18259d9): complex X: the real part's digits, then the imaginary part's (lines T Z, then Y X) | 3 CI 4 SHOW | %SHOW=3000000000000000000000000000000000/4000000000000000000000000000000000
-W20 | proposal 3: complex with a negative part | 2 SQRT CHS CI 1 ENTER SHOW | %SHOW=-1414213562373095048801688724209698/1000000000000000000000000000000000
+W19 | proposal 3 (18259d9): complex X: the real part's digits, then the imaginary part's (lines T Z, then Y X) | 3 CI 4 ENTER SHOW | %SHOW=3000000000000000000000000000000000/4000000000000000000000000000000000
+W20 | proposal 3: complex with a negative part (CHS while the real part is typed) | 1.5 CHS CI 2 ENTER SHOW | %SHOW=-1500000000000000000000000000000000/2000000000000000000000000000000000
 W21 | proposal 3: a vector X: nothing | [ 1 , 2 ENTER SHOW | %SHOW=-
 W22 | proposal 8: a base mode: nothing (the integer is shown whole) | HEX 1 HF SHOW | %SHOW=-

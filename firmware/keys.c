@@ -14,11 +14,11 @@ void kb_init(kb_state *k)
     memset(k, 0, sizeof *k);
 }
 
-static void push(kb_state *k, int key)
+static void push(uint8_t *q, int qh, int *qn, int key)
 {
-    if (k->qn == (int)sizeof k->q) return;     /* full: the oldest stay, the newest is lost */
-    k->q[(k->qh + k->qn) % (int)sizeof k->q] = (uint8_t)key;
-    k->qn++;
+    if (*qn == 32) return;                      /* full: the oldest stay, the newest is lost */
+    q[(qh + *qn) % 32] = (uint8_t)key;
+    (*qn)++;
 }
 
 /* one pass's reading of a key, through its debounce integrator */
@@ -28,9 +28,10 @@ static void sample(kb_state *k, int key, bool now)
     else if (!now && k->count[key] > 0) k->count[key]--;
     if (!k->down[key] && k->count[key] == KB_DEBOUNCE) {
         k->down[key] = true;
-        push(k, key);
+        push(k->q, k->qh, &k->qn, key);
     } else if (k->down[key] && k->count[key] == 0) {
         k->down[key] = false;
+        push(k->uq, k->uqh, &k->uqn, key);
     }
 }
 
@@ -57,12 +58,22 @@ bool kb_idle(const kb_state *k)
     return true;
 }
 
-int kb_next(kb_state *k)
+static int pop(const uint8_t *q, int *qh, int *qn)
 {
     int key;
-    if (k->qn == 0) return -1;
-    key = k->q[k->qh];
-    k->qh = (k->qh + 1) % (int)sizeof k->q;
-    k->qn--;
+    if (*qn == 0) return -1;
+    key = q[*qh];
+    *qh = (*qh + 1) % 32;
+    (*qn)--;
     return key;
+}
+
+int kb_next(kb_state *k)
+{
+    return pop(k->q, &k->qh, &k->qn);
+}
+
+int kb_next_up(kb_state *k)
+{
+    return pop(k->uq, &k->uqh, &k->uqn);
 }

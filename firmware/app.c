@@ -207,6 +207,12 @@ void app_key(app_state *a, int key, uint32_t now_ms)
     a->render = true;
     a->notice = NULL;                           /* a key ends a brief notice */
     sound(a, DEV_USE_CLICK);                    /* every key ticks (unit 027) */
+    a->key_now = key;
+    if (a->show) {                              /* SHOW with no release (unit 030 answer 7): the next key
+                                                   only ends it */
+        a->show = false;
+        return;
+    }
     if (a->view) {                              /* SYS's view: any key leaves it, and only that */
         a->view = APP_VIEW_NONE;
         a->shift = 0;
@@ -443,6 +449,18 @@ static void do_action(app_state *a, const km_action *act)
     switch (act->kind) {
     case KM_OP:
         if (act->op == AB_ENTRYM && act->arg == 1 && !a->c->stu) break;    /* ALG: shown in STU only */
+        if (act->op == AB_SHOW) {               /* unit 030: held, X's full mantissa; changes nothing, so
+                                                   no UNDO mark (a message showing: cleared, as any key) */
+            char t[2][AB_SHOW_LEN];
+            bool msg = a->c->msg;
+            ab_do_arg(a->c, AB_SHOW, 0);
+            if (msg) a->dirty = true;
+            if ((!msg || !a->c->m35) && ab_show_text(a->c, t) > 0) {
+                a->show = true;
+                a->show_key = a->key_now;
+            }
+            break;
+        }
         do_op(a, act->op, act->arg);
         break;
     case KM_PROMPT:
@@ -623,6 +641,10 @@ void app_ui(const app_state *a, screen_ui *ui)
         for (int i = 0; i < 4; i++) ui->view[i] = a->view_text[i][0] ? a->view_text[i] : NULL;
         return;
     }
+    if (a->show) {                              /* SHOW held in place of the stack (unit 030) */
+        ui->show_n = ab_show_text(a->c, ui->show);
+        return;
+    }
     if (a->confirm_op >= 0) {
         ui->prompt = a->confirm_op == AB_CLPGM ? "CLR PGMS?" : a->confirm_op == AB_CLEQN ? "CLR EQN?" : "CLR ALL?";
         ui->soft[0] = "Y";
@@ -703,7 +725,9 @@ void app_powered_on(app_state *a)
 
 void app_key_up(app_state *a, int key, uint32_t now_ms)
 {
-    (void)a;
-    (void)key;
-    (void)now_ms;                               /* unit 030 red: not yet */
+    (void)now_ms;
+    if (a->show && key == a->show_key) {        /* SHOW's key released: the normal display (unit 030) */
+        a->show = false;
+        a->render = true;
+    }
 }

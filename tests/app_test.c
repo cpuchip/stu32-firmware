@@ -1239,13 +1239,18 @@ int main(void)
         expect(ui.soft[4] && !strcmp(ui.soft[4], "SHOW"), "030: STACK's F5 is SHOW");
         press(&a, "C 2 \xe2\x88\x9ax");
         uint32_t before = img_crc(&c);
+        a.dirty = false;
         press(&a, "BLUE R\xe2\x86\x93 k:4");
+        expect(!a.dirty, "030: SHOW leaves nothing to save");
         app_ui(&a, &ui);
         screen_lines(&c, &ui, &pg);
         expect(ui.show_n == 1 && !strcmp(pg.y.text, "14142135623730950") && !strcmp(pg.x.text, "48801688724209698") &&
                    pg.y.left && pg.x.left && !pg.x.label,
                "030: SHOW held: 17 digits on Y's line, 17 on X's, no letters");
         expect(img_crc(&c) == before, "030: SHOW changes nothing");
+        app_key_up(&a, 7, now);
+        app_ui(&a, &ui);
+        expect(ui.show_n == 1, "030: another key's release leaves it");
         app_key_up(&a, 4, now);
         app_ui(&a, &ui);
         expect(ui.show_n == 0 && !a.show, "030: its release ends it");
@@ -1255,7 +1260,7 @@ int main(void)
         press(&a, "5");                         /* the console: no release; the next key only ends it */
         app_ui(&a, &ui);
         expect(ui.show_n == 0 && !c.entry.active && img_crc(&c) == before, "030: without a release the next key only ends it");
-        press(&a, "C 3 BLUE +/\xe2\x88\x92 k:0 4 BLUE R\xe2\x86\x93 k:4");    /* 3 i 4 (CMPLX's i, blue +/-) */
+        press(&a, "C 3 BLUE +/\xe2\x88\x92 k:0 4 ENTER BLUE R\xe2\x86\x93 k:4");    /* 3 i 4 (CMPLX's i, blue +/-) */
         app_ui(&a, &ui);
         screen_lines(&c, &ui, &pg);
         expect(ui.show_n == 2 && !strcmp(pg.t.text, "30000000000000000") && !strcmp(pg.z.text, "00000000000000000") &&

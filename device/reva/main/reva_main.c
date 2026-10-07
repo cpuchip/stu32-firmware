@@ -64,7 +64,9 @@ static spi_device_handle_t lcd;
 static uint8_t *tx;
 static ls027_frame shown, next;         /* what the panel holds, and what it should */
 static bool shown_valid;
-static QueueHandle_t keys_q;
+static QueueHandle_t keys_q;           /* key n down: n; released: KEY_UP_BASE - n (unit 030); -1 dump,
+                                           -2 the time */
+#define KEY_UP_BASE (-100)
 /* unit 023: light sleep between keys. usb_lock keeps the chip out of light sleep on USB power (the
    console stays usable, the power is free); tone_lock through a piezo tone (LEDC stops in light
    sleep); key_wake is given by a row's or IO0's interrupt while the scan sleeps. */
@@ -207,7 +209,7 @@ static void scan_task(void *arg)
     kb_io io = {NULL, kb_drive, kb_read, kb_read_on};
     kb_init(&ks);
     for (int i = 0; i <= KB_DEBOUNCE; i++) kb_scan(&ks, &io);   /* keys held at power-up: no event */
-    while (kb_next(&ks) >= 0) {
+    while (kb_next(&ks) >= 0 || kb_next_up(&ks) >= 0) {
     }
     for (;;) {
         kb_scan(&ks, &io);
@@ -218,6 +220,10 @@ static void scan_task(void *arg)
                 continue;
             }
             xQueueSend(keys_q, &k, 0);
+        }
+        for (int k; (k = kb_next_up(&ks)) >= 0;) {   /* a release (unit 030: SHOW, held) */
+            int u = KEY_UP_BASE - k;
+            xQueueSend(keys_q, &u, 0);
         }
         if (kb_idle(&ks)) {
             /* unit 023: every key up and every count settled, so kb_scan would change nothing until
@@ -373,6 +379,9 @@ static void console_task(void *arg)
         if (line[0] == 'K') {
             int k = atoi(line + 1);
             xQueueSend(keys_q, &k, 0);
+        } else if (line[0] == 'U' && line[1] >= '0' && line[1] <= '9') {   /* U<n>: key n released */
+            int u = KEY_UP_BASE - atoi(line + 1);
+            xQueueSend(keys_q, &u, 0);
         } else if (line[0] == 'X') {
             int k = -1;
             xQueueSend(keys_q, &k, 0);
@@ -420,6 +429,8 @@ static void calc_task(void *arg)
         if (got && k >= 0) {
             memory_clear_msg = false;
             app_key(&app, k, now);
+        } else if (got && k <= KEY_UP_BASE) {
+            app_key_up(&app, KEY_UP_BASE - k, now);
         } else if (got && k == -2) {
             int64_t w;
             if (dev_parse_time(&app, now, time_text, &w)) {

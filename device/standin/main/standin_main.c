@@ -51,7 +51,8 @@
 #define EXIO_LCD_RST (1u << 3)
 #define GT911_ADDR 0x5D
 
-enum { EV_KEY = 0, EV_OP, EV_DUMP, EV_SAVE, EV_WIPE, EV_RESTART, EV_TOUCHED, EV_BENCH, EV_TIME, EV_POWBENCH };
+enum { EV_KEY = 0, EV_OP, EV_DUMP, EV_SAVE, EV_WIPE, EV_RESTART, EV_TOUCHED, EV_BENCH, EV_TIME, EV_POWBENCH,
+       EV_KEYUP };                          /* EV_KEYUP: a the key released (unit 030: SHOW, held) */
 static char time_text[16];             /* TIME's argument, for the calc task (unit 027) */
 
 typedef struct {
@@ -288,6 +289,8 @@ static void dump(void)
         app_ui(&app, &ui);
         printf("ui: clock=%s%c view=%s soft1=%s\n", ui.clock, ui.ampm ? ui.ampm : ' ', ui.view[0] ? ui.view[0] : "-",
                ui.soft[0] && ui.soft[0][0] ? ui.soft[0] : "-");
+        printf("ui: show=%d %s%s%s\n", ui.show_n, ui.show_n ? ui.show[0] : "-", ui.show_n > 1 ? "/" : "",
+               ui.show_n > 1 ? ui.show[1] : "");     /* unit 030: SHOW held */
     }
     printf("pixels: gold key %04X, blue key %04X (gold %04X, blue %04X, key %04X)\n", pixel_at(440, 345),
            pixel_at(440, 405), SI_PALETTE[SI_GOLD], SI_PALETTE[SI_BLUE], SI_PALETTE[SI_KEY]);
@@ -385,10 +388,16 @@ static void touch_task(void *arg)
 {
     (void)arg;
     bool was_down = false;
+    int down_key = -1;                          /* the key the finger went down on, for its release */
     for (;;) {
         int x = 0, y = 0, n = 0;
         if (tp_read(&x, &y, &n)) {
             bool down = n > 0;
+            if (!down && was_down && down_key >= 0) {
+                event e = {EV_KEYUP, down_key, 0};
+                xQueueSend(events, &e, 0);
+                down_key = -1;
+            }
             if (down && !was_down) {
                 int key = si_key_at(x, y);
                 printf("touch: %d,%d key %d\n", x, y, key);
@@ -398,6 +407,7 @@ static void touch_task(void *arg)
                     x2 = true;
                 } else if (key >= 0) {
                     key_pressed(key);
+                    down_key = key;
                 }
             }
             was_down = down;
@@ -427,6 +437,8 @@ static void console_task(void *arg)
         if (line[0] == 'K') {
             key_pressed(atoi(line + 1));
             continue;
+        } else if (line[0] == 'U' && line[1] >= '0' && line[1] <= '9') {   /* U<n>: key n released (unit 030) */
+            e = (event){EV_KEYUP, atoi(line + 1), 0};
         } else if (!strcmp(line, "PRGM")) e = (event){EV_OP, AB_PRGM, 0};   /* until the menus: #3866 */
         else if (!strcmp(line, "X")) e.kind = EV_DUMP;
         else if (!strcmp(line, "SAVE")) e.kind = EV_SAVE;
@@ -462,6 +474,9 @@ static void calc_task(void *arg)
             printf("key %d\n", ev.a);
             memory_clear_msg = false;
             app_key(&app, ev.a, now);
+        } else if (got && ev.kind == EV_KEYUP) {
+            printf("key %d up\n", ev.a);
+            app_key_up(&app, ev.a, now);
         } else if (got && ev.kind == EV_TOUCHED) {
             printf("key %d: interrupted the run\n", ev.a);
             app.last_key_ms = now;              /* activity, and nothing more */

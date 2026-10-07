@@ -3689,6 +3689,8 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
         c->msg = false;
         if (c->m35 || op == AB_CANCEL || op == AB_KBKSP) return ABN_OK;
     }
+    if (op == AB_SHOW) return ABN_OK;           /* unit 030: SHOW changes nothing, in program entry too
+                                                   (neutral, appendix B; not a line, 35s p.G-1) */
     if (ab_view_key(c, op)) return ABN_OK;
     c->err_set = false;
     c->ovf = 0;
@@ -4427,9 +4429,46 @@ void ab_stop_text(const ab_calc *c, char *buf)
     else snprintf(buf, 32, "%s", NAMES[c->stop]);
 }
 
+/* One number's SHOW text: a minus for a negative, then all ABN_DIGITS significant digits, trailing
+   zeros kept; zero is ABN_DIGITS zeros. */
+static void show_digits(const abn *a, char *out)
+{
+    bool neg;
+    char d[ABN_DIGITS + 1];
+    int lead, n = 0;
+    abn_digits(a, &neg, d, &lead);
+    if (neg) out[n++] = '-';
+    int k = (int)strlen(d);
+    for (int i = 0; i < ABN_DIGITS; i++) out[n++] = i < k ? d[i] : '0';
+    out[n] = '\0';
+}
+
 int ab_show_text(const ab_calc *c, char out[2][AB_SHOW_LEN])
 {
-    (void)c;
+    const ab_val *v = &c->x;
     out[0][0] = out[1][0] = '\0';
-    return 0;                                   /* unit 030 red: not yet */
+    /* nothing while a number is typed (the entry line shows it as typed), while a VIEW display or
+       Equation mode shows something else, and in a base mode (the integer is shown whole): answers
+       6, 5 and 8 to #4291 */
+    if (c->entry.active || c->cpart || c->vlen || c->viewing || c->base != 10) return 0;
+    if (c->prgm) {                              /* the number on the line shown (35s p.G-13); else nothing */
+        if (c->pc < 0 || c->pc >= c->prog_len || c->prog[c->pc].op != AB_LIT) return 0;
+        int i = c->prog[c->pc].arg;
+        if (i < 0 || i >= AB_PROG_LITS) return 0;
+        v = &c->lit[i];
+    } else if (c->eqn_mode) {
+        return 0;
+    } else if (c->alg) {                        /* STU's ALG: what X's place shows (as 029b's STO) */
+        v = c->hist_at >= 0 && c->hist_at < c->hist_n ? &c->hist_val[c->hist_at] : &c->ans;
+    }
+    if (v->kind == AB_REAL) {
+        show_digits(&v->re, out[0]);
+        return 1;
+    }
+    if (v->kind == AB_COMPLEX) {                /* the real part, then the imaginary (answer 3) */
+        show_digits(&v->re, out[0]);
+        show_digits(&v->im, out[1]);
+        return 2;
+    }
+    return 0;                                   /* a vector: nothing for now (answer 3) */
 }
