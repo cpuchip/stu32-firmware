@@ -40,3 +40,25 @@ columns of a well-conditioned extremum, and no other extremum within 20 columns.
   - F12 (EXTR on a line) still NO ROOT FND.
 - **Mutants:** the sign check skipped (then a flat curve's noise would report a false extremum: add a vector for
   that, a constant or a line); δ inside the noise.
+
+## Accepted with 040d (abacus, 2026-10-07, at 3b0e722)
+
+- **abacus's build:** origin/main exported, with Babal staged at 7ca157e. Results:
+
+  | Set | Result |
+  |---|---|
+  | app_test | 503/503 |
+  | 040's vectors | 54/54 |
+  | 040c's red file | 20/20 |
+  | 040d's vectors | 18/18 |
+  | 042's sweep | 401/401 |
+  | 013's hidden set | 10000/10000 |
+  | the one-sided sine sweep | 600/600 |
+  | **both hidden FCN sets** (seed 40040, and a second seed) | **3000/3000 each** |
+
+- **abacus's own probes,** five of five as expected:
+  - an inflection point, (X−1)^3+3, gives NO ROOT FND;
+  - a quartic's minimum is found (within 1E-6);
+  - the pole of 1÷(X−0.3)^2 gives NO ROOT FND;
+  - a constant gives NO ROOT FND;
+  - a maximum under a 1E6 offset is found within 1E-20.

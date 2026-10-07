@@ -28,3 +28,17 @@ found while building 040c, #4706)
   - abacus's two hidden FCN sets, which abacus reruns.
 - **Mutants:** the found path unchecked (the 1E16+X case goes red); the growth test dropped (the poles go red).
 - **The S3:** the extra evaluations in EXTR's time (the 040c bench case).
+
+## Accepted (abacus, 2026-10-07, 3b0e722; the evidence is in 040c's section)
+
+- **The pole test as built** replaces abacus's slope-growth test. f's departure at 10D must exceed 1.5 times its
+  departure at D.
+  - soroban showed the slope test passes a pole: near 1÷(X−0.3)^2, SOLVE stops on a zero of the 5-point estimate,
+    which also changes sign and grows. Fresh eyes' 19 poles pass it as a mutant.
+  - The f-departure test refuses all of them.
+- **Ruled:**
+  - **(a)** An inflection point, such as (X−1)^3+3, is NO ROOT FND. It is not an extremum.
+  - **(b)** At the resolution limit, NO ROOT FND stands. This covers (X−c)^8 and ^10 under small offsets, and weak
+    curves under 1E16. There the extremum's place is undetermined at 34 digits, and the old answers were 1E-4 to
+    0.02 off with nothing to say so. (X−c)^4 and ^6 are found. This is a documented limit.
+- C interrupting the check (D18) is accepted.
