@@ -462,9 +462,16 @@ bool hp_atan2(hp *r, const abn *b, const abn *a, int p)
         hp_trim(r, p);
         return true;
     }
-    if (abn_atan2(&t0, b, a) != ABN_OK || !hp_from_abn(&th, &t0) || !hp_from_abn(&hb, b) ||
-        !hp_from_abn(&ha, a))
+    abn_status s0 = abn_atan2(&t0, b, a);
+    if (!hp_from_abn(&hb, b) || !hp_from_abn(&ha, a)) return false;
+    if (s0 == ABN_UNDERFLOW) {
+        /* the angle below the engine's range (a > 0, |b| tiny beside it): start from b / a, its value there
+           to far beyond the digits kept (unit 034: ->POL's theta below the range, unit 026, is 0 after the
+           rounding, not a failure) */
+        if (!hp_div(&th, &hb, &ha, w)) return false;
+    } else if (s0 != ABN_OK || !hp_from_abn(&th, &t0)) {
         return false;
+    }
     /* theta += atan of tan(theta_true - theta) = (b cos - a sin) / (a cos + b sin); the first-order
        step leaves an error of the cube of the last, so the digits triple each time */
     for (int digits = 30; digits < w + 5; digits *= 3) {
@@ -479,4 +486,35 @@ bool hp_atan2(hp *r, const abn *b, const abn *a, int p)
     *r = th;
     hp_trim(r, p);
     return true;
+}
+
+/* The exponent of x's leading digit; x nonzero. */
+static int abn_lead(const abn *x)
+{
+    bool neg;
+    char d[ABN_DIGITS + 1];
+    int lead;
+    abn_digits(x, &neg, d, &lead);
+    return lead;
+}
+
+abn_status hp_hypot(abn *out, const abn *x, const abn *y)
+{
+    static sxnum a, b, a2, b2, n;
+    abn ax = abn_abs(x), ay = abn_abs(y);
+    if (abn_is_zero(&ax) || abn_is_zero(&ay)) {
+        *out = abn_is_zero(&ax) ? ay : ax;
+        return ABN_OK;
+    }
+    /* parts more than 40 digits apart: r = |big| (1 + e) with e < 1E-80, nearer |big| than half a unit, and
+       |big| is a number: the rounded result exactly */
+    int d = abn_lead(&ax) - abn_lead(&ay);
+    if (d > 40 || d < -40) {
+        *out = d > 0 ? ax : ay;
+        return ABN_OK;
+    }
+    if (!sxn_from_abn(&a, &ax) || !sxn_from_abn(&b, &ay) || !sxn_mul(&a2, &a, &a) || !sxn_mul(&b2, &b, &b) ||
+        !sxn_add(&n, &a2, &b2, false))
+        return ABN_RANGE;
+    return sxn_sqrt_to_abn(out, &n);
 }

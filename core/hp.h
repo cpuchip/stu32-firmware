@@ -38,5 +38,8 @@ bool hp_ln(hp *r, const hp *s, const hp *t, int p);
 bool hp_lgamma_big(hp *r, const hp *w, int p);
 /* The angle of (a, b) in (-pi, pi], radians; not both zero. */
 bool hp_atan2(hp *r, const abn *b, const abn *a, int p);
+/* sqrt(x^2 + y^2), correctly rounded (unit 034): the root of the exact sum of squares, or the larger part
+   when the parts are so far apart that it is the rounded result (no intermediate overflow either way). */
+abn_status hp_hypot(abn *out, const abn *x, const abn *y);
 
 #endif

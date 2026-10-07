@@ -102,15 +102,10 @@ static abn_status div_(cplx *out, const cplx *a, const cplx *b)
 }
 
 /* |a + bi| = sqrt(a^2 + b^2): the root of the exact sum of squares, correctly rounded (unit 010b;
- * it was the sum rounded once, then a correctly rounded root). */
+ * it was the sum rounded once, then a correctly rounded root; unit 034: hp_hypot, shared with ->POL). */
 static abn_status abs_(abn *out, const cplx *a)
 {
-    quad q;
-    abn_status st;
-    cplx z = {abn_zero(), abn_zero()};
-    if ((st = load4(&q, a, &z)) != ABN_OK) return st;
-    if (!dot2(q.N1, q.A, q.A, q.B, q.B, false)) return ABN_RANGE;
-    return xn_sqrt_to_abn(out, q.N1);
+    return hp_hypot(out, &a->re, &a->im);       /* unit 034: parts far apart too (they were a range error) */
 }
 
 abn_status cx_mul(cplx *out, const cplx *a, const cplx *b)

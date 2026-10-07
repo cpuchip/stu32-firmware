@@ -1,6 +1,7 @@
 """polar_fuzz: ->POL's r and theta against mpmath at 120 digits (unit 034). Both must be correctly rounded: the
 engine's 34 digits equal to the true value rounded half to even, digit for digit, in DEG, RAD and GRAD.
-->REC (r, theta to x, y) is measured and reported, not judged (034 rule 4 asks whether it already is).
+With --rec, ->REC (r, theta to x, y) is judged the same way on each case's r and theta (034 rule 4: it was not
+correctly rounded in RAD, nor for tiny angles; now it is).
 
 Regions (034's acceptance): magnitudes from 1E-6000 to 1E6000 in every quadrant; x and y of very different
 sizes; near the axes; near the diagonals; the axes and diagonals themselves; the range's ends (no intermediate
@@ -72,6 +73,13 @@ def cases():
         x = f"{R.choice('+-').replace('+', '')}{R.randint(1, 999)}.{R.randint(0, 99)}"
         y = f"{R.choice('+-').replace('+', '')}{R.randint(1, 999)}.{R.randint(0, 99)}"
         out.append(("typed", R.choice(modes), x, y))
+    for _ in range(N // 3):                     # 14 to 20 digits apart: r a few units above the larger part
+        e = R.randint(-3000, 3000)
+        a, b = num34(e), num34(e - R.randint(14, 20))
+        out.append(("r just above", R.choice(modes), *((a, b) if R.random() < 0.5 else (b, a))))
+    for _ in range(N // 10):                    # theta below the range (0 there, unit 026) and at its edge
+        ye = R.randint(-6143, -6043)            # y a number; x sets theta from about 1E-6243 to 1E-5943
+        out.append(("theta tiny", R.choice(modes), num34(R.randint(-100, 100), sign=False), num34(ye)))
     for mode in modes:                          # the axes and diagonals themselves
         for x, y in [("1", "0"), ("-1", "0"), ("0", "1"), ("0", "-1"), ("3", "3"), ("-3", "3"), ("-3", "-3"),
                      ("3", "-3"), ("2.5E100", "0"), ("0", "-7E-200")]:
@@ -94,10 +102,10 @@ def main():
         count[reg] = count.get(reg, 0) + 1
         want_r = rounded(mp.sqrt(mp.mpf(x) ** 2 + mp.mpf(y) ** 2))
         th = angle(y, x, mode)
-        want_t = rounded(th) if th != 0 else decimal.Decimal(0)
+        want_t = rounded(th) if abs(th) >= mp.mpf("1e-6143") else decimal.Decimal(0)   # below the range: 0
         parts = got.split()
         bad = []
-        if len(parts) != 2:
+        if len(parts) != 2 or got.startswith("ERR"):
             bad.append(f"got '{got}'")
         else:
             gr, gt = D.create_decimal(parts[0]), D.create_decimal(parts[1])
@@ -121,18 +129,29 @@ def main():
         for mode, x, y in rc:
             r = rounded(mp.sqrt(mp.mpf(x) ** 2 + mp.mpf(y) ** 2))
             th = angle(y, x, mode)
-            rl.append((mode, str(r), str(rounded(th) if th != 0 else 0)))
+            rl.append((mode, str(r), str(rounded(th)) if abs(th) >= mp.mpf("1e-6143") else "0"))   # ->POL's theta
         out = subprocess.run([drive], input="\n".join(f"TOREC {m} {r} {t}" for m, r, t in rl) + "\n",
                              capture_output=True, text=True, check=True).stdout.split("\n")
         n = exact = 0
+        per = {}
         for (mode, r, t), got in zip(rl, out):
-            th = mp.mpf(t) if UNIT[mode] is None else mp.mpf(t) * mp.pi / UNIT[mode]
-            wx, wy = rounded(mp.mpf(r) * mp.cos(th)), rounded(mp.mpf(r) * mp.sin(th))
+            if UNIT[mode] is None:
+                cs, sn = mp.cos(mp.mpf(t)), mp.sin(mp.mpf(t))
+            else:                               # exact at the unit's multiples (cos 90 = 0, not a pi residue)
+                cs, sn = mp.cospi(mp.mpf(t) / UNIT[mode]), mp.sinpi(mp.mpf(t) / UNIT[mode])
+            wx = rounded(mp.mpf(r) * cs) if cs != 0 else decimal.Decimal(0)
+            wy = rounded(mp.mpf(r) * sn) if sn != 0 else decimal.Decimal(0)
             parts = got.split()
             n += 1
-            if len(parts) == 2 and D.create_decimal(parts[0]) == wx and D.create_decimal(parts[1]) == wy:
-                exact += 1
-        print(f"->REC (reported) {n:6d} cases  {exact:6d} correctly rounded")
+            good = (len(parts) == 2 and not got.startswith("ERR") and D.create_decimal(parts[0]) == wx and
+                    D.create_decimal(parts[1]) == wy)
+            exact += good
+            pm = per.setdefault(mode, [0, 0])
+            pm[0] += 1
+            pm[1] += good
+        ok = ok and exact == n
+        print(f"->REC            {n:6d} cases  {exact:6d} correctly rounded  ("
+              + ", ".join(f"{m} {g}/{k}" for m, (k, g) in sorted(per.items())) + ")" + ("" if exact == n else "  FAIL"))
     sys.exit(0 if ok else 1)
 
 
