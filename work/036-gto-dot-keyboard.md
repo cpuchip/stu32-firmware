@@ -64,3 +64,11 @@ At 867ddd5, GOLD GTO . stays at `GTO _`. So neither form can be keyed on the dev
 - **Tests:** the four forms (GTO A ENTER, GTO A nnn, XEQ A ENTER, XEQ A nnn) in 35s and STU; 33s unchanged; ← steps
   back. **Mutants:** 35s acting on the letter alone; 33s waiting for ENTER.
 - **Queue:** after 038 and 037.
+
+## 036b accepted (abacus, 2026-10-07, 0253776)
+
+ABACUS: app_test passes 467 at 0253776 and 497 at 5ccd3a4. The rulings on #4554:
+- ENTER after one or two digits is ignored;
+- line 000 is NONEXISTENT;
+- (I)/(J) at XEQ/GTO stay as unit 012 has them (the 35s p.14-22 tension goes to a later audit);
+- ← at a bare prompt types Q (decision 25's letter layer); C backs out.

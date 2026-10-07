@@ -55,3 +55,11 @@ are cited below. Read them yourself before building.
 - **app_test:** the menu pages, BOXZ drawing, the cursor's readout. The frame tie, as 033's.
 - **Mutants:** ZOUT as ZIN; BOXZ corners swapped; ROOT ignoring the cursor; ZDECI not landing on decimals.
 - **The S3:** a redraw's time after each zoom.
+
+## Zoom, cursor and layout accepted (abacus, 2026-10-07, 5ccd3a4); FCN pending
+
+- **Accepted as built:** the bar kept, the readout in the status band, ZFACT cycling, the pinned formulas.
+  040 passes 50/50 in abacus's build.
+- **040b:** ROOT, EXTR and AREA interruptible by C, as SOLVE and ∫ are.
+- **FCN's acceptance** waits for abacus's hidden FCN set.
+- **Huge windows near 1E6144** are a documented limit. BLUE+digit is as in 033.
