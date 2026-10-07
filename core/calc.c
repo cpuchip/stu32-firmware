@@ -2268,7 +2268,7 @@ static abn_status solve_core(ab_calc *c, abn a, abn b, solve_out *o)
         if (abn_add(&x, &b, &step) != ABN_OK) goto noroot;
         if (abn_cmp(&x, &b) == 0 || abn_cmp(&x, &a) == 0) {
             if (abn_add(&x, &b, &t1) != ABN_OK) goto noroot;
-            if (abn_cmp(&x, &b) == 0) goto nosign;  /* no room left to move: closed in */
+            if (abn_cmp(&x, &b) == 0) goto closed;  /* no room left to move: closed in */
         }
         if ((st = ev(c, &x, &fx, &bad)) != ABN_OK) return st;
         if (bad) goto noroot;
@@ -2297,9 +2297,57 @@ static abn_status solve_core(ab_calc *c, abn a, abn b, solve_out *o)
             w = abn_abs(&w);
             if (abn_cmp(&ma, &mb) < 0) ma = mb;
             if (abn_mul(&t2, &ma, &rel) != ABN_OK) goto noroot;
-            if (abn_cmp(&w, &t2) <= 0) goto nosign;
+            if (abn_cmp(&w, &t2) <= 0) goto closed;
         }
     }
+    goto bracket;
+closed:
+    if (sgn(&fa) != sgn(&fb)) goto bracket;     /* the last step crossed: a bracket, not a closing-in (unit 042:
+                                                   the test ran before the loop's own sign test saw it) */
+    /* closed in without a sign change (unit 042). With |f| not rising (b no worse than a) a root may lie just past b,
+       approached from one side: step past it, 2, 4, ... 256 times the secant's step (b - a where f is flat at its
+       last digit; at least a unit of b's last digit), until f changes sign (then Brent's bracket) or is 0; each a
+       counted evaluation within SOLVE_MAX. Otherwise, or if none crosses, no sign change: 024b's minimum path, as
+       before. */
+    if (cmp_abs(&fb, &fa) <= 0) {
+        abn s, u, x, fx, k = abn_from_int(2), mag = abn_abs(&b);
+        if (abn_sub(&t1, &b, &a) != ABN_OK) goto nosign;
+        if (abn_cmp(&fa, &fb) == 0) {
+            s = t1;                             /* f flat at its last digit: on from a past b */
+        } else {
+            if (abn_sub(&t2, &fb, &fa) != ABN_OK || abn_div(&s, &t1, &t2) != ABN_OK || abn_mul(&s, &s, &fb) != ABN_OK)
+                goto nosign;
+            s = abn_neg(&s);                    /* the secant's step from b to the projected root */
+        }
+        if (abn_is_zero(&s)) goto nosign;
+        abn_from_text(&u, abn_is_zero(&mag) ? "1E-6176" : "1E-33");
+        if (!abn_is_zero(&mag) && abn_mul(&u, &u, &mag) != ABN_OK) goto nosign;   /* a unit of b's last digit */
+        for (int i = 0; i < 8 && c->evals < SOLVE_MAX; i++) {
+            abn d;
+            if (abn_mul(&d, &s, &k) != ABN_OK) break;
+            if (cmp_abs(&d, &u) < 0) d = abn_is_negative(&s) ? abn_neg(&u) : u;
+            if (abn_add(&x, &b, &d) != ABN_OK || abn_cmp(&x, &b) == 0) break;
+            if ((st = ev(c, &x, &fx, &bad)) != ABN_OK) return st;
+            if (bad) break;
+            sp_add(&x, &fx);
+            if (abn_is_zero(&fx)) {
+                o->x = x;
+                o->prev = b;
+                o->fx = fx;
+                o->found = true;
+                return ABN_OK;
+            }
+            if (sgn(&fx) != sgn(&fb)) {         /* crossed: [b, x] brackets the root */
+                a = b;
+                fa = fb;
+                b = x;
+                fb = fx;
+                goto bracket;
+            }
+            k = abn_from_int(2 << (i + 1));     /* the next: 4, 8, ... 256 */
+        }
+    }
+    goto nosign;
 bracket:
     /* Brent's method on the bracket [a, b] */
     fmax = cmp_abs(&fa, &fb) > 0 ? abn_abs(&fa) : abn_abs(&fb);

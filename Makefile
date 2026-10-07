@@ -156,6 +156,7 @@ test: all
 	AB_SAVELOAD=1 AB_STORE=1 ./build/vectors work/039-vectors.txt
 	./build/vectors work/040-vectors.txt
 	AB_SAVELOAD=1 AB_STORE=1 ./build/vectors work/040-vectors.txt
+	./build/vectors work/042-sweep-vectors.txt
 	./build/vectors work/033-vectors.txt
 	AB_SAVELOAD=1 AB_STORE=1 ./build/vectors work/033-vectors.txt
 	./build/vectors tests/021-soroban.txt
