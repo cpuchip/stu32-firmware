@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "const.h"
+#include "eqn.h"
 #include "fmt.h"
 #include "state.h"
 
@@ -1189,6 +1190,25 @@ abn_status ab_state_load(ab_calc *c, const uint8_t *buf, size_t len)
     for (int i = 0; i < c->prog_len; i++)
         if (c->prog[i].op == AB_EQLINE && !c->peqn_model[c->prog[i].arg]) c->peqn_model[c->prog[i].arg] = 35;  /* an entry shown stays shown in ALG (one
                                                                   that exists: a calc not from ab_init) */
+    if (r.version < 11) {
+        /* an image from before unit 041 (abacus #4799 ruling (a)): an equation stamped 33 that the 33s parse now
+           refuses (a 35s feature: REGX, AND, a vector, ...) but the 35s parse takes is restamped 35, so a line
+           already written keeps working; its meaning is unchanged (both read left to right). Others keep 33. */
+        ab_val v;
+        int pos;
+        for (int i = 0; i < c->eqn_count; i++)
+            if (c->eqn_model[i] == 33 && c->eqn[i][0] != '\x01' &&
+                eqn_eval(c, c->eqn[i], 33, false, true, &v, &pos) == ABN_SYNTAX &&
+                eqn_eval(c, c->eqn[i], 35, false, true, &v, &pos) == ABN_OK)
+                c->eqn_model[i] = 35;
+        for (int i = 0; i < c->prog_len; i++) {
+            if (c->prog[i].op != AB_EQLINE) continue;
+            int k = c->prog[i].arg;
+            if (c->peqn_model[k] == 33 && eqn_eval(c, c->peqn[k], 33, false, true, &v, &pos) == ABN_SYNTAX &&
+                eqn_eval(c, c->peqn[k], 35, false, true, &v, &pos) == ABN_OK)
+                c->peqn_model[k] = 35;
+        }
+    }
     if (!r.mode25) {
         /* an image from before unit 025: every label stamped 35s, since (I) followed the 35s model
            in either mode then (unit 025 rule 6 as amended, abacus b75640f); i at 0; a message

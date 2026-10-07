@@ -77,3 +77,10 @@ H56 | 041 A (rule 3.2): in 33s mode GTO to a line number isn't recorded either |
 H57 | 041 A (rule 3.2): the label form still is (33s p.13-5) | MODE33 PRGM LBL:A XEQ:B RTN PRGM | %LINES=3
 H58 | 041 A (rule 3.2): a 35s label's GTO A005 runs in 33s mode (lines kept run) | MODE35 PRGM LBL:A 1 GTO:A005 2 RTN 3 RTN PRGM MODE33 XEQ:A | X=1
 H59 | 041 A (rule 3.2): GTO . to a line still moves the pointer in 33s mode (33s p.13-6) | MODE35 PRGM LBL:A 1 2 RTN PRGM MODE33 GTO.:A003 | %PC=A003
+# Ruling (a) (abacus #4799): an image from before 041 (version 10) keeps working. tests/golden-v10-041.img, saved by
+# the core at aa9781f: in 33s mode i = 5, the equations REGX+1 and 2×i, program A's equation line REGY×2, all stamped
+# 33. On load, an equation stamped 33 that fails the 33s parse and passes the 35s one is restamped 35; others stay.
+# The values are what aa9781f gives on the same keys.
+H60 | 041 A (a): a pre-041 33s equation using REGX loads restamped 35 and runs | LOADFILE:tests/golden-v10-041.img 4 EQN BST XEQ | X=5
+H61 | 041 A (a): a pre-041 program line using REGY, likewise | LOADFILE:tests/golden-v10-041.img 7 ENTER 3 XEQ:A | X=14
+H62 | 041 A (a): an untouched 33 equation stays 33 (a lone i, the variable i: 2 x 5) | LOADFILE:tests/golden-v10-041.img EQN XEQ RS | X=10

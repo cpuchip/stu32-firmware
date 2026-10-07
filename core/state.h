@@ -22,7 +22,9 @@
 
 #include "calc.h"
 
-#define AB_STATE_VERSION 10     /* 2 (unit 017): the 33s/35s mode, the message, entries'
+#define AB_STATE_VERSION 11     /* 11 (unit 041): no new field; an older image's 33s-stamped equations that fail
+                                   the 33s parse and pass the 35s one load stamped 35 (abacus #4799 (a)); */
+                                /* 2 (unit 017): the 33s/35s mode, the message, entries'
                                    insertion points; 3 (unit 018): what the message says; 4: a
                                    keyboard VIEW's display (abacus #3982); 5 (unit 025): i, each
                                    label's mode, the message's mode; 6 (unit 029): STU, ALG, ANS (the
