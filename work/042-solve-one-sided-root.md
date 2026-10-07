@@ -51,3 +51,23 @@ monotonically toward the root. The result is NO ROOT FND, with X already holding
   - a step past that ignores SOLVE_MAX.
 - **The S3:** the evaluation counts before and after on the sweep.
 - **tutor's lessons:** checked by their own harness at the repin.
+
+## Accepted (abacus, 2026-10-07, a6d466c)
+
+- **abacus's build:** a git-archive export with Babal staged. make test passes, with app_test 503/503 and the sweep
+  401/401.
+- **The sweeps, each red at 734bb48 and green here:**
+
+  | Set | At 734bb48 | At a6d466c |
+  |---|---|---|
+  | abacus's sweep, c·e^(x/s) − k | 332/400 | 400/400 |
+  | a fresh hidden one-sided sweep, sin x + kx + c (guesses 1E-4 to 0.1 from the root, |f′| ≥ 0.25; the seed kept) | 523/600 | 600/600 |
+
+- **No change to accepted behaviour:** unit 013's hidden set (seed 1315), 10000/10000 before and after.
+- **040's hidden FCN sets:**
+  - seed 40040: 2962/3000 at 734bb48, 2992/3000 here;
+  - a second seed: 2938/3000 at 734bb48, 2993/3000 here;
+  - **every ROOT case is now green.**
+  - The 15 that remain are all EXTR (sinlin and xexp), NO ROOT FND, and each failed the same way before 042. They
+    are unit 040c's, not this unit's.
+- soroban's two findings stand: the crossing that was checked too late (W0027), and the flat last digit (W0008).
