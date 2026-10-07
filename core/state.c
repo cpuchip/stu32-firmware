@@ -554,6 +554,9 @@ bool ab_line_ok(ab_op op, int32_t arg)
     case AB_LIT: case AB_EQLINE: case AB_CLALL:
     case AB_ENTRYM: case AB_ANS: case AB_HUP: case AB_HDOWN: case AB_SHOW:     /* never lines (029, 030) */
     case AB_TABLE: case AB_TVAR: case AB_TSTART: case AB_TSTEP: case AB_TUP: case AB_TDOWN:      /* (032) */
+    case AB_GRAPH: case AB_XMIN: case AB_XMAX: case AB_YMIN: case AB_YMAX: case AB_GAUTO: case AB_GLEFT:
+    case AB_GRIGHT:                                                                            /* (033) */
+    case AB_FRACFMT: case AB_CLEQN:     /* nonprogrammable since 019 and 021 (load_fuzz's line sweep) */
         return false;
     case AB_CLVARX:
         return arg >= 0 && arg <= AB_IND_MAX;
