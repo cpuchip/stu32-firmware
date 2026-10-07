@@ -133,10 +133,13 @@ typedef enum {
     /* unit 040: the open graph's tools (after the 50g's plot menus): a zoom (arg AB_Z_*), the cursor moved (arg a
        numpad digit 1..9, plus 10 for ten pixels), TRACE on or off, MARK the cursor, the zoom factor (arg 1..100),
        a function tool at the cursor (arg AB_F_*) */
-    AB_GZOOM, AB_GMOVE, AB_GTRACE, AB_GMARK, AB_GFACT, AB_GFCN
+    AB_GZOOM, AB_GMOVE, AB_GTRACE, AB_GMARK, AB_GFACT, AB_GFCN,
+    /* CAS 004 (Casimir, STU's Equation mode): D/DX and COLCT in arg's variable (0-25), SIMP, EXPND; SUBST in arg's
+       variable opens the editor for its replacement, which ENTER substitutes */
+    AB_CASD, AB_CASSIMP, AB_CASEXP, AB_CASCOL, AB_CASSUB
 } ab_op;
 
-#define AB_OP_LAST AB_GFCN     /* the last op: loops over every op end here */
+#define AB_OP_LAST AB_CASSUB     /* the last op: loops over every op end here */
 
 /* Why the last run stopped (unit 012 rule 1): the device draws it; the core never waits. */
 typedef enum {

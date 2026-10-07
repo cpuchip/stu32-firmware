@@ -40,6 +40,10 @@ const char *ab_status_message(abn_status st)
     case ABN_STU_ONLY: return "STU ONLY";                       /* ours: TABLE outside STU (unit 032) */
     case ABN_NO_EQN: return "NO EQUATION";                      /* ours: TABLE with none shown (unit 032) */
     case ABN_NO_VAR: return "NO VARIABLE";                      /* ours: TABLE of a constant (unit 032) */
+    case ABN_CAS_TOO_LONG: return "RESULT TOO LONG";            /* CAS 004 rule 5: the texts approved in #4797 */
+    case ABN_CAS_NO_ROOM: return "TOO COMPLEX";
+    case ABN_CAS_UNSUPPORTED: return "UNSUPPORTED";             /* and the refused name (ab_error_message) */
+    case ABN_CAS_COPY: return "CAN'T COPY RAND";                /* or SEED (ab_error_message) */
     }
     return "";
 }

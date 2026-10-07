@@ -1,0 +1,21 @@
+# CAS 004 (casim's work/004-on-the-calculator.md, rules 1, 4, 5; abacus #4822): Casimir from Equation mode, STU only.
+# Tokens: CASD:v (D/DX), CASSIMP, CASEXP, CASCOL:v (COLCT), CASSUB:v (then the replacement typed, ENTER). The result
+# is a new equation after the one shown, shown, stamped STU; the original kept. Every expected text is casim's host
+# CLI at CASIM_PIN on the same text, model and angle (--model, --repl-model); its statuses as the messages (#4797).
+K01 | CAS 004: D/DX of X^2+3X in X: casim's 2×X+3, after the original, shown | STU EQ:X^2+3×X CASD:X | %EQ=2×X+3 %EQN=2
+K02 | CAS 004: the original kept, before it | STU EQ:X^2+3×X CASD:X BST | %EQ=X^2+3×X
+K03 | CAS 004: the result is an equation: X = 2 gives 7 | STU 2 STO:X EQ:X^2+3×X CASD:X XEQ | X=7
+K04 | CAS 004 rule 1: 2^3^2 stamped STU simplifies as 2^(3^2): 512 | STU EQ:2^3^2 CASSIMP | %EQ=512
+K05 | CAS 004 rule 1: 2^3^2 stamped 35s (typed in 35s mode) as (2^3)^2: 64 | MODE35 EQ:2^3^2 C STU EQN CASSIMP | %EQ=64
+K06 | CAS 004: EXPND of (X+1)^2: casim's 2×X+X^2+1 | STU EQ:(X+1)^2 CASEXP | %EQ=2×X+X^2+1
+K07 | CAS 004: COLCT in X of XY+X+Y: casim's (Y+1)×X+Y | STU EQ:X×Y+X+Y CASCOL:X | %EQ=(Y+1)×X+Y
+K08 | CAS 004: SUBST X by Y+1 in X^2+1, typed in the editor: casim's (Y+1)^2+1 | STU EQ:X^2+1 CASSUB:X RCL:Y + 1 ENTER | %EQ=(Y+1)^2+1 %EQN=2
+K09 | CAS 004: in degrees D/DX SIN(X) carries pi/180: casim's | STU DEG EQ:SIN(X) CASD:X | %EQ=π×COS(X)÷180
+K10 | CAS 004 rule 5: a result past 191 bytes: RESULT TOO LONG, nothing added | STU EQ:(X+Y+Z+1)^8 CASEXP | ERR %ERRMSG=RESULT_TOO_LONG %EQN=1 %EQ=(X+Y+Z+1)^8
+K11 | CAS 004 rule 5: a function D/DX refuses: UNSUPPORTED and its name, nothing added | STU EQ:IP(X) CASD:X | ERR %ERRMSG=UNSUPPORTED_IP %EQN=1
+K12 | CAS 004 rule 5: the depth guard (a 60-deep STU power chain): TOO COMPLEX, nothing added | STU EQ:X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X CASSIMP | ERR %ERRMSG=TOO_COMPLEX %EQN=1
+K13 | CAS 004 rule 5: SUBST copying a draw: CAN'T COPY RAND | STU EQ:X+X CASSUB:X RAND ENTER | ERR %ERRMSG=CAN'T_COPY_RAND %EQN=1
+K14 | CAS 004 rule 5: an equation that doesn't parse: SYNTAX ERROR | STU EQ:X+ CASSIMP | ERR %ERRMSG=SYNTAX_ERROR %EQN=1
+K15 | CAS 004 rule 4: not in 35s mode (the menu doesn't exist there): STU ONLY, nothing added | MODE35 EQ:X^2 CASD:X | %ERR=STU_ONLY %EQN=1
+K16 | CAS 004 rule 4: nor on a built-in solver, nor at the list's top | STU EQN CASSIMP | %ERR=NO_EQN %EQN=0
+K17 | CAS 004: SUBST's replacement cancelled by C: nothing added, the original shown | STU EQ:X^2+1 CASSUB:X RCL:Y C | %EQN=1 %EQ=X^2+1

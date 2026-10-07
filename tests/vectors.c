@@ -204,7 +204,8 @@ static const char *const STATUS_NAMES[] = {"OK", "DIV_ZERO", "RANGE", "BAD_TEXT"
                                            "SELECT_FN", "NESTED", "SYNTAX", "INVALID_VAR",
                                            "NO_SOLUTION", "MULT_SOLUTION", "INTERRUPTED",
                                            "BAD_IMAGE", "OVERFLOW", "UNDERFLOW", "RPN_ONLY", "STU_ONLY",
-                                           "NO_EQN", "NO_VAR"};
+                                           "NO_EQN", "NO_VAR", "CAS_TOO_LONG", "CAS_NO_ROOM", "CAS_UNSUPPORTED",
+                                           "CAS_COPY"};
 
 /* Applies one key token. Returns 0, or -1 for an unknown token. */
 static int apply_token(ab_calc *c, const char *tok, int *errors)
@@ -541,6 +542,18 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
     if (strcmp(tok, "CLVARS") == 0) {
         if (do1(c, AB_CLVARS, 0) != ABN_OK) (*errors)++;
         return 0;
+    }
+    {   /* CAS 004: CASD:v CASCOL:v CASSUB:v (a variable A-Z), CASSIMP, CASEXP */
+        static const struct { const char *t; ab_op op; bool var; } CAS[] = {
+            {"CASD:", AB_CASD, true}, {"CASCOL:", AB_CASCOL, true}, {"CASSUB:", AB_CASSUB, true},
+            {"CASSIMP", AB_CASSIMP, false}, {"CASEXP", AB_CASEXP, false}};
+        for (size_t i = 0; i < sizeof CAS / sizeof CAS[0]; i++) {
+            size_t n = strlen(CAS[i].t);
+            if (strncmp(tok, CAS[i].t, n) != 0) continue;
+            if (CAS[i].var ? !(tok[n] >= 'A' && tok[n] <= 'Z' && !tok[n + 1]) : tok[n] != 0) return -1;
+            if (do1(c, CAS[i].op, CAS[i].var ? tok[n] - 'A' : 0) != ABN_OK) (*errors)++;
+            return 0;
+        }
     }
     if (strncmp(tok, "CONST:", 6) == 0) {
         int k = ab_const_index(tok + 6);

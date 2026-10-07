@@ -58,7 +58,12 @@ typedef enum {
                                done, not an error (unit 029 rule 7) */
     ABN_STU_ONLY,           /* unit 032: an STU feature asked in 33s or 35s mode (TABLE): shown briefly */
     ABN_NO_EQN,             /* unit 032: TABLE with no equation shown (EQN LIST TOP, a built-in solver) */
-    ABN_NO_VAR              /* unit 032: TABLE of an equation with no variable (abacus's answer 3) */
+    ABN_NO_VAR,             /* unit 032: TABLE of an equation with no variable (abacus's answer 3) */
+    /* CAS 004 (casim's statuses as messages, #4797): */
+    ABN_CAS_TOO_LONG,       /* the result is past 191 bytes: RESULT TOO LONG */
+    ABN_CAS_NO_ROOM,        /* the arena ran out, or the depth guard stopped a walk: TOO COMPLEX */
+    ABN_CAS_UNSUPPORTED,    /* a construct refused, by name (a function D/DX refuses): UNSUPPORTED name */
+    ABN_CAS_COPY            /* SUBST would copy a draw: CAN'T COPY RAND (or SEED) */
 } abn_status;
 
 abn abn_zero(void);
