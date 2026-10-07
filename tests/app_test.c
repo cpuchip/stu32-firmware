@@ -1276,6 +1276,44 @@ int main(void)
         app_key_up(&a, 4, now);
     }
 
+    /* unit 033: GRAPH: blue 7's menu; the frame drawn from the model: in the curve's columns (clear of the
+       labels at the edges) a pixel of the plot area is dark exactly where the model draws a row or an axis */
+    {
+        static ls027_frame fr;
+        ab_init(&c);
+        app_init(&a, &c, now);
+        press(&a, "BLUE 7");
+        app_ui(&a, &ui);
+        expect(ui.soft[0] && !strcmp(ui.soft[0], "XMIN") && ui.soft[3] && !strcmp(ui.soft[3], "YMAX") && ui.soft[4] &&
+                   !strcmp(ui.soft[4], "AUTO") && ui.soft[5] && !strcmp(ui.soft[5], "GO"),
+               "033: blue 7 is GRAPH: XMIN XMAX YMIN YMAX AUTO GO");
+        press(&a, "C");
+        c.stu = c.m35 = true;
+        ab_eqn_add(&c, "X^2-30");
+        ab_do(&c, AB_EQN);
+        press(&a, "BLUE 7 k:5");
+        for (int i = 0; i < 200 && a.graphing; i++) app_tick(&a, &(pwr_inputs){false, false, 80, false}, now);
+        app_ui(&a, &ui);
+        screen_render(&c, &ui, &fr);
+        abn lo, hi;
+        ab_graph_window(&c, &lo, &hi);
+        int xrow, ycol, drawn = 0, wrong = 0;
+        ab_graph_axes(&c, &lo, &hi, &xrow, &ycol);
+        for (int col = 60; col <= 340; col++) {
+            int rl, rh;
+            bool any = ab_graph_column(&c, col, &lo, &hi, &rl, &rh);
+            drawn += any;
+            for (int r = 0; r < AB_GRAPH_H; r++) {
+                int y = 21 + r;
+                bool dark = fr.px[y][col / 8] >> (col % 8) & 1;
+                bool want = (any && r >= rl && r <= rh) || r == xrow || col == ycol;
+                wrong += dark != want;
+            }
+        }
+        expect(c.gr_on && drawn > 250 && wrong == 0, "033: the frame's plot area is the model's rows and axes");
+        press(&a, "C");
+    }
+
     /* unit 035: after a keyboard SOLVE the root is VIEWed (W=3.5000), no prompt on Y; the next key gives
        the ordinary stack; the integral as its labelled result; a linear solution's x= then y= */
     {

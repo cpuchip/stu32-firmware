@@ -4787,3 +4787,50 @@ static abn_status table_go(ab_calc *c)
     c->tbl_on = true;
     return ABN_OK;
 }
+
+/* unit 033 red: the graph model, not yet */
+abn_status ab_graph_sample(ab_calc *c, int col, abn *x, ab_val *y)
+{
+    (void)c; (void)col;
+    *x = abn_zero();
+    memset(y, 0, sizeof *y);
+    return ABN_DOMAIN;
+}
+
+void ab_graph_fit(const abn *y, const bool *ok, int n, abn *lo, abn *hi)
+{
+    (void)y; (void)ok; (void)n;
+    *lo = *hi = abn_zero();
+}
+
+void ab_graph_window(ab_calc *c, abn *ymin, abn *ymax)
+{
+    (void)c;
+    *ymin = *ymax = abn_zero();
+}
+
+int ab_graph_row(const abn *y, const abn *ymin, const abn *ymax)
+{
+    (void)y; (void)ymin; (void)ymax;
+    return -1;
+}
+
+bool ab_graph_join(bool prev_ok, int prev_row, int row, int *lo, int *hi)
+{
+    (void)prev_ok; (void)prev_row; (void)row;
+    *lo = *hi = 0;
+    return false;
+}
+
+bool ab_graph_column(ab_calc *c, int col, const abn *ymin, const abn *ymax, int *lo, int *hi)
+{
+    (void)c; (void)col; (void)ymin; (void)ymax;
+    *lo = *hi = 0;
+    return false;
+}
+
+void ab_graph_axes(const ab_calc *c, const abn *ymin, const abn *ymax, int *xrow, int *ycol)
+{
+    (void)c; (void)ymin; (void)ymax;
+    *xrow = *ycol = -1;
+}

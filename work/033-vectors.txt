@@ -1,0 +1,24 @@
+# Unit 033: GRAPH (work/033-graph.md and its Answers). Keys: GRAPH (GO), XMIN XMAX YMIN YMAX (from X), AUTO,
+# GLEFT GRIGHT (trace), ENTER, C. %GRAPH 1 while open; %GWIN "ymin,ymax" after any fit; %GX:c, %GY:c column c's
+# x and value (or the error's status name), compared by value; %GR:c its drawn rows "lo-hi" or "-"; %GCUR the
+# trace column. Expected values: an independent model in Python decimal, 34 digits, half even, each step of rule 3
+# rounded once in the pinned order (abacus answer (a)); W 400, H 185.
+P01 | rules 2-3: X^2 from -10 to 10, Y fitted: the columns' x | STU EQ:X^2 C GRAPH | %GRAPH=1 %GX:0=-10 %GX:1=-9.949874686716791979949874686716792 %GX:200=0.02506265664160401002506265664160 %GX:399=10
+P02 | rule 2: the fit: finite samples, min to max, 5% of the span each way | STU EQ:X^2 C GRAPH | %GWIN=-4.999340456404168315525656245877852,104.9999685931621032531202693450418
+P03 | rules 3-4: rows, and joins as vertical runs | STU EQ:X^2 C GRAPH | %GY:0=100 %GR:0=8-8 %GR:1=9-10 %GR:199=176-176 %GR:399=8-9
+P04 | rule 4: 1/X across 0 with Y set: no wall (the asymptote rule); off-window columns drawn nowhere | STU EQ:1÷X C 5 CHS YMIN 5 YMAX GRAPH | %GR:199=- %GR:200=- %GR:201=- %GR:0=94-94 %GR:399=90-90 %GWIN=-5,5
+P05 | rule 4: SQRT(X) for X < 0 errs: those columns empty, left out of the fit | STU EQ:SQRT(X) C GRAPH | %GY:0=DOMAIN %GR:0=- %GR:199=- %GR:200=176-176 %GR:201=169-175 %GWIN=0.0081136085426732102919299391014210,3.312475948341032004461129906591352
+P06 | rule 2: a constant's fit: plus and minus 1 | STU EQ:X×0+5 C GRAPH | %GWIN=4,6 %GR:0=92-92
+P07 | rule 1: V=expr with V not in expr plots expr (Y=X^2 against X) | STU EQ:Y=X^2 C GRAPH | %GY:0=100 %GY:399=100 %GR:1=9-10
+P08 | rule 1: any other L=R plots L-R | STU EQ:X^2=4 C GRAPH | %GY:0=96 %GWIN=-8.999340456404168315525656245877852,100.9999685931621032531202693450418
+P09 | rules 2-3: X^3 from -2 to 2 | STU EQ:X^3 C 2 CHS XMIN 2 XMAX GRAPH | %GWIN=-8.80,8.80 %GR:0=176-176 %GR:1=174-175 %GR:200=92-92 %GR:399=8-9
+P10 | rule 7: leaving leaves the variable as it was | STU EQ:X^2 C 3 STO:X GRAPH GRIGHT GRIGHT C | %GRAPH=0 @X=3
+P11 | rule 6: the trace starts mid-area and moves a column | STU EQ:X^2 C GRAPH GRIGHT | %GCUR=201
+P12 | rule 6: ENTER puts the traced value in X as a keyed number (after ENTER, lift disabled: it replaces) | STU EQ:X^2 C 7 ENTER GRAPH GLEFT ENTER | %GRAPH=0 X=0.0006281367579349375946130991639499747 Y=7
+P13 | rule 6: C leaves with nothing changed | STU EQ:X^2 C 8 GRAPH GRIGHT C | %GRAPH=0 X=8
+P14 | rule 9: a DEG plot of SIN(X) from 0 to 360: 0 at both ends, the x axis mid-area | STU DEG EQ:SIN(X) C 0 XMIN 360 XMAX GRAPH | %GY:0=0 %GY:399=0 %GR:0=92-92
+P15 | rule 2: AUTO fits again after YMIN and YMAX were set | STU EQ:X^2 C 5 CHS YMIN 5 YMAX AUTO GRAPH | %GWIN=-4.999340456404168315525656245877852,104.9999685931621032531202693450418
+P16 | rule 2: the window and the open graph survive the state image | STU EQ:X^3 C 2 CHS XMIN 2 XMAX GRAPH GRIGHT SAVE MEMCLR LOAD | %GRAPH=1 %GCUR=201 %GWIN=-8.80,8.80
+P17 | rule 1 (as TABLE): 35s mode says STU ONLY | MODE35 EQ:X^2 C GRAPH | ERR %ERR=STU_ONLY %GRAPH=0
+P18 | rule 1: no equation shown: NO EQUATION | STU GRAPH | ERR %ERR=NO_EQN %GRAPH=0
+P19 | rule 1: TABLE's variable (shared): VAR set to B | STU EQ:A×B C 2 STO:A TVAR:B GRAPH | %GY:0=-20 %GY:399=20

@@ -126,10 +126,12 @@ typedef enum {
                                nothing, nonprogrammable */
     /* unit 032: TABLE (STU): GO opens the table of the equation shown; its variable (arg a variable code),
        start and step (from X); a row up, down. Nonprogrammable. */
-    AB_TABLE, AB_TVAR, AB_TSTART, AB_TSTEP, AB_TUP, AB_TDOWN
+    AB_TABLE, AB_TVAR, AB_TSTART, AB_TSTEP, AB_TUP, AB_TDOWN,
+    /* unit 033: GRAPH (STU): GO; the window's XMIN XMAX YMIN YMAX (from X); AUTO; the trace's left, right */
+    AB_GRAPH, AB_XMIN, AB_XMAX, AB_YMIN, AB_YMAX, AB_GAUTO, AB_GLEFT, AB_GRIGHT
 } ab_op;
 
-#define AB_OP_LAST AB_TDOWN     /* the last op: loops over every op end here */
+#define AB_OP_LAST AB_GRIGHT     /* the last op: loops over every op end here */
 
 /* Why the last run stopped (unit 012 rule 1): the device draws it; the core never waits. */
 typedef enum {
@@ -269,6 +271,13 @@ typedef struct {
     bool tbl_on;
     int tbl_eq;
     int32_t tbl_k;
+    /* unit 033: GRAPH's window (in the image): X from gr_xmin to gr_xmax, Y set (gr_ymin..gr_ymax) or fitted
+       (gr_auto); the open graph: its equation, variable and trace column */
+    abn gr_xmin, gr_xmax, gr_ymin, gr_ymax;
+    bool gr_auto;
+    bool gr_on;
+    int gr_eq, gr_v;
+    int gr_cur;
     uint8_t eqn_model[AB_EQN_MAX + 2];      /* unit 031: the model each was typed in (33, 35, AB_MODEL_STU):
                                                its meaning wherever it is evaluated (rule 3); in the image */
     int eqn_cur;            /* the equation shown, -1 at EQN LIST TOP */
@@ -415,6 +424,23 @@ const char *ab_eqn_mark(const ab_calc *c, const char *text, int model);
    L=R), with the variable set for the evaluation alone and restored after (rule 3); the status of the
    row's evaluation (an error is that row's, the table goes on). */
 abn_status ab_table_row(ab_calc *c, int32_t k, abn *x, ab_val *y);
+
+/* Unit 033: the graph model. The plot area is AB_GRAPH_W columns by AB_GRAPH_H rows (screen pixels 0..399,
+   21..205). Column c samples x = XMIN + c x (XMAX - XMIN) / (W - 1) and the value there (rule 1's form) with
+   the variable set for it alone (pure: nothing changed). The window: Y as set, or fitted to the finite
+   samples (not errors, not overflows) plus 5% each way, a constant +-1, none -10..10. A value's row: rule
+   3's formula, clamped to -1 (above) and H (below). Column c's drawn rows: its row and every row strictly
+   between it and the previous column's, clipped to the area; none after an error or across -1 and H. */
+#define AB_GRAPH_W 400
+#define AB_GRAPH_H 185
+abn_status ab_graph_sample(ab_calc *c, int col, abn *x, ab_val *y);
+void ab_graph_fit(const abn *y, const bool *ok, int n, abn *lo, abn *hi);
+void ab_graph_window(ab_calc *c, abn *ymin, abn *ymax);
+int ab_graph_row(const abn *y, const abn *ymin, const abn *ymax);
+bool ab_graph_join(bool prev_ok, int prev_row, int row, int *lo, int *hi);
+bool ab_graph_column(ab_calc *c, int col, const abn *ymin, const abn *ymax, int *lo, int *hi);
+/* The axes (rule 5, answer 3): the x axis's row (y = 0) and the y axis's column (x = 0), -1 when outside. */
+void ab_graph_axes(const ab_calc *c, const abn *ymin, const abn *ymax, int *xrow, int *ycol);
 
 /* Unit 025: the mode in force (33s or 35s): while a program line runs, the mode of the label that
    owns it; otherwise (the keyboard, lines before the first label) the calculator's. Every

@@ -66,6 +66,8 @@ static const struct { const char *name; ab_op op; } NAMED[] = {
     {"ANS", AB_ANS}, {"HUP", AB_HUP}, {"HDOWN", AB_HDOWN},     /* unit 029 */
     {"SHOW", AB_SHOW},                                          /* unit 030 */
     {"TABLE", AB_TABLE}, {"TSTART", AB_TSTART}, {"TSTEP", AB_TSTEP}, {"TUP", AB_TUP}, {"TDOWN", AB_TDOWN},   /* 032 */
+    {"GRAPH", AB_GRAPH}, {"XMIN", AB_XMIN}, {"XMAX", AB_XMAX}, {"YMIN", AB_YMIN}, {"YMAX", AB_YMAX},       /* 033 */
+    {"AUTO", AB_GAUTO}, {"GLEFT", AB_GLEFT}, {"GRIGHT", AB_GRIGHT},
 };
 
 /* The last error any key returned in the current vector, for %ERR (unit 012). */
@@ -769,6 +771,43 @@ int vectors_run(const char *name, FILE *f)
                 } else if (strcmp(ex, "%VIEW") == 0) {     /* unit 035: the keyboard VIEW showing: its id, - none */
                     if (c.viewing) snprintf(got, sizeof got, "%d", c.view_id);
                     else snprintf(got, sizeof got, "-");
+                } else if (strcmp(ex, "%GRAPH") == 0) {    /* unit 033: the graph model */
+                    snprintf(got, sizeof got, "%d", c.gr_on ? 1 : 0);
+                } else if (strcmp(ex, "%GCUR") == 0) {
+                    snprintf(got, sizeof got, "%d", c.gr_cur);
+                } else if (strcmp(ex, "%GWIN") == 0) {
+                    abn lo, hi, want_lo, want_hi;
+                    char a[64], b[64], wl[64];
+                    ab_graph_window(&c, &lo, &hi);
+                    const char *sp = strchr(eq + 1, ',');     /* "ymin,ymax" */
+                    snprintf(wl, sizeof wl, "%.*s", sp ? (int)(sp - eq - 1) : 0, eq + 1);
+                    if (sp && abn_from_text(&want_lo, wl) == ABN_OK && abn_from_text(&want_hi, sp + 1) == ABN_OK &&
+                        abn_cmp(&want_lo, &lo) == 0 && abn_cmp(&want_hi, &hi) == 0)
+                        snprintf(got, sizeof got, "%s", eq + 1);     /* equal by value */
+                    else {
+                        abn_to_text(&lo, a, sizeof a);
+                        abn_to_text(&hi, b, sizeof b);
+                        snprintf(got, sizeof got, "%s,%s", a, b);
+                    }
+                } else if (!strncmp(ex, "%GX:", 4) || !strncmp(ex, "%GY:", 4) || !strncmp(ex, "%GR:", 4)) {
+                    int col = atoi(ex + 4);
+                    abn gx, want, lo, hi;
+                    ab_val gy;
+                    abn_status gs = ab_graph_sample(&c, col, &gx, &gy);
+                    if (ex[2] == 'R') {
+                        int rl, rh;
+                        ab_graph_window(&c, &lo, &hi);
+                        if (ab_graph_column(&c, col, &lo, &hi, &rl, &rh)) snprintf(got, sizeof got, "%d-%d", rl, rh);
+                        else snprintf(got, sizeof got, "-");
+                    } else {
+                        abn *val = ex[2] == 'X' ? &gx : &gy.re;
+                        if (ex[2] == 'Y' && gs != ABN_OK)
+                            snprintf(got, sizeof got, "%s", (unsigned)gs < sizeof STATUS_NAMES / sizeof STATUS_NAMES[0] ? STATUS_NAMES[gs] : "?");
+                        else if (abn_from_text(&want, eq + 1) == ABN_OK && abn_cmp(&want, val) == 0)
+                            snprintf(got, sizeof got, "%s", eq + 1);
+                        else
+                            abn_to_text(val, got, sizeof got);
+                    }
                 } else if (strcmp(ex, "%TABLE") == 0) {    /* unit 032: the table open, its row, x, y */
                     snprintf(got, sizeof got, "%d", c.tbl_on ? 1 : 0);
                 } else if (strcmp(ex, "%TK") == 0) {
