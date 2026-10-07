@@ -24,6 +24,7 @@ abn_status fn_ln(abn *out, const abn *x);
 abn_status fn_tenx(abn *out, const abn *x);
 abn_status fn_log(abn *out, const abn *x);
 abn_status fn_pow(abn *out, const abn *y, const abn *x);    /* y^x */
+extern unsigned long fn_pow_hp_calls;   /* unit 038: the high-precision y^x's uses (a test's probe) */
 abn_status fn_expm1(abn *out, const abn *x);                 /* e^x - 1 (unit 021) */
 abn_status fn_ln1p(abn *out, const abn *x);                  /* ln(1 + x), x > -1 */
 abn_status fn_twox(abn *out, const abn *x);                  /* 2^x */

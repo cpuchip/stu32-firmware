@@ -4,7 +4,7 @@ value is in range, so an error status is a failure too. Exact cases must come ou
 
 Regions (unit 028's acceptance): bases within 1E-33 to 1E-3 of 1 with exponents up to 1E40; bases near
 the range's edges; integer and half-integer exponents; negative bases with integer exponents; random
-pairs; the root's same regions.
+pairs; the root's same regions; (unit 038) integer exponents from -64 to 64 on any 34-digit base.
 
 Usage: python tests/pow_fuzz.py build/fn_drive [seed] [cases per region]. Needs mpmath (make accuracy).
 """
@@ -106,6 +106,10 @@ def cases():
         ly = abs(float(mp.log(mp.mpf(y)))) or 1
         x = f"{R.uniform(-1, 1) * min(14000 / ly, 1e6):.25g}"
         out.append(("random pairs", "POW", x, y, pow_true(y, x)))
+    for _ in range(N):                          # unit 038: integer exponents up to 64 either way, any base
+        y = num34(-90, 90, sign=True)
+        n = R.choice([k for k in range(-64, 65) if k not in (0, 1)])
+        out.append(("integer to 64", "POW", str(n), y, pow_true(y, n)))
     for _ in range(N):                          # the root: near 1 and large x, edges, odd roots of negatives
         k = R.random()
         if k < 0.4:

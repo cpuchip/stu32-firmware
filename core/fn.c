@@ -145,8 +145,11 @@ static abn round_sig(const abn *x, int k)
  * FN_HP digits: |e ln y| < 14200 in range, so the exponent carries 45 digits after its point, 11 beyond
  * the result's 34 (measured on the S3, unit 028: 50 digits cost 45% less than 70, with no case of
  * 24000 rounded differently). */
+unsigned long fn_pow_hp_calls;
+
 static abn_status pow_hp(abn *out, const abn *y, const abn *e)
 {
+    fn_pow_hp_calls++;
     static hp hy, he, one, t, l, w, r;
     hp_set_int(&one, 1);
     if (!hp_from_abn(&hy, y) || !hp_from_abn(&he, e) || !hp_add(&t, &hy, &one, true, HP_PMAX) ||

@@ -10,6 +10,7 @@
 #include "const.h"
 #include "state.h"
 #include "eqn.h"
+#include "fn.h"
 
 static int bad, checks;
 static uint32_t now;
@@ -1274,6 +1275,24 @@ int main(void)
                    !strcmp(pg.y.text, "40000000000000000") && !strcmp(pg.x.text, "00000000000000000"),
                "030: a complex X: the real part on T and Z, the imaginary on Y and X");
         app_key_up(&a, 4, now);
+    }
+
+    /* unit 038: integer powers up to 64 either way are exact then rounded once, never the slow high-precision
+       route (a cubic's graph took 10.8 s on the S3) */
+    {
+        ab_init(&c);
+        unsigned long before = fn_pow_hp_calls;
+        abn y3, want;
+        abn_from_text(&c.x.re, "3");
+        abn_from_text(&c.y.re, "1.234567890123456789012345678901234");
+        c.x.kind = c.y.kind = AB_REAL;
+        ab_do(&c, AB_POW);
+        y3 = c.x.re;
+        abn_from_text(&want, "1.881676372353657772546716040595284");   /* 1.2345...^3: mpmath at 80 digits, rounded to 34 */
+        abn_from_text(&c.x.re, "-5");
+        abn_from_text(&c.y.re, "7.654321098765432109876543210987654");
+        ab_do(&c, AB_POW);
+        expect(fn_pow_hp_calls == before && abn_cmp(&y3, &want) == 0, "038: x^3 and x^-5 of 34-digit bases: exact, then rounded once");
     }
 
     /* unit 036: GTO . from the keyboard (33s p.13-5, 35s p.14-6): . . to PRGM TOP; . label and the line's
