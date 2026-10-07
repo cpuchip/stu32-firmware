@@ -3278,6 +3278,8 @@ static abn_status eqn_solve_key(ab_calc *c, ab_op op, int code)
     abn_status st;
     slot sl;
     if (c->eqn_cur < 0) return ABN_OK;             /* EQN LIST TOP: nothing (ours) */
+    if (c->active) return ABN_NESTED;              /* a SOLVE or integral of a program waits (its prompt
+                                                      kept): refused before anything is touched (035 review) */
     b = eqn_builtin(c, c->eqn_cur);
     if (b) {
         if (op != AB_SOLVE) return ABN_OK;
@@ -3818,6 +3820,12 @@ done:
         c->err_status = st;
     }
     return st;
+}
+
+bool ab_view_linear(const ab_calc *c)
+{
+    return c->viewing && c->view_id <= AB_VIEW_LIN2 && c->view_id >= AB_VIEW_LIN3 - 2 &&
+           (c->view_id >= AB_VIEW_LIN2 - 1 || c->view_id <= AB_VIEW_LIN3);
 }
 
 bool ab_view_key(ab_calc *c, int op)

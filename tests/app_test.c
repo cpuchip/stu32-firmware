@@ -1310,6 +1310,16 @@ int main(void)
         app_ui(&a, &ui);
         screen_lines(&c, &ui, &pg);
         expect(!strcmp(pg.x.text, "Y=2.0000"), "035: down: Y=2.0000");
+        /* (review F1) through the keys: the view's bar, and the shifted SST, step it; not the program */
+        app_ui(&a, &ui);
+        expect(ui.soft[0] && !strcmp(ui.soft[0], "\xe2\x96\xb2") && ui.soft[1] && !strcmp(ui.soft[1], "\xe2\x96\xbc"),
+               "035: a linear solution's bar: up, down");
+        int pc0 = c.pc;
+        press(&a, "k:1");
+        expect(c.viewing && c.view_id == AB_VIEW_LIN2 && c.pc == pc0, "035: the bar's down wraps to X=, the program untouched");
+        press(&a, "BLUE R/S");
+        expect(c.viewing && c.view_id == AB_VIEW_LIN2 - 1 && c.pc == pc0 && c.stop == AB_STOP_NONE,
+               "035: the shifted SST steps to Y=, no program line run");
     }
 
     /* unit 032: TABLE: blue 8's menu (VAR START STEP GO); the table on the four lines, x left and the

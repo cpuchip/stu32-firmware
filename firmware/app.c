@@ -195,6 +195,7 @@ static int menu_named(const char *name)
 static int eqn_bar(const app_state *a)
 {
     if (a->c->tbl_on) return menu_named("TABLE BAR");                /* a table open (unit 032) */
+    if (ab_view_linear(a->c)) return menu_named("LIN VIEW");         /* x= y= (z=): unit 035 */
     if (a->c->alg && !a->c->prgm) return menu_named("ALG LINE");    /* STU's line (unit 029) */
     if (a->c->eqn_typing) return menu_named("EQN TYPE");
     if (a->c->eqn_mode && !a->c->prgm) return menu_named("EQN LIST");
@@ -233,11 +234,23 @@ void app_key(app_state *a, int key, uint32_t now_ms)
         }
         return;
     }
-    if (face->kind != KM_SHIFT &&
-        ab_view_key(a->c, a->shift == 0 && face->kind == KM_OP ? face->op : -1))
-        return;                                 /* a keyboard VIEW's display: the core's rule, applied
-                                                   here too for keys that never reach it (a menu's,
-                                                   a prompt's) */
+    {
+        /* a keyboard VIEW's display: the core's rule, applied here too for keys that never reach it (a
+           menu's, a prompt's); a linear solution's view steps on its bar's up and down and on the shifted
+           SST and BST (unit 035's review: they reached the program instead) */
+        int vop = a->shift == 0 && face->kind == KM_OP ? face->op : -1;
+        if (ab_view_linear(a->c)) {
+            const km_action *sh = a->shift ? km_lookup(key, a->shift) : NULL;
+            if (face->kind == KM_SOFT && a->menu < 0 && (face->arg == 0 || face->arg == 1))
+                vop = face->arg == 0 ? AB_BST : AB_SST;
+            else if (sh && sh->kind == KM_OP && (sh->op == AB_SST || sh->op == AB_BST))
+                vop = sh->op;
+        }
+        if (face->kind != KM_SHIFT && ab_view_key(a->c, vop)) {
+            a->shift = 0;
+            return;
+        }
+    }
     if (a->c->msg && a->c->m35 && face->kind != KM_SHIFT) {
         /* the 35s: a key with a message showing only clears it (UG p.F-1, unit 017 rule 4), a
            key that would open a menu or a prompt too, so no op a menu confirms is spent on it

@@ -451,6 +451,7 @@ bool ab_view_key(ab_calc *c, int op);
 #define AB_VIEW_INTEG (-33)
 #define AB_VIEW_LIN2 (-40)          /* -40 X, -41 Y */
 #define AB_VIEW_LIN3 (-50)          /* -50 X, -51 Y, -52 Z */
+bool ab_view_linear(const ab_calc *c);  /* a linear solution's view is showing (its bar: up, down) */
 
 /* Rebuilds the label table after program memory is replaced (state loading). */
 void ab_prog_relabel(ab_calc *c);

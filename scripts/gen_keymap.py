@@ -150,6 +150,8 @@ MENUS = [
     ("TABLE", [p("VAR", "AB_TVAR", "KM_ARG_VAR"), o("START", "AB_TSTART"), o("STEP", "AB_TSTEP"), o("GO", "AB_TABLE"),
                NONE, NONE]),
     ("TABLE BAR", [o("\u25b2", "AB_TUP"), o("\u25bc", "AB_TDOWN"), NONE, NONE, NONE, NONE]),
+    # unit 035 (review): a linear solution's X= Y= (Z=): up and down step among them (35s p.7-7)
+    ("LIN VIEW", [o("\u25b2", "AB_BST"), o("\u25bc", "AB_SST"), NONE, NONE, NONE, NONE]),
     # unit 029 proposal 2: STU's expression line, chosen by the app as Equation mode's bars are: the
     # cursor, parentheses, the history up and down (the key for = is ENTER's)
     ("ALG LINE", [o("\u25c0", "AB_KLEFT"), o("\u25b6", "AB_KRIGHT"), o("( )", "AB_KPAREN"), NONE,

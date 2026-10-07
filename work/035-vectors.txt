@@ -15,3 +15,5 @@ S11 | rule 2 (35s p.7-6, 7-7): the 2x2 solver ends showing X= (the guide's x= 1.
 S12 | rule 2 (35s p.7-7): the down key shows y= 2 | EQN SST SOLVE 1 RS 2 RS 5 RS 3 RS 4 RS 1 1 RS SST | %VIEW=-41 X=1
 S13 | rule 2: the 3x3 solver ends showing X=; down twice shows Z= (x+y+z=6, x-y=0, y+z=5: x 1, y 1, z 4) | EQN BST SOLVE 1 RS 1 RS 1 RS 6 RS 1 RS 1 CHS RS 0 RS 0 RS 0 RS 1 RS 1 RS 5 RS SST SST | %VIEW=-52 %STOP=NONE @Z=4 @X=1
 S14 | rule 1: a linear solver with no solution (35s p.7-6): no prompt, nothing viewed | EQN SST SOLVE 1 RS 1 RS 1 RS 1 RS 1 RS 2 RS | ERR %STOP=NONE %VIEW=-
+S15 | 035 review F2: a keyboard SOLVE while a program's SOLVE waits at its prompt is NESTED, the prompt kept | MODE35 FIX4 PRGM CLPGM LBL:F INPUT:B RCL:X RCL:B - RTN PRGM FN=:F 1 ENTER 5 SOLVE:X EQ:A-2 C EQN SOLVE:A | ERR %ERR=NESTED %STOP=INPUT:B
+S16 | 035 review F2: the program's SOLVE then goes on from its prompt and finds its root (X - B = 0 at B = 3) | MODE35 FIX4 PRGM CLPGM LBL:F INPUT:B RCL:X RCL:B - RTN PRGM FN=:F 1 ENTER 5 SOLVE:X EQ:A-2 C EQN SOLVE:A C C 3 RS | ERR X=3
