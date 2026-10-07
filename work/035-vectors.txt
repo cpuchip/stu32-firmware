@@ -1,0 +1,17 @@
+# Unit 035: SOLVE, integrate and the built-in linear solvers leave no prompt behind (work/035-solve-stale-prompt.md).
+# %VIEW is the keyboard VIEW showing: its id (a variable 0..25 = A..Z; -33 the integral's result; -40/-41 the 2x2
+# solver's X/Y, -50..-52 the 3x3's X/Y/Z), or - for none.
+S01 | rules 1-2 (abacus Q1; 33s p.7-2): a root found: no prompt left, the unknown VIEWed (W is 22) | MODE33 FIX4 EQN RCL:A = RCL:L * RCL:W ENTER SOLVE:W 42 RS 12 RS | X=3.5 %STOP=NONE %VIEW=22
+S02 | rules 1-2 (abacus Q3; 35s p.7-2): the same in 35s mode | MODE35 FIX4 EQN RCL:A = RCL:L * RCL:W ENTER SOLVE:W 42 RS 12 RS | X=3.5 %STOP=NONE %VIEW=22
+S03 | rule 2: the next key ends the VIEW and acts (35s p.8-4: the next key uses X) | MODE35 FIX4 EQN RCL:A = RCL:L * RCL:W ENTER SOLVE:W 42 RS 12 RS 2 * | X=7 %VIEW=-
+S04 | rule 2: C only clears the VIEW (35s p.7-7: press C to clear the viewed variable) | MODE35 FIX4 EQN RCL:A = RCL:L * RCL:W ENTER SOLVE:W 42 RS 12 RS C | X=3.5 %VIEW=- %STOP=NONE
+S05 | rule 1: the next solve shows no stale prompt either (abacus: W? persisted) | MODE35 FIX4 EQN RCL:A = RCL:L * RCL:W ENTER SOLVE:W 42 RS 12 RS C SOLVE:L 42 RS 3.5 RS | X=12 %STOP=NONE %VIEW=11
+S06 | rule 3 (33s p.7-7): X the root, Z the equation's value there (0) | MODE33 FIX4 EQN RCL:A = RCL:L * RCL:W ENTER SOLVE:W 42 RS 12 RS | X=3.5 Z=0
+S07 | rule 1: an error ending (NO ROOT FND, 35s p.7-7) leaves no prompt and views nothing | MODE35 FIX4 EQN RCL:A POW 2 + 1 ENTER SOLVE:A | ERR %ERR=NO_ROOT %STOP=NONE %VIEW=-
+S08 | rule 4: a prompt still pending is a real prompt | MODE35 FIX4 EQN RCL:A = RCL:L * RCL:W ENTER SOLVE:W 42 RS | %STOP=INPUT:L %VIEW=-
+S09 | rule 2 (35s p.8-4, the integral ends as "integral = value"): no prompt, the result shown labelled | MODE35 FIX4 RAD EQ:COS(X×SIN(T)) C 0 ENTER PI EQN INTEG:T 2 RS | X#0.70338751842535706107,1E-4 %STOP=NONE %VIEW=-33
+S10 | rule 2: the integral's view ends at the next key, which acts (p.8-4: pi divides it) | MODE35 FIX4 RAD EQ:COS(X×SIN(T)) C 0 ENTER PI EQN INTEG:T 2 RS PI / | X#0.22389077914123566805,1E-4 %VIEW=-
+S11 | rule 2 (35s p.7-6, 7-7): the 2x2 solver ends showing X= (the guide's x= 1.0000), no prompt | EQN SST SOLVE 1 RS 2 RS 5 RS 3 RS 4 RS 1 1 RS | X=1 Y=2 %STOP=NONE %VIEW=-40
+S12 | rule 2 (35s p.7-7): the down key shows y= 2 | EQN SST SOLVE 1 RS 2 RS 5 RS 3 RS 4 RS 1 1 RS SST | %VIEW=-41 X=1
+S13 | rule 2: the 3x3 solver ends showing X=; down twice shows Z= (x+y+z=6, x-y=0, y+z=5: x 1, y 1, z 4) | EQN BST SOLVE 1 RS 1 RS 1 RS 6 RS 1 RS 1 CHS RS 0 RS 0 RS 0 RS 1 RS 1 RS 5 RS SST SST | %VIEW=-52 %STOP=NONE @Z=4 @X=1
+S14 | rule 1: a linear solver with no solution (35s p.7-6): no prompt, nothing viewed | EQN SST SOLVE 1 RS 1 RS 1 RS 1 RS 1 RS 2 RS | ERR %STOP=NONE %VIEW=-

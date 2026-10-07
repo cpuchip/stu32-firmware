@@ -131,6 +131,8 @@ test: all
 	./build/vectors work/031b-vectors.txt
 	./build/vectors work/032-vectors.txt
 	AB_SAVELOAD=1 AB_STORE=1 ./build/vectors work/032-vectors.txt
+	./build/vectors work/035-vectors.txt
+	AB_SAVELOAD=1 AB_STORE=1 ./build/vectors work/035-vectors.txt
 	./build/vectors tests/021-soroban.txt
 	./build/vectors tests/019-soroban.txt
 	./build/vectors tests/003-soroban.txt

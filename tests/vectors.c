@@ -766,6 +766,9 @@ int vectors_run(const char *name, FILE *f)
                     if (n == 0) snprintf(got, sizeof got, "-");
                     else if (n == 1) snprintf(got, sizeof got, "%s", sh[0]);
                     else snprintf(got, sizeof got, "%s/%s", sh[0], sh[1]);
+                } else if (strcmp(ex, "%VIEW") == 0) {     /* unit 035: the keyboard VIEW showing: its id, - none */
+                    if (c.viewing) snprintf(got, sizeof got, "%d", c.view_id);
+                    else snprintf(got, sizeof got, "-");
                 } else if (strcmp(ex, "%TABLE") == 0) {    /* unit 032: the table open, its row, x, y */
                     snprintf(got, sizeof got, "%d", c.tbl_on ? 1 : 0);
                 } else if (strcmp(ex, "%TK") == 0) {
