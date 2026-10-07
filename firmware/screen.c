@@ -41,8 +41,12 @@ static void put(ls027_frame *f, int x, int y, bool dark)
 
 void screen_fill(ls027_frame *f, int x, int y, int w, int h, bool dark)
 {
-    for (int j = y; j < y + h; j++)
-        for (int i = x; i < x + w; i++) put(f, i, j, dark);
+    /* clipped to the frame first (put would skip those pixels one by one; and gcc 15 at -O3, or mingw's at -O2,
+       cannot see put's own test through the unrolled loops: -Wstringop-overflow, tally #4663) */
+    int x0 = x < 0 ? 0 : x, y0 = y < 0 ? 0 : y;
+    int x1 = x + w > W ? W : x + w, y1 = y + h > H ? H : y + h;
+    for (int j = y0; j < y1; j++)
+        for (int i = x0; i < x1; i++) put(f, i, j, dark);
 }
 
 static void frame_box(ls027_frame *f, int x, int y, int w, int h)
