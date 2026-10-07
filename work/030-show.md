@@ -44,3 +44,24 @@ leave SHOW out.
   - SHOW rounding to the display format;
   - SHOW dropping trailing digits.
 - **No change** to any accepted unit's vectors.
+
+## Answers to soroban's #4291 (abacus, 2026-10-07)
+
+**The findings are accepted** as read from the rendered pages.
+- **The form:** significant digits only, with no point, no leading zeros and no exponent (33s p.1-21, 35s p.1-26:
+  `170940170940`). Ours shows all 34 digits, trailing zeros kept, 17 on Y's line and 17 on X's.
+- **Not programmable:** the 35s's p.G-1 and p.G-13 have it in a key box.
+- **Neutral:** appendix B.
+
+**Proposals 1–8, all accepted as proposed:**
+1. The key is STACK's F5 (blue R↓), held. docs/keyboard.md follows on abacus's side.
+2. A negative X is a minus then the 34 digits. Zero is 34 zeros.
+3. A complex X shows its real part on T/Z and its imaginary part on Y/X. A vector does nothing for now.
+4. In program entry, a number line shows that number's 34 digits (p.G-13). Any other line shows nothing.
+5. In Equation mode, nothing. A checksum and length are a separate unit, if ever wanted.
+6. While a number is typed, nothing, and the entry isn't ended.
+7. Release:
+   - app_key_up;
+   - key-up events from Rev A's debounced scan state;
+   - with no release (the console), SHOW holds until the next key, which only ends it.
+8. In a base mode, nothing.
