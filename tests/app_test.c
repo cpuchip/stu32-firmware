@@ -2256,6 +2256,18 @@ int main(void)
         expect(ui.prompt && !strcmp(ui.prompt, "SOLVE _"), "043: SOLVE on an ordinary equation still asks for the unknown");
     }
 
+    /* unit 043 rule 3 (abacus #4799, 3): XEQ while an equation is typed ends the entry, stores it and evaluates it,
+       as the token path does (the 35s guide is silent: p.6-11 has ENTER only ending it, p.6-12 XEQ on one shown) */
+    {
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, 35);
+        press(&a, "GOLD 0 2 + 3 XEQ");
+        app_ui(&a, &ui);
+        expect(x_of(&c) == 5 && !c.eqn_typing && c.eqn_cur >= 0 && !strcmp(c.eqn[c.eqn_cur], "2+3") && !ui.prompt,
+               "043: XEQ while typing 2+3: stored and evaluated, X = 5, no XEQ prompt");
+    }
+
     /* unit 043 rule 3: letter prompts the token path skips, driven on the real keys to the vectors' results: the
        integral's (GOLD 8, then the letter), TABLE's VAR, and ISG (BLUE 4) */
     {

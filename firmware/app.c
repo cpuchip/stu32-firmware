@@ -730,8 +730,9 @@ static void do_action(app_state *a, const km_action *act)
             a->notice_ms = a->last_key_ms;
             break;
         }
-        if (act->op == AB_XEQ && a->c->eqn_mode && !a->c->eqn_typing && !a->c->prgm)
-            do_op(a, AB_XEQ, AB_TGT_EQN);       /* evaluates the equation shown (UG p.G-14) */
+        if (act->op == AB_XEQ && a->c->eqn_mode && !a->c->prgm)
+            do_op(a, AB_XEQ, AB_TGT_EQN);       /* evaluates the equation shown (UG p.G-14); while one is typed, ends,
+                                                   stores and evaluates it, as the core's XEQ (abacus #4799, 3) */
         else if (act->op == AB_SOLVE && !a->c->prgm && ab_builtin_shown(a->c))
             do_op(a, AB_SOLVE, -1);             /* a built-in solver: straight to A's prompt (35s p.7-6; unit 043) */
         else
