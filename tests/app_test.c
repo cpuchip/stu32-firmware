@@ -1481,9 +1481,9 @@ int main(void)
         press(&a, "XEQ ltr:A 0 0");
         app_ui(&a, &ui);
         expect(ui.prompt && !strcmp(ui.prompt, "XEQ A00_") && c.stop == AB_STOP_STOP, "036b: the digits so far");
-        press(&a, "3");
+        press(&a, "4");
         run_out(&a, &in);
-        expect(!a.prompt_text[0] && c.stop != AB_STOP_STOP && x_of(&c) == 2, "036b: 35s XEQ A 0 0 3 runs from A003");
+        expect(!a.prompt_text[0] && c.stop != AB_STOP_STOP && x_of(&c) == 2, "036b: 35s XEQ A 0 0 4 runs from A004 (past the R/S)");
         press(&a, "GOLD 4 ltr:A");
         app_ui(&a, &ui);
         expect(ui.prompt && !strcmp(ui.prompt, "GTO A___"), "036b: 35s GTO A waits");
@@ -1496,6 +1496,12 @@ int main(void)
         press(&a, "GOLD 4 ltr:A 0 0 9");
         expect(c.msg && c.err_status == ABN_NONEXISTENT, "036b: a missing line: NONEXISTENT");
         press(&a, "C");
+        pc0 = c.pc;
+        press(&a, "XEQ ltr:A 0 0 0");
+        expect(c.msg && c.err_status == ABN_NONEXISTENT && c.pc == pc0 && !a.running, "036b: XEQ A 0 0 0: no line 000, NONEXISTENT, nothing run");
+        press(&a, "C GOLD 9 k:0 GOLD 4 ltr:A 0 0 0");
+        expect(c.prog_len == lines && c.err_status == ABN_NONEXISTENT, "036b: GTO A 0 0 0 in program entry: NONEXISTENT, no line");
+        press(&a, "C GOLD 9 k:0");
         /* backspace steps back a digit, then the letter; C leaves, nothing moved */
         pc0 = c.pc;
         press(&a, "XEQ ltr:A 0 \xe2\x86\x90");
@@ -1509,8 +1515,8 @@ int main(void)
         expect(!ui.prompt && c.pc == pc0 && c.stop == AB_STOP_NONE, "036b: C backs out, nothing run or moved");
         /* in program entry: the lines XEQ A001 and GTO A003 */
         press(&a, "GOLD 9 k:0 XEQ ltr:A ENTER GOLD 4 ltr:A 0 0 3 GOLD 9 k:0");
-        expect(c.prog_len == lines + 2 && c.prog[lines].op == AB_XEQ && c.prog[lines].arg == 1 &&
-                   c.prog[lines + 1].op == AB_GTO && c.prog[lines + 1].arg == 3,
+        expect(c.prog_len == lines + 2 && c.pc >= 1 && c.prog[c.pc - 1].op == AB_XEQ && c.prog[c.pc - 1].arg == 1 &&
+                   c.prog[c.pc].op == AB_GTO && c.prog[c.pc].arg == 3,
                "036b: in program entry, XEQ A ENTER and GTO A 0 0 3 are the lines XEQ A001 and GTO A003");
         /* STU behaves as the 35s */
         c.stu = true;

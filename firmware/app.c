@@ -14,6 +14,7 @@ void app_init(app_state *a, ab_calc *c, uint32_t now_ms)
     memset(a, 0, sizeof *a);
     a->c = c;
     a->prompt_op = -1;
+    a->tgt_label = -1;
     a->confirm_op = -1;
     a->menu = -1;
     a->last_key_ms = now_ms;
@@ -34,6 +35,7 @@ static void prompt_close(app_state *a)
     a->prompt_n = a->prompt_val = 0;
     a->prompt_text[0] = '\0';
     a->gto_dot = 0;
+    a->tgt_label = -1;
 }
 
 /* GTO's address form (unit 036): "GTO ._", then "GTO .A___" with the digits so far (three in 35s and STU
@@ -48,6 +50,15 @@ static void gto_text(app_state *a)
     }
     if (a->prompt_n) snprintf(d, sizeof d, "%0*d", a->prompt_n, a->prompt_val);
     snprintf(a->prompt_text, sizeof a->prompt_text, "GTO .%c%s%s", 'A' + a->gto_label, d, &"____"[4 - (need - a->prompt_n)]);
+}
+
+/* 35s and STU GTO / XEQ after the letter (unit 036b): "XEQ A___", then the digits so far */
+static void tgt_text(app_state *a)
+{
+    char d[4] = "";
+    if (a->prompt_n) snprintf(d, sizeof d, "%0*d", a->prompt_n, a->prompt_val);
+    snprintf(a->prompt_text, sizeof a->prompt_text, "%s %c%s%s", a->prompt_op == AB_XEQ ? "XEQ" : "GTO",
+             'A' + a->tgt_label, d, &"___"[a->prompt_n]);
 }
 
 /* "STO _", "STO+ _": the op's name as listed (UG Appendix G; list.c's spacing), then the cursor */
@@ -358,6 +369,51 @@ void app_key(app_state *a, int key, uint32_t now_ms)
             prompt_close(a);
         }
         return;
+    }
+    if ((a->prompt_op == AB_GTO || a->prompt_op == AB_XEQ) && a->prompt_kind == KM_ARG_TARGET && a->c->m35 &&
+        a->gto_dot == 0) {
+        /* 35s and STU (unit 036b; 35s p.14-6, p.13-10): GTO and XEQ take a letter, then ENTER for its first
+           line or three digits for a line; a line 000 is NONEXISTENT. In program entry they record the line
+           (XEQ A001, GTO A003). Backspace steps back, C backs out. Other keys before the letter fall through:
+           (I) and (J) act at once, as before, and GTO's . opens the address form (036) */
+        int op = a->prompt_op;
+        if (a->tgt_label < 0) {
+            const km_letter *l = km_letter_of(key);
+            if (l->kind == KL_LETTER) {
+                a->tgt_label = l->value;
+                a->prompt_n = a->prompt_val = 0;
+                tgt_text(a);
+                return;
+            }
+        } else {
+            if (face->kind == KM_OP && face->op >= AB_K0 && face->op <= AB_K9) {
+                a->prompt_val = a->prompt_val * 10 + face->op - AB_K0;
+                if (++a->prompt_n == 3) {
+                    int line = a->prompt_val, lab = a->tgt_label;
+                    prompt_close(a);
+                    if (line == 0) do_op(a, AB_GTOPOS, -2);     /* no line 000: NONEXISTENT, never a line */
+                    else do_op(a, op, lab * 1000 + line);
+                } else {
+                    tgt_text(a);
+                }
+            } else if (face->kind == KM_OP && face->op == AB_ENTER && a->prompt_n == 0) {
+                int lab = a->tgt_label;
+                prompt_close(a);
+                do_op(a, op, lab * 1000);
+            } else if (face->kind == KM_OP && face->op == AB_KBKSP) {
+                if (a->prompt_n > 0) {
+                    a->prompt_n--;
+                    a->prompt_val /= 10;
+                    tgt_text(a);
+                } else {
+                    a->tgt_label = -1;
+                    prompt_open(a, op, KM_ARG_TARGET);
+                }
+            } else if (face->kind == KM_OP && face->op == AB_CANCEL) {
+                prompt_close(a);
+            }
+            return;
+        }
     }
     if (a->prompt_op == AB_GTO && a->prompt_kind == KM_ARG_TARGET) {
         /* GTO . from the keyboard (unit 036; 33s p.13-5, 35s p.14-6): . . to PRGM TOP; . label and the

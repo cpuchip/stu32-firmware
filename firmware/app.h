@@ -100,6 +100,8 @@ typedef struct {
     int prompt_n, prompt_val;   /* an address prompt's digits so far, and their value */
     int gto_dot;            /* unit 036: GTO's address form: 0 none, 1 "GTO ._", 2 a label chosen (gto_label) */
     int gto_label;
+    int tgt_label;          /* unit 036b: 35s/STU GTO and XEQ, the letter chosen and waiting for ENTER or
+                               three digits (prompt_n, prompt_val); -1 none */
     int confirm_op;         /* the op a yes/no prompt waits to do (CLR ALL?), -1 none */
     int menu;               /* the menu open on the soft keys (km_menu_at), -1 none */
     int menu_page;          /* a paged menu's page (CONST, unit 019) */
