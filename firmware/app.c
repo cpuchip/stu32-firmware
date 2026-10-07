@@ -280,7 +280,7 @@ static bool cx_prefix(const app_state *a, int menu)
 static bool menu_hidden(const ab_calc *c, const km_menu *mn)
 {
     if (mn && !strcmp(mn->name, "CAS")) return !c->stu;   /* CAS 004: STU's only (in 33s and 35s it doesn't exist) */
-    if (!mn || ab_mode35(c)) return false;
+    if (!mn || ab_rec35(c)) return false;      /* in program entry, the edited label's mode (041 C, #4850) */
     if (!strcmp(mn->name, "TABLE") || !strcmp(mn->name, "GRAPH")) return true;
     if (!strcmp(mn->name, "CMPLX") && c->base == 10 && !c->eqn_mode) return false;   /* where the prefix works */
     int n = 0;
@@ -623,7 +623,7 @@ void app_key(app_state *a, int key, uint32_t now_ms)
                 return;
             }
         }
-        if (at == menu_named("HYP") && !ab_mode35(a->c)) {
+        if (at == menu_named("HYP") && !ab_rec35(a->c)) {
             /* 33s mode: HYP is also the prefix (unit 041 C, B10; 33s p.4-6): a trig key, or its gold inverse, is
                the hyperbolic function, on the stack, in program entry or typed; the soft keys stay the menu's; any
                other key closes it, as a menu. 35s mode and STU keep the menu only. */

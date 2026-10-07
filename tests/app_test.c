@@ -668,6 +668,18 @@ int main(void)
         int exp_menu = a.menu;
         press(&a, "k:4");
         expect(x_of(&c) == 8 && a.menu == exp_menu, "041 C: 35s mode: the dimmed cube root does nothing, EXP stays");
+        /* program entry follows the edited label's stamp (abacus #4850): in 33s mode, a 35s label's soft keys */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do(&c, AB_PRGM);
+        ab_do_arg(&c, AB_LBL, 0);
+        ab_do_arg(&c, AB_MODEL, 35);            /* on the LBL line: restamps A only (025 rule 5) */
+        press(&a, "BLUE e\xcb\xa3");
+        app_ui(&a, &ui);
+        expect(!c.m35 && ui.soft_dim[4], "041 C: 33s mode, editing a 35s label: EXP's cube root dimmed");
+        press(&a, "C BLUE x\xe2\x86\x94y");
+        app_ui(&a, &ui);
+        expect(!ui.soft_dim[4] && !ui.soft_dim[5], "041 C: and BASE's LOGIC and SUFX lit");
     }
 
     /* unit 041 C (B10): in 33s mode HYP is also a prefix (33s p.4-6): HYP then SIN is SINH, HYP then GOLD SIN

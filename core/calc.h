@@ -506,10 +506,15 @@ int ab_graph_form(const ab_calc *c, int e);
    owns it; otherwise (the keyboard, lines before the first label) the calculator's. Every
    mode-dependent behaviour asks here. */
 bool ab_mode35(const ab_calc *c);
-/* Unit 041 Part A: a 35s feature hidden in 33s mode (the mode in force, ab_mode35), and Part C: a 33s feature
+/* Unit 041 Part A: a 35s feature hidden in 33s mode (by ab_rec35: in program entry the edited label's), and Part C: a 33s feature
    the 35s lacks (x³, ∛x) hidden in 35s mode: its key or menu item does nothing and a program line can't
    record it. The app dims its soft key. */
 bool ab_hidden(const ab_calc *c, int op);
+/* Unit 041 C (abacus #4850, reversing #4799's (b)): the mode a key is checked against for what it may do or record:
+   in program entry, the stamp of the label the new line joins (decision 45: a label's stamp is its program's mode);
+   while a line runs, and otherwise (the keyboard, lines before the first label), ab_mode35. ab_hidden, ab_consts and
+   the line-address gate ask here. */
+bool ab_rec35(const ab_calc *c);
 /* Unit 043: Equation mode shows a built-in solver (2*2 or 3*3 lin. solve), so SOLVE takes no letter (35s p.7-6). */
 bool ab_builtin_shown(const ab_calc *c);
 /* Unit 041 Part B: CONST's constants in the mode in force: the 33s's 40 (33s p.4-8), else all of them (the 35s's 41,

@@ -4078,7 +4078,7 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
         if (c->m35 || op == AB_CANCEL || op == AB_KBKSP) return ABN_OK;
     }
     if (ab_hidden(c, op)) return ABN_OK;       /* unit 041 A: a 35s feature in 33s mode, or C: a 33s one in 35s: nothing */
-    if (!ab_mode35(c) && (op == AB_XEQ || op == AB_GTO) && arg >= 0 && arg % 1000 != 0)
+    if (!ab_rec35(c) && (op == AB_XEQ || op == AB_GTO) && arg >= 0 && arg % 1000 != 0)
         return ABN_OK;                          /* nor XEQ or GTO to a line number (33s p.13-4; abacus #4799 rule 3.2;
                                                    GTO . to one moves the pointer: AB_GTOPOS, p.13-6) */
     if (op == AB_CONST && arg >= ab_consts(c)) return ABN_OK;     /* nor the 35s's 41st constant, e (041 B) */
@@ -4144,9 +4144,18 @@ bool ab_mode35(const ab_calc *c)
     return c->m35;
 }
 
+bool ab_rec35(const ab_calc *c)
+{
+    if (c->running <= 0 && c->prgm && c->pc >= 0 && c->pc < c->prog_len) {
+        int l = prog_owner(c, c->pc);           /* the label the new line joins */
+        if (l >= 0 && c->lmode[l]) return c->lmode[l] != 33;
+    }
+    return ab_mode35(c);
+}
+
 bool ab_hidden(const ab_calc *c, int op)
 {
-    if (ab_mode35(c)) return op == AB_CUBE || op == AB_CBRT;     /* 33s mode's features the 35s lacks (041 C) */
+    if (ab_rec35(c)) return op == AB_CUBE || op == AB_CBRT;     /* 33s mode's features the 35s lacks (041 C) */
     switch (op) {
     case AB_KI: case AB_KTHETA: case AB_KCOMMA:     /* typing an equation: the parser refuses (or, i, the variable) */
         return !c->eqn_typing;
@@ -4165,7 +4174,7 @@ bool ab_hidden(const ab_calc *c, int op)
 
 int ab_consts(const ab_calc *c)
 {
-    return ab_mode35(c) ? ab_const_count() : AB_CONST_33;
+    return ab_rec35(c) ? ab_const_count() : AB_CONST_33;
 }
 
 bool ab_builtin_shown(const ab_calc *c)
