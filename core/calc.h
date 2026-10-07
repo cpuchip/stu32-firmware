@@ -324,6 +324,8 @@ typedef struct {
     uint8_t eqn_model[AB_EQN_MAX + 2];      /* unit 031: the model each was typed in (33, 35, AB_MODEL_STU):
                                                its meaning wherever it is evaluated (rule 3); in the image */
     int eqn_cur;            /* the equation shown, -1 at EQN LIST TOP */
+    uint8_t cas_sub;        /* CAS 004: SUBST's variable + 1 while its replacement is typed, else 0; in the image */
+    char cas_bad[16];       /* CAS 004: the construct a refusal names (UNSUPPORTED IP, CAN'T COPY RAND); in the image */
     bool eqn_mode;          /* Equation mode */
     bool eqn_typing;        /* an equation is being typed or edited */
     int eqn_edit;           /* the index being edited, or -1 for a new equation */

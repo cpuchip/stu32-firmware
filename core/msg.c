@@ -2,6 +2,8 @@
  * is beside it. Statuses with no message of the guide's carry ours, marked. */
 #include <stddef.h>
 
+#include <stdio.h>
+
 #include "calc.h"
 
 const char *ab_status_message(abn_status st)
@@ -69,7 +71,13 @@ const char *ab_error_message(const ab_calc *c)
 {
     int op = c->err_op, arg = c->err_arg;
     const ab_val *x = &c->err_x;
+    static char cas[40];
     if (!c->msg) return NULL;
+    if ((c->err_status == ABN_CAS_UNSUPPORTED || c->err_status == ABN_CAS_COPY) && c->cas_bad[0]) {
+        /* CAS 004: the refused construct named on the message's line (every message is one line, #3822) */
+        snprintf(cas, sizeof cas, "%s %s", c->err_status == ABN_CAS_COPY ? "CAN'T COPY" : "UNSUPPORTED", c->cas_bad);
+        return cas;
+    }
     /* the failing function decides where its message is not the status's own: 0 to a negative
        power is DIVIDE BY 0 in the engine but INVALID yˣ in the guide (F-3); a statistic with n = 0
        divides by zero, and is STAT ERROR (F-5) */

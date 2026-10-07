@@ -18,6 +18,11 @@
 #include "hp.h"
 #include "state.h"
 #include "eqn.h"
+#ifdef AB_CASIM
+#include "casim.h"
+_Static_assert(CASIM_MODEL_STU == AB_MODEL_STU && CASIM_MODEL_33 == 33 && CASIM_MODEL_35 == 35, "casim's models");
+_Static_assert(CASIM_DEG == AB_ANGLE_DEG && CASIM_RAD == AB_ANGLE_RAD && CASIM_GRAD == AB_ANGLE_GRAD, "casim's angles");
+#endif
 #include "lin.h"
 #include "xnum.h"
 
@@ -3208,10 +3213,13 @@ static void eqn_delete(ab_calc *c, int i)
 
 /* ENTER or C while typing stores the text: a new equation after the one shown, or the edited one
  * replaced; an empty text deletes the entry (UG p.6-4, 6-8). */
+static abn_status cas_subst_done(ab_calc *c, bool run);
+
 static abn_status eqn_store_typed(ab_calc *c)
 {
     char t[AB_EQN_LEN];
     if (!c->eqn_typing) return ABN_OK;
+    if (c->cas_sub) return cas_subst_done(c, true);     /* SUBST's replacement: substituted, not stored (CAS 004) */
     if (c->ebuf[0] && stored_text(c, c->ebuf, t) != ABN_OK)
         return ABN_MEMORY_FULL;                 /* STU's x's would not fit: refused, the text unchanged and
                                                    still typed (unit 031 answer I) */
@@ -3633,19 +3641,93 @@ static bool eqn_type(ab_calc *c, ab_op op, int arg)
 }
 
 /* A key in Equation mode (UG p.6-3 to 6-9). */
+/* CAS 004 (casim's work/004 rules 4-5): Casimir's step op (a casim_op) on the equation shown, read as its stamp:
+   the result is a new equation after it, stamped STU (the list's mode), and shown; the original stays. A refusal
+   changes nothing: its status is the message (#4797). STU only; not at EQN LIST TOP nor on a built-in. */
+static abn_status cas_step(ab_calc *c, int op, int var, const char *repl)
+{
+#ifdef AB_CASIM
+    char out[AB_EQN_LEN];
+    casim_status cs;
+    if (!c->stu) return ABN_STU_ONLY;
+    if (c->eqn_cur < 0 || eqn_builtin(c, c->eqn_cur)) return ABN_NO_EQN;
+    casim_req rq = {(casim_op)op, c->eqn[c->eqn_cur], c->eqn_model[c->eqn_cur], var, repl, AB_MODEL_STU, c->angle};
+    cs = casim_run(&rq, out, sizeof out, ab_cas_arena, sizeof ab_cas_arena);
+    switch (cs) {
+    case CASIM_OK: return eqn_insert(c, out);
+    case CASIM_SYNTAX: return ABN_SYNTAX;
+    case CASIM_NOT_DIFFERENTIABLE:          /* out names it; subst's only refusal of a name is a draw copied */
+        snprintf(c->cas_bad, sizeof c->cas_bad, "%.15s", out);      /* (a name: a few bytes) */
+        return op == CASIM_SUBST ? ABN_CAS_COPY : ABN_CAS_UNSUPPORTED;
+    case CASIM_TOO_LONG: return ABN_CAS_TOO_LONG;
+    case CASIM_NO_ROOM: return ABN_CAS_NO_ROOM;
+    default: return ABN_DOMAIN;             /* BAD_ARG: INVALID DATA */
+    }
+#else
+    (void)op, (void)var, (void)repl;
+    return c->stu ? ABN_DOMAIN : ABN_STU_ONLY;     /* a core built without Casimir (casim's own build of it) */
+#endif
+}
+
+/* The CAS menu's keys: D/DX and COLCT in arg's variable, SIMP, EXPND; SUBST in arg's variable opens the editor for
+   its replacement (ENTER substitutes, C or an empty one cancels). */
+static abn_status cas_key(ab_calc *c, ab_op op, int arg)
+{
+    if (!c->stu) return ABN_STU_ONLY;
+    if (c->eqn_cur < 0 || eqn_builtin(c, c->eqn_cur)) return ABN_NO_EQN;
+    if ((op == AB_CASD || op == AB_CASCOL || op == AB_CASSUB) && (arg < 0 || arg > 25)) return ABN_DOMAIN;
+#ifdef AB_CASIM
+    switch (op) {
+    case AB_CASD: return cas_step(c, CASIM_DERIVE, arg, NULL);
+    case AB_CASSIMP: return cas_step(c, CASIM_SIMPLIFY, 0, NULL);
+    case AB_CASEXP: return cas_step(c, CASIM_EXPAND, 0, NULL);
+    case AB_CASCOL: return cas_step(c, CASIM_COLLECT, arg, NULL);
+    default: break;
+    }
+#endif
+    if (op != AB_CASSUB) return cas_step(c, 0, 0, NULL);
+    c->cas_sub = (uint8_t)(arg + 1);
+    c->eqn_typing = true;
+    c->eqn_edit = -1;
+    c->ebuf[0] = '\0';
+    c->ecur = 0;
+    return ABN_OK;
+}
+
+/* SUBST's replacement, typed: substituted (its implied products written in, read as STU's), or cancelled. */
+static abn_status cas_subst_done(ab_calc *c, bool run)
+{
+    int var = c->cas_sub - 1;
+    char t[AB_EQN_LEN];
+    c->cas_sub = 0;
+    c->eqn_typing = false;
+    if (!run || !c->ebuf[0]) return ABN_OK;
+    if (eqn_write_implied(c, c->ebuf, t, sizeof t) != 1) return ABN_SYNTAX;   /* (doesn't parse, or won't fit) */
+#ifdef AB_CASIM
+    return cas_step(c, CASIM_SUBST, var, t);
+#else
+    (void)var;
+    return cas_step(c, 0, 0, t);
+#endif
+}
+
 static abn_status eqn_key(ab_calc *c, ab_op op, int arg)
 {
     abn_status st;
     switch (op) {
     case AB_EQN:
     case AB_CANCEL:                                 /* C stores what is typed and leaves (p.6-4) */
+        if (c->cas_sub) return cas_subst_done(c, false);    /* SUBST's replacement: dropped, the list kept (CAS 004) */
         st = eqn_store_typed(c);
         if (st != ABN_OK && c->eqn_typing) return st;   /* refused and still typed (unit 031 answer I) */
         c->eqn_mode = false;
         return st;
     case AB_ENTER:
-        if (c->eqn_typing) return eqn_store_typed(c);
+        if (c->eqn_typing) return eqn_store_typed(c);     /* (SUBST's replacement: substituted, CAS 004) */
         return eqn_evaluate(c, true);
+    case AB_CASD: case AB_CASSIMP: case AB_CASEXP: case AB_CASCOL: case AB_CASSUB:
+        if (c->eqn_typing) return ABN_OK;           /* the list's keys (CAS 004) */
+        return cas_key(c, op, arg);
     case AB_XEQ:
         if (arg != AB_TGT_EQN) return ABN_OK;
         if (c->eqn_typing && (st = eqn_store_typed(c)) != ABN_OK) return st;
@@ -4546,6 +4628,8 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
         return ABN_OK;                          /* only in programs (UG p.G-9) */
     case AB_CANCEL:
         return cancel_key(c);
+    case AB_CASD: case AB_CASSIMP: case AB_CASEXP: case AB_CASCOL: case AB_CASSUB:
+        return c->stu ? ABN_NO_EQN : ABN_STU_ONLY;     /* CAS 004: from Equation mode's list only */
     case AB_EQN:
         c->eqn_mode = true;                     /* neutral (UG p.B-5) */
         if (!ab_mode35(c) && eqn_builtin(c, c->eqn_cur)) c->eqn_cur = -1;     /* 33s mode: no built-ins (041 A4) */

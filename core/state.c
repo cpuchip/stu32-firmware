@@ -38,7 +38,7 @@ static const ab_op V1_OPS[] = {
 #define V1_N ((int)(sizeof V1_OPS / sizeof V1_OPS[0]))
 
 enum { T_MODES = 1, T_STACK, T_VARS, T_STAT, T_IND, T_PROG, T_EQNS, T_ENTRY, T_EDITOR, T_RUN, T_SOLVE, T_MODE25, T_ALG,
-       T_EQMODEL, T_TABLE, T_GRAPH, T_ZOOM };
+       T_EQMODEL, T_TABLE, T_GRAPH, T_ZOOM, T_CAS };
 
 #define BUILTIN2 "\x01" "2*2 lin. solve"
 #define BUILTIN3 "\x01" "3*3 lin. solve"
@@ -398,6 +398,11 @@ size_t ab_state_save(const ab_calc *c, uint8_t *buf, size_t cap)
     wnum(&w, &c->gr_res_b);
     sec_end(&w, s);
 
+    s = sec_begin(&w, T_CAS);                   /* version 12 (CAS 004): SUBST's replacement typed, a refusal's name */
+    w8(&w, c->cas_sub);
+    wtext(&w, c->cas_bad);
+    sec_end(&w, s);
+
     {
         size_t total = w.len + 4;
         for (int i = 0; i < 4; i++)
@@ -633,7 +638,9 @@ static void sec_modes(rd *r)
         eactive = r8(r);
         estatus = r8(r);
         rval(r, &ex);
-        need(r, (ecode == 0xFFFF || ecode < (unsigned)V1_N) && eactive <= 2 && estatus <= ABN_UNDERFLOW);  /* unit 026 added two */
+        need(r, (ecode == 0xFFFF || ecode < (unsigned)V1_N) && eactive <= 2 &&
+                    (estatus <= ABN_UNDERFLOW || (estatus >= ABN_CAS_TOO_LONG && estatus <= ABN_CAS_COPY)));   /* unit 026
+                                                   added two; CAS 004 four */
     } else {
         msg = 0;                                /* an older image: no message to say */
     }
@@ -802,6 +809,19 @@ static void sec_graph(rd *r)
     r->c->gr_eq = eq;
     r->c->gr_v = v;
     r->c->gr_cur = cur;
+}
+
+/* version 12 (CAS 004): SUBST's replacement being typed (its variable + 1, 0 none: only while typing), and the name
+   a refusal's message shows */
+static void sec_cas(rd *r)
+{
+    unsigned sub = r8(r);
+    char bad[16];
+    rtext(r, bad, sizeof bad, false);
+    need(r, sub <= 26 && (!sub || r->typing));
+    if (r->bad || !r->c) return;
+    r->c->cas_sub = (uint8_t)sub;
+    memcpy(r->c->cas_bad, bad, sizeof bad);
 }
 
 static void sec_zoom(rd *r)
@@ -1118,7 +1138,7 @@ static bool parse(rd *r)
         unsigned tag = r16(r);
         uint32_t size = r32(r);
         size_t end;
-        if (r->bad || tag <= last || tag > T_ZOOM || size > r->len - r->pos) return false;
+        if (r->bad || tag <= last || tag > T_CAS || size > r->len - r->pos) return false;
         last = tag;
         end = r->pos + size;
         switch (tag) {
@@ -1154,6 +1174,10 @@ static bool parse(rd *r)
             break;
         case T_ZOOM:
             if (r->version >= 10) sec_zoom(r);
+            else r->pos = end;
+            break;
+        case T_CAS:
+            if (r->version >= 12) sec_cas(r);
             else r->pos = end;
             break;
         default: sec_solve(r); break;

@@ -7,6 +7,9 @@
 #define AB_POOL_ATTR                /* a device may place the pool: the stand-in puts it in PSRAM */
 #endif
 static xnum pool[AB_ARENA_WIDE] AB_POOL_ATTR;
+#ifdef AB_CASIM
+unsigned char ab_cas_arena[AB_CAS_ARENA] AB_POOL_ATTR __attribute__((aligned(8)));     /* CAS 004 */
+#endif
 static int top, peak;
 
 int ar_mark(void)
