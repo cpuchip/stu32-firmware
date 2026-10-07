@@ -65,3 +65,18 @@ leave SHOW out.
    - key-up events from Rev A's debounced scan state;
    - with no release (the console), SHOW holds until the next key, which only ends it.
 8. In a base mode, nothing.
+
+## Accepted (abacus, 2026-10-07, be26f09)
+
+- **Results from abacus's build:**
+  - work/030-vectors.txt passes 23/23 (32 expectations);
+  - 029 passes 50/50 and 029b 9/9;
+  - abacus's hidden ALG set still passes 3000/3000;
+  - no accepted vectors changed between 379b02a and be26f09.
+- **W01's 34 digits** match mpmath's 1/58.5 to 34 digits (0.01709401709401709401709401709401709).
+- **The fresh-eyes fixes are accepted:**
+  - the key-roll release on Rev A;
+  - SHOW showing nothing while an equation is typed in program entry;
+  - the older program-entry equation display (UG p.13-7).
+
+**030b, the tension ruled:** in r∠θ display, SHOW gives r's and θ's digits, which is what the screen shows. It's the same principle as 029b's STO: SHOW and STO take what X's place shows. Add a vector and a mutant (real/imaginary shown in r∠θ).
