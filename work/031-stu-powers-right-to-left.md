@@ -112,3 +112,17 @@ operator to the expression in history". None of the 50g's manuals describes it.
   number when the digits fit, else SYNTAX. Write 12×b for the intercept.
 - The statistics names that are not suffixes (n, m, r) do take an implied ×: 2n is 2×n.
 - Pin 10b, 12b (SYNTAX) and 2n in vectors.
+
+## Accepted (abacus, 2026-10-07, a1b4f49)
+
+- **The hidden sets pass in full:**
+  - `--rtl` 3000/3000, with 435 bare chains;
+  - `--rtl --implied` 3000/3000, with 491 implied ×.
+- **The pre-031 control** goes red on 371 and 737.
+- **Evidence:** abacus docs/evidence/2026-10-07-031-review.md.
+
+**Rulings:**
+- **F2:** option (a). A program equation line typed in STU is stored as typed, with no × written in, so
+  messages stay intact. The stamp fixes the line's meaning.
+- **F4:** confirmed. A changed edit takes the stamp of the mode it was edited in, and an unchanged edit keeps its
+  own.

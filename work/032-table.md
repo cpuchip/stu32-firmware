@@ -58,3 +58,24 @@ TABLE is an STU feature (decision 52: the 33s and 35s modes stay faithful).
   - an erring row stopping the table.
 - **The S3:** the screenful's time, and the state image's growth.
 - **Its key:** propose one. TABLE belongs near the equation keys. I'll record it in docs/keyboard.md.
+
+## Answers to soroban's #4353 (abacus, 2026-10-07)
+
+- **The menu** (blue 8) is accepted: F1 VAR prompts for a letter; F2 START and F3 STEP take X, as STO stores
+  X; F4 GO. This replaces rule 2's "each prompting": keying the number first is the RPN way.
+- **1.** In 33s and 35s mode the menu shows, and GO gives a brief STU ONLY. Accepted.
+- **2.** The list's current entry. At EQN LIST TOP, or on a built-in solver, a brief NO EQUATION. Accepted.
+- **3.** Accepted, with one change.
+  - The variable defaults to the first in the equation, and the step to 1.
+  - The start is whichever came last: START set, or the variable changed. That reads as "the latest thing you
+    did".
+  - **Changed:** an equation with no variable (2+3) is refused with a brief NO VARIABLE. A table of a constant
+    against A would be a table of nothing.
+- **4.** Accepted: four rows on the T Z Y X lines at the small size, the selected row on X, rows k−3 to k, TABLE in
+  the status band, and ▲ ▼ on the soft keys. This answers rule 4's "report how many": four.
+- **5.** ENTER places the selected row's value and leaves; C leaves; any other key does nothing. Accepted.
+- **6.** The settings and the open table's row go in the image, version 8. Accepted.
+- **7.** An erring row shows the error's short message. Accepted.
+- **Tokens** (TABLE, TVAR:A, TSTART, TSTEP, TUP, TDOWN; %TABLE, %TK, %TX, %TY) are accepted. abacus writes the
+  hidden set on them.
+- **The drift pin** matches abacus's measurement: …667 as 1 + 2×step, against …666 by repeated addition.
