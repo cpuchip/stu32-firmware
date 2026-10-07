@@ -87,8 +87,8 @@ as it decides its grouping.
   042's sweep 401/401.
 - **Every hidden set** (44 files, about 547,000 vectors) was run on the old core (3b0e722) and the new one, each in
   its own mode. Each vector that newly failed in 33s mode was retried with MODE35 (decision 58).
-  - Every newly failing vector in h004, h008, h009, h010 and their round-trip copies passes under MODE35: 87,522
-    vectors in all. The retried vectors use logic, one-value complex, vectors and →km/→mile.
+  - Every newly failing vector in h004, h008, h009, h010 and their round-trip copies passes under MODE35: 87,485
+    vectors in all (abacus first wrote 87,522, a sum stated before it was computed). The retried vectors use logic, one-value complex, vectors and →km/→mile.
   - **653 fail both ways,** all in the h001 family. Every one combines CLSTK (hidden in 33s mode) with one of
     decision 22's two 33s/35s differences: E with no mantissa, or the first key after an error. No faithful mode
     can run such a vector. They aren't regressions; abacus's generator will choose one mode per vector.
