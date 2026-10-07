@@ -63,6 +63,7 @@ static const struct { const char *name; ab_op op; } NAMED[] = {
     {"SUMY", AB_SUMY}, {"SUMX2", AB_SUMX2}, {"SUMY2", AB_SUMY2}, {"SUMXY", AB_SUMXY},
     {"EXPM1", AB_EXPM1}, {"LN1P", AB_LN1P}, {"TWOX", AB_TWOX}, {"LOG2", AB_LOG2},
     {"CLALL", AB_CLALL}, {"CLEQN", AB_CLEQN}, {"BEEP", AB_BEEP},
+    {"ANS", AB_ANS}, {"HUP", AB_HUP}, {"HDOWN", AB_HDOWN},     /* unit 029 */
 };
 
 /* The last error any key returned in the current vector, for %ERR (unit 012). */
@@ -198,7 +199,7 @@ static const char *const STATUS_NAMES[] = {"OK", "DIV_ZERO", "RANGE", "BAD_TEXT"
                                            "MEMORY_FULL", "NONPROGRAMMABLE", "BUDGET", "NO_ROOT",
                                            "SELECT_FN", "NESTED", "SYNTAX", "INVALID_VAR",
                                            "NO_SOLUTION", "MULT_SOLUTION", "INTERRUPTED",
-                                           "BAD_IMAGE", "OVERFLOW", "UNDERFLOW"};
+                                           "BAD_IMAGE", "OVERFLOW", "UNDERFLOW", "RPN_ONLY"};
 
 /* Applies one key token. Returns 0, or -1 for an unknown token. */
 static int apply_token(ab_calc *c, const char *tok, int *errors)
@@ -381,6 +382,11 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
             if (do1(c, AB_MODEL, atoi(tok + 6)) != ABN_OK) (*errors)++;
             return 0;
         }
+        if (strcmp(tok, "STU") == 0 || strcmp(tok, "ALG") == 0 || strcmp(tok, "RPN") == 0) {   /* unit 029 */
+            abn_status st = tok[0] == 'S' ? do1(c, AB_MODEL, AB_MODEL_STU) : do1(c, AB_ENTRYM, tok[0] == 'A');
+            if (st != ABN_OK) (*errors)++;
+            return 0;
+        }
         if (strcmp(tok, "MODE33") == 0 || strcmp(tok, "MODE35") == 0) {   /* unit 017 */
             if (do1(c, AB_MODEL, tok[5] == '3' ? 33 : 35) != ABN_OK) (*errors)++;
             return 0;
@@ -529,6 +535,7 @@ static const ab_val *reg(const ab_calc *c, char r)
     case 'Z': return &c->z;
     case 'T': return &c->t;
     case 'L': return &c->lastx;
+    case 'N': return &c->ans;           /* ANS (unit 029) */
     default: return NULL;
     }
 }
@@ -739,6 +746,17 @@ int vectors_run(const char *name, FILE *f)
                     snprintf(got, sizeof got, "%d", c.prog_len);
                 } else if (strcmp(ex, "%YES") == 0) {
                     snprintf(got, sizeof got, "%d", c.yes ? 1 : 0);
+                } else if (strcmp(ex, "%LINE") == 0) {     /* ALG's expression line (unit 029) */
+                    snprintf(got, sizeof got, "%.*s", AB_EQN_LEN - 1, c.ebuf);
+                } else if (strcmp(ex, "%ALG") == 0) {
+                    snprintf(got, sizeof got, "%d", c.alg ? 1 : 0);
+                } else if (strcmp(ex, "%STU") == 0) {
+                    snprintf(got, sizeof got, "%d", c.stu ? 1 : 0);
+                } else if (strcmp(ex, "%HIST") == 0) {
+                    snprintf(got, sizeof got, "%d", c.hist_n);
+                } else if (strcmp(ex, "%HSEL") == 0) {     /* the history entry shown, - none */
+                    const char *h = c.hist_at >= 0 && c.hist_at < c.hist_n ? c.hist[c.hist_at] : "-";
+                    snprintf(got, sizeof got, "%.*s", AB_EQN_LEN - 1, h);
                 } else if (strcmp(ex, "%BEEP") == 0) {     /* BEEPs done (unit 027) */
                     snprintf(got, sizeof got, "%u", (unsigned)c.beeps);
                 } else if (ex[1] == 'F' && isdigit((unsigned char)ex[2])) {

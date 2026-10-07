@@ -1180,6 +1180,51 @@ int main(void)
         expect(!a.notice, "a key clears it at once");
     }
 
+    /* unit 029: STU and its ALG on the device: MODE's keys, the line's bar, ANS's key, RPN ONLY, the screen */
+    {
+        static screen_page pg;
+        ab_init(&c);
+        app_init(&a, &c, now);
+        press(&a, "BLUE ENTER");
+        app_ui(&a, &ui);
+        expect(ui.soft[2] && !strcmp(ui.soft[2], "STU") && ui.soft[3] && !strcmp(ui.soft[3], "RPN") && ui.soft_on[3] &&
+                   (!ui.soft[4] || !*ui.soft[4]),
+               "029 MODE in 33s: STU, RPN marked, ALG blank");
+        press(&a, "k:2");
+        expect(c.stu && c.m35, "029: STU chosen, behaving as 35s");
+        press(&a, "BLUE ENTER");
+        app_ui(&a, &ui);
+        expect(ui.soft_on[2] && ui.soft[4] && !strcmp(ui.soft[4], "ALG") && !ui.soft_on[0] && !ui.soft_on[1],
+               "029 MODE in STU: STU marked, ALG offered");
+        press(&a, "k:4");
+        app_ui(&a, &ui);
+        expect(c.alg && ui.soft[0] && !strcmp(ui.soft[0], "\xe2\x97\x80") && ui.soft[1] && !strcmp(ui.soft[1], "\xe2\x96\xb6") &&
+                   ui.soft[2] && !strcmp(ui.soft[2], "( )") && ui.soft[4] && !strcmp(ui.soft[4], "\xe2\x96\xb2") &&
+                   ui.soft[5] && !strcmp(ui.soft[5], "\xe2\x96\xbc"),
+               "029 ALG: the line's bar, left right ( ) up down");
+        press(&a, "2 + 3 ENTER");
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(!strcmp(pg.y.text, "2+3") && pg.y.left && strstr(pg.x.text, "5") && !pg.x.left,
+               "029: the line in Y's place, the result right in X's");
+        expect(strstr(pg.status.text, "STU") && strstr(pg.status.text, "ALG"), "029: the status line shows STU and ALG");
+        press(&a, "GOLD ENTER");                /* LASTx's key types ANS (proposal 1) */
+        expect(!strcmp(c.ebuf, "ANS"), "029: LASTx's key types ANS");
+        press(&a, "C");
+        press(&a, "R\xe2\x86\x93");
+        app_ui(&a, &ui);
+        expect(ui.notice && !strcmp(ui.notice, "RPN ONLY") && !c.msg, "029: R-down shows RPN ONLY briefly, not a message");
+        press(&a, "k:4");                       /* up: the history */
+        expect(c.hist_at == 0, "029: the bar's up shows the last entry");
+        press(&a, "C BLUE ENTER k:3");          /* back to RPN */
+        expect(!c.alg && x_of(&c) == 5, "029: ALG to RPN puts ANS in X");
+        /* a label written in STU lists its stamp */
+        press(&a, "GOLD 9 k:0 GOLD XEQ ltr:A GOLD 9 k:0");
+        char t[32];
+        ab_prog_line(&c, 0, NULL, t, sizeof t);
+        expect(!strcmp(t, "LBL A \xc2\xb7STU"), "029: a label written in STU lists LBL A \xc2\xb7STU");
+    }
+
     /* unit 027: MODE, SETUP, SYS each one job; the buzzer's six uses; the clock; BEEP */
     {
         pwr_inputs ok = {false, false, 80, false};

@@ -36,6 +36,7 @@ const char *ab_status_message(abn_status st)
     case ABN_UNDERFLOW: return "OVERFLOW";                      /* ours: a complex or vector result whose
                                                                    parts underflow stays the range error
                                                                    it was (unit 026) */
+    case ABN_RPN_ONLY: return "RPN ONLY";                       /* ours: a stack key in ALG (unit 029) */
     }
     return "";
 }

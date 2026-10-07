@@ -119,6 +119,7 @@ test: all
 	./build/vectors work/026-vectors.txt
 	./build/vectors work/027-vectors.txt
 	./build/vectors work/028-vectors.txt
+	./build/vectors work/029-vectors.txt
 	./build/vectors tests/021-soroban.txt
 	./build/vectors tests/019-soroban.txt
 	./build/vectors tests/003-soroban.txt

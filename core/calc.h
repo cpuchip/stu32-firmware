@@ -115,12 +115,16 @@ typedef enum {
                                EQN in Equation mode); nonprogrammable (unit 021, review) */
     AB_EQTOP,               /* in Equation mode, the list to EQN LIST TOP (unit 020's NEW, ours);
                                nothing elsewhere, and not a program line */
-    AB_BEEP                 /* one short tone, the stack untouched; programmable, in both modes
+    AB_BEEP,                /* one short tone, the stack untouched; programmable, in both modes
                                (ours, unit 027 rule 6: none of the three machines has one). The core
                                counts it in beeps; the device sounds it */
+    /* unit 029: STU's ALG (abacus decision 51) */
+    AB_ENTRYM,              /* arg 0 RPN, 1 ALG (MODE's F4, F5): ALG in STU only; nonprogrammable */
+    AB_ANS,                 /* types ANS on the expression line (LASTx's key in ALG) */
+    AB_HUP, AB_HDOWN        /* the expression line's history, back and forward (the bar's up, down) */
 } ab_op;
 
-#define AB_OP_LAST AB_BEEP      /* the last op: loops over every op end here */
+#define AB_OP_LAST AB_HDOWN     /* the last op: loops over every op end here */
 
 /* Why the last run stopped (unit 012 rule 1): the device draws it; the core never waits. */
 typedef enum {
@@ -160,6 +164,8 @@ enum { AB_TEST_NE = 0, AB_TEST_LE, AB_TEST_LT, AB_TEST_GT, AB_TEST_GE, AB_TEST_E
 #define AB_TGT_EQN (-5)             /* XEQ in Equation mode: evaluate the equation shown (unit 014) */
 #define AB_EQN_MAX 64               /* equations in the list (ours, unit 014 rule 5) */
 #define AB_EQN_LEN 192              /* bytes of one equation's text (UTF-8, as the guide shows it) */
+#define AB_HIST 16                  /* the expression line's history, at least 16 (unit 029 rule 5) */
+#define AB_MODEL_STU 1              /* AB_MODEL's arg for STU (unit 029); a label stamped STU runs as 35 */
 #define AB_PEQN_MAX 64              /* equation lines in programs, a store of their own (ours, unit
                                        015 rule 4: they are not in the list, UG p.13-7) */
 
@@ -302,6 +308,18 @@ typedef struct {
                                OVERFLOW notice; not in the state image */
     uint16_t beeps;         /* BEEP instructions done, counting up (unit 027): the device sounds one
                                tone per new one; not in the state image */
+    /* unit 029: STU, a personality that behaves as 35s mode (m35 is set with it), and its ALG: an
+       expression line in ebuf (the equation editor's), = evaluating it into ans */
+    bool stu;               /* STU mode (MODE's F3); in the state image */
+    bool alg;               /* ALG entry (MODE's F5, STU only); in the state image */
+    ab_val ans;             /* ANS: the last result, 0 to begin; in the state image */
+    bool alg_shown;         /* the line shows its result: the next digit or function starts a new
+                               line, an operator a new line after ANS */
+    /* the line's history, in RAM only: not in the state image (rule 5) */
+    char hist[AB_HIST][AB_EQN_LEN];
+    ab_val hist_val[AB_HIST];
+    int hist_n;             /* entries kept, the newest at hist_n - 1 */
+    int hist_at;            /* the entry shown by up and down, -1 none */
     bool err_m35;           /* the mode in force when it was recorded (unit 025: INVALID (I) or (i)) */
     int exec_at;            /* the program line being executed while running (unit 025: its label's
                                mode is in force), -1 none */

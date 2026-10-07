@@ -1,0 +1,54 @@
+# Work unit 029: STU mode and its ALG, an expression line (abacus decision 51; answers 153d606). Tokens:
+# STU (MODE F3), ALG and RPN (MODE F5, F4), ANS, HUP and HDOWN (the line's history); the editor's keys as
+# in Equation mode ("()" a pair, < > the cursor, BKSP), ENTER is the line's =. Expectations: %LINE the line,
+# N the value of ANS (as X), %ALG and %STU 0 or 1, %HIST the entries kept, %HSEL the entry shown (- none).
+S01 | rule 1: STU is a personality, saved; it behaves as 35s mode: (I) the 35s's, I = 900 INVALID (I) | STU 900 STO:I RCL:(I) | ERR %STU=1 %ERRMSG=INVALID_(I)
+S02 | rule 1: STU survives a save and load | STU SAVE MEMCLR LOAD | %STU=1
+S03 | rule 1: a label written in STU runs as 35s mode does, whatever the mode after (I = 5: unnamed 5) | STU PRGM CLPGM LBL:A 5 STO:I 7 STO:(I) RTN PRGM MODE33 XEQ:A | @#5=7
+S04 | rule 2: ALG only in STU: refused in 35s mode | MODE35 ALG | ERR %ALG=0
+S05 | rule 2: ALG refused in 33s mode | MODE33 ALG | ERR %ALG=0
+S06 | rule 2 with 6: 35s mode from ALG returns to RPN, ANS in X | STU ALG 2 + 3 ENTER MODE35 | %ALG=0 %STU=0 X=5
+S07 | rule 2: ALG survives a save and load | STU ALG SAVE MEMCLR LOAD | %ALG=1 %STU=1
+L01 | rule 3: = evaluates the line by precedence; the line stays | STU ALG 2 + 3 * 4 ENTER | %LINE=2+3×4 N=14
+L02 | rule 3: a function key inserts SIN() with the cursor inside; > steps out (degrees) | STU ALG SIN 30 > + 1 ENTER | %LINE=SIN(30)+1 N=1.5
+L03 | rule 3: variables read their values without a prompt | 5 STO:A STU ALG RCL:A * 2 ENTER | %LINE=A×2 N=10 %STOP=NONE
+L04 | rule 3: a syntax error puts the cursor at its place, the line editable: fixed and evaluated | STU ALG 2 + * 3 ENTER | ERR %ERR=SYNTAX %LINE=2+×3
+L05 | rule 3: after a syntax error the line is edited: < < BKSP removes the + | STU ALG 2 + * 3 ENTER < < BKSP ENTER | %LINE=2×3 N=6
+L06 | rule 3: a math error shows its message; the next key clears it (35s), the line stays editable | STU ALG 1 / 0 ENTER BKSP BKSP 2 ENTER | %LINE=1÷2 N=0.5
+L07 | rule 3: after a result a digit starts a new line | STU ALG 2 + 3 ENTER 7 ENTER | %LINE=7 N=7
+L08 | rule 3: after a result an operator starts the line with ANS | STU ALG 2 + 3 ENTER + 4 ENTER | %LINE=ANS+4 N=9
+L09 | rule 3: after a result ^ too: ANS^2 | STU ALG 3 ENTER POW 2 ENTER | %LINE=ANS^2 N=9
+L10 | rule 3: after a result a function starts a new line | STU ALG 4 ENTER SQRT 9 ENTER | %LINE=SQRT(9) N=3
+L11 | rule 3: C clears the line, the history kept | STU ALG 2 ENTER 3 + C | %LINE= %HIST=1
+L12 | rule 3: precedence (decided 153d606): powers left to right, power before unary minus | STU ALG 2 POW 3 POW 2 ENTER | N=64
+L13 | rule 3: -2^2 is -4 (35s p.6-14: power before unary minus) | STU ALG - 2 POW 2 ENTER | N=-4
+L14 | rule 3: the angle unit in force: radians | STU ALG RAD COS 0 ENTER | N=1
+A01 | rule 4: ANS is 0 at its first use | STU ALG ANS + 1 ENTER | N=1 %LINE=ANS+1
+A02 | rule 4: ANS is kept in the state image | STU ALG 6 ENTER SAVE MEMCLR LOAD | N=6
+A03 | rule 4: ANS outside ALG is SYNTAX: a stored equation | EQ:ANS+1 C EQN XEQ | ERR %ERR=SYNTAX
+A04 | rule 4: ANS typed by its key, then used | STU ALG 5 ENTER ANS * ANS ENTER | %LINE=ANS×ANS N=25
+H01 | rule 5: up steps back through the history | STU ALG 1 ENTER 2 ENTER 3 ENTER HUP HUP | %HSEL=2
+H02 | rule 5: down steps forward again | STU ALG 1 ENTER 2 ENTER 3 ENTER HUP HUP HDOWN | %HSEL=3
+H03 | rule 5: ENTER on an entry copies its text into the line; ENTER again evaluates it | STU ALG 1 + 1 ENTER 5 ENTER HUP HUP ENTER | %LINE=1+1 %HSEL=-
+H04 | rule 5: the copied line evaluates | STU ALG 1 + 1 ENTER 5 ENTER HUP HUP ENTER ENTER | N=2
+H05 | rule 5: < on an entry edits a copy | STU ALG 1 + 1 ENTER 5 ENTER HUP HUP < BKSP 3 ENTER | %LINE=1+3 N=4
+H06 | rule 5: at least the last 16 kept | STU ALG 1 ENTER 2 ENTER 3 ENTER 4 ENTER 5 ENTER 6 ENTER 7 ENTER 8 ENTER 9 ENTER 10 ENTER 11 ENTER 12 ENTER 13 ENTER 14 ENTER 15 ENTER 16 ENTER 17 ENTER 18 ENTER | %HIST=16
+H07 | rule 5: the 16th back is 3 of 18 | STU ALG 1 ENTER 2 ENTER 3 ENTER 4 ENTER 5 ENTER 6 ENTER 7 ENTER 8 ENTER 9 ENTER 10 ENTER 11 ENTER 12 ENTER 13 ENTER 14 ENTER 15 ENTER 16 ENTER 17 ENTER 18 ENTER HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP | %HSEL=3
+H08 | rule 5: the history is RAM only: lost at a power cut, the line's settings kept | STU ALG 1 ENTER 2 ENTER SAVE MEMCLR LOAD | %HIST=0 %ALG=1 N=2
+R01 | rule 6: ALG to RPN puts ANS in X as a keyed number: lift enabled, the stack lifts | STU 9 ALG 4 ENTER RPN | X=4 Y=9 %ALG=0
+R02 | rule 6: lift disabled before the switch (ENTER): X replaced, Z not pushed | STU 9 ENTER ALG 4 ENTER RPN | X=4 Y=9 Z=0
+R03 | rule 6 (ours): RPN to ALG sets ANS to X | STU 7 ALG ANS + 1 ENTER | N=8
+R04 | rule 6: the stack untouched by ALG: a result not pushed | STU 1 ENTER 2 ALG 5 + 5 ENTER | X=2 Y=1 N=10
+R05 | rule 6: ALG to RPN to ALG: 3, then 3 4 + in RPN, then ANS is 7 | STU ALG 3 ENTER RPN 4 + ALG ANS ENTER | N=7
+R06 | rule 6: RPN to ALG to RPN: X 5, ALG keeps ANS 5, back to RPN X 5 lifted | STU 5 ALG RPN | X=5 Y=5
+K01 | rule 7: R-down on the line: RPN ONLY, nothing done | STU ALG 2 RDN | ERR %ERR=RPN_ONLY %LINE=2
+K02 | rule 7: x<>y: RPN ONLY | STU ALG XY | ERR %ERR=RPN_ONLY
+K03 | rule 7: program entry: RPN ONLY | STU ALG PRGM | ERR %ERR=RPN_ONLY
+K04 | rule 7: XEQ of a label: RPN ONLY | STU PRGM CLPGM LBL:A 1 RTN PRGM ALG XEQ:A | ERR %ERR=RPN_ONLY X=0
+K05 | rule 7: R/S: RPN ONLY | STU ALG RS | ERR %ERR=RPN_ONLY
+K06 | rule 7: Equation mode: RPN ONLY | STU ALG EQN | ERR %ERR=RPN_ONLY
+K07 | rule 7: R-up and CLSTK: RPN ONLY | STU ALG RUP | ERR %ERR=RPN_ONLY
+O01 | rule 8: STO A after a result stores ANS | STU ALG 2 + 3 ENTER STO:A | @A=5
+O02 | rule 8 (ours): STO B with a line typed evaluates it, then stores it | STU ALG 6 * 7 STO:B | @B=42 N=42 %LINE=6×7
+B01 | rule 9: a complex value as the engine evaluates it | STU ALG 1 CI 2 * 2 ENTER | N=2i4
+B02 | rule 9: overflow as the engine has it: the largest number, flag 6 | STU ALG 1 E 6000 * 1 E 6000 ENTER | N=9.999999999999999999999999999999999E6144 %F6=1

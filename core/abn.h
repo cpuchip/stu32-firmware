@@ -52,8 +52,10 @@ typedef enum {
     /* the engine's again (unit 026; last, so the numbers above keep their meaning in a state image) */
     ABN_OVERFLOW,           /* a result beyond the largest finite value: the calculator gives the
                                largest number, sets flag 6 and warns OVERFLOW (33s p.1-16, F-3) */
-    ABN_UNDERFLOW           /* a nonzero result below the smallest normal value: the calculator
+    ABN_UNDERFLOW,          /* a nonzero result below the smallest normal value: the calculator
                                gives 0 (33s p.1-16) */
+    ABN_RPN_ONLY            /* a key with no meaning on ALG's expression line: shown briefly, nothing
+                               done, not an error (unit 029 rule 7) */
 } abn_status;
 
 abn abn_zero(void);
