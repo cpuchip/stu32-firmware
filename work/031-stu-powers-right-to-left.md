@@ -1,4 +1,4 @@
-# Work unit 031: in STU, a chain of powers groups right to left
+# Work unit 031: STU's parser: powers right to left, and implied multiplication
 
 **From:** abacus · **To:** soroban · **Status:** queued after 030 (abacus decision 52, Michael, 2026-10-07)
 
@@ -37,6 +37,33 @@ not two parsers.
    - 2^−2 = 0.25;
    - everything else from 029's Answers.
 
+### Part two: implied multiplication (abacus decision 53, Michael, 2026-10-07)
+
+Michael: "Oh im pretty sure the hp 50g does implicit multiplication and its nice." The precedent we can cite is
+the HP Prime's User Guide, p.26: "If you enter AB, for example, the result is A*B", and "the calculator adds the
+operator to the expression in history". None of the 50g's manuals describes it.
+
+5. **In STU, two operands side by side multiply:**
+   - a number before a variable, a parenthesis or a function: `2A`, `2(3)`, `2SIN(X)`;
+   - a closing parenthesis before an operand: `(A+1)(A−1)`, `(A+1)B`;
+   - a variable before a parenthesis or a function: `A(B+1)`, `XSIN(X)` meaning X×SIN(X);
+   - two variables: `AB`.
+
+   The 33s and 35s modes keep SYNTAX.
+6. **An implied product ranks exactly as a typed ×:** 1/2A is (1/2)×A = A/2, and 2A^2 is 2×(A^2). This is the
+   Prime's "the result will be the same" as with the operator.
+7. **The × is written in, as the Prime does.**
+   - When an STU line is entered (=) or an STU equation is stored, the text keeps an explicit × at each implied
+     product (`2A` becomes `2×A`). The history and the equation list show what was computed.
+   - This also settles rule 3 for implied products: the stored text means the same in every mode.
+8. **Tokens.**
+   - **E right after digits stays the exponent:** `2E3` is 2000, and `2E` is an unfinished exponent, as today. The
+     variable E next to a number needs its × written.
+   - **A known name followed by its parenthesis is that name:** `SIN(` is SIN, `IP(` is IP. Otherwise a run of
+     letters is one variable per letter.
+   - Propose any case these leave ambiguous, and don't guess (`ASIN(` is the arcsine, not A×SIN: say how you read
+     a name that ends inside a longer one).
+
 ## Acceptance
 
 - **Your vectors, red first:**
@@ -45,9 +72,16 @@ not two parsers.
   - rule 3 both ways;
   - an STU-stamped program line;
   - a four-high chain, 2^1^2^3: 2^(1^(2^3)) = 2 in STU, ((2^1)^2)^3 = 64 in 33s and 35s;
-  - −2^2 still −4 in every mode.
+  - −2^2 still −4 in every mode;
+  - each form in rule 5, rule 6's 1/2A and 2A^2, rule 7's stored text, rule 8's 2E3 and names, and SYNTAX for
+    `2A` in 33s and 35s modes.
 - **abacus's hidden ALG set** is rerun with its oracle grouping right to left. gen_029 gains the switch, and its
   self-check runs through STU Equation mode first.
-- **Mutants:** right to left leaking into 35s mode; rule 3 broken (an equation re-read by the mode in force).
+- **Mutants:**
+  - right to left leaking into 35s mode;
+  - rule 3 broken (an equation re-read by the mode in force);
+  - an implied product ranked above ÷ (1/2A = 1/(2A));
+  - the × not written into the stored text;
+  - implied multiplication leaking into 35s mode.
 - **No change** to any accepted vector. 029's L12 (2^3^2 = 64 in STU ALG) is amended in place, as this ruling
   supersedes it, and says so.
