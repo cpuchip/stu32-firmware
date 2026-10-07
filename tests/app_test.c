@@ -1345,6 +1345,11 @@ int main(void)
         app_key(&a, 38, t + 210);               /* the 2 key: a tone */
         expect(a.tone >= 0 && a.tone_use == DEV_USE_APP && a.tone_hz == 880 && a.tone_ms == 50,
                "037: app_beep sounds through the buzzer (its hz and ms, the APP use)");
+        a.tone = -1;
+        a.set.uses &= (uint8_t)~DEV_USE_APP;    /* (SETUP > BEEP > the second page's APP off) */
+        app_key(&a, 38, t + 220);
+        expect(a.tone < 0, "037: with the APP use off, app_beep is silent");
+        a.set.uses |= DEV_USE_APP;
         expect(app_ticking(&a) && app_next_wake(&a, &(pwr_inputs){false, false, 80, false}, t + 210) <= 50,
                "037: ticks at the app's rate (50 ms)");
         a.set.off_min = 2;

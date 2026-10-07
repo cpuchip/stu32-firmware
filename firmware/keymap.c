@@ -94,7 +94,7 @@ static const km_menu MENUS[] = {
     {"RADIX", {{KM_DEVICE, '.', KM_DEV_RADIX, 0, "."}, {KM_DEVICE, ',', KM_DEV_RADIX, 0, ","}, {KM_DEVICE, 1, KM_DEV_GROUP, 0, "1,000"}, {KM_DEVICE, ' ', KM_DEV_GROUP, 0, "1 000"}, {KM_DEVICE, 0, KM_DEV_GROUP, 0, "none"}, {KM_NONE, 0, 0, 0, ""}}, 0},
     {"SETUP", {{KM_DEVICE, 0, KM_DEV_OFFTIME, 0, "OFF"}, {KM_DEVICE, 0, KM_DEV_VOL, 0, "VOL"}, {KM_MENU, 0, 37, 0, "BEEP"}, {KM_MENU, 0, 39, 0, "CLOCK"}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}}, 0},
     {"BEEP", {{KM_DEVICE, 1, KM_DEV_USE, 0, "CLICK"}, {KM_DEVICE, 2, KM_DEV_USE, 0, "ERROR"}, {KM_DEVICE, 4, KM_DEV_USE, 0, "PRGM"}, {KM_DEVICE, 8, KM_DEV_USE, 0, "BATT"}, {KM_DEVICE, 16, KM_DEV_USE, 0, "ON"}, {KM_MENU, 0, 38, 0, "\xe2\x96\xb8"}}, 0},
-    {"BEEP2", {{KM_DEVICE, 32, KM_DEV_USE, 0, "DONE"}, {KM_DEVICE, 0, KM_DEV_USEALL, 0, "ALL"}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_MENU, 0, 37, 0, "\xe2\x96\xb8"}}, 0},
+    {"BEEP2", {{KM_DEVICE, 32, KM_DEV_USE, 0, "DONE"}, {KM_DEVICE, 0, KM_DEV_USEALL, 0, "ALL"}, {KM_DEVICE, 64, KM_DEV_USE, 0, "APP"}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_MENU, 0, 37, 0, "\xe2\x96\xb8"}}, 0},
     {"CLOCK", {{KM_DEVICE, 0, KM_DEV_CLOCKSET, 0, "SET"}, {KM_DEVICE, 0, KM_DEV_H24, 0, "12/24"}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}}, 0},
     {"SYS", {{KM_DEVICE, 1, KM_DEV_VIEW, 0, "BATT"}, {KM_DEVICE, 2, KM_DEV_VIEW, 0, "VER"}, {KM_DEVICE, 3, KM_DEV_VIEW, 0, "FLASH"}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}}, 0},
     {"CONST", {{KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, "more"}}, AB_CONST},

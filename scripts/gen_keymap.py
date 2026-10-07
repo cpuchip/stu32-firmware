@@ -178,7 +178,8 @@ MENUS = [
               ("PRGM", "KM_DEVICE", "4", "KM_DEV_USE", 0), ("BATT", "KM_DEVICE", "8", "KM_DEV_USE", 0),
               ("ON", "KM_DEVICE", "16", "KM_DEV_USE", 0), ("\u25b8", "KM_MENU", "0", "BEEP2", 0)]),
     ("BEEP2", [("DONE", "KM_DEVICE", "32", "KM_DEV_USE", 0), ("ALL", "KM_DEVICE", "0", "KM_DEV_USEALL", 0),
-               NONE, NONE, NONE, ("\u25b8", "KM_MENU", "0", "BEEP", 0)]),
+               ("APP", "KM_DEVICE", "64", "KM_DEV_USE", 0), NONE, NONE,     # unit 037: an app's tones
+               ("\u25b8", "KM_MENU", "0", "BEEP", 0)]),
     # unit 027 rule 4 (SETUP's F4 its provisional home): SET prompts HH MM; 12/24 toggles the form
     ("CLOCK", [("SET", "KM_DEVICE", "0", "KM_DEV_CLOCKSET", 0), ("12/24", "KM_DEVICE", "0", "KM_DEV_H24", 0),
                NONE, NONE, NONE, NONE]),
