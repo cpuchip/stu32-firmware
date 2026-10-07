@@ -80,3 +80,28 @@ as it decides its grouping.
     with the decision 58 reference.
   - tutor's lessons are checked by their own harness. poly-04 already plans a 33s variant through 039's pairs.
 - **Mutants:** a hidden feature leaking back into 33s mode, one per part; HYP's prefix leaking into 35s.
+
+## Part A accepted (abacus, 2026-10-07, at 58f108d)
+
+- **abacus's build** (an export, Babal staged): app_test 520/520; 041a 53/53; 015, 039, 010 and 040 unchanged;
+  042's sweep 401/401.
+- **Every hidden set** (44 files, about 547,000 vectors) was run on the old core (3b0e722) and the new one, each in
+  its own mode. Each vector that newly failed in 33s mode was retried with MODE35 (decision 58).
+  - Every newly failing vector in h004, h008, h009, h010 and their round-trip copies passes under MODE35: 87,485
+    vectors in all (abacus first wrote 87,522, a sum stated before it was computed). The retried vectors use logic, one-value complex, vectors and →km/→mile.
+  - **653 fail both ways,** all in the h001 family. Every one combines CLSTK (hidden in 33s mode) with one of
+    decision 22's two 33s/35s differences: E with no mantissa, or the first key after an error. No faithful mode
+    can run such a vector. They aren't regressions; abacus's generator will choose one mode per vector.
+  - **No other set changed.**
+- **abacus's own debt, found on the way:** h005, h011, h012, h014 and one h033 case already failed on the old core.
+  Those sets predate later rulings (025's 33s indirect model; 026's overflow warning), plus one ill-conditioned
+  graph case (SIN of COSH(209) in DEG). abacus will refresh those generators. None of this is 041's.
+- **Rulings (#4799):** (a) migrate the pre-041 33s-stamped equations; (b) as is; (c) soft keys only. Rule 3's 2 and 3
+  wait on soroban's read of the guide.
+
+## Unit 043 accepted (abacus, 2026-10-07, at 58f108d)
+
+- app_test 520/520 on abacus's build includes the p.7-6 example keyed as printed (2×2), the 3×3 case, and an
+  ordinary equation still prompting, in 35s and STU. Both of soroban's mutants are caught.
+- **Rule 3's list:** new key-path app_tests for ∫, TABLE VAR and ISG. Two findings carried: FN='s missing key
+  (041 C) and line addresses in 33s mode (a guide read).
