@@ -5473,6 +5473,54 @@ static abn_status graph_move(ab_calc *c, int arg)
 
 /* SOLVE's engine on the curve (mode 1) or its slope (2), the guesses the cursor's column's x and the next column's
    (the previous at the right edge): the root, or NO ROOT FND as SOLVE's. */
+/* Whether x, SOLVE's answer on the slope, is an extremum (unit 040c for an answer not found, 040d for every one).
+   Near an extremum the slope (5-point, its noise about 1E-33 |f| / h at worst) is noise: SOLVE may end not found
+   on it, or found on a noise point, or near a pole on a zero of the estimate itself. So, at the first d of 1E-12,
+   1E-10, ... 1E-4 times max(1, |x|) where the slopes at x + d and x - d are both clear of the noise (|slope| >
+   1E-30 |f(x)| / h, a thousand times it):
+   - the two have opposite signs (040c);
+   - f moves away from f(x) on both sides the way the slopes say (up from a minimum, down from a maximum), at the
+     first D of 10d, 1000d, ... up to 1E-3 max(1, |x|) where both differences are clear of f's noise (1E-30
+     |f(x)|). Near a pole the estimated slope can change sign and grow away from x (so 040d's growth test passes
+     it), but f runs straight through: this is 040d's pole test, proposed as its equivalent.
+   A constant's slope is never clear: no extremum. The answer stays x, as close as the noise allows. Each slope and
+   each f counts as one of SOLVE's evaluations (bounded: 10 slopes and 9 f at most). */
+static bool extr_ok(ab_calc *c, const abn *x)
+{
+    abn ax = abn_abs(x), one = abn_from_int(1), h, fx, afx, lim, flim, e, k100 = abn_from_int(100), ten, top;
+    const abn *m = abn_cmp(&ax, &one) > 0 ? &ax : &one;
+    abn_from_text(&e, "1E-7"), abn_from_text(&lim, "1E-30"), abn_from_text(&top, "1E-3");
+    ten = abn_from_int(10);
+    c->evals++;
+    if (abn_mul(&h, m, &e) != ABN_OK || graph_f(c, x, &fx) != ABN_OK || abn_mul(&top, &top, m) != ABN_OK) return false;
+    afx = abn_abs(&fx);
+    if (abn_mul(&flim, &lim, &afx) != ABN_OK || abn_div(&lim, &flim, &h) != ABN_OK) return false;
+    abn_from_text(&e, "1E-12");
+    for (int r = 0; r < 5; r++, abn_mul(&e, &e, &k100)) {
+        abn d, p, sp, sm, ap, am, D;
+        c->evals += 2;
+        if (abn_mul(&d, m, &e) != ABN_OK || abn_add(&p, x, &d) != ABN_OK || graph_slope(c, &p, &sp) != ABN_OK ||
+            abn_sub(&p, x, &d) != ABN_OK || graph_slope(c, &p, &sm) != ABN_OK)
+            return false;
+        ap = abn_abs(&sp), am = abn_abs(&sm);
+        if (abn_cmp(&ap, &lim) <= 0 || abn_cmp(&am, &lim) <= 0) continue;      /* inside the noise: a wider d */
+        int sg = sgn(&sp);
+        if (sg * sgn(&sm) >= 0) return false;                                   /* one sign: none */
+        if (abn_mul(&D, &d, &ten) != ABN_OK) return false;
+        for (;;) {                                  /* f away from f(x): up when sg > 0 (a minimum), else down */
+            abn fp, fm, q;
+            c->evals += 2;
+            if (abn_add(&q, x, &D) != ABN_OK || graph_f(c, &q, &fp) != ABN_OK || abn_sub(&fp, &fp, &fx) != ABN_OK ||
+                abn_sub(&q, x, &D) != ABN_OK || graph_f(c, &q, &fm) != ABN_OK || abn_sub(&fm, &fm, &fx) != ABN_OK)
+                return false;
+            ap = abn_abs(&fp), am = abn_abs(&fm);
+            if (abn_cmp(&ap, &flim) > 0 && abn_cmp(&am, &flim) > 0) return sgn(&fp) == sg && sgn(&fm) == sg;
+            if (abn_cmp(&D, &top) >= 0 || abn_mul(&D, &D, &k100) != ABN_OK) return false;
+        }
+    }
+    return false;
+}
+
 static abn_status graph_solve(ab_calc *c, int mode, abn *root)
 {
     abn a, b;
@@ -5486,33 +5534,7 @@ static abn_status graph_solve(ab_calc *c, int mode, abn *root)
     ev_best_set = false;
     c->evals = 0;
     st = solve_core(c, a, b, &o);
-    if (st == ABN_OK && !o.found && mode == 2) {
-        /* EXTR at the slope's noise floor (unit 040c): SOLVE ended at a least |slope| that isn't 0, since near the
-           extremum the slope (5-point, its noise about 1E-33 |f| / h at worst) is noise. It's the extremum when the
-           slope at x +- d has opposite signs, each clear of the noise (|slope| > 1E-30 |f(x)| / h, a thousand times
-           it). d = 1E-12 max(1, |x|), then 1E-10 when either slope is inside the noise (a large |f| over a gentle
-           curve), deciding at the first d where both are clear (a third, 1E-8, found nothing more in 1100 cases).
-           The answer is x itself, SOLVE's least |slope|, as close as the noise allows: d only tests the sign. Each
-           slope counts as one of SOLVE's evaluations, within SOLVE_MAX. */
-        abn ax = abn_abs(&o.x), one = abn_from_int(1), d, h, xp, xm, sp, sm, fx, lim, e, k100 = abn_from_int(100);
-        const abn *m = abn_cmp(&ax, &one) > 0 ? &ax : &one;
-        abn_from_text(&e, "1E-7"), abn_from_text(&lim, "1E-30");
-        if (abn_mul(&h, m, &e) == ABN_OK && graph_f(c, &o.x, &fx) == ABN_OK && (fx = abn_abs(&fx), true) &&
-            abn_mul(&lim, &lim, &fx) == ABN_OK && abn_div(&lim, &lim, &h) == ABN_OK) {
-            abn_from_text(&e, "1E-12");
-            for (int r = 0; r < 2 && c->evals + 2 <= SOLVE_MAX; r++, abn_mul(&e, &e, &k100)) {
-                c->evals += 2;
-                if (abn_mul(&d, m, &e) != ABN_OK || abn_add(&xp, &o.x, &d) != ABN_OK ||
-                    abn_sub(&xm, &o.x, &d) != ABN_OK || graph_slope(c, &xp, &sp) != ABN_OK ||
-                    graph_slope(c, &xm, &sm) != ABN_OK)
-                    break;
-                abn ap = abn_abs(&sp), am = abn_abs(&sm);
-                if (abn_cmp(&ap, &lim) <= 0 || abn_cmp(&am, &lim) <= 0) continue;   /* inside the noise: a wider d */
-                if (sgn(&sp) * sgn(&sm) < 0) o.found = true;
-                break;
-            }
-        }
-    }
+    if (st == ABN_OK && mode == 2) o.found = extr_ok(c, &o.x);     /* EXTR's answer, found or not (040c, 040d) */
     ev_graph = 0;
     c->evals = evals;
     if (st != ABN_OK) return st;
