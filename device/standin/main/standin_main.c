@@ -52,7 +52,7 @@
 #define GT911_ADDR 0x5D
 
 enum { EV_KEY = 0, EV_OP, EV_DUMP, EV_SAVE, EV_WIPE, EV_RESTART, EV_TOUCHED, EV_BENCH, EV_TIME, EV_POWBENCH,
-       EV_KEYUP, EV_TBLBENCH, EV_GRBENCH };                          /* EV_KEYUP: a the key released (unit 030: SHOW, held) */
+       EV_KEYUP, EV_TBLBENCH, EV_GRBENCH, EV_FRAMEBENCH };                          /* EV_KEYUP: a the key released (unit 030: SHOW, held) */
 static char time_text[16];             /* TIME's argument, for the calc task (unit 027) */
 
 typedef struct {
@@ -75,6 +75,7 @@ static uint8_t *image;                  /* the state image for the store, in PSR
 #define IMAGE_CAP (256u * 1024u)
 #define CALC_STACK 32768                /* the core's deepest use measured 27 KB (unit 016) */
 static ab_flash flash;
+static ab_flash apps_flash;             /* unit 037: the apps' saves, a store of their own (abapps) */
 static bool memory_clear_msg;
 
 static uint32_t now_ms(void)
@@ -198,6 +199,27 @@ static void store_init(void)
         return;
     }
     flash = (ab_flash){(void *)p, 4096, p->size / 2, fl_erase, fl_write, fl_read};
+    const esp_partition_t *q = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, 0x41, "abapps");
+    if (q) apps_flash = (ab_flash){(void *)q, 4096, q->size / 2, fl_erase, fl_write, fl_read};
+    else printf("store: no abapps partition\n");
+}
+
+/* unit 037: the apps' saves (apart from the calculator's image), stored when they change */
+static void apps_save(void)
+{
+    static uint8_t b[1024];
+    if (!app.apps_dirty || !apps_flash.ctx) return;
+    size_t n = app_saves_image(&app, b, sizeof b);
+    int rc = n ? ab_store_save(&apps_flash, b, (uint32_t)n) : -1;
+    printf("apps: saves %u bytes, %s\n", (unsigned)n, rc == 0 ? "ok" : "FAILED");
+    if (rc == 0) app.apps_dirty = false;
+}
+
+static void apps_load(void)
+{
+    static uint8_t b[1024];
+    uint32_t n = apps_flash.ctx ? ab_store_load(&apps_flash, b, sizeof b) : 0;
+    printf("apps: %s\n", n && app_saves_load(&app, b, n) ? "saves loaded" : "no saves");
 }
 
 static uint32_t last_image;             /* the last image saved: SYS FLASH's room left (unit 027) */
@@ -248,7 +270,7 @@ static void render(int busy)
     if (busy) ui.busy = busy;
     if (memory_clear_msg) ui.prompt = "MEMORY CLEAR";
     int back = 1 - front;
-    screen_render(calc, &ui, &fb[back]);
+    if (!app_draw(&app, &fb[back])) screen_render(calc, &ui, &fb[back]);   /* an app's frame (unit 037) */
     front = back;
     si_keys_state ks = {app.shift, app.prompt_op >= 0, -1, calc->base == 16};
     if (memcmp(&ks, &keys_drawn, sizeof ks)) {
@@ -289,6 +311,7 @@ static void dump(void)
         app_ui(&app, &ui);
         printf("ui: clock=%s%c view=%s soft1=%s\n", ui.clock, ui.ampm ? ui.ampm : ' ', ui.view[0] ? ui.view[0] : "-",
                ui.soft[0] && ui.soft[0][0] ? ui.soft[0] : "-");
+        printf("app: %s\n", app_running(&app) ? app.app->name : "-");     /* unit 037 */
         printf("ui: show=%d %s%s%s\n", ui.show_n, ui.show_n ? ui.show[0] : "-", ui.show_n > 1 ? "/" : "",
                ui.show_n > 1 ? ui.show[1] : "");     /* unit 030: SHOW held */
     }
@@ -535,6 +558,7 @@ static void console_task(void *arg)
         else if (!strcmp(line, "POWBENCH")) e.kind = EV_POWBENCH;
         else if (!strcmp(line, "TBLBENCH")) e.kind = EV_TBLBENCH;  /* unit 032 rule 7: a screenful's time */
         else if (!strcmp(line, "GRBENCH")) e.kind = EV_GRBENCH;    /* unit 033 rule 8: a full plot's time */
+        else if (!strcmp(line, "FRAMEBENCH")) e.kind = EV_FRAMEBENCH;  /* unit 037 rule 6: full frames a second */
         else if (!strncmp(line, "TIME ", 5)) {      /* TIME hh:mm[:ss] (unit 027 rule 4) */
             snprintf(time_text, sizeof time_text, "%.15s", line + 5);
             e.kind = EV_TIME;
@@ -581,6 +605,14 @@ static void calc_task(void *arg)
         } else if (got && ev.kind == EV_WIPE) {
             printf("wipe: %s\n", flash.ctx && esp_partition_erase_range(flash.ctx, 0, 2 * flash.slot_size) == ESP_OK
                                      ? "both slots erased" : "FAILED");
+        } else if (got && ev.kind == EV_FRAMEBENCH) {
+            /* unit 037 rule 6: the stand-in's full-frame path (the app's draw, or the calculator's screen,
+               into the frame, then its blit to the panel), 50 frames timed */
+            int64_t t0 = esp_timer_get_time();
+            for (int i = 0; i < 50; i++) render(0);
+            int64_t t1 = esp_timer_get_time();
+            printf("framebench: %s, 50 frames in %lld ms: %.1f frames a second\n", app_running(&app) ? app.app->name : "calculator",
+                   (long long)(t1 - t0) / 1000, 50.0e6 / (double)(t1 - t0));
         } else if (got && ev.kind == EV_GRBENCH) {
             grbench();
         } else if (got && ev.kind == EV_TBLBENCH) {
@@ -604,9 +636,11 @@ static void calc_task(void *arg)
         }
         app_action act = app_tick(&app, &in, now);
         if (app.tone >= 0) {                    /* no buzzer here: the console says what would sound */
-            printf("tone: use %d level %d\n", app.tone_use, app.tone);
+            if (app.tone_use == DEV_USE_APP) printf("tone: app %u Hz %u ms level %d\n", app.tone_hz, app.tone_ms, app.tone);
+            else printf("tone: use %d level %d\n", app.tone_use, app.tone);
             app.tone = -1;
         }
+        apps_save();                            /* unit 037 */
         if (app.running != was_running) {
             char stop[32];
             ab_stop_text(calc, stop);
@@ -690,6 +724,8 @@ void app_main(void)
         }
         app_undo_buffers(&app, u0, u1, IMAGE_CAP);
         app_graph_buffer(&app, heap_caps_malloc(sizeof(app_graph), MALLOC_CAP_SPIRAM));   /* unit 033 */
+        app_ctx_buffer(&app, heap_caps_malloc(APP_CTX_MAX, MALLOC_CAP_SPIRAM), APP_CTX_MAX);  /* unit 037 */
+        apps_load();
     }
     printf("standin: heap internal %u (largest block %u), PSRAM %u\n",
            (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL),

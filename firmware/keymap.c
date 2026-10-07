@@ -48,7 +48,7 @@ static const km_action KEYMAP[KB_KEYS][3] = {
     [40] = {{KM_OP, AB_SUB, 0, 0, "\xe2\x88\x92"}, {KM_OP, AB_RAND, 0, 0, "RAND"}, {KM_OP, AB_SEED, 0, 0, "SEED"}},
     [41] = {{KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}},
     [42] = {{KM_OP, AB_CANCEL, 0, 0, "C"}, {KM_DEVICE, 0, KM_DEV_OFF, 0, "OFF"}, {KM_MENU, 0, 40, 0, "SYS"}},
-    [43] = {{KM_OP, AB_K0, 0, 0, "0"}, {KM_OP, AB_EQN, 0, 0, "EQN"}, {KM_MENU, 0, -1, 0, "APPS"}},
+    [43] = {{KM_OP, AB_K0, 0, 0, "0"}, {KM_OP, AB_EQN, 0, 0, "EQN"}, {KM_MENU, 0, 42, 0, "APPS"}},
     [44] = {{KM_OP, AB_KPOINT, 0, 0, "."}, {KM_OP, AB_KCOMMA, 0, 0, ","}, {KM_OP, AB_FDISP, 0, 0, "\xe2\x86\x92" "FRAC"}},
     [45] = {{KM_OP, AB_RS, 0, 0, "R/S"}, {KM_OP, AB_PSE, 0, 0, "PSE"}, {KM_OP, AB_SST, 0, 0, "SST"}},
     [46] = {{KM_OP, AB_ADD, 0, 0, "+"}, {KM_MENU, 0, 7, 0, "SUMS"}, {KM_MENU, 0, 6, 0, "L.R."}},
@@ -98,6 +98,7 @@ static const km_menu MENUS[] = {
     {"CLOCK", {{KM_DEVICE, 0, KM_DEV_CLOCKSET, 0, "SET"}, {KM_DEVICE, 0, KM_DEV_H24, 0, "12/24"}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}}, 0},
     {"SYS", {{KM_DEVICE, 1, KM_DEV_VIEW, 0, "BATT"}, {KM_DEVICE, 2, KM_DEV_VIEW, 0, "VER"}, {KM_DEVICE, 3, KM_DEV_VIEW, 0, "FLASH"}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}}, 0},
     {"CONST", {{KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, "more"}}, AB_CONST},
+    {"APPS", {{KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, "more"}}, KM_PAGED_APPS},
 };
 
 const km_menu *km_menu_at(int index)

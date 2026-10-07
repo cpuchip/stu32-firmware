@@ -216,6 +216,7 @@ int main(void)
                 /* unit 032: TABLE on blue 8, and the open table's bar */
                 {"TABLE", {P(AB_TVAR, KM_ARG_VAR, "VAR"), O(AB_TSTART, 0, "START"), O(AB_TSTEP, 0, "STEP"), O(AB_TABLE, 0, "GO"), N, N}},
                 /* unit 033: GRAPH on blue 7, and the open graph's bar */
+                {"APPS", {N, N, N, N, N, {KM_NONE, 0, 0, 0, "more"}}},     /* unit 037: paged, the apps */
                 {"GRAPH", {O(AB_XMIN, 0, "XMIN"), O(AB_XMAX, 0, "XMAX"), O(AB_YMIN, 0, "YMIN"), O(AB_YMAX, 0, "YMAX"),
                            O(AB_GAUTO, 0, "AUTO"), O(AB_GRAPH, 0, "GO")}},
                 {"GRAPH BAR", {O(AB_GLEFT, 0, "\xe2\x97\x80"), O(AB_GRIGHT, 0, "\xe2\x96\xb6"), N, N, N, N}},
@@ -292,7 +293,7 @@ int main(void)
             expect(in->kind == KM_PROMPT && in->op == AB_INTEG && in->prompt == KM_ARG_VAR && !strcmp(in->legend, "\xe2\x88\xab"),
                    "integrate (gold 8) asks for a variable, then integrates");
             /* rule 5: these stay not defined */
-            static const char *const LATER[] = {"MEM", "TUTOR", "APPS"};   /* RADIX, SETUP: unit 022; EXP #3958; SYS: unit 027; TABLE: 032 */
+            static const char *const LATER[] = {"MEM", "TUTOR"};   /* APPS: unit 037 */   /* RADIX, SETUP: unit 022; EXP #3958; SYS: unit 027; TABLE: 032 */
             for (size_t i = 0; i < sizeof LATER / sizeof LATER[0]; i++) {
                 bool found = false, undefined = true;
                 for (int k = 0; k < KB_KEYS; k++)

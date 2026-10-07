@@ -20,6 +20,8 @@ void app_init(app_state *a, ab_calc *c, uint32_t now_ms)
     a->tone = -1;
     a->now_ms = now_ms;
     a->beeps = c->beeps;
+    a->apps = app_registry;                     /* unit 037: the built-in apps */
+    a->napps = app_registry_n;
     pwr_init(&a->pwr, now_ms);
     dev_settings_default(&a->set);
     c->slice = APP_SLICE_LINES;
@@ -225,9 +227,19 @@ static int eqn_bar(const app_state *a)
     return -1;
 }
 
+static void app_key_to(app_state *a, int key, bool down, uint32_t now_ms);   /* unit 037 (below) */
+static void app_tick_app(app_state *a, uint32_t now_ms);
+static void app_start(app_state *a, const app_def *d);
+static void app_exit(app_state *a);
+
 void app_key(app_state *a, int key, uint32_t now_ms)
 {
     const km_action *face = km_lookup(key, KM_FACE);
+    if (a->app) {                               /* an app runs: the key is its, C ends it (unit 037) */
+        a->last_key_ms = now_ms;
+        app_key_to(a, key, true, now_ms);
+        return;
+    }
     a->last_key_ms = a->now_ms = now_ms;
     pwr_activity(&a->pwr, now_ms);
     a->render = true;
@@ -432,14 +444,16 @@ void app_key(app_state *a, int key, uint32_t now_ms)
         int at = a->menu, page = a->menu_page;
         const km_menu *mn = km_menu_at(at);
         a->menu = -1;
-        if (face->kind == KM_SOFT && mn && mn->paged) {     /* CONST: five a page, then more */
-            int n = ab_const_count(), i = page * 5 + face->arg;
+        if (face->kind == KM_SOFT && mn && mn->paged) {     /* CONST, APPS: five a page, then more */
+            bool apps = mn->paged == KM_PAGED_APPS;
+            int n = apps ? a->napps : ab_const_count(), i = page * 5 + face->arg;
             a->shift = 0;
             if (face->arg == 5) {
                 a->menu = at;
                 a->menu_page = (page + 1) * 5 < n ? page + 1 : 0;
             } else if (i < n) {
-                do_op(a, mn->paged, i);
+                if (apps) app_start(a, a->apps[i]);     /* unit 037 */
+                else do_op(a, mn->paged, i);
             }
             return;
         }
@@ -590,6 +604,21 @@ static void do_action(app_state *a, const km_action *act)
 app_action app_tick(app_state *a, const pwr_inputs *in, uint32_t now_ms)
 {
     bool msg = a->c->msg;
+    if (a->app) {                               /* unit 037: an app's tick; the calculator idle */
+        app_tick_app(a, now_ms);
+        pwr_inputs p = *in;
+        p.busy = true;                          /* auto-off suspended; a low battery still turns it off */
+        a->pwr.idle_ms = a->set.off_min * 60000u;
+        if (a->off || pwr_check(&a->pwr, &p, now_ms) != PWR_STAY) {
+            app_exit(a);                        /* (the app saved first) */
+            return APP_OFF;
+        }
+        if (a->render) {
+            a->render = false;
+            return APP_RENDER;
+        }
+        return APP_IDLE;
+    }
     if (a->c->gr_on && a->graph && !a->gr_live) graph_start(a);    /* opened by an image or UNDO (review F1) */
     if (!a->c->gr_on) a->gr_live = a->graphing = false;
     if (a->graphing) graph_step(a);             /* unit 033: a slice of the graph's columns */
@@ -682,6 +711,11 @@ static uint32_t left(uint32_t now_ms, uint32_t since, uint32_t span)
 uint32_t app_next_wake(const app_state *a, const pwr_inputs *in, uint32_t now_ms)
 {
     if (a->running || a->render || a->off || a->graphing || (a->c->gr_on && a->graph && !a->gr_live)) return 0;
+    if (a->app) {                               /* unit 037: the app's next tick, or keys alone */
+        if (!a->app_next) return 3600000u;
+        uint32_t t = now_ms - a->app_t0, due = a->app_last + a->app_next;
+        return due > t ? due - t : 0;
+    }
     if (in->soc >= 0 && ((in->soc <= APP_BATT_LOW_SOC && !a->batt_low) || (in->soc > APP_BATT_OK_SOC && a->batt_low)))
         return 0;                               /* BATT's latch changes now (unit 027) */
     pwr_state p = a->pwr;
@@ -847,9 +881,10 @@ void app_ui(const app_state *a, screen_ui *ui)
     const km_menu *mn = a->menu >= 0 ? km_menu_at(a->menu) : eqn_bar(a) >= 0 ? km_menu_at(eqn_bar(a)) : NULL;
     for (int i = 0; mn && i < SCREEN_SOFT && i < KM_SOFT_KEYS; i++) {
         const km_action *it = &mn->item[i];
-        if (mn->paged && i < 5) {               /* CONST's page: its constants by name */
+        if (mn->paged && i < 5) {               /* CONST's page: its constants by name; APPS's: the apps */
             int k = a->menu_page * 5 + i;
-            ui->soft[i] = k < ab_const_count() ? ab_const_symbol(k) : NULL;     /* by symbol (#3958) */
+            if (mn->paged == KM_PAGED_APPS) ui->soft[i] = k < a->napps ? a->apps[k]->name : NULL;
+            else ui->soft[i] = k < ab_const_count() ? ab_const_symbol(k) : NULL;     /* by symbol (#3958) */
             continue;
         }
         bool all = it->kind == KM_CONFIRM && it->op == AB_CLALL;
@@ -918,20 +953,191 @@ void app_powered_on(app_state *a)
 
 void app_key_up(app_state *a, int key, uint32_t now_ms)
 {
-    (void)now_ms;
+    if (a->app) {                               /* unit 037: the release to the app (C's never) */
+        app_key_to(a, key, false, now_ms);
+        return;
+    }
     if (a->show && key == a->show_key) {        /* SHOW's key released: the normal display (unit 030) */
         a->show = false;
         a->render = true;
     }
 }
 
-/* unit 037 red: not yet */
-void app_apps(app_state *a, const app_def *const *list, int n) { (void)a; (void)list; (void)n; }
-void app_ctx_buffer(app_state *a, void *buf, uint32_t cap) { (void)a; (void)buf; (void)cap; }
-bool app_running(const app_state *a) { (void)a; return false; }
-bool app_ticking(const app_state *a) { (void)a; return false; }
-bool app_draw(app_state *a, ls027_frame *f) { (void)a; (void)f; return false; }
-size_t app_saves_image(const app_state *a, uint8_t *buf, size_t cap) { (void)a; (void)buf; (void)cap; return 0; }
-bool app_saves_load(app_state *a, const uint8_t *buf, size_t n) { (void)a; (void)buf; (void)n; return false; }
-void app_beep(uint16_t hz, uint16_t ms) { (void)hz; (void)ms; }
-uint32_t app_now_ms(void) { return 0; }
+/* ---- APPS (unit 037): programs that own the screen and the keys ---- */
+
+#define APP_EXIT_KEY 42                         /* C, the HP's ON position: always ends an app (rule 4) */
+
+static app_state *app_fw;                       /* the framework running an app: app_beep's and app_now_ms's */
+
+static uint32_t app_hash(const char *name)      /* FNV-1a of the name: an app's save's key */
+{
+    uint32_t h = 2166136261u;
+    for (; *name; name++) h = (h ^ (uint8_t)*name) * 16777619u;
+    return h;
+}
+
+static int app_save_slot(app_state *a, uint32_t h, bool make)
+{
+    int free_slot = -1;
+    for (int i = 0; i < 8; i++) {
+        if (a->app_saves[i].used && a->app_saves[i].hash == h) return i;
+        if (!a->app_saves[i].used && free_slot < 0) free_slot = i;
+    }
+    if (!make || free_slot < 0) return -1;
+    a->app_saves[free_slot].used = 1;
+    a->app_saves[free_slot].hash = h;
+    memset(a->app_saves[free_slot].data, 0, APP_SAVE_SIZE);
+    return free_slot;
+}
+
+void app_apps(app_state *a, const app_def *const *list, int n)
+{
+    a->apps = list;
+    a->napps = n;
+}
+
+void app_ctx_buffer(app_state *a, void *buf, uint32_t cap)
+{
+    a->app_ctx = buf;
+    a->app_ctx_cap = buf ? cap : 0;
+}
+
+bool app_running(const app_state *a)
+{
+    return a->app != NULL;
+}
+
+bool app_ticking(const app_state *a)
+{
+    return a->app != NULL && a->app_next > 0;
+}
+
+/* Starts an app (APPS's soft key): its state zeroed, its save loaded, started, the first tick at once. */
+static void app_start(app_state *a, const app_def *d)
+{
+    uint32_t now = a->now_ms;
+    if (!a->app_ctx || d->ctx_size > a->app_ctx_cap || d->ctx_size > APP_CTX_MAX) {
+        a->notice = "NO MEMORY";
+        a->notice_ms = now;
+        return;
+    }
+    memset(a->app_ctx, 0, d->ctx_size);
+    a->app = d;
+    app_fw = a;
+    a->app_t0 = now;
+    a->menu = -1;
+    a->shift = 0;
+    int s = app_save_slot(a, app_hash(d->name), false);
+    d->load(a->app_ctx, s >= 0 ? a->app_saves[s].data : NULL, s >= 0 ? APP_SAVE_SIZE : 0);
+    d->start(a->app_ctx);
+    a->app_last = 0;
+    a->app_next = d->tick(a->app_ctx, 0);       /* the first tick right after start */
+    a->render = true;
+}
+
+/* C: the app saves and stops, the calculator's screen as it was. */
+static void app_exit(app_state *a)
+{
+    const app_def *d = a->app;
+    bool had = app_save_slot(a, app_hash(d->name), false) >= 0;
+    int s = app_save_slot(a, app_hash(d->name), true);
+    if (s >= 0) {                               /* its save, apart from the calculator's image (rule 5) */
+        uint8_t before[APP_SAVE_SIZE];
+        memcpy(before, a->app_saves[s].data, APP_SAVE_SIZE);
+        d->save(a->app_ctx, a->app_saves[s].data, APP_SAVE_SIZE);
+        if (!had || memcmp(before, a->app_saves[s].data, APP_SAVE_SIZE)) a->apps_dirty = true;
+    }
+    d->stop(a->app_ctx);
+    a->app = NULL;
+    app_fw = NULL;
+    a->app_next = 0;
+    a->render = true;
+}
+
+/* A key while an app runs: C ends it (never delivered); any other key goes to it, down or up, on its
+   clock; drawn when the app asks. The core is never called (rule 3). */
+static void app_key_to(app_state *a, int key, bool down, uint32_t now_ms)
+{
+    a->now_ms = now_ms;
+    pwr_activity(&a->pwr, now_ms);
+    if (key == APP_EXIT_KEY) {
+        if (down) app_exit(a);
+        return;
+    }
+    if (a->app->key(a->app_ctx, key, down, now_ms - a->app_t0)) a->render = true;
+}
+
+/* A tick due: the app's tick with the time since the last; auto-off kept away (rule 3). */
+static void app_tick_app(app_state *a, uint32_t now_ms)
+{
+    uint32_t t = now_ms - a->app_t0;
+    a->now_ms = now_ms;                         /* (auto-off: app_tick counts an app as busy, rule 3) */
+    if (a->app_next && t - a->app_last >= a->app_next) {
+        uint32_t ms = t - a->app_last;
+        a->app_last = t;
+        a->app_next = a->app->tick(a->app_ctx, ms);
+        a->render = true;
+    }
+}
+
+bool app_draw(app_state *a, ls027_frame *f)
+{
+    if (!a->app) return false;
+    a->app->draw(a->app_ctx, f);
+    return true;
+}
+
+/* The saves' image: "ABAP", version 1, eight records (hash, used, 64 bytes), CRC-32 of the rest. */
+#define APP_SAVES_LEN (6 + 8 * (4 + 1 + APP_SAVE_SIZE) + 4)
+
+size_t app_saves_image(const app_state *a, uint8_t *buf, size_t cap)
+{
+    if (cap < APP_SAVES_LEN) return 0;
+    size_t n = 0;
+    memcpy(buf, "ABAP", 4);
+    buf[4] = 1;
+    buf[5] = 8;
+    n = 6;
+    for (int i = 0; i < 8; i++) {
+        for (int k = 0; k < 4; k++) buf[n++] = (uint8_t)(a->app_saves[i].hash >> (8 * k));
+        buf[n++] = a->app_saves[i].used;
+        memcpy(buf + n, a->app_saves[i].data, APP_SAVE_SIZE);
+        n += APP_SAVE_SIZE;
+    }
+    uint32_t crc = ab_crc32(buf, n);
+    for (int k = 0; k < 4; k++) buf[n++] = (uint8_t)(crc >> (8 * k));
+    return n;
+}
+
+bool app_saves_load(app_state *a, const uint8_t *buf, size_t n)
+{
+    if (n != APP_SAVES_LEN || memcmp(buf, "ABAP", 4) || buf[4] != 1 || buf[5] != 8) return false;
+    uint32_t crc = (uint32_t)buf[n - 4] | (uint32_t)buf[n - 3] << 8 | (uint32_t)buf[n - 2] << 16 | (uint32_t)buf[n - 1] << 24;
+    if (ab_crc32(buf, n - 4) != crc) return false;
+    size_t p = 6;
+    for (int i = 0; i < 8; i++) {
+        a->app_saves[i].hash = (uint32_t)buf[p] | (uint32_t)buf[p + 1] << 8 | (uint32_t)buf[p + 2] << 16 | (uint32_t)buf[p + 3] << 24;
+        a->app_saves[i].used = buf[p + 4] ? 1 : 0;
+        memcpy(a->app_saves[i].data, buf + p + 5, APP_SAVE_SIZE);
+        p += 5 + APP_SAVE_SIZE;
+    }
+    return true;
+}
+
+void app_beep(uint16_t hz, uint16_t ms)
+{
+    app_state *a = app_fw;
+    if (!a || !(a->set.uses & DEV_USE_APP) || a->set.vol == 0) return;
+    a->tone = a->set.vol;
+    a->tone_use = DEV_USE_APP;
+    a->tone_hz = hz;
+    a->tone_ms = ms;
+}
+
+uint32_t app_now_ms(void)
+{
+    app_state *a = app_fw;
+    if (!a) return 0;
+    uint32_t now = a->clock_ms ? a->clock_ms(a->ctx) : a->now_ms;
+    return now - a->app_t0;
+}

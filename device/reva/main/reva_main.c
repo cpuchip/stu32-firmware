@@ -70,13 +70,14 @@ static QueueHandle_t keys_q;           /* key n down: n; released: KEY_UP_BASE -
 /* unit 023: light sleep between keys. usb_lock keeps the chip out of light sleep on USB power (the
    console stays usable, the power is free); tone_lock through a piezo tone (LEDC stops in light
    sleep); key_wake is given by a row's or IO0's interrupt while the scan sleeps. */
-static esp_pm_lock_handle_t usb_lock, tone_lock;
+static esp_pm_lock_handle_t usb_lock, tone_lock, app_lock;   /* app_lock: an app ticking (unit 037) */
 static bool usb_locked;
 static SemaphoreHandle_t key_wake;
 static ab_calc *calc;
 static app_state app;
 static uint8_t *image;
 static ab_flash flash;
+static ab_flash apps_flash;             /* unit 037: the apps' saves, a store of their own (abapps) */
 static gauge_bus gbus;
 static i2c_master_dev_handle_t gdev;
 static int soc = -1;
@@ -297,6 +298,15 @@ static int fl_read(void *ctx, uint32_t off, void *dst, uint32_t len)
 }
 
 /* the state image and the device's settings after it (unit 022, settings.h) */
+/* unit 037: the apps' saves (apart from the calculator's image), stored when they change */
+static void apps_save(void)
+{
+    static uint8_t b[1024];
+    if (!app.apps_dirty || !apps_flash.ctx) return;
+    size_t n = app_saves_image(&app, b, sizeof b);
+    if (n && ab_store_save(&apps_flash, b, (uint32_t)n) == 0) app.apps_dirty = false;
+}
+
 static void save(void)
 {
     size_t n = dev_image_save(calc, &app.set, NULL, 0);
@@ -330,7 +340,7 @@ static void render(int busy)
     pwr_inputs in = {gpio_get_level(PIN_CHG_N), gpio_get_level(PIN_PGOOD_N), soc, false};
     ui.battery = soc;
     ui.charging = pwr_charging(&in);
-    screen_render(calc, &ui, &next);
+    if (!app_draw(&app, &next)) screen_render(calc, &ui, &next);   /* an app's frame (unit 037) */
     lcd_update();
 }
 
@@ -460,10 +470,21 @@ static void calc_task(void *arg)
         if (app.tone >= 0) {                    /* VOL's new level, or a use's sound (units 022, 027) */
             uint32_t hz, ms;
             dev_tone_of(app.tone_use, PIEZO_HZ, &hz, &ms);
+            if (app.tone_use == DEV_USE_APP && app.tone_hz) hz = app.tone_hz, ms = app.tone_ms;   /* an app's (037) */
             piezo_level = app.tone;
             piezo_tone(hz, ms);
             piezo_level = app.set.vol;
             app.tone = -1;
+        }
+        apps_save();                            /* unit 037 */
+        {   /* no light sleep while an app ticks (rule 7): the lock held once, released once */
+            static bool held;
+            bool want = app_ticking(&app);
+            if (app_lock && want != held) {
+                if (want) esp_pm_lock_acquire(app_lock);
+                else esp_pm_lock_release(app_lock);
+                held = want;
+            }
         }
         if (act == APP_SAVE) save();
         if (act == APP_OFF) {
@@ -540,6 +561,8 @@ void app_main(void)
 
     const esp_partition_t *p = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, 0x40, "abstate");
     if (p) flash = (ab_flash){(void *)p, 4096, p->size / 2, fl_erase, fl_write, fl_read};
+    const esp_partition_t *q = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, 0x41, "abapps");
+    if (q) apps_flash = (ab_flash){(void *)q, 4096, q->size / 2, fl_erase, fl_write, fl_read};
     calc = heap_caps_calloc(1, sizeof *calc, MALLOC_CAP_SPIRAM);
     image = heap_caps_malloc(IMAGE_CAP, MALLOC_CAP_SPIRAM);
     if (!calc || !image) {
@@ -563,6 +586,12 @@ void app_main(void)
         }
         app_undo_buffers(&app, u0, u1, IMAGE_CAP);
         app_graph_buffer(&app, heap_caps_malloc(sizeof(app_graph), MALLOC_CAP_SPIRAM));   /* unit 033 */
+        app_ctx_buffer(&app, heap_caps_malloc(APP_CTX_MAX, MALLOC_CAP_SPIRAM), APP_CTX_MAX);  /* unit 037 */
+        {
+            static uint8_t b[1024];
+            uint32_t n = apps_flash.ctx ? ab_store_load(&apps_flash, b, sizeof b) : 0;
+            if (n) app_saves_load(&app, b, n);
+        }
     }
 
     /* unit 027: the clock from the RTC (it ran through deep sleep; unset after the cell was out) */
@@ -591,6 +620,7 @@ void app_main(void)
         if (esp_pm_configure(&pm) == ESP_OK) {
             esp_pm_lock_create(ESP_PM_NO_LIGHT_SLEEP, 0, "usb", &usb_lock);
             esp_pm_lock_create(ESP_PM_NO_LIGHT_SLEEP, 0, "tone", &tone_lock);
+            esp_pm_lock_create(ESP_PM_NO_LIGHT_SLEEP, 0, "app", &app_lock);
             usb_lock_follow(gpio_get_level(PIN_PGOOD_N) == 0);
         } else {
             printf("reva: no power management (light sleep off)\n");

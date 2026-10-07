@@ -610,7 +610,12 @@ int main(void)
             app_ui(&a, &ui);
             bool ok = true;
             for (int i = 0; i < 6; i++) {
-                const char *want = mn->paged ? (i < 5 ? ab_const_symbol(i) : "more") : mn->item[i].legend;
+                const char *want = mn->paged == KM_PAGED_APPS ? (i < 5 ? (i < app_registry_n ? app_registry[i]->name : NULL) : "more")
+                                   : mn->paged ? (i < 5 ? ab_const_symbol(i) : "more") : mn->item[i].legend;
+                if (!want) {                            /* (APPS: fewer apps than five) */
+                    ok = ok && (!ui.soft[i] || !*ui.soft[i]);
+                    continue;
+                }
                 /* SETUP's OFF and VOL show their values after the legend (unit 022) */
                 if (!strcmp(mn->name, "MODE") && i == 4) {     /* ALG: hidden outside STU (unit 029) */
                     ok = ok && (!ui.soft[i] || !*ui.soft[i]);

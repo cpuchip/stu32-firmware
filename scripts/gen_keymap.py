@@ -187,6 +187,8 @@ MENUS = [
              ("FLASH", "KM_DEVICE", "3", "KM_DEV_VIEW", 0), NONE, NONE, NONE]),
     # rule 3: the one paged menu; the app fills soft keys 1-5 from the core's constants
     ("CONST", [NONE, NONE, NONE, NONE, NONE, ("more", "KM_NONE", "0", 0, 0)], "AB_CONST"),
+    # unit 037: APPS on blue 0, paged as CONST: the app fills soft keys 1-5 with the registered apps
+    ("APPS", [NONE, NONE, NONE, NONE, NONE, ("more", "KM_NONE", "0", 0, 0)], "KM_PAGED_APPS"),
 ]
 # Menu legends that act as plain ops until their menu is ruled (abacus #3867): the EQN menu's
 # first item will take this over.

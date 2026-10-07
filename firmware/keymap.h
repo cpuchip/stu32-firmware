@@ -73,6 +73,7 @@ const km_action *km_lookup(int key, int shift);
 typedef struct {
     const char *name;
     km_action item[KM_SOFT_KEYS];
+#define KM_PAGED_APPS (-1)  /* paged: APPS's menu, the registered apps (unit 037) */
     int paged;              /* 0, or AB_CONST: soft keys 1-5 are five of the core's constants and
                                6 is "more", the next five, wrapping at the end (unit 019) */
 } km_menu;
