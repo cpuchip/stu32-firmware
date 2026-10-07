@@ -1125,6 +1125,15 @@ int main(void)
             for (int k = 0; k < 4; k++) z[sizeof z - 4 + k] = (uint8_t)(zc >> (8 * k));
             expect(refused && !app_saves_load(&b, z, sizeof z) && b.saves_len == had,
                    "v1.2 (2): a v1 image that doesn't fit, or a zero-length record: refused, nothing changed");
+            static uint8_t big[6 + 6 + APP_SAVE_MAX + 1 + 4];   /* one record of APP_SAVE_MAX + 1 bytes (abacus #4889) */
+            memset(big, 0x5A, sizeof big);
+            memcpy(big, "ABAP", 4);
+            big[4] = 2, big[5] = 1;
+            big[10] = (uint8_t)((APP_SAVE_MAX + 1) & 0xFF), big[11] = (uint8_t)((APP_SAVE_MAX + 1) >> 8);
+            uint32_t bc = ab_crc32(big, sizeof big - 4);
+            for (int k = 0; k < 4; k++) big[sizeof big - 4 + k] = (uint8_t)(bc >> (8 * k));
+            expect(!app_saves_load(&b, big, sizeof big) && b.saves_len == had,
+                   "v1.2 (2): a record past APP_SAVE_MAX: the image refused whole (a save is taken whole or not at all)");
         }
     }
 
