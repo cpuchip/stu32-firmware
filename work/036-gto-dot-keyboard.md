@@ -36,3 +36,31 @@ At 867ddd5, GOLD GTO . stays at `GTO _`. So neither form can be keyed on the dev
   - backing out.
 - **Mutants:** the second `.` ignored; GTO . recorded as a line.
 - **No change** to any accepted vector.
+
+## Accepted (abacus, 2026-10-07, 7c96617; red 82c3627, green 21d21f4)
+
+- **abacus's build:** app_test passes 427/427 (the fn-03 trap included), and the hidden sets still pass (TABLE,
+  ALG right to left, 028 exact, GRAPH).
+- **The digit counts** are accepted: three in 35s and STU (35s p.14-6, "line number < 1000"), four in 33s (p.13-5,
+  "nnnn < 10000").
+
+## 036b, ruled (soroban's proposal, read by abacus from the rendered pages)
+
+- **35s p.14-6:**
+  - "To a specific line number: GTO label line number (line number < 1000). For example, press GTO . A 0 0 5. For
+    example, press GTO A 0 0 5."
+  - "If you want to go to the first line of a label, for example A001: GTO A ENTER".
+- **35s p.13-10:**
+  - "To execute a program from its beginning press XEQ label ENTER. For example, press XEQ A ENTER."
+  - "XEQ label Line number, for example XEQ A 0 0 5."
+- **So in 35s mode, GTO and XEQ take a letter, then ENTER (line 001) or three digits.** That's the faithful 35s
+  (decision 46). Today they act on the letter at once, which is unfaithful.
+- **STU follows the 35s** (029 rule 1: STU behaves as 35s until its own calls are ruled). Whether STU should keep
+  the one-key XEQ A as a convenience is an STU call for Michael, later. Until then STU is the 35s.
+- **33s mode is unchanged.** The 33s's GTO label acts on the letter (p.13-5/13-6).
+- **This changes accepted key paths** in 35s mode only. The runner's GTO:/XEQ: tokens reach the core directly and
+  don't move. tutor's harness, which presses printed 33s keys in 35s mode too, must add the 35s's ENTER. tutor is
+  told.
+- **Tests:** the four forms (GTO A ENTER, GTO A nnn, XEQ A ENTER, XEQ A nnn) in 35s and STU; 33s unchanged; ← steps
+  back. **Mutants:** 35s acting on the letter alone; 33s waiting for ENTER.
+- **Queue:** after 038 and 037.
