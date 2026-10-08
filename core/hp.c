@@ -82,22 +82,59 @@ bool hp_add(hp *r, const hp *a, const hp *b, bool subtract, int p)
     return true;
 }
 
+/* a / b to p digits by Newton's iteration for the reciprocal (unit 045; Newton's method, the reciprocal's form as in
+   Knuth, TAOCP vol. 2, 4.3.3): y += y (1 - b y), each step squaring the last's error, to p + 4 digits; then a y to
+   p + 2, padded to p digits as the long division gave them. Within about a unit of the quotient's (p + 1)-th digit,
+   where the long division it replaces (a digit at a time: 37 multiplies' time on the S3) truncated at the p-th.
+   The start: b's leading nine digits B9 (b scaled into [1, 10), so b = B9 10^-8 (1 + d), 0 <= d < 10^-8), and
+   y = floor(10^17 / B9) 10^-9, so |1 - b y| < 2 10^-8: seven digits, then each step at about twice its digits. (The
+   engine's 34-digit 1 / b was the first start: a software decimal division, it cost more than the steps it saved.)
+   r may be a. */
 bool hp_div(hp *r, const hp *a, const hp *b, int p)
 {
-    static sbig num;
-    bool inexact;
+    static hp an, bn, y, t, u, one;
     if (hp_is_zero(b)) return false;
     if (hp_is_zero(a)) {
         hp_set_int(r, 0);
         return true;
     }
-    int k = p + 2 + sb_ndigits(&b->m) - sb_ndigits(&a->m);
-    if (k < 0) k = 0;
-    num = a->m;
-    if (!sb_mul_pow10(&num, k) || !sb_div(&r->m, &num, &b->m, &inexact)) return false;
-    r->e = a->e - b->e - k;
-    r->neg = a->neg != b->neg;
+    bool neg = a->neg != b->neg;
+    long lb = hp_lead(b);
+    an = *a;
+    an.neg = false;
+    bn = *b;
+    bn.neg = false;
+    bn.e -= lb;
+    {
+        const sbig *m = &bn.m;
+        uint64_t top = m->l[m->n - 1];
+        int nd = sb_ndigits(m), td = nd - 9 * (m->n - 1);      /* the top limb's digits */
+        if (m->n > 1) top = top * 1000000000u + m->l[m->n - 2], td += 9;
+        static const uint32_t P10[10] = {1u, 10u, 100u, 1000u, 10000u, 100000u, 1000000u, 10000000u, 100000000u,
+                                         1000000000u};
+        uint32_t b9 = (uint32_t)(td > 9 ? top / P10[td - 9] : top * P10[9 - td]);
+        sb_set(&y.m, (uint32_t)(100000000000000000ull / b9));
+        y.e = -9;
+        y.neg = false;
+    }
+    hp_set_int(&one, 1);
+    int w = p + 4;
+    for (int digits = 7; digits < w; digits *= 2) {
+        int s = 2 * digits + 4 < w ? 2 * digits + 4 : w;
+        if (!hp_mul(&t, &bn, &y, s) || !hp_add(&u, &one, &t, true, s) || !hp_mul(&t, &y, &u, s) ||
+            !hp_add(&u, &y, &t, false, s))
+            return false;
+        y = u;
+    }
+    if (!hp_mul(r, &an, &y, p + 2)) return false;
+    r->e -= lb;
+    r->neg = neg && !hp_is_zero(r);
     hp_trim(r, p);
+    int n = sb_ndigits(&r->m);
+    if (n > 0 && n < p) {                       /* p digits, as the long division gave (a / 1 is a again, in full) */
+        if (!sb_mul_pow10(&r->m, p - n)) return false;
+        r->e -= p - n;
+    }
     return true;
 }
 
