@@ -869,6 +869,15 @@ static void inv_hint(const abn *v, abn_status st, fn_angle m)
     if (st != ABN_OK) return;
     if (m == FN_RAD) inv_start = *v;
     else if (k = K(m == FN_GRAD ? GRAD_UNIT.to_rad : DEG_UNIT.to_rad), abn_mul(&inv_start, v, &k) != ABN_OK) return;
+    /* an angle below 10^-30 keeps the engine's atan2 start, as before: there the Newton step's correction falls below
+       the last kept digit and the result is the start itself, so the start's decimal128 cohort is the result's (the
+       hint's, the engine's full-length asin or atan, differed from atan2's: same value, other bytes; 045's
+       differential, tiny ATAN) */
+    static abn tiny_angle;
+    static bool tiny_set;
+    if (!tiny_set) abn_from_text(&tiny_angle, "1E-30"), tiny_set = true;     /* (parsed once: a software conversion) */
+    k = abn_abs(&inv_start);
+    if (abn_cmp(&k, &tiny_angle) < 0) return;
     inv_start_on = true;
 }
 

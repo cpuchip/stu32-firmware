@@ -442,6 +442,22 @@ bool hp_ln(hp *r, const hp *s, const hp *t, int p)
        y += 2 (s - E) / (s + E), each step tripling the correct digits, from the engine's 30 or more: one exp a step,
        where Newton's y += s e^-y - 1 doubled them (at 65 digits two exps, now one). Near s = 1, s - E = t - (E - 1)
        and s + E = 2 + t + (E - 1), E - 1 by expm1, so a small ln keeps its digits. */
+    /* A tiny t (below 10^-25) keeps Newton's steps, as before unit 045: there each expm1 is a term or two, and the
+       steps' last digits decide the result's decimal128 cohort (a residue y keeps, or a short y where there is none),
+       which Halley's exact cancellation would decide otherwise: the same value, other bytes (abacus's 045
+       differential, tiny ASINH) */
+    if (near && hp_lead(t) < -25) {
+        for (int digits = 30; digits < w + 5; digits *= 2) {
+            my = y;
+            hp_neg(&my);
+            if (!hp_expm1(&e, &my, w) || !hp_mul(&u, s, &e, w) || !hp_add(&v, &u, t, false, w)) return false;
+            if (!hp_add(&u, &y, &v, false, w)) return false;
+            y = u;
+        }
+        *r = y;
+        hp_trim(r, p);
+        return true;
+    }
     for (int digits = 30; digits < w + 5; digits *= 3) {
         if (near) {
             if (!hp_expm1(&e, &y, w) || !hp_add(&u, t, &e, true, w) || !hp_add(&v, t, &e, false, w)) return false;
