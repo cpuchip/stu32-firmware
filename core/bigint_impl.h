@@ -3,6 +3,23 @@
  * name for that type) and includes this (core/bigint.c, the wide numbers; core/sbig.c, the short
  * ones). Schoolbook arithmetic in base 10^9 (Knuth, TAOCP vol. 2, 4.3.1). */
 
+/* t / 10^9, with t % 10^9 into *r, for any 64-bit t, without a 64-bit division (unit 045): a 32-bit core does one in
+ * software (1.1 us on the S3), and every limb step took one. 10^9 = 2^9 1953125, so the quotient is (t >> 9) / 1953125,
+ * which is the high bits of (t >> 9) m, m = ceil(2^76 / 1953125): exact for every (t >> 9) < 2^55, since
+ * m 1953125 - 2^76 = 799614 <= 2^21 (Granlund and Montgomery, "Division by Invariant Integers using Multiplication",
+ * 1994, theorem 4.2). The product's high half from four 32-bit products; the remainder in 32 bits, being below 10^9. */
+static inline uint64_t BI_(qr9_)(uint64_t t, uint32_t *r)
+{
+    const uint64_t m = 0x89705f4136b4a6ull;
+    uint64_t u = t >> 9;
+    uint32_t ul = (uint32_t)u, uh = (uint32_t)(u >> 32), ml = (uint32_t)m, mh = (uint32_t)(m >> 32);
+    uint64_t ll = (uint64_t)ul * ml, lh = (uint64_t)ul * mh, hl = (uint64_t)uh * ml, hh = (uint64_t)uh * mh;
+    uint64_t mid = (ll >> 32) + (uint32_t)lh + (uint32_t)hl;
+    uint64_t q = (hh + (lh >> 32) + (hl >> 32) + (mid >> 32)) >> 12;
+    *r = (uint32_t)t - (uint32_t)q * BI_BASE;
+    return q;
+}
+
 static void BI_(trim_)(BI_T *a)
 {
     while (a->n > 0 && a->l[a->n - 1] == 0) a->n--;
@@ -41,15 +58,11 @@ int BI_(ndigits)(const BI_T *a)
 bool BI_(mul_u32)(BI_T *a, uint32_t m)
 {
     uint64_t carry = 0;
-    for (int i = 0; i < a->n; i++) {
-        uint64_t t = (uint64_t)a->l[i] * m + carry;
-        a->l[i] = (uint32_t)(t % BI_BASE);
-        carry = t / BI_BASE;
-    }
+    for (int i = 0; i < a->n; i++) carry = BI_(qr9_)((uint64_t)a->l[i] * m + carry, &a->l[i]);
     while (carry) {
         if (a->n >= BI_CAP) return false;
-        a->l[a->n++] = (uint32_t)(carry % BI_BASE);
-        carry /= BI_BASE;
+        carry = BI_(qr9_)(carry, &a->l[a->n]);
+        a->n++;
     }
     BI_(trim_)(a);
     return true;
@@ -62,17 +75,26 @@ bool BI_(mul)(BI_T *r, const BI_T *a, const BI_T *b)
         return true;
     }
     if (a->n + b->n > BI_CAP) return false;
-    memset(r->l, 0, sizeof(uint32_t) * (size_t)(a->n + b->n));
-    for (int i = 0; i < a->n; i++) {
-        uint64_t carry = 0;
-        for (int j = 0; j < b->n; j++) {
-            uint64_t t = (uint64_t)r->l[i + j] + (uint64_t)a->l[i] * b->l[j] + carry;
-            r->l[i + j] = (uint32_t)(t % BI_BASE);
-            carry = t / BI_BASE;
+    /* column by column (comba): a column's products summed in 64 bits, its digit and carry taken once (unit 045). A
+       sum reaching 2^63 is folded first: each product is below 10^18 < 2^60, so the sum never wraps. The top
+       column's carry is the product's top limb, below 10^9. */
+    int n = a->n + b->n;
+    uint64_t carry = 0;
+    for (int k = 0; k < n - 1; k++) {
+        uint64_t acc = carry, folded = 0;
+        int i1 = k < a->n ? k : a->n - 1;
+        for (int i = k < b->n ? 0 : k - b->n + 1; i <= i1; i++) {
+            acc += (uint64_t)a->l[i] * b->l[k - i];
+            if (acc >> 63) {
+                uint32_t low;
+                folded += BI_(qr9_)(acc, &low);
+                acc = low;
+            }
         }
-        r->l[i + b->n] = (uint32_t)carry;
+        carry = folded + BI_(qr9_)(acc, &r->l[k]);
     }
-    r->n = a->n + b->n;
+    r->l[n - 1] = (uint32_t)carry;
+    r->n = n;
     BI_(trim_)(r);
     return true;
 }
@@ -98,15 +120,11 @@ bool BI_(add)(BI_T *r, const BI_T *a, const BI_T *b)
 bool BI_(add_u32)(BI_T *a, uint32_t v)
 {
     uint64_t carry = v;
-    for (int i = 0; carry && i < a->n; i++) {
-        uint64_t t = (uint64_t)a->l[i] + carry;
-        a->l[i] = (uint32_t)(t % BI_BASE);
-        carry = t / BI_BASE;
-    }
+    for (int i = 0; carry && i < a->n; i++) carry = BI_(qr9_)((uint64_t)a->l[i] + carry, &a->l[i]);
     while (carry) {
         if (a->n >= BI_CAP) return false;
-        a->l[a->n++] = (uint32_t)(carry % BI_BASE);
-        carry /= BI_BASE;
+        carry = BI_(qr9_)(carry, &a->l[a->n]);
+        a->n++;
     }
     return true;
 }
@@ -157,6 +175,21 @@ bool BI_(mul_pow10)(BI_T *a, int k)
 
 uint32_t BI_(divmod_u32)(BI_T *a, uint32_t d)
 {
+    /* With 10^9 = A d + B, a limb step's (rem 10^9 + l) / d is rem A + (rem B + l) / d, its remainder (rem B + l) mod
+       d; rem < d, so all of it is in 32 bits when (d - 1) B + 10^9 - 1 < 2^32: every d up to 57358, and every d that
+       divides 10^9 (B is 0: the powers of ten that trim a value). A 32-bit core divides those in hardware and needs
+       no 64-bit division (unit 045); any other d takes the 64-bit step. */
+    uint32_t A = BI_BASE / d, B = BI_BASE % d;
+    if ((uint64_t)(d - 1) * B + BI_BASE - 1 <= UINT32_MAX) {
+        uint32_t rem = 0;
+        for (int i = a->n - 1; i >= 0; i--) {
+            uint32_t x = rem * B + a->l[i];
+            a->l[i] = rem * A + x / d;
+            rem = x % d;
+        }
+        BI_(trim_)(a);
+        return rem;
+    }
     uint64_t rem = 0;
     for (int i = a->n - 1; i >= 0; i--) {
         uint64_t t = rem * BI_BASE + a->l[i];
