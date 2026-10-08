@@ -5,3 +5,4 @@ N01 | 044: RAD 30 SIN is ...4582 (tutor; was ...4581) | RAD 30 SIN | X=-0.988031
 N02 | 044: 45 ->RAD is pi/4, ...757 (tutor; was ...758: a rounded pi/180) | 45 TORAD | X=0.7853981633974483096156608458198757
 N03 | 044: 2 ->RAD is ...225 (tutor; was ...226) | 2 TORAD | X=0.03490658503988659153847381536977225
 N04 | 044: DEG ACOS 0.28 is ...682 (tutor; was ...681) | DEG .28 ACOS | X=73.73979529168804259371122511818682
+N05 | 044 rule 5 (abacus #4897): a program integrand stores readable values, so it runs correctly rounded: after the integral, A (X) is RAD 30 SIN at B (Y) = 30 (the review's probe) | PRGM CLPGM LBL:F RCL:X STO:B SIN STO:A RTN PRGM RAD 29 ENTER 31 FN=:F INTEG:X RCL:B RCL:A | X=-0.9880316240928617899877489072944582 Y=30
