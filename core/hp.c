@@ -82,6 +82,25 @@ bool hp_add(hp *r, const hp *a, const hp *b, bool subtract, int p)
     return true;
 }
 
+/* q, p digits, moved by a unit of its last digit, kept at p digits across a power of ten */
+static bool q_step(hp *q, int p, bool up)
+{
+    if (up) {
+        if (!sb_add_u32(&q->m, 1)) return false;
+        if (sb_ndigits(&q->m) > p) {
+            sb_div_pow10(&q->m, 1);
+            q->e++;
+        }
+        return true;
+    }
+    if (!sb_sub_u32(&q->m, 1)) return false;
+    if (sb_ndigits(&q->m) < p) {
+        if (!sb_mul_u32(&q->m, 10) || !sb_add_u32(&q->m, 9)) return false;
+        q->e--;
+    }
+    return true;
+}
+
 /* a / b to p digits by Newton's iteration for the reciprocal (unit 045; Newton's method, the reciprocal's form as in
    Knuth, TAOCP vol. 2, 4.3.3): y += y (1 - b y), each step squaring the last's error, to p + 4 digits; then a y to
    p + 2, padded to p digits as the long division gave them. Within about a unit of the quotient's (p + 1)-th digit,
@@ -89,7 +108,11 @@ bool hp_add(hp *r, const hp *a, const hp *b, bool subtract, int p)
    The start: b's leading nine digits B9 (b scaled into [1, 10), so b = B9 10^-8 (1 + d), 0 <= d < 10^-8), and
    y = floor(10^17 / B9) 10^-9, so |1 - b y| < 2 10^-8: seven digits, then each step at about twice its digits. (The
    engine's 34-digit 1 / b was the first start: a software decimal division, it cost more than the steps it saved.)
-   r may be a. */
+   Then the quotient made exact, as the long division's was: q truncated to p digits, q |b| <= |a| < (q + u) |b| for
+   u the unit of q's last digit, each test exact (sxn_mul, sxn_add), q stepped by a unit until both hold (a step or
+   two: the Newton quotient is within about a unit). Exact quotients stay exact (3 / 3 is 1, not 0.99...9), which the
+   paths that round hp once without a sureness test rely on: unit 009's negative powers hit exact ties (unit 045's
+   review). r may be a or b. */
 bool hp_div(hp *r, const hp *a, const hp *b, int p)
 {
     static hp an, bn, y, t, u, one;
@@ -128,13 +151,28 @@ bool hp_div(hp *r, const hp *a, const hp *b, int p)
     }
     if (!hp_mul(r, &an, &y, p + 2)) return false;
     r->e -= lb;
-    r->neg = neg && !hp_is_zero(r);
+    r->neg = false;
     hp_trim(r, p);
     int n = sb_ndigits(&r->m);
     if (n > 0 && n < p) {                       /* p digits, as the long division gave (a / 1 is a again, in full) */
         if (!sb_mul_pow10(&r->m, p - n)) return false;
         r->e -= p - n;
     }
+    bn.e += lb;                                 /* |b| */
+    for (int i = 0;; i++) {
+        if (i == 16 || !sxn_mul(&t, r, &bn) || !sxn_add(&u, &an, &t, true)) return false;     /* u = |a| - q |b| */
+        if (sxn_sign(&u) < 0) {
+            if (!q_step(r, p, false)) return false;
+            continue;
+        }
+        bn.e += r->e;                           /* |b| u */
+        bool ok = sxn_add(&t, &u, &bn, true);
+        bn.e -= r->e;
+        if (!ok) return false;
+        if (sxn_sign(&t) < 0) break;
+        if (!q_step(r, p, true)) return false;
+    }
+    r->neg = neg;
     return true;
 }
 

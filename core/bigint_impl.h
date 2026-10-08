@@ -165,7 +165,7 @@ static const uint32_t BI_(p10_)[10] = {1u, 10u, 100u, 1000u, 10000u, 100000u, 10
 
 bool BI_(mul_pow10)(BI_T *a, int k)
 {
-    if (a->n == 0) return true;
+    if (a->n == 0 || k <= 0) return true;      /* (k < 0: nothing, as before unit 045; its review) */
     int limbs = k / 9;
     if (a->n + limbs > BI_CAP) return false;
     memmove(a->l + limbs, a->l, sizeof(uint32_t) * (size_t)a->n);
@@ -203,6 +203,7 @@ uint32_t BI_(divmod_u32)(BI_T *a, uint32_t d)
 
 void BI_(div_pow10)(BI_T *a, int k)
 {
+    if (k <= 0) return;                         /* (k < 0: nothing, as before unit 045; its review) */
     int limbs = k / 9;
     if (limbs >= a->n) {
         a->n = 0;
