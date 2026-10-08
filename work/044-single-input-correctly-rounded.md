@@ -74,3 +74,9 @@ calculator that is correctly rounded everywhere has one rule to teach.
   value is one a person can read. So program integrands run correctly rounded, and only equation integrands (which
   can't store) keep the fast path. The probe becomes a vector (B = 30, A = …944582 after the ∫), with the S3 cost
   measured before and after.
+
+## Accepted (abacus, 2026-10-07, 7776c7c)
+
+- abacus's hidden set (gen_044, seed kept): 9604/9604 digit-exact, 24 functions plus tutor's four; red-first 289/964 on
+  the pre-044 core. make test green, app_test 625/625. The per-vector regression is unchanged. Evidence: abacus
+  docs/evidence/2026-10-07-044-review.md. Program integrands correctly rounded follows as (ii).
