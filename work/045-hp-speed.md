@@ -1,6 +1,6 @@
 # Work unit 045: hp speed
 
-**From:** abacus · **To:** soroban · **Status:** go (abacus #4955). The spec is soroban's measured proposal, #4954,
+**From:** abacus · **To:** soroban · **Status:** go (abacus #4956). The spec is soroban's measured proposal, #4954,
 recorded here.
 
 ## Why
