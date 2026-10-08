@@ -41,6 +41,8 @@
 #include "dev_common.h"
 #include "arena.h"
 #include "fn.h"
+#include "hp.h"
+#include "sbig.h"
 
 #define I2C_SDA 8
 #define I2C_SCL 9
@@ -54,7 +56,7 @@
 
 enum { EV_KEY = 0, EV_OP, EV_DUMP, EV_SAVE, EV_WIPE, EV_RESTART, EV_TOUCHED, EV_BENCH, EV_TIME, EV_POWBENCH,
        EV_KEYUP, EV_TBLBENCH, EV_GRBENCH, EV_FRAMEBENCH,
-       EV_POLBENCH, EV_ZOOMBENCH, EV_CASBENCH, EV_DIFFBENCH, EV_FNBENCH };                          /* EV_KEYUP: a the key released (unit 030: SHOW, held) */
+       EV_POLBENCH, EV_ZOOMBENCH, EV_CASBENCH, EV_DIFFBENCH, EV_FNBENCH, EV_HPBENCH, EV_PROGBENCH };                          /* EV_KEYUP: a the key released (unit 030: SHOW, held) */
 static char time_text[16];             /* TIME's argument, for the calc task (unit 027) */
 
 typedef struct {
@@ -535,6 +537,123 @@ static void zoombench(void)
     heap_caps_free(t);
 }
 
+/* HPBENCH (the hp speed proposal, after unit 044): each hp primitive's time on the S3 at the precisions unit 044's
+   passes use (65, 105 and 185 digits: p + 5 for p 60, 100, 180), the median of 21 runs, in microseconds. The
+   numbers in PSRAM (an hp is some 300 bytes; the internal heap is tight). */
+static int fnb_cmp(const void *a, const void *b);
+
+static void hpbench(void)
+{
+    hp *h = heap_caps_malloc(8 * sizeof(hp), MALLOC_CAP_SPIRAM);
+    if (!h) {
+        printf("hpbench: no memory\n");
+        return;
+    }
+    hp *a = &h[0], *b = &h[1], *r = &h[2], *r2 = &h[3], *x = &h[4], *t = &h[5], *big = &h[6];
+    abn v;
+    static const int W[] = {65, 105, 185};
+    abn_from_text(&v, "1.234567890123456789012345678901234");
+    hp_from_abn(a, &v);
+    abn_from_text(&v, "7.654321098765432109876543210987654");
+    hp_from_abn(b, &v);
+    abn_from_text(&v, "0.7391");
+    hp_from_abn(x, &v);
+    abn_from_text(&v, "-0.6391");
+    hp_from_abn(t, &v);                          /* (0.3609 - 1: hp_ln's t for s = 0.3609) */
+    abn_from_text(&v, "600.123456789");
+    hp_from_abn(big, &v);
+    for (int wi = 0; wi < 3; wi++) {
+        int w = W[wi];
+        hp_mul(r, a, b, w);                      /* full-length operands at this precision */
+        *a = *r;
+        hp_div(r, b, a, w);
+        *b = *r;
+        const char *name[9] = {"mul", "div", "add", "add, 30 apart", "exp 0.74", "exp 600", "ln 0.36", "sincos 0.74",
+                               "atan2"};
+        for (int k = 0; k < 9; k++) {
+            int64_t us[21];
+            for (int i = 0; i < 21; i++) {
+                int64_t t0 = esp_timer_get_time();
+                switch (k) {
+                case 0: hp_mul(r, a, b, w); break;
+                case 1: hp_div(r, a, b, w); break;
+                case 2: hp_add(r, a, b, false, w); break;
+                case 3: *r2 = *b, r2->e -= 30, hp_add(r, a, r2, false, w); break;
+                case 4: hp_exp(r, x, w); break;
+                case 5: hp_exp(r, big, w); break;
+                case 6: { hp s = *t; hp one; hp_set_int(&one, 1); hp_add(&s, &one, t, false, w); hp_ln(r, &s, t, w); } break;
+                case 7: hp_sincos(r, r2, x, w); break;
+                default: hp_atan2h(r, a, b, w); break;
+                }
+                us[i] = esp_timer_get_time() - t0;
+            }
+            qsort(us, 21, sizeof us[0], fnb_cmp);
+            printf("hpbench: w %3d  %-14s %7lld us\n", w, name[k], us[10]);
+        }
+    }
+    heap_caps_free(h);
+    {   /* the limb step's cost: a 64-bit quotient and remainder by 10^9 (sbig's base), against a 64-bit multiply */
+        volatile uint64_t seed = 999999999123456789ull, sink = 0;
+        uint64_t z = seed;
+        int64_t t0 = esp_timer_get_time();
+        for (int i = 0; i < 10000; i++) {
+            uint64_t q = z / 1000000000u, m = z % 1000000000u;
+            sink += q + m;
+            z = z * 6364136223846793005ull + 1442695040888963407ull;
+        }
+        int64_t t1 = esp_timer_get_time();
+        z = seed;
+        for (int i = 0; i < 10000; i++) {
+            sink += z >> 30;
+            z = z * 6364136223846793005ull + 1442695040888963407ull;
+        }
+        int64_t t2 = esp_timer_get_time();
+        printf("hpbench: 10000 x (64-bit / and %% 10^9 + step) %lld us; 10000 x (step alone) %lld us\n",
+               (long long)(t1 - t0), (long long)(t2 - t1));
+        volatile uint32_t dv = 7;
+        uint32_t z32 = 123456789u, s32 = 0;
+        int64_t t3 = esp_timer_get_time();
+        for (int i = 0; i < 10000; i++) {
+            s32 += z32 / dv + z32 % dv;
+            z32 = z32 * 1664525u + 1013904223u;
+        }
+        int64_t t4 = esp_timer_get_time();
+        sink += s32;
+        printf("hpbench: 10000 x (32-bit / and %% by a variable + step) %lld us\n", (long long)(t4 - t3));
+    }
+    {   /* the passes left after unit 045's step 1: a divide by a small variable divisor, by 10^5, and a trim */
+        static const uint32_t D[] = {7, 100000};
+        sbig *m = heap_caps_malloc(2 * sizeof(sbig), MALLOC_CAP_SPIRAM);
+        hp *tr = heap_caps_malloc(2 * sizeof(hp), MALLOC_CAP_SPIRAM);
+        if (m && tr) {
+            sb_from_digits(&m[1], "12345678901234567890123456789012345678901234567890123456789012345678901234", 0);
+            for (int k = 0; k < 2; k++) {
+                int64_t us[21];
+                for (int i = 0; i < 21; i++) {
+                    m[0] = m[1];
+                    int64_t t0 = esp_timer_get_time();
+                    sb_divmod_u32(&m[0], D[k]);
+                    us[i] = esp_timer_get_time() - t0;
+                }
+                qsort(us, 21, sizeof us[0], fnb_cmp);
+                printf("hpbench: 74 digits divmod_u32 by %-6u %lld us\n", (unsigned)D[k], us[10]);
+            }
+            int64_t us[21];
+            for (int i = 0; i < 21; i++) {
+                tr[0].neg = false, tr[0].e = 0, tr[0].m = m[1];
+                int64_t t0 = esp_timer_get_time();
+                hp_trim(&tr[0], 65);
+                us[i] = esp_timer_get_time() - t0;
+            }
+            qsort(us, 21, sizeof us[0], fnb_cmp);
+            printf("hpbench: hp_trim 74 -> 65 digits %lld us\n", us[10]);
+        }
+        heap_caps_free(m);
+        heap_caps_free(tr);
+    }
+    printf("hpbench: done\n");
+}
+
 /* FNBENCH (unit 044 rule 4): each one-input function's time on the S3, from the calc task: 40 arguments a case across
    its domain (the same each run: a fixed generator), median and worst in microseconds, and the worst's argument. */
 static uint32_t fnb_seed;
@@ -683,6 +802,52 @@ static void fnbench(void)
     }
     heap_caps_free(t);
     printf("fnbench: done\n");
+}
+
+/* PROGBENCH (unit 045, abacus #4956): a math-heavy program loop timed, so that "programs slow with 044" is a number:
+   LBL B, RCL X, the function, DSE N, GTO B with N = 100 and X = 1.234, in RAD: 100 calls of SIN, then of LN. */
+static ab_val pb_real(abn v)
+{
+    ab_val r;
+    memset(&r, 0, sizeof r);
+    r.kind = AB_REAL;
+    r.re = v;
+    return r;
+}
+
+static void progbench(void)
+{
+    static const struct { const char *name; ab_op op; } F[] = {{"SIN", AB_SIN}, {"LN", AB_LN}};
+    ab_calc *c2 = heap_caps_calloc(1, sizeof *c2, MALLOC_CAP_SPIRAM);
+    if (!c2) {
+        printf("progbench: no memory\n");
+        return;
+    }
+    for (int f = 0; f < 2; f++) {
+        abn x;
+        abn_from_text(&x, "1.234");
+        ab_init(c2);
+        ab_do(c2, AB_RAD);
+        ab_do(c2, AB_PRGM);
+        ab_do_arg(c2, AB_LBL, 1);
+        ab_do_arg(c2, AB_RCL, 'X' - 'A');
+        ab_do(c2, F[f].op);
+        ab_do_arg(c2, AB_DSE, 'N' - 'A');
+        ab_do_arg(c2, AB_GTO, 1 * 1000);
+        ab_do(c2, AB_RTN);
+        ab_do(c2, AB_PRGM);
+        c2->var['N' - 'A'] = pb_real(abn_from_int(100));
+        c2->var['X' - 'A'] = pb_real(x);
+        int64_t t0 = esp_timer_get_time();
+        abn_status st = ab_do_arg(c2, AB_XEQ, 1 * 1000);
+        int64_t t1 = esp_timer_get_time();
+        char r[64];
+        abn_to_text(&c2->x.re, r, sizeof r);
+        printf("progbench: 100 x %-3s in a program %lld ms (st %d, lines %ld, X %s)\n", F[f].name,
+               (long long)(t1 - t0) / 1000, (int)st, c2->run_lines, r);
+    }
+    heap_caps_free(c2);
+    printf("progbench: done\n");
 }
 
 /* DIFFBENCH (apps.h v1.2 item 1, abacus #4734): ls027_dirty's time on the S3 for a whole frame against the frame last
@@ -926,8 +1091,10 @@ static void console_task(void *arg)
         else if (!strcmp(line, "POLBENCH")) e.kind = EV_POLBENCH;  /* unit 034 rule 3: ->POL before and after */
         else if (!strcmp(line, "ZOOMBENCH")) e.kind = EV_ZOOMBENCH;  /* unit 040: a redraw after each zoom */
         else if (!strcmp(line, "CASBENCH")) e.kind = EV_CASBENCH;    /* CAS 004: each step's time, the stack */
+        else if (!strcmp(line, "PROGBENCH")) e.kind = EV_PROGBENCH;      /* unit 045: a program loop */
         else if (!strcmp(line, "DIFFBENCH")) e.kind = EV_DIFFBENCH;  /* apps.h v1.2 item 1: the line diff's time */
         else if (!strcmp(line, "FNBENCH")) e.kind = EV_FNBENCH;      /* unit 044 rule 4: each function's time */
+        else if (!strcmp(line, "HPBENCH")) e.kind = EV_HPBENCH;      /* the hp speed proposal: each primitive's time */
         else if (!strncmp(line, "TIME ", 5)) {      /* TIME hh:mm[:ss] (unit 027 rule 4) */
             snprintf(time_text, sizeof time_text, "%.15s", line + 5);
             e.kind = EV_TIME;
@@ -994,10 +1161,14 @@ static void calc_task(void *arg)
             zoombench();
         } else if (got && ev.kind == EV_CASBENCH) {
             casbench();
+        } else if (got && ev.kind == EV_PROGBENCH) {
+            progbench();
         } else if (got && ev.kind == EV_DIFFBENCH) {
             diffbench();
         } else if (got && ev.kind == EV_FNBENCH) {
             fnbench();
+        } else if (got && ev.kind == EV_HPBENCH) {
+            hpbench();
         } else if (got && ev.kind == EV_BENCH) {
             bench();
         } else if (got && ev.kind == EV_TIME) {
