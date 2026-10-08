@@ -1,0 +1,6 @@
+# Unit 046: an equation can begin with "(" (work/046-eqn-open-paren.md; abacus #4996). The key's reach is app_test's
+# (EQN LIST's sixth soft key); these are the typed equation's own values: the pair typed first (35s p.6-6), stored,
+# and evaluated.
+P01 | 046: (X^2-1)/(X-1) typed from the keys, the pair first, stored as typed | EQN () RCL:X POW 2 - 1 > / () RCL:X - 1 > ENTER | %EQ=(X^2-1)÷(X-1)
+P02 | 046: evaluated at X = 1.1: 2.1 (tutor's lim-01) | EQN () RCL:X POW 2 - 1 > / () RCL:X - 1 > ENTER ENTER 1.1 RS | X=2.1
+P03 | 046: a REG name first (EQN LIST's GOLD bank), in STU | STU EQN REG:X * 2 ENTER | %EQ=REGX×2

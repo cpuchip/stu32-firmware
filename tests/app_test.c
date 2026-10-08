@@ -1367,7 +1367,7 @@ int main(void)
 
     /* unit 020: in Equation mode the soft keys are the editor's bar (the list's, or typing's) */
     {
-        static const char *const LIST[6] = {"\xe2\x96\xb2", "\xe2\x96\xbc", "EDIT", "NEW", NULL, "EXIT"};
+        static const char *const LIST[6] = {"\xe2\x96\xb2", "\xe2\x96\xbc", "EDIT", "NEW", NULL, "( )"};   /* 046 */
         static const char *const TYPE[6] = {"\xe2\x97\x80", "\xe2\x96\xb6", "( )", "=", "SPC", "REG"};   /* REG boxed (#3958) */
         bool ok;
         ab_init(&c);
@@ -1376,7 +1376,7 @@ int main(void)
         app_ui(&a, &ui);
         ok = c.eqn_mode;
         for (int i = 0; i < 6; i++) ok = ok && (LIST[i] ? ui.soft[i] && !strcmp(ui.soft[i], LIST[i]) : !ui.soft[i] || !ui.soft[i][0]);
-        expect(ok, "EQN: the list's bar, \xe2\x96\xb2 \xe2\x96\xbc EDIT NEW - EXIT");
+        expect(ok, "EQN: the list's bar, \xe2\x96\xb2 \xe2\x96\xbc EDIT NEW - ( ) (unit 046: ( ) in EXIT's place)");
         /* the guide's first equation, key by key (p.6-2; unit 014's M01-M04) */
         press(&a, "RCL ltr:V");
         app_ui(&a, &ui);
@@ -1468,15 +1468,15 @@ int main(void)
         press(&a, "R/S");
         expect(x_of(&c) == 6, "i+(i) with i = 1, A = 5: 6");
 
-        /* EXIT leaves with the list unchanged */
+        /* C leaves with the list unchanged (EXIT's soft key, the same route, went for ( ): unit 046) */
         ab_init(&c);
         app_init(&a, &c, now);
         ab_eqn_add(&c, "B+2");
         press(&a, "k:1 k:1");
         int count = c.eqn_count;
-        press(&a, "k:5");
+        press(&a, "C");
         app_ui(&a, &ui);
-        expect(!c.eqn_mode && c.eqn_count == count && !ui.soft[0], "EXIT: Equation mode off, the list as it was");
+        expect(!c.eqn_mode && c.eqn_count == count && !ui.soft[0], "C: Equation mode off, the list as it was");
     }
 
     /* unit 022: RADIX and SETUP, the device's settings */
@@ -3679,6 +3679,59 @@ int main(void)
         expect(frames > 20 && za <= 2 && at0 && c.gr_cur != col0 && abn_cmp(&g44.s.cy.re, &want1) == 0 &&
                    abn_cmp(&g44.s.cy.re, &want0) != 0,
                "044: a plot's frames compute the trace's readout once; a moved cursor's readout is its new column's");
+    }
+
+    /* unit 046 (abacus #4996): EQN LIST's sixth soft key is "( )", in EXIT's place: from EQN LIST TOP and from an
+       equation shown, in each mode, it begins a new equation with the pair, the cursor between (35s p.6-6), and the
+       rest types as ever; ENTER stores it. GOLD's bank holds REGX..REGT as a first character, hidden and dimmed in
+       33s mode (041 A11). C from the list still stores and leaves (EXIT's route: nothing lost). */
+    {
+        static const int MODEL[3] = {AB_MODEL_STU, 35, 33};
+        int paren = 0, reg = 0, regdim = 0, cexit = 0;
+        for (int m = 0; m < 3; m++) {
+            for (int from = 0; from < 2; from++) {
+                ab_init(&c);
+                app_init(&a, &c, now);
+                ab_do_arg(&c, AB_MODEL, MODEL[m]);
+                ab_eqn_add(&c, "A+B");
+                if (!c.eqn_mode) press(&a, "GOLD 0");
+                if (from == 0) press(&a, "k:3");               /* NEW: EQN LIST TOP */
+                press(&a, "k:5");
+                bool typing = c.eqn_typing && !strcmp(c.ebuf, "()");
+                press(&a, "2 + 1 k:1 ENTER");
+                paren += typing && !c.eqn_typing && c.eqn_mode && !strcmp(c.eqn[c.eqn_cur], "(2+1)");
+            }
+            ab_init(&c);
+            app_init(&a, &c, now);
+            ab_do_arg(&c, AB_MODEL, MODEL[m]);
+            ab_eqn_add(&c, "A+B");
+            if (!c.eqn_mode) press(&a, "GOLD 0");
+            screen_ui u46;
+            tap(&a, shift_key(1));
+            app_ui(&a, &u46);
+            bool shown = u46.soft[0] && !strcmp(u46.soft[0], "REGX") && u46.soft[3] && !strcmp(u46.soft[3], "REGT");
+            press(&a, "k:0");
+            if (MODEL[m] == 33) {
+                regdim += shown && u46.soft_dim[0] && !c.eqn_typing;
+                reg++;
+            } else {
+                reg += shown && !u46.soft_dim[0] && c.eqn_typing && !strcmp(c.ebuf, "REGX");
+                regdim++;
+            }
+            ab_init(&c);
+            app_init(&a, &c, now);
+            ab_do_arg(&c, AB_MODEL, MODEL[m]);
+            ab_eqn_add(&c, "A+B");
+            if (!c.eqn_mode) press(&a, "GOLD 0");
+            int n0 = c.eqn_count;
+            press(&a, "C");
+            cexit += !c.eqn_mode && c.eqn_count == n0;
+        }
+        expect(paren == 6, "046: ( ) on EQN LIST's sixth soft key begins an equation with the pair, from TOP and from "
+                           "an equation shown, in STU, 35s and 33s modes; ENTER stores (2+1)");
+        expect(reg == 3 && regdim == 3, "046: GOLD's bank in EQN LIST: REGX..REGT begin an equation (STU, 35s); in 33s "
+                                        "mode dimmed and doing nothing");
+        expect(cexit == 3, "046: C from EQN LIST still leaves Equation mode, the list kept");
     }
 
     printf("app_test: %d/%d checks\n", checks - bad, checks);
