@@ -212,6 +212,12 @@ typedef struct app_graph {
     uint8_t ok[AB_GRAPH_W];
     int16_t row[AB_GRAPH_W];
     screen_graph s;
+    /* unit 044: the trace's correctly rounded readout, kept for its column, x, equation and angle (a plot renders
+       some 50 frames, and the readout costs up to 24 ms on the S3) */
+    bool rd_ok;
+    int rd_col, rd_eq, rd_ang;
+    abn rd_x, rd_y;
+    abn_status rd_st;
 } app_graph;
 void app_graph_buffer(app_state *a, app_graph *g);
 

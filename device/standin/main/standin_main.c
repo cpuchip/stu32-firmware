@@ -54,7 +54,7 @@
 
 enum { EV_KEY = 0, EV_OP, EV_DUMP, EV_SAVE, EV_WIPE, EV_RESTART, EV_TOUCHED, EV_BENCH, EV_TIME, EV_POWBENCH,
        EV_KEYUP, EV_TBLBENCH, EV_GRBENCH, EV_FRAMEBENCH,
-       EV_POLBENCH, EV_ZOOMBENCH, EV_CASBENCH, EV_DIFFBENCH };                          /* EV_KEYUP: a the key released (unit 030: SHOW, held) */
+       EV_POLBENCH, EV_ZOOMBENCH, EV_CASBENCH, EV_DIFFBENCH, EV_FNBENCH };                          /* EV_KEYUP: a the key released (unit 030: SHOW, held) */
 static char time_text[16];             /* TIME's argument, for the calc task (unit 027) */
 
 typedef struct {
@@ -535,6 +535,133 @@ static void zoombench(void)
     heap_caps_free(t);
 }
 
+/* FNBENCH (unit 044 rule 4): each one-input function's time on the S3, from the calc task: 40 arguments a case across
+   its domain (the same each run: a fixed generator), median and worst in microseconds, and the worst's argument. */
+static uint32_t fnb_seed;
+static uint32_t fnb_rand(void)
+{
+    fnb_seed = fnb_seed * 1103515245u + 12345u;
+    return fnb_seed >> 8;
+}
+
+static abn fnb_arg(int lo, int hi, bool may_neg)        /* 20 random digits times 10^e, e in [lo, hi] */
+{
+    char t[48];
+    int n = 0;
+    if (may_neg && (fnb_rand() & 1)) t[n++] = '-';
+    t[n++] = (char)('1' + fnb_rand() % 9);
+    t[n++] = '.';
+    for (int i = 0; i < 19; i++) t[n++] = (char)('0' + fnb_rand() % 10);
+    snprintf(t + n, sizeof t - (size_t)n, "E%d", lo + (int)(fnb_rand() % (uint32_t)(hi - lo + 1)));
+    abn x;
+    abn_from_text(&x, t);
+    return x;
+}
+
+static int fnb_cmp(const void *a, const void *b)
+{
+    int64_t x = *(const int64_t *)a, y = *(const int64_t *)b;
+    return x < y ? -1 : x > y;
+}
+
+static void fnbench(void)
+{
+    static const struct { const char *name; int kind, lo, hi; bool neg; fn_angle m; } C[] = {
+        {"EXP", 0, -30, 3, true, FN_RAD}, {"LN", 1, -300, 300, false, FN_RAD}, {"LOG", 2, -300, 300, false, FN_RAD},
+        {"TENX", 3, -30, 3, true, FN_RAD}, {"SIN RAD", 4, -20, 2, true, FN_RAD}, {"COS RAD", 5, -20, 2, true, FN_RAD},
+        {"TAN RAD", 6, -20, 2, true, FN_RAD}, {"SIN RAD 1E40", 4, 30, 40, true, FN_RAD},
+        {"ASIN RAD", 7, -20, -1, true, FN_RAD}, {"ACOS RAD", 8, -20, -1, true, FN_RAD},
+        {"ATAN RAD", 9, -30, 30, true, FN_RAD}, {"ASIN DEG", 7, -20, -1, true, FN_DEG},
+        {"ACOS DEG", 8, -20, -1, true, FN_DEG}, {"ATAN GRAD", 9, -30, 30, true, FN_GRAD},
+        {"SINH", 10, -20, 3, true, FN_RAD}, {"COSH", 11, -20, 3, true, FN_RAD}, {"TANH", 12, -20, 1, true, FN_RAD},
+        {"ASINH", 13, -30, 300, true, FN_RAD}, {"ACOSH", 14, 0, 300, false, FN_RAD}, {"ATANH", 15, -20, -1, true, FN_RAD},
+        {"TORAD", 16, -100, 100, true, FN_RAD}, {"TODEG", 17, -100, 100, true, FN_RAD}};
+    for (size_t c = 0; c < sizeof C / sizeof C[0]; c++) {
+        int64_t us[40];
+        abn worst_x = abn_zero();
+        int64_t worst = -1;
+        fnb_seed = 44u + (uint32_t)c;
+        for (int i = 0; i < 40; i++) {
+            abn x = fnb_arg(C[c].lo, C[c].hi, C[c].neg), r;
+            if (C[c].kind == 14) {              /* acosh: x >= 1 */
+                abn one = abn_from_int(1);
+                abn_add(&x, &x, &one);
+            }
+            int64_t t0 = esp_timer_get_time();
+            switch (C[c].kind) {
+            case 0: fn_exp(&r, &x); break;
+            case 1: fn_ln(&r, &x); break;
+            case 2: fn_log(&r, &x); break;
+            case 3: fn_tenx(&r, &x); break;
+            case 4: fn_sin(&r, &x, C[c].m); break;
+            case 5: fn_cos(&r, &x, C[c].m); break;
+            case 6: fn_tan(&r, &x, C[c].m); break;
+            case 7: fn_asin(&r, &x, C[c].m); break;
+            case 8: fn_acos(&r, &x, C[c].m); break;
+            case 9: fn_atan(&r, &x, C[c].m); break;
+            case 10: fn_sinh(&r, &x); break;
+            case 11: fn_cosh(&r, &x); break;
+            case 12: fn_tanh(&r, &x); break;
+            case 13: fn_asinh(&r, &x); break;
+            case 14: fn_acosh(&r, &x); break;
+            case 15: fn_atanh(&r, &x); break;
+            case 16: fn_torad(&r, &x); break;
+            default: fn_todeg(&r, &x); break;
+            }
+            us[i] = esp_timer_get_time() - t0;
+            if (us[i] > worst) worst = us[i], worst_x = x;
+        }
+        qsort(us, 40, sizeof us[0], fnb_cmp);
+        char wx[48];
+        abn_to_text(&worst_x, wx, sizeof wx);
+        printf("fnbench: %-13s median %6lld us, worst %6lld us (at %s)\n", C[c].name, (us[19] + us[20]) / 2, worst, wx);
+    }
+    /* the many-call paths, where a function's time multiplies: a plot's 400 samples, and an integral (FIX 4) */
+    ab_calc *t = heap_caps_calloc(1, sizeof *t, MALLOC_CAP_SPIRAM);
+    if (!t) {
+        printf("fnbench: no memory\n");
+        return;
+    }
+    static const char *const P[] = {"SIN(X)", "LN(X)", "ASINH(X)"};
+    for (int i = 0; i < 3; i++) {
+        ab_init(t);
+        ab_do_arg(t, AB_MODEL, AB_MODEL_STU);
+        ab_do(t, AB_RAD);
+        ab_eqn_add(t, P[i]);
+        ab_do(t, AB_EQN);
+        t->gr_xmin = abn_from_int(1), t->gr_xmax = abn_from_int(10);
+        ab_do(t, AB_GRAPH);
+        int ok = 0;
+        int64_t t0 = esp_timer_get_time();
+        for (int k = 0; k < AB_GRAPH_W; k++) {
+            abn x;
+            ab_val v;
+            ok += ab_graph_sample(t, k, &x, &v) == ABN_OK;
+        }
+        printf("fnbench: plot %-9s %lld ms (%d of %d samples)\n", P[i], (long long)(esp_timer_get_time() - t0) / 1000,
+               ok, AB_GRAPH_W);
+    }
+    static const char *const I[] = {"SIN(X)\xc3\xb7X", "LN(X)"};
+    for (int i = 0; i < 2; i++) {
+        ab_init(t);
+        ab_do_arg(t, AB_MODEL, AB_MODEL_STU);
+        ab_do(t, AB_RAD);
+        ab_do_arg(t, AB_SETFIX, 4);
+        ab_eqn_add(t, I[i]);
+        ab_do(t, AB_CANCEL);                    /* as the harness's EQ:... C 1 ENTER 2 EQN INTEG:X */
+        ab_do(t, AB_K1); ab_do(t, AB_ENTER); ab_do(t, AB_K2);
+        ab_do(t, AB_EQN);
+        int64_t t0 = esp_timer_get_time();
+        abn_status st = ab_do_arg(t, AB_INTEG, AB_VAR_A + 23);
+        int64_t t1 = esp_timer_get_time();
+        char r[64];
+        abn_to_text(&t->x.re, r, sizeof r);
+        printf("fnbench: integral %-8s 1 to 2, FIX 4: %lld ms (st %d, %s)\n", I[i], (long long)(t1 - t0) / 1000, (int)st, r);
+    }
+    heap_caps_free(t);
+    printf("fnbench: done\n");
+}
+
 /* DIFFBENCH (apps.h v1.2 item 1, abacus #4734): ls027_dirty's time on the S3 for a whole frame against the frame last
    sent, as Rev A keeps it (in PSRAM) and in internal RAM for comparison: no line changed (every row compared to its
    end), and every line changed (each row's first byte differs). Microseconds a call, over 100. */
@@ -777,6 +904,7 @@ static void console_task(void *arg)
         else if (!strcmp(line, "ZOOMBENCH")) e.kind = EV_ZOOMBENCH;  /* unit 040: a redraw after each zoom */
         else if (!strcmp(line, "CASBENCH")) e.kind = EV_CASBENCH;    /* CAS 004: each step's time, the stack */
         else if (!strcmp(line, "DIFFBENCH")) e.kind = EV_DIFFBENCH;  /* apps.h v1.2 item 1: the line diff's time */
+        else if (!strcmp(line, "FNBENCH")) e.kind = EV_FNBENCH;      /* unit 044 rule 4: each function's time */
         else if (!strncmp(line, "TIME ", 5)) {      /* TIME hh:mm[:ss] (unit 027 rule 4) */
             snprintf(time_text, sizeof time_text, "%.15s", line + 5);
             e.kind = EV_TIME;
@@ -845,6 +973,8 @@ static void calc_task(void *arg)
             casbench();
         } else if (got && ev.kind == EV_DIFFBENCH) {
             diffbench();
+        } else if (got && ev.kind == EV_FNBENCH) {
+            fnbench();
         } else if (got && ev.kind == EV_BENCH) {
             bench();
         } else if (got && ev.kind == EV_TIME) {

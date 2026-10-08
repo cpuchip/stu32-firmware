@@ -13,6 +13,19 @@
 #include "bigint.h"
 #include "hp.h"
 
+/* unit 044 (below): the one-input functions correctly rounded */
+typedef bool (*hp_f1)(hp *r, const hp *x, int p, int arg);
+static abn_status sure(abn *out, abn_status st0, const abn *x, hp_f1 f, int arg);
+static bool f_exp(hp *r, const hp *x, int p, int arg);
+static bool f_ln(hp *r, const hp *x, int p, int arg);
+static bool f_tenx(hp *r, const hp *x, int p, int arg);
+static bool f_trig(hp *r, const hp *x, int p, int arg);
+static bool f_inv(hp *r, const hp *x, int p, int arg);
+static bool f_hyp(hp *r, const hp *x, int p, int arg);
+static bool f_ahyp(hp *r, const hp *x, int p, int arg);
+static bool f_angle(hp *r, const hp *x, int p, int arg);
+#define UNIT3(m) (3 * ((m) == FN_RAD ? 0 : (m) == FN_DEG ? 1 : 2))  /* f_inv's unit */
+
 /* Constants to 34 significant digits, from mpmath at 80 digits (pi also checked against
  * Machin's formula in Python's decimal module). */
 #define PI_34 "3.141592653589793238462643383279503"
@@ -276,7 +289,7 @@ abn_status fn_exp(abn *out, const abn *x)
         *out = one();
         return ABN_OK;
     }
-    return abn_exp(out, x);
+    return sure(out, abn_exp(out, x), x, f_exp, 0);
 }
 
 abn_status fn_ln(abn *out, const abn *x)
@@ -286,7 +299,7 @@ abn_status fn_ln(abn *out, const abn *x)
         *out = abn_zero();
         return ABN_OK;
     }
-    return abn_ln(out, x);
+    return sure(out, abn_ln(out, x), x, f_ln, 0);
 }
 
 abn_status fn_tenx(abn *out, const abn *x)
@@ -297,7 +310,7 @@ abn_status fn_tenx(abn *out, const abn *x)
         *out = one();
         return ABN_OK;
     }
-    return abn_exp10(out, x);
+    return sure(out, abn_exp10(out, x), x, f_tenx, 0);
 }
 
 abn_status fn_log(abn *out, const abn *x)
@@ -311,7 +324,7 @@ abn_status fn_log(abn *out, const abn *x)
         *out = abn_from_int(lead);
         return ABN_OK;
     }
-    return abn_log10(out, x);
+    return sure(out, abn_log10(out, x), x, f_ln, 1);
 }
 
 /* ---- e^x - 1, ln(1 + x), 2^x, log2 x (ours, unit 021) ---- */
@@ -722,6 +735,242 @@ static abn_status trig_hp(abn *out, const abn *a, const angle_unit *u, bool want
     return st;
 }
 
+/* ---- unit 044: the one-input functions correctly rounded ----
+   Each formed in hp to 60 digits, then 100, then 180, until its rounding is sure (034's route, Ziv), and rounded once.
+   The library's own result is kept for its status (a domain error, a range end, the exact cases and their shortcuts);
+   only an ordinary value is replaced by the sure one. The driver's working values are fw[0..2] (the polar
+   conversions and trig_hp hold fw only while calling none of these); the formulas use u44[0..3]. */
+static hp u44[4];
+
+#ifndef ZIV_FIRST
+#define ZIV_FIRST 60        /* make accuracy builds one at 37: every rounding then needs the loop (fn_drive_p37) */
+#endif
+
+unsigned long fn_ziv_calls;
+
+static abn_status ziv1(abn *out, const abn *x, hp_f1 f, int arg, bool *is_sure)
+{
+    static const int P[] = {ZIV_FIRST, 100, 180};
+    fn_ziv_calls++;
+    hp *hx = &fw[0], *r = &fw[1], *sc = &fw[2];
+    abn v = abn_zero();
+    abn_status st = ABN_RANGE;
+    *is_sure = false;
+    for (int i = 0; i < 3; i++) {
+        int p = P[i];
+        if (!hp_from_abn(hx, x) || !f(r, hx, p, arg)) {
+            if (!i) return ABN_RANGE;
+            break;                              /* the last pass's value: within 10^6 units of its p-th digit */
+        }
+        if (hp_round_sure(&v, &st, r, p, sc)) {
+            *is_sure = true;
+            break;
+        }
+    }
+    *out = v;
+    return st;
+}
+
+static bool fast;          /* fn_set_fast */
+
+bool fn_set_fast(bool on)
+{
+    bool was = fast;
+    fast = on;
+    return was;
+}
+
+/* The engine's value and status st0 replaced by the correctly rounded value; at the range's edges a sure rounding's
+   status too, either way (a value the engine kept that rounds past the range, or one it overflowed or underflowed
+   that rounds within it: review). The engine's other errors stand. */
+static abn_status sure(abn *out, abn_status st0, const abn *x, hp_f1 f, int arg)
+{
+    abn v;
+    bool is_sure;
+    bool edge = st0 == ABN_OVERFLOW || st0 == ABN_UNDERFLOW;
+    if (fast || (st0 != ABN_OK && !edge) || (st0 == ABN_OK && abn_is_zero(out))) return st0;   /* fast: as before 044 */
+    abn_status st = ziv1(&v, x, f, arg, &is_sure);
+    if (st == ABN_OK && !abn_is_zero(&v) && (is_sure || !edge)) {
+        *out = v;                               /* (unsure only past a pass's reach: the last pass's, within a unit) */
+        return ABN_OK;
+    }
+    if (is_sure && (st == ABN_OVERFLOW || st == ABN_UNDERFLOW)) {
+        *out = v;
+        return st;
+    }
+    return st0;                                 /* (hp past its reach: the library's) */
+}
+
+static bool one_minus(hp *r, const hp *x, bool plus)       /* 1 - x or 1 + x, exactly */
+{
+    hp one;
+    hp_set_int(&one, 1);
+    return hp_add(r, &one, x, !plus, HP_PMAX);
+}
+
+static bool f_exp(hp *r, const hp *x, int p, int arg) { (void)arg; return hp_exp(r, x, p); }
+
+static bool f_ln(hp *r, const hp *x, int p, int arg)        /* arg 1: log10 */
+{
+    hp *t = &u44[0], *l = &u44[1], *k = &u44[2];
+    hp_set_int(k, 1);
+    if (!hp_add(t, x, k, true, HP_PMAX) || !hp_ln(arg ? l : r, x, t, arg ? p + 5 : p)) return false;
+    return !arg || (hp_ln10(k, p + 5) && hp_div(r, l, k, p));
+}
+
+static bool f_tenx(hp *r, const hp *x, int p, int arg)
+{
+    (void)arg;
+    hp *k = &u44[0], *t = &u44[1];
+    long l = hp_lead(x);
+    return hp_ln10(k, p + 8 + (l > 0 ? (int)l : 0)) && hp_mul(t, x, k, p + 8 + (l > 0 ? (int)l : 0)) && hp_exp(r, t, p);
+}
+
+/* Rule 2's reach: hp_sincos at p + 5 needs p + L + 15 of pi's 241 digits, L the exponent of x's leading digit, so
+   the 60-digit pass reaches L 163, the 100-digit L 123, the 180-digit L 43 (fewer when x lies near a multiple of
+   pi/2: its second reduction takes more). Below 1E44 every result is correctly rounded. Below 1E164 every result
+   whose first pass is sure is (all but values within about 1E-20 units of a rounding boundary); one that needs a pass
+   past its reach keeps the last pass's rounding, within one unit. From 1E164 on, the engine's, within 8 units
+   (measured, 100 arguments a decade by SIN, COS and TAN: all correctly rounded at 1E161..1E163; about 40% not at
+   1E164..1E167, none worse). */
+static bool f_trig(hp *r, const hp *x, int p, int arg)      /* radians; arg 0 sin, 1 cos, 2 tan */
+{
+    hp *s = &u44[0], *c = &u44[1];
+    if (!hp_sincos(s, c, x, p + 5)) return false;           /* (false past hp's pi: rule 2's reach) */
+    if (arg == 2) return hp_div(r, s, c, p);
+    *r = arg ? *c : *s;
+    hp_trim(r, p);
+    return true;
+}
+
+/* the radian angle a in the unit (0 rad, 1 deg, 2 grad): a half / pi */
+static bool in_unit(hp *r, const hp *a, int p, int unit)
+{
+    hp *k = &u44[2], *t = &u44[3];
+    if (!unit) {
+        *r = *a;
+        hp_trim(r, p);
+        return true;
+    }
+    hp_set_int(k, unit == 1 ? 180 : 200);
+    if (!hp_mul(t, a, k, p + 5)) return false;
+    return hp_pi(k, p + 8) && hp_div(r, t, k, p);
+}
+
+static bool f_inv(hp *r, const hp *x, int p, int arg)       /* arg: 0 asin, 1 acos, 2 atan; plus 3 x the unit */
+{
+    hp *a = &u44[0], *b = &u44[1], *t = &u44[2];
+    int fn = arg % 3, unit = arg / 3;
+    if (fn == 2) {
+        hp_set_int(t, 1);
+        if (!hp_atan2h(a, x, t, p + 5)) return false;
+    } else {
+        /* sqrt((1 - x)(1 + x)), the product of two exact values: no cancellation near |x| = 1 */
+        if (!one_minus(a, x, false) || !one_minus(b, x, true) || !hp_mul(t, a, b, p + 10) || !hp_sqrt(b, t, p + 8))
+            return false;
+        if (!(fn == 0 ? hp_atan2h(a, x, b, p + 5) : hp_atan2h(a, b, x, p + 5))) return false;
+    }
+    return in_unit(r, a, p, unit);
+}
+
+static bool f_hyp(hp *r, const hp *x, int p, int arg)       /* arg 0 sinh, 1 cosh, 2 tanh */
+{
+    hp *s = &u44[0], *c = &u44[1];
+    if (!hp_sinhcosh(s, c, x, p + 5)) return false;
+    if (arg == 2) return hp_div(r, s, c, p);
+    *r = arg ? *c : *s;
+    hp_trim(r, p);
+    return true;
+}
+
+/* ln(2 |x|) for a large |x| (asinh, acosh: the rest lies below 1/(4 x^2)) */
+static bool ln_two_x(hp *r, const hp *ax, int p)
+{
+    hp *t = &u44[0], *u = &u44[1], *k = &u44[2];
+    hp_set_int(k, 2);
+    if (!hp_mul(u, ax, k, HP_PMAX)) return false;
+    hp_set_int(k, 1);
+    return hp_add(t, u, k, true, HP_PMAX) && hp_ln(r, u, t, p);
+}
+
+static bool f_ahyp(hp *r, const hp *x, int p, int arg)      /* arg 0 asinh, 1 acosh, 2 atanh */
+{
+    hp *a = &u44[0], *s = &u44[1], *t = &u44[2], *q = &u44[3], one;
+    hp ax = *x;
+    int w = p + 10;
+    hp_set_int(&one, 1);
+    ax.neg = false;
+    if (arg == 2) {                             /* atanh x = ln((1 + x) / (1 - x)) / 2, s - 1 = 2x / (1 - x) */
+        if (!one_minus(a, &ax, false) || !one_minus(t, &ax, true) || !hp_div(s, t, a, w)) return false;
+        hp_set_int(q, 2);
+        if (!hp_mul(t, &ax, q, w) || !hp_div(q, t, a, w) || !hp_ln(a, s, q, w)) return false;
+        hp_set_int(q, 2);
+        if (!hp_div(r, a, q, p)) return false;
+    } else if (hp_lead(&ax) > (p + 5) / 2) {    /* past this, 1/(4 x^2) is below the p-th digit */
+        if (!ln_two_x(r, &ax, p)) return false;
+    } else if (arg == 0) {                      /* asinh: s = |x| + sqrt(x^2 + 1), s - 1 = |x| + x^2/(sqrt(x^2 + 1) + 1) */
+        if (!hp_mul(q, &ax, &ax, w) || !hp_add(t, q, &one, false, w) || !hp_sqrt(a, t, w)) return false;
+        if (!hp_add(s, &ax, a, false, w) || !hp_add(t, a, &one, false, w) || !hp_div(a, q, t, w) ||
+            !hp_add(t, &ax, a, false, w))
+            return false;
+        if (!hp_ln(r, s, t, p)) return false;
+    } else {                                    /* acosh, x >= 1: d = x - 1, s - 1 = d + sqrt(d (x + 1)) */
+        if (!hp_add(a, &ax, &one, true, HP_PMAX) || !hp_add(t, &ax, &one, false, HP_PMAX) || !hp_mul(q, a, t, w) ||
+            !hp_sqrt(t, q, w))
+            return false;
+        if (!hp_add(s, &ax, t, false, w) || !hp_add(q, a, t, false, w) || !hp_ln(r, s, q, p)) return false;
+    }
+    if (x->neg && arg != 1) hp_neg(r);
+    return true;
+}
+
+static bool f_angle(hp *r, const hp *x, int p, int arg)     /* arg 0: x pi / 180 (->RAD), 1: x 180 / pi (->DEG) */
+{
+    hp *k = &u44[0], *t = &u44[1];
+    long l = hp_lead(x);
+    int w = p + 8 + (l > 0 ? (int)l : 0);
+    if (!hp_pi(k, w)) return false;
+    if (arg == 0) {
+        if (!hp_mul(t, x, k, w)) return false;
+        hp_set_int(k, 180);
+        return hp_div(r, t, k, p);
+    }
+    hp_set_int(t, 180);
+    return hp_mul(r, x, t, w) && (*t = *r, hp_div(r, t, k, p));
+}
+
+/* Sin (kind 0), tan (2) or cot (3) of a pi / den, a in degrees (den 180) or grads (200), for arg = kind 1000 + den. */
+static bool f_utrig(hp *r, const hp *x, int p, int arg)
+{
+    hp *s = &u44[0], *c = &u44[1], *t = &u44[2], *k = &u44[3];
+    int kind = arg / 1000, w = p + 8;
+    if (!hp_pi(k, w) || !hp_mul(s, x, k, w)) return false;
+    hp_set_int(k, arg % 1000);
+    if (!hp_div(t, s, k, w) || !hp_sincos(s, c, t, p + 5)) return false;
+    if (kind == 0) {
+        *r = *s;
+        hp_trim(r, p);
+        return true;
+    }
+    return kind == 2 ? hp_div(r, s, c, p) : hp_div(r, c, s, p);
+}
+
+/* A reduced angle below 1E-17 of a unit (trigx's tiny path): sin, tan or cot (kind 0, 2, 3) of a in u, correctly
+   rounded, with a range status when the rounding is past the range. 034 formed these from the 34-digit pi/180 (or
+   pi/200) and its error term, and near the range's bottom that term had lost its digits: SIN of 5E-6124 grads was
+   2.2 units off (unit 044's review fuzz). ABN_RANGE: hp could not, the caller's path stands; so too with fast (044
+   rule 5), which keeps 034's path. */
+static abn_status tiny_trig(abn *out, const abn *a, const angle_unit *u, int kind)
+{
+    abn v;
+    bool is_sure;
+    if (fast) return ABN_RANGE;
+    abn_status st = ziv1(&v, a, f_utrig, kind * 1000 + (strcmp(u->half, "180") == 0 ? 180 : 200), &is_sure);
+    if (st == ABN_OK ? abn_is_zero(&v) : !(is_sure && (st == ABN_OVERFLOW || st == ABN_UNDERFLOW))) return ABN_RANGE;
+    *out = v;
+    return st;
+}
+
 /* The rounding of m 10^e (good to about 1E-55 relative) is sure: m moved by 10^-52 of itself either way rounds the
    same. d is scratch; m is restored. */
 static bool sb_round_sure(sbig *m, bool neg, long e, sbig *d)
@@ -784,6 +1033,7 @@ static abn_status sin_reduced(abn *out, const abn *a, const angle_unit *u)
         }
     }
     if ((st = trig_exactish(out, a, u, false, NULL)) != ABN_DOMAIN) return st;
+    if ((st = tiny_trig(out, a, u, 0)) != ABN_RANGE) return st;    /* below 1E-17 of a unit (044 review) */
     /* below 1E-17 of a unit: sin theta = theta to far below the 34th digit */
     if ((st = to_rad_pair(&hi, &lo, a, u->to_rad, u->to_rad_lo)) != ABN_OK) return st;
     if ((st = abn_sin(&sv, &hi)) != ABN_OK) return st;
@@ -829,7 +1079,7 @@ static abn signed_(const abn *v, int sign)
 
 abn_status fn_sin(abn *out, const abn *x, fn_angle m)
 {
-    if (m == FN_RAD) return abn_sin(out, x);    /* no special cases in radians */
+    if (m == FN_RAD) return sure(out, abn_sin(out, x), x, f_trig, 0);  /* no special cases in radians; unit 044 */
     const angle_unit *u = unit_of(m);
     reduced rd;
     abn v;
@@ -843,7 +1093,7 @@ abn_status fn_sin(abn *out, const abn *x, fn_angle m)
 
 abn_status fn_cos(abn *out, const abn *x, fn_angle m)
 {
-    if (m == FN_RAD) return abn_cos(out, x);
+    if (m == FN_RAD) return sure(out, abn_cos(out, x), x, f_trig, 1);
     const angle_unit *u = unit_of(m);
     reduced rd;
     abn v;
@@ -910,6 +1160,8 @@ static abn_status tan_reduced(abn *out, const abn *a, const angle_unit *u, bool 
         if (!sb_mul_pow10(&num, extra) || !sb_div(&q, &num, den, &inexact)) return ABN_RANGE;
         return sb_to_abn(out, &q, false, -extra, true);
     }
+    abn_status st = tiny_trig(out, a, u, cot ? 3 : 2);              /* below 1E-17 of a unit (044 review) */
+    if (st != ABN_RANGE) return st;
     if (cot) {
         abn f = K(u->from_rad);
         return abn_div(out, &f, a);
@@ -922,7 +1174,7 @@ static abn_status tan_reduced(abn *out, const abn *a, const angle_unit *u, bool 
  * tan 90 degrees is an error). Exact at 0 and at the eighth turn (tan 45 = 1). */
 abn_status fn_tan(abn *out, const abn *x, fn_angle m)
 {
-    if (m == FN_RAD) return abn_tan(out, x);
+    if (m == FN_RAD) return sure(out, abn_tan(out, x), x, f_trig, 2);
     const angle_unit *u = unit_of(m);
     reduced rd;
     abn v;
@@ -973,12 +1225,14 @@ static abn_status inverse(abn *out, const abn *x, fn_angle m, abn_status (*f)(ab
 
 abn_status fn_asin(abn *out, const abn *x, fn_angle m)
 {
-    return inverse(out, x, m, abn_asin, ASIN_EXACT, (int)(sizeof ASIN_EXACT / sizeof ASIN_EXACT[0]), true);
+    return sure(out, inverse(out, x, m, abn_asin, ASIN_EXACT, (int)(sizeof ASIN_EXACT / sizeof ASIN_EXACT[0]), true), x,
+                f_inv, 0 + UNIT3(m));
 }
 
 abn_status fn_acos(abn *out, const abn *x, fn_angle m)
 {
-    return inverse(out, x, m, abn_acos, ACOS_EXACT, (int)(sizeof ACOS_EXACT / sizeof ACOS_EXACT[0]), false);
+    return sure(out, inverse(out, x, m, abn_acos, ACOS_EXACT, (int)(sizeof ACOS_EXACT / sizeof ACOS_EXACT[0]), false),
+                x, f_inv, 1 + UNIT3(m));
 }
 
 abn_status fn_atan(abn *out, const abn *x, fn_angle m)
@@ -990,9 +1244,10 @@ abn_status fn_atan(abn *out, const abn *x, fn_angle m)
            inside for the largest x, unit 026) */
         *out = K(m == FN_DEG ? "90" : m == FN_GRAD ? "100" : "1.570796326794896619231321691639751");
         if (abn_is_negative(x)) *out = abn_neg(out);
-        return ABN_OK;
+        return sure(out, ABN_OK, x, f_inv, 2 + UNIT3(m));     /* (pi/2 - 1/x rounded once: unit 044) */
     }
-    return inverse(out, x, m, abn_atan, ATAN_EXACT, (int)(sizeof ATAN_EXACT / sizeof ATAN_EXACT[0]), true);
+    return sure(out, inverse(out, x, m, abn_atan, ATAN_EXACT, (int)(sizeof ATAN_EXACT / sizeof ATAN_EXACT[0]), true), x,
+                f_inv, 2 + UNIT3(m));
 }
 
 /* ---- hyperbolic (UG p.4-6) ---- */
@@ -1007,14 +1262,14 @@ static abn_status odd_fn(abn *out, const abn *x, abn_status (*f)(abn *, const ab
     return f(out, x);
 }
 
-abn_status fn_sinh(abn *out, const abn *x) { return odd_fn(out, x, abn_sinh); }
+abn_status fn_sinh(abn *out, const abn *x) { return sure(out, odd_fn(out, x, abn_sinh), x, f_hyp, 0); }
 abn_status fn_cosh(abn *out, const abn *x)
 {
     if (tiny(x)) {
         *out = one();
         return ABN_OK;
     }
-    return abn_cosh(out, x);
+    return sure(out, abn_cosh(out, x), x, f_hyp, 1);
 }
 abn_status fn_tanh(abn *out, const abn *x)
 {
@@ -1025,11 +1280,11 @@ abn_status fn_tanh(abn *out, const abn *x)
         *out = abn_is_negative(x) ? abn_from_int(-1) : one();
         return ABN_OK;
     }
-    return odd_fn(out, x, abn_tanh);
+    return sure(out, odd_fn(out, x, abn_tanh), x, f_hyp, 2);
 }
-abn_status fn_asinh(abn *out, const abn *x) { return odd_fn(out, x, abn_asinh); }
-abn_status fn_acosh(abn *out, const abn *x) { return abn_acosh(out, x); }
-abn_status fn_atanh(abn *out, const abn *x) { return odd_fn(out, x, abn_atanh); }
+abn_status fn_asinh(abn *out, const abn *x) { return sure(out, odd_fn(out, x, abn_asinh), x, f_ahyp, 0); }
+abn_status fn_acosh(abn *out, const abn *x) { return sure(out, abn_acosh(out, x), x, f_ahyp, 1); }
+abn_status fn_atanh(abn *out, const abn *x) { return sure(out, odd_fn(out, x, abn_atanh), x, f_ahyp, 2); }
 
 /* ======================================================================================== */
 /* unit 004: parts of numbers, RND, H.MMSS, conversions, probability, rect/polar, RAND        */
@@ -1169,13 +1424,13 @@ abn_status fn_hmsinv(abn *out, const abn *x)
 abn_status fn_todeg(abn *out, const abn *x)
 {
     abn k = K(DEG_UNIT.from_rad);
-    return abn_mul(out, x, &k);
+    return sure(out, abn_mul(out, x, &k), x, f_angle, 1);     /* x 180 / pi rounded once (unit 044) */
 }
 
 abn_status fn_torad(abn *out, const abn *x)
 {
     abn k = K(DEG_UNIT.to_rad);
-    return abn_mul(out, x, &k);
+    return sure(out, abn_mul(out, x, &k), x, f_angle, 0);     /* x pi / 180 rounded once (unit 044) */
 }
 
 /* (a*x + b) / c, correctly rounded, for small integers a, b, c: computed exactly as integers

@@ -445,49 +445,11 @@ bool hp_lgamma_big(hp *r, const hp *w, int p)
 
 bool hp_atan2(hp *r, const abn *b, const abn *a, int p)
 {
-    static hp th, sn, cs, hb, ha, t1, t2, num, den, corr;
-    int w = p + 5;
-    abn t0;
-    if (abn_is_zero(b) || abn_is_zero(a)) {
-        /* on an axis: 0, pi or +-pi/2 */
-        if (abn_is_zero(b) && !abn_is_negative(a)) {
-            hp_set_int(r, 0);
-            return true;
-        }
-        if (!constant(&th, PI_241, p + 2)) return false;
-        if (abn_is_zero(b)) {
-            *r = th;
-        } else {
-            if (!div_u32(r, &th, 2, p)) return false;
-            if (abn_is_negative(b)) hp_neg(r);
-        }
-        hp_trim(r, p);
-        return true;
-    }
-    abn_status s0 = abn_atan2(&t0, b, a);
+    static hp hb, ha;
+    /* the parts held exactly: hp_atan2h's start, the engine's angle of their rounding, is the engine's of b, a
+       (one routine since unit 044: the copy had its own eight statics) */
     if (!hp_from_abn(&hb, b) || !hp_from_abn(&ha, a)) return false;
-    if (s0 == ABN_UNDERFLOW) {
-        /* the angle below the engine's range (a > 0, |b| tiny beside it): start from b / a, its value there
-           to far beyond the digits kept (unit 034: ->POL's theta below the range, unit 026, is 0 after the
-           rounding, not a failure) */
-        if (!hp_div(&th, &hb, &ha, w)) return false;
-    } else if (s0 != ABN_OK || !hp_from_abn(&th, &t0)) {
-        return false;
-    }
-    /* theta += atan of tan(theta_true - theta) = (b cos - a sin) / (a cos + b sin); the first-order
-       step leaves an error of the cube of the last, so the digits triple each time */
-    for (int digits = 30; digits < w + 5; digits *= 3) {
-        if (!hp_sincos(&sn, &cs, &th, w)) return false;
-        if (!hp_mul(&t1, &hb, &cs, w) || !hp_mul(&t2, &ha, &sn, w) || !hp_add(&num, &t1, &t2, true, w))
-            return false;
-        if (!hp_mul(&t1, &ha, &cs, w) || !hp_mul(&t2, &hb, &sn, w) || !hp_add(&den, &t1, &t2, false, w))
-            return false;
-        if (!hp_div(&corr, &num, &den, w) || !hp_add(&t1, &th, &corr, false, w)) return false;
-        th = t1;
-    }
-    *r = th;
-    hp_trim(r, p);
-    return true;
+    return hp_atan2h(r, &hb, &ha, p);
 }
 
 /* The exponent of x's leading digit; x nonzero. */
@@ -558,4 +520,81 @@ bool hp_round_sure(abn *out, abn_status *st, hp *v, int p, hp *s)
     s2 = hp_round(&a2, v);
     sb_sub(&v->m, &v->m, &s->m);
     return s1 == s2 && (s1 != ABN_OK || (abn_cmp(&a1, &a2) == 0 && abn_is_negative(&a1) == abn_is_negative(&a2)));
+}
+
+/* ---- unit 044 ---- */
+
+bool hp_ln10(hp *r, int p)
+{
+    return constant(r, LN10_241, p);
+}
+
+bool hp_sqrt(hp *r, const hp *x, int p)
+{
+    static hp y, g, q, t;
+    int w = p + 5;
+    abn a, s;
+    if (hp_is_zero(x)) {
+        hp_set_int(r, 0);
+        return true;
+    }
+    if (x->neg) return false;
+    /* x = y 10^(2k) with y in [1, 100): the engine's root of y starts it (any exponent) */
+    long l = hp_lead(x), k = (l >= 0 ? l : l - 1) / 2;
+    y = *x;
+    y.e -= 2 * k;
+    if (hp_round(&a, &y) != ABN_OK || abn_sqrt(&s, &a) != ABN_OK || !hp_from_abn(&g, &s)) return false;
+    g.e += k;
+    /* g = (g + x / g) / 2: each step doubles the digits */
+    for (int digits = 30; digits < w + 5; digits *= 2) {
+        if (!hp_div(&q, x, &g, w) || !hp_add(&t, &g, &q, false, w) || !div_u32(&g, &t, 2, w)) return false;
+    }
+    *r = g;
+    hp_trim(r, p);
+    return true;
+}
+
+bool hp_atan2h(hp *r, const hp *b, const hp *a, int p)
+{
+    static hp th, sn, cs, t1, t2, num, den, corr;
+    int w = p + 5;
+    abn ab, aa, t0;
+    if (hp_is_zero(b) || hp_is_zero(a)) {
+        if (hp_is_zero(b) && !a->neg) {         /* on an axis: 0, pi or +-pi/2 */
+            hp_set_int(r, 0);
+            return true;
+        }
+        if (!constant(&th, PI_241, p + 2)) return false;
+        if (hp_is_zero(b)) {
+            *r = th;
+        } else {
+            if (!div_u32(r, &th, 2, p)) return false;
+            if (b->neg) hp_neg(r);
+        }
+        hp_trim(r, p);
+        return true;
+    }
+    /* the engine's angle of the rounded parts starts it (exact for hp_atan2's; unit 044's within its range) */
+    if (hp_round(&ab, b) != ABN_OK || hp_round(&aa, a) != ABN_OK) return false;
+    abn_status s0 = abn_atan2(&t0, &ab, &aa);
+    if (s0 == ABN_UNDERFLOW) {
+        /* the angle below the engine's range (a > 0, |b| tiny beside it): start from b / a, its value there
+           to far beyond the digits kept (unit 034: ->POL's theta below the range, unit 026, is 0 after the
+           rounding, not a failure) */
+        if (!hp_div(&th, b, a, w)) return false;
+    } else if (s0 != ABN_OK || !hp_from_abn(&th, &t0)) {
+        return false;
+    }
+    /* theta += atan of tan(theta_true - theta) = (b cos - a sin) / (a cos + b sin); the first-order
+       step leaves an error of the cube of the last, so the digits triple each time */
+    for (int digits = 30; digits < w + 5; digits *= 3) {
+        if (!hp_sincos(&sn, &cs, &th, w)) return false;
+        if (!hp_mul(&t1, b, &cs, w) || !hp_mul(&t2, a, &sn, w) || !hp_add(&num, &t1, &t2, true, w)) return false;
+        if (!hp_mul(&t1, a, &cs, w) || !hp_mul(&t2, b, &sn, w) || !hp_add(&den, &t1, &t2, false, w)) return false;
+        if (!hp_div(&corr, &num, &den, w) || !hp_add(&t1, &th, &corr, false, w)) return false;
+        th = t1;
+    }
+    *r = th;
+    hp_trim(r, p);
+    return true;
 }

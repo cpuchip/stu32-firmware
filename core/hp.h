@@ -44,6 +44,12 @@ bool hp_atan2(hp *r, const abn *b, const abn *a, int p);
 abn_status hp_hypot(abn *out, const abn *x, const abn *y);
 abn_status hp_norm(abn *out, const abn *el, int n);
 
+/* Unit 044: sqrt x (x >= 0) by Newton from the engine's root; the angle of (a, b) for hp a and b (as hp_atan2), not
+   both zero; ln 10 to p digits (at most 241). */
+bool hp_sqrt(hp *r, const hp *x, int p);
+bool hp_atan2h(hp *r, const hp *b, const hp *a, int p);
+bool hp_ln10(hp *r, int p);
+
 /* v (formed to p digits, good to a few units of its p-th) rounded to the engine's digits into out and *st; true
    when the rounding is sure: v moved by 10^6 units of its p-th digit either way rounds the same (Ziv: when false,
    form v again to more digits). s is scratch; v is restored. */

@@ -3581,6 +3581,106 @@ int main(void)
         }
     expect(1, "every key in every shift, once");
 
+    /* unit 044 rule 5 (abacus #4893): a plot's pixels take the engine's path, the trace's readout is correctly
+       rounded, and the two agree to the pixel at every column; an integral's integrand takes the engine's path and
+       the keys are correctly rounded again after it */
+    {
+        static const char *const F[] = {"SIN(X)", "LN(X)", "ASINH(X)", "ATAN(X)", "TANH(X)"};
+        int disagree = 0, differ = 0, notcr = 0, samples = 0;
+        unsigned long zpix = 0, zread = 0;
+        for (int i = 0; i < 5; i++) {
+            ab_init(&c);
+            ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+            ab_do(&c, AB_RAD);
+            ab_eqn_add(&c, F[i]);
+            ab_do(&c, AB_EQN);
+            c.gr_xmin = abn_from_int(1), c.gr_xmax = abn_from_int(3);
+            ab_do(&c, AB_GRAPH);
+            abn lo, hi;
+            ab_graph_window(&c, &lo, &hi);
+            c.gr_trace = true;
+            for (int k = 0; k < AB_GRAPH_W; k++) {
+                abn x, xc, y, want = abn_zero();
+                ab_val v;
+                unsigned long z0 = fn_ziv_calls;
+                if (ab_graph_sample(&c, k, &x, &v) != ABN_OK) continue;
+                zpix += fn_ziv_calls - z0;
+                samples++;
+                c.gr_cur = k;
+                z0 = fn_ziv_calls;
+                abn_status cst = ab_graph_cursor(&c, &xc, &y);
+                zread += fn_ziv_calls - z0;
+                if (cst != ABN_OK) {
+                    disagree++;
+                    continue;
+                }
+                disagree += ab_graph_row(&v.re, &lo, &hi) != ab_graph_row(&y, &lo, &hi) || abn_cmp(&x, &xc) != 0;
+                differ += abn_cmp(&v.re, &y) != 0;
+                switch (i) {
+                case 0: fn_sin(&want, &x, FN_RAD); break;
+                case 1: fn_ln(&want, &x); break;
+                case 2: fn_asinh(&want, &x); break;
+                case 3: fn_atan(&want, &x, FN_RAD); break;
+                default: fn_tanh(&want, &x); break;
+                }
+                notcr += abn_cmp(&y, &want) != 0;
+            }
+        }
+        expect(samples == 5 * AB_GRAPH_W && disagree == 0 && notcr == 0,
+               "044: every column's pixel and the trace's readout there agree; the readout correctly rounded");
+        expect(differ > 0 && zpix == 0 && zread > 0,
+               "044: the plot's samples are the engine's (no correctly rounded computation; some differ from the readout)");
+        ab_init(&c);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        ab_do_arg(&c, AB_SETFIX, 4);
+        ab_eqn_add(&c, "LN(X)");
+        ab_do(&c, AB_CANCEL);
+        ab_do(&c, AB_K1); ab_do(&c, AB_ENTER); ab_do(&c, AB_K2);
+        ab_do(&c, AB_EQN);
+        unsigned long zi = fn_ziv_calls;
+        abn_status ist = ab_do_arg(&c, AB_INTEG, AB_VAR_A + 23);
+        zi = fn_ziv_calls - zi;
+        bool was = fn_set_fast(false);
+        abn r30, x30 = abn_from_int(30);
+        fn_sin(&r30, &x30, FN_RAD);
+        char t30[48];
+        abn_to_text(&r30, t30, sizeof t30);
+        expect(ist == ABN_OK && zi == 0, "044: an integral's integrand takes the engine's path (no correctly rounded computation)");
+        expect(!was && !strcmp(t30, "-9880316240928617899877489072944582E-34"),
+               "044: after an integral the switch is off: RAD 30 SIN is ...4582 again");
+        /* the app's plot with TRACE: some 50 frames while it draws, the readout computed once for its column; a cursor
+           moved, once more, correctly rounded at the new column */
+        static app_graph g44;
+        const pwr_inputs idle = {false, false, 80, false};
+        ab_init(&c);
+        app_init(&a, &c, now);
+        c.stu = c.m35 = true;
+        ab_do(&c, AB_RAD);
+        ab_eqn_add(&c, "SIN(X)");
+        ab_do(&c, AB_EQN);
+        app_graph_buffer(&a, &g44);
+        unsigned long za = fn_ziv_calls;
+        press(&a, "BLUE 7 k:5");
+        int frames = 0;
+        for (int i = 0; i < 200 && a.graphing; i++, frames++) {
+            app_tick(&a, &idle, now);
+            app_ui(&a, &ui);
+            app_ui(&a, &ui);
+        }
+        za = fn_ziv_calls - za;
+        abn want0;
+        fn_sin(&want0, &g44.s.cx, FN_RAD);
+        bool at0 = c.gr_trace && abn_cmp(&g44.s.cy.re, &want0) == 0;
+        int col0 = c.gr_cur;
+        press(&a, "6");
+        app_ui(&a, &ui);
+        abn want1;
+        fn_sin(&want1, &g44.s.cx, FN_RAD);
+        expect(frames > 20 && za <= 2 && at0 && c.gr_cur != col0 && abn_cmp(&g44.s.cy.re, &want1) == 0 &&
+                   abn_cmp(&g44.s.cy.re, &want0) != 0,
+               "044: a plot's frames compute the trace's readout once; a moved cursor's readout is its new column's");
+    }
+
     printf("app_test: %d/%d checks\n", checks - bad, checks);
     return bad != 0;
 }

@@ -61,6 +61,14 @@ abn_status fn_hmsinv(abn *out, const abn *x);
 abn_status fn_todeg(abn *out, const abn *x);
 abn_status fn_torad(abn *out, const abn *x);
 
+/* Unit 044 rule 5 (abacus #4893): with fast on, the one-input functions of unit 044 take the engine's path as before
+   044 (within 8 units, 003 amendment 1 rule 2), for evaluations that carry their own tolerance and are not read: a
+   plot's pixels and the integrator's integrand. Every value a person reads is correctly rounded. Returns the
+   setting it replaces, to restore. */
+bool fn_set_fast(bool on);
+/* The correctly rounded computations begun (a test's probe: which paths take them). */
+extern unsigned long fn_ziv_calls;
+
 typedef enum { FN_TOKG, FN_TOLB, FN_TOC, FN_TOF, FN_TOCM, FN_TOIN, FN_TOL, FN_TOGAL, FN_TOKM, FN_TOMILE } fn_unit;
 abn_status fn_convert(abn *out, const abn *x, fn_unit u);
 

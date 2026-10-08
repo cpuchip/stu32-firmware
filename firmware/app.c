@@ -1156,7 +1156,7 @@ void app_graph_buffer(app_state *a, app_graph *g)
 {
     a->graph = g;
     a->gr_live = false;
-    if (g) memset(&g->s, 0, sizeof g->s);       /* (a device's buffer comes unzeroed) */
+    if (g) memset(&g->s, 0, sizeof g->s), g->rd_ok = false;     /* (a device's buffer comes unzeroed) */
     if (a->c->gr_on) graph_start(a);            /* a graph open in the image loaded at boot (review F1) */
 }
 
@@ -1193,6 +1193,7 @@ static void graph_start(app_state *a)
     const ab_calc *c = a->c;
     if (!g) return;
     memset(&g->s, 0, sizeof g->s);
+    g->rd_ok = false;
     g->s.xmin = c->gr_xmin;
     g->s.xmax = c->gr_xmax;
     g->s.ymin = c->gr_ymin;
@@ -1291,8 +1292,21 @@ void app_ui(const app_state *a, screen_ui *ui)
     if (a->c->gr_on && a->graph && a->gr_live) {    /* a graph (unit 033): its buffer, the trace's sample */
         app_graph *g = a->graph;
         g->s.cur = a->c->gr_cur;
-        if (a->c->gr_trace) {
-            g->s.cst = ab_graph_sample(a->c, a->c->gr_cur, &g->s.cx, &g->s.cy);
+        if (a->c->gr_trace) {                   /* the readout correctly rounded, the plot's pixels not (044 rule 5) */
+            abn x;
+            const ab_calc *c = a->c;
+            bool same = g->rd_ok && g->rd_col == c->gr_cur && g->rd_eq == c->gr_eq && g->rd_ang == (int)c->angle &&
+                        ab_graph_x(a->c, c->gr_cur, &x) == ABN_OK && abn_cmp(&x, &g->rd_x) == 0 &&
+                        abn_is_negative(&x) == abn_is_negative(&g->rd_x);
+            if (!same) {
+                g->rd_y = abn_zero();
+                g->rd_st = ab_graph_cursor(a->c, &g->rd_x, &g->rd_y);
+                g->rd_col = c->gr_cur, g->rd_eq = c->gr_eq, g->rd_ang = (int)c->angle, g->rd_ok = true;
+            }
+            g->s.cst = g->rd_st;
+            g->s.cx = g->rd_x;
+            memset(&g->s.cy, 0, sizeof g->s.cy);
+            g->s.cy.re = g->rd_y;
             g->s.crow = -1;
         } else {                                /* unit 040: the free cursor, its pixel's x and y (the window
                                                    known: a fitted Y once plotted, never sampled again here) */

@@ -7,7 +7,7 @@ For every function and angle mode, random 34-digit arguments across the domain (
 near-exact angles and huge radian arguments) go through build/fn_drive; each result is compared
 with mpmath at 150 digits on the exact decimal argument. Prints the largest error per case and
 fails if any exceeds the bar: 8 units (unit 003 amendment 1), 0.5 for sqrt and the arithmetic
-of SQ, INV, PCT (PCTCHG is three operations: 8). Not part of `make test` because it needs mpmath; run with `make accuracy`.
+of SQ, INV, PCT (PCTCHG is three operations: 8), and 0.5 for unit 044's correctly rounded functions (TIGHT). Not part of `make test` because it needs mpmath; run with `make accuracy`.
 """
 import random
 import subprocess
@@ -232,6 +232,47 @@ for mode in ("DEG", "RAD", "GRAD"):
     POLAR.append(("TOREC", mode, lambda: (logspace(-50, 50), num(-720, 720)),
                   lambda r, t, k=k, mode=mode: (r * (mp.cos(t * k) if mode == "RAD" else exact_trig("COS", mp.nstr(t, 40), TURN[mode])),
                                                  r * (mp.sin(t * k) if mode == "RAD" else exact_trig("SIN", mp.nstr(t, 40), TURN[mode])))))
+
+
+
+# unit 044 review: the branches the ranges above miss. ATAN at 1E40 and past (pi/2 - 1/x), ASINH and ACOSH where they
+# take ln 2x, ATANH, ACOSH and LN beside 1, and RAD trigonometry beside multiples of pi/2 and past 1E30, to rule 2's
+# reach (L 163: a wider truth, since pi reduces x there)
+def beside(head, rep, k_max):       # head, k digits rep, then random ones: 34 significant digits at most
+    k = R.randint(1, k_max)
+    return head + rep * k + "".join(str(R.randint(0, 9)) for _ in range(R.randint(0, 32 - k))) + str(R.randint(1, 9))
+
+
+def beside_halfpi():
+    x = R.randint(-10**6, 10**6) * mp.pi / 2 + mp.mpf(R.uniform(-1, 1)) * mp.mpf(10) ** -R.randint(1, 25)
+    return mp.nstr(x, 34, min_fixed=-mp.inf, max_fixed=mp.inf)
+
+
+def wide(f):                        # f at x with the digits a large argument's reduction needs
+    def t(x):
+        with mp.workdps(160 + max(0, int(mp.log10(abs(x))))):
+            return f(x)
+    return t
+
+
+for mode in ("DEG", "RAD", "GRAD"):
+    CASES.append(("ATAN", mode, lambda: logspace(30, 6144, True), lambda x, k=ANG[mode]: mp.atan(x) / k, 8))
+CASES += [("ASINH", "RAD", lambda: logspace(30, 6144, True), mp.asinh, 8),
+          ("ACOSH", "RAD", lambda: logspace(6, 6144), mp.acosh, 8),
+          ("ATANH", "RAD", lambda: R.choice("-+").strip("+") + beside("0.", "9", 32), mp.atanh, 8),
+          ("ACOSH", "RAD", lambda: beside("1.", "0", 32), mp.acosh, 8),
+          ("LN", "RAD", lambda: R.choice([beside("1.", "0", 32), beside("0.", "9", 32)]), mp.log, 8)]
+for fname, f in (("SIN", mp.sin), ("COS", mp.cos), ("TAN", mp.tan)):
+    CASES += [(fname, "RAD", beside_halfpi, f, 8), (fname, "RAD", lambda: logspace(30, 163, True), wide(f), 8)]
+
+# unit 044: the one-input functions correctly rounded (the exact value rounded once): their bar is half a unit
+# (exact ties round to even), every case of them: exp, ln, 10^x, log, the hyperbolics and their inverses, sin, cos
+# and tan in radians, the inverse trigonometry in every unit, ->RAD and ->DEG; sin, cos and tan in degrees and grads
+# too (correctly rounded since unit 034; held to half a unit here since 044's review found the tiny angles 2.2 off)
+TIGHT = {"EXP", "LN", "TENX", "LOG", "SINH", "COSH", "TANH", "ASINH", "ACOSH", "ATANH", "ASIN", "ACOS", "ATAN",
+         "TODEG", "TORAD"}
+CASES = [(n, m, g, f, 0.5 + 1e-9 if n in TIGHT or n in ("SIN", "COS", "TAN") else b)   # (DEG, GRAD: unit 034)
+         for n, m, g, f, b in CASES]
 
 
 def main():

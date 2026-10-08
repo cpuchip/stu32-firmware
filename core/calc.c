@@ -2728,7 +2728,10 @@ static abn_status gk15(ab_calc *c, const abn *a, const abn *b, abn *res, abn *er
         for (int side = 0; side < (i < 7 ? 2 : 1); side++) {
             abn f, fa;
             if ((st = side ? abn_sub(&x, &cen, &t) : abn_add(&x, &cen, &t)) != ABN_OK) return st;
-            if ((st = eval_fn(c, &x, &f)) != ABN_OK) return st;
+            bool was = fn_set_fast(true);       /* the integrand: the engine's path (unit 044 rule 5, abacus #4893) */
+            st = eval_fn(c, &x, &f);
+            fn_set_fast(was);
+            if (st != ABN_OK) return st;
             fv[i * 2 + side] = f;
             if ((st = abn_mul(&w, &wk, &f)) != ABN_OK || (st = abn_add(&rk, &rk, &w)) != ABN_OK) return st;
             fa = abn_abs(&f);
@@ -5367,7 +5370,9 @@ static abn_status graph_x(ab_calc *c, int col, abn *x)
 
 unsigned long ab_graph_sample_calls;
 
-static abn_status graph_sample(ab_calc *c, int col, abn *x, ab_val *y, bool pure)
+/* fast: a pixel's sample, the engine's path for unit 044's functions (rule 5, abacus #4893); a value read (the trace's
+   readout, F(X), ENTER, a zoom's centre) is correctly rounded. */
+static abn_status graph_sample(ab_calc *c, int col, abn *x, ab_val *y, bool pure, bool fast)
 {
     ab_graph_sample_calls++;
     abn_status st;
@@ -5376,14 +5381,16 @@ static abn_status graph_sample(ab_calc *c, int col, abn *x, ab_val *y, bool pure
     if (c->gr_eq < 0 || c->gr_eq >= c->eqn_count || c->gr_v < 0 || c->gr_v >= 26 || col < 0 || col >= AB_GRAPH_W)
         return ABN_DOMAIN;
     if ((st = graph_x(c, col, x)) != ABN_OK) return st;
+    bool was = fn_set_fast(fast);
     st = eval_at(c, c->gr_eq, c->gr_v, x, y, pure);
+    fn_set_fast(was);
     if (st == ABN_OK && y->kind != AB_REAL) st = ABN_DOMAIN;    /* (a complex or vector value: not plotted) */
     return st;
 }
 
 abn_status ab_graph_sample(ab_calc *c, int col, abn *x, ab_val *y)
 {
-    return graph_sample(c, col, x, y, true);
+    return graph_sample(c, col, x, y, true, true);
 }
 
 static void clamp_big(abn_status st, abn *r, bool neg)
@@ -5463,7 +5470,7 @@ void ab_graph_window(ab_calc *c, abn *ymin, abn *ymax)
     for (int i = 0; i < AB_GRAPH_W; i++) {
         abn x;
         ab_val v;
-        fit_take(&v.re, graph_sample(c, i, &x, &v, true) == ABN_OK, ymin, ymax, &any);
+        fit_take(&v.re, graph_sample(c, i, &x, &v, true, true) == ABN_OK, ymin, ymax, &any);
     }
     fit_finish(ymin, ymax, any);
     if (c->gr_on) c->gr_fit_ok = true, c->gr_fit_lo = *ymin, c->gr_fit_hi = *ymax;
@@ -5546,9 +5553,9 @@ bool ab_graph_column(ab_calc *c, int col, const abn *ymin, const abn *ymax, int 
     abn x;
     ab_val y, py;
     *lo = *hi = 0;
-    if (graph_sample(c, col, &x, &y, true) != ABN_OK) return false;
+    if (graph_sample(c, col, &x, &y, true, true) != ABN_OK) return false;
     int r = ab_graph_row(&y.re, ymin, ymax), pr = 0;
-    bool pok = col > 0 && graph_sample(c, col - 1, &x, &py, true) == ABN_OK;
+    bool pok = col > 0 && graph_sample(c, col - 1, &x, &py, true, true) == ABN_OK;
     if (pok) pr = ab_graph_row(&py.re, ymin, ymax);
     return ab_graph_join(pok, pr, r, lo, hi);
 }
@@ -5606,7 +5613,7 @@ static int graph_vrow(ab_calc *c, const abn *ymin, const abn *ymax)
     abn x;
     ab_val v;
     if (!c->gr_trace) return c->gr_row;
-    if (graph_sample(c, c->gr_cur, &x, &v, true) != ABN_OK) return -1;
+    if (graph_sample(c, c->gr_cur, &x, &v, true, true) != ABN_OK) return -1;     /* the plot's pixel */
     return ab_graph_row(&v.re, ymin, ymax);
 }
 
@@ -5620,7 +5627,7 @@ abn_status ab_graph_cursor(ab_calc *c, abn *x, abn *y)
     abn lo, hi;
     ab_val v;
     if (c->gr_trace) {
-        abn_status st = graph_sample(c, c->gr_cur, x, &v, true);
+        abn_status st = graph_sample(c, c->gr_cur, x, &v, true, false);
         *y = st == ABN_OK ? v.re : abn_zero();
         return st;
     }
@@ -5688,7 +5695,7 @@ static abn_status graph_zoom(ab_calc *c, int kind)
            where the curve errs, its row's */
         ab_val fv;
         abn fx;
-        if (c->gr_trace && graph_sample(c, c->gr_cur, &fx, &fv, true) == ABN_OK) cy = fv.re;
+        if (c->gr_trace && graph_sample(c, c->gr_cur, &fx, &fv, true, false) == ABN_OK) cy = fv.re;
         else if ((st = graph_rowy(c, c->gr_trace ? AB_GRAPH_CROW : c->gr_row, &ylo, &yhi, &cy)) != ABN_OK) return st;
     }
     abn bx0 = abn_zero(), bx1 = abn_zero(), by0 = abn_zero(), by1 = abn_zero();
@@ -5956,7 +5963,7 @@ static abn_status graph_fcn(ab_calc *c, int kind)
         break;
     }
     case AB_F_FX:
-        if ((st = graph_sample(c, c->gr_cur, &x, &v, true)) != ABN_OK) return st;
+        if ((st = graph_sample(c, c->gr_cur, &x, &v, true, false)) != ABN_OK) return st;
         r = v.re;
         break;
     default:                                    /* AB_F_TANL: y = m x + b through (x, f(x)) */
@@ -6050,7 +6057,7 @@ static abn_status graph_key(ab_calc *c, ab_op op, int arg)
             c->gr_res_kind = 0;
             goto place;
         }
-        if ((st = graph_sample(c, c->gr_cur, &x, &y, false)) != ABN_OK) return st;
+        if ((st = graph_sample(c, c->gr_cur, &x, &y, false, false)) != ABN_OK) return st;
     place:
         c->gr_on = false;
         if (c->alg) {
