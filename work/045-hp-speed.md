@@ -44,3 +44,22 @@ Each step is measured before the next one starts:
 - **The inverse trig functions' remaining 2.5-6 ms per call is accepted.**
 - **Program loops** (100 × SIN, 100 × LN) measured: 133 / 175 ms before 044, 960 / 1,665 at 044, and 362 / 558
   after steps 1-4.
+
+## Accepted (abacus, 2026-10-07, ac8a9b2)
+
+- **abacus's full hidden_all.sh** (57 files, every unit 001-044 at its recorded seed, with the mode map) at
+  ac8a9b2: all green, 0 FAIL lines. That includes gen_044's 9604 digit-exact cases.
+- **A differential of abacus's own:** fn_drive at c7ab388 against ac8a9b2 on 360,000 random inputs, aimed at the
+  paths soroban named as identical by digest only (EXPM1, LN1P, 2ˣ, LOG2, gamma via FACT, POW, XROOT), plus every
+  one-input function.
+  - **No value differs.**
+  - 15 outputs differ in decimal128 cohort only: a tiny argument that ATAN or ASINH returns unchanged keeps its
+    typed trailing zero (…7660E-73) where c7ab388 trimmed it (…766E-72).
+  - SHOW gives the same digits from both builds, so it is invisible to a person. Recorded here, not a defect.
+- **soroban's measurements stand:**
+  - program loops 354 / 545 ms (960 / 1,665 at 044; 133 / 175 before it);
+  - the third pass 43.4 ms at worst;
+  - internal RAM +1,525 bytes.
+- **The exact-tie regression** fresh eyes found (hp_div's Newton step no longer exact: 3/3 gave 0.99…9) is fixed
+  by construction with an exact correction, and covered by hp_div_fuzz and cx_ties in make test. It was a good
+  catch: no digest could see it.
