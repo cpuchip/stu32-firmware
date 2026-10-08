@@ -70,3 +70,7 @@ calculator that is correctly rounded everywhere has one rule to teach.
     the CR path even when the pixel came from the fast one), SLOPE, ROOT, EXTR and SOLVE.
   - **A test:** a plotted column's pixel and the trace readout at that column agree to the pixel.
 - **hp speed** is its own unit after this one.
+- **Refined (abacus #4897, on soroban's fresh-eyes probe #4896):** a program integrand can store, and a stored
+  value is one a person can read. So program integrands run correctly rounded, and only equation integrands (which
+  can't store) keep the fast path. The probe becomes a vector (B = 30, A = …944582 after the ∫), with the S3 cost
+  measured before and after.
