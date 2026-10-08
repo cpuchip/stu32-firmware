@@ -439,7 +439,10 @@ static int eqn_bar(const app_state *a)
     if (ab_view_linear(a->c)) return menu_named("LIN VIEW");         /* x= y= (z=): unit 035 */
     if (a->c->alg && !a->c->prgm) return menu_named("ALG LINE");    /* STU's line (unit 029) */
     if (a->c->eqn_typing) return menu_named("EQN TYPE");
-    if (a->c->eqn_mode && !a->c->prgm) return menu_named("EQN LIST");
+    if (a->c->eqn_mode && !a->c->prgm) {         /* GOLD: the list's bank, the REG names (unit 046) */
+        int m = a->shift == 1 ? menu_named("EQN LIST GOLD") : -1;
+        return m >= 0 ? m : menu_named("EQN LIST");
+    }
     return -1;
 }
 

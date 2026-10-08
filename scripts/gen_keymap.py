@@ -151,7 +151,9 @@ MENUS = [
     # from the core's state: the list's (NEW, ours: EQN LIST TOP) and typing's; REG > is one choice
     # of a register (UG p.B-7), then typing's bar again. On no key, like LOGIC and SUFFIX.
     ("EQN LIST", [o("\u25b2", "AB_BST"), o("\u25bc", "AB_SST"), o("EDIT", "AB_KRIGHT"), o("NEW", "AB_EQTOP"),
-                  ("CAS", "KM_MENU", "0", "CAS", 0), o("EXIT", "AB_EQN")]),    # CAS: STU's only (CAS 004)
+                  ("CAS", "KM_MENU", "0", "CAS", 0), o("( )", "AB_KPAREN")]),    # CAS: STU's only (CAS 004)
+    # unit 046 (abacus #4996): the sixth key types "( )" in EXIT's place (C and gold 0 store and leave: eqn_key's one
+    # case), so an equation can begin with a parenthesis, as on the 35s's face key (p.1-2, p.6-6); see EQN LIST GOLD
     # unit 032 (abacus #4350, #4353 answers): TABLE on blue 8: the variable prompted, START and STEP from X,
     # GO; while a table is open the app's bar scrolls it
     ("TABLE", [p("VAR", "AB_TVAR", "KM_ARG_VAR"), o("START", "AB_TSTART"), o("STEP", "AB_TSTEP"), o("GO", "AB_TABLE"),
@@ -226,6 +228,10 @@ MENUS = [
     # only (the app shows no CAS in 33s or 35s mode); D/DX, COLCT and SUBST prompt for the variable as SOLVE does
     ("CAS", [p("D/DX", "AB_CASD", "KM_ARG_VAR"), o("SIMP", "AB_CASSIMP"), o("EXPND", "AB_CASEXP"),
              p("COLCT", "AB_CASCOL", "KM_ARG_VAR"), p("SUBST", "AB_CASSUB", "KM_ARG_VAR"), NONE]),
+    # unit 046 (abacus #4996): EQN LIST's GOLD bank (eqn_bar takes it with GOLD), the REG names as a first character;
+    # in 33s mode dimmed and doing nothing (041 A11)
+    ("EQN LIST GOLD", [o("REGX", "AB_KREG", 0), o("REGY", "AB_KREG", 1), o("REGZ", "AB_KREG", 2), o("REGT", "AB_KREG", 3),
+                       NONE, NONE]),
 ]
 # Menu legends that act as plain ops until their menu is ruled (abacus #3867): the EQN menu's
 # first item will take this over.
