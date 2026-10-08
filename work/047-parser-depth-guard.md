@@ -155,7 +155,8 @@ flags exactly 047's six refusals. The Python follows the C parser's grammar
   48 B over these shapes on the host.
 - **On the S3 the minus weight isn't needed:** `-(` costs 902 B a level against `(`'s 921. xtensa's windowed calls
   keep parse_neg's frame with or without a minus, so `(` already pays for it; on x86-64 a minusless call is a jump.
-  The +2 stays (host and device must agree, and it is conservative); it costs `-(` four levels. See abacus's ruling.
+  The +2 stays (host and device must agree, and it is conservative); it costs `-(` four levels. **Ruled (abacus #5177): keep the +2**; one rule on both the host and the S3 beats a
+  target-only allowance.
 - **Refused through the keys, the board answering after:** 18, 30 and 46 levels of `X^(` at the ENTER site (before
   047: 30 reset the board, `rst:0xc`; 46 panicked), and the 154-unit mix in program entry (no line added). 17 levels
   store, with 10,020 B free.
