@@ -15,9 +15,9 @@ unit's rule 2 defines (Y#0,bound: Y is U plus an error estimate refined below U/
 Unit 015: each case also has an equation twin, the same function as a listed equation whose
 operations come in the same order, solved or integrated from Equation mode. A SOLVE twin's root must
 be the program's, bit for bit (SAVEX, then %SAMEX). An integral's twin meets the program's own
-expectations instead: since unit 044 (rule 5, abacus #4897) a program integrand runs correctly rounded,
-since it can store, and an equation integrand keeps the engine's 34-digit path, so their last digits
-may differ within the integral's uncertainty.
+expectations instead, because an integral's answer is defined to its uncertainty, not to its last digit
+(044 rule 5, abacus #4940): a program integrand runs correctly rounded, since it can store (#4897), and an
+equation integrand keeps the engine's 34-digit path, so their last digits may differ, far inside Y.
 """
 import random
 import sys
