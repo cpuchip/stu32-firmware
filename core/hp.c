@@ -202,13 +202,24 @@ static bool nearest_int(hp *k, const hp *q, uint32_t *low)
 }
 
 /* e^x - 1 by its series, for |x| < 1. */
+/* A series term's working digits (unit 045): enough that its error is four digits below the sum's last kept one,
+   at most w. A term 10^-k of the sum needs w - k of them, so as the terms shrink the multiplies and divisions shorten
+   ("tapering" the precision: Brent and Zimmermann, Modern Computer Arithmetic, 2010, 4.4); each term's error is
+   below 10^-(w + 3) of the sum and some dozens of them stay below its last digit. */
+static int taper(const hp *term, const hp *sum, int w)
+{
+    long d = w + 4 + (hp_lead(term) - hp_lead(sum));
+    return d < 4 ? 4 : d > w ? w : (int)d;
+}
+
 static bool expm1_series(hp *r, const hp *x, int w)
 {
     static hp sum, term, t2;
     sum = *x;
     term = *x;
     for (uint32_t n = 2; n < 1000; n++) {
-        if (!hp_mul(&t2, &term, x, w) || !div_u32(&term, &t2, n, w)) return false;
+        int wt = taper(&term, &sum, w);
+        if (!hp_mul(&t2, &term, x, wt) || !div_u32(&term, &t2, n, wt)) return false;
         if (hp_is_zero(&term) || hp_lead(&term) < hp_lead(&sum) - w) break;
         if (!hp_add(&t2, &sum, &term, false, w)) return false;
         sum = t2;
@@ -303,7 +314,8 @@ bool hp_sincos(hp *s, hp *c, const hp *x, int p)
     ss = r;
     term = r;
     for (uint32_t n = 1; n < 500; n++) {
-        if (!hp_mul(&t2, &term, &r2, w) || !div_u32(&term, &t2, (2 * n) * (2 * n + 1), w)) return false;
+        int wt = taper(&term, &ss, w);
+        if (!hp_mul(&t2, &term, &r2, wt) || !div_u32(&term, &t2, (2 * n) * (2 * n + 1), wt)) return false;
         hp_neg(&term);
         if (hp_is_zero(&term) || hp_lead(&term) < hp_lead(&ss) - w) break;
         if (!hp_add(&t2, &ss, &term, false, w)) return false;
@@ -312,7 +324,8 @@ bool hp_sincos(hp *s, hp *c, const hp *x, int p)
     hp_set_int(&cc, 1);
     hp_set_int(&term, 1);
     for (uint32_t n = 1; n < 500; n++) {
-        if (!hp_mul(&t2, &term, &r2, w) || !div_u32(&term, &t2, (2 * n - 1) * (2 * n), w)) return false;
+        int wt = taper(&term, &cc, w);
+        if (!hp_mul(&t2, &term, &r2, wt) || !div_u32(&term, &t2, (2 * n - 1) * (2 * n), wt)) return false;
         hp_neg(&term);
         if (hp_is_zero(&term) || hp_lead(&term) < -w) break;
         if (!hp_add(&t2, &cc, &term, false, w)) return false;
