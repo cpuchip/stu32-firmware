@@ -387,18 +387,20 @@ bool hp_ln(hp *r, const hp *s, const hp *t, int p)
             y = v;
         }
     }
-    /* Newton on e^y = s: y += s e^-y - 1, written s (e^-y - 1) + t near s = 1. Each step doubles
-       the correct digits, from the engine's 30 or more. */
-    for (int digits = 30; digits < w + 5; digits *= 2) {
-        my = y;
-        hp_neg(&my);
+    /* Halley on e^y = s (unit 045; Halley's method, the third-order step for f(y) = e^y - s): with E = e^y,
+       y += 2 (s - E) / (s + E), each step tripling the correct digits, from the engine's 30 or more: one exp a step,
+       where Newton's y += s e^-y - 1 doubled them (at 65 digits two exps, now one). Near s = 1, s - E = t - (E - 1)
+       and s + E = 2 + t + (E - 1), E - 1 by expm1, so a small ln keeps its digits. */
+    for (int digits = 30; digits < w + 5; digits *= 3) {
         if (near) {
-            if (!hp_expm1(&e, &my, w) || !hp_mul(&u, s, &e, w) || !hp_add(&v, &u, t, false, w)) return false;
+            if (!hp_expm1(&e, &y, w) || !hp_add(&u, t, &e, true, w) || !hp_add(&v, t, &e, false, w)) return false;
+            hp_set_int(&my, 2);
+            if (!hp_add(&m, &v, &my, false, w)) return false;
         } else {
-            if (!hp_exp(&e, &my, w) || !hp_mul(&u, s, &e, w) || !hp_add(&v, &u, &one, true, w)) return false;
+            if (!hp_exp(&e, &y, w) || !hp_add(&u, s, &e, true, w) || !hp_add(&m, s, &e, false, w)) return false;
         }
-        if (!hp_add(&u, &y, &v, false, w)) return false;
-        y = u;
+        if (!hp_div(&v, &u, &m, w) || !hp_add(&u, &v, &v, false, w) || !hp_add(&v, &y, &u, false, w)) return false;
+        y = v;
     }
     *r = y;
     hp_trim(r, p);
