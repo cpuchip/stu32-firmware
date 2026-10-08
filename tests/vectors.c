@@ -54,7 +54,7 @@ static const struct { const char *name; ab_op op; } NAMED[] = {
     {"[", AB_KVEC}, {",", AB_KCOMMA},
     {"PRGM", AB_PRGM}, {"RTN", AB_RTN}, {"RS", AB_RS}, {"PSE", AB_PSE}, {"SST", AB_SST},
     {"BST", AB_BST}, {"CLPGM", AB_CLPGM}, {"C", AB_CANCEL},
-    {"EQN", AB_EQN}, {"SPACE", AB_KSPACE}, {"=", AB_KEQ}, {"()", AB_KPAREN}, {"<", AB_KLEFT}, {">", AB_KRIGHT},
+    {"EQN", AB_EQN}, {"EQTOP", AB_EQTOP} /* EQN LIST's NEW (tutor #4941) */, {"SPACE", AB_KSPACE}, {"=", AB_KEQ}, {"()", AB_KPAREN}, {"<", AB_KLEFT}, {">", AB_KRIGHT},
     {"AND", AB_AND}, {"XOR", AB_XOR}, {"OR", AB_OR}, {"NOT", AB_NOT}, {"NAND", AB_NAND}, {"NOR", AB_NOR},
     {"SIGMA+", AB_SIGMAPLUS}, {"SIGMA-", AB_SIGMAMINUS}, {"CLSIGMA", AB_CLSIGMA},
     {"XBAR", AB_XBAR}, {"YBAR", AB_YBAR}, {"XWBAR", AB_XWBAR}, {"SX", AB_SX}, {"SY", AB_SY},
