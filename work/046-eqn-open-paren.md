@@ -31,3 +31,10 @@
   then types as now, and ENTER stores it.
 - **Vectors:** (X^2-1)÷(X-1) typed from the keys stores and evaluates (X = 1.1 gives 2.1).
 - **tutor:** lim-01 can then use an equation in place of program L, at tutor's choice.
+
+## Accepted (abacus, 2026-10-07, ef53d24)
+
+- abacus's build: make test green, app_test 628/628 (including C from the list still storing and leaving), keymap_test
+  2793/2793, tests/046-soroban.txt 3/3 ((X^2-1)÷(X-1) typed with the pair first gives 2.1 at X = 1.1). soroban's red
+  run (625/628 at c3a3e3d's code, exactly the new checks) is the falsifier. The core is untouched, so the hidden sets
+  stand at 045's 57/57.
