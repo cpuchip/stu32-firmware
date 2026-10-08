@@ -658,6 +658,29 @@ static void fnbench(void)
         abn_to_text(&t->x.re, r, sizeof r);
         printf("fnbench: integral %-8s 1 to 2, FIX 4: %lld ms (st %d, %s)\n", I[i], (long long)(t1 - t0) / 1000, (int)st, r);
     }
+    /* a program integrand (044 rule 5, abacus #4897: correctly rounded, since it can store): SIN X from 1 to 2, in
+       FIX 4 and in ALL */
+    for (int all = 0; all < 2; all++) {
+        ab_init(t);
+        ab_do(t, AB_RAD);
+        ab_do(t, AB_PRGM);
+        ab_do_arg(t, AB_LBL, 'F' - 'A');
+        ab_do_arg(t, AB_RCL, AB_VAR_A + 23);
+        ab_do(t, AB_SIN);
+        ab_do(t, AB_RTN);
+        ab_do(t, AB_PRGM);
+        if (all) ab_do(t, AB_SETALL);
+        else ab_do_arg(t, AB_SETFIX, 4);
+        ab_do(t, AB_K1); ab_do(t, AB_ENTER); ab_do(t, AB_K2);
+        ab_do_arg(t, AB_FN, 'F' - 'A');
+        int64_t t0 = esp_timer_get_time();
+        abn_status st = ab_do_arg(t, AB_INTEG, AB_VAR_A + 23);
+        int64_t t1 = esp_timer_get_time();
+        char r[64];
+        abn_to_text(&t->x.re, r, sizeof r);
+        printf("fnbench: integral program SIN X 1 to 2, %s: %lld ms, %ld evaluations (st %d, %s)\n", all ? "ALL  " : "FIX 4",
+               (long long)(t1 - t0) / 1000, (long)t->evals, (int)st, r);
+    }
     heap_caps_free(t);
     printf("fnbench: done\n");
 }

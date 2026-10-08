@@ -2728,7 +2728,9 @@ static abn_status gk15(ab_calc *c, const abn *a, const abn *b, abn *res, abn *er
         for (int side = 0; side < (i < 7 ? 2 : 1); side++) {
             abn f, fa;
             if ((st = side ? abn_sub(&x, &cen, &t) : abn_add(&x, &cen, &t)) != ABN_OK) return st;
-            bool was = fn_set_fast(true);       /* the integrand: the engine's path (unit 044 rule 5, abacus #4893) */
+            /* an equation's integrand (it can't store): the engine's path; a program's correctly rounded, since what it
+               stores a person can read (unit 044 rule 5, abacus #4893, #4897) */
+            bool was = fn_set_fast(ev_graph || c->fn_eqn >= 0);
             st = eval_fn(c, &x, &f);
             fn_set_fast(was);
             if (st != ABN_OK) return st;
