@@ -20,8 +20,10 @@
    Say what each costs.
 2. **Check the other first characters too.** If any character that can appear in an equation can't be the first
    one typed (=, the REG names, a suffix), say so and cover it, or say why not.
-3. The 35s and 33s have parentheses as shifted keys from the start of entry (read the guides' keyboard pages
-   rendered, and cite the page). Ours should match: no prefix keystroke, and no "type a digit, then delete it".
+3. **How the HPs do it:** read the 33s's and 35s's keyboard and equation-entry pages rendered, and cite the page
+   that says how a parenthesis is typed at the start of an equation. abacus hasn't checked this; it's for the
+   guides to settle, not a claim. Whatever the guides show, ours needs no prefix keystroke and no "type a digit,
+   then delete it".
 
 ## Acceptance
 
