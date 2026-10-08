@@ -34,7 +34,7 @@ $(INTEL_LIB):
 build/casim/.pin build/casim/casim.c build/casim/casim.h: CASIM_PIN
 	scripts/fetch-casim.sh
 $(CASIM_O): build/casim/.pin build/casim/casim.c build/casim/casim.h core/abn.h | build
-	$(CC) $(CFLAGS) -Werror=frame-larger-than=1024 -Icore -c -o $@ build/casim/casim.c
+	$(CC) $(CFLAGS) -Wframe-larger-than=1024 -Icore -c -o $@ build/casim/casim.c
 
 build/abn_intel.o: core/abn_intel.c core/abn.h $(INTEL_LIB) | build
 	@mkdir -p build
@@ -47,7 +47,7 @@ build/keymap_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) firmware/keymap.c firmwar
 APP := firmware/app.c firmware/apps.c firmware/keymap.c firmware/keys.c firmware/power.c firmware/settings.c firmware/piezo.c
 # The games (games.list): scripts/gen_games.py exports each at its pin into build/games and writes
 # build/games/games.mk (GAMES_C, GAMES_O, and a rule a game: its manifest's flags and its own include directories, always
-# -Werror=frame-larger-than=1024, every object depending on the export's stamp, since git archive gives
+# -Wframe-larger-than=1024 (an error by CFLAGS' -Werror; the spelling clang takes too), every object depending on the export's stamp, since git archive gives
 # files their commit's time) and build/games/games.h (GAMES_DECLARE, GAMES_ENTRIES for apps.c).
 build/games/games.mk: games.list scripts/gen_games.py
 	python3 scripts/gen_games.py games.list build/games

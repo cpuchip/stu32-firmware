@@ -33,7 +33,8 @@ No symbolic link may be among what is exported (a source, the manifest, anything
 directory): it could pull a file from outside the game's repo into the build.
 
 Out, in OUT (default build/games): each game exported to OUT/ID/ (with its manifest and .pin); games.mk
-(GAMES_C, and a rule per game building its objects with its flags, -Werror=frame-larger-than=1024 always and
+(GAMES_C, and a rule per game building its objects with its flags, -Wframe-larger-than=1024 always (an error by
+CFLAGS' -Werror; games.cmake, the device's, -Werror=frame-larger-than=1024) and
 -Wno-missing-field-initializers (apps.h v1.2's optional members),
 and its own include directories only: a game's headers never reach the firmware's files or another
 game's); games.cmake (GAMES_SRCS, per-file COMPILE_OPTIONS and INCLUDE_DIRECTORIES); games.h
@@ -220,7 +221,10 @@ def main():
         allc += cs
         # apps.h v1.2: an app_def written for 1.1 leaves the new optional members (save_size) to zero, as promised;
         # -Wextra would refuse its positional initializer, so not for games
-        flags = " ".join(m["flags"] + ["-Werror=frame-larger-than=1024", "-Wno-missing-field-initializers"])
+        # the frame guard: on the host -Wframe-larger-than=1024, made an error by CFLAGS' -Werror (clang takes that
+        # spelling too: primer's emcc builds these, abacus #5011/#5012); the device's (gcc only) -Werror=...=1024
+        flags = " ".join(m["flags"] + ["-Wframe-larger-than=1024", "-Wno-missing-field-initializers"])
+        cflags = " ".join(m["flags"] + ["-Werror=frame-larger-than=1024", "-Wno-missing-field-initializers"])
         mk.append(f"# {g['id']}: {m['name']} ({m['folder']}), {g['licence']}, {g['repo']} at {g['pin']}")
         mk.append(f"GAME_{g['id']}_C := {' '.join(cs)}")
         mk.append(f"GAME_{g['id']}_INC := {' '.join(incs)}")
@@ -231,7 +235,7 @@ def main():
         cm.append(f"set(GAME_{g['id']}_SRCS {' '.join('${REPO}/' + c for c in cs)})")
         cm.append(f"list(APPEND GAMES_SRCS ${{GAME_{g['id']}_SRCS}})")
         cm.append("if(NOT CMAKE_SCRIPT_MODE_FILE)")
-        cm.append(f"    set_source_files_properties(${{GAME_{g['id']}_SRCS}} PROPERTIES COMPILE_OPTIONS \"{';'.join(flags.split())}\"")
+        cm.append(f"    set_source_files_properties(${{GAME_{g['id']}_SRCS}} PROPERTIES COMPILE_OPTIONS \"{';'.join(cflags.split())}\"")
         cm.append(f"                                INCLUDE_DIRECTORIES \"{';'.join('${REPO}/' + i[2:] for i in incs)}\"")
         cm.append("                                OBJECT_DEPENDS \"${REPO}/build/games/.stamp\")")
         cm.append("endif()")
