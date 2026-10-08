@@ -1396,9 +1396,10 @@ static uint8_t typed_model(const ab_calc *c)
 /* An equation's text as stored (unit 031 rule 7): typed in STU, an explicit x at each implied
    product; as typed otherwise, and for a message that does not parse (answer J). MEMORY_FULL when
    the x's would not fit (answer I). */
-static abn_status stored_text(ab_calc *c, const char *text, char *out)
+static abn_status stored_text(ab_calc *c, const char *text, char *out, int model)
 {
     if (strlen(text) >= AB_EQN_LEN) return ABN_MEMORY_FULL;
+    if (eqn_too_deep(c, text, model)) return ABN_TOO_DEEP;     /* nothing deeper is stored (unit 047) */
     if (c->stu) {
         int w = eqn_write_implied(c, text, out, AB_EQN_LEN);
         if (w < 0) return ABN_MEMORY_FULL;
@@ -1415,6 +1416,7 @@ static abn_status prog_insert_eqn(ab_calc *c, const char *text)
     for (int i = 0; i < AB_PEQN_MAX && slot < 0; i++)
         if (!c->peqn_used[i]) slot = i;
     if (slot < 0 || strlen(text) >= AB_EQN_LEN) return ABN_MEMORY_FULL;
+    if (eqn_too_deep(c, text, typed_model(c))) return ABN_TOO_DEEP;    /* a program line too (unit 047) */
     strcpy(t, text);                            /* as typed, in STU too: its stamp fixes its meaning and a
                                                    message stays intact (unit 031b, review F2 ruling (a)) */
     abn_status st = prog_insert(c, AB_EQLINE, slot);
@@ -3234,7 +3236,7 @@ static abn_status eqn_insert(ab_calc *c, const char *text)
     int at = c->eqn_cur + 1;
     char t[AB_EQN_LEN];
     if (c->eqn_count - 2 >= AB_EQN_MAX) return ABN_MEMORY_FULL;
-    abn_status st = stored_text(c, text, t);
+    abn_status st = stored_text(c, text, t, typed_model(c));
     if (st != ABN_OK) return st;
     if (eqn_builtin(c, at - 1) == 2) at++;
     memmove(c->eqn[at + 1], c->eqn[at], (size_t)(c->eqn_count - at) * AB_EQN_LEN);
@@ -3265,9 +3267,15 @@ static abn_status eqn_store_typed(ab_calc *c)
     char t[AB_EQN_LEN];
     if (!c->eqn_typing) return ABN_OK;
     if (c->cas_sub) return cas_subst_done(c, true);     /* SUBST's replacement: substituted, not stored (CAS 004) */
-    if (c->ebuf[0] && stored_text(c, c->ebuf, t) != ABN_OK)
-        return ABN_MEMORY_FULL;                 /* STU's x's would not fit: refused, the text unchanged and
-                                                   still typed (unit 031 answer I) */
+    int model = c->eqn_edit >= 0 && c->eqn_model[c->eqn_edit] ? c->eqn_model[c->eqn_edit] : typed_model(c);
+    bool same = c->eqn_edit >= 0 && strcmp(c->ebuf, c->eqn[c->eqn_edit]) == 0;
+    abn_status sst = c->ebuf[0] && !same ? stored_text(c, c->ebuf, t, model) : ABN_OK;  /* (an edit unchanged
+                                                   stores as it was: an older image's over-deep equation can be looked
+                                                   at and left, unit 047 fresh eyes) */
+    if (sst != ABN_OK)
+        return sst == ABN_TOO_DEEP ? sst : ABN_MEMORY_FULL;   /* STU's x's would not fit, or nested past the bound
+                                                   (unit 047): refused, the text unchanged and still typed (unit 031
+                                                   answer I) */
     c->eqn_typing = false; c->cas_sub = 0;
     int edit = c->eqn_edit;
     c->eqn_edit = -1;                           /* meaningful only while typing: left set, a delete could leave it past
@@ -3750,6 +3758,8 @@ static abn_status cas_step(ab_calc *c, int op, int var, const char *repl)
     if (!c->stu) return ABN_STU_ONLY;
     if (c->eqn_cur < 0 || eqn_builtin(c, c->eqn_cur)) return ABN_NO_EQN;
     const char *text = c->eqn[c->eqn_cur];
+    if (eqn_too_deep(c, text, c->eqn_model[c->eqn_cur]))
+        return ABN_TOO_DEEP;                    /* an older image's, quarantined: casim never walks it (unit 047) */
     if (c->eqn_model[c->eqn_cur] == 33) {       /* 041 D: what the 33s refuses is refused; its spelling translated */
         ab_val v;
         int pos;
@@ -3817,6 +3827,8 @@ static abn_status cas_subst_done(ab_calc *c, bool run)
 {
     int var = c->cas_sub - 1;
     char t[AB_EQN_LEN];
+    if (run && c->ebuf[0] && eqn_too_deep(c, c->ebuf, AB_MODEL_STU))
+        return ABN_TOO_DEEP;                    /* nested past the bound (unit 047): still typed */
     if (run && c->ebuf[0] && eqn_write_implied(c, c->ebuf, t, sizeof t) != 1)
         return ABN_SYNTAX;                      /* doesn't parse (or won't fit): still typed, as 031 answer I */
     c->cas_sub = 0;

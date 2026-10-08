@@ -20,8 +20,8 @@ LIBS := -lm
 .PHONY: all test accuracy all-checks clean device-host
 # make accuracy needs a python with mpmath: make all-checks PYTHON=...
 PYTHON ?= python3
-KEYV := $(filter-out work/002-vectors.txt work/016-vectors.txt work/017-vectors.txt work/018-vectors.txt,$(filter-out %-fmt-vectors.txt,$(wildcard work/*-vectors.txt))) tests/021-soroban.txt tests/019-soroban.txt tests/003-soroban.txt tests/018-soroban.txt tests/029-soroban.txt tests/034-soroban.txt tests/harness-soroban.txt tests/046-soroban.txt
-all: build/standin_test build/app_test build/keymap_test build/power_test build/screen_test build/keys_test build/ls027_test build/draw_test build/store_test build/load_fuzz build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test build/bi_drive build/hp_drive
+KEYV := $(filter-out work/002-vectors.txt work/016-vectors.txt work/017-vectors.txt work/018-vectors.txt,$(filter-out %-fmt-vectors.txt,$(wildcard work/*-vectors.txt))) tests/021-soroban.txt tests/019-soroban.txt tests/003-soroban.txt tests/018-soroban.txt tests/029-soroban.txt tests/034-soroban.txt tests/harness-soroban.txt tests/046-soroban.txt tests/047-soroban.txt
+all: build/standin_test build/app_test build/keymap_test build/power_test build/screen_test build/keys_test build/ls027_test build/draw_test build/store_test build/load_fuzz build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test build/bi_drive build/hp_drive build/deep_test build/eqn_depth build/eqn_stack
 
 # every build/ target is order-only on the directory: a fresh clone has none (abacus #3803)
 build:
@@ -84,6 +84,17 @@ build/load_fuzz: $(CORE) $(HDRS) $(ENGINE) tests/load_fuzz.c | build
 
 build/vectors: $(CORE) $(HDRS) $(ENGINE) tests/vectors.c tests/norm.h firmware/store.c firmware/store.h | build
 	$(CC) $(CFLAGS) -Icore -Ifirmware -o $@ $(CORE) firmware/store.c tests/vectors.c $(ENGINE) $(LIBS)
+
+# unit 047: the parser's depth guard at the deepest site, on a guarded thread stack; the units the parser reaches
+# (tests/eqn_depth.py's rule); the stack a check parse uses, painted
+build/deep_test: $(CORE) $(HDRS) $(ENGINE) tests/deep_test.c | build
+	$(CC) $(CFLAGS) -Icore -o $@ $(CORE) tests/deep_test.c $(ENGINE) $(LIBS) -lpthread
+
+build/eqn_depth: $(CORE) $(HDRS) $(ENGINE) tests/eqn_depth.c | build
+	$(CC) $(CFLAGS) -Icore -o $@ $(CORE) tests/eqn_depth.c $(ENGINE) $(LIBS)
+
+build/eqn_stack: $(CORE) $(HDRS) $(ENGINE) tests/eqn_stack.c | build
+	$(CC) $(CFLAGS) -Icore -o $@ $(CORE) tests/eqn_stack.c $(ENGINE) $(LIBS) -lpthread
 
 build/fmt_vectors: $(CORE) $(HDRS) $(ENGINE) tests/fmt_vectors.c | build
 	$(CC) $(CFLAGS) -Icore -o $@ $(CORE) tests/fmt_vectors.c $(ENGINE) $(LIBS)
@@ -193,6 +204,11 @@ test: all
 	./build/vectors tests/034-soroban.txt
 	./build/vectors tests/harness-soroban.txt
 	./build/vectors tests/046-soroban.txt
+	./build/vectors tests/047-soroban.txt
+	AB_SAVELOAD=1 AB_STORE=1 ./build/vectors tests/047-soroban.txt
+	./build/deep_test
+	python3 tests/eqn_depth_fuzz.py build/eqn_depth 1 3000
+	python3 tests/eqn_stack_fuzz.py build/eqn_stack 1 2000
 	./build/vectors tests/038-soroban.txt
 	./build/vectors tests/golden-v1.txt
 	./build/load_fuzz 20000

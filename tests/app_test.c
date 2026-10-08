@@ -3734,6 +3734,99 @@ int main(void)
         expect(cexit == 3, "046: C from EQN LIST still leaves Equation mode, the list kept");
     }
 
+    /* unit 047: an equation nested past the parser's bound (153 units: 20 groups are 160) is refused at ENTER with
+       NESTED TOO DEEP, still typed, nothing stored: in STU and 35s modes, and in program entry. An older image holding
+       one loads, and using it answers NESTED TOO DEEP (quarantined: never parsed unbounded). */
+    {
+        static const int MODEL[2] = {AB_MODEL_STU, 35};
+        for (int m = 0; m < 2; m++) {
+            ab_init(&c);
+            app_init(&a, &c, now);
+            ab_do_arg(&c, AB_MODEL, MODEL[m]);
+            ab_eqn_add(&c, "A+B");
+            if (!c.eqn_mode) press(&a, "GOLD 0");
+            int n0 = c.eqn_count;
+            press(&a, "k:5");                       /* ( ) begins the equation (046) */
+            for (int i = 0; i < 19; i++) press(&a, "k:2");
+            press(&a, "RCL ltr:X ENTER");
+            const char *msg = ab_error_message(&c);
+            char what[96];
+            snprintf(what, sizeof what, "047: model %d: 20 groups typed, ENTER: NESTED TOO DEEP, still typed, nothing stored",
+                     MODEL[m]);
+            expect(msg && !strcmp(msg, "NESTED TOO DEEP") && c.eqn_typing && c.eqn_count == n0, what);
+        }
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        press(&a, "GOLD 9 k:0");                    /* program entry */
+        int l0 = c.prog_len;
+        press(&a, "GOLD 0 k:2");
+        for (int i = 0; i < 19; i++) press(&a, "k:2");
+        press(&a, "RCL ltr:X ENTER");
+        const char *pm = ab_error_message(&c);
+        expect(pm && !strcmp(pm, "NESTED TOO DEEP") && c.prog_len == l0,
+               "047: program entry: a 20-group line refused at ENTER with NESTED TOO DEEP, no line added");
+        /* an image from before 047 holding an over-deep equation (written into the list directly, as it was stored) */
+        static uint8_t img[1 << 16];
+        static ab_calc c2;
+        ab_init(&c);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        ab_eqn_add(&c, "X+1");
+        char deep[200] = "";
+        for (int i = 0; i < 30; i++) strcat(deep, "(");
+        strcat(deep, "X");
+        for (int i = 0; i < 30; i++) strcat(deep, ")");
+        snprintf(c.eqn[c.eqn_cur], AB_EQN_LEN, "%s", deep);
+        size_t n = ab_state_save(&c, img, sizeof img);
+        ab_init(&c2);
+        abn_status lst = n ? ab_state_load(&c2, img, n) : ABN_BAD_IMAGE;
+        expect(lst == ABN_OK && !strcmp(c2.eqn[c2.eqn_cur], deep), "047: an older image's over-deep equation loads, kept as text");
+        if (!c2.eqn_mode) ab_do(&c2, AB_EQN);       /* (the image keeps Equation mode) */
+        abn_status xst = ab_do_arg(&c2, AB_XEQ, AB_TGT_EQN);  /* XEQ: X? first, then R/S evaluates */
+        for (int i = 0; i < 4 && xst == ABN_OK && c2.stop == AB_STOP_INPUT; i++) xst = ab_do(&c2, AB_RS);
+        expect(xst == ABN_TOO_DEEP && c2.err_status == ABN_TOO_DEEP,
+               "047: using it answers NESTED TOO DEEP (quarantined: its parse bounded)");
+        /* fresh eyes: it can be looked at and left as it was (an unchanged edit stores without the check); CAS
+           answers NESTED TOO DEEP in each stamp, nothing stored (casim never walks it); SUBST's over-deep replacement
+           answers NESTED TOO DEEP, not SYNTAX */
+        ab_init(&c2);
+        ab_state_load(&c2, img, n);
+        if (!c2.eqn_mode) ab_do(&c2, AB_EQN);
+        ab_do(&c2, AB_KRIGHT);                      /* the editor open on it */
+        bool opened = c2.eqn_typing && c2.eqn_edit == c2.eqn_cur;
+        abn_status cst = ab_do(&c2, AB_CANCEL);
+        expect(opened && cst == ABN_OK && !c2.eqn_typing && !strcmp(c2.eqn[c2.eqn_cur], deep),
+               "047: viewing the over-deep equation and leaving it unchanged stores it as it was");
+        static const int STAMP[3] = {AB_MODEL_STU, 35, 33};
+        for (int k = 0; k < 3; k++)
+            for (int op = 0; op < 2; op++) {
+                ab_init(&c2);
+                ab_do_arg(&c2, AB_MODEL, AB_MODEL_STU);
+                ab_eqn_add(&c2, "X+1");
+                snprintf(c2.eqn[c2.eqn_cur], AB_EQN_LEN, "%s", deep);
+                c2.eqn_model[c2.eqn_cur] = (uint8_t)STAMP[k];
+                if (!c2.eqn_mode) ab_do(&c2, AB_EQN);
+                int n2 = c2.eqn_count;
+                abn_status ks = op ? ab_do_arg(&c2, AB_CASD, 'X' - 'A') : ab_do(&c2, AB_CASSIMP);
+                char what[96];
+                snprintf(what, sizeof what, "047: CAS %s of an over-deep equation stamped %d: NESTED TOO DEEP, nothing stored",
+                         op ? "D/DX" : "SIMP", STAMP[k]);
+                expect(ks == ABN_TOO_DEEP && c2.eqn_count == n2, what);
+            }
+        ab_init(&c2);
+        ab_do_arg(&c2, AB_MODEL, AB_MODEL_STU);
+        ab_eqn_add(&c2, "X+1");
+        if (!c2.eqn_mode) ab_do(&c2, AB_EQN);
+        ab_do_arg(&c2, AB_CASSUB, 'X' - 'A');
+        char g20[64] = "";
+        for (int i = 0; i < 20; i++) strcat(g20, "(");
+        strcat(g20, "Y");
+        for (int i = 0; i < 20; i++) strcat(g20, ")");
+        snprintf(c2.ebuf, sizeof c2.ebuf, "%s", g20);
+        abn_status ss = ab_do(&c2, AB_ENTER);
+        expect(ss == ABN_TOO_DEEP && c2.eqn_typing, "047: SUBST's 20-group replacement: NESTED TOO DEEP, still typed");
+    }
+
     printf("app_test: %d/%d checks\n", checks - bad, checks);
     return bad != 0;
 }

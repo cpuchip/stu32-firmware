@@ -46,6 +46,7 @@ const char *ab_status_message(abn_status st)
     case ABN_CAS_NO_ROOM: return "TOO COMPLEX";
     case ABN_CAS_UNSUPPORTED: return "UNSUPPORTED";             /* and the refused name (ab_error_message) */
     case ABN_CAS_COPY: return "CAN'T COPY RAND";                /* or SEED (ab_error_message) */
+    case ABN_TOO_DEEP: return "NESTED TOO DEEP";                /* unit 047 (abacus #5153); no guide has one */
     }
     return "";
 }

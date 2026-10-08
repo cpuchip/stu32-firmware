@@ -54,5 +54,13 @@ abn_status eqn_eval(ab_calc *c, const char *text, int model, bool rhs_only, bool
    (answer I). eqn_has_chain: whether the text has a^b^c at one level (rule 3's mark). */
 int eqn_write_implied(ab_calc *c, const char *text, char *out, int size);
 bool eqn_has_chain(ab_calc *c, const char *text, int model);
+/* Unit 047: whether the text, parsed as its model reads it, nests past the parser's bound (NESTED TOO DEEP): a store
+   refuses it. The check's own parse is bounded too. */
+bool eqn_too_deep(ab_calc *c, const char *text, int model);
+#ifndef ESP_PLATFORM
+/* The units an unbounded parse reaches (+8 a group, vector or argument list, +1 a step of STU's power chain): tests'
+   only, for tests/eqn_depth.py's check; on a host, whose stack is large. */
+int eqn_depth_peak(ab_calc *c, const char *text, int model);
+#endif
 
 #endif

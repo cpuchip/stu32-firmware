@@ -119,7 +119,38 @@ typedef struct {
     bool chain;             /* a^b^c at one level was read (the mark, rule 3) */
     int nimp;               /* the implied products: the byte offset of each right operand */
     uint8_t imp[AB_EQN_LEN];    /* (offsets below AB_EQN_LEN, 192: a byte each, for the stack) */
+    int depth, peak;        /* unit 047: the recursion's depth in units (descend), and the most it reached */
+    int limit;              /* past it ABN_TOO_DEEP; 0 is EQN_DEPTH_MAX */
 } parser;
+
+/* Unit 047 (abacus #5153): the parse's recursion, bounded. A group "(", a vector "[" or a function's argument list
+   costs 8 units (about 1,010 bytes of stack on the S3: parse_add down to parse_prim again), a step of STU's power
+   chain a^b^c 1 (about 130), a unary minus group before an operand 2 while the operand is read (its loop's frame,
+   about 160 on a host); the minus itself is a loop. 153 units leave 4 KB of the calc task's 32 KB at
+   the deepest parse measured, an equation line run as SOLVE's function 19 XEQ levels deep (work/047): 19 groups, 17
+   of X^(. Past the limit the parse stops with ABN_TOO_DEEP (NESTED TOO DEEP), so nothing recurses unbounded, an
+   equation from an older image included. */
+#define EQN_DEPTH_MAX 153
+
+static void fail(parser *p, abn_status st);
+
+static bool descend(parser *p, int w)
+{
+    if (p->st != ABN_OK) return false;          /* a failed parse goes no deeper (its first error stands) */
+    p->depth += w;
+    if (p->depth > p->peak) p->peak = p->depth;
+    if (p->depth > (p->limit ? p->limit : EQN_DEPTH_MAX)) {
+        p->depth -= w;
+        fail(p, ABN_TOO_DEEP);
+        return false;
+    }
+    return true;
+}
+
+static void ascend(parser *p, int w)
+{
+    p->depth -= w;
+}
 
 static int char_at(const char *s, int byte)
 {
@@ -351,7 +382,10 @@ static void parse_prim(parser *p, ab_val *v)
     if (p->st != ABN_OK) return;
     if (parse_number(p, v)) return;
     if (at(p, "(")) {
-        parse_add(p, v);
+        if (descend(p, 8)) {
+            parse_add(p, v);
+            ascend(p, 8);
+        }
         if (!at(p, ")")) fail(p, ABN_SYNTAX);
         return;
     }
@@ -364,13 +398,16 @@ static void parse_prim(parser *p, ab_val *v)
            10-8) */
         ab_val e[3];
         int k = 0;
+        if (!descend(p, 8)) return;
         do {
             if (k == 3) {
                 fail(p, ABN_SYNTAX);
-                return;
+                break;
             }
             parse_add(p, &e[k++]);
         } while (p->st == ABN_OK && at(p, ","));
+        ascend(p, 8);
+        if (k == 3 && p->st != ABN_OK) return;
         if (p->st == ABN_OK && !at(p, "]")) fail(p, ABN_SYNTAX);
         if (p->check || p->st != ABN_OK) return;
         memset(v, 0, sizeof *v);
@@ -411,12 +448,18 @@ static void parse_prim(parser *p, ab_val *v)
                 return;
             }
             p->i++;                     /* the "(" */
-            parse_add(p, v);
+            if (descend(p, 8)) {
+                parse_add(p, v);
+                ascend(p, 8);
+            }
             if (f->id == F_RND && p->m33 && p->st == ABN_OK && at(p, ":")) {
                 /* PROVISIONAL (abacus #4880; Michael's field check on his 33s): RND(x:n), p.6-15's two arguments,
                    read as x rounded as the display mode would with digit setting n */
                 ab_val nv;
-                parse_add(p, &nv);
+                if (descend(p, 8)) {
+                    parse_add(p, &nv);
+                    ascend(p, 8);
+                }
                 if (!at(p, ")")) {
                     fail(p, ABN_SYNTAX);
                     return;
@@ -443,7 +486,10 @@ static void parse_prim(parser *p, ab_val *v)
                     fail(p, ABN_SYNTAX);
                     return;
                 }
-                parse_add(p, &b);
+                if (descend(p, 8)) {
+                    parse_add(p, &b);
+                    ascend(p, 8);
+                }
                 if (!at(p, ")")) {
                     fail(p, ABN_SYNTAX);
                     return;
@@ -504,12 +550,10 @@ static void negate(parser *p, ab_val *v)
 
 static void parse_parg(parser *p, ab_val *v)
 {
-    if (at(p, "-")) {
-        parse_parg(p, v);
-        negate(p, v);
-        return;
-    }
+    int n = 0;
+    while (at(p, "-")) n++;                     /* a loop, not a recursion (unit 047): negated once a minus, as before */
     parse_post(p, v);
+    while (n-- > 0) negate(p, v);
 }
 
 static void parse_pow_r(parser *p, ab_val *v, bool exponent);
@@ -518,12 +562,10 @@ static void parse_pow_r(parser *p, ab_val *v, bool exponent);
    included (2^-3^2 is 2^(-(3^2))). */
 static void parse_parg_r(parser *p, ab_val *v)
 {
-    if (at(p, "-")) {
-        parse_parg_r(p, v);
-        negate(p, v);
-        return;
-    }
+    int n = 0;
+    while (at(p, "-")) n++;                     /* a loop, not a recursion (unit 047) */
     parse_pow_r(p, v, true);
+    while (n-- > 0) negate(p, v);
 }
 
 static void parse_pow_r(parser *p, ab_val *v, bool exponent)
@@ -532,8 +574,11 @@ static void parse_pow_r(parser *p, ab_val *v, bool exponent)
     if (p->st == ABN_OK && at(p, "^")) {
         ab_val e;
         if (exponent) p->chain = true;
-        parse_parg_r(p, &e);
-        binop(p, "^", v, &e);
+        if (descend(p, 1)) {                    /* a step of the chain (unit 047) */
+            parse_parg_r(p, &e);
+            ascend(p, 1);
+            binop(p, "^", v, &e);
+        }
     }
 }
 
@@ -554,12 +599,13 @@ static void parse_pow(parser *p, ab_val *v)
 
 static void parse_neg(parser *p, ab_val *v)
 {
-    if (at(p, "-")) {
-        parse_neg(p, v);
-        negate(p, v);
-        return;
-    }
+    int n = 0;
+    while (at(p, "-")) n++;                     /* a loop, not a recursion (unit 047): -(-x) negated twice, as before */
+    if (n && !descend(p, 2)) return;            /* its frame stays while the operand is read (with no minus a compiler
+                                                   may make the call a jump): 2 units (047's stack fuzz) */
     parse_pow(p, v);
+    if (n) ascend(p, 2);
+    while (n-- > 0) negate(p, v);
 }
 
 /* Whether an implied product starts here (unit 031 rule 5, answers D-H): before "(" or a letter-start
@@ -687,6 +733,38 @@ bool eqn_has_chain(ab_calc *c, const char *text, int model)
     return p.chain && p.st == ABN_OK;   /* read left to right: a chain is a chain either way; a message
                                            (it does not parse) has none */
 }
+
+static int depth_parse(ab_calc *c, const char *text, int model, int limit, abn_status *st)
+{
+    parser p;
+    ab_val l;
+    memset(&p, 0, sizeof p);
+    p.c = c;
+    p.s = text;
+    p.check = true;
+    p.st = ABN_OK;
+    p.rtl = p.implied = model == AB_MODEL_STU;
+    p.m33 = model == 33;
+    p.limit = limit;
+    parse_all(&p, false, &l);
+    *st = p.st;
+    return p.peak;
+}
+
+bool eqn_too_deep(ab_calc *c, const char *text, int model)
+{
+    abn_status st;
+    depth_parse(c, text, model, 0, &st);
+    return st == ABN_TOO_DEEP;
+}
+
+#ifndef ESP_PLATFORM
+int eqn_depth_peak(ab_calc *c, const char *text, int model)
+{
+    abn_status st;
+    return depth_parse(c, text, model, 1 << 30, &st);
+}
+#endif
 
 int eqn_assign_var(const char *text, bool with_i)
 {

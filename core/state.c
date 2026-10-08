@@ -665,7 +665,8 @@ static void sec_modes(rd *r)
         estatus = r8(r);
         rval(r, &ex);
         need(r, (ecode == 0xFFFF || ecode < (unsigned)V1_N) && eactive <= 2 &&
-                    (estatus <= ABN_UNDERFLOW || (estatus >= ABN_CAS_TOO_LONG && estatus <= ABN_CAS_COPY && r->version >= 12)));   /* unit 026
+                    (estatus <= ABN_UNDERFLOW || (estatus >= ABN_CAS_TOO_LONG && estatus <= ABN_CAS_COPY && r->version >= 12) ||
+                     (estatus == ABN_TOO_DEEP && r->version >= 14)));   /* unit 026
                                                    added two; CAS 004 four */
     } else {
         msg = 0;                                /* an older image: no message to say */

@@ -63,7 +63,8 @@ typedef enum {
     ABN_CAS_TOO_LONG,       /* the result is past 191 bytes: RESULT TOO LONG */
     ABN_CAS_NO_ROOM,        /* the arena ran out, or the depth guard stopped a walk: TOO COMPLEX */
     ABN_CAS_UNSUPPORTED,    /* a construct refused, by name (a function D/DX refuses): UNSUPPORTED name */
-    ABN_CAS_COPY            /* SUBST would copy a draw: CAN'T COPY RAND (or SEED) */
+    ABN_CAS_COPY,           /* SUBST would copy a draw: CAN'T COPY RAND (or SEED) */
+    ABN_TOO_DEEP            /* unit 047: an equation nested past the parser's bound: NESTED TOO DEEP */
 } abn_status;
 
 abn abn_zero(void);
