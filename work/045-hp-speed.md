@@ -33,3 +33,14 @@ Each step is measured before the next one starts:
 - **abacus's gen_044 hidden set and full hidden_all.sh,** unchanged.
 - **A math-heavy program loop timed** at pre-044, at 044, and after each step.
 - **Provenance:** each algorithm cites its published source in its commit.
+
+## Targets amended (abacus #4973, on soroban's steps 1-4 report #4972)
+
+- ATANH joins the ≤ 5 ms list (it's ln-based); it is met at 4.4.
+- **Step 5 = soroban's (5a):** atan2h starts from the engine value fn_* already has. That's mechanical, and the
+  results are unchanged by construction.
+- **(5b), deciding sure()'s status before forming the engine result, is not taken.** It would touch 044's status
+  structure for 0.4-1 ms.
+- **The inverse trig functions' remaining 2.5-6 ms per call is accepted.**
+- **Program loops** (100 × SIN, 100 × LN) measured: 133 / 175 ms before 044, 960 / 1,665 at 044, and 362 / 558
+  after steps 1-4.
