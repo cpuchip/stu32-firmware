@@ -1,0 +1,33 @@
+# Unit 047: the equation parser's depth guard (work/047-parser-depth-guard.md; abacus #5134, #5153). Past 153
+# units an equation is refused (NESTED TOO DEEP): +8 a group, vector or argument list, +1 a step of STU's power
+# chain, +2 a unary minus group while its operand is read. P: unary minus became a loop, so its results are the
+# pre-047 core's, pinned from it (STU's minus before a power above all). D: the bound, at it and past it.
+P00 | 047: -X^2 as before 047 (X = 3) | STU 3 STO:X EQ:-X^2 XEQ RS | X=-9
+P01 | 047: --X^2 as before 047 (X = 3) | STU 3 STO:X EQ:--X^2 XEQ RS | X=9
+P02 | 047: X^--2 as before 047 (X = 3) | STU 3 STO:X EQ:X^--2 XEQ RS | X=9
+P03 | 047: 2^-3^2 as before 047 (X = 3) | STU 3 STO:X EQ:2^-3^2 XEQ RS | X=0.001953125
+P04 | 047: -2^-2 as before 047 (X = 3) | STU 3 STO:X EQ:-2^-2 XEQ RS | X=-0.25
+P05 | 047: -(-(-X)) as before 047 (X = 3) | STU 3 STO:X EQ:-(-(-X)) XEQ RS | X=-3
+P06 | 047: X^-X^-2 as before 047 (X = 3) | STU 3 STO:X EQ:X^-X^-2 XEQ RS | X=0.8850881520714602415475588259163071
+P07 | 047: ---X! as before 047 (X = 3) | STU 3 STO:X EQ:---X! XEQ RS | X=-6
+P08 | 047: -X^2 as before 047 (X = 3) | MODE35 3 STO:X EQ:-X^2 XEQ RS | X=-9
+P09 | 047: --X^2 as before 047 (X = 3) | MODE35 3 STO:X EQ:--X^2 XEQ RS | X=9
+P10 | 047: X^--2 as before 047 (X = 3) | MODE35 3 STO:X EQ:X^--2 XEQ RS | X=9
+P11 | 047: 2^-3^2 as before 047 (X = 3) | MODE35 3 STO:X EQ:2^-3^2 XEQ RS | X=0.015625
+P12 | 047: -(-(-X)) as before 047 (X = 3) | MODE35 3 STO:X EQ:-(-(-X)) XEQ RS | X=-3
+P13 | 047: -X^2 as before 047 (X = 3) | MODE33 3 STO:X EQ:-X^2 XEQ RS | X=-9
+P14 | 047: 2^-3^2 as before 047 (X = 3) | MODE33 3 STO:X EQ:2^-3^2 XEQ RS | X=0.015625
+P15 | 047: X^--2 as before 047 (X = 3) | MODE33 3 STO:X EQ:X^--2 XEQ RS | X=9
+D01 | 047: 20 groups: 160 units, refused | STU EQ:((((((((((((((((((((X)))))))))))))))))))) | ERR %ERR=TOO_DEEP
+D02 | 047: 19 groups: 152, stored and evaluated (X = 2) | STU 2 STO:X EQ:(((((((((((((((((((X))))))))))))))))))) XEQ RS | X=2
+D03 | 047: 17 levels of X^(: 153, evaluated (X = 1) | STU 1 STO:X EQ:X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X-5))))))))))))))))) XEQ RS | X=1
+D04 | 047: 18 levels of X^(: 162, refused | STU EQ:X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X-5)))))))))))))))))) | ERR %ERR=TOO_DEEP
+D05 | 047: 15 levels of -(: 150, evaluated (X = 2) | STU 2 STO:X EQ:-(-(-(-(-(-(-(-(-(-(-(-(-(-(-(X))))))))))))))) XEQ RS | X=-2
+D06 | 047: 16 levels of -(: 160, refused | STU EQ:-(-(-(-(-(-(-(-(-(-(-(-(-(-(-(-(X)))))))))))))))) | ERR %ERR=TOO_DEEP
+D07 | 047: a 95-step power chain: 95, evaluated (X = 1) | STU 1 STO:X EQ:X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X XEQ RS | X=1
+D08 | 047: 18 groups around a 9-step chain: exactly 153, evaluated (X = 1) | STU 1 STO:X EQ:((((((((((((((((((X^X^X^X^X^X^X^X^X^X)))))))))))))))))) XEQ RS | X=1
+D09 | 047: 18 groups around a 10-step chain: 154, refused | STU EQ:((((((((((((((((((X^X^X^X^X^X^X^X^X^X^X)))))))))))))))))) | ERR %ERR=TOO_DEEP
+D10 | 047: 35s mode, 19 groups: 152, evaluated (X = 2) | MODE35 2 STO:X EQ:(((((((((((((((((((X))))))))))))))))))) XEQ RS | X=2
+D11 | 047: 35s mode, 20 groups: refused | MODE35 EQ:((((((((((((((((((((X)))))))))))))))))))) | ERR %ERR=TOO_DEEP
+D12 | 047: 33s mode, 19 of SIN(: 152, evaluated (X = 0) | MODE33 0 STO:X EQ:SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(X))))))))))))))))))) XEQ RS | X=0
+D13 | 047: 33s mode, 20 of SIN(: refused | MODE33 EQ:SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(X)))))))))))))))))))) | ERR %ERR=TOO_DEEP
