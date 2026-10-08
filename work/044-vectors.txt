@@ -1,0 +1,7 @@
+# Unit 044 (abacus): the one-input functions correctly rounded (the exact value rounded once to 34 digits, half
+# even). The four cases tutor's lessons pinned within a unit (#4658, #4659, #4665, #4666, #4667), at the unit's
+# values; mpmath at 200 digits, rounded once (scratchpad oracle044.py), agrees with each.
+N01 | 044: RAD 30 SIN is ...4582 (tutor; was ...4581) | RAD 30 SIN | X=-0.9880316240928617899877489072944582
+N02 | 044: 45 ->RAD is pi/4, ...757 (tutor; was ...758: a rounded pi/180) | 45 TORAD | X=0.7853981633974483096156608458198757
+N03 | 044: 2 ->RAD is ...225 (tutor; was ...226) | 2 TORAD | X=0.03490658503988659153847381536977225
+N04 | 044: DEG ACOS 0.28 is ...682 (tutor; was ...681) | DEG .28 ACOS | X=73.73979529168804259371122511818682
