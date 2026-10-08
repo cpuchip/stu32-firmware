@@ -160,6 +160,9 @@ bool BI_(sub_u32)(BI_T *a, uint32_t v)
     return true;
 }
 
+static const uint32_t BI_(p10_)[10] = {1u, 10u, 100u, 1000u, 10000u, 100000u, 1000000u, 10000000u, 100000000u,
+                                        1000000000u};
+
 bool BI_(mul_pow10)(BI_T *a, int k)
 {
     if (a->n == 0) return true;
@@ -168,9 +171,7 @@ bool BI_(mul_pow10)(BI_T *a, int k)
     memmove(a->l + limbs, a->l, sizeof(uint32_t) * (size_t)a->n);
     memset(a->l, 0, sizeof(uint32_t) * (size_t)limbs);
     a->n += limbs;
-    for (int i = 0; i < k % 9; i++)
-        if (!BI_(mul_u32)(a, 10)) return false;
-    return true;
+    return k % 9 == 0 || BI_(mul_u32)(a, BI_(p10_)[k % 9]);    /* one pass, not k % 9 (unit 045) */
 }
 
 uint32_t BI_(divmod_u32)(BI_T *a, uint32_t d)
@@ -209,9 +210,7 @@ void BI_(div_pow10)(BI_T *a, int k)
     }
     memmove(a->l, a->l + limbs, sizeof(uint32_t) * (size_t)(a->n - limbs));
     a->n -= limbs;
-    uint32_t d = 1;
-    for (int i = 0; i < k % 9; i++) d *= 10;
-    if (d > 1) BI_(divmod_u32)(a, d);
+    if (k % 9) BI_(divmod_u32)(a, BI_(p10_)[k % 9]);
 }
 
 /* Long division one decimal digit at a time: each quotient digit is found by subtracting the
@@ -250,8 +249,11 @@ bool BI_(div)(BI_T *q, const BI_T *n, const BI_T *d, bool *inexact)
 bool BI_(from_digits)(BI_T *a, const char *digits, int zeros)
 {
     a->n = 0;
-    for (const char *p = digits; *p; p++) {
-        if (!BI_(mul_u32)(a, 10) || !BI_(add_u32)(a, (uint32_t)(*p - '0'))) return false;
+    for (const char *p = digits; *p;) {         /* nine digits a pass, not one (unit 045) */
+        uint32_t v = 0;
+        int len = 0;
+        for (; *p && len < 9; p++, len++) v = v * 10 + (uint32_t)(*p - '0');
+        if (!BI_(mul_u32)(a, BI_(p10_)[len]) || !BI_(add_u32)(a, v)) return false;
     }
     return BI_(mul_pow10)(a, zeros);
 }
