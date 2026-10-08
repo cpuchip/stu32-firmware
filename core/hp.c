@@ -646,6 +646,11 @@ bool hp_sqrt(hp *r, const hp *x, int p)
 
 bool hp_atan2h(hp *r, const hp *b, const hp *a, int p)
 {
+    return hp_atan2s(r, b, a, NULL, p);
+}
+
+bool hp_atan2s(hp *r, const hp *b, const hp *a, const abn *start, int p)
+{
     static hp th, sn, cs, t1, t2, num, den, corr;
     int w = p + 5;
     abn ab, aa, t0;
@@ -664,9 +669,12 @@ bool hp_atan2h(hp *r, const hp *b, const hp *a, int p)
         hp_trim(r, p);
         return true;
     }
-    /* the engine's angle of the rounded parts starts it (exact for hp_atan2's; unit 044's within its range) */
-    if (hp_round(&ab, b) != ABN_OK || hp_round(&aa, a) != ABN_OK) return false;
-    abn_status s0 = abn_atan2(&t0, &ab, &aa);
+    /* the angle given (unit 045: the engine's, which the caller has formed already), else the engine's angle of the
+       rounded parts (exact for hp_atan2's; unit 044's within its range) */
+    abn_status s0 = ABN_OK;
+    if (start) t0 = *start;
+    else if (hp_round(&ab, b) != ABN_OK || hp_round(&aa, a) != ABN_OK) return false;
+    else s0 = abn_atan2(&t0, &ab, &aa);
     if (s0 == ABN_UNDERFLOW) {
         /* the angle below the engine's range (a > 0, |b| tiny beside it): start from b / a, its value there
            to far beyond the digits kept (unit 034: ->POL's theta below the range, unit 026, is 0 after the
@@ -676,12 +684,15 @@ bool hp_atan2h(hp *r, const hp *b, const hp *a, int p)
         return false;
     }
     /* theta += atan of tan(theta_true - theta) = (b cos - a sin) / (a cos + b sin); the first-order
-       step leaves an error of the cube of the last, so the digits triple each time */
+       step leaves an error of the cube of the last, so the digits triple each time. A first correction above
+       10^-28 of theta says the start had fewer than the 30 digits counted on: the count starts again from one
+       (unit 045: a start the caller gives is checked so, as the engine's now is) */
     for (int digits = 30; digits < w + 5; digits *= 3) {
         if (!hp_sincos(&sn, &cs, &th, w)) return false;
         if (!hp_mul(&t1, b, &cs, w) || !hp_mul(&t2, a, &sn, w) || !hp_add(&num, &t1, &t2, true, w)) return false;
         if (!hp_mul(&t1, a, &cs, w) || !hp_mul(&t2, b, &sn, w) || !hp_add(&den, &t1, &t2, false, w)) return false;
         if (!hp_div(&corr, &num, &den, w) || !hp_add(&t1, &th, &corr, false, w)) return false;
+        if (digits == 30 && !hp_is_zero(&corr) && !hp_is_zero(&th) && hp_lead(&corr) > hp_lead(&th) - 28) digits = 1;
         th = t1;
     }
     *r = th;

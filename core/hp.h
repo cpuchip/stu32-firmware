@@ -48,6 +48,9 @@ abn_status hp_norm(abn *out, const abn *el, int n);
    both zero; ln 10 to p digits (at most 241). */
 bool hp_sqrt(hp *r, const hp *x, int p);
 bool hp_atan2h(hp *r, const hp *b, const hp *a, int p);
+/* Unit 045: as hp_atan2h, from a start the caller has (an angle in radians good to some 30 digits, the engine's), or
+   NULL for the engine's atan2 of the rounded parts. */
+bool hp_atan2s(hp *r, const hp *b, const hp *a, const abn *start, int p);
 bool hp_ln10(hp *r, int p);
 
 /* v (formed to p digits, good to a few units of its p-th) rounded to the engine's digits into out and *st; true

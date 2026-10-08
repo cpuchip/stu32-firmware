@@ -857,18 +857,40 @@ static bool in_unit(hp *r, const hp *a, int p, int unit)
     return hp_pi(k, p + 8) && hp_div(r, t, k, p);
 }
 
+/* Unit 045: the engine's angle, in radians, that fn_asin, fn_acos and fn_atan formed before the correctly rounded one:
+   it starts f_inv's Newton step in place of a second engine atan2 (about 1 ms on the S3). */
+static abn inv_start;
+static bool inv_start_on;
+
+static void inv_hint(const abn *v, abn_status st, fn_angle m)
+{
+    abn k;
+    inv_start_on = false;
+    if (st != ABN_OK) return;
+    if (m == FN_RAD) inv_start = *v;
+    else if (k = K(m == FN_GRAD ? GRAD_UNIT.to_rad : DEG_UNIT.to_rad), abn_mul(&inv_start, v, &k) != ABN_OK) return;
+    inv_start_on = true;
+}
+
+static abn_status inv_done(abn_status st)
+{
+    inv_start_on = false;
+    return st;
+}
+
 static bool f_inv(hp *r, const hp *x, int p, int arg)       /* arg: 0 asin, 1 acos, 2 atan; plus 3 x the unit */
 {
     hp *a = &u44[0], *b = &u44[1], *t = &u44[2];
     int fn = arg % 3, unit = arg / 3;
+    const abn *s = inv_start_on ? &inv_start : NULL;
     if (fn == 2) {
         hp_set_int(t, 1);
-        if (!hp_atan2h(a, x, t, p + 5)) return false;
+        if (!hp_atan2s(a, x, t, s, p + 5)) return false;
     } else {
         /* sqrt((1 - x)(1 + x)), the product of two exact values: no cancellation near |x| = 1 */
         if (!one_minus(a, x, false) || !one_minus(b, x, true) || !hp_mul(t, a, b, p + 10) || !hp_sqrt(b, t, p + 8))
             return false;
-        if (!(fn == 0 ? hp_atan2h(a, x, b, p + 5) : hp_atan2h(a, b, x, p + 5))) return false;
+        if (!(fn == 0 ? hp_atan2s(a, x, b, s, p + 5) : hp_atan2s(a, b, x, s, p + 5))) return false;
     }
     return in_unit(r, a, p, unit);
 }
@@ -1225,14 +1247,16 @@ static abn_status inverse(abn *out, const abn *x, fn_angle m, abn_status (*f)(ab
 
 abn_status fn_asin(abn *out, const abn *x, fn_angle m)
 {
-    return sure(out, inverse(out, x, m, abn_asin, ASIN_EXACT, (int)(sizeof ASIN_EXACT / sizeof ASIN_EXACT[0]), true), x,
-                f_inv, 0 + UNIT3(m));
+    abn_status st0 = inverse(out, x, m, abn_asin, ASIN_EXACT, (int)(sizeof ASIN_EXACT / sizeof ASIN_EXACT[0]), true);
+    inv_hint(out, st0, m);
+    return inv_done(sure(out, st0, x, f_inv, 0 + UNIT3(m)));
 }
 
 abn_status fn_acos(abn *out, const abn *x, fn_angle m)
 {
-    return sure(out, inverse(out, x, m, abn_acos, ACOS_EXACT, (int)(sizeof ACOS_EXACT / sizeof ACOS_EXACT[0]), false),
-                x, f_inv, 1 + UNIT3(m));
+    abn_status st0 = inverse(out, x, m, abn_acos, ACOS_EXACT, (int)(sizeof ACOS_EXACT / sizeof ACOS_EXACT[0]), false);
+    inv_hint(out, st0, m);
+    return inv_done(sure(out, st0, x, f_inv, 1 + UNIT3(m)));
 }
 
 abn_status fn_atan(abn *out, const abn *x, fn_angle m)
@@ -1244,10 +1268,12 @@ abn_status fn_atan(abn *out, const abn *x, fn_angle m)
            inside for the largest x, unit 026) */
         *out = K(m == FN_DEG ? "90" : m == FN_GRAD ? "100" : "1.570796326794896619231321691639751");
         if (abn_is_negative(x)) *out = abn_neg(out);
-        return sure(out, ABN_OK, x, f_inv, 2 + UNIT3(m));     /* (pi/2 - 1/x rounded once: unit 044) */
+        inv_hint(out, ABN_OK, m);
+        return inv_done(sure(out, ABN_OK, x, f_inv, 2 + UNIT3(m)));     /* (pi/2 - 1/x rounded once: unit 044) */
     }
-    return sure(out, inverse(out, x, m, abn_atan, ATAN_EXACT, (int)(sizeof ATAN_EXACT / sizeof ATAN_EXACT[0]), true), x,
-                f_inv, 2 + UNIT3(m));
+    abn_status st0 = inverse(out, x, m, abn_atan, ATAN_EXACT, (int)(sizeof ATAN_EXACT / sizeof ATAN_EXACT[0]), true);
+    inv_hint(out, st0, m);
+    return inv_done(sure(out, st0, x, f_inv, 2 + UNIT3(m)));
 }
 
 /* ---- hyperbolic (UG p.4-6) ---- */
