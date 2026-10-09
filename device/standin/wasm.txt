@@ -1,0 +1,89 @@
+# The wasm gate (STU_WASM=1, games-wasm-gate.list; soroban #5467, #5501): BABAL, then BABLW (Babal as WebAssembly)
+# with keys held, then TRAP: key 0 recurses 100 deep and returns, key 1 never stops and must trap. The calc task's
+# stack-free in each X line is the least ever free, so each bounds its step and all before it; read them from the
+# log (2026-10-09 on the S3 at ab51544: 29,060 through BABAL and BABLW, 23,300 after TRAP's key 0, 964 after the
+# trap). Then C, and 2 ENTER 3 + must still give 5.
+send RESTART
+wait STANDIN READY 30
+send X
+expect stack-free
+send K36
+send U36
+send K43
+send U43
+sleep 1
+send K1
+send U1
+sleep 1
+send K31
+sleep 2
+send U31
+send K33
+sleep 2
+send U33
+send X
+expect app: BABAL
+send FRAMEBENCH
+expect framebench: BABAL 30
+send K42
+send U42
+sleep 1
+send X
+expect app: -
+send K36
+send U36
+send K43
+send U43
+sleep 1
+send K2
+send U2
+sleep 1
+send K31
+sleep 2
+send U31
+send K33
+sleep 2
+send U33
+send X
+expect app: BABLW
+send FRAMEBENCH
+expect framebench: BABLW 30
+send K42
+send U42
+sleep 1
+send X
+expect app: -
+send K36
+send U36
+send K43
+send U43
+sleep 1
+send K3
+send U3
+sleep 1
+send K0
+send U0
+sleep 1
+send X
+expect app: TRAP
+send K1
+expect native stack overflow
+send U1
+sleep 1
+send X
+expect app: TRAP
+send K42
+send U42
+sleep 1
+send X
+expect app: -
+send K38
+send U38
+send K18
+send U18
+send K39
+send U39
+send K46
+send U46
+send X
+expect X=5

@@ -1,0 +1,8 @@
+# The wasm gate's games (STU_WASM=1 only, never shipped): device/standin/wasm.txt runs it through the keys with
+# STU_WASM=1 GAMES_LIST=games-wasm-gate.list device/standin/run.sh PORT device/standin/wasm.txt. BABLW is Babal
+# built as WebAssembly, the same game as native BABAL; TRAP's key 1 recurses without end, which the bridge's
+# stack guard must trap (soroban #5501). Format: games.list.
+# ID   REPO          PIN                                       LICENCE                    MANIFEST
+babal  stu32-arcade  599c51060bb63b011f03e9a4077cfea2328b88b4  MIT                        stu32-game.txt
+bablw  stu32-arcade  3d522d5f316c466d9c62e4bec5058e54e4c90d94  MIT                        wasm/babal/stu32-game.txt
+trap   stu32-arcade  12b36aa2f33da12a4b860e9545fae2bffc7a028a  MIT                        wasm/trap/stu32-game.txt

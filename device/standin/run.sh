@@ -5,6 +5,7 @@
 #   device/standin/run.sh /dev/ttyACM0 script.txt      build, flash, run the script's lines
 #   FLASH=0 device/standin/run.sh /dev/ttyACM0 s.txt   no build or flash: talk to what is there
 #   STU_WASM=1 device/standin/run.sh ...                with WAMR (decisions 67, 68), in build-wasm
+#   GAMES_LIST=games-wasm-gate.list ...                  another games list (the wasm gate's), default games.list
 #
 # The session's transcript is kept in build/standin.log. Nothing is installed on the host.
 set -euo pipefail
@@ -15,6 +16,7 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 WASM="${STU_WASM:-0}"
 B=build
 [ "$WASM" = 1 ] && B=build-wasm
+LIST="$ROOT/${GAMES_LIST:-games.list}"
 mkdir -p "$ROOT/build"
 # a changed sdkconfig.defaults takes effect: ESP-IDF never re-reads it into an existing sdkconfig, so that one is made
 # again (unit 051: QIO set in the defaults stayed DIO in an old build)
@@ -22,7 +24,7 @@ if [ "${FLASH:-1}" = 1 ] && { [ "$ROOT/device/standin/sdkconfig.defaults" -nt "$
     { [ "$WASM" = 1 ] && [ "$ROOT/device/sdkconfig.wasm" -nt "$ROOT/device/standin/$B/sdkconfig" ]; }; }; then
     rm -f "$ROOT/device/standin/$B/sdkconfig"
 fi
-[ "${FLASH:-1}" = 1 ] && python3 "$ROOT/scripts/gen_games.py" "$ROOT/games.list" "$ROOT/build/games"
+[ "${FLASH:-1}" = 1 ] && python3 "$ROOT/scripts/gen_games.py" "$LIST" "$ROOT/build/games"
 [ "${FLASH:-1}" = 1 ] && "$ROOT/scripts/fetch-casim.sh"
 [ "${FLASH:-1}" = 1 ] && [ "$WASM" = 1 ] && "$ROOT/scripts/fetch-wamr.sh"
 docker run --rm -i -v "$ROOT:/project" -w /project \
