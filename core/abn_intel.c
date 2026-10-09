@@ -236,16 +236,23 @@ static bool decode(const abn *a, bool *neg, uint32_t c[4], int *e)
     return true;
 }
 
-/* c /= m in place (m < 2^31), returning the remainder */
+/* c /= m in place (m < 2^31), returning the remainder. While the remainder is 0 a limb divides in 32 bits: the S3
+   divides 32 bits in hardware and 64 in software (about 1.1 us a call, unit 045), and a short coefficient never
+   needs the 64. */
 static uint32_t limbs_divmod(uint32_t c[4], uint32_t m)
 {
-    uint64_t r = 0;
+    uint32_t r = 0;
     for (int i = 3; i >= 0; i--) {
-        uint64_t cur = (r << 32) | c[i];
-        c[i] = (uint32_t)(cur / m);
-        r = cur % m;
+        if (r == 0) {
+            r = c[i] % m;
+            c[i] /= m;
+        } else {
+            uint64_t cur = ((uint64_t)r << 32) | c[i];
+            c[i] = (uint32_t)(cur / m);
+            r = (uint32_t)(cur % m);
+        }
     }
-    return (uint32_t)r;
+    return r;
 }
 
 static bool limbs_zero(const uint32_t c[4])
@@ -258,6 +265,9 @@ static int strip_zeros(uint32_t c[4])
 {
     static const uint32_t P10[9] = {1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000};
     int z = 0;
+    /* most coefficients have no trailing zero: odd, or not a multiple of 5 (2^32 is 1 mod 5, so c mod 5 is the
+       limbs' sum mod 5) */
+    if ((c[0] & 1) || (c[0] % 5 + c[1] % 5 + c[2] % 5 + c[3] % 5) % 5) return 0;
     for (;;) {
         uint32_t t[4] = {c[0], c[1], c[2], c[3]};
         uint32_t r = limbs_divmod(t, 1000000000);
@@ -276,15 +286,32 @@ static int strip_zeros(uint32_t c[4])
     }
 }
 
-/* The decimal digits of c (nonzero) */
-static int limbs_digits(uint32_t c[4])
+/* The decimal digits of c (nonzero), by comparison with the powers of ten (no division) */
+static int limbs_digits(const uint32_t c[4])
 {
-    int n = 0;
-    while (c[1] | c[2] | c[3] || c[0] >= 1000000000) {
-        limbs_divmod(c, 1000000000);
-        n += 9;
+    static const uint64_t P_LO[19] = {/* 10^1 .. 10^19 */
+        10ULL, 100ULL, 1000ULL, 10000ULL,
+        100000ULL, 1000000ULL, 10000000ULL, 100000000ULL,
+        1000000000ULL, 10000000000ULL, 100000000000ULL, 1000000000000ULL,
+        10000000000000ULL, 100000000000000ULL, 1000000000000000ULL, 10000000000000000ULL,
+        100000000000000000ULL, 1000000000000000000ULL, 10000000000000000000ULL};
+    static const uint64_t P_HI[15][2] = {/* 10^20 .. 10^34 as {high 64 bits, low 64 bits} */
+        {0x5ULL, 0x6BC75E2D63100000ULL}, {0x36ULL, 0x35C9ADC5DEA00000ULL},
+        {0x21EULL, 0x19E0C9BAB2400000ULL}, {0x152DULL, 0x02C7E14AF6800000ULL},
+        {0xD3C2ULL, 0x1BCECCEDA1000000ULL}, {0x84595ULL, 0x161401484A000000ULL},
+        {0x52B7D2ULL, 0xDCC80CD2E4000000ULL}, {0x33B2E3CULL, 0x9FD0803CE8000000ULL},
+        {0x204FCE5EULL, 0x3E25026110000000ULL}, {0x1431E0FAEULL, 0x6D7217CAA0000000ULL},
+        {0xC9F2C9CD0ULL, 0x4674EDEA40000000ULL}, {0x7E37BE2022ULL, 0xC0914B2680000000ULL},
+        {0x4EE2D6D415BULL, 0x85ACEF8100000000ULL}, {0x314DC6448D93ULL, 0x38C15B0A00000000ULL},
+        {0x1ED09BEAD87C0ULL, 0x378D8E6400000000ULL}};
+    uint64_t hi = (uint64_t)c[3] << 32 | c[2], lo = (uint64_t)c[1] << 32 | c[0];
+    int n = 1;
+    if (hi == 0) {
+        while (n < 20 && lo >= P_LO[n - 1]) n++;
+        return n;
     }
-    for (uint32_t v = c[0]; v; v /= 10) n++;
+    n = 20;                                     /* c >= 2^64 > 10^19 */
+    while (n < 35 && (hi > P_HI[n - 20][0] || (hi == P_HI[n - 20][0] && lo >= P_HI[n - 20][1]))) n++;
     return n;
 }
 
