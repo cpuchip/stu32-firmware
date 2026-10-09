@@ -33,6 +33,7 @@
 
 #include "app.h"
 #include "calc.h"
+#include "eqn.h"
 #include "keymap.h"
 #include "screen.h"
 #include "standin.h"
@@ -852,6 +853,90 @@ static void progbench(void)
     printf("progbench: done\n");
 }
 
+#ifdef AB_PROF
+/* The profile (unit 050, device/standin/prof.sh): the core built with -finstrument-functions; while prof_on, each core
+   function's calls and its cycles, inclusive and exclusive of its callees, on the calc task only (a shadow stack). A
+   recursive function's inclusive count includes its own nested calls. The hooks' own cost lands in the callers. */
+#define PROF_FN 768
+#define PROF_DEPTH 512
+typedef struct { void *fn; uint32_t n; uint64_t incl, excl; } prof_slot;
+typedef struct { void *fn; uint32_t t0, child; } prof_frame;
+static prof_slot *prof_tab;                     /* in PSRAM, allocated by the first prof_start: internal RAM can't spare
+                                                   24 KB (the stand-in said out of memory at boot) */
+static prof_frame *prof_stk;
+static int prof_sp, prof_lost;
+static volatile bool prof_on;
+static TaskHandle_t prof_task;
+
+static inline __attribute__((no_instrument_function)) uint32_t prof_now(void)
+{
+    uint32_t c;
+    __asm__ volatile("rsr %0, ccount" : "=a"(c));
+    return c;
+}
+
+void __attribute__((no_instrument_function)) __cyg_profile_func_enter(void *fn, void *site)
+{
+    (void)site;
+    if (!prof_on || xTaskGetCurrentTaskHandle() != prof_task) return;
+    if (prof_sp >= PROF_DEPTH) {
+        prof_lost++;
+        return;
+    }
+    prof_stk[prof_sp].fn = fn;
+    prof_stk[prof_sp].child = 0;
+    prof_stk[prof_sp++].t0 = prof_now();
+}
+
+void __attribute__((no_instrument_function)) __cyg_profile_func_exit(void *fn, void *site)
+{
+    (void)site;
+    if (!prof_on || xTaskGetCurrentTaskHandle() != prof_task || prof_sp <= 0 || prof_stk[prof_sp - 1].fn != fn) return;
+    uint32_t dt = prof_now() - prof_stk[--prof_sp].t0;
+    unsigned h = ((uintptr_t)fn >> 2) % PROF_FN;
+    for (int k = 0; k < PROF_FN && prof_tab[h].fn && prof_tab[h].fn != fn; k++) h = (h + 1) % PROF_FN;
+    if (!prof_tab[h].fn) prof_tab[h].fn = fn;
+    if (prof_tab[h].fn == fn) {
+        prof_tab[h].n++;
+        prof_tab[h].incl += dt;
+        prof_tab[h].excl += dt - prof_stk[prof_sp].child;
+    }
+    if (prof_sp > 0) prof_stk[prof_sp - 1].child += dt;
+}
+
+static void __attribute__((no_instrument_function)) prof_start(void)
+{
+    if (!prof_tab) prof_tab = heap_caps_malloc(PROF_FN * sizeof *prof_tab, MALLOC_CAP_SPIRAM);
+    if (!prof_stk) prof_stk = heap_caps_malloc(PROF_DEPTH * sizeof *prof_stk, MALLOC_CAP_SPIRAM);
+    if (!prof_tab || !prof_stk) {
+        printf("prof: no PSRAM\n");
+        return;
+    }
+    memset(prof_tab, 0, PROF_FN * sizeof *prof_tab);
+    prof_sp = prof_lost = 0;
+    prof_task = xTaskGetCurrentTaskHandle();
+    prof_on = true;
+}
+
+static void __attribute__((no_instrument_function)) prof_report(const char *what, int64_t us)
+{
+    prof_on = false;
+    uint64_t tot = 0;
+    for (int i = 0; i < PROF_FN; i++) tot += prof_tab[i].excl;
+    printf("prof: %s: %lld us, %llu cycles counted (lost %d)\n", what, (long long)us, (unsigned long long)tot, prof_lost);
+    for (int r = 0; r < 30; r++) {             /* the 30 largest by exclusive cycles */
+        int b = -1;
+        for (int i = 0; i < PROF_FN; i++)
+            if (prof_tab[i].fn && prof_tab[i].n && (b < 0 || prof_tab[i].excl > prof_tab[b].excl)) b = i;
+        if (b < 0) break;
+        printf("prof: %p n=%lu excl=%llu incl=%llu\n", prof_tab[b].fn, (unsigned long)prof_tab[b].n,
+               (unsigned long long)prof_tab[b].excl, (unsigned long long)prof_tab[b].incl);
+        prof_tab[b].n = 0;
+    }
+    printf("prof: end\n");
+}
+#endif
+
 /* EQNBENCH (unit 049): equation evaluation timed, each evaluation a parse: SOLVE of X^3-2×X-5 (guesses 0 and 3) and
    the integral of SIN(X)^2+X×EXP(-X) from 0 to 1 in RAD, each the best of five; the time a run and an evaluation. */
 static void eqnbench(void)
@@ -880,15 +965,36 @@ static void eqnbench(void)
                 ab_do(c2, AB_K1);
             }
             ab_do(c2, AB_EQN);
+#ifdef AB_PROF
+            if (r == 0) prof_start();
+#endif
             int64_t t0 = esp_timer_get_time();
             st = ab_do_arg(c2, k == 0 ? AB_SOLVE : AB_INTEG, 'X' - 'A');
             int64_t us = esp_timer_get_time() - t0;
+#ifdef AB_PROF
+            if (r == 0) prof_report(k ? "integral" : "SOLVE", us);
+#endif
             if (best < 0 || us < best) best = us;
         }
         char x[64];
         abn_to_text(&c2->x.re, x, sizeof x);
         printf("eqnbench: %s %s: %lld us (st %d, evals %ld, %lld us an evaluation, X %s)\n", k ? "integral" : "SOLVE",
                EQ[k], (long long)best, (int)st, c2->evals, c2->evals ? (long long)best / c2->evals : 0LL, x);
+        for (int d = 0; d < 2; d++) {   /* the equation alone, outside SOLVE and the integral: 200 parses (the check),
+                                           200 evaluations, at X = 1.234 and at a 34-digit X */
+            abn xv;
+            ab_val v;
+            int pos;
+            abn_from_text(&xv, d ? "0.7071067811865475244008443621048490" : "1.234");
+            c2->var['X' - 'A'] = pb_real(xv);
+            int64_t t0 = esp_timer_get_time();
+            for (int r = 0; r < 200; r++) eqn_eval(c2, EQ[k], AB_MODEL_STU, false, true, &v, &pos);
+            int64_t t1 = esp_timer_get_time();
+            for (int r = 0; r < 200; r++) eqn_eval(c2, EQ[k], AB_MODEL_STU, false, false, &v, &pos);
+            int64_t t2 = esp_timer_get_time();
+            printf("eqnbench: %s alone, X %s: a parse %lld us, an evaluation %lld us\n", EQ[k], d ? "34 digits" : "1.234",
+                   (long long)(t1 - t0) / 200, (long long)(t2 - t1) / 200);
+        }
     }
     heap_caps_free(c2);
     printf("eqnbench: done\n");

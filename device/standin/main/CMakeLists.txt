@@ -48,3 +48,9 @@ target_compile_definitions(${COMPONENT_LIB} PRIVATE
     DECIMAL_CALL_BY_REFERENCE=0 DECIMAL_GLOBAL_ROUNDING=0 DECIMAL_GLOBAL_EXCEPTION_FLAGS=0)
 target_link_libraries(${COMPONENT_LIB} PRIVATE "${BID_LIB}")
 set_source_files_properties("${REPO}/core/arena.c" PROPERTIES COMPILE_OPTIONS "-include;${REPO}/device/pool_attr.h")
+# The profile (unit 050, device/standin/prof.sh, its own build directory): the core's functions instrumented, the
+# stand-in's hooks counting them
+if(AB_PROF)
+    set_property(SOURCE ${CORE_SRCS} APPEND PROPERTY COMPILE_OPTIONS "-finstrument-functions")
+    target_compile_definitions(${COMPONENT_LIB} PRIVATE AB_PROF=1)
+endif()
