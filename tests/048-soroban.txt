@@ -1,0 +1,51 @@
+# Unit 048: Casimir's exact SOLVE, ∫ and FACTOR on the CAS menu (work/048, abacus #5267). The expected texts are
+# casim's visible examples at the pin (casim work/005-, 006-, 007-examples.txt, each answer derived by hand there),
+# cited by their ids; the rest by hand here. An integral's expected text is 002's canonical form of the hand
+# answer (casim's 006 file: SIMP of it, the accepted contract), never the integrator's own output. %CASREP is the SOLVE report while its view is open (else none), %CASROW
+# the row under its cursor, %NOTE the note beside the equation shown (+C, MAY FACTOR MORE, or none); blanks are _.
+# ID | description | keys | expected
+S01 | 048 SOLVE (V0001): the report, its status row first; nothing stored | STU EQ:X^2-5×X+6=0 CASSOLVE:X | %CASREP=SOLVED:_X=2;_X=3 %CASROW=SOLVED %EQN=1 %EQ=X^2-5×X+6=0
+S02 | 048 SOLVE (V0002): a multiplicity follows its root | STU EQ:X^3-3×X+2 CASSOLVE:X SST SST | %CASREP=SOLVED:_X=-2;_X=1_(MULT_2) %CASROW=X=1_(MULT_2)
+S03 | 048 SOLVE (V0004): PARTIAL with no root found | STU EQ:X^3-2×X-5 CASSOLVE:X | %CASREP=PARTIAL,_DEGREE_3_LEFT %CASROW=PARTIAL,_DEGREE_3_LEFT
+S04 | 048 SOLVE (V0005): PARTIAL, the root found on the next row | STU EQ:(X+3)×(X^3-2×X-5) CASSOLVE:X SST | %CASREP=PARTIAL,_DEGREE_3_LEFT:_X=-3 %CASROW=X=-3
+S05 | 048 SOLVE (V0010): NO REAL ROOTS | STU EQ:X^2+X+1 CASSOLVE:X | %CASREP=NO_REAL_ROOTS %CASROW=NO_REAL_ROOTS
+S06 | 048 SOLVE (V0011): NO SOLUTION | STU EQ:X+1=X CASSOLVE:X | %CASREP=NO_SOLUTION
+S07 | 048 SOLVE (V0012): EVERY X | STU EQ:2×X=X+X CASSOLVE:X | %CASREP=EVERY_X
+S08 | 048 SOLVE (V0016): NOT A POLYNOMIAL, no report | STU EQ:SIN(X)=0.5 CASSOLVE:X | ERR %ERR=CAS_NOT_POLY %ERRMSG=NOT_A_POLYNOMIAL %CASREP=none
+S09 | 048 SOLVE (V0017): COEF NOT NUMERIC | STU EQ:A×X^2-1 CASSOLVE:X | ERR %ERR=CAS_NOT_NUMERIC %ERRMSG=COEF_NOT_NUMERIC
+S10 | 048 SOLVE (V0018): past solve's bounds, TOO COMPLEX | STU EQ:X^14-1 CASSOLVE:X | ERR %ERR=CAS_NO_ROOM %ERRMSG=TOO_COMPLEX
+S11 | 048 SOLVE (V0020): twelve roots past 191 bytes, RESULT TOO LONG | STU EQ:(X^2-X-3)×(X^2-X-5)×(X^2-X-7)×(X^2-X-11)×(X^2-X-13)×(X^2-X-17) CASSOLVE:X | ERR %ERR=CAS_TOO_LONG %ERRMSG=RESULT_TOO_LONG
+S12 | 048 SOLVE in the stamp (V0014): X^3^2-64 stamped STU is X^9-64 | STU EQ:X^3^2-64 CASSOLVE:X | %CASREP=PARTIAL,_DEGREE_9_LEFT
+S13 | 048 SOLVE in the stamp: stamped 35s it is X^6-64, (X-2)(X+2) and two quadratics with no real roots (by hand) | MODE35 EQ:X^3^2-64 C STU EQN CASSOLVE:X | %CASREP=SOLVED:_X=-2;_X=2
+S14 | 048 SOLVE: STU only | MODE35 EQ:X^2-1 CASSOLVE:X | ERR %ERR=STU_ONLY
+R01 | 048 report ENTER: the root under the cursor to X, the stack lifted as RCL; the view left, nothing stored | 7 STU EQ:X^2-5×X+6=0 CASSOLVE:X SST ENTER | X=2 Y=7 %CASREP=none %EQN=1
+R02 | 048 report ENTER (V0006): (1+SQRT(5))÷4 through the core's evaluation, 34 digits (by hand: SQRT(5) rounded, +1, ÷4 exact) | STU EQ:0.5×X^2-0.25×X-0.125 CASSOLVE:X SST SST ENTER | X=0.809016994374947424102293417182819
+R03 | 048 report ENTER (V0002): a root's (MULT k) is not part of its value | STU EQ:X^3-3×X+2 CASSOLVE:X SST SST ENTER | X=1
+R04 | 048 report: ENTER on the status row does nothing, the view stays | 5 STU EQ:X^2-5×X+6=0 CASSOLVE:X ENTER | X=5 %CASROW=SOLVED
+R05 | 048 report: C leaves the view, X untouched | 5 STU EQ:X^2-5×X+6=0 CASSOLVE:X SST C | X=5 %CASREP=none %EQ=X^2-5×X+6=0
+R06 | 048 report: up from the status row wraps to the last root, as LIN VIEW's steps | STU EQ:X^2-5×X+6=0 CASSOLVE:X BST | %CASROW=X=3
+R07 | 048 report: down past the last root wraps to the status row | STU EQ:X^2-5×X+6=0 CASSOLVE:X SST SST SST | %CASROW=SOLVED
+I01 | 048 ∫ (I0001, X^3+X^2+X canonical): the antiderivative inserted after the original, +C beside it, never in the text | STU RAD EQ:3×X^2+2×X+1 CASINT:X | %EQ=X+X^2+X^3 %NOTE=+C %EQN=2
+I02 | 048 ∫ (I0010, SIN(X)×180÷π canonical): in DEG, SIN carries 180÷π | STU DEG EQ:COS(X) CASINT:X | %EQ=180×SIN(X)÷π %NOTE=+C
+I03 | 048 ∫ (I0011, -COS(3×X)×200÷π÷3 canonical): in GRAD, 200÷π | STU GRAD EQ:SIN(3×X) CASINT:X | %EQ=-200×COS(3×X)÷3÷π
+I04 | 048 ∫: the note goes when the list moves off the answer, and stays gone | STU RAD EQ:3×X^2+2×X+1 CASINT:X BST SST | %EQ=X+X^2+X^3 %NOTE=none
+I05 | 048 ∫ (I0022): CAN'T INTEGRATE, nothing inserted | STU RAD EQ:X×LN(X) CASINT:X | ERR %ERR=CAS_NOT_INTEGRABLE %ERRMSG=CAN'T_INTEGRATE %EQN=1 %NOTE=none
+I06 | 048 ∫ (I0028): an equation, EXPRESSION ONLY | STU RAD EQ:X=1 CASINT:X | ERR %ERR=CAS_EXPR_ONLY %ERRMSG=EXPRESSION_ONLY %EQN=1
+I07 | 048 ∫ in the stamp: X^2^3 stamped STU is X^8 (by hand: X^9÷9, I0002's form) | STU RAD EQ:X^2^3 CASINT:X | %EQ=X^9÷9
+I08 | 048 ∫ in the stamp: stamped 35s it is X^6 (by hand: X^7÷7) | MODE35 EQ:X^2^3 C STU RAD EQN CASINT:X | %EQ=X^7÷7
+F01 | 048 FACTOR (F0001): inserted after the original, no note | STU EQ:X^2-5×X+6 CASFACT:X | %EQ=(X-3)×(X-2) %NOTE=none %EQN=2
+F02 | 048 FACTOR (F0003): the content first | STU EQ:2×X^3-2×X CASFACT:X | %EQ=2×X×(X-1)×(X+1)
+F03 | 048 FACTOR (F0021): PARTIAL inserts the exact product, MAY FACTOR MORE beside it, not an error | STU EQ:69120×X^12-883584×X^11+3675072×X^10-4777824×X^9-2178000×X^8+7710864×X^7-2213952×X^6-2071296×X^5+775920×X^4+114000×X^3-36000×X^2-2 CASFACT:X | %EQ=2×(-18000×X^2+57000×X^3+387960×X^4-1035648×X^5-1106976×X^6+3855432×X^7-1089000×X^8-2388912×X^9+1837536×X^10-441792×X^11+34560×X^12-1) %NOTE=MAY_FACTOR_MORE %EQN=2
+F04 | 048 FACTOR (F0014): NOT A POLYNOMIAL | STU EQ:SIN(X)+1 CASFACT:X | ERR %ERR=CAS_NOT_POLY %EQN=1
+F05 | 048 FACTOR (F0015): COEF NOT NUMERIC | STU EQ:A×X^2-1 CASFACT:X | ERR %ERR=CAS_NOT_NUMERIC
+F06 | 048 FACTOR (F0017): an equation, EXPRESSION ONLY | STU EQ:X=1 CASFACT:X | ERR %ERR=CAS_EXPR_ONLY
+F07 | 048 FACTOR (F0016): TOO COMPLEX | STU EQ:X^13-1 CASFACT:X | ERR %ERR=CAS_NO_ROOM
+F08 | 048 FACTOR from a 33s-stamped equation, through the 33s path, the result stamped STU | MODE33 EQ:X^2-5×X+6 C STU EQN CASFACT:X | %EQ=(X-3)×(X-2) %EQN=2
+F09 | 048: a C during the call discards the result (the tests' interrupt), nothing inserted | STU EQ:X^2-5×X+6 INTR:1 CASFACT:X | ERR %ERR=INTERRUPTED %EQN=1 %NOTE=none
+F10 | 048: a 33s-stamped equation goes through the 33s translation on the new keys too: its CBRT refused by name | MODE33 EQ:CBRT(X)-2 C STU EQN CASSOLVE:X | ERR %ERR=CAS_UNSUPPORTED %ERRMSG=UNSUPPORTED_CBRT %CASREP=none
+R08 | 048 report: backspace leaves it too | 5 STU EQ:X^2-5×X+6=0 CASSOLVE:X SST BKSP | X=5 %CASREP=none
+R09 | 048 report ENTER with the lift off (after ENTER): X written over, as RCL then | 5 ENTER STU EQ:X^2-5×X+6=0 CASSOLVE:X SST ENTER | X=2 Y=5 Z=0
+R10 | 048 report ENTER (V0005): a PARTIAL report's root | STU EQ:(X+3)×(X^3-2×X-5) CASSOLVE:X SST ENTER | X=-3
+R11 | 048 report: five rows (by hand: four rational roots), the cursor down to the last | STU EQ:(X-1)×(X-2)×(X-3)×(X-4) CASSOLVE:X SST SST SST SST | %CASREP=SOLVED:_X=1;_X=2;_X=3;_X=4 %CASROW=X=4
+S15 | 048: a C during SOLVE: no report | STU EQ:X^2-5×X+6=0 INTR:1 CASSOLVE:X | ERR %ERR=INTERRUPTED %CASREP=none
+I09 | 048: a C during ∫: nothing inserted, no +C | STU RAD EQ:3×X^2+2×X+1 INTR:1 CASINT:X | ERR %ERR=INTERRUPTED %EQN=1 %NOTE=none
