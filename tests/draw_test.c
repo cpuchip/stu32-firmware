@@ -43,7 +43,10 @@ static uint32_t rnd(void)
 }
 static int between(int lo, int hi)
 {
-    return (int)(lo + (long long)(((uint64_t)rnd() << 32 | rnd()) % (uint64_t)((long long)hi - lo + 1)));
+    uint64_t hi32 = rnd();                      /* the high word first: drawn in sequence, not as one expression's
+                                                   operands (unsequenced in C; abacus #5289) */
+    uint64_t v = hi32 << 32 | rnd();
+    return (int)(lo + (long long)(v % (uint64_t)((long long)hi - lo + 1)));
 }
 
 /* ---- the reference: one pixel at a time ---- */
@@ -214,11 +217,15 @@ int main(int argc, char **argv)
             break;
         }
         default:
-            if (rnd() % 4)
-                line_props(between(-50, 450), between(-50, 290), between(-50, 450), between(-50, 290));
-            else                                /* (soroban's gate) ends far off the frame, any slope */
-                line_props(between(-2000000000, 2000000000), between(-50, 290), between(-2000000000, 2000000000),
-                           between(-2000000000, 2000000000));
+            if (rnd() % 4) {                    /* (each end drawn into a local first: a call's arguments are
+                                                   evaluated in no set order, and gcc and emcc differ; abacus #5289) */
+                int x0 = between(-50, 450), y0 = between(-50, 290), x1 = between(-50, 450), y1 = between(-50, 290);
+                line_props(x0, y0, x1, y1);
+            } else {                            /* (soroban's gate) ends far off the frame, any slope */
+                int x0 = between(-2000000000, 2000000000), y0 = between(-50, 290),
+                    x1 = between(-2000000000, 2000000000), y1 = between(-2000000000, 2000000000);
+                line_props(x0, y0, x1, y1);
+            }
             break;
         }
     }
