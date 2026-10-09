@@ -2,7 +2,7 @@
 
 **From:** arcade (the blueprint, stu32-arcade docs/wasm-integration.md, accepted in shape) · **Ruled by:** Michael's
 decision 67 ("WAMR, and send the fix upstream too"; abacus a6a3c73, #5322) and decision 68 ("as space conscious as
-possible") · **Gate:** soroban · **Status:** built, measured, the S3 gate passed (soroban #5501).
+possible") · **Gate:** soroban · **Status:** built, measured, gated and merged (below).
 
 ## What it is
 
@@ -77,8 +77,15 @@ STU_WASM=1 GAMES_LIST=games-wasm-gate.list device/standin/run.sh PORT device/sta
 games-wasm-gate.list lists BABAL, BABLW (stu32-arcade 3d522d5) and TRAP (stu32-arcade 12b36aa), each checked at its
 pin. TRAP's key 0 recurses 100 deep and returns; key 1 never stops, and the bridge's guard must turn it into a trap
 the calculator survives. wasm.txt is the script the board figures above came from, written into the repo's
-conventions (STANDIN READY, RESTART); its 12 expects passed on the S3 as a scratch script. wasm.txt itself, run
-by the command above, has not yet been on a board.
+conventions (STANDIN READY, RESTART); its 12 expects passed on the S3 as a scratch script.
+
+**At soroban's gate** (2026-10-09, the series rebased onto 68683b5, .gitignore its only conflict): wasm.txt, run by
+the command above, ALL MET on the S3. The calc task's stack-free read 29,060 through BABAL and BABLW, 23,300 after
+TRAP's key 0 and 964 after the trap, as above; BABLW 380.6 frames a second, BABAL 664.6; the internal heap 152 B
+lower while BABLW ran and 104 B lower after it, as above. resources.py static, ab51544 to the series, was +0 in every
+row on both targets, option off and on. The gate's own commit after the series: the bridge's load error when
+wasm_runtime_create_exec_env fails (its buffer was read unset), imp_tune's comment, and Rev A's build.sh remaking its
+sdkconfig when device/sdkconfig.wasm is newer, as run.sh does.
 
 ## Open
 

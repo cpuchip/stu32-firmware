@@ -7,7 +7,8 @@ WASM="${STU_WASM:-0}"   # STU_WASM=1: with WAMR (decisions 67, 68), in build-was
 B=build
 [ "$WASM" = 1 ] && B=build-wasm
 # a changed sdkconfig.defaults takes effect: ESP-IDF never re-reads it into an existing sdkconfig (unit 051)
-if [ "$ROOT/device/reva/sdkconfig.defaults" -nt "$ROOT/device/reva/$B/sdkconfig" ]; then
+if [ "$ROOT/device/reva/sdkconfig.defaults" -nt "$ROOT/device/reva/$B/sdkconfig" ] ||
+    { [ "$WASM" = 1 ] && [ "$ROOT/device/sdkconfig.wasm" -nt "$ROOT/device/reva/$B/sdkconfig" ]; }; then
     rm -f "$ROOT/device/reva/$B/sdkconfig"
 fi
 python3 "$ROOT/scripts/gen_games.py" "$ROOT/games.list" "$ROOT/build/games"
