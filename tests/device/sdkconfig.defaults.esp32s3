@@ -2,6 +2,9 @@
 # 8 MB of flash (esptool flash_id, 2026-10-03), so the app gets an 8 MB layout.
 CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
 CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
+# unit 051: the flash read four bits a clock (quad flash). abacus's XIAO under QIO (abacus f1ab406): DEVICE PASS,
+# 1,241.9 -> 1,179.4 s; the stand-in's benches -25 to -40%. The boot log says "SPI Mode : QIO".
+CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
 CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions-8mb.csv"
 # Its 8 MB of octal PSRAM (as the stand-in, device/standin/sdkconfig.defaults) holds the core's arena
 # pool and the CAS arena (device/pool_attr.h): with casim in, internal RAM no longer holds them and

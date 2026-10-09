@@ -15,6 +15,11 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 
 mkdir -p "$ROOT/tests/device/main/generated" "$ROOT/build"
 [ "$TARGET" = esp32c6 ] && DEFAULT_ARGS=--small || DEFAULT_ARGS=
+# a changed sdkconfig.defaults (or the target's) takes effect: ESP-IDF never re-reads them into an existing sdkconfig
+# (unit 051), so that one is made again
+for d in "$ROOT/tests/device/sdkconfig.defaults" "$ROOT/tests/device/sdkconfig.defaults.$TARGET"; do
+    if [ "$d" -nt "$ROOT/tests/device/build-$TARGET/sdkconfig" ]; then rm -f "$ROOT/tests/device/build-$TARGET/sdkconfig"; fi
+done
 "$ROOT/scripts/fetch-casim.sh"
 python3 "$ROOT/tests/device/bundle.py" "$ROOT/tests/device/main/generated/bundle.c" ${ABACUS_BUNDLE_ARGS:-$DEFAULT_ARGS}
 docker run --rm -v "$ROOT:/project" -w /project \
