@@ -40,3 +40,9 @@ D45 | 056: STU only, as the rest of CAS | MODE35 EQ:X^2 CASDEF:X | ERR %ERR=STU_
 D46 | 056: saved while the lower bound is typed: loaded, the step is gone and the bound is not an equation | STU RAD EQ:X^2 CASDEF:X 7 SAVE LOAD ENTER | %EQN=1 %EQ=X^2
 D47 | 056: saved while the upper bound is typed: the same | STU RAD EQ:X^2 CASDEF:X 1 ENTER 7 SAVE LOAD ENTER | %EQN=1 %EQ=X^2
 D48 | 056: after that load, a new equation typed is stored as one (no step left to take its ENTER as a bound) | STU RAD EQ:X^2 CASDEF:X 7 SAVE LOAD 5 ENTER | %EQN=2 %EQ=5
+# the image keeps each new message showing (056 left them out of state.c's accepted statuses: a save while one
+# showed loaded as a bad image, MEMORY CLEAR; found at 057's proposal)
+D50 | 056: saved while IMPROPER INTEGRAL shows: it loads, the message still showing | STU RAD EQ:1÷X CASDEF:X 0 ENTER 1 ENTER SAVE LOAD | ERR %ERR=CAS_IMPROPER %ERRMSG=IMPROPER_INTEGRAL %EQN=1
+D51 | 056: the same for UNDEFINED | STU EQ:1÷0 CASSIMP SAVE LOAD | ERR %ERR=CAS_UNDEFINED %ERRMSG=UNDEFINED %EQN=1
+D52 | 056: the same for BOUND NOT NUMERIC | STU RAD EQ:X^2 CASDEF:X 0 ENTER RCL:B ENTER SAVE LOAD | ERR %ERR=CAS_BOUND_LETTER %ERRMSG=BOUND_NOT_NUMERIC
+D53 | 056: the same for BOUND NOT REAL | STU RAD EQ:X^2 CASDEF:X 0 ENTER SQRT 1 CHS ENTER SAVE LOAD | ERR %ERR=CAS_BOUND_REAL %ERRMSG=BOUND_NOT_REAL

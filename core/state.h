@@ -22,7 +22,8 @@
 
 #include "calc.h"
 
-#define AB_STATE_VERSION 15     /* 15 (unit 048): no new field; the messages NOT A POLYNOMIAL, COEF NOT NUMERIC,
+#define AB_STATE_VERSION 16     /* 16 (unit 056): no new field; the messages IMPROPER INTEGRAL, UNDEFINED, BOUND NOT
+                                   NUMERIC and BOUND NOT REAL may be the one showing; 15 (unit 048): no new field; the messages NOT A POLYNOMIAL, COEF NOT NUMERIC,
                                    CAN'T INTEGRATE and EXPRESSION ONLY may be the one showing; 14 (unit 047): no new field; the message NESTED TOO DEEP (ABN_TOO_DEEP) may be the
                                    one showing; 13 (unit 041 C, B4): ENG→ / ←ENG's view; and (041 D) an older image's 33s-stamped
                                    equations using the 35s's spellings load stamped 35, as 11's; 12 (CAS 004): SUBST's replacement typed (its variable); 11 (unit 041): no new field; an older image's 33s-stamped equations that fail
