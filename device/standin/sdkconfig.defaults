@@ -6,6 +6,11 @@ CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
 # instruction cache, and its misses were most of the time: SOLVE -39%, an integral -40%, programs -25 to -31%
 # (work/051). The boot log says "SPI Mode : QIO".
 CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
+# abacus #5504: the non-ISR FreeRTOS functions in flash (their ISR ones stay in IRAM, all the RGB interrupt uses):
+# +7,428 B of internal heap, the largest internal block 131,072 -> 139,264, so the keyboard image (96,000 B after the
+# calc stack's 32,768, one region) has ~10.5 KB spare, not ~2.3. Speed within 0.6%. 120 flash writes under the live RGB
+# interrupt pass (device/standin/flashstress.txt).
+CONFIG_FREERTOS_PLACE_FUNCTIONS_INTO_FLASH=y
 CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
 CONFIG_SPIRAM=y
 CONFIG_SPIRAM_MODE_OCT=y

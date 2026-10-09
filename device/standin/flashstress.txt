@@ -1,0 +1,510 @@
+# unit 053 / abacus #5504: 120 flash writes (SAVE) while the RGB interrupt refreshes the panel, the screen changing
+# before each (a digit typed, then C); every tenth followed by X, its pixel probe reading the keyboard's colours
+# through the bounce buffers. No panic, no watchdog: the log is grepped for resets afterwards.
+sleep 3
+wait READY 30
+sleep 2
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send X
+expect pixels: gold key 4208, blue key 4208 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send X
+expect pixels: gold key 4208, blue key 4208 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send X
+expect pixels: gold key 4208, blue key 4208 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send X
+expect pixels: gold key 4208, blue key 4208 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send X
+expect pixels: gold key 4208, blue key 4208 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send X
+expect pixels: gold key 4208, blue key 4208 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send X
+expect pixels: gold key 4208, blue key 4208 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send X
+expect pixels: gold key 4208, blue key 4208 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send X
+expect pixels: gold key 4208, blue key 4208 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send X
+expect pixels: gold key 4208, blue key 4208 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send X
+expect pixels: gold key 4208, blue key 4208 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K38
+sleep 0.1
+send SAVE
+expect , ok, 10
+send K42
+sleep 0.1
+send SAVE
+expect , ok, 10
+send X
+expect pixels: gold key 4208, blue key 4208 10

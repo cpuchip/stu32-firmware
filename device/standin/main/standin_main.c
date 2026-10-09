@@ -1467,12 +1467,18 @@ static void sysinfo_cb(void *ctx, app_sysinfo *o)
 
 void app_main(void)
 {
-    /* the calc task's stack first, before the keyboard image and the panel's buffers split the
-       internal heap: 32 KB in one block (it failed at boot once those had: largest block 31 KB) */
+    /* the calc task's stack first, before the keyboard image and the panel's buffers split the internal heap: 32 KB in
+       one block (it failed at boot once those had: largest block 31 KB). Both large blocks come from one 128 KB region:
+       the line says what is left (unit 053; arcade's boots, #5492: the order doesn't change the margin) */
     static StaticTask_t calc_tcb;
+    size_t blk0 = heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
     StackType_t *calc_stack = heap_caps_malloc(CALC_STACK, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
     events = xQueueCreate(32, sizeof(event));
+    size_t blk1 = heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
     keys_img = heap_caps_malloc(SI_IMG_BYTES, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+    size_t blk2 = heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+    printf("standin: largest internal block %u; calc stack %u, then %u; keyboard image %u, then %u\n", (unsigned)blk0,
+           (unsigned)CALC_STACK, (unsigned)blk1, (unsigned)SI_IMG_BYTES, (unsigned)blk2);
     calc = heap_caps_calloc(1, sizeof *calc, MALLOC_CAP_SPIRAM);
     image = heap_caps_malloc(IMAGE_CAP, MALLOC_CAP_SPIRAM);
     if (!keys_img || !calc || !image) {
