@@ -1,0 +1,9 @@
+# WAMR for STU_WASM (decisions 67, 68): scripts/fetch-wamr.sh exports this commit, applies these patches in order
+# (each checked by sha256) and refuses any result whose tree is not this one. Repin: docs in README.md.
+commit ea5dd88e9ca40a44b6a5d9ffeb87a20833b13b8a
+patch 0001-esp-idf-map-PSRAM-AOT-code-on-the-instruction-bus.patch 5c4eb7a7408e72f26b1836dcc21999e5db646f0235fba74a989b9666c1da9644
+patch 0002-xtensa-fix-L32R-relocation-lost-to-strict-aliasing.patch 9bb7b8b2c5e692043325b244ca07423fbc932cff22e5b94967a67fa0f26889df
+patch 0003-esp-idf-os_self_thread-returns-the-FreeRTOS-task-han.patch d59ed26a712f7f8683c59118624aae3984401edd2d713e72f3d638d34d740648
+patch 0004-aot-keep-the-target-symbol-maps-const.patch 3ff3d00aec2fca8871803e78582fa083aee6ec1b2ec16e3f195542e98dfab91a
+patch 0005-esp-idf-let-a-project-without-libc-wasi-leave-lwip-o.patch 54a77ea74556ef290b9bb642b41a452acb2d6b368f8e5d48d7d55a7bf85bd994
+tree 13f26968cf1fd69fd8172b510bf6c05469321b41
