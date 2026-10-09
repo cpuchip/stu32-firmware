@@ -1,0 +1,43 @@
+# Unit 057 (abacus #5669, ruled #5670): CAS 010 on the keys (CAS3: QUOT, GCD, CANCL) and labels attached to their
+# equations (a byte per equation, in the image from version 17). Tokens CASQUOT:v and CASGCD:v (then g typed, ENTER),
+# CASCANCL:v. The labels read on %NOTE (QUOTIENT, REMAINDER, NOT AT on Y; +C beside). Values are CAS 010's visible
+# examples (casim's work/010-examples.txt), as the probe and the S3 bench at the proposal gave them.
+# ID | description | keys | expected
+# QUOT: q then r inserted after the polynomial, q shown, each labeled
+Q01 | 057: QUOT X^2-1 by X-1: X+1, labeled QUOTIENT | STU RAD EQ:X^2-1 CASQUOT:X RCL:X - 1 ENTER | %EQ=X+1 %NOTE=QUOTIENT %EQN=3
+Q02 | 057: its remainder 0 after it, labeled REMAINDER | STU RAD EQ:X^2-1 CASQUOT:X RCL:X - 1 ENTER SST | %EQ=0 %NOTE=REMAINDER
+Q03 | 057: X^3+2 by X-1: X+X^2+1 remainder 3 | STU RAD EQ:X^3+2 CASQUOT:X RCL:X - 1 ENTER SST | %EQ=3 %NOTE=REMAINDER
+Q04 | 057: g typed with an implied product: 2X+1 is 2×X+1, so X^2 by it is 0.5×X-0.25 | STU RAD EQ:X^2 CASQUOT:X 2 RCL:X + 1 ENTER | %EQ=0.5×X-0.25 %NOTE=QUOTIENT
+Q05 | 057: g = 0 is UNDEFINED, nothing inserted | STU RAD EQ:X^2 CASQUOT:X 0 ENTER | ERR %ERRMSG=UNDEFINED %EQN=1
+Q06 | 057: not a polynomial: NOT A POLYNOMIAL | STU RAD EQ:SIN(X) CASQUOT:X RCL:X ENTER | ERR %ERRMSG=NOT_A_POLYNOMIAL %EQN=1
+Q07 | 057: an equation is EXPRESSION ONLY, before the call | STU RAD EQ:Y=X^2 CASQUOT:X RCL:X ENTER | ERR %ERRMSG=EXPRESSION_ONLY %EQN=1
+Q08 | 057: the stamp: 2^3^2×X^2 typed in 35s mode is 64×X^2, so by X it is 64×X | MODE35 EQ:2^3^2×X^2 C STU EQN CASQUOT:X RCL:X ENTER | %EQ=64×X
+Q10 | 057: C while g is typed cancels, the list kept | STU RAD EQ:X^2 CASQUOT:X RCL:X C | %EQN=1 %EQ=X^2
+Q11 | 057: ENTER on an empty g cancels | STU RAD EQ:X^2 CASQUOT:X ENTER | %EQN=1 %EQ=X^2
+Q12 | 057: saved while g is typed: loaded, the step is gone and g is not an equation | STU RAD EQ:X^2 CASQUOT:X 7 SAVE LOAD ENTER | %EQN=1 %EQ=X^2
+# GCD: one equation, no label
+G01 | 057: GCD of X^2-1 and X^2+2X+1 is X+1 | STU RAD EQ:X^2-1 CASGCD:X RCL:X POW 2 + 2 RCL:X + 1 ENTER | %EQ=X+1 %NOTE=none %EQN=2
+G02 | 057: contents differ: 2X+2 and 4X+4 give X+1 | STU RAD EQ:2×X+2 CASGCD:X 4 RCL:X + 4 ENTER | %EQ=X+1
+G03 | 057: coprime: 1 | STU RAD EQ:X^2+1 CASGCD:X RCL:X - 1 ENTER | %EQ=1
+# CANCL: the reduced quotient (no label), then each row labeled NOT AT
+C01 | 057: CANCL (X^2-1)÷(X-1): X+1 | STU RAD EQ:(X^2-1)÷(X-1) CASCANCL:X | %EQ=X+1 %NOTE=none %EQN=3
+C02 | 057: its row X=1, labeled NOT AT | STU RAD EQ:(X^2-1)÷(X-1) CASCANCL:X SST | %EQ=X=1 %NOTE=NOT_AT
+C03 | 057: two roots: X=-1 then X=1 | STU RAD EQ:(X^2-1)×(X+5)÷((X^2-1)×(X-4)) CASCANCL:X | %EQ=(X+5)÷(X-4) %EQN=4
+C04 | 057: the first row | STU RAD EQ:(X^2-1)×(X+5)÷((X^2-1)×(X-4)) CASCANCL:X SST | %EQ=X=-1 %NOTE=NOT_AT
+C05 | 057: the second row | STU RAD EQ:(X^2-1)×(X+5)÷((X^2-1)×(X-4)) CASCANCL:X SST SST | %EQ=X=1 %NOTE=NOT_AT
+C06 | 057: an irrational factor's row is X^2-2=0 | STU RAD EQ:(X^2-2)×X÷(X^2-2) CASCANCL:X SST | %EQ=X^2-2=0 %NOTE=NOT_AT
+C07 | 057: nothing to cancel: the quotient, no rows | STU RAD EQ:(X+1)÷(X+2) CASCANCL:X | %EQ=(X+1)÷(X+2) %EQN=2 %NOTE=none
+# the labels' lifetime (#5632): attached to their equations
+L01 | 057: an equation typed before q: q keeps its label | STU RAD EQ:X^2-1 CASQUOT:X RCL:X - 1 ENTER BST EQ:7 SST | %EQ=X+1 %NOTE=QUOTIENT %EQN=4
+L02 | 057: the polynomial before q deleted: q keeps its label | STU RAD EQ:X^2-1 CASQUOT:X RCL:X - 1 ENTER BST BKSP SST | %EQ=X+1 %NOTE=QUOTIENT %EQN=2
+L03 | 057: r deleted: q, now shown, keeps its own label | STU RAD EQ:X^2-1 CASQUOT:X RCL:X - 1 ENTER SST BKSP | %EQ=X+1 %NOTE=QUOTIENT %EQN=2
+L04 | 057: a row edited loses its label | STU RAD EQ:(X^2-1)÷(X-1) CASCANCL:X SST < BKSP 2 ENTER | %EQ=X=2 %NOTE=none
+L05 | 057: leaving a label's equation and coming back finds it (it was gone before 057) | STU RAD EQ:X^2-1 CASQUOT:X RCL:X - 1 ENTER BST SST | %EQ=X+1 %NOTE=QUOTIENT
+L06 | 057: +C now lives the same way | STU RAD EQ:3×X^2 CASINT:X BST SST | %EQ=X^3 %NOTE=+C
+L07 | 057: the image keeps the labels | STU RAD EQ:X^2-1 CASQUOT:X RCL:X - 1 ENTER SAVE LOAD | %ERR=OK %EQ=X+1 %NOTE=QUOTIENT
+L08 | 057: and the remainder's | STU RAD EQ:X^2-1 CASQUOT:X RCL:X - 1 ENTER SAVE LOAD SST | %EQ=0 %NOTE=REMAINDER
+L09 | 057: a version-16 image (no labels section read) loads with none | STU RAD EQ:X^2-1 CASQUOT:X RCL:X - 1 ENTER SAVE IMGVER:16 LOAD | %ERR=OK %EQ=X+1 %NOTE=none
+# all or nothing (#5670 rule 5): one free slot, QUOT needs two
+F01 | 057: one slot free: QUOT is MEMORY FULL, nothing inserted | STU RAD EQ:0+1 EQ:1+1 EQ:2+1 EQ:3+1 EQ:4+1 EQ:5+1 EQ:6+1 EQ:7+1 EQ:8+1 EQ:9+1 EQ:10+1 EQ:11+1 EQ:12+1 EQ:13+1 EQ:14+1 EQ:15+1 EQ:16+1 EQ:17+1 EQ:18+1 EQ:19+1 EQ:20+1 EQ:21+1 EQ:22+1 EQ:23+1 EQ:24+1 EQ:25+1 EQ:26+1 EQ:27+1 EQ:28+1 EQ:29+1 EQ:30+1 EQ:31+1 EQ:32+1 EQ:33+1 EQ:34+1 EQ:35+1 EQ:36+1 EQ:37+1 EQ:38+1 EQ:39+1 EQ:40+1 EQ:41+1 EQ:42+1 EQ:43+1 EQ:44+1 EQ:45+1 EQ:46+1 EQ:47+1 EQ:48+1 EQ:49+1 EQ:50+1 EQ:51+1 EQ:52+1 EQ:53+1 EQ:54+1 EQ:55+1 EQ:56+1 EQ:57+1 EQ:58+1 EQ:59+1 EQ:60+1 EQ:61+1 EQ:X^2-1 CASQUOT:X RCL:X - 1 ENTER | ERR %ERRMSG=MEMORY_FULL %EQN=63
+F02 | 057: CANCL with two rows and one slot: MEMORY FULL, nothing | STU RAD EQ:0+1 EQ:1+1 EQ:2+1 EQ:3+1 EQ:4+1 EQ:5+1 EQ:6+1 EQ:7+1 EQ:8+1 EQ:9+1 EQ:10+1 EQ:11+1 EQ:12+1 EQ:13+1 EQ:14+1 EQ:15+1 EQ:16+1 EQ:17+1 EQ:18+1 EQ:19+1 EQ:20+1 EQ:21+1 EQ:22+1 EQ:23+1 EQ:24+1 EQ:25+1 EQ:26+1 EQ:27+1 EQ:28+1 EQ:29+1 EQ:30+1 EQ:31+1 EQ:32+1 EQ:33+1 EQ:34+1 EQ:35+1 EQ:36+1 EQ:37+1 EQ:38+1 EQ:39+1 EQ:40+1 EQ:41+1 EQ:42+1 EQ:43+1 EQ:44+1 EQ:45+1 EQ:46+1 EQ:47+1 EQ:48+1 EQ:49+1 EQ:50+1 EQ:51+1 EQ:52+1 EQ:53+1 EQ:54+1 EQ:55+1 EQ:56+1 EQ:57+1 EQ:58+1 EQ:59+1 EQ:60+1 EQ:61+1 EQ:(X^2-1)÷(X-1) CASCANCL:X | ERR %ERRMSG=MEMORY_FULL %EQN=63
+F03 | 057: two free: CANCL fits (the quotient and its row) | STU RAD EQ:0+1 EQ:1+1 EQ:2+1 EQ:3+1 EQ:4+1 EQ:5+1 EQ:6+1 EQ:7+1 EQ:8+1 EQ:9+1 EQ:10+1 EQ:11+1 EQ:12+1 EQ:13+1 EQ:14+1 EQ:15+1 EQ:16+1 EQ:17+1 EQ:18+1 EQ:19+1 EQ:20+1 EQ:21+1 EQ:22+1 EQ:23+1 EQ:24+1 EQ:25+1 EQ:26+1 EQ:27+1 EQ:28+1 EQ:29+1 EQ:30+1 EQ:31+1 EQ:32+1 EQ:33+1 EQ:34+1 EQ:35+1 EQ:36+1 EQ:37+1 EQ:38+1 EQ:39+1 EQ:40+1 EQ:41+1 EQ:42+1 EQ:43+1 EQ:44+1 EQ:45+1 EQ:46+1 EQ:47+1 EQ:48+1 EQ:49+1 EQ:50+1 EQ:51+1 EQ:52+1 EQ:53+1 EQ:54+1 EQ:55+1 EQ:56+1 EQ:57+1 EQ:58+1 EQ:59+1 EQ:60+1 EQ:(X^2-1)÷(X-1) CASCANCL:X | %EQ=X+1 %EQN=64

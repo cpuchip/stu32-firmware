@@ -109,9 +109,10 @@ static const km_menu MENUS[] = {
     {"CONST", {{KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, "more"}}, AB_CONST},
     {"APPS", {{KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, "more"}}, KM_PAGED_APPS},
     {"CAS", {{KM_PROMPT, AB_CASD, 0, KM_ARG_VAR, "D/DX"}, {KM_OP, AB_CASSIMP, 0, 0, "SIMP"}, {KM_OP, AB_CASEXP, 0, 0, "EXPND"}, {KM_PROMPT, AB_CASCOL, 0, KM_ARG_VAR, "COLCT"}, {KM_PROMPT, AB_CASSUB, 0, KM_ARG_VAR, "SUBST"}, {KM_MENU, 0, 53, 0, "\xe2\x96\xb8"}}, 0},
-    {"CAS2", {{KM_PROMPT, AB_CASSOLVE, 0, KM_ARG_VAR, "SOLVE"}, {KM_PROMPT, AB_CASINT, 0, KM_ARG_VAR, "\xe2\x88\xab" "DX"}, {KM_PROMPT, AB_CASFACT, 0, KM_ARG_VAR, "FACTR"}, {KM_PROMPT, AB_CASDEF, 0, KM_ARG_VAR, "\xe2\x88\xab" "AB"}, {KM_NONE, 0, 0, 0, ""}, {KM_MENU, 0, 52, 0, "\xe2\x96\xb8"}}, 0},
+    {"CAS2", {{KM_PROMPT, AB_CASSOLVE, 0, KM_ARG_VAR, "SOLVE"}, {KM_PROMPT, AB_CASINT, 0, KM_ARG_VAR, "\xe2\x88\xab" "DX"}, {KM_PROMPT, AB_CASFACT, 0, KM_ARG_VAR, "FACTR"}, {KM_PROMPT, AB_CASDEF, 0, KM_ARG_VAR, "\xe2\x88\xab" "AB"}, {KM_NONE, 0, 0, 0, ""}, {KM_MENU, 0, 56, 0, "\xe2\x96\xb8"}}, 0},
     {"CAS REPORT", {{KM_OP, AB_BST, 0, 0, "\xe2\x96\xb2"}, {KM_OP, AB_SST, 0, 0, "\xe2\x96\xbc"}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}}, 0},
     {"EQN LIST GOLD", {{KM_OP, AB_KREG, 0, 0, "REGX"}, {KM_OP, AB_KREG, 1, 0, "REGY"}, {KM_OP, AB_KREG, 2, 0, "REGZ"}, {KM_OP, AB_KREG, 3, 0, "REGT"}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}}, 0},
+    {"CAS3", {{KM_PROMPT, AB_CASQUOT, 0, KM_ARG_VAR, "QUOT"}, {KM_PROMPT, AB_CASGCD, 0, KM_ARG_VAR, "GCD"}, {KM_PROMPT, AB_CASCANCL, 0, KM_ARG_VAR, "CANCL"}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_MENU, 0, 52, 0, "\xe2\x96\xb8"}}, 0},
 };
 
 const km_menu *km_menu_at(int index)

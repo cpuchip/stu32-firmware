@@ -3893,7 +3893,31 @@ int main(void)
         expect(c.eqn_count == n + 1 && c.eqn_cur >= 0 && !strcmp(c.eqn[c.eqn_cur], "LN(3)") && !ab_cas_note(&c) &&
                    !c.eqn_typing && !c.cas_def,
                "056: \xe2\x88\xab" "AB X of 1\xc3\xb7X from 1 to 3 through the keys: LN(3) inserted, no note, the step closed");
-        /* ∫: +C beside the answer on the screen, never in its text; it goes with the list's move */
+        /* unit 057: CAS2's sixth key goes on to CAS3 (QUOT, GCD, CANCL); QUOT through the keys: the variable, g, ENTER:
+           q and r inserted, q shown, labeled QUOTIENT */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        ab_do(&c, AB_RAD);
+        ab_eqn_add(&c, "X^2-1");
+        press(&a, "k:4 k:5 k:5");
+        app_ui(&a, &ui);
+        expect(ui.soft[0] && !strcmp(ui.soft[0], "QUOT") && ui.soft[1] && !strcmp(ui.soft[1], "GCD") && ui.soft[2] &&
+                   !strcmp(ui.soft[2], "CANCL") && ui.soft[5] && !strcmp(ui.soft[5], "\xe2\x96\xb8"),
+               "057: CAS2's sixth key: CAS3, QUOT GCD CANCL, its sixth key back");
+        press(&a, "k:5");
+        app_ui(&a, &ui);
+        expect(ui.soft[0] && !strcmp(ui.soft[0], "D/DX"), "057: CAS3's sixth key back to CAS");
+        press(&a, "k:5 k:5 k:0");
+        app_ui(&a, &ui);
+        expect(ui.prompt && !strcmp(ui.prompt, "QUOT _"), "057: QUOT prompts for the variable (CAS, CAS2, CAS3 again)");
+        n = c.eqn_count;
+        press(&a, "ltr:X 2 ENTER");
+        expect(c.eqn_count == n + 2 && ab_cas_note(&c) && !strcmp(ab_cas_note(&c), "QUOTIENT") && !c.eqn_typing &&
+                   !c.cas_pop && c.eqn_note[c.eqn_cur + 1] == AB_NOTE_REM,
+               "057: QUOT X by 2 through the keys: q and r inserted, q shown as QUOTIENT, r after it as REMAINDER");
+        /* ∫: +C beside the answer on the screen, never in its text; since 057 (#5632) it stays with its answer, in the
+           image and through the list's moves */
         ab_init(&c);
         app_init(&a, &c, now);
         ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
@@ -3910,13 +3934,14 @@ int main(void)
                "048: \xe2\x88\xab" "DX X: the answer shown with +C beside it, the text without it");
         len = ab_state_save(&c, img, sizeof img);
         ab_init(&c3);
-        expect(len && ab_state_load(&c3, img, len) == ABN_OK && !ab_cas_note(&c3) && !strcmp(c3.eqn[c3.eqn_cur], c.eqn[c.eqn_cur]),
-               "048: after a reload the answer shows bare (the note is not in the image)");
+        expect(len && ab_state_load(&c3, img, len) == ABN_OK && ab_cas_note(&c3) && !strcmp(ab_cas_note(&c3), "+C") &&
+                   !strcmp(c3.eqn[c3.eqn_cur], c.eqn[c.eqn_cur]),
+               "048, 057: after a reload the answer still has +C (the label is in the image)");
         ab_do(&c, AB_BST);                      /* the list up and back down */
         ab_do(&c, AB_SST);
         app_ui(&a, &ui);
         screen_lines(&c, &ui, &pg);
-        expect(!strstr(pg.x.text, "+C"), "048: up and back down: +C gone");
+        expect(strstr(pg.x.text, "+C") != NULL, "048, 057: up and back down: +C still beside its answer");
         /* FACTOR's unproven factor: MAY FACTOR MORE above the answer */
         ab_init(&c);
         app_init(&a, &c, now);

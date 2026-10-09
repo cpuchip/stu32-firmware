@@ -146,10 +146,14 @@ typedef enum {
     AB_CASSOLVE, AB_CASINT, AB_CASFACT,
     /* unit 056: ∫ from a to b in arg's variable (CAS 009): the editor takes the lower bound, then the upper; the exact
        answer is inserted as an equation (no +C) */
-    AB_CASDEF
+    AB_CASDEF,
+    /* unit 057 (CAS 010, the CAS menu's third page), in arg's variable: QUOT and GCD take g in the editor ("÷ BY",
+       "GCD WITH"); QUOT inserts q then r, labeled QUOTIENT and REMAINDER; GCD the gcd; CANCL the reduced quotient,
+       then each value it removed as an equation labeled NOT AT */
+    AB_CASQUOT, AB_CASGCD, AB_CASCANCL
 } ab_op;
 
-#define AB_OP_LAST AB_CASDEF   /* the last op: loops over every op end here */
+#define AB_OP_LAST AB_CASCANCL /* the last op: loops over every op end here */
 
 /* Why the last run stopped (unit 012 rule 1): the device draws it; the core never waits. */
 typedef enum {
@@ -339,14 +343,11 @@ typedef struct {
     char cas_rep[AB_EQN_LEN];   /* unit 048: SOLVE's report, casim's line, while its view is open, else ""; not in the
                                image (abacus #5267) */
     int8_t cas_row;         /* unit 048: the report's row under the cursor: 0 the status, then a root each */
-    struct {                /* unit 048, a table since 056 (#5630 rule 4): a label beside (+C) or above (MAY FACTOR MORE)
-                               an equation a CAS step inserted; up to AB_CAS_NOTES at once. All are gone once the list
-                               leaves the equation shown when they were made, or it is edited; not in the image (056
-                               keeps today's lifetime; CAS 010's unit attaches them to their equations, #5632) */
-        uint8_t id;         /* AB_NOTE_*, 0 for a free entry */
-        int8_t eqn;
-    } cas_notes[4];
-    int8_t cas_note_at;     /* the equation shown when the notes were made */
+    uint8_t eqn_note[AB_EQN_MAX + 2];   /* unit 057 (#5670 rule 1): each equation's label (AB_NOTE_*, 0 none), moved
+                               with the list as eqn_model is, dropped when its text is edited or it is deleted; in the
+                               image (version 17). +C beside its answer; the rest above it on Y */
+    uint8_t cas_pop;        /* unit 057: 1 QUOT's g typed, 2 GCD's, else 0; not in the image (as cas_def) */
+    uint8_t cas_pvar;       /* its variable */
     uint8_t cas_def;        /* unit 056: ∫AB's variable + 1 while a bound is typed, else 0; not in the image (a restart
                                mid-entry cancels the step: state.c saves no typing then) */
     uint8_t cas_def_step;   /* 1: the lower bound is typed; 2: the upper, the lower held in cas_lo */
@@ -596,9 +597,12 @@ bool ab_cas_row(const ab_calc *c, int i, char *out, int size);
 const char *ab_cas_note(const ab_calc *c);
 #define AB_NOTE_PLUSC 1
 #define AB_NOTE_MORE 2
-#define AB_CAS_NOTES 4
-/* Unit 056: while a bound of ∫AB is typed, the status row's label ("∫X FROM", "∫X TO"), else NULL. */
-const char *ab_cas_def_label(const ab_calc *c, char *buf, int size);
+#define AB_NOTE_QUOT 3          /* unit 057 */
+#define AB_NOTE_REM 4
+#define AB_NOTE_NOTAT 5
+#define AB_NOTE_LAST AB_NOTE_NOTAT
+/* Units 056, 057: while a CAS step's text is typed, Y's label ("∫X FROM", "∫X TO", "÷ BY", "GCD WITH"), else NULL. */
+const char *ab_cas_prompt_label(const ab_calc *c, char *buf, int size);
 
 /* Rebuilds the label table after program memory is replaced (state loading). */
 void ab_prog_relabel(ab_calc *c);

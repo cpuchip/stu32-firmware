@@ -551,6 +551,7 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
             {"CASD:", AB_CASD, true}, {"CASCOL:", AB_CASCOL, true}, {"CASSUB:", AB_CASSUB, true},
             {"CASSOLVE:", AB_CASSOLVE, true}, {"CASINT:", AB_CASINT, true}, {"CASFACT:", AB_CASFACT, true},   /* 048 */
             {"CASDEF:", AB_CASDEF, true},                                                                       /* 056 */
+            {"CASQUOT:", AB_CASQUOT, true}, {"CASGCD:", AB_CASGCD, true}, {"CASCANCL:", AB_CASCANCL, true},  /* 057 */
             {"CASSIMP", AB_CASSIMP, false}, {"CASEXP", AB_CASEXP, false}};
         for (size_t i = 0; i < sizeof CAS / sizeof CAS[0]; i++) {
             size_t n = strlen(CAS[i].t);

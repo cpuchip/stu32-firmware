@@ -28,7 +28,7 @@ R07 | 048 report: down past the last root wraps to the status row | STU EQ:X^2-5
 I01 | 048 ∫ (I0001, X^3+X^2+X canonical): the antiderivative inserted after the original, +C beside it, never in the text | STU RAD EQ:3×X^2+2×X+1 CASINT:X | %EQ=X+X^2+X^3 %NOTE=+C %EQN=2
 I02 | 048 ∫ (I0010, SIN(X)×180÷π canonical): in DEG, SIN carries 180÷π | STU DEG EQ:COS(X) CASINT:X | %EQ=180×SIN(X)÷π %NOTE=+C
 I03 | 048 ∫ (I0011, -COS(3×X)×200÷π÷3 canonical): in GRAD, 200÷π | STU GRAD EQ:SIN(3×X) CASINT:X | %EQ=-200×COS(3×X)÷3÷π
-I04 | 048 ∫: the note goes when the list moves off the answer, and stays gone | STU RAD EQ:3×X^2+2×X+1 CASINT:X BST SST | %EQ=X+X^2+X^3 %NOTE=none
+I04 | 048 ∫, as 057 ruled (#5632, #5670 rule 1): the note stays with its answer when the list moves off and back (it went before 057) | STU RAD EQ:3×X^2+2×X+1 CASINT:X BST SST | %EQ=X+X^2+X^3 %NOTE=+C
 I05 | 048 ∫ (I0022): CAN'T INTEGRATE, nothing inserted | STU RAD EQ:X×LN(X) CASINT:X | ERR %ERR=CAS_NOT_INTEGRABLE %ERRMSG=CAN'T_INTEGRATE %EQN=1 %NOTE=none
 I06 | 048 ∫ (I0028): an equation, EXPRESSION ONLY | STU RAD EQ:X=1 CASINT:X | ERR %ERR=CAS_EXPR_ONLY %ERRMSG=EXPRESSION_ONLY %EQN=1
 I07 | 048 ∫ in the stamp: X^2^3 stamped STU is X^8 (by hand: X^9÷9, I0002's form) | STU RAD EQ:X^2^3 CASINT:X | %EQ=X^9÷9

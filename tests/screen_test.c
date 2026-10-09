@@ -507,6 +507,21 @@ int main(int argc, char **argv)
     screen_render(&c, &ui, &f);
     expect(!text_at(&f, 38, 87, 3, "X TO", 1), "∫AB cancelled: no label left");
 
+    /* unit 057: QUOT's g typed shows "÷ BY" on Y; a label shows above its equation on Y ("QUOTIENT"), +C beside */
+    ab_init(&c);
+    ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+    ab_eqn_add(&c, "X^2-1");
+    ab_do_arg(&c, AB_CASQUOT, 23);
+    ab_do(&c, AB_K2);
+    screen_render(&c, &ui, &f);
+    expect(text_at(&f, 56, 87, 3, "BY", 1) && dark_in(&f, 20, 87, 18, 21) > 0, "QUOT: '÷ BY' on Y while g is typed");
+    ab_do(&c, AB_ENTER);
+    screen_render(&c, &ui, &f);
+    expect(text_at(&f, 20, 87, 3, "QUOTIENT", 1), "QUOT: its q shown with QUOTIENT on Y");
+    ab_do(&c, AB_SST);
+    screen_render(&c, &ui, &f);
+    expect(text_at(&f, 20, 87, 3, "REMAINDER", 1), "QUOT: r with REMAINDER on Y");
+
     /* a prompt takes Y, at scale 3, with no letter */
     ab_init(&c);
     c.stop = AB_STOP_INPUT;

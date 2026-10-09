@@ -59,7 +59,7 @@ static bool status_in_image(unsigned st, int version)
 }
 
 enum { T_MODES = 1, T_STACK, T_VARS, T_STAT, T_IND, T_PROG, T_EQNS, T_ENTRY, T_EDITOR, T_RUN, T_SOLVE, T_MODE25, T_ALG,
-       T_EQMODEL, T_TABLE, T_GRAPH, T_ZOOM, T_CAS, T_ENG };
+       T_EQMODEL, T_TABLE, T_GRAPH, T_ZOOM, T_CAS, T_ENG, T_EQNOTE };
 
 #define BUILTIN2 "\x01" "2*2 lin. solve"
 #define BUILTIN3 "\x01" "3*3 lin. solve"
@@ -298,11 +298,11 @@ size_t ab_state_save(const ab_calc *c, uint8_t *buf, size_t cap)
 
     s = sec_begin(&w, T_EDITOR);
     w8(&w, c->eqn_mode);
-    w8(&w, c->eqn_typing && !c->cas_def);   /* unit 056: a bound of ∫AB being typed isn't kept: a restart cancels the
+    w8(&w, c->eqn_typing && !c->cas_def && !c->cas_pop);  /* (057: QUOT's and GCD's g likewise) */   /* unit 056: a bound of ∫AB being typed isn't kept: a restart cancels the
                                                step, as the list was before it (#5630 rule 1) */
     w8(&w, (unsigned)(uint8_t)(int8_t)c->eqn_edit);
-    wtext(&w, c->cas_def ? "" : c->ebuf);
-    w16(&w, c->cas_def ? 0u : (unsigned)c->ecur);
+    wtext(&w, c->cas_def || c->cas_pop ? "" : c->ebuf);
+    w16(&w, c->cas_def || c->cas_pop ? 0u : (unsigned)c->ecur);
     w16(&w, (unsigned)c->eqn_errpos);
     w8(&w, (unsigned)c->eqn_pending);
     w8(&w, (unsigned)c->eqn_nvars);
@@ -429,6 +429,11 @@ size_t ab_state_save(const ab_calc *c, uint8_t *buf, size_t cap)
     w8(&w, c->eng_on);
     w16(&w, c->eng_on ? (unsigned)(uint16_t)c->eng_e : 0);     /* a view gone keeps no exponent or place */
     w16(&w, c->eng_on ? (unsigned)(uint16_t)c->eng_low : 0);
+    sec_end(&w, s);
+
+    s = sec_begin(&w, T_EQNOTE);                /* version 17 (unit 057): each equation's label, the list's order */
+    w8(&w, (unsigned)c->eqn_count);
+    for (int i = 0; i < c->eqn_count; i++) w8(&w, c->eqn_note[i]);
     sec_end(&w, s);
 
     {
@@ -630,6 +635,7 @@ bool ab_line_ok(ab_op op, int32_t arg)
     case AB_GZOOM: case AB_GMOVE: case AB_GTRACE: case AB_GMARK: case AB_GFACT: case AB_GFCN:          /* (040) */
     case AB_CASD: case AB_CASSIMP: case AB_CASEXP: case AB_CASCOL: case AB_CASSUB:                    /* (CAS 004) */
     case AB_CASSOLVE: case AB_CASINT: case AB_CASFACT: case AB_CASDEF:                                /* (048, 056) */
+    case AB_CASQUOT: case AB_CASGCD: case AB_CASCANCL:                                                /* (057) */
     case AB_ENGL: case AB_ENGR:                                                                       /* (041 C) */
     case AB_FRACFMT: case AB_CLEQN:     /* nonprogrammable since 019 and 021 (load_fuzz's line sweep) */
         return false;
@@ -806,6 +812,20 @@ static void sec_eqmodel(rd *r)
     if (r->bad || !r->c) return;
     memcpy(r->c->eqn_model, lm, n);
     memcpy(r->c->peqn_model, pm, k);    /* the loaded lines take pool slots 0.. in order (sec_prog) */
+}
+
+/* version 17 (unit 057): each equation's label (AB_NOTE_*), as many as the list has; a built-in has none */
+static void sec_eqnote(rd *r)
+{
+    uint8_t note[AB_EQN_MAX + 2];
+    unsigned n = r8(r);
+    need(r, (int)n == r->eqn_count);
+    for (unsigned i = 0; i < n && !r->bad; i++) {
+        note[i] = (uint8_t)r8(r);
+        need(r, note[i] <= AB_NOTE_LAST && (!note[i] || !r->builtin[i]));
+    }
+    if (r->bad || !r->c) return;
+    memcpy(r->c->eqn_note, note, n);
 }
 
 /* version 8 (unit 032): TABLE's variable (-1 the first), the open table's variable, START set, the start
@@ -1207,7 +1227,7 @@ static bool parse(rd *r)
         unsigned tag = r16(r);
         uint32_t size = r32(r);
         size_t end;
-        if (r->bad || tag <= last || tag > T_ENG || size > r->len - r->pos) return false;
+        if (r->bad || tag <= last || tag > T_EQNOTE || size > r->len - r->pos) return false;
         last = tag;
         end = r->pos + size;
         switch (tag) {
@@ -1252,6 +1272,10 @@ static bool parse(rd *r)
         case T_ENG:
             if (r->version >= 13) sec_eng(r);
             else r->pos = end;
+            break;
+        case T_EQNOTE:
+            if (r->version >= 17) sec_eqnote(r);
+            else r->pos = end;                  /* an image before 057: no labels */
             break;
         default: sec_solve(r); break;
         }

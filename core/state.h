@@ -22,7 +22,7 @@
 
 #include "calc.h"
 
-#define AB_STATE_VERSION 16     /* 16 (unit 056): no new field; the messages IMPROPER INTEGRAL, UNDEFINED, BOUND NOT
+#define AB_STATE_VERSION 17     /* 17 (unit 057): each equation's label (T_EQNOTE); 16 (unit 056): no new field; the messages IMPROPER INTEGRAL, UNDEFINED, BOUND NOT
                                    NUMERIC and BOUND NOT REAL may be the one showing; 15 (unit 048): no new field; the messages NOT A POLYNOMIAL, COEF NOT NUMERIC,
                                    CAN'T INTEGRATE and EXPRESSION ONLY may be the one showing; 14 (unit 047): no new field; the message NESTED TOO DEEP (ABN_TOO_DEEP) may be the
                                    one showing; 13 (unit 041 C, B4): ENG→ / ←ENG's view; and (041 D) an older image's 33s-stamped
