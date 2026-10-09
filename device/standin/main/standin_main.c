@@ -303,7 +303,10 @@ static uint16_t pixel_at(int x, int y)
     return line[x];
 }
 
-static void dump(void)
+/* unit 052: dump and every bench below are noinline. They run on the calc task only on a console command, and inlined
+   into calc_task they had grown its frame from 736 to 1,168 bytes, which every deep path's stack paid (the deepest site's
+   free 7,588 -> 7,156). */
+static __attribute__((noinline)) void dump(void)
 {
     char x[96];
     ab_display d = {{AB_ALL, 0, 40, '.', false}, false, 4095, 0, 10, false, 0};
@@ -334,7 +337,7 @@ static void dump(void)
    exponent) beside fn_pow (028's: exact squaring, else e^(x ln y) in hp), typical and worst cases. */
 /* Unit 032 rule 7: a table's screenful (four rows) of a 190-byte STU equation, timed, on a calculator of
    its own (in PSRAM) so the user's state is untouched. */
-static void tblbench(void)
+static __attribute__((noinline)) void tblbench(void)
 {
     static const char *const E[][2] = {
         {"sums", "X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X"
@@ -373,7 +376,7 @@ static void tblbench(void)
 
 /* Unit 033 rule 8: a full plot (400 samples and their rows), AUTO and Y set, for a typical equation and a
    long one, on a calculator of its own (PSRAM), timed. */
-static void grbench(void)
+static __attribute__((noinline)) void grbench(void)
 {
     static const char *const E[][2] = {
         {"typical", "X^3-6\xc3\x97X^2+4\xc3\x97X+12"},
@@ -419,7 +422,7 @@ static void grbench(void)
     heap_caps_free(t);
 }
 
-static void powbench(void)
+static __attribute__((noinline)) void powbench(void)
 {
     static const char *const C[][3] = {
         {"typical", "2.5", "3.7"},
@@ -456,7 +459,7 @@ static void powbench(void)
 /* ZOOMBENCH (unit 040): the typical cubic, Y fitted; after each zoom the zoom's own time (a fitted Y is sampled
    to hold it) and a full redraw's (400 samples, the fit where Y is fitted, the rows); then each tool's time at the
    cursor. */
-static void zoombench(void)
+static __attribute__((noinline)) void zoombench(void)
 {
     static const struct { const char *name; int kind; } Z[] = {
         {"ZIN", AB_Z_IN}, {"ZOUT", AB_Z_OUT}, {"CNTR", AB_Z_CNTR}, {"HZIN", AB_Z_HIN}, {"VZOUT", AB_Z_VOUT},
@@ -545,7 +548,7 @@ static void zoombench(void)
    numbers in PSRAM (an hp is some 300 bytes; the internal heap is tight). */
 static int fnb_cmp(const void *a, const void *b);
 
-static void hpbench(void)
+static __attribute__((noinline)) void hpbench(void)
 {
     hp *h = heap_caps_malloc(8 * sizeof(hp), MALLOC_CAP_SPIRAM);
     if (!h) {
@@ -686,7 +689,7 @@ static int fnb_cmp(const void *a, const void *b)
     return x < y ? -1 : x > y;
 }
 
-static void fnbench(void)
+static __attribute__((noinline)) void fnbench(void)
 {
     static const struct { const char *name; int kind, lo, hi; bool neg; fn_angle m; } C[] = {
         {"EXP", 0, -30, 3, true, FN_RAD}, {"LN", 1, -300, 300, false, FN_RAD}, {"LOG", 2, -300, 300, false, FN_RAD},
@@ -818,7 +821,7 @@ static ab_val pb_real(abn v)
     return r;
 }
 
-static void progbench(void)
+static __attribute__((noinline)) void progbench(void)
 {
     static const struct { const char *name; ab_op op; } F[] = {{"SIN", AB_SIN}, {"LN", AB_LN}};
     ab_calc *c2 = heap_caps_calloc(1, sizeof *c2, MALLOC_CAP_SPIRAM);
@@ -940,7 +943,7 @@ static void __attribute__((no_instrument_function)) prof_report(const char *what
 /* OPBENCH (after unit 050, abacus #5307): the stages of X^3-2×X-5's evaluation, each timed alone with esp_timer over
    200 runs, at X = 1.234 and at a 34-digit X: yˣ (X^3), a multiplication (2×X), a subtraction, a literal read,
    one operation through ab_eqn_op (the key's path inside an equation), and the whole evaluation. */
-static void opbench(void)
+static __attribute__((noinline)) void opbench(void)
 {
     ab_calc *c2 = heap_caps_calloc(1, sizeof *c2, MALLOC_CAP_SPIRAM);
     if (!c2) {
@@ -1007,7 +1010,7 @@ static void opbench(void)
 
 /* EQNBENCH (unit 049): equation evaluation timed, each evaluation a parse: SOLVE of X^3-2×X-5 (guesses 0 and 3) and
    the integral of SIN(X)^2+X×EXP(-X) from 0 to 1 in RAD, each the best of five; the time a run and an evaluation. */
-static void eqnbench(void)
+static __attribute__((noinline)) void eqnbench(void)
 {
     static const char *const EQ[2] = {"X^3-2\xc3\x97X-5", "SIN(X)^2+X\xc3\x97" "EXP(-X)"};
     ab_calc *c2 = heap_caps_calloc(1, sizeof *c2, MALLOC_CAP_SPIRAM);
@@ -1071,7 +1074,7 @@ static void eqnbench(void)
 /* DIFFBENCH (apps.h v1.2 item 1, abacus #4734): ls027_dirty's time on the S3 for a whole frame against the frame last
    sent, as Rev A keeps it (in PSRAM) and in internal RAM for comparison: no line changed (every row compared to its
    end), and every line changed (each row's first byte differs). Microseconds a call, over 100. */
-static void diffbench(void)
+static __attribute__((noinline)) void diffbench(void)
 {
     ls027_frame *inner_a = &fb[1 - front];      /* (internal: the back frame, redrawn whole before it shows; no static
                                                    12 KB here: internal RAM can't spare it, the S3 said OUT OF MEMORY) */
@@ -1101,7 +1104,7 @@ static void diffbench(void)
 /* CASBENCH (CAS 004 rule 6): each Casimir step's time on the S3 over heavy shapes (near the 191-byte slot, deep
    nests, big expansions, the depth guard), in STU, from the calc task, as the keys reach it: status, the result's
    length, milliseconds, and the task's stack still free. */
-static void casbench(void)
+static __attribute__((noinline)) void casbench(void)
 {
     static const struct { const char *name; int op, var; const char *eqn, *repl; } K[] = {
         {"D/DX nest", AB_CASD, 23, "SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(X))))))))))))))))))))", NULL},
@@ -1148,7 +1151,7 @@ static void casbench(void)
 /* POLBENCH (unit 034 rule 3): ->POL's time on the S3, before (the engine's hypot and atan2, and in DEG the one
    product, which was fn_topol's route) and after (fn_topol: hp_hypot, hp_atan2 at 56 digits rounded once); and
    ->REC's in RAD, fn_torec now. Non-integer arguments (a benchmark lesson of unit 032). */
-static void polbench(void)
+static __attribute__((noinline)) void polbench(void)
 {
     static const char *const C[][3] = {
         {"typical", "3.7", "2.5"},
@@ -1192,7 +1195,7 @@ static void polbench(void)
 /* BENCH: what PSRAM costs and gives (decision 34's ECC question: measure before turning it on). A
    second calculator in PSRAM, as Rev A's two-calculator state would be; a 2,000-line program run in
    it (its arena pool in PSRAM too); 200 saves and loads of the state image in PSRAM. */
-static void bench(void)
+static __attribute__((noinline)) void bench(void)
 {
     ab_calc *c2 = heap_caps_calloc(1, sizeof *c2, MALLOC_CAP_SPIRAM);
     if (!c2) {

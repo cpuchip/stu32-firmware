@@ -86,7 +86,11 @@ interrupt is IRAM-safe and runs through flash writes (CONFIG_LCD_RGB_ISR_IRAM_SA
 - **Fixed in this unit:** dump and every bench are noinline (they run only on a console command). calc_task's frame is
   now 144 B.
 
-MEASURED_BELOW
+**Measured after the fix** (the tool's stack-only mode, 51c30b4 → the fix):
+- **The 153-unit mix at the deepest site:** 7,156 → 8,180 B free.
+- **19 levels of SIN(:** 7,892 → 8,916.
+- **The gain:** +1,024 each, the frame's 1,168 − 144. The worst case through the keys now keeps 8,180 B, 592 more
+  than 049 measured. The heap after boot is unchanged.
 
 
 ## The back-fill: units 048–051 (the static half)
