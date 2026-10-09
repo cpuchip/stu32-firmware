@@ -216,6 +216,130 @@ void abn_digits(const abn *a, bool *neg, char *digits, int *lead)
     *lead = (int)(e + len - 1);
 }
 
+/* ---- unit 054: readings without text ---- */
+
+/* The value's coefficient (four 32-bit limbs, the least first) and the exponent of its last digit, read from the
+ * decimal128's bits in the binary encoding (IEEE 754-2008 3.5.2): the sign, then 14 exponent bits biased by 6176,
+ * then a 113-bit coefficient. False for the other form (the two bits after the sign both set), which a finite
+ * canonical decimal128 never takes, since its coefficient is below 1E34 < 2^113; the callers then read the text. */
+static bool decode(const abn *a, bool *neg, uint32_t c[4], int *e)
+{
+    BID_UINT128 b = to_bid(a);
+    uint64_t hi = b.w[BID_HIGH_128W], lo = b.w[BID_LOW_128W];
+    if (((hi >> 61) & 3) == 3) return false;
+    *neg = (hi >> 63) != 0;
+    *e = (int)((hi >> 49) & 0x3FFF) - 6176;
+    c[0] = (uint32_t)lo;
+    c[1] = (uint32_t)(lo >> 32);
+    c[2] = (uint32_t)hi;
+    c[3] = (uint32_t)(hi >> 32) & 0x1FFFF;
+    return true;
+}
+
+/* c /= m in place (m < 2^31), returning the remainder */
+static uint32_t limbs_divmod(uint32_t c[4], uint32_t m)
+{
+    uint64_t r = 0;
+    for (int i = 3; i >= 0; i--) {
+        uint64_t cur = (r << 32) | c[i];
+        c[i] = (uint32_t)(cur / m);
+        r = cur % m;
+    }
+    return (uint32_t)r;
+}
+
+static bool limbs_zero(const uint32_t c[4])
+{
+    return (c[0] | c[1] | c[2] | c[3]) == 0;
+}
+
+/* Strips c's trailing zeros (c nonzero), returning how many: whole 1E9 blocks first, then the rest at once. */
+static int strip_zeros(uint32_t c[4])
+{
+    static const uint32_t P10[9] = {1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000};
+    int z = 0;
+    for (;;) {
+        uint32_t t[4] = {c[0], c[1], c[2], c[3]};
+        uint32_t r = limbs_divmod(t, 1000000000);
+        if (r == 0) {
+            memcpy(c, t, sizeof t);
+            z += 9;
+            continue;
+        }
+        int k = 0;
+        while (r % 10 == 0) {
+            r /= 10;
+            k++;
+        }
+        if (k) limbs_divmod(c, P10[k]);
+        return z + k;
+    }
+}
+
+/* The decimal digits of c (nonzero) */
+static int limbs_digits(uint32_t c[4])
+{
+    int n = 0;
+    while (c[1] | c[2] | c[3] || c[0] >= 1000000000) {
+        limbs_divmod(c, 1000000000);
+        n += 9;
+    }
+    for (uint32_t v = c[0]; v; v /= 10) n++;
+    return n;
+}
+
+bool abn_small_int(const abn *a, int32_t *v)
+{
+    bool neg;
+    uint32_t c[4];
+    int e;
+    if (!decode(a, &neg, c, &e)) {
+        char d[ABN_DIGITS + 1];
+        int lead, n;
+        abn_digits(a, &neg, d, &lead);
+        n = (int)strlen(d);
+        if (n == 0) {
+            *v = 0;
+            return true;
+        }
+        if (lead < 0 || lead > 8 || n > lead + 1) return false;
+        int32_t r = 0;
+        for (int i = 0; i <= lead; i++) r = r * 10 + (i < n ? d[i] - '0' : 0);
+        *v = neg ? -r : r;
+        return true;
+    }
+    if (limbs_zero(c)) {
+        *v = 0;
+        return true;
+    }
+    if (e < -ABN_DIGITS) return false;          /* a fraction: no coefficient has that many trailing zeros */
+    e += strip_zeros(c);
+    if (e < 0 || e > 8 || c[1] | c[2] | c[3] || c[0] >= 1000000000) return false;
+    uint32_t r = c[0];
+    for (int i = 0; i < e; i++) {
+        if (r >= 100000000) return false;       /* 1E9 or more */
+        r *= 10;
+    }
+    *v = neg ? -(int32_t)r : (int32_t)r;
+    return true;
+}
+
+int abn_sig_digits(const abn *a)
+{
+    bool neg;
+    uint32_t c[4];
+    int e;
+    if (!decode(a, &neg, c, &e)) {
+        char d[ABN_DIGITS + 1];
+        int lead;
+        abn_digits(a, &neg, d, &lead);
+        return (int)strlen(d);
+    }
+    if (limbs_zero(c)) return 0;
+    strip_zeros(c);
+    return limbs_digits(c);
+}
+
 /* ---- unit 003: exact helpers and functions ---- */
 
 bool abn_is_negative(const abn *a)

@@ -1,0 +1,13 @@
+# Unit 054: yˣ skips the exact path when |n|(d-1)+1 > 34 (abacus #5546), and small_int reads the number, not its text.
+# Every result as the engine holds it (%XRAW: the cohort as well as the value). The values are exact integer
+# arithmetic; an exact power's cohort is IEEE 754's ideal exponent for an exact product (the exponents summed), and a
+# rounded one is the 34-digit coefficient rounded half to even.
+# ID | description | keys | expected
+X01 | 054: d = 12, n = 3, the bound exactly 34: 1.00000000001 cubed is exact | 1.00000000001 ENTER 3 POW | %XRAW=+1000000000030000000000300000000001E-33
+X02 | 054: its neighbour 1.00000000002 cubed, exact | 1.00000000002 ENTER 3 POW | %XRAW=+1000000000060000000001200000000008E-33
+X03 | 054: 2.15443469003 cubed, the greatest exact cube of a 12-digit base | 2.15443469003 ENTER 3 POW | %XRAW=+9999999999973769614349311622663027E-33
+X04 | 054: 2.15443469004 cubed, 35 digits exact, rounded once | 2.15443469004 ENTER 3 POW | %XRAW=+1000000000011301727935809781851206E-32
+X05 | 054: d = 1 never skips: 2^35 keeps its ideal exponent | 2 ENTER 35 POW | %XRAW=+34359738368E+0
+X06 | 054: 2^100, past POW_XNUM_MAX, exact (a d·n bound sends it to the high-precision route: +...376000E-3) | 2 ENTER 100 POW | %XRAW=+1267650600228229401496703205376E+0
+X07 | 054: 3^65 | 3 ENTER 65 POW | %XRAW=+10301051460877537453973547267843E+0
+X08 | 054: 0.2^100 | 0.2 ENTER 100 POW | %XRAW=+1267650600228229401496703205376E-100

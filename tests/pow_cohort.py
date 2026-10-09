@@ -47,6 +47,17 @@ cases = [(base(), exponent()) for _ in range(N)]
 cases += [(b, n) for b in ("0", "-0", "1", "-1", "2", "-2.5", "9.999999999999999999999999999999999E6144",
                            "1E-6176", "1.000000000000000000000000000000001", "0.9999999999999999999999999999999999")
           for n in (-65, -64, -3, -2, -1, 0, 1, 2, 3, 64, 65)]
+# Unit 054 (abacus #5546), named: the skip's bound |n|(d-1)+1 > 34 at its edge. d = 12, n = 3 is exactly 34:
+# 1.00000000001 cubed is exact (the least such base), 2.15443469003 cubed the greatest exact one and 2.15443469004
+# cubed the first that is not; d = 13, n = 3 (37) is skipped; trailing zeros typed leave d at 12. With d = 1 the bound
+# never skips: 2^65 to 2^112 and 3^65 to 3^71 are exact past POW_XNUM_MAX, where a d·n bound would send them to the
+# high-precision route.
+NAMED = [("1.00000000001", 3), ("1.00000000001", -3), ("-1.00000000001", 3), ("1.00000000002", 3),
+         ("2.15443469003", 3), ("2.15443469004", 3), ("1.000000000001", 3), ("1.0000000000100", 3),
+         ("100000000001E-11", 3), ("1.00000000001", 2), ("1.1", 33), ("1.1", 34)]
+NAMED += [("2", n) for n in (34, 35, 64, 65, 66, 100, 112, 113, -65, -100)]
+NAMED += [("3", n) for n in (65, 71, 72)] + [("0.2", 100), ("2E-50", 100), ("-2", 101), ("20", 100)]
+cases += NAMED
 lines = "".join(f"POW RAD {n} {b}\n" for b, n in cases)     # fn_drive's POW takes the exponent first (x), then y
 
 

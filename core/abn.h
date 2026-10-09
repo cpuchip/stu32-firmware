@@ -142,4 +142,10 @@ int abn_to_text(const abn *a, char *buf, int size);
    Zero gives an empty string, neg false and lead 0. */
 void abn_digits(const abn *a, bool *neg, char *digits, int *lead);
 
+/* unit 054: two readings of abn_digits' answer without its text, for the hot paths. abn_small_int: true when a is
+   an integer of at most 9 digits (|a| < 1E9; zero gives 0), and *v is it. abn_sig_digits: how many significant
+   digits a has, trailing zeros removed (abn_digits' string length; 0 for zero). */
+bool abn_small_int(const abn *a, int32_t *v);
+int abn_sig_digits(const abn *a);
+
 #endif

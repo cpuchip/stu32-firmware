@@ -36,6 +36,106 @@ static void check(const char *what, int cond)
 }
 
 
+/* unit 054: abn_small_int and abn_sig_digits read the decimal128 itself, without text; each must give what
+ * abn_digits gives. The references are the text readings they replace (fn.c's small_int before 054). */
+static bool ref_small_int(const abn *x, int32_t *v)
+{
+    bool neg;
+    char d[ABN_DIGITS + 1];
+    int lead, n;
+    abn_digits(x, &neg, d, &lead);
+    n = (int)strlen(d);
+    if (n == 0) {
+        *v = 0;
+        return true;
+    }
+    if (lead < 0 || lead > 8 || n > lead + 1) return false;
+    int32_t r = 0;
+    for (int i = 0; i <= lead; i++) r = r * 10 + (i < n ? d[i] - '0' : 0);
+    *v = neg ? -r : r;
+    return true;
+}
+
+static int ref_sig_digits(const abn *x)
+{
+    bool neg;
+    char d[ABN_DIGITS + 1];
+    int lead;
+    abn_digits(x, &neg, d, &lead);
+    return (int)strlen(d);
+}
+
+static int read_checks, read_failures;
+
+static void check_reads(const char *text, const abn *x)
+{
+    int32_t v0 = 0x5A5A5A5A, v1 = 0x5A5A5A5A;
+    bool r0 = ref_small_int(x, &v0), r1 = abn_small_int(x, &v1);
+    int s0 = ref_sig_digits(x), s1 = abn_sig_digits(x);
+    read_checks++;
+    if (r0 != r1 || (r0 && v0 != v1) || s0 != s1) {
+        if (read_failures++ < 10)
+            printf("FAIL reads of %s: small_int %d %ld (want %d %ld), sig_digits %d (want %d)\n", text, r1, (long)v1,
+                   r0, (long)v0, s1, s0);
+    }
+}
+
+static uint32_t lcg_state = 54;
+
+static uint32_t lcg(uint32_t n)
+{
+    lcg_state = lcg_state * 1664525u + 1013904223u;
+    return (lcg_state >> 8) % n;
+}
+
+#ifdef AB_DEVICE
+#define READ_CASES 4000
+#else
+#define READ_CASES 400000
+#endif
+
+static void test_reads(void)
+{
+    static const char *const E[] = {
+        "0", "-0", "1", "-1", "9", "10", "999999999", "-999999999", "1000000000", "-1000000000", "999999999.0",
+        "999999999.5", "999999998.9999999999999999999999999", "1E8", "1E9", "-1E8", "1.5", "0.5", "-0.5",
+        "2147483647", "2147483648", "-2147483648", "4294967296", "1.000000000", "100000000.0000000000000000000000000",
+        "123456789", "12345678.9E1", "1234567.89E2", "1E-6143", "-1E-6143", "9.999999999999999999999999999999999E6144",
+        "0.1E1", "10E-1", "5E0", "-0.000", "1E-1", "1000000000000000000000000000000000",
+        "1000000000000000000000000000000000E-33", "1.000000000000000000000000000000001", "100", "12.3000",
+        "0.3333333333333333333333333333333333", "1E33", "1E34", "1E-34", "4096", "-4096", "65", "1.00000000001",
+    };
+    abn x;
+    for (size_t i = 0; i < sizeof E / sizeof E[0]; i++) {
+        if (abn_from_text(&x, E[i]) == ABN_OK) check_reads(E[i], &x);
+        if (abn_from_text_exact(&x, E[i]) == ABN_OK) check_reads(E[i], &x);     /* zeros keep their exponent */
+    }
+    static const char *const Z[] = {"0E5", "-0E-3", "0.000", "0E-6176", "0E6111", "-0E0"};
+    for (size_t i = 0; i < sizeof Z / sizeof Z[0]; i++)
+        if (abn_from_text_exact(&x, Z[i]) == ABN_OK) check_reads(Z[i], &x);
+    for (int i = 0; i < READ_CASES; i++) {
+        char text[ABN_TEXT_MAX + 16];
+        int k = 1 + (int)lcg(34), z = (int)lcg(4) ? 0 : (int)lcg((uint32_t)(35 - k)), n = 0;
+        int g = (int)lcg(10), e = g < 6 ? (int)lcg(25) - 12 : g < 9 ? (int)lcg(81) - 40 : (int)lcg(12300) - 6170;
+        if (lcg(4) == 0) text[n++] = '-';
+        text[n++] = (char)('1' + lcg(9));
+        for (int j = 1; j < k; j++) text[n++] = (char)('0' + lcg(10));
+        for (int j = 0; j < z; j++) text[n++] = '0';
+        snprintf(text + n, sizeof text - (size_t)n, "E%d", e);
+        if (abn_from_text(&x, text) != ABN_OK) continue;
+        check_reads(text, &x);
+        abn y, r;                       /* the cohorts arithmetic makes: products, sums, quotients */
+        snprintf(text + n, sizeof text - (size_t)n, "E%d", (int)lcg(13) - 6);
+        if (abn_from_text(&y, text) != ABN_OK) continue;
+        if (abn_mul(&r, &x, &y) == ABN_OK) check_reads("a product", &r);
+        if (abn_add(&r, &x, &y) == ABN_OK) check_reads("a sum", &r);
+        if (abn_div(&r, &x, &y) == ABN_OK) check_reads("a quotient", &r);
+    }
+    checks++;
+    if (read_failures) failures++;
+    printf("abn_test: reads (unit 054): %d of %d agree with abn_digits\n", read_checks - read_failures, read_checks);
+}
+
 int main(void)
 {
     char what[160];
@@ -189,6 +289,8 @@ int main(void)
     check_text("negating zero", &r, "0");
     r = abn_neg(&m5);
     check_text("negate -5", &r, "5");
+
+    test_reads();
 
     printf("abn_test: %d/%d checks\n", checks - failures, checks);
     return failures ? 1 : 0;

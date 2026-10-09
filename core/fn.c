@@ -50,23 +50,11 @@ static abn one(void)
     return abn_from_int(1);
 }
 
-/* x as an int32 when it is an integer of at most 9 digits. */
+/* x as an int32 when it is an integer of at most 9 digits (false for any fraction). Unit 054: read from the number
+ * itself, not its text (yˣ's 34-digit path spent about 33 us a call here on the S3). */
 static bool small_int(const abn *x, int32_t *v)
 {
-    bool neg;
-    char d[ABN_DIGITS + 1];
-    int lead, n;
-    abn_digits(x, &neg, d, &lead);
-    n = (int)strlen(d);
-    if (n == 0) {
-        *v = 0;
-        return true;
-    }
-    if (lead < 0 || lead > 8 || n > lead + 1) return false;
-    int32_t r = 0;
-    for (int i = 0; i <= lead; i++) r = r * 10 + (i < n ? d[i] - '0' : 0);
-    *v = neg ? -r : r;
-    return true;
+    return abn_small_int(x, v);
 }
 
 /* Below 1E-40 a function's series has its first term alone to far beyond 34 digits (the next term
@@ -246,7 +234,12 @@ static abn_status pow_real(abn *out, const abn *y, const abn *e)
 {
     int32_t n;
     abn r;
-    if (abn_is_integer(e) && small_int(e, &n) && n >= -POW_EXACT_MAX && n <= POW_EXACT_MAX &&
+    bool si = small_int(e, &n);
+    /* Unit 054 (abacus #5546): y with d significant digits is c x 10^k, c of d digits and not a multiple of 10, so
+       y^|n| has c^|n| >= 10^(|n|(d-1)) for its coefficient, never a multiple of 10: at least |n|(d-1)+1 significant
+       digits. Past 34 the exact path must fail, so it is not tried (about 143 us on the S3 at 34 digits). */
+    if (si && n >= -POW_EXACT_MAX && n <= POW_EXACT_MAX &&
+        (n < 0 ? -n : n) * (abn_sig_digits(y) - 1) + 1 <= ABN_DIGITS &&
         pow_exact(&r, y, (uint32_t)(n < 0 ? -n : n)) == ABN_OK) {
         if (n < 0) {
             abn u = one();
@@ -255,10 +248,10 @@ static abn_status pow_real(abn *out, const abn *y, const abn *e)
         *out = r;
         return ABN_OK;
     }
-    if (abn_is_integer(e) && small_int(e, &n) && n == 2)  /* one multiplication: the exact square rounded once
+    if (si && n == 2)  /* one multiplication: the exact square rounded once
                                                             (038; x^-1 is the exact path's one division above) */
         return abn_mul(out, y, y);
-    if (abn_is_integer(e) && small_int(e, &n) && n >= -POW_XNUM_MAX && n <= POW_XNUM_MAX && n != 0 && n != 1) {
+    if (si && n >= -POW_XNUM_MAX && n <= POW_XNUM_MAX && n != 0 && n != 1) {
         abn_status st = pow_xnum(out, y, (uint32_t)(n < 0 ? -n : n), n < 0);
         if (st != ABN_RANGE) return st;         /* (it did not fit: the high-precision route) */
     }
