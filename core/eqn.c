@@ -319,7 +319,7 @@ static abn_status decimal_value(const char *s, int n, int points, abn *v)
  * fraction), marked with a base (1Fh, 1100b: read as the keyboard reads typed digits), or complex,
  * x i y or r θ a (a in the angle mode, converted as polar entry is, p.9-2), the second part
  * possibly negative. */
-static bool parse_number(parser *p, ab_val *v)
+static __attribute__((noinline)) bool parse_number(parser *p, ab_val *v)
 {
     const char *s = p->s + p->i;
     int n, points, digits, base;
@@ -375,6 +375,102 @@ static bool parse_number(parser *p, ab_val *v)
     return true;
 }
 
+/* Unit 049: parse_prim's rarer branches, each in a function of its own (never inlined), so that their values (a
+   vector's three, a second argument, an indirect read: 64 bytes each) take stack only while that branch runs, not on
+   every level of a nest of groups; number reading too (parse_number). On the S3 a "(" level's frames went from 880
+   bytes to 688 (work/049). An operation's application (kop, apply0, apply2) stays inline: out of line it saved 112
+   bytes more a level but made an integral 2% slower, past the unit's bar. */
+
+/* a vector of one to three elements, each an expression with a real value (UG p.10-6, 10-8) */
+static __attribute__((noinline)) void parse_vector(parser *p, ab_val *v)
+{
+    ab_val e[3];
+    int k = 0;
+    if (!descend(p, 8)) return;
+    do {
+        if (k == 3) {
+            fail(p, ABN_SYNTAX);
+            break;
+        }
+        parse_add(p, &e[k++]);
+    } while (p->st == ABN_OK && at(p, ","));
+    ascend(p, 8);
+    if (k == 3 && p->st != ABN_OK) return;
+    if (p->st == ABN_OK && !at(p, "]")) fail(p, ABN_SYNTAX);
+    if (p->check || p->st != ABN_OK) return;
+    memset(v, 0, sizeof *v);
+    v->kind = AB_VECTOR;
+    v->len = k;
+    for (int i = 0; i < k; i++) {
+        if (e[i].kind != AB_REAL) {
+            fail(p, ABN_DOMAIN);        /* a vector holds real numbers (unit 010) */
+            return;
+        }
+    }
+    v->re = e[0].re;
+    if (k > 1) v->im = e[1].re;
+    if (k > 2) v->p3 = e[2].re;
+}
+
+/* RND(x:n)'s n, after RND's x is in v (PROVISIONAL: abacus #4880; Michael's field check on his 33s): x rounded as the
+   display mode would with digit setting n (33s p.6-15) */
+static __attribute__((noinline)) void parse_rnd2(parser *p, ab_val *v)
+{
+    ab_val nv;
+    if (descend(p, 8)) {
+        parse_add(p, &nv);
+        ascend(p, 8);
+    }
+    if (!at(p, ")")) {
+        fail(p, ABN_SYNTAX);
+        return;
+    }
+    if (p->check || p->st != ABN_OK) return;
+    int n = -1;
+    for (int k = 0; k <= AB_FMT_N_MAX && n < 0 && nv.kind == AB_REAL; k++) {
+        abn kk = abn_from_int(k);
+        if (!abn_cmp(&nv.re, &kk)) n = k;   /* a digit setting, 0..33 */
+    }
+    if (n >= 0) {
+        int was = p->c->disp_n;
+        p->c->disp_n = n;
+        kop(p, AB_RND, NULL, v);
+        p->c->disp_n = was;
+    } else {
+        fail(p, ABN_DOMAIN);
+    }
+}
+
+/* a two-argument function's second argument, after its first is in v; then the function applied */
+static __attribute__((noinline)) void parse_k2(parser *p, int id, ab_val *v)
+{
+    ab_val b;
+    if (!at(p, p->m33 ? ":" : ",")) {     /* the 33s's colon, the 35s's comma (041 D; 33s p.6-5) */
+        fail(p, ABN_SYNTAX);
+        return;
+    }
+    if (descend(p, 8)) {
+        parse_add(p, &b);
+        ascend(p, 8);
+    }
+    if (!at(p, ")")) {
+        fail(p, ABN_SYNTAX);
+        return;
+    }
+    apply2(p, id, v, &b);
+}
+
+/* (I) or (J): the variable or register the number in I (J) names (UG p.14-23) */
+static __attribute__((noinline)) void parse_ind(parser *p, const char *s, ab_val *v)
+{
+    ab_val x;
+    abn_status st;
+    if (p->check || p->st != ABN_OK) return;
+    st = ab_indirect(p->c, strncmp(s, IND_I, 3) == 0 ? AB_VAR_IND_I : AB_VAR_IND_J, &x);
+    if (st != ABN_OK) fail(p, st);
+    else *v = x;
+}
+
 static void parse_prim(parser *p, ab_val *v)
 {
     const char *s = p->s + p->i;
@@ -394,34 +490,7 @@ static void parse_prim(parser *p, ab_val *v)
             fail(p, ABN_SYNTAX);
             return;
         }
-        /* a vector of one to three elements, each an expression with a real value (UG p.10-6,
-           10-8) */
-        ab_val e[3];
-        int k = 0;
-        if (!descend(p, 8)) return;
-        do {
-            if (k == 3) {
-                fail(p, ABN_SYNTAX);
-                break;
-            }
-            parse_add(p, &e[k++]);
-        } while (p->st == ABN_OK && at(p, ","));
-        ascend(p, 8);
-        if (k == 3 && p->st != ABN_OK) return;
-        if (p->st == ABN_OK && !at(p, "]")) fail(p, ABN_SYNTAX);
-        if (p->check || p->st != ABN_OK) return;
-        memset(v, 0, sizeof *v);
-        v->kind = AB_VECTOR;
-        v->len = k;
-        for (int i = 0; i < k; i++) {
-            if (e[i].kind != AB_REAL) {
-                fail(p, ABN_DOMAIN);        /* a vector holds real numbers (unit 010) */
-                return;
-            }
-        }
-        v->re = e[0].re;
-        if (k > 1) v->im = e[1].re;
-        if (k > 2) v->p3 = e[2].re;
+        parse_vector(p, v);
         return;
     }
     /* a name: the longest that fits; a function name needs its "(" */
@@ -453,48 +522,11 @@ static void parse_prim(parser *p, ab_val *v)
                 ascend(p, 8);
             }
             if (f->id == F_RND && p->m33 && p->st == ABN_OK && at(p, ":")) {
-                /* PROVISIONAL (abacus #4880; Michael's field check on his 33s): RND(x:n), p.6-15's two arguments,
-                   read as x rounded as the display mode would with digit setting n */
-                ab_val nv;
-                if (descend(p, 8)) {
-                    parse_add(p, &nv);
-                    ascend(p, 8);
-                }
-                if (!at(p, ")")) {
-                    fail(p, ABN_SYNTAX);
-                    return;
-                }
-                if (p->check || p->st != ABN_OK) return;
-                int n = -1;
-                for (int k = 0; k <= AB_FMT_N_MAX && n < 0 && nv.kind == AB_REAL; k++) {
-                    abn kk = abn_from_int(k);
-                    if (!abn_cmp(&nv.re, &kk)) n = k;   /* a digit setting, 0..33 */
-                }
-                if (n >= 0) {
-                    int was = p->c->disp_n;
-                    p->c->disp_n = n;
-                    kop(p, AB_RND, NULL, v);
-                    p->c->disp_n = was;
-                } else {
-                    fail(p, ABN_DOMAIN);
-                }
+                parse_rnd2(p, v);               /* RND(x:n), the 33s's two arguments */
                 return;
             }
             if (f->kind == K2) {
-                ab_val b;
-                if (!at(p, p->m33 ? ":" : ",")) {     /* the 33s's colon, the 35s's comma (041 D; 33s p.6-5) */
-                    fail(p, ABN_SYNTAX);
-                    return;
-                }
-                if (descend(p, 8)) {
-                    parse_add(p, &b);
-                    ascend(p, 8);
-                }
-                if (!at(p, ")")) {
-                    fail(p, ABN_SYNTAX);
-                    return;
-                }
-                apply2(p, f->id, v, &b);
+                parse_k2(p, f->id, v);
                 return;
             }
             if (!at(p, ")")) {
@@ -511,13 +543,7 @@ static void parse_prim(parser *p, ab_val *v)
         return;
     }
     if (at(p, IND_I) || at(p, IND_J)) {
-        /* the variable or register the number in I (J) names (UG p.14-23) */
-        ab_val x;
-        abn_status st;
-        if (p->check || p->st != ABN_OK) return;
-        st = ab_indirect(p->c, strncmp(s, IND_I, 3) == 0 ? AB_VAR_IND_I : AB_VAR_IND_J, &x);
-        if (st != ABN_OK) fail(p, st);
-        else *v = x;
+        parse_ind(p, s, v);
         return;
     }
     if (*s >= 'A' && *s <= 'Z') {

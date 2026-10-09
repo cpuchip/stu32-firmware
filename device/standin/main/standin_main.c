@@ -56,7 +56,7 @@
 
 enum { EV_KEY = 0, EV_OP, EV_DUMP, EV_SAVE, EV_WIPE, EV_RESTART, EV_TOUCHED, EV_BENCH, EV_TIME, EV_POWBENCH,
        EV_KEYUP, EV_TBLBENCH, EV_GRBENCH, EV_FRAMEBENCH,
-       EV_POLBENCH, EV_ZOOMBENCH, EV_CASBENCH, EV_DIFFBENCH, EV_FNBENCH, EV_HPBENCH, EV_PROGBENCH };                          /* EV_KEYUP: a the key released (unit 030: SHOW, held) */
+       EV_POLBENCH, EV_ZOOMBENCH, EV_CASBENCH, EV_DIFFBENCH, EV_FNBENCH, EV_HPBENCH, EV_PROGBENCH, EV_EQNBENCH };                          /* EV_KEYUP: a the key released (unit 030: SHOW, held) */
 static char time_text[16];             /* TIME's argument, for the calc task (unit 027) */
 
 typedef struct {
@@ -852,6 +852,48 @@ static void progbench(void)
     printf("progbench: done\n");
 }
 
+/* EQNBENCH (unit 049): equation evaluation timed, each evaluation a parse: SOLVE of X^3-2×X-5 (guesses 0 and 3) and
+   the integral of SIN(X)^2+X×EXP(-X) from 0 to 1 in RAD, each the best of five; the time a run and an evaluation. */
+static void eqnbench(void)
+{
+    static const char *const EQ[2] = {"X^3-2\xc3\x97X-5", "SIN(X)^2+X\xc3\x97" "EXP(-X)"};
+    ab_calc *c2 = heap_caps_calloc(1, sizeof *c2, MALLOC_CAP_SPIRAM);
+    if (!c2) {
+        printf("eqnbench: no memory\n");
+        return;
+    }
+    for (int k = 0; k < 2; k++) {
+        int64_t best = -1;
+        abn_status st = ABN_OK;
+        for (int r = 0; r < 5; r++) {
+            ab_init(c2);
+            ab_do(c2, AB_RAD);
+            ab_eqn_add(c2, EQ[k]);
+            ab_do(c2, AB_CANCEL);                   /* the stack */
+            if (k == 0) {
+                ab_do(c2, AB_K0);
+                ab_do_arg(c2, AB_STO, 'X' - 'A');
+                ab_do(c2, AB_K3);
+            } else {
+                ab_do(c2, AB_K0);
+                ab_do(c2, AB_ENTER);
+                ab_do(c2, AB_K1);
+            }
+            ab_do(c2, AB_EQN);
+            int64_t t0 = esp_timer_get_time();
+            st = ab_do_arg(c2, k == 0 ? AB_SOLVE : AB_INTEG, 'X' - 'A');
+            int64_t us = esp_timer_get_time() - t0;
+            if (best < 0 || us < best) best = us;
+        }
+        char x[64];
+        abn_to_text(&c2->x.re, x, sizeof x);
+        printf("eqnbench: %s %s: %lld us (st %d, evals %ld, %lld us an evaluation, X %s)\n", k ? "integral" : "SOLVE",
+               EQ[k], (long long)best, (int)st, c2->evals, c2->evals ? (long long)best / c2->evals : 0LL, x);
+    }
+    heap_caps_free(c2);
+    printf("eqnbench: done\n");
+}
+
 /* DIFFBENCH (apps.h v1.2 item 1, abacus #4734): ls027_dirty's time on the S3 for a whole frame against the frame last
    sent, as Rev A keeps it (in PSRAM) and in internal RAM for comparison: no line changed (every row compared to its
    end), and every line changed (each row's first byte differs). Microseconds a call, over 100. */
@@ -1094,6 +1136,7 @@ static void console_task(void *arg)
         else if (!strcmp(line, "ZOOMBENCH")) e.kind = EV_ZOOMBENCH;  /* unit 040: a redraw after each zoom */
         else if (!strcmp(line, "CASBENCH")) e.kind = EV_CASBENCH;    /* CAS 004: each step's time, the stack */
         else if (!strcmp(line, "PROGBENCH")) e.kind = EV_PROGBENCH;      /* unit 045: a program loop */
+        else if (!strcmp(line, "EQNBENCH")) e.kind = EV_EQNBENCH;        /* unit 049: equations evaluated */
         else if (!strcmp(line, "DIFFBENCH")) e.kind = EV_DIFFBENCH;  /* apps.h v1.2 item 1: the line diff's time */
         else if (!strcmp(line, "FNBENCH")) e.kind = EV_FNBENCH;      /* unit 044 rule 4: each function's time */
         else if (!strcmp(line, "HPBENCH")) e.kind = EV_HPBENCH;      /* the hp speed proposal: each primitive's time */
@@ -1165,6 +1208,8 @@ static void calc_task(void *arg)
             casbench();
         } else if (got && ev.kind == EV_PROGBENCH) {
             progbench();
+        } else if (got && ev.kind == EV_EQNBENCH) {
+            eqnbench();
         } else if (got && ev.kind == EV_DIFFBENCH) {
             diffbench();
         } else if (got && ev.kind == EV_FNBENCH) {

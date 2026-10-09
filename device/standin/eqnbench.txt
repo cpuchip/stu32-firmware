@@ -1,0 +1,12 @@
+# unit 049: equation evaluation's time (EQNBENCH, three times for the spread), and PROGBENCH beside it
+sleep 3
+wait standin: heap 30
+sleep 2
+send EQNBENCH
+expect eqnbench: done 120
+send EQNBENCH
+expect eqnbench: done 120
+send EQNBENCH
+expect eqnbench: done 120
+send PROGBENCH
+expect progbench: done 120
