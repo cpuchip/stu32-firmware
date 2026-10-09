@@ -1,0 +1,12 @@
+# the speed benches together (EQNBENCH, OPBENCH, PROGBENCH), for a configuration's before and after
+sleep 3
+wait standin: heap 30
+sleep 2
+send X
+wait state: 10
+send EQNBENCH
+expect eqnbench: done 120
+send OPBENCH
+expect opbench: done 120
+send PROGBENCH
+expect progbench: done 120

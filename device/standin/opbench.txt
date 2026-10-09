@@ -1,0 +1,6 @@
+# after unit 050: the stages of a cube's evaluation (OPBENCH), each timed alone
+sleep 3
+wait standin: heap 30
+sleep 2
+send OPBENCH
+expect opbench: done 120
