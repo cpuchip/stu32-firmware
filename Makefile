@@ -17,7 +17,7 @@ ENGINE := build/abn_intel.o $(CASIM_O) $(INTEL_LIB)
 CFLAGS += -DAB_CASIM -Ibuild/casim
 LIBS := -lm
 
-.PHONY: all test accuracy all-checks clean device-host
+.PHONY: all test accuracy all-checks clang-check clean device-host
 # make accuracy needs a python with mpmath: make all-checks PYTHON=...
 PYTHON ?= python3
 KEYV := $(filter-out work/002-vectors.txt work/016-vectors.txt work/017-vectors.txt work/018-vectors.txt,$(filter-out %-fmt-vectors.txt,$(wildcard work/*-vectors.txt))) tests/021-soroban.txt tests/019-soroban.txt tests/003-soroban.txt tests/018-soroban.txt tests/029-soroban.txt tests/034-soroban.txt tests/harness-soroban.txt tests/046-soroban.txt tests/047-soroban.txt tests/050-soroban.txt
@@ -243,11 +243,31 @@ test: all
 # Every check, as CI would run them: make test, then make accuracy (abacus #3984: a change that only
 # accuracy's loops catch slipped past make test, ac8ad8f). Refuses to run without mpmath, since the
 # fuzzers would otherwise skip and pass quietly.
+# The second compiler (docs/toolchain.md, basecamp #5436): every C file of the core, the firmware, the tests and
+# Casimir compiled with clang-18 -Werror in a pinned image, compile only (gcc ships). primer's wasm build is clang, and
+# found what gcc passes (draw_test's argument order, casim's -Wsign-compare). The planted control must fail, or the
+# flags are not biting.
+CLANG_IMAGE := abacus-clang:18
+CLANG_FLAGS := -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -Wsign-compare -DAB_CASIM -Ibuild/casim -Icore -Ifirmware \
+               -Ibuild/games -Itests
+clang-check: build/casim/.pin build/games/games.h
+	@docker image inspect $(CLANG_IMAGE) >/dev/null 2>&1 || docker build -q -t $(CLANG_IMAGE) tools/clang
+	@docker run --rm -v "$(CURDIR):/w" -w /w --user "$$(id -u):$$(id -g)" $(CLANG_IMAGE) sh -c '\
+	  if clang-18 $(CLANG_FLAGS) -c -o /dev/null tools/clang/control.c 2>/dev/null; then \
+	    echo "clang-check: the planted control compiled: the flags do not bite"; exit 1; fi; \
+	  n=0; bad=0; \
+	  for f in core/*.c firmware/*.c tests/*.c build/casim/casim.c; do \
+	    x=""; [ "$$f" = core/abn_intel.c ] && x="$(BID_FLAGS) -isystem $(INTEL_SRC)"; \
+	    n=$$((n + 1)); clang-18 $(CLANG_FLAGS) $$x -c -o /dev/null $$f || bad=$$((bad + 1)); \
+	  done; \
+	  echo "clang-check: $$n files, $$bad failing (the control refused)"; [ $$bad = 0 ]'
+
 all-checks:
 	@$(PYTHON) -c "import mpmath" 2>/dev/null || { echo "all-checks: $(PYTHON) has no mpmath (make all-checks PYTHON=...)"; exit 1; }
 	$(MAKE) test
 	$(MAKE) accuracy PYTHON=$(PYTHON)
-	@echo "all-checks: make test and make accuracy passed"
+	$(MAKE) clang-check
+	@echo "all-checks: make test, make accuracy and make clang-check passed"
 
 accuracy: build/fn_drive build/fn_drive_p37 build/cx_drive build/vectors
 	$(PYTHON) tests/fn_fuzz.py build/fn_drive
