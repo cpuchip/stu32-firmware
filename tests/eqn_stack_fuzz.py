@@ -20,7 +20,8 @@ cs = shapes.cases(N) + [("STU", "X"), ("35", "X"), ("33", "X")]
 out = subprocess.run([DRIVE], input="".join(f"{m} {t}\n" for m, t in cs), capture_output=True, text=True).stdout.split("\n")
 rows = [(m, t, int(o.split()[0]), int(o.split()[1])) for (m, t), o in zip(cs, out) if o]
 base = max(r[2] for r in rows if r[1] == "X")
-PER_UNIT, SLACK = 132, 512           # host bytes a unit (measured 125-129) and the leaf calls' spread
+PER_UNIT, SLACK = 120, 512           # host bytes a unit (measured 116-117 over eight seeds since unit 049's slimmer
+                                     # frames, 125-129 before) and the leaf calls' spread
 bad, worst = 0, 0.0
 for m, t, used, units in rows:
     bound = base + PER_UNIT * min(units, eqn_depth.LIMIT) + SLACK
@@ -29,7 +30,18 @@ for m, t, used, units in rows:
         bad += 1
         if bad <= 8:
             print(f"OVER {m} {t!r}: {used} B > {bound} (units {units})")
+# unit 049: one nesting level's bytes, from 10 and 19 levels of each opener: the frames work/049 slimmed, held here
+# (656 B a level of "(" on this host since 049, 1,008 before; a branch's values back in parse_prim's frame cost about
+# 200: the per-unit bound alone misses that, its slack absorbs it)
+LEVEL_MAX = 720
+lv = subprocess.run([DRIVE], input="".join(f"STU {o * n}X{')' * n}\n" for o in ("(", "SIN(", "X^(") for n in (10, 19)),
+                    capture_output=True, text=True).stdout.split()
+levels = {o: (int(lv[4 * i + 2]) - int(lv[4 * i])) / 9 for i, o in enumerate(("(", "SIN(", "X^("))}
+for o, b in levels.items():
+    if b > LEVEL_MAX:
+        bad += 1
+        print(f"OVER a level of {o}: {b:.0f} B > {LEVEL_MAX}")
 top = max(rows, key=lambda r: r[2])
 print(f"eqn_stack_fuzz: {len(rows)} equations, base {base} B, most {top[2]} B (units {top[3]}), worst {worst:.0f} B a "
-      f"unit; {bad} over the bound")
+      f"unit; a level of ( {levels['(']:.0f} B, SIN( {levels['SIN(']:.0f}, X^( {levels['X^(']:.0f}; {bad} over the bound")
 sys.exit(1 if bad or len(rows) != len(cs) else 0)
