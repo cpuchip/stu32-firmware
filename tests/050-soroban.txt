@@ -1,0 +1,10 @@
+# Unit 050: yˣ's exact integer power rounded without dividing by 1 (abacus #5305). Every result as the engine holds it
+# (%XRAW: coefficient and exponent, the cohort as well as the value), each the output of the core before 050 (24308a2:
+# fn_drive and a probe of xn_div_to_abn, the division by 1 done).
+# ID | description | keys | expected
+W01 | 050: x³ of a 34-digit x, the exact power rounded once | 2.094551481542326591482386540579303 ENTER 3 POW | %XRAW=+9189102963084653182964773081158606E-33
+W02 | 050: x⁵ | 2.094551481542326591482386540579303 ENTER 5 POW | %XRAW=+4031393547032508282615128396131019E-32
+W03 | 050: x¹⁷ | 2.094551481542326591482386540579303 ENTER 17 POW | %XRAW=+2874403066045254235076179559621359E-28
+W04 | 050: x⁻³, still the one exact division | 2.094551481542326591482386540579303 ENTER 3 CHS POW | %XRAW=+1088245505592108420268281986672108E-34
+W05 | 050: x̄ of one point: a sum over a count of 1, the full coefficient as the division gave it (not +25E-1) | 2.5 SIGMA+ XBAR | %XRAW=+2500000000000000000000000000000000E-33
+W06 | 050: x̄ of one point with trailing zeros typed: the same | 25000 SIGMA+ XBAR | %XRAW=+2500000000000000000000000000000000E-29

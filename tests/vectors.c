@@ -802,6 +802,10 @@ int vectors_run(const char *name, FILE *f)
                     else snprintf(got, sizeof got, "%s", ab_cas_row(&c, c.cas_row, row, sizeof row) ? row : "none");
                     for (char *q = got; *q; q++)
                         if (*q == ' ') *q = '_';
+                } else if (strcmp(ex, "%XRAW") == 0) {
+                    /* X's real part as the engine holds it, coefficient and exponent, so its cohort as well as its
+                       value (unit 050: a rounding must keep the cohort, as 045 found) */
+                    abn_to_text(&c.x.re, got, sizeof got);
                 } else if (strcmp(ex, "%EQN") == 0) {
                     int n = 0;                          /* the built-in solvers apart (unit 015) */
                     for (int q = 0; q < c.eqn_count; q++) n += c.eqn[q][0] != '\x01';
