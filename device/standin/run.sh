@@ -4,6 +4,7 @@
 #   device/standin/run.sh /dev/ttyACM0                 build, flash, then a session (stdin keys)
 #   device/standin/run.sh /dev/ttyACM0 script.txt      build, flash, run the script's lines
 #   FLASH=0 device/standin/run.sh /dev/ttyACM0 s.txt   no build or flash: talk to what is there
+#   STU_WASM=1 device/standin/run.sh ...                with WAMR (decisions 67, 68), in build-wasm
 #
 # The session's transcript is kept in build/standin.log. Nothing is installed on the host.
 set -euo pipefail
@@ -11,24 +12,29 @@ PORT="${1:?serial port}"
 SCRIPT="${2:-}"
 IMAGE="espressif/idf:v5.4.2"
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+WASM="${STU_WASM:-0}"
+B=build
+[ "$WASM" = 1 ] && B=build-wasm
 mkdir -p "$ROOT/build"
 # a changed sdkconfig.defaults takes effect: ESP-IDF never re-reads it into an existing sdkconfig, so that one is made
 # again (unit 051: QIO set in the defaults stayed DIO in an old build)
-if [ "${FLASH:-1}" = 1 ] && [ "$ROOT/device/standin/sdkconfig.defaults" -nt "$ROOT/device/standin/build/sdkconfig" ]; then
-    rm -f "$ROOT/device/standin/build/sdkconfig"
+if [ "${FLASH:-1}" = 1 ] && { [ "$ROOT/device/standin/sdkconfig.defaults" -nt "$ROOT/device/standin/$B/sdkconfig" ] ||
+    { [ "$WASM" = 1 ] && [ "$ROOT/device/sdkconfig.wasm" -nt "$ROOT/device/standin/$B/sdkconfig" ]; }; }; then
+    rm -f "$ROOT/device/standin/$B/sdkconfig"
 fi
 [ "${FLASH:-1}" = 1 ] && python3 "$ROOT/scripts/gen_games.py" "$ROOT/games.list" "$ROOT/build/games"
 [ "${FLASH:-1}" = 1 ] && "$ROOT/scripts/fetch-casim.sh"
+[ "${FLASH:-1}" = 1 ] && [ "$WASM" = 1 ] && "$ROOT/scripts/fetch-wamr.sh"
 docker run --rm -i -v "$ROOT:/project" -w /project \
     --user "$(id -u):$(id -g)" --group-add "$(stat -c %g "$PORT")" --device "$PORT" \
-    -e HOME=/tmp -e PORT="$PORT" -e FLASH="${FLASH:-1}" -e SCRIPT="$SCRIPT" "$IMAGE" bash -c '
+    -e HOME=/tmp -e PORT="$PORT" -e FLASH="${FLASH:-1}" -e SCRIPT="$SCRIPT" -e STU_WASM="$WASM" -e B="$B" "$IMAGE" bash -c '
 set -euo pipefail
 . "$IDF_PATH/export.sh" >/dev/null
 if [ "$FLASH" = 1 ]; then
     TARGET=esp32s3 scripts/fetch-intel-dfp.sh
     cd device/standin
-    idf.py -B build -DSDKCONFIG=build/sdkconfig build
-    idf.py -B build -DSDKCONFIG=build/sdkconfig -p "$PORT" flash
+    idf.py -B "$B" -DSDKCONFIG="$B/sdkconfig" build
+    idf.py -B "$B" -DSDKCONFIG="$B/sdkconfig" -p "$PORT" flash
     cd /project
 fi
 python device/standin/talk.py "$PORT" /project/build/standin.log ${SCRIPT:+"/project/$SCRIPT"}

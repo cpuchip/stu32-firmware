@@ -1,0 +1,8 @@
+# STU_WASM (decisions 67, 68): WAMR's AOT loader only, for games built by our pinned wamrc. No interpreter, no
+# libc layers, no pthread library. PSRAM is on, so AOT code is mapped from PSRAM (WAMR patch 0001) and memory
+# protection stays on.
+CONFIG_WAMR_ENABLE_AOT=y
+CONFIG_WAMR_ENABLE_INTERP=n
+CONFIG_WAMR_ENABLE_LIBC_BUILTIN=n
+CONFIG_WAMR_ENABLE_LIBC_WASI=n
+CONFIG_WAMR_ENABLE_LIB_PTHREAD=n

@@ -264,6 +264,9 @@ clang-check: build/casim/.pin build/games/games.h
 	    x=""; [ "$$f" = core/abn_intel.c ] && x="$(BID_FLAGS) -isystem $(INTEL_SRC)"; \
 	    n=$$((n + 1)); clang-18 $(CLANG_FLAGS) $$x -c -o /dev/null $$f || bad=$$((bad + 1)); \
 	  done; \
+	  if [ -f build/wamr/.pin ]; then n=$$((n + 1)); clang-18 $(CLANG_FLAGS) -DSTU_WASM=1 -Ifirmware/wasm \
+	    -isystem build/wamr/core/iwasm/include -c -o /dev/null firmware/wasm/wasm_app.c || bad=$$((bad + 1)); \
+	  else echo "clang-check: no build/wamr (scripts/fetch-wamr.sh), so firmware/wasm/wasm_app.c is not compiled"; fi; \
 	  echo "clang-check: $$n files, $$bad failing (the control refused)"; [ $$bad = 0 ]'
 
 all-checks:

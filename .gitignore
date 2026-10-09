@@ -6,3 +6,4 @@ tests/device/main/generated/
 tests/device/sdkconfig*.old
 build-prof/
 build-headless/
+device/*/build-wasm/

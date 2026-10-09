@@ -9,6 +9,15 @@ else()
     file(GLOB CORE_SRCS CONFIGURE_DEPENDS "${REPO}/core/*.c")
 endif()
 set(FW "${REPO}/firmware")
+# STU_WASM: firmware/wasm/wasm_app.c (the bridge to WAMR) and the wamr component (device/CMakeLists.txt)
+if("$ENV{STU_WASM}" STREQUAL "1")
+    if(NOT EXISTS "${REPO}/build/wamr/.pin")
+        message(FATAL_ERROR "STU_WASM=1 but no ${REPO}/build/wamr: run scripts/fetch-wamr.sh")
+    endif()
+    set(WASM_SRCS "${FW}/wasm/wasm_app.c")
+    set(WASM_INC "${FW}/wasm")
+    set(WASM_REQUIRES wamr)
+endif()
 # The games (games.list), exported and described by scripts/gen_games.py before the build
 if(NOT EXISTS "${REPO}/build/games/games.cmake")
     message(FATAL_ERROR "no ${REPO}/build/games/games.cmake: run python3 scripts/gen_games.py games.list build/games")
@@ -25,11 +34,12 @@ if(NOT CMAKE_SCRIPT_MODE_FILE)
 endif()
 
 idf_component_register(
-    SRCS reva_main.c ${CORE_SRCS} "${FW}/screen.c" "${FW}/font5x7.c" "${FW}/draw.c" "${FW}/app.c" "${FW}/apps.c" "${FW}/keymap.c"
+    SRCS ${WASM_SRCS} reva_main.c ${CORE_SRCS} "${FW}/screen.c" "${FW}/font5x7.c" "${FW}/draw.c" "${FW}/app.c" "${FW}/apps.c" "${FW}/keymap.c"
          "${FW}/keys.c" "${FW}/power.c" "${FW}/store.c" "${FW}/ls027.c" "${FW}/gauge.c" "${FW}/pins.c" "${FW}/piezo.c" "${FW}/settings.c"
          ${GAMES_SRCS} "${CASIM}/casim.c"
-    INCLUDE_DIRS . "${REPO}/core" "${FW}" "${REPO}/device" "${REPO}/build/games" "${CASIM}"
-    REQUIRES esp_driver_spi esp_driver_i2c esp_driver_gpio esp_driver_ledc esp_psram esp_partition esp_timer ulp esp_hw_support)
+    EMBED_FILES ${GAMES_EMBED}
+    INCLUDE_DIRS . "${REPO}/core" "${FW}" ${WASM_INC} "${REPO}/device" "${REPO}/build/games" "${CASIM}"
+    REQUIRES esp_driver_spi esp_driver_i2c esp_driver_gpio esp_driver_ledc esp_psram esp_partition esp_timer ulp esp_hw_support ${WASM_REQUIRES})
 
 set(ulp_app_name ulp_${COMPONENT_NAME})
 ulp_embed_binary(${ulp_app_name} "ulp/main.c" "reva_main.c")
@@ -59,3 +69,7 @@ target_compile_definitions(${COMPONENT_LIB} PRIVATE
     DECIMAL_CALL_BY_REFERENCE=0 DECIMAL_GLOBAL_ROUNDING=0 DECIMAL_GLOBAL_EXCEPTION_FLAGS=0)
 target_link_libraries(${COMPONENT_LIB} PRIVATE "${BID_LIB}")
 set_source_files_properties("${REPO}/core/arena.c" PROPERTIES COMPILE_OPTIONS "-include;${REPO}/device/pool_attr.h")
+if("$ENV{STU_WASM}" STREQUAL "1")
+    target_compile_definitions(${COMPONENT_LIB} PRIVATE STU_WASM=1)
+    set_source_files_properties("${FW}/wasm/wasm_app.c" PROPERTIES COMPILE_OPTIONS "-Werror=frame-larger-than=1024")
+endif()
