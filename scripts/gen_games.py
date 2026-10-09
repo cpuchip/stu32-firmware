@@ -46,6 +46,7 @@ Usage: gen_games.py GAMES_LIST [OUT]
 """
 import fnmatch
 import os
+import pathlib
 import re
 import subprocess
 import sys
@@ -215,7 +216,8 @@ def main():
                 fail(f"{g['id']}: git archive failed")
             subprocess.run(["tar", "-x", "-C", d], input=tar, check=True)
             open(os.path.join(d, ".pin"), "w").write(g["pin"] + "\n")
-        rel = os.path.relpath(d, root)
+        rel = pathlib.PurePath(os.path.relpath(d, root)).as_posix()     # make and CMake read "/" (tally #5455: a
+                                                                        # Windows python wrote "\g", a bad escape)
         cs = [f"{rel}/{s}" for s in srcs]
         incs = [f"-I{rel}/{i}" for i in m["include"]]
         allc += cs

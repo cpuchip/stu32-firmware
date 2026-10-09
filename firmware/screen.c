@@ -838,6 +838,7 @@ void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
         page_line(&out->y, &k->y, SCREEN_VALUE, true, NULL);
         page_line(&out->x, &k->x, SCREEN_VALUE, true, NULL);
     } else if (k->view) {
+        out->view = true;
         page_line(&out->t, &k->t, SCREEN_MESSAGE, true, NULL);
         page_line(&out->z, &k->z, SCREEN_MESSAGE, true, NULL);
         page_line(&out->y, &k->y, SCREEN_MESSAGE, true, NULL);

@@ -131,6 +131,7 @@ typedef struct {
     bool graph_on;                  /* a graph shown (unit 033b): its text */
     screen_graph_text graph;
     screen_line t, z, y, x;
+    bool view;                      /* four message lines, not the stack: SYS's view, 048's report (tally #5455) */
     const char *soft[SCREEN_SOFT];  /* as screen_ui's */
     bool soft_on[SCREEN_SOFT], soft_sub[SCREEN_SOFT], soft_dim[SCREEN_SOFT];
 } screen_page;

@@ -3856,6 +3856,7 @@ int main(void)
         expect(ab_cas_report(&c) && c.eqn_count == n && ui.soft[0] && !strcmp(ui.soft[0], "\xe2\x96\xb2") &&
                    strstr(pg.x.text, "SOLVED") && !pg.y.text[0],
                "048: SOLVE X: the report, the status row on X, the CAS REPORT bar, nothing stored");
+        expect(pg.view, "048: the report's page says it is a view (tally #5455)");
         press(&a, "k:1");                       /* down */
         app_ui(&a, &ui);
         screen_lines(&c, &ui, &pg);
@@ -3867,6 +3868,7 @@ int main(void)
         expect(!ab_cas_report(&c) && !c.eqn_mode && abn_cmp(&c.x.re, &three) == 0 && c.eqn_count == n &&
                    strstr(pg.x.text, "3"),
                "048: ENTER on X=3: 3 in X, shown, the report gone, nothing stored");
+        expect(!pg.view, "048: the stack's page is not a view");
         /* the image keeps neither the report nor a note */
         static uint8_t img[1 << 16];
         static ab_calc c3;
