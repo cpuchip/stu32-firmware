@@ -79,6 +79,14 @@ static bool name_in(const char *name, int m)
     return !(nm == 33 && m != 33) && !(nm == 35 && m == 33);
 }
 
+/* Unit 058: whether NAMES[k] can start at s, by its first byte alone, tested before its strlen and strncmp. A name is
+   never empty, so this only skips what strncmp would refuse: every scan matches what it matched before (the S3 spent
+   about 31 µs a variable and 34 µs an STU operand calling them for all 84 names). */
+static inline bool name_could(size_t k, const char *s)
+{
+    return (unsigned char)NAMES[k].name[0] == (unsigned char)*s;
+}
+
 /* The keyboard operation of each name (unit 015: an equation's operations are the keys'). */
 static const ab_op OPS[] = {
     [F_CUBE] = AB_CUBE, [F_CBRT] = AB_CBRT,         /* unit 041 D */
@@ -498,6 +506,7 @@ static void parse_prim(parser *p, ab_val *v)
         int best = -1;
         size_t bl = 0;
         for (size_t k = 0; k < sizeof NAMES / sizeof NAMES[0]; k++) {
+            if (!name_could(k, s)) continue;
             size_t n = strlen(NAMES[k].name);
             if (n > bl && strncmp(s, NAMES[k].name, n) == 0 && (NAMES[k].kind == K0 || s[n] == '(') &&
                 name_in(NAMES[k].name, p->m33 ? 33 : 35)) {
@@ -647,6 +656,7 @@ static bool implied_here(const parser *p)
     if (!strncmp(s, IND_I, 3) || !strncmp(s, IND_J, 3)) return true;
     if (*s == 'b' || *s == 'o' || *s == 'd' || *s == 'h') return false;
     for (size_t k = 0; k < sizeof NAMES / sizeof NAMES[0]; k++) {
+        if (!name_could(k, s)) continue;        /* (after an operand: mostly + - ^ ), no name's first byte) */
         size_t n = strlen(NAMES[k].name);
         if (strncmp(s, NAMES[k].name, n) == 0 && (NAMES[k].kind == K0 || s[n] == '(') &&
             name_in(NAMES[k].name, p->m33 ? 33 : 35))
@@ -812,6 +822,7 @@ int eqn_vars(const char *text, bool rhs_only, bool with_i, int model, int out[27
            takes none (RAND, REGX) anywhere (unit 015: RAND was read as R, A, N, D) */
         size_t best = 0;                        /* the longest, as the parser (RANDOM, not RAND then O M: 041 D) */
         for (size_t k = 0; k < sizeof NAMES / sizeof NAMES[0]; k++) {
+            if (!name_could(k, s)) continue;
             size_t len = strlen(NAMES[k].name);
             if (len > best && strncmp(s, NAMES[k].name, len) == 0 && (NAMES[k].kind == K0 || s[len] == '(') &&
                 name_in(NAMES[k].name, model))

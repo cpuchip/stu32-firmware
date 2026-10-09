@@ -21,7 +21,7 @@ LIBS := -lm
 # make accuracy needs a python with mpmath: make all-checks PYTHON=...
 PYTHON ?= python3
 KEYV := $(filter-out work/002-vectors.txt work/016-vectors.txt work/017-vectors.txt work/018-vectors.txt,$(filter-out %-fmt-vectors.txt,$(wildcard work/*-vectors.txt))) tests/021-soroban.txt tests/019-soroban.txt tests/003-soroban.txt tests/018-soroban.txt tests/029-soroban.txt tests/034-soroban.txt tests/harness-soroban.txt tests/046-soroban.txt tests/047-soroban.txt tests/050-soroban.txt tests/054-soroban.txt tests/fc-soroban.txt
-all: build/standin_test build/app_test build/keymap_test build/power_test build/screen_test build/keys_test build/ls027_test build/draw_test build/store_test build/load_fuzz build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test build/bi_drive build/hp_drive build/deep_test build/eqn_depth build/eqn_stack build/stackkeys
+all: build/standin_test build/app_test build/keymap_test build/power_test build/screen_test build/keys_test build/ls027_test build/draw_test build/store_test build/load_fuzz build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test build/bi_drive build/hp_drive build/deep_test build/eqn_depth build/eqn_stack build/stackkeys build/namedrive
 
 # every build/ target is order-only on the directory: a fresh clone has none (abacus #3803)
 build:
@@ -117,6 +117,9 @@ build/hp_drive: core/hp.c core/sbig.c core/xnum.c core/bigint.c core/arena.c $(H
 	$(CC) $(CFLAGS) -Icore -o $@ core/hp.c core/sbig.c core/xnum.c core/bigint.c core/arena.c tests/hp_drive.c $(ENGINE) $(LIBS)
 build/xnum_test: core/xnum.c core/bigint.c core/arena.c $(HDRS) $(ENGINE) tests/xnum_test.c | build
 	$(CC) $(CFLAGS) -Icore -o $@ core/xnum.c core/bigint.c core/arena.c tests/xnum_test.c $(ENGINE) $(LIBS)
+
+build/namedrive: $(CORE) $(HDRS) $(ENGINE) tests/namedrive.c | build
+	$(CC) $(CFLAGS) -Icore -o $@ $(CORE) tests/namedrive.c $(ENGINE) $(LIBS)
 
 build/fn_drive: core/fn.c core/hp.c core/bigint.c core/arena.c core/sbig.c core/xnum.c $(HDRS) $(ENGINE) tests/fn_drive.c | build
 	$(CC) $(CFLAGS) -Icore -o $@ core/fn.c core/hp.c core/bigint.c core/arena.c core/sbig.c core/xnum.c tests/fn_drive.c $(ENGINE) $(LIBS)
