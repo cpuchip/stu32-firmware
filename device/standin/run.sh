@@ -12,6 +12,11 @@ SCRIPT="${2:-}"
 IMAGE="espressif/idf:v5.4.2"
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 mkdir -p "$ROOT/build"
+# a changed sdkconfig.defaults takes effect: ESP-IDF never re-reads it into an existing sdkconfig, so that one is made
+# again (unit 051: QIO set in the defaults stayed DIO in an old build)
+if [ "${FLASH:-1}" = 1 ] && [ "$ROOT/device/standin/sdkconfig.defaults" -nt "$ROOT/device/standin/build/sdkconfig" ]; then
+    rm -f "$ROOT/device/standin/build/sdkconfig"
+fi
 [ "${FLASH:-1}" = 1 ] && python3 "$ROOT/scripts/gen_games.py" "$ROOT/games.list" "$ROOT/build/games"
 [ "${FLASH:-1}" = 1 ] && "$ROOT/scripts/fetch-casim.sh"
 docker run --rm -i -v "$ROOT:/project" -w /project \

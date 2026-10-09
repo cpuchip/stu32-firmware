@@ -2,6 +2,10 @@
 # on UART0 through the board's CH343.
 CONFIG_IDF_TARGET="esp32s3"
 CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
+# unit 051: the flash read four bits a clock (the module's quad flash). The core runs from flash through a 16 KB
+# instruction cache, and its misses were most of the time: SOLVE -39%, an integral -40%, programs -25 to -31%
+# (work/051). The boot log says "SPI Mode : QIO".
+CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
 CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
 CONFIG_SPIRAM=y
 CONFIG_SPIRAM_MODE_OCT=y
