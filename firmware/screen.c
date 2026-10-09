@@ -795,6 +795,14 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
         k->prompt = true;
         k->yk = SCREEN_MESSAGE;
     }
+    char dl[16];
+    if (ab_cas_def_label(c, dl, sizeof dl)) {   /* unit 056: which bound of ∫AB is typed ("∫X FROM", "∫X TO") */
+        memset(&k->y, 0, sizeof k->y);
+        k->y.cursor = -1;
+        line_add(&k->y, dl);
+        k->prompt = true;
+        k->yk = SCREEN_PROMPT;
+    }
     val_line(&c->z, c, ui, &k->z, &unused);
     val_line(&c->t, c, ui, &k->t, &unused);
     if (c->alg && !c->prgm) {

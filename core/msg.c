@@ -51,6 +51,10 @@ const char *ab_status_message(abn_status st)
     case ABN_CAS_NOT_NUMERIC: return "COEF NOT NUMERIC";
     case ABN_CAS_NOT_INTEGRABLE: return "CAN'T INTEGRATE";
     case ABN_CAS_EXPR_ONLY: return "EXPRESSION ONLY";
+    case ABN_CAS_IMPROPER: return "IMPROPER INTEGRAL";         /* unit 056: the texts ruled in #5630 */
+    case ABN_CAS_UNDEFINED: return "UNDEFINED";
+    case ABN_CAS_BOUND_LETTER: return "BOUND NOT NUMERIC";
+    case ABN_CAS_BOUND_REAL: return "BOUND NOT REAL";
     }
     return "";
 }

@@ -299,17 +299,25 @@ int main(int argc, char **argv)
     /* every message the core can show is in the face: each status's, and the specific texts over
        every op, argument form, X sign and the SOLVE or integral running */
     long holes = 0;
-    for (int st = 0; st <= ABN_BAD_IMAGE; st++) {
+    int wide = 0;
+    for (int st = 0; st <= ABN_STATUS_LAST; st++) {
         const char *m = ab_status_message((abn_status)st);
         if (m) holes += holes_in(m);
+        /* unit 056 (#5630 rule 3): each status's message is shown whole on X's line, at scale 3 or larger (20 cells,
+           the rule the clipping checks below show) */
+        if (m && screen_cells(m) > 20) {
+            wide++;
+            printf("screen_test: message %d \"%s\" is %d cells, past 20\n", st, m, screen_cells(m));
+        }
     }
+    expect(wide == 0, "a status message past 20 cells (not whole at scale 3)");
     {
         static const int ARGS[] = {0, AB_VAR_IND_I, AB_VAR_IND_J, AB_TGT_IND_I, AB_TGT_IND_J};
         static const char *const XS[] = {"-2", "0", "2"};
         static const int ACT[] = {0, AB_SOLVE, AB_INTEG};
         ab_init(&c);
         c.msg = true;
-        for (int st = 1; st <= ABN_BAD_IMAGE; st++)
+        for (int st = 1; st <= ABN_STATUS_LAST; st++)
             for (int op = 0; op <= AB_OP_LAST; op++)
                 for (int a = 0; a < 5; a++)
                     for (int xs = 0; xs < 3; xs++)
@@ -480,6 +488,24 @@ int main(int argc, char **argv)
     screen_render(&c, &ui, &f);
     expect(text_at(&f, 20, 128, 4, "RUNNING", 1), "the op running comes before a prompt");
     screen_ui_default(&ui);
+
+    /* unit 056: while a bound of ∫AB is typed, Y says which, as a prompt ("∫X FROM", then "∫X TO"), and the bound is
+       on X; a cancel takes the label away */
+    ab_init(&c);
+    ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+    ab_eqn_add(&c, "X^2");
+    ab_do_arg(&c, AB_CASDEF, 23);
+    ab_do(&c, AB_K1);
+    screen_render(&c, &ui, &f);
+    expect(text_at(&f, 38, 87, 3, "X FROM", 1) && dark_in(&f, 20, 87, 18, 21) > 0,
+           "∫AB: '∫X FROM' on Y while the lower bound is typed (∫ in the first cell)");
+    ab_do(&c, AB_ENTER);
+    ab_do(&c, AB_K2);
+    screen_render(&c, &ui, &f);
+    expect(text_at(&f, 38, 87, 3, "X TO", 1) && dark_in(&f, 20, 87, 18, 21) > 0, "∫AB: '∫X TO' while the upper bound is typed");
+    ab_do(&c, AB_CANCEL);
+    screen_render(&c, &ui, &f);
+    expect(!text_at(&f, 38, 87, 3, "X TO", 1), "∫AB cancelled: no label left");
 
     /* a prompt takes Y, at scale 3, with no letter */
     ab_init(&c);

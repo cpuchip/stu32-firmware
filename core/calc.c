@@ -3106,7 +3106,7 @@ static abn_status program_key(ab_calc *c, ab_op op, int arg)
         case AB_ENTER:
         case AB_CANCEL:
         case AB_EQN:
-            c->eqn_typing = false; c->cas_sub = 0;
+            c->eqn_typing = false; c->cas_sub = c->cas_def = 0;
             return c->ebuf[0] ? prog_insert_eqn(c, c->ebuf) : ABN_OK;
         case AB_KBKSP:
             ed_backspace(c);
@@ -3185,7 +3185,7 @@ static abn_status program_key(ab_calc *c, ab_op op, int arg)
     case AB_GRIGHT:                                                                      /* 033 */
     case AB_GZOOM: case AB_GMOVE: case AB_GTRACE: case AB_GMARK: case AB_GFACT: case AB_GFCN:    /* 040 */
     case AB_CASD: case AB_CASSIMP: case AB_CASEXP: case AB_CASCOL: case AB_CASSUB:              /* CAS 004 */
-    case AB_CASSOLVE: case AB_CASINT: case AB_CASFACT:                                          /* 048 */
+    case AB_CASSOLVE: case AB_CASINT: case AB_CASFACT: case AB_CASDEF:                          /* 048, 056 */
         return ABN_NONPROGRAMMABLE;
     case AB_FDISP:
     case AB_CLALL:                          /* in program entry the menu offers CLPGM in its place
@@ -3268,12 +3268,14 @@ static void eqn_delete(ab_calc *c, int i)
 /* ENTER or C while typing stores the text: a new equation after the one shown, or the edited one
  * replaced; an empty text deletes the entry (UG p.6-4, 6-8). */
 static abn_status cas_subst_done(ab_calc *c, bool run);
+static abn_status cas_def_bound(ab_calc *c, bool run);
 
 static abn_status eqn_store_typed(ab_calc *c)
 {
     char t[AB_EQN_LEN];
     if (!c->eqn_typing) return ABN_OK;
     if (c->cas_sub) return cas_subst_done(c, true);     /* SUBST's replacement: substituted, not stored (CAS 004) */
+    if (c->cas_def) return cas_def_bound(c, true);      /* ∫AB's bound (056): held, or the integral run */
     int model = c->eqn_edit >= 0 && c->eqn_model[c->eqn_edit] ? c->eqn_model[c->eqn_edit] : typed_model(c);
     bool same = c->eqn_edit >= 0 && strcmp(c->ebuf, c->eqn[c->eqn_edit]) == 0;
     abn_status sst = c->ebuf[0] && !same ? stored_text(c, c->ebuf, t, model) : ABN_OK;  /* (an edit unchanged
@@ -3283,7 +3285,7 @@ static abn_status eqn_store_typed(ab_calc *c)
         return sst == ABN_TOO_DEEP ? sst : ABN_MEMORY_FULL;   /* STU's x's would not fit, or nested past the bound
                                                    (unit 047): refused, the text unchanged and still typed (unit 031
                                                    answer I) */
-    c->eqn_typing = false; c->cas_sub = 0;
+    c->eqn_typing = false; c->cas_sub = c->cas_def = 0;
     int edit = c->eqn_edit;
     c->eqn_edit = -1;                           /* meaningful only while typing: left set, a delete could leave it past
                                                    the list's end, and the image would not load (unit 041 A, fresh eyes) */
@@ -3312,7 +3314,7 @@ abn_status ab_eqn_add(ab_calc *c, const char *text)
     abn_status st = eqn_insert(c, text);
     if (st == ABN_OK) {
         c->eqn_mode = true;
-        c->eqn_typing = false; c->cas_sub = 0;
+        c->eqn_typing = false; c->cas_sub = c->cas_def = 0;
     }
     return st;
 }
@@ -3757,7 +3759,29 @@ static int cas_text33(const char *in, char *out, size_t cap, char *bad, size_t b
 }
 #endif
 
-static abn_status cas_step(ab_calc *c, int op, int var, const char *repl)
+/* Unit 056: the note table (048's +C and MAY FACTOR MORE; CAS 010's labels later): a label for equation eqn, made while
+   eqn is shown. */
+static void cas_note_add(ab_calc *c, uint8_t id, int eqn)
+{
+    if (!c->cas_notes[0].id || c->cas_note_at != eqn) memset(c->cas_notes, 0, sizeof c->cas_notes);
+    c->cas_note_at = (int8_t)eqn;
+    for (int i = 0; i < AB_CAS_NOTES; i++)
+        if (!c->cas_notes[i].id) {
+            c->cas_notes[i].id = id;
+            c->cas_notes[i].eqn = (int8_t)eqn;
+            return;
+        }
+}
+
+/* Unit 056: a letter A-Z in a bound's text, other than inside a function's name (SQRT, LN, π is not a letter): the
+   text only picks BOUND NOT NUMERIC's message for casim's BAD_ARG (#5630 rule 3) */
+static __attribute__((unused)) bool cas_has_letter(const char *s)
+{
+    int v[27];
+    return s && eqn_vars(s, false, false, AB_MODEL_STU, v) > 0;
+}
+
+static abn_status cas_step(ab_calc *c, int op, int var, const char *repl, const char *repl2)
 {
 #ifdef AB_CASIM
     char out[AB_EQN_LEN], t33[AB_EQN_LEN];
@@ -3776,7 +3800,7 @@ static abn_status cas_step(ab_calc *c, int op, int var, const char *repl)
         if (r == 2) return ABN_CAS_TOO_LONG;
         text = t33;
     }
-    casim_req rq = {(casim_op)op, text, c->eqn_model[c->eqn_cur], var, repl, AB_MODEL_STU, c->angle, NULL};  /* repl2: defint's upper bound, not on the keys yet (CAS 009) */
+    casim_req rq = {(casim_op)op, text, c->eqn_model[c->eqn_cur], var, repl, AB_MODEL_STU, c->angle, repl2};  /* repl2: ∫AB's upper bound (056) */
     cs = casim_run(&rq, out, sizeof out, ab_cas_arena, sizeof ab_cas_arena);
     bool ext = op == CASIM_SOLVE || op == CASIM_INTEGRATE || op == CASIM_FACTOR;     /* unit 048's keys */
     if (ext) {
@@ -3797,11 +3821,9 @@ static abn_status cas_step(ab_calc *c, int op, int var, const char *repl)
                                                    MAY FACTOR MORE beside it (048 rule 4) */
     case CASIM_OK: {
         abn_status st = eqn_insert(c, out);
-        if (st == ABN_OK && (op == CASIM_INTEGRATE || cs == CASIM_PARTIAL)) {
-            c->cas_note = op == CASIM_INTEGRATE ? AB_NOTE_PLUSC : AB_NOTE_MORE;    /* ∫'s +C: beside, never in
-                                                   the text (048 rule 3) */
-            c->cas_note_eqn = (int8_t)c->eqn_cur;
-        }
+        if (st == ABN_OK && (op == CASIM_INTEGRATE || cs == CASIM_PARTIAL))
+            cas_note_add(c, op == CASIM_INTEGRATE ? AB_NOTE_PLUSC : AB_NOTE_MORE, c->eqn_cur);   /* ∫'s +C: beside,
+                                                   never in the text (048 rule 3) */
         ab_val v;
         int pos;
         /* stamped STU, the list's; but a result that only the 33s reads (the variable i, from a 33s equation: STU
@@ -3821,11 +3843,17 @@ static abn_status cas_step(ab_calc *c, int op, int var, const char *repl)
     case CASIM_NOT_NUMERIC: return ABN_CAS_NOT_NUMERIC;
     case CASIM_NOT_INTEGRABLE: return ABN_CAS_NOT_INTEGRABLE;
     case CASIM_BAD_ARG:                     /* ∫ and FACTOR take an expression; the variable and angle are in range */
+        if (op == CASIM_DEFINT)             /* 056 (#5630 rule 3): an equation was refused before the call, so a
+                                               bound: one with a letter, else one that isn't real (casim decides the
+                                               refusal; the text only picks its message) */
+            return cas_has_letter(repl) || cas_has_letter(repl2) ? ABN_CAS_BOUND_LETTER : ABN_CAS_BOUND_REAL;
         return op == CASIM_INTEGRATE || op == CASIM_FACTOR ? ABN_CAS_EXPR_ONLY : ABN_DOMAIN;
+    case CASIM_IMPROPER: return ABN_CAS_IMPROPER;          /* unit 056: CAS 009 */
+    case CASIM_UNDEFINED: return ABN_CAS_UNDEFINED;        /* unit 056: CAS 008, any op (INVALID DATA before) */
     default: return ABN_DOMAIN;             /* INVALID DATA */
     }
 #else
-    (void)op, (void)var, (void)repl;
+    (void)op, (void)var, (void)repl, (void)repl2;
     return c->stu ? ABN_DOMAIN : ABN_STU_ONLY;     /* a core built without Casimir (casim's own build of it) */
 #endif
 }
@@ -3837,22 +3865,27 @@ static abn_status cas_key(ab_calc *c, ab_op op, int arg)
     if (!c->stu) return ABN_STU_ONLY;
     if (c->eqn_cur < 0 || eqn_builtin(c, c->eqn_cur)) return ABN_NO_EQN;
     if ((op == AB_CASD || op == AB_CASCOL || op == AB_CASSUB || op == AB_CASSOLVE || op == AB_CASINT ||
-         op == AB_CASFACT) && (arg < 0 || arg > 25))
+         op == AB_CASFACT || op == AB_CASDEF) && (arg < 0 || arg > 25))
         return ABN_DOMAIN;
 #ifdef AB_CASIM
     switch (op) {
-    case AB_CASSOLVE: return cas_step(c, CASIM_SOLVE, arg, NULL);             /* unit 048 */
-    case AB_CASINT: return cas_step(c, CASIM_INTEGRATE, arg, NULL);
-    case AB_CASFACT: return cas_step(c, CASIM_FACTOR, arg, NULL);
-    case AB_CASD: return cas_step(c, CASIM_DERIVE, arg, NULL);
-    case AB_CASSIMP: return cas_step(c, CASIM_SIMPLIFY, 0, NULL);
-    case AB_CASEXP: return cas_step(c, CASIM_EXPAND, 0, NULL);
-    case AB_CASCOL: return cas_step(c, CASIM_COLLECT, arg, NULL);
+    case AB_CASSOLVE: return cas_step(c, CASIM_SOLVE, arg, NULL, NULL);       /* unit 048 */
+    case AB_CASINT: return cas_step(c, CASIM_INTEGRATE, arg, NULL, NULL);
+    case AB_CASFACT: return cas_step(c, CASIM_FACTOR, arg, NULL, NULL);
+    case AB_CASD: return cas_step(c, CASIM_DERIVE, arg, NULL, NULL);
+    case AB_CASSIMP: return cas_step(c, CASIM_SIMPLIFY, 0, NULL, NULL);
+    case AB_CASEXP: return cas_step(c, CASIM_EXPAND, 0, NULL, NULL);
+    case AB_CASCOL: return cas_step(c, CASIM_COLLECT, arg, NULL, NULL);
     default: break;
     }
 #endif
-    if (op != AB_CASSUB) return cas_step(c, 0, 0, NULL);
-    c->cas_sub = (uint8_t)(arg + 1);
+    if (op != AB_CASSUB && op != AB_CASDEF) return cas_step(c, 0, 0, NULL, NULL);
+    if (op == AB_CASDEF) {                      /* unit 056: the editor opens for the lower bound */
+        c->cas_def = (uint8_t)(arg + 1);
+        c->cas_def_step = 1;
+        c->cas_lo[0] = '\0';
+    } else
+        c->cas_sub = (uint8_t)(arg + 1);
     c->eqn_typing = true;
     c->eqn_edit = -1;
     c->ebuf[0] = '\0';
@@ -3869,14 +3902,53 @@ static abn_status cas_subst_done(ab_calc *c, bool run)
         return ABN_TOO_DEEP;                    /* nested past the bound (unit 047): still typed */
     if (run && c->ebuf[0] && eqn_write_implied(c, c->ebuf, t, sizeof t) != 1)
         return ABN_SYNTAX;                      /* doesn't parse (or won't fit): still typed, as 031 answer I */
-    c->cas_sub = 0;
+    c->cas_sub = c->cas_def = 0;
     c->eqn_typing = false;
     if (!run || !c->ebuf[0]) return ABN_OK;
 #ifdef AB_CASIM
-    return cas_step(c, CASIM_SUBST, var, t);
+    return cas_step(c, CASIM_SUBST, var, t, NULL);
 #else
     (void)var;
-    return cas_step(c, 0, 0, t);
+    return cas_step(c, 0, 0, t, NULL);
+#endif
+}
+
+/* Unit 056: a bound of ∫AB typed (run: ENTER) or dropped (C). The lower bound is held and the editor opens for the
+   upper; the upper runs CAS 009's defint. ENTER on an empty bound, or C, cancels the step and keeps the list. Each
+   bound is checked against the parser's bound (047) and has its implied products written in, read as STU's, as
+   SUBST's replacement. An equation is refused before casim is called (#5630 rule 3). */
+static abn_status cas_def_bound(ab_calc *c, bool run)
+{
+    int var = c->cas_def - 1;
+    char t[AB_EQN_LEN];
+    if (run && c->ebuf[0] && eqn_too_deep(c, c->ebuf, AB_MODEL_STU))
+        return ABN_TOO_DEEP;                    /* nested past the bound (unit 047): still typed */
+    if (run && c->ebuf[0] && eqn_write_implied(c, c->ebuf, t, sizeof t) != 1)
+        return ABN_SYNTAX;                      /* doesn't parse (or won't fit): still typed, as 031 answer I */
+    if (!run || !c->ebuf[0]) {
+        c->cas_def = c->cas_def_step = 0;
+        c->cas_lo[0] = '\0';
+        c->eqn_typing = false;
+        return ABN_OK;
+    }
+    if (c->cas_def_step == 1) {                 /* the lower bound held; the editor empties for the upper */
+        memcpy(c->cas_lo, t, sizeof c->cas_lo);
+        c->cas_def_step = 2;
+        c->ebuf[0] = '\0';
+        c->ecur = 0;
+        return ABN_OK;
+    }
+    c->cas_def = c->cas_def_step = 0;
+    c->eqn_typing = false;
+    char lo[AB_EQN_LEN];
+    memcpy(lo, c->cas_lo, sizeof lo);
+    c->cas_lo[0] = '\0';
+    if (c->eqn_cur >= 0 && strchr(c->eqn[c->eqn_cur], '=')) return ABN_CAS_EXPR_ONLY;
+#ifdef AB_CASIM
+    return cas_step(c, CASIM_DEFINT, var, lo, t);
+#else
+    (void)var;
+    return cas_step(c, 0, 0, lo, t);
 #endif
 }
 
@@ -3887,6 +3959,7 @@ static abn_status eqn_key(ab_calc *c, ab_op op, int arg)
     case AB_EQN:
     case AB_CANCEL:                                 /* C stores what is typed and leaves (p.6-4) */
         if (c->cas_sub) return cas_subst_done(c, false);    /* SUBST's replacement: dropped, the list kept (CAS 004) */
+        if (c->cas_def) return cas_def_bound(c, false);     /* ∫AB's step cancelled (056) */
         st = eqn_store_typed(c);
         if (st != ABN_OK && c->eqn_typing) return st;   /* refused and still typed (unit 031 answer I) */
         c->eqn_mode = false;
@@ -3895,8 +3968,8 @@ static abn_status eqn_key(ab_calc *c, ab_op op, int arg)
         if (c->eqn_typing) return eqn_store_typed(c);     /* (SUBST's replacement: substituted, CAS 004) */
         return eqn_evaluate(c, true);
     case AB_CASD: case AB_CASSIMP: case AB_CASEXP: case AB_CASCOL: case AB_CASSUB:
-    case AB_CASSOLVE: case AB_CASINT: case AB_CASFACT:
-        if (c->eqn_typing) return ABN_OK;           /* the list's keys (CAS 004, 048) */
+    case AB_CASSOLVE: case AB_CASINT: case AB_CASFACT: case AB_CASDEF:
+        if (c->eqn_typing) return ABN_OK;           /* the list's keys (CAS 004, 048, 056) */
         return cas_key(c, op, arg);
     case AB_XEQ:
         if (arg != AB_TGT_EQN) return ABN_OK;
@@ -3951,7 +4024,7 @@ static void alg_leave(ab_calc *c)
 {
     if (!c->alg) return;
     c->alg = false;
-    c->eqn_typing = false; c->cas_sub = 0;
+    c->eqn_typing = false; c->cas_sub = c->cas_def = 0;
     c->ebuf[0] = '\0';
     c->ecur = 0;
     c->alg_shown = false;
@@ -4348,8 +4421,8 @@ done:
         err_note(c, op, arg, &x0);
         c->err_status = st;
     }
-    if (c->cas_note && (!c->eqn_mode || c->eqn_typing || c->eqn_cur != c->cas_note_eqn))
-        c->cas_note = 0;                        /* unit 048: the list has left the note's equation */
+    if (c->cas_notes[0].id && (!c->eqn_mode || c->eqn_typing || c->eqn_cur != c->cas_note_at))
+        memset(c->cas_notes, 0, sizeof c->cas_notes);   /* unit 048: the list has left the notes' equation */
     return st;
 }
 
@@ -4416,11 +4489,23 @@ static bool casrep_key(ab_calc *c, ab_op op, abn_status *st)
     return op == AB_CANCEL || op == AB_KBKSP;
 }
 
-/* Unit 048: the note beside the equation shown, while it is (cleared by ab_do_arg once the list leaves it). */
+/* Unit 048: the note beside the equation shown, while it is (cleared by ab_do_arg once the list leaves it); a table
+   since 056, read for the equation shown. */
 const char *ab_cas_note(const ab_calc *c)
 {
-    if (!c->cas_note || !c->eqn_mode || c->eqn_typing || c->eqn_cur != c->cas_note_eqn) return NULL;
-    return c->cas_note == AB_NOTE_PLUSC ? "+C" : "MAY FACTOR MORE";
+    if (!c->eqn_mode || c->eqn_typing) return NULL;
+    for (int i = 0; i < AB_CAS_NOTES; i++)
+        if (c->cas_notes[i].id && c->cas_notes[i].eqn == c->eqn_cur)
+            return c->cas_notes[i].id == AB_NOTE_PLUSC ? "+C" : "MAY FACTOR MORE";
+    return NULL;
+}
+
+/* Unit 056: ∫AB's label while a bound is typed. */
+const char *ab_cas_def_label(const ab_calc *c, char *buf, int size)
+{
+    if (!c->cas_def || !c->eqn_typing) return NULL;
+    snprintf(buf, (size_t)size, "\xe2\x88\xab%c %s", 'A' + c->cas_def - 1, c->cas_def_step == 2 ? "TO" : "FROM");
+    return buf;
 }
 
 bool ab_view_linear(const ab_calc *c)
@@ -4564,7 +4649,7 @@ void ab_clear_all(ab_calc *c)
     c->cpart = c->vlen = 0;
     c->prgm = false;
     c->plit = zero;
-    c->eqn_mode = c->eqn_typing = false; c->cas_sub = 0;
+    c->eqn_mode = c->eqn_typing = false; c->cas_sub = c->cas_def = 0;
     c->eqn_edit = -1;
     c->ebuf[0] = '\0';
     c->ecur = 0;
@@ -4971,8 +5056,8 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
     case AB_CANCEL:
         return cancel_key(c);
     case AB_CASD: case AB_CASSIMP: case AB_CASEXP: case AB_CASCOL: case AB_CASSUB:
-    case AB_CASSOLVE: case AB_CASINT: case AB_CASFACT:
-        return c->stu ? ABN_NO_EQN : ABN_STU_ONLY;     /* CAS 004, 048: from Equation mode's list only */
+    case AB_CASSOLVE: case AB_CASINT: case AB_CASFACT: case AB_CASDEF:
+        return c->stu ? ABN_NO_EQN : ABN_STU_ONLY;     /* CAS 004, 048, 056: from Equation mode's list only */
     case AB_EQN:
         c->eqn_mode = true;                     /* neutral (UG p.B-5) */
         if (!ab_mode35(c) && eqn_builtin(c, c->eqn_cur)) c->eqn_cur = -1;     /* 33s mode: no built-ins (041 A4) */
@@ -5125,7 +5210,7 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
         c->eqn_count = n;
         c->fn_eqn = fn;
         c->eqn_cur = -1;
-        c->eqn_typing = false; c->cas_sub = 0;
+        c->eqn_typing = false; c->cas_sub = c->cas_def = 0;
         c->eqn_edit = -1;
         c->ebuf[0] = '\0';
         c->ecur = 0;

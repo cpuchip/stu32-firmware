@@ -3843,9 +3843,9 @@ int main(void)
         press(&a, "k:5");
         app_ui(&a, &ui);
         expect(ui.soft[0] && !strcmp(ui.soft[0], "SOLVE") && ui.soft[1] && !strcmp(ui.soft[1], "\xe2\x88\xab" "DX") &&
-                   ui.soft[2] && !strcmp(ui.soft[2], "FACTR") && (!ui.soft[3] || !ui.soft[3][0]) &&
+                   ui.soft[2] && !strcmp(ui.soft[2], "FACTR") && ui.soft[3] && !strcmp(ui.soft[3], "\xe2\x88\xab" "AB") &&
                    (!ui.soft[4] || !ui.soft[4][0]) && ui.soft[5] && !strcmp(ui.soft[5], "\xe2\x96\xb8"),
-               "048: CAS2: SOLVE \xe2\x88\xab" "DX FACTR, its sixth key back");
+               "048, 056: CAS2: SOLVE \xe2\x88\xab" "DX FACTR \xe2\x88\xab" "AB, its sixth key back");
         press(&a, "k:0");
         app_ui(&a, &ui);
         expect(ui.prompt && !strcmp(ui.prompt, "SOLVE _"), "048: SOLVE prompts for the variable");
@@ -3878,6 +3878,21 @@ int main(void)
         ab_init(&c3);
         expect(ab_cas_report(&c) && len && ab_state_load(&c3, img, len) == ABN_OK && !ab_cas_report(&c3),
                "048: the report is not in the image");
+        /* unit 056: ∫AB through the keys: the variable, the lower bound, ENTER, the upper, ENTER; the exact answer
+           inserted after the integrand, no note beside it */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        ab_do(&c, AB_RAD);
+        ab_eqn_add(&c, "1\xc3\xb7X");
+        press(&a, "k:4 k:5 k:3");
+        app_ui(&a, &ui);
+        expect(ui.prompt && !strcmp(ui.prompt, "\xe2\x88\xab" "AB _"), "056: \xe2\x88\xab" "AB prompts for the variable");
+        n = c.eqn_count;
+        press(&a, "ltr:X 1 ENTER 3 ENTER");
+        expect(c.eqn_count == n + 1 && c.eqn_cur >= 0 && !strcmp(c.eqn[c.eqn_cur], "LN(3)") && !ab_cas_note(&c) &&
+                   !c.eqn_typing && !c.cas_def,
+               "056: \xe2\x88\xab" "AB X of 1\xc3\xb7X from 1 to 3 through the keys: LN(3) inserted, no note, the step closed");
         /* ∫: +C beside the answer on the screen, never in its text; it goes with the list's move */
         ab_init(&c);
         app_init(&a, &c, now);

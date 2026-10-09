@@ -6,6 +6,7 @@
  *                             n -(, c a chain of D powers, m 18 groups around a chain of D, s SIN(; then XEQ A
  *   stackkeys cas OP TEXT     048's CAS keys: TEXT typed in STU's Equation mode and stored, then CAS's second page,
  *                             OP (s SOLVE, i ∫DX, f FACTR) in X
+ *   stackkeys cas d TEXT LO HI   056's ∫AB the same way, in X, then the bounds LO and HI typed, each with ENTER
  *
  * Prints what the host did, then "keys (entry N, ...): k k k...", N the keys up to the stored line.
  */
@@ -183,8 +184,9 @@ static void print_keys(int mark, const char *then)
 
 int main(int argc, char **argv)
 {
-    if (argc != 4 || (strcmp(argv[1], "prog") && strcmp(argv[1], "cas"))) {
-        fprintf(stderr, "usage: stackkeys prog D SHAPE | stackkeys cas OP TEXT\n");
+    bool def = argc == 6 && !strcmp(argv[1], "cas") && !strcmp(argv[2], "d");
+    if ((argc != 4 && !def) || (strcmp(argv[1], "prog") && strcmp(argv[1], "cas"))) {
+        fprintf(stderr, "usage: stackkeys prog D SHAPE | stackkeys cas OP TEXT | stackkeys cas d TEXT LO HI\n");
         return 2;
     }
     ab_init(&c);
@@ -240,9 +242,16 @@ int main(int argc, char **argv)
         int mark = nseq;
         tap(4);                                 /* CAS, its second page, the key, X */
         tap(5);
-        tap(argv[2][0] == 's' ? 0 : argv[2][0] == 'i' ? 1 : 2);
+        tap(argv[2][0] == 's' ? 0 : argv[2][0] == 'i' ? 1 : argv[2][0] == 'f' ? 2 : 3);
         tap(letter('X'));
-        print_keys(mark, "the CAS key");
+        if (def) {                              /* 056: the lower bound, ENTER, the upper, ENTER */
+            type_text(argv[4]);
+            tap(face("ENTER"));
+            type_text(argv[5]);
+            tap(face("ENTER"));
+            printf("result: %s\n", c.eqn_cur >= 0 ? c.eqn[c.eqn_cur] : "-");
+        }
+        print_keys(mark, def ? "the bounds' last ENTER" : "the CAS key");
     }
     return 0;
 }

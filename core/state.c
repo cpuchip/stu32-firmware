@@ -279,10 +279,11 @@ size_t ab_state_save(const ab_calc *c, uint8_t *buf, size_t cap)
 
     s = sec_begin(&w, T_EDITOR);
     w8(&w, c->eqn_mode);
-    w8(&w, c->eqn_typing);
+    w8(&w, c->eqn_typing && !c->cas_def);   /* unit 056: a bound of ∫AB being typed isn't kept: a restart cancels the
+                                               step, as the list was before it (#5630 rule 1) */
     w8(&w, (unsigned)(uint8_t)(int8_t)c->eqn_edit);
-    wtext(&w, c->ebuf);
-    w16(&w, (unsigned)c->ecur);
+    wtext(&w, c->cas_def ? "" : c->ebuf);
+    w16(&w, c->cas_def ? 0u : (unsigned)c->ecur);
     w16(&w, (unsigned)c->eqn_errpos);
     w8(&w, (unsigned)c->eqn_pending);
     w8(&w, (unsigned)c->eqn_nvars);
@@ -609,7 +610,7 @@ bool ab_line_ok(ab_op op, int32_t arg)
     case AB_GRIGHT:                                                                            /* (033) */
     case AB_GZOOM: case AB_GMOVE: case AB_GTRACE: case AB_GMARK: case AB_GFACT: case AB_GFCN:          /* (040) */
     case AB_CASD: case AB_CASSIMP: case AB_CASEXP: case AB_CASCOL: case AB_CASSUB:                    /* (CAS 004) */
-    case AB_CASSOLVE: case AB_CASINT: case AB_CASFACT:                                                /* (048) */
+    case AB_CASSOLVE: case AB_CASINT: case AB_CASFACT: case AB_CASDEF:                                /* (048, 056) */
     case AB_ENGL: case AB_ENGR:                                                                       /* (041 C) */
     case AB_FRACFMT: case AB_CLEQN:     /* nonprogrammable since 019 and 021 (load_fuzz's line sweep) */
         return false;

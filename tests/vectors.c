@@ -544,10 +544,11 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
         if (do1(c, AB_CLVARS, 0) != ABN_OK) (*errors)++;
         return 0;
     }
-    {   /* CAS 004: CASD:v CASCOL:v CASSUB:v (a variable A-Z), CASSIMP, CASEXP */
+    {   /* CAS 004: CASD:v CASCOL:v CASSUB:v (a variable A-Z), CASSIMP, CASEXP; 056: CASDEF:v (then the two bounds) */
         static const struct { const char *t; ab_op op; bool var; } CAS[] = {
             {"CASD:", AB_CASD, true}, {"CASCOL:", AB_CASCOL, true}, {"CASSUB:", AB_CASSUB, true},
             {"CASSOLVE:", AB_CASSOLVE, true}, {"CASINT:", AB_CASINT, true}, {"CASFACT:", AB_CASFACT, true},   /* 048 */
+            {"CASDEF:", AB_CASDEF, true},                                                                       /* 056 */
             {"CASSIMP", AB_CASSIMP, false}, {"CASEXP", AB_CASEXP, false}};
         for (size_t i = 0; i < sizeof CAS / sizeof CAS[0]; i++) {
             size_t n = strlen(CAS[i].t);
