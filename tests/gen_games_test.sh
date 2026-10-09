@@ -113,5 +113,58 @@ printf 'bad bad %s MIT game.txt\n' "$(git -C "$T/repos/bad" rev-parse HEAD)" > "
 printf 'one one %s MIT game.txt\n' "$PIN1" > "$T/fw/games.list"; run 0 "one game"
 grep -q "^GAME_one_INC := -Ibuild/games/one/inc$" "$mk" && ! grep -q "GAMES_INC" "$mk" && grep -q 'INCLUDE_DIRECTORIES "${REPO}/build/games/one/inc"' "$T/fw/build/games/games.cmake" \
     && echo "  ok: a game's include directories on its own rule only" || { echo "FAIL: include scope: $(grep INC "$mk")"; ok=0; }
+# a WebAssembly game (kind = wasm): its .aot and .wasm checked by sha256 at the pin; the .aot and a WASM_GAME
+# wrapper only for STU_WASM, and games.h lists it under #ifdef STU_WASM
+mkwasm() { # mkwasm NAME LABEL: a repo with a wasm game, its manifest's hashes right
+    git -c init.defaultBranch=main init -q --bare "$T/$1.git"
+    git clone -q "$T/$1.git" "$T/repos/$1" 2>/dev/null
+    (cd "$T/repos/$1" && mkdir -p w && printf 'not really an aot %s\n' "$1" > w/g.aot && printf 'not really wasm\n' > w/g.wasm \
+        && printf 'name = %s\nfolder = GAMES\nkind = wasm\naot = w/g.aot\naot_sha256 = %s\nwasm = w/g.wasm\nwasm_sha256 = %s\ntoolchain = t\nauthor = t\nlicence = MIT\nsource = t\n' \
+           "$2" "$(sha256sum w/g.aot | cut -c1-64)" "$(sha256sum w/g.wasm | cut -c1-64)" > game.txt \
+        && git add -A && git -c user.email=t@t -c user.name=t commit -q -m one && git push -q origin HEAD:main 2>/dev/null \
+        && git remote set-head origin main >/dev/null)
+}
+mkwasm wg WASMG
+PINW=$(git -C "$T/repos/wg" rev-parse HEAD)
+printf 'one one %s MIT game.txt\nwg wg %s MIT game.txt\n' "$PIN1" "$PINW" > "$T/fw/games.list"; run 0 "a native game and a wasm game"
+cmk=$T/fw/build/games/games.cmake
+[ -f "$T/fw/build/games/wg/wg.aot" ] && cmp -s "$T/fw/build/games/wg/wg.aot" "$T/repos/wg/w/g.aot" \
+    && grep -q 'list(APPEND GAMES_EMBED ${REPO}/build/games/wg/wg.aot)' "$cmk" && grep -q 'STU_WASM' "$cmk" \
+    && grep -q 'WASM_GAME(wg_wasm_app, "WASMG", wg_aot_start, wg_aot_end, 0);' "$T/fw/build/games/wg/wg_wasm.c" \
+    && ! grep -q '^GAMES_C .*wg' "$T/fw/build/games/games.mk" \
+    && echo "  ok: the wasm game's .aot exported, embedded and wrapped for STU_WASM only" || { echo "FAIL: wasm outputs"; ok=0; }
+cat > "$T/regw.c" <<'C'
+typedef struct { const char *name; } app_def;
+#include "games.h"
+GAMES_DECLARE
+const app_def keys_app = {"KEYS"}, one_app = {"ONE"}, wg_wasm_app = {"WASMG"};
+const app_def *const reg[] = {&keys_app GAMES_ENTRIES};
+int main(void) { return !(sizeof reg / sizeof reg[0] == 1 + GAMES_N); }
+C
+cc -std=c11 -Wall -Werror -I"$T/fw/build/games" "$T/regw.c" -o "$T/regw" && "$T/regw" \
+    && cc -std=c11 -Wall -Werror -DSTU_WASM -I"$T/fw/build/games" "$T/regw.c" -o "$T/regw2" && "$T/regw2" \
+    && [ "$(printf '#include "games.h"\nGAMES_N\n' | cpp -P -I"$T/fw/build/games" - | tail -1)" = 1 ] \
+    && [ "$(printf '#include "games.h"\nGAMES_N\n' | cpp -P -DSTU_WASM -I"$T/fw/build/games" - | tail -1)" = 2 ] \
+    && echo "  ok: games.h lists the wasm game with STU_WASM only (1 game without, 2 with)" || { echo "FAIL: games.h with a wasm game"; ok=0; }
+# a wasm game staged by an earlier run, without a clone: the stage holds both files the hashes check
+cp -r "$T/fw/build/games/wg" "$T/stage-wg" && mv "$T/repos/wg" "$T/wg-away"
+rm -rf "$T/fw/build/games/wg" && cp -r "$T/stage-wg" "$T/fw/build/games/wg"
+GAMES_REPOS="$T/repos" python3 "$GEN" "$T/fw/games.list" > "$T/out" 2> "$T/err" && grep -q "staged: not checked as pushed" "$T/out" \
+    && cmp -s "$T/fw/build/games/wg/wg.aot" "$T/stage-wg/wg.aot" \
+    && echo "  ok: a wasm game staged without a clone" || { echo "FAIL: a staged wasm game: $(cat "$T/err")"; ok=0; }
+mv "$T/wg-away" "$T/repos/wg"
+badw() { # badw WHAT SED-ON-MANIFEST MESSAGE: a fresh wasm repo whose manifest is changed, pushed
+    rm -rf "$T/repos/bw" "$T/bw.git"; mkwasm bw BADW
+    (cd "$T/repos/bw" && sed -i "$2" game.txt && git add -A && git -c user.email=t@t -c user.name=t commit -q -m bad && git push -q origin HEAD:main 2>/dev/null)
+    printf 'bw bw %s MIT game.txt\n' "$(git -C "$T/repos/bw" rev-parse HEAD)" > "$T/fw/games.list"; run 1 "$1" "$3"
+}
+badw "a wasm game whose .aot is not its sha256" "s/^aot_sha256 = ./aot_sha256 = f/" "not the manifest's aot_sha256"
+badw "a wasm game whose .wasm is not its sha256" "s/^wasm_sha256 = ./wasm_sha256 = f/" "not the manifest's wasm_sha256"
+badw "a wasm game with sources" '$a sources = w/*.c' "a wasm game has no sources"
+badw "a wasm game without its toolchain" "/^toolchain/d" "lacks toolchain"
+badw "a wasm game whose hash is not hex" "s/^aot_sha256 = .*/aot_sha256 = nothex/" "64 hex digits"
+badw "a wasm game whose .aot is not at the pin" "s|^aot = .*|aot = w/none.aot|" "is not at the pin"
+bad "a native game with an aot" '$a aot = x.aot' "a native game has no aot"
+bad "an unknown kind" '$a kind = lua' "kind must be native or wasm"
 [ "$ok" = 1 ] && { echo "GAMES-LIST GENERATOR GREEN"; exit 0; }
 echo "GAMES-LIST GENERATOR RED"; exit 1
