@@ -138,11 +138,15 @@ typedef enum {
        variable opens the editor for its replacement, which ENTER substitutes */
     AB_CASD, AB_CASSIMP, AB_CASEXP, AB_CASCOL, AB_CASSUB,
     AB_CUBE, AB_CBRT,       /* unit 041 C: x³ and ∛x (33s p.4-2), 33s mode's (the 35s has neither) */
-    AB_ENGL, AB_ENGR        /* unit 041 C (B4): ←ENG and ENG→ (33s p.1-20, 35s p.1-23): X's view with the exponent a
+    AB_ENGL, AB_ENGR,       /* unit 041 C (B4): ←ENG and ENG→ (33s p.1-20, 35s p.1-23): X's view with the exponent a
                                multiple of three moved up or down; display only, until the next key; nonprogrammable */
+    /* unit 048 (Casimir, STU's Equation mode, the CAS menu's second page), each in arg's variable (0-25): SOLVE's exact
+       roots as a report (a view: up and down step, ENTER copies a root's value to X, C leaves); ∫ and FACTOR insert
+       their result as an equation (∫ with +C beside it, FACTOR's unproven one with MAY FACTOR MORE) */
+    AB_CASSOLVE, AB_CASINT, AB_CASFACT
 } ab_op;
 
-#define AB_OP_LAST AB_ENGR     /* the last op: loops over every op end here */
+#define AB_OP_LAST AB_CASFACT  /* the last op: loops over every op end here */
 
 /* Why the last run stopped (unit 012 rule 1): the device draws it; the core never waits. */
 typedef enum {
@@ -329,6 +333,12 @@ typedef struct {
     int eqn_cur;            /* the equation shown, -1 at EQN LIST TOP */
     uint8_t cas_sub;        /* CAS 004: SUBST's variable + 1 while its replacement is typed, else 0; in the image */
     char cas_bad[16];       /* CAS 004: the construct a refusal names (UNSUPPORTED IP, CAN'T COPY RAND); in the image */
+    char cas_rep[AB_EQN_LEN];   /* unit 048: SOLVE's report, casim's line, while its view is open, else ""; not in the
+                               image (abacus #5267) */
+    int8_t cas_row;         /* unit 048: the report's row under the cursor: 0 the status, then a root each */
+    uint8_t cas_note;       /* unit 048: AB_NOTE_PLUSC or AB_NOTE_MORE beside equation cas_note_eqn while it is shown;
+                               gone once the list leaves it or it is edited; not in the image */
+    int8_t cas_note_eqn;
     bool eng_on;            /* unit 041 C (B4): ENG→ / ←ENG's view of X showing (until the next key); in the image */
     int16_t eng_e;          /* its exponent, a multiple of three */
     int16_t eng_low;        /* the place of the last digit shown (its power of ten): the view rounds X there */
@@ -566,6 +576,14 @@ bool ab_view_key(ab_calc *c, int op);
 #define AB_VIEW_LIN2 (-40)          /* -40 X, -41 Y */
 #define AB_VIEW_LIN3 (-50)          /* -50 X, -51 Y, -52 Z */
 bool ab_view_linear(const ab_calc *c);  /* a linear solution's view is showing (its bar: up, down) */
+/* Unit 048: SOLVE's report while its view is open (casim's line), else NULL; its rows (0 the status, then each root)
+   and the row under the cursor; the note beside the equation shown ("+C", "MAY FACTOR MORE"), else NULL. */
+const char *ab_cas_report(const ab_calc *c);
+int ab_cas_rows(const ab_calc *c);
+bool ab_cas_row(const ab_calc *c, int i, char *out, int size);
+const char *ab_cas_note(const ab_calc *c);
+#define AB_NOTE_PLUSC 1
+#define AB_NOTE_MORE 2
 
 /* Rebuilds the label table after program memory is replaced (state loading). */
 void ab_prog_relabel(ab_calc *c);

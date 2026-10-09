@@ -609,6 +609,7 @@ bool ab_line_ok(ab_op op, int32_t arg)
     case AB_GRIGHT:                                                                            /* (033) */
     case AB_GZOOM: case AB_GMOVE: case AB_GTRACE: case AB_GMARK: case AB_GFACT: case AB_GFCN:          /* (040) */
     case AB_CASD: case AB_CASSIMP: case AB_CASEXP: case AB_CASCOL: case AB_CASSUB:                    /* (CAS 004) */
+    case AB_CASSOLVE: case AB_CASINT: case AB_CASFACT:                                                /* (048) */
     case AB_ENGL: case AB_ENGR:                                                                       /* (041 C) */
     case AB_FRACFMT: case AB_CLEQN:     /* nonprogrammable since 019 and 021 (load_fuzz's line sweep) */
         return false;
@@ -666,8 +667,9 @@ static void sec_modes(rd *r)
         rval(r, &ex);
         need(r, (ecode == 0xFFFF || ecode < (unsigned)V1_N) && eactive <= 2 &&
                     (estatus <= ABN_UNDERFLOW || (estatus >= ABN_CAS_TOO_LONG && estatus <= ABN_CAS_COPY && r->version >= 12) ||
-                     (estatus == ABN_TOO_DEEP && r->version >= 14)));   /* unit 026
-                                                   added two; CAS 004 four */
+                     (estatus == ABN_TOO_DEEP && r->version >= 14) ||
+                     (estatus >= ABN_CAS_NOT_POLY && estatus <= ABN_CAS_EXPR_ONLY && r->version >= 15)));   /* unit 026
+                                                   added two; CAS 004 four; 047 one; 048 four */
     } else {
         msg = 0;                                /* an older image: no message to say */
     }

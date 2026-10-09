@@ -3827,6 +3827,133 @@ int main(void)
         expect(ss == ABN_TOO_DEEP && c2.eqn_typing, "047: SUBST's 20-group replacement: NESTED TOO DEEP, still typed");
     }
 
+    /* unit 048 (abacus #5267): CAS's sixth key opens its second page, SOLVE ∫DX FACTR, each prompting for the variable;
+       SOLVE's report (the CAS REPORT bar, rows k-3..k with the cursor's on X), ENTER copying a root through the core
+       and showing X; ∫'s +C beside the answer on the screen, never in its text; FACTOR's MAY FACTOR MORE above its
+       answer; neither the report nor a note in the image; the quarantine (047) before casim on each key */
+    {
+        static screen_page pg;
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        ab_eqn_add(&c, "X^2-5\xc3\x97X+6=0");
+        press(&a, "k:4");
+        app_ui(&a, &ui);
+        expect(ui.soft[5] && !strcmp(ui.soft[5], "\xe2\x96\xb8"), "048: CAS's sixth key is \xe2\x96\xb8");
+        press(&a, "k:5");
+        app_ui(&a, &ui);
+        expect(ui.soft[0] && !strcmp(ui.soft[0], "SOLVE") && ui.soft[1] && !strcmp(ui.soft[1], "\xe2\x88\xab" "DX") &&
+                   ui.soft[2] && !strcmp(ui.soft[2], "FACTR") && (!ui.soft[3] || !ui.soft[3][0]) &&
+                   (!ui.soft[4] || !ui.soft[4][0]) && ui.soft[5] && !strcmp(ui.soft[5], "\xe2\x96\xb8"),
+               "048: CAS2: SOLVE \xe2\x88\xab" "DX FACTR, its sixth key back");
+        press(&a, "k:0");
+        app_ui(&a, &ui);
+        expect(ui.prompt && !strcmp(ui.prompt, "SOLVE _"), "048: SOLVE prompts for the variable");
+        int n = c.eqn_count;
+        press(&a, "ltr:X");
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(ab_cas_report(&c) && c.eqn_count == n && ui.soft[0] && !strcmp(ui.soft[0], "\xe2\x96\xb2") &&
+                   strstr(pg.x.text, "SOLVED") && !pg.y.text[0],
+               "048: SOLVE X: the report, the status row on X, the CAS REPORT bar, nothing stored");
+        press(&a, "k:1");                       /* down */
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(!strcmp(pg.x.text, "X=2") && strstr(pg.y.text, "SOLVED"), "048: down: X=2 on X, the status above");
+        press(&a, "k:1 ENTER");
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        abn three = abn_from_int(3);
+        expect(!ab_cas_report(&c) && !c.eqn_mode && abn_cmp(&c.x.re, &three) == 0 && c.eqn_count == n &&
+                   strstr(pg.x.text, "3"),
+               "048: ENTER on X=3: 3 in X, shown, the report gone, nothing stored");
+        /* the image keeps neither the report nor a note */
+        static uint8_t img[1 << 16];
+        static ab_calc c3;
+        ab_eqn_add(&c, "X^2-1");
+        ab_do_arg(&c, AB_CASSOLVE, 'X' - 'A');
+        size_t len = ab_state_save(&c, img, sizeof img);
+        ab_init(&c3);
+        expect(ab_cas_report(&c) && len && ab_state_load(&c3, img, len) == ABN_OK && !ab_cas_report(&c3),
+               "048: the report is not in the image");
+        /* ∫: +C beside the answer on the screen, never in its text; it goes with the list's move */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        ab_do(&c, AB_RAD);
+        ab_eqn_add(&c, "3\xc3\x97X^2+2\xc3\x97X+1");
+        press(&a, "k:4 k:5 k:1");
+        app_ui(&a, &ui);
+        expect(ui.prompt && !strcmp(ui.prompt, "\xe2\x88\xab" "DX _"), "048: \xe2\x88\xab" "DX prompts for the variable");
+        press(&a, "ltr:X");
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(!strcmp(c.eqn[c.eqn_cur], "X+X^2+X^3") && strstr(pg.x.text, "X+X^2+X^3") && strstr(pg.x.text, "+C") &&
+                   !strchr(c.eqn[c.eqn_cur], 'C'),
+               "048: \xe2\x88\xab" "DX X: the answer shown with +C beside it, the text without it");
+        len = ab_state_save(&c, img, sizeof img);
+        ab_init(&c3);
+        expect(len && ab_state_load(&c3, img, len) == ABN_OK && !ab_cas_note(&c3) && !strcmp(c3.eqn[c3.eqn_cur], c.eqn[c.eqn_cur]),
+               "048: after a reload the answer shows bare (the note is not in the image)");
+        ab_do(&c, AB_BST);                      /* the list up and back down */
+        ab_do(&c, AB_SST);
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(!strstr(pg.x.text, "+C"), "048: up and back down: +C gone");
+        /* FACTOR's unproven factor: MAY FACTOR MORE above the answer */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        ab_eqn_add(&c, "69120\xc3\x97X^12-883584\xc3\x97X^11+3675072\xc3\x97X^10-4777824\xc3\x97X^9-2178000\xc3\x97X^8+"
+                       "7710864\xc3\x97X^7-2213952\xc3\x97X^6-2071296\xc3\x97X^5+775920\xc3\x97X^4+114000\xc3\x97X^3-"
+                       "36000\xc3\x97X^2-2");
+        press(&a, "k:4 k:5 k:2");
+        app_ui(&a, &ui);
+        expect(ui.prompt && !strcmp(ui.prompt, "FACTR _"), "048: FACTR prompts for the variable");
+        n = c.eqn_count;
+        press(&a, "ltr:X");
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(c.eqn_count == n + 1 && !strcmp(pg.y.text, "MAY FACTOR MORE") && !c.msg,
+               "048: FACTR's PARTIAL: inserted, MAY FACTOR MORE above it, not an error");
+        /* fresh eyes: the note only over its answer: a prompt on X (SOLVE's, waiting for the variable) has none */
+        press(&a, "k:4 k:5 k:0");
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(ab_cas_note(&c) && strstr(pg.x.text, "SOLVE") && strcmp(pg.y.text, "MAY FACTOR MORE") != 0,
+               "048: SOLVE's prompt on X: no MAY FACTOR MORE over it");
+        press(&a, "C");
+        /* another key leaves the report and acts; a long report shows four rows, the cursor's on X */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        ab_eqn_add(&c, "(X-1)\xc3\x97(X-2)\xc3\x97(X-3)\xc3\x97(X-4)");
+        ab_do_arg(&c, AB_CASSOLVE, 'X' - 'A');
+        for (int i = 0; i < 4; i++) ab_do(&c, AB_SST);
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(!strcmp(pg.x.text, "X=4") && !strcmp(pg.t.text, "X=1"), "048: five rows: X=1 on T down to X=4 on X");
+        ab_do(&c, AB_EQN);
+        expect(!ab_cas_report(&c) && !c.eqn_mode, "048: EQN leaves the report and acts (Equation mode off)");
+        /* the quarantine before casim, each key */
+        static const ab_op OPS[3] = {AB_CASSOLVE, AB_CASINT, AB_CASFACT};
+        for (int k = 0; k < 3; k++) {
+            ab_init(&c);
+            ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+            ab_eqn_add(&c, "X+1");
+            char deep[200] = "";
+            for (int i = 0; i < 30; i++) strcat(deep, "(");
+            strcat(deep, "X");
+            for (int i = 0; i < 30; i++) strcat(deep, ")");
+            snprintf(c.eqn[c.eqn_cur], AB_EQN_LEN, "%s", deep);
+            int n2 = c.eqn_count;
+            abn_status ks = ab_do_arg(&c, OPS[k], 'X' - 'A');
+            expect(ks == ABN_TOO_DEEP && c.eqn_count == n2 && !ab_cas_report(&c),
+                   k == 0 ? "048: SOLVE of an over-deep equation: NESTED TOO DEEP" : k == 1 ? "048: \xe2\x88\xab of it: NESTED TOO DEEP"
+                                                                         : "048: FACTOR of it: NESTED TOO DEEP");
+        }
+    }
+
     printf("app_test: %d/%d checks\n", checks - bad, checks);
     return bad != 0;
 }

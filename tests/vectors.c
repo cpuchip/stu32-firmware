@@ -205,7 +205,8 @@ static const char *const STATUS_NAMES[] = {"OK", "DIV_ZERO", "RANGE", "BAD_TEXT"
                                            "NO_SOLUTION", "MULT_SOLUTION", "INTERRUPTED",
                                            "BAD_IMAGE", "OVERFLOW", "UNDERFLOW", "RPN_ONLY", "STU_ONLY",
                                            "NO_EQN", "NO_VAR", "CAS_TOO_LONG", "CAS_NO_ROOM", "CAS_UNSUPPORTED",
-                                           "CAS_COPY", "TOO_DEEP"};
+                                           "CAS_COPY", "TOO_DEEP", "CAS_NOT_POLY", "CAS_NOT_NUMERIC",
+                                           "CAS_NOT_INTEGRABLE", "CAS_EXPR_ONLY"};
 
 /* Applies one key token. Returns 0, or -1 for an unknown token. */
 static int apply_token(ab_calc *c, const char *tok, int *errors)
@@ -546,6 +547,7 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
     {   /* CAS 004: CASD:v CASCOL:v CASSUB:v (a variable A-Z), CASSIMP, CASEXP */
         static const struct { const char *t; ab_op op; bool var; } CAS[] = {
             {"CASD:", AB_CASD, true}, {"CASCOL:", AB_CASCOL, true}, {"CASSUB:", AB_CASSUB, true},
+            {"CASSOLVE:", AB_CASSOLVE, true}, {"CASINT:", AB_CASINT, true}, {"CASFACT:", AB_CASFACT, true},   /* 048 */
             {"CASSIMP", AB_CASSIMP, false}, {"CASEXP", AB_CASEXP, false}};
         for (size_t i = 0; i < sizeof CAS / sizeof CAS[0]; i++) {
             size_t n = strlen(CAS[i].t);
@@ -788,6 +790,16 @@ int vectors_run(const char *name, FILE *f)
                     /* a built-in linear solver as its LCD name, blanks written _ (unit 015) */
                     const char *e = c.eqn_cur >= 0 ? c.eqn[c.eqn_cur] : "TOP";
                     snprintf(got, sizeof got, "%s", e[0] == '\x01' ? e + 1 : e);
+                    for (char *q = got; *q; q++)
+                        if (*q == ' ') *q = '_';
+                } else if (strcmp(ex, "%CASREP") == 0 || strcmp(ex, "%CASROW") == 0 || strcmp(ex, "%NOTE") == 0) {
+                    /* unit 048: SOLVE's report while open, the row under its cursor, the note beside the equation
+                       shown; none when there is none; blanks written _ */
+                    const char *r = ab_cas_report(&c), *n = ab_cas_note(&c);
+                    char row[AB_EQN_LEN];
+                    if (ex[1] == 'N') snprintf(got, sizeof got, "%s", n ? n : "none");
+                    else if (ex[4] == 'R' && ex[5] == 'E') snprintf(got, sizeof got, "%s", r ? r : "none");
+                    else snprintf(got, sizeof got, "%s", ab_cas_row(&c, c.cas_row, row, sizeof row) ? row : "none");
                     for (char *q = got; *q; q++)
                         if (*q == ' ') *q = '_';
                 } else if (strcmp(ex, "%EQN") == 0) {

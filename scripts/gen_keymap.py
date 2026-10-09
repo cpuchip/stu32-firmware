@@ -227,7 +227,14 @@ MENUS = [
     # CAS 004 (casim's work/004 rule 4, proposed): Casimir on the equation shown, from EQN LIST's fifth key, in STU
     # only (the app shows no CAS in 33s or 35s mode); D/DX, COLCT and SUBST prompt for the variable as SOLVE does
     ("CAS", [p("D/DX", "AB_CASD", "KM_ARG_VAR"), o("SIMP", "AB_CASSIMP"), o("EXPND", "AB_CASEXP"),
-             p("COLCT", "AB_CASCOL", "KM_ARG_VAR"), p("SUBST", "AB_CASSUB", "KM_ARG_VAR"), NONE]),
+             p("COLCT", "AB_CASCOL", "KM_ARG_VAR"), p("SUBST", "AB_CASSUB", "KM_ARG_VAR"),
+             ("\u25b8", "KM_MENU", "0", "CAS2", 0)]),
+    # unit 048 (abacus #5267): the second page, each prompting for the variable: SOLVE's exact roots (a report),
+    # the antiderivative, the factors; its sixth key back to the first page
+    ("CAS2", [p("SOLVE", "AB_CASSOLVE", "KM_ARG_VAR"), p("\u222bDX", "AB_CASINT", "KM_ARG_VAR"),
+              p("FACTR", "AB_CASFACT", "KM_ARG_VAR"), NONE, NONE, ("\u25b8", "KM_MENU", "0", "CAS", 0)]),
+    # unit 048: SOLVE's report open: up and down step among its rows (ENTER copies a root, C leaves)
+    ("CAS REPORT", [o("\u25b2", "AB_BST"), o("\u25bc", "AB_SST"), NONE, NONE, NONE, NONE]),
     # unit 046 (abacus #4996): EQN LIST's GOLD bank (eqn_bar takes it with GOLD), the REG names as a first character;
     # in 33s mode dimmed and doing nothing (041 A11)
     ("EQN LIST GOLD", [o("REGX", "AB_KREG", 0), o("REGY", "AB_KREG", 1), o("REGZ", "AB_KREG", 2), o("REGT", "AB_KREG", 3),

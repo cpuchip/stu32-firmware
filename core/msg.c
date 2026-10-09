@@ -47,6 +47,10 @@ const char *ab_status_message(abn_status st)
     case ABN_CAS_UNSUPPORTED: return "UNSUPPORTED";             /* and the refused name (ab_error_message) */
     case ABN_CAS_COPY: return "CAN'T COPY RAND";                /* or SEED (ab_error_message) */
     case ABN_TOO_DEEP: return "NESTED TOO DEEP";                /* unit 047 (abacus #5153); no guide has one */
+    case ABN_CAS_NOT_POLY: return "NOT A POLYNOMIAL";          /* unit 048: the texts approved in #5267 */
+    case ABN_CAS_NOT_NUMERIC: return "COEF NOT NUMERIC";
+    case ABN_CAS_NOT_INTEGRABLE: return "CAN'T INTEGRATE";
+    case ABN_CAS_EXPR_ONLY: return "EXPRESSION ONLY";
     }
     return "";
 }
@@ -147,6 +151,9 @@ const char *ab_busy_message(ab_op op)
     switch (op) {
     case AB_SOLVE: return "SOLVING";                            /* F-4 */
     case AB_INTEG: return "INTEGRATING";                        /* F-2 */
+    case AB_CASSOLVE: return "SOLVING";                         /* unit 048: the CAS keys' (casim's walk) */
+    case AB_CASINT: return "INTEGRATING";
+    case AB_CASFACT: return "FACTORING";                        /* ours */
     case AB_XEQ: case AB_RS: case AB_SST: return "RUNNING";     /* F-4 (with its boxed B) */
     default: return NULL;
     }

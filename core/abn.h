@@ -64,7 +64,11 @@ typedef enum {
     ABN_CAS_NO_ROOM,        /* the arena ran out, or the depth guard stopped a walk: TOO COMPLEX */
     ABN_CAS_UNSUPPORTED,    /* a construct refused, by name (a function D/DX refuses): UNSUPPORTED name */
     ABN_CAS_COPY,           /* SUBST would copy a draw: CAN'T COPY RAND (or SEED) */
-    ABN_TOO_DEEP            /* unit 047: an equation nested past the parser's bound: NESTED TOO DEEP */
+    ABN_TOO_DEEP,           /* unit 047: an equation nested past the parser's bound: NESTED TOO DEEP */
+    ABN_CAS_NOT_POLY,       /* unit 048: SOLVE or FACTOR of what is not a polynomial in the variable: NOT A POLYNOMIAL */
+    ABN_CAS_NOT_NUMERIC,    /* unit 048: a coefficient another letter, π, a root, a draw: COEF NOT NUMERIC */
+    ABN_CAS_NOT_INTEGRABLE, /* unit 048: not one of the integral table's forms: CAN'T INTEGRATE */
+    ABN_CAS_EXPR_ONLY       /* unit 048: ∫ or FACTOR of an equation (L=R): EXPRESSION ONLY */
 } abn_status;
 
 abn abn_zero(void);

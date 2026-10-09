@@ -320,6 +320,8 @@ static void dump(void)
         printf("ui: clock=%s%c view=%s soft1=%s\n", ui.clock, ui.ampm ? ui.ampm : ' ', ui.view[0] ? ui.view[0] : "-",
                ui.soft[0] && ui.soft[0][0] ? ui.soft[0] : "-");
         printf("app: %s\n", app_running(&app) ? app.app->name : "-");     /* unit 037 */
+        printf("eqn: %s | note=%s | rep=%s\n", calc->eqn_mode && calc->eqn_cur >= 0 ? calc->eqn[calc->eqn_cur] : "-",
+               ab_cas_note(calc) ? ab_cas_note(calc) : "-", ab_cas_report(calc) ? ab_cas_report(calc) : "-");   /* 048 */
         printf("ui: show=%d %s%s%s\n", ui.show_n, ui.show_n ? ui.show[0] : "-", ui.show_n > 1 ? "/" : "",
                ui.show_n > 1 ? ui.show[1] : "");     /* unit 030: SHOW held */
     }

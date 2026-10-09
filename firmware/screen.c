@@ -194,6 +194,7 @@ typedef struct {
     uint32_t cp[LINE_MAX_CP];
     int n;
     int cursor;                 /* the cell the cursor is in, -1 none */
+    int tail;                   /* cells at the end kept in view when the line is cut (unit 048: ∫'s " +C"), 0 none */
     char u8[SCREEN_TEXT_MAX];   /* the same cells as UTF-8, for screen_lines */
     int ulen;
 } line;
@@ -252,7 +253,12 @@ static void draw_line(ls027_frame *f, int bot, int max, const line *l, bool left
     uint32_t cp[LINE_MAX_CP];
     int n = l->n;
     memcpy(cp, l->cp, sizeof cp[0] * (size_t)n);
-    if (n > room) {
+    if (n > room && l->tail > 0 && l->cursor < 0 && l->tail < room - 1) {    /* its start, an ellipsis, its tail */
+        memmove(cp + room - l->tail, l->cp + n - l->tail, sizeof cp[0] * (size_t)l->tail);
+        cp[room - l->tail - 1] = 0x2026;
+        n = room;
+        left = true;
+    } else if (n > room) {
         int start = 0;
         if (l->cursor >= 0 && l->cursor > room - 2) start = l->cursor - (room - 2);
         if (start > n - room) start = n - room;
@@ -624,6 +630,7 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
 {
     int unused;
     const char *m;
+    bool eqn_shown = false;                     /* X is the equation shown in the list (unit 048's notes) */
     line *xl = &k->x;
     memset(k, 0, sizeof *k);
     k->x.cursor = k->y.cursor = k->z.cursor = k->t.cursor = -1;
@@ -696,6 +703,15 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
         line_add(xl, m);                        /* every message is one line (#3822) */
         k->x_left = true;
         k->xk = SCREEN_MESSAGE;
+    } else if (ab_cas_report(c) && !c->prgm) { /* SOLVE's exact roots (unit 048): rows k-3..k, the cursor's on X,
+                                                   as the table's; the status row first */
+        line *ls[4] = {&k->t, &k->z, &k->y, &k->x};
+        char row[AB_EQN_LEN];
+        for (int i = 0; i < 4; i++)
+            if (ab_cas_row(c, c->cas_row - 3 + i, row, sizeof row)) eqn_line(row, -1, ls[i]);
+        k->view = k->x_left = true;
+        k->xk = k->yk = SCREEN_MESSAGE;
+        return;
     } else if (c->entry.active || c->cpart || c->vlen) {
         entry_line(c, ui->radix == ',' ? ',' : '.', xl);
         k->x_left = k->x_letter = true;
@@ -733,9 +749,15 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
         else {
             eqn_line(c->eqn[c->eqn_cur], -1, xl);
             line_add(xl, ab_eqn_mark(c, c->eqn[c->eqn_cur], c->eqn_model[c->eqn_cur]));   /* unit 031 rule 3 */
+            if ((m = ab_cas_note(c)) != NULL && m[0] == '+') {
+                line_add(xl, " +C");            /* unit 048: ∫'s +C beside the answer, never in its text, kept in
+                                                   view when a long answer is cut (fresh eyes) */
+                xl->tail = 3;
+            }
         }
         k->x_left = true;
         k->xk = SCREEN_EQN;
+        eqn_shown = c->eqn_cur >= 0;
     } else if (c->eng_on && c->x.kind == AB_REAL && c->base == 10) {   /* unit 041 C (B4): ENG's view, until the next key */
         char buf[64];
         ab_display d = display_of(c, ui, FMT_WIDE);
@@ -766,6 +788,13 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
         val_line(&c->y, c, ui, &k->y, &unused);
     }
     if (k->prompt) k->yk = SCREEN_PROMPT;
+    if (eqn_shown && !k->prompt && (m = ab_cas_note(c)) != NULL && m[0] != '+') {
+        memset(&k->y, 0, sizeof k->y);          /* unit 048: FACTOR's MAY FACTOR MORE above its answer, a message */
+        k->y.cursor = -1;
+        line_add(&k->y, m);
+        k->prompt = true;
+        k->yk = SCREEN_MESSAGE;
+    }
     val_line(&c->z, c, ui, &k->z, &unused);
     val_line(&c->t, c, ui, &k->t, &unused);
     if (c->alg && !c->prgm) {

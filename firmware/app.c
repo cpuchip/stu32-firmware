@@ -79,7 +79,8 @@ static void prompt_open(app_state *a, int op, int kind)
                        : op == AB_INPUT ? "INPUT" : op == AB_CLVARX ? "CLVAR" : op == AB_SF ? "SF"
                        : op == AB_CF ? "CF" : op == AB_FS ? "FS?" : op == AB_XVAR ? "x<>" : op == AB_SOLVE ? "SOLVE"
                        : op == AB_INTEG ? "\xe2\x88\xab" "FN d" : op == AB_CASD ? "D/DX" : op == AB_CASCOL ? "COLCT"
-                       : op == AB_CASSUB ? "SUBST" : op == AB_FN ? "FN=" : "";
+                       : op == AB_CASSUB ? "SUBST" : op == AB_FN ? "FN=" : op == AB_CASSOLVE ? "SOLVE"
+                       : op == AB_CASINT ? "\xe2\x88\xab" "DX" : op == AB_CASFACT ? "FACTR" : "";
     char buf[16] = "";
     if (op >= AB_STOADD && op <= AB_STODIV) snprintf(buf, sizeof buf, "STO%s", ARITH[op - AB_STOADD]);
     else if (op >= AB_RCLADD && op <= AB_RCLDIV) snprintf(buf, sizeof buf, "RCL%s", ARITH[op - AB_RCLADD]);
@@ -191,7 +192,10 @@ static void do_op(app_state *a, int op, int arg)
     if (op != AB_VIEW && op != AB_ENGL && op != AB_ENGR) undo_mark(a);    /* ENG's view: no UNDO mark (041 C) */
     /* 040b: a call that may take long (a SOLVE, an integral, a run's first slice, a graph tool) is marked, so that
        the device's key task delivers C into it (app_interrupt); nothing left over before or after */
-    bool computing = runs || (op == AB_GFCN && c->gr_on);
+    bool computing = runs || (op == AB_GFCN && c->gr_on) ||
+                     ((op == AB_CASSOLVE || op == AB_CASINT || op == AB_CASFACT) && c->eqn_mode && c->stu);
+                                                /* unit 048: casim's walk can't stop; a C during it discards the
+                                                   result on return (abacus #5267) */
     if (computing) {
         c->intr = false;
         a->computing = true;
@@ -437,6 +441,7 @@ static int eqn_bar(const app_state *a)
         return m >= 0 ? m : menu_named(PAGE[a->gpage % 3]);
     }
     if (ab_view_linear(a->c)) return menu_named("LIN VIEW");         /* x= y= (z=): unit 035 */
+    if (ab_cas_report(a->c)) return menu_named("CAS REPORT");       /* SOLVE's exact roots: unit 048 */
     if (a->c->alg && !a->c->prgm) return menu_named("ALG LINE");    /* STU's line (unit 029) */
     if (a->c->eqn_typing) return menu_named("EQN TYPE");
     if (a->c->eqn_mode && !a->c->prgm) {         /* GOLD: the list's bank, the REG names (unit 046) */
