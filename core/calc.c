@@ -190,7 +190,7 @@ static ab_val ab_vec(int n)
 }
 
 static fn_angle angle_of(const ab_calc *c);
-static abn_status entry_value(const ab_entry *e, abn *out, int base);
+static abn_status entry_value(const ab_entry *e, abn *out, int base, bool m33);
 
 /* The vector being typed: its finished elements and the value v of the one being typed. */
 static abn_status vector_entry_value(const ab_calc *c, const abn *v, ab_val *out)
@@ -198,7 +198,7 @@ static abn_status vector_entry_value(const ab_calc *c, const abn *v, ab_val *out
     ab_val r = ab_vec(c->vlen);
     abn_status st;
     for (int i = 0; i < c->vlen - 1; i++)
-        if ((st = entry_value(&c->ventry[i], vel(&r, i), 10)) != ABN_OK) return st;
+        if ((st = entry_value(&c->ventry[i], vel(&r, i), 10, !c->m35)) != ABN_OK) return st;
     *vel(&r, c->vlen - 1) = *v;
     *out = r;
     return ABN_OK;
@@ -212,7 +212,7 @@ static abn_status complex_entry_value(const ab_calc *c, const abn *v, ab_val *ou
     abn v1;
     cplx z;
     abn_status st;
-    if ((st = entry_value(&c->entry1, &v1, 10)) != ABN_OK) return st;
+    if ((st = entry_value(&c->entry1, &v1, 10, !c->m35)) != ABN_OK) return st;
     if (c->cpart == 1) {
         z.re = v1;
         z.im = *v;
@@ -294,7 +294,7 @@ static int count_char(const ab_entry *e, char ch)
     return n;
 }
 
-static abn_status entry_value(const ab_entry *e, abn *out, int base)
+static abn_status entry_value(const ab_entry *e, abn *out, int base, bool m33)
 {
     /* In HEX, OCT or BIN the keys are an integer's digits in that base (UG p.11-3); a value past
      * the largest word cannot be typed (UG p.11-7): the key is refused by the caller. */
@@ -313,7 +313,9 @@ static abn_status entry_value(const ab_entry *e, abn *out, int base)
     }
     /* A second point makes the entry a fraction: integer . numerator . denominator (UG p.5-1),
      * the exact rational rounded once (unit 007 rule 2). With no denominator digit yet, the
-     * number is the decimal typed so far (ours, unit 007). */
+     * number is the decimal typed so far (ours, unit 007). In 33s mode, with no numerator digit,
+     * the integer part is the numerator: 5 . . 8 is 5/8, as Michael's 33s keys it (FC2, abacus
+     * #5550); the 35s reads 5 and no fraction. */
     if (count_char(e, '.') == 2) {
         char ip[AB_ENTRY_TEXT], nu[AB_ENTRY_TEXT], de[AB_ENTRY_TEXT];
         int part = 0, a = 0, b = 0, c2 = 0;
@@ -325,6 +327,7 @@ static abn_status entry_value(const ab_entry *e, abn *out, int base)
             else de[c2++] = ch;
         }
         ip[a] = nu[b] = de[c2] = '\0';
+        if (c2 > 0 && m33 && b == 0) return fr_from_parts(out, e->mant_neg, "", ip, de);
         if (c2 > 0) return fr_from_parts(out, e->mant_neg, ip, nu, de);
         char s[AB_ENTRY_TEXT + 4];
         int n = 0;
@@ -384,6 +387,9 @@ static abn_status entry_key(ab_calc *c, ab_op op)
         if (count_digits(&e, exp_part) >= limit) return ABN_OK;
         /* a denominator never starts with 0 (ours, unit 007): the key is ignored */
         if (op == AB_K0 && points == 2 && e.text[e.len - 1] == '.') return ABN_OK;
+        /* in 33s mode a denominator takes 4 digits and a 5th does nothing, as Michael's 33s (FC3,
+           abacus #5550); the 35s takes more */
+        if (!c->m35 && points == 2 && e.len >= 4 && !memchr(e.text + e.len - 4, '.', 4)) return ABN_OK;
         put_ch(&e, (char)('0' + (op - AB_K0)));
     } else if (op == AB_KPOINT) {
         /* the second point starts a fraction's denominator (UG p.5-1); a third is ignored, as is
@@ -458,7 +464,7 @@ static abn_status entry_key(ab_calc *c, ab_op op)
     abn v;
     ab_val nv;
 value:
-    if (entry_value(&e, &v, c->base) != ABN_OK) return ABN_OK;  /* out of range: key ignored */
+    if (entry_value(&e, &v, c->base, !c->m35) != ABN_OK) return ABN_OK;  /* out of range: key ignored */
     nv = ab_real(v);
     if (c->cpart && complex_entry_value(c, &v, &nv) != ABN_OK) return ABN_OK;
     if (c->vlen && vector_entry_value(c, &v, &nv) != ABN_OK) return ABN_OK;
@@ -1169,7 +1175,7 @@ static abn_status suffix(ab_calc *c, int base)
     if (base == 10) {
         for (int i = 0; i < c->entry.len; i++)
             if (d[i] >= 'a' && d[i] <= 'f') return ABN_DOMAIN;
-        if (entry_value(&c->entry, &val, 10) != ABN_OK) return ABN_DOMAIN;
+        if (entry_value(&c->entry, &val, 10, !c->m35) != ABN_OK) return ABN_DOMAIN;
     } else {
         if (strchr(d, '.') || strchr(d, 'E') || !base_parse(d, base, &v)) return ABN_DOMAIN;
         val = base_from_word(c->entry.mant_neg ? -v : v);

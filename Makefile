@@ -20,7 +20,7 @@ LIBS := -lm
 .PHONY: all test accuracy all-checks clang-check clean device-host
 # make accuracy needs a python with mpmath: make all-checks PYTHON=...
 PYTHON ?= python3
-KEYV := $(filter-out work/002-vectors.txt work/016-vectors.txt work/017-vectors.txt work/018-vectors.txt,$(filter-out %-fmt-vectors.txt,$(wildcard work/*-vectors.txt))) tests/021-soroban.txt tests/019-soroban.txt tests/003-soroban.txt tests/018-soroban.txt tests/029-soroban.txt tests/034-soroban.txt tests/harness-soroban.txt tests/046-soroban.txt tests/047-soroban.txt tests/050-soroban.txt tests/054-soroban.txt
+KEYV := $(filter-out work/002-vectors.txt work/016-vectors.txt work/017-vectors.txt work/018-vectors.txt,$(filter-out %-fmt-vectors.txt,$(wildcard work/*-vectors.txt))) tests/021-soroban.txt tests/019-soroban.txt tests/003-soroban.txt tests/018-soroban.txt tests/029-soroban.txt tests/034-soroban.txt tests/harness-soroban.txt tests/046-soroban.txt tests/047-soroban.txt tests/050-soroban.txt tests/054-soroban.txt tests/fc-soroban.txt
 all: build/standin_test build/app_test build/keymap_test build/power_test build/screen_test build/keys_test build/ls027_test build/draw_test build/store_test build/load_fuzz build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test build/bi_drive build/hp_drive build/deep_test build/eqn_depth build/eqn_stack build/stackkeys
 
 # every build/ target is order-only on the directory: a fresh clone has none (abacus #3803)
@@ -215,6 +215,8 @@ test: all
 	AB_SAVELOAD=1 AB_STORE=1 ./build/vectors tests/050-soroban.txt
 	./build/vectors tests/054-soroban.txt
 	AB_SAVELOAD=1 AB_STORE=1 ./build/vectors tests/054-soroban.txt
+	./build/vectors tests/fc-soroban.txt
+	AB_SAVELOAD=1 AB_STORE=1 ./build/vectors tests/fc-soroban.txt
 	./build/deep_test
 	python3 tests/eqn_depth_fuzz.py build/eqn_depth 1 3000
 	python3 tests/eqn_stack_fuzz.py build/eqn_stack 1 2000

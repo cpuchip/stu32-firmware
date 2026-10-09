@@ -1,0 +1,18 @@
+# Field checks FC2 and FC3 (abacus #5550, inside unit 041's 33s-mode ruling): Michael's sequences on his 33s against
+# ours. FC2: in 33s mode a fraction with no numerator digit takes its integer part as the numerator, so 5 . . 8 keys
+# 5/8; the 35s and STU read it as 5 and no fraction, unchanged. FC3: in 33s mode a fraction's denominator takes at
+# most 4 digits, and a 5th is refused (the key does nothing); the 35s and STU keep taking it.
+# ID | description | keys | expected
+F01 | FC2: in 33s mode 5 . . 8 keys 5/8 (Michael's 33s) | MODE33 5..8 ENTER | X=0.625
+F02 | FC2: 35s unchanged: 5 . . 8 is 5 | MODE35 5..8 ENTER | X=5
+F03 | FC2: in 35s mode 0 . 5 . 8 is 5/8 | MODE35 0.5.8 ENTER | X=0.625
+F04 | FC2: in 33s mode 0 . 5 . 8 is 5/8 too | MODE33 0.5.8 ENTER | X=0.625
+F05 | FC2: STU as the 35s | STU 5..8 ENTER | X=5
+F06 | FC2: in 33s mode 16 . . 8 is 16/8 | MODE33 16..8 ENTER | X=2
+F07 | FC2: in 33s mode a negative one: 5 . . 8 +/- is -5/8 | MODE33 5..8 CHS ENTER | X=-0.625
+F08 | FC3: in 33s mode 16 . 3 . 1638 then 4 stays 16 3/1638 (Michael's 33s) | MODE33 16.3.16384 ENTER | X=16.00183150183150183150183150183150
+F09 | FC3: 35s keeps taking it: 16 3/16384 | MODE35 16.3.16384 ENTER | X=16.00018310546875
+F10 | FC3: STU keeps taking it | STU 16.3.16384 ENTER | X=16.00018310546875
+F11 | FC3: in 33s mode a 4-digit denominator is taken | MODE33 1.2.9999 ENTER | X=1.000200020002000200020002000200020
+F12 | FC3: in 33s mode 1 . 2 . 9999 then 9 stays 1 2/9999 | MODE33 1.2.99999 ENTER | X=1.000200020002000200020002000200020
+F13 | FC2 and FC3 together: in 33s mode 5 . . 1234 then 5 is 5/1234 | MODE33 5..12345 ENTER | X=0.004051863857374392220421393841166937
