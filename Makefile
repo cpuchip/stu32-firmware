@@ -49,8 +49,19 @@ APP := firmware/app.c firmware/apps.c firmware/keymap.c firmware/keys.c firmware
 # build/games/games.mk (GAMES_C, GAMES_O, and a rule a game: its manifest's flags and its own include directories, always
 # -Wframe-larger-than=1024 (an error by CFLAGS' -Werror; the spelling clang takes too), every object depending on the export's stamp, since git archive gives
 # files their commit's time) and build/games/games.h (GAMES_DECLARE, GAMES_ENTRIES for apps.c).
-build/games/games.mk: games.list scripts/gen_games.py
-	python3 scripts/gen_games.py games.list build/games
+# GAMES_LIST (tutor #5865, abacus #5869): another games list for the host builds; set empty, no game is linked (stu32-calc's
+# keyrun). Unset, games.list as before. build/games/.which names the list the outputs came from, so a change of list
+# makes them again even when no list file is newer.
+GAMES_LIST ?= games.list
+GAMES_SRC := $(if $(strip $(GAMES_LIST)),$(GAMES_LIST),build/games-none.list)
+build/games-none.list: | build
+	printf '# no games (GAMES_LIST empty)\n' > $@
+build/games/.which: FORCE
+	@mkdir -p build/games; echo '$(GAMES_SRC)' | cmp -s - $@ || echo '$(GAMES_SRC)' > $@
+FORCE:
+.PHONY: FORCE
+build/games/games.mk: $(GAMES_SRC) scripts/gen_games.py build/games/.which
+	python3 scripts/gen_games.py $(GAMES_SRC) build/games
 build/games/.stamp build/games/games.h: build/games/games.mk
 ifeq ($(filter clean,$(MAKECMDGOALS)),)       # (clean needs no games, nor a clone to make them)
 include build/games/games.mk
