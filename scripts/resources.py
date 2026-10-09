@@ -78,7 +78,11 @@ def build(wt, target, bdir="build-res", extra_defaults=None, flash_port=None):
     if extra_defaults or flash_port or not os.path.exists(done):   # (a commit's plain build is kept: it can't change)
         shutil.rmtree(os.path.join(wt, d, bdir), ignore_errors=True)
     else:
-        return read_build(os.path.join(wt, d, bdir))
+        b = os.path.join(wt, d, bdir)
+        if not os.path.exists(os.path.join(b, "res-calc.txt")):    # (cached before the frame column existed)
+            docker(wt, f"xtensa-esp32s3-elf-objdump -d --disassemble=calc_task {d}/{bdir}/{name}.elf | "
+                       f"grep -A1 '<calc_task>:' > {d}/{bdir}/res-calc.txt || true")
+        return read_build(b)
     flash = f'idf.py -B {bdir} -DSDKCONFIG={bdir}/sdkconfig -p "$PORT" flash >/dev/null\n' if flash_port else ""
     r = docker(wt, f"""
 TARGET=esp32s3 scripts/fetch-intel-dfp.sh >/dev/null
@@ -88,6 +92,7 @@ idf.py -B {bdir} -DSDKCONFIG={bdir}/sdkconfig size --format json2 --output-file 
 idf.py -B {bdir} -DSDKCONFIG={bdir}/sdkconfig size-components --format json2 --output-file {bdir}/res-arch.json >/dev/null
 idf.py -B {bdir} -DSDKCONFIG={bdir}/sdkconfig size > {bdir}/res-size.txt
 xtensa-esp32s3-elf-nm -t d -S {bdir}/{name}.elf > {bdir}/res-nm.txt
+xtensa-esp32s3-elf-objdump -d --disassemble=calc_task {bdir}/{name}.elf | grep -A1 "<calc_task>:" > {bdir}/res-calc.txt || true
 {flash}""", port=flash_port)
     if r.returncode != 0:
         sys.exit(f"resources: {target} at {wt} did not build:\n{r.stdout[-3000:]}")
@@ -105,7 +110,13 @@ def read_build(b):
         p = line.split()
         if len(p) == 4 and INTERNAL[0] <= int(p[0]) < INTERNAL[1]:
             syms[p[3]] = syms.get(p[3], 0) + int(p[1])
-    return {"image": image, "region": region, "arch": {k: v["size"] for k, v in arch.items()}, "syms": syms}
+    frame = None                                # calc_task's frame: xtensa's prologue, `entry a1, N` (unit 052)
+    cf = os.path.join(b, "res-calc.txt")
+    if os.path.exists(cf):
+        m = re.search(r"entry\s+a1,\s*(0x[0-9a-f]+|\d+)", open(cf).read())
+        frame = int(m.group(1), 0) if m else None
+    return {"image": image, "region": region, "arch": {k: v["size"] for k, v in arch.items()}, "syms": syms,
+            "frame": frame}
 
 
 def iram_code(r):
@@ -138,6 +149,8 @@ def static(args):
               f"{delta(ua, ub)} |")
         ia, ib = iram_code(a), iram_code(b)
         print(f"| IRAM code (the 16 KB block + DIRAM's .text) | {fmt(ia)} | {fmt(ib)} | {delta(ia, ib)} |")
+        print(f"| calc_task's frame (under every deep path's stack), B | {fmt(a['frame'])} | {fmt(b['frame'])} | "
+              f"{delta(a['frame'], b['frame'])} |")
         libs = sorted(set(a["arch"]) | set(b["arch"]), key=lambda k: -abs(b["arch"].get(k, 0) - a["arch"].get(k, 0)))
         moved = [k for k in libs if b["arch"].get(k, 0) != a["arch"].get(k, 0)]
         print("\nLibraries that changed (all memory types):\n")
