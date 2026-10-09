@@ -3776,7 +3776,7 @@ static abn_status cas_step(ab_calc *c, int op, int var, const char *repl)
         if (r == 2) return ABN_CAS_TOO_LONG;
         text = t33;
     }
-    casim_req rq = {(casim_op)op, text, c->eqn_model[c->eqn_cur], var, repl, AB_MODEL_STU, c->angle};
+    casim_req rq = {(casim_op)op, text, c->eqn_model[c->eqn_cur], var, repl, AB_MODEL_STU, c->angle, NULL};  /* repl2: defint's upper bound, not on the keys yet (CAS 009) */
     cs = casim_run(&rq, out, sizeof out, ab_cas_arena, sizeof ab_cas_arena);
     bool ext = op == CASIM_SOLVE || op == CASIM_INTEGRATE || op == CASIM_FACTOR;     /* unit 048's keys */
     if (ext) {
