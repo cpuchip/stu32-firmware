@@ -793,7 +793,7 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
         k->y.cursor = -1;
         line_add(&k->y, m);
         k->prompt = true;
-        k->yk = SCREEN_MESSAGE;
+        k->yk = SCREEN_LABEL;                   /* a label, not an error (tally #5786) */
     }
     char dl[16];
     if (ab_cas_prompt_label(c, dl, sizeof dl)) {    /* 056, 057: which text is typed ("∫X FROM", "∫X TO", "÷ BY", "GCD WITH") */

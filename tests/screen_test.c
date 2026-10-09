@@ -521,6 +521,17 @@ int main(int argc, char **argv)
     ab_do(&c, AB_SST);
     screen_render(&c, &ui, &f);
     expect(text_at(&f, 20, 87, 3, "REMAINDER", 1), "QUOT: r with REMAINDER on Y");
+    {   /* tally #5786, abacus #5789: the page says a label is a label, and an error an error: two kinds */
+        screen_page pg;
+        screen_lines(&c, &ui, &pg);
+        expect(pg.y.kind == SCREEN_LABEL && !strcmp(pg.y.text, "REMAINDER"), "a label on Y: SCREEN_LABEL");
+        ab_do_arg(&c, AB_CASQUOT, 23);
+        ab_do(&c, AB_K0);
+        ab_do(&c, AB_ENTER);                    /* r by 0: UNDEFINED */
+        screen_lines(&c, &ui, &pg);
+        expect(pg.x.kind == SCREEN_MESSAGE && !strcmp(pg.x.text, "UNDEFINED") && pg.y.kind != SCREEN_LABEL,
+               "an error: SCREEN_MESSAGE on X, no label kind");
+    }
 
     /* a prompt takes Y, at scale 3, with no letter */
     ab_init(&c);

@@ -86,7 +86,9 @@ typedef enum {
     SCREEN_PROGRAM,         /* program entry: the pointer's address and line, or PRGM TOP */
     SCREEN_MESSAGE,         /* the op running (RUNNING...), or the error message */
     SCREEN_PROMPT,          /* an op waiting for its argument (X); INPUT's A? or VIEW's A= (Y) */
-    SCREEN_VIEW             /* a keyboard VIEW's Variable=Value in X (UG p.3-4), until the next key */
+    SCREEN_VIEW,            /* a keyboard VIEW's Variable=Value in X (UG p.3-4), until the next key */
+    SCREEN_LABEL            /* a CAS answer's label on Y (MAY FACTOR MORE, QUOTIENT, REMAINDER, NOT AT): not an error
+                               (tally #5786, abacus #5789; it was SCREEN_MESSAGE, which the app drew in the error colour) */
 } screen_kind;
 
 typedef struct {
