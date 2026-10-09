@@ -8,6 +8,9 @@ Copies every line the board prints to stdout and LOG. With a SCRIPT, runs its li
     send TEXT              send TEXT and a newline (the firmware reads K<n> as key n, and more)
     wait TEXT [SECONDS]    wait for a printed line containing TEXT (default 10 s); fail if none
     expect TEXT [SECONDS]  the same, named for a check: a miss is reported as FAIL
+    expect-min KEY MIN [SECONDS]
+                           the next printed KEY=<integer> must be at least MIN: a miss or a smaller
+                           value is reported as FAIL (unit 055: stack-free after a wasm trap)
     reset                  pulse EN through the board's auto-reset (RTS, with DTR held low)
     press0 MS              hold IO0 low for MS ms through the auto-reset's DTR line (RTS high), as
                            pressing BOOT: a key for the light-sleep probe (unit 023)
@@ -17,6 +20,7 @@ Copies every line the board prints to stdout and LOG. With a SCRIPT, runs its li
 Exits 0 when every wait and expect was met. Without a SCRIPT it relays stdin lines to the board
 until EOF. Needs pyserial (present in the ESP-IDF environment). DTR and RTS are held low on open
 so opening the port neither resets the chip nor enters its bootloader."""
+import re
 import sys
 import threading
 import time
@@ -63,6 +67,21 @@ def wait_for(text, limit, seen_from):
     return False
 
 
+def wait_value(key, limit, seen_from):
+    """the integer in the next printed KEY=<integer>, or None"""
+    pat = re.compile(re.escape(key) + r"=(-?\d+)")
+    end = time.time() + limit
+    while time.time() < end:
+        with lock:
+            for i in range(seen_from[0], len(lines)):
+                m = pat.search(lines[i])
+                if m:
+                    seen_from[0] = i + 1
+                    return int(m.group(1))
+        time.sleep(0.05)
+    return None
+
+
 failures = 0
 if script:
     pos = [0]
@@ -87,6 +106,15 @@ if script:
             if word == "expect" or not ok:
                 print(f"talk.py: {tag} line {n}: {word} {rest!r}", flush=True)
                 out.write(f"talk.py: {tag} line {n}: {word} {rest!r}\n")
+            failures += not ok
+        elif word == "expect-min":
+            p = rest.split()
+            key, low, limit = p[0], int(p[1]), float(p[2]) if len(p) > 2 else 10.0
+            got = wait_value(key, limit, pos)
+            ok = got is not None and got >= low
+            msg = f"talk.py: {'PASS' if ok else 'FAIL'} line {n}: expect-min {key} {low} (got {got})"
+            print(msg, flush=True)
+            out.write(msg + "\n")
             failures += not ok
         elif word == "reset":
             s.dtr = False
