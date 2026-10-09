@@ -17,7 +17,7 @@ ENGINE := build/abn_intel.o $(CASIM_O) $(INTEL_LIB)
 CFLAGS += -DAB_CASIM -Ibuild/casim
 LIBS := -lm
 
-.PHONY: all test accuracy all-checks clang-check clean device-host
+.PHONY: all test accuracy all-checks clang-check casim-config casim-build clean device-host
 # make accuracy needs a python with mpmath: make all-checks PYTHON=...
 PYTHON ?= python3
 KEYV := $(filter-out work/002-vectors.txt work/016-vectors.txt work/017-vectors.txt work/018-vectors.txt,$(filter-out %-fmt-vectors.txt,$(wildcard work/*-vectors.txt))) tests/021-soroban.txt tests/019-soroban.txt tests/003-soroban.txt tests/018-soroban.txt tests/029-soroban.txt tests/034-soroban.txt tests/harness-soroban.txt tests/046-soroban.txt tests/047-soroban.txt tests/050-soroban.txt tests/054-soroban.txt tests/fc-soroban.txt
@@ -289,12 +289,31 @@ clang-check: build/casim/.pin build/games/games.h
 	  else echo "clang-check: no build/wamr (scripts/fetch-wamr.sh), so firmware/wasm/wasm_app.c is not compiled"; fi; \
 	  echo "clang-check: $$n files, $$bad failing (the control refused)"; [ $$bad = 0 ]'
 
+# Casimir builds the core itself, without AB_CASIM (abacus #5873: 628c96c failed there, a helper defined but unused).
+# casim-config compiles the working tree's core as casim's libcore.a rule does; casim-build runs casim's own build
+# (an archive of casim at CASIM_PIN, in build/casim-build, never casim's checkout) against this repo's HEAD: it checks
+# the committed core, and says so when core/ has changes not committed.
+CASIM_CFLAGS := -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror
+casim-config:
+	@n=0; for f in $(CORE); do n=$$((n + 1)); $(CC) $(CASIM_CFLAGS) -Icore -c -o /dev/null $$f || exit 1; done; \
+	  $(CC) $(CASIM_CFLAGS) $(BID_FLAGS) -isystem $(INTEL_SRC) -c -o /dev/null core/abn_intel.c || exit 1; \
+	  echo "casim-config: $$((n + 1)) core files compiled as casim compiles them (no AB_CASIM)"
+casim-build:
+	@head=$$(git rev-parse HEAD); repo=$$(pwd); casim=$${CASIM_REPO:-$$repo/../casim}; \
+	  git diff --quiet HEAD -- core Makefile || echo "casim-build: core/ or the Makefile has changes not committed; HEAD $$head is what casim builds"; \
+	  rm -rf build/casim-build && mkdir -p build/casim-build && \
+	  git -C "$$casim" archive "$$(cat CASIM_PIN)" | tar -x -C build/casim-build && \
+	  $(MAKE) -s -C build/casim-build CORE_REPO="$$repo" CORE_PIN=$$head build/casim >/dev/null && \
+	  echo "casim-build: casim $$(cut -c1-7 CASIM_PIN) built against core $$(git rev-parse --short HEAD)"
+
 all-checks:
 	@$(PYTHON) -c "import mpmath" 2>/dev/null || { echo "all-checks: $(PYTHON) has no mpmath (make all-checks PYTHON=...)"; exit 1; }
 	$(MAKE) test
 	$(MAKE) accuracy PYTHON=$(PYTHON)
 	$(MAKE) clang-check
-	@echo "all-checks: make test, make accuracy and make clang-check passed"
+	$(MAKE) casim-config
+	$(MAKE) casim-build
+	@echo "all-checks: make test, make accuracy, make clang-check, casim-config and casim-build passed"
 
 accuracy: build/fn_drive build/fn_drive_p37 build/cx_drive build/vectors
 	$(PYTHON) tests/fn_fuzz.py build/fn_drive

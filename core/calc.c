@@ -3765,7 +3765,6 @@ static int cas_text33(const char *in, char *out, size_t cap, char *bad, size_t b
     out[o] = '\0';
     return 0;
 }
-#endif
 
 /* Unit 057: an inserted CAS answer, stamped STU as the list's; but one that only the 33s reads (the variable i, from a
    33s equation: STU refuses a lone i) keeps 33, so it still means what it meant (fresh eyes F3) */
@@ -3810,12 +3809,16 @@ static abn_status cas_rows(ab_calc *c, int op, const char *out)
 }
 
 /* Unit 056: a letter A-Z in a bound's text, other than inside a function's name (SQRT, LN, π is not a letter): the
-   text only picks BOUND NOT NUMERIC's message for casim's BAD_ARG (#5630 rule 3) */
-static __attribute__((unused)) bool cas_has_letter(const char *s)
+   text only picks BOUND NOT NUMERIC's message for casim's BAD_ARG (#5630 rule 3). Unit 057's helpers and this one are
+   under AB_CASIM with their callers, so casim's own build of the core (without it) compiles them neither in nor unused
+   (abacus #5873) */
+static bool cas_has_letter(const char *s)
 {
     int v[27];
     return s && eqn_vars(s, false, false, AB_MODEL_STU, v) > 0;
 }
+
+#endif
 
 static abn_status cas_step(ab_calc *c, int op, int var, const char *repl, const char *repl2)
 {
