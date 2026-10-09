@@ -469,6 +469,25 @@ static __attribute__((noinline)) void parse_k2(parser *p, int id, ab_val *v)
 }
 
 /* (I) or (J): the variable or register the number in I (J) names (UG p.14-23) */
+/* Unit 058: the longest name at s that model m reads (a function name needs its "("): its index, or -1, and its length.
+   Out of line, so its locals stay out of parse_post's frame, which every level of a nested equation holds (inlined, the
+   first-byte test grew that frame from 240 to 256 B: 288 B less free at 047's deepest site; 049's lesson). */
+static __attribute__((noinline)) int name_at(const char *s, int m, size_t *len)
+{
+    int best = -1;
+    size_t bl = 0;
+    for (size_t k = 0; k < sizeof NAMES / sizeof NAMES[0]; k++) {
+        if (!name_could(k, s)) continue;
+        size_t n = strlen(NAMES[k].name);
+        if (n > bl && strncmp(s, NAMES[k].name, n) == 0 && (NAMES[k].kind == K0 || s[n] == '(') && name_in(NAMES[k].name, m)) {
+            best = (int)k;
+            bl = n;
+        }
+    }
+    *len = bl;
+    return best;
+}
+
 static __attribute__((noinline)) void parse_ind(parser *p, const char *s, ab_val *v)
 {
     ab_val x;
@@ -503,17 +522,8 @@ static void parse_prim(parser *p, ab_val *v)
     }
     /* a name: the longest that fits; a function name needs its "(" */
     {
-        int best = -1;
-        size_t bl = 0;
-        for (size_t k = 0; k < sizeof NAMES / sizeof NAMES[0]; k++) {
-            if (!name_could(k, s)) continue;
-            size_t n = strlen(NAMES[k].name);
-            if (n > bl && strncmp(s, NAMES[k].name, n) == 0 && (NAMES[k].kind == K0 || s[n] == '(') &&
-                name_in(NAMES[k].name, p->m33 ? 33 : 35)) {
-                best = (int)k;
-                bl = n;
-            }
-        }
+        size_t bl;
+        int best = name_at(s, p->m33 ? 33 : 35, &bl);
         if (best >= 0) {
             const fname *f = &NAMES[best];
             p->i += (int)bl;
