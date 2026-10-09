@@ -1,6 +1,6 @@
 # the speed benches together (EQNBENCH, OPBENCH, PROGBENCH), for a configuration's before and after
 sleep 3
-wait standin: heap 30
+wait : heap internal 30
 sleep 2
 send X
 wait state: 10

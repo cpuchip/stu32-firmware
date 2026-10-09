@@ -10,7 +10,11 @@
 #include <sys/time.h>
 
 #include "app.h"
+#include "calc.h"
 #include "esp_heap_caps.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "screen.h"
 #include "version.h"
 
 /* app.set_wall: the clock set from the keys, kept in the RTC */
@@ -54,12 +58,39 @@ static void dev_sysinfo_common(app_sysinfo *o, uint32_t flash_free, uint32_t slo
 }
 
 /* each use's sound: Hz and ms (ours; VOL's sample is use 0) */
-static void dev_tone_of(int use, uint32_t base_hz, uint32_t *hz, uint32_t *ms)
+static __attribute__((unused)) void dev_tone_of(int use, uint32_t base_hz, uint32_t *hz, uint32_t *ms)
 {
     *hz = base_hz;
     *ms = use == DEV_USE_CLICK ? 4 : use == DEV_USE_PRGM ? 100 : use == DEV_USE_BATT ? 300 : use == DEV_USE_ON ? 30
           : use == DEV_USE_DONE ? 150 : 60;     /* the error tone and VOL's sample: 60 ms, as unit 022 */
     if (use == DEV_USE_BATT) *hz = base_hz / 2; /* lower, apart from the rest */
+}
+
+/* The console's X (unit 053: one format on both boards, so the stand-in's scripts run on Rev A unchanged): the state
+   line (X, the stop, the program, the app's shift and prompt, the message, the internal heap free, the calc task's stack
+   high-water mark), the status band's clock and SYS's first line, the app running, the equation shown with 048's note
+   and report, and SHOW. A board adds its own lines after it. noinline: called on the calc task, its locals inlined into
+   calc_task would sit under every deep path (unit 052). */
+static __attribute__((noinline, unused)) void dev_dump(const ab_calc *calc, app_state *app)
+{
+    char x[96], stop[32];
+    ab_display d = {{AB_ALL, 0, 40, '.', false}, false, 4095, 0, 10, false, 0};
+    int ind;
+    if (ab_format_display(&calc->x.re, &d, x, sizeof x, &ind) < 0) snprintf(x, sizeof x, "?");
+    ab_stop_text(calc, stop);
+    const char *m = ab_error_message(calc);
+    printf("state: X=%s stop=%s lines=%d prgm=%d running=%d shift=%d prompt=%s msg=%s heap=%u stack-free=%u\n", x, stop,
+           calc->prog_len, calc->prgm, app->running, app->shift, app->prompt_op >= 0 ? app->prompt_text : "-", m ? m : "-",
+           (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL), (unsigned)uxTaskGetStackHighWaterMark(NULL));
+    screen_ui ui;                               /* (on the stack while X runs, not 176 B of internal RAM for good) */
+    app_ui(app, &ui);
+    printf("ui: clock=%s%c view=%s soft1=%s\n", ui.clock, ui.ampm ? ui.ampm : ' ', ui.view[0] ? ui.view[0] : "-",
+           ui.soft[0] && ui.soft[0][0] ? ui.soft[0] : "-");
+    printf("app: %s\n", app_running(app) ? app->app->name : "-");          /* unit 037 */
+    printf("eqn: %s | note=%s | rep=%s\n", calc->eqn_mode && calc->eqn_cur >= 0 ? calc->eqn[calc->eqn_cur] : "-",
+           ab_cas_note(calc) ? ab_cas_note(calc) : "-", ab_cas_report(calc) ? ab_cas_report(calc) : "-");   /* 048 */
+    printf("ui: show=%d %s%s%s\n", ui.show_n, ui.show_n ? ui.show[0] : "-", ui.show_n > 1 ? "/" : "",
+           ui.show_n > 1 ? ui.show[1] : "");                             /* unit 030: SHOW held */
 }
 
 #endif

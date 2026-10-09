@@ -1,5 +1,5 @@
 # boots, then the console answers: the quickest check that a flash took
-wait standin: heap 30
+wait : heap internal 30
 sleep 3
 send X
 expect state: 5

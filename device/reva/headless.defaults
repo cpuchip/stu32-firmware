@@ -1,0 +1,3 @@
+# unit 053: Rev A's main on the stand-in's S3 (8 MB of flash; Rev A's partitions end at 0x7A2000, inside it). The rest
+# is Rev A's own sdkconfig.defaults.
+CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y

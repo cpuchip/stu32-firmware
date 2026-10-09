@@ -1,11 +1,11 @@
 # unit 039 on the board: 33s mode's CMPLX prefix, sin(2 + i3) on the stack pair (33s p.9-4)
-wait standin: heap 30
+wait : heap internal 30
 sleep 3
 send WIPE
 expect wipe: both slots erased
 send RESTART
 expect load: no image: MEMORY CLEAR 30
-wait STANDIN READY 30
+wait READY 30
 send K39
 send K18
 send K38

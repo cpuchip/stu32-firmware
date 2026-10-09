@@ -15,7 +15,12 @@
  *   read on their pull-ups, C from IO0. A key held at power-up (the ON press that woke it) makes no event.
  * - Power (power.h, gauge.h): the MAX17048 read every 30 s; CHG_N and PGOOD_N; BOOT levels from
  *   pins.c, except BOOST_EN and DISP after a deep-sleep wake (they were held high).
- * - The console: K<n> presses key n, X prints the state (for bring-up, as on the stand-in). */
+ * - The console (unit 053: the stand-in's, so its scripts run here unchanged): K<n> presses key n, U<n> releases it, X
+ *   prints the state (dev_common.h's format), SAVE, WIPE, RESTART, TIME, BEEP, VOL; with AB_BENCH, EQNBENCH, OPBENCH,
+ *   PROGBENCH.
+ * - REVA_HEADLESS (unit 053, device/reva/headless.sh): this main on the stand-in's S3 before the boards come, driving
+ *   none of Rev A's pins (some are the stand-in's RGB lines): no LCD sends, ULP, piezo, gauge, matrix, light or deep
+ *   sleep; keys come from the console. What only the real board can test is listed in work/053. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -52,6 +57,7 @@
 #include "state.h"
 #include "store.h"
 #include "dev_common.h"
+#include "dev_bench.h"
 
 extern const uint8_t ulp_main_bin_start[] asm("_binary_ulp_main_bin_start");
 extern const uint8_t ulp_main_bin_end[] asm("_binary_ulp_main_bin_end");
@@ -68,6 +74,8 @@ static bool shown_valid;
 static QueueHandle_t keys_q;           /* key n down: n; released: KEY_UP_BASE - n (unit 030); -1 dump,
                                            -2 the time */
 #define KEY_UP_BASE (-100)
+enum { KEY_SAVE = -3, KEY_WIPE = -4, KEY_RESTART = -5, KEY_EQNBENCH = -10, KEY_OPBENCH = -11, KEY_PROGBENCH = -12 };
+                                            /* the console's other commands, for the calc task (unit 053) */
 /* unit 023: light sleep between keys. usb_lock keeps the chip out of light sleep on USB power (the
    console stays usable, the power is free); tone_lock through a piezo tone (LEDC stops in light
    sleep); key_wake is given by a row's or IO0's interrupt while the scan sleeps. */
@@ -97,12 +105,22 @@ static uint32_t now_ms(void)
 
 static void lcd_send(const uint8_t *b, size_t n)
 {
+#ifdef REVA_HEADLESS
+    (void)b, (void)n;                           /* the frame is made and encoded; nothing goes out */
+#else
     spi_transaction_t t = {.length = n * 8, .tx_buffer = b};
     spi_device_transmit(lcd, &t);
+#endif
 }
 
 static void lcd_init(bool cold)
 {
+#ifdef REVA_HEADLESS
+    (void)cold;
+    tx = heap_caps_malloc(TX_CAP, MALLOC_CAP_DMA);
+    shown_valid = false;
+    return;
+#endif
     spi_bus_config_t bc = {.mosi_io_num = PIN_SI, .miso_io_num = -1, .sclk_io_num = PIN_SCLK,
                            .quadwp_io_num = -1, .quadhd_io_num = -1, .max_transfer_sz = TX_CAP};
     ESP_ERROR_CHECK(spi_bus_initialize(SPI2_HOST, &bc, SPI_DMA_CH_AUTO));
@@ -187,8 +205,8 @@ static void IRAM_ATTR key_isr(void *arg)
     if (woken) portYIELD_FROM_ISR();
 }
 
-/* The rows and IO0 as wakes on a low level, for light sleep and for the scan's semaphore. */
-static void key_wake_init(void)
+/* The rows and IO0 as wakes on a low level, for light sleep and for the scan's semaphore. (unused: not head-less) */
+static __attribute__((unused)) void key_wake_init(void)
 {
     key_wake = xSemaphoreCreateBinary();
     gpio_install_isr_service(0);
@@ -201,7 +219,7 @@ static void key_wake_init(void)
     esp_sleep_enable_gpio_wakeup();
 }
 
-static void scan_task(void *arg)
+static __attribute__((unused)) void scan_task(void *arg)
 {
     (void)arg;
     static kb_state ks;
@@ -248,6 +266,9 @@ static int piezo_level = PIEZO_LEVELS - 1;  /* where the setting lives waits for
 
 static void piezo_init(void)
 {
+#ifdef REVA_HEADLESS
+    return;                                     /* (piezo_tone says what would sound) */
+#endif
     ledc_timer_config_t t = {.speed_mode = LEDC_LOW_SPEED_MODE, .duty_resolution = LEDC_TIMER_10_BIT,
                              .timer_num = LEDC_TIMER_0, .freq_hz = PIEZO_HZ, .clk_cfg = LEDC_AUTO_CLK};
     ledc_channel_config_t ch = {.gpio_num = PIN_PIEZO, .speed_mode = LEDC_LOW_SPEED_MODE, .channel = LEDC_CHANNEL_0,
@@ -258,6 +279,9 @@ static void piezo_init(void)
 /* a tone of hz for ms (blocking; 0 Hz is a rest) */
 static void piezo_tone(uint32_t hz, uint32_t ms)
 {
+#ifdef REVA_HEADLESS
+    printf("tone: %lu Hz %lu ms level %d\n", (unsigned long)hz, (unsigned long)ms, piezo_level);
+#endif
     if (!piezo_ready) return;
     if (tone_lock) esp_pm_lock_acquire(tone_lock);
     if (hz) {
@@ -273,7 +297,7 @@ static void piezo_tone(uint32_t hz, uint32_t ms)
 
 /* ---- the gauge, the store ---- */
 
-static bool g_xfer(void *ctx, uint8_t addr, const uint8_t *w, size_t wn, uint8_t *r, size_t rn)
+static __attribute__((unused)) bool g_xfer(void *ctx, uint8_t addr, const uint8_t *w, size_t wn, uint8_t *r, size_t rn)
 {
     (void)ctx;
     (void)addr;
@@ -310,9 +334,16 @@ static void apps_save(void)
 static void save(void)
 {
     size_t n = dev_image_save(calc, &app.set, NULL, 0);
-    if (!flash.ctx || !n || n > IMAGE_CAP) return;
+    if (!flash.ctx || !n || n > IMAGE_CAP) {
+        printf("save: not saved (%u bytes)\n", (unsigned)n);
+        return;
+    }
     dev_image_save(calc, &app.set, image, IMAGE_CAP);
-    if (ab_store_save(&flash, image, (uint32_t)n) == 0) {
+    int64_t t0 = esp_timer_get_time();
+    int rc = ab_store_save(&flash, image, (uint32_t)n);
+    printf("save: %u bytes, %s, %lld ms\n", (unsigned)n, rc == 0 ? "ok" : "FAILED",
+           (long long)((esp_timer_get_time() - t0) / 1000));
+    if (rc == 0) {
         app_saved(&app);
         last_image = (uint32_t)n;
     }
@@ -324,10 +355,13 @@ static dev_settings loaded;                 /* the settings load() found, for th
 static void load(void)
 {
     uint32_t n = flash.ctx ? ab_store_load(&flash, image, IMAGE_CAP) : 0;
-    if (!n || dev_image_load(calc, &loaded, image, n) != ABN_OK) {
+    if (n && dev_image_load(calc, &loaded, image, n) == ABN_OK) {
+        printf("load: %u bytes ok\n", (unsigned)n);
+    } else {
         ab_memory_clear(calc);              /* and the settings' defaults (dev_image_load gave them) */
         dev_settings_default(&loaded);
         memory_clear_msg = true;
+        printf("load: %s: MEMORY CLEAR\n", n ? "image refused" : "no image");
     }
 }
 
@@ -353,6 +387,10 @@ static void on_busy(void *ctx, int op)
 /* off: the image stays (BOOST_EN, DISP held; the ULP inverts COM), ON wakes, the timer refreshes */
 static void sleep_now(void)
 {
+#ifdef REVA_HEADLESS
+    printf("reva: off (head-less: no deep sleep)\n");
+    return;
+#endif
     gpio_hold_en(PIN_BOOST_EN);
     gpio_hold_en(PIN_DISP);
     for (int c = 0; c < KB_COLS; c++) gpio_set_direction(COLS[c], GPIO_MODE_INPUT);
@@ -399,6 +437,14 @@ static void console_task(void *arg)
             snprintf(time_text, sizeof time_text, "%.15s", line + 5);
             int k = -2;
             xQueueSend(keys_q, &k, 0);
+        } else if (!strcmp(line, "SAVE") || !strcmp(line, "WIPE") || !strcmp(line, "RESTART")) {    /* unit 053 */
+            int k = line[0] == 'S' ? KEY_SAVE : line[0] == 'W' ? KEY_WIPE : KEY_RESTART;
+            xQueueSend(keys_q, &k, 0);
+#ifdef AB_BENCH
+        } else if (!strcmp(line, "EQNBENCH") || !strcmp(line, "OPBENCH") || !strcmp(line, "PROGBENCH")) {
+            int k = line[0] == 'E' ? KEY_EQNBENCH : line[0] == 'O' ? KEY_OPBENCH : KEY_PROGBENCH;
+            xQueueSend(keys_q, &k, 0);
+#endif
         } else if (!strcmp(line, "BEEP")) {
             piezo_tone(PIEZO_HZ, 100);          /* bring-up: does the piezo sound */
         } else if (!strncmp(line, "VOL", 3)) {
@@ -450,11 +496,25 @@ static void calc_task(void *arg)
             } else {
                 printf("time: ? %s (hh:mm or hh:mm:ss)\n", time_text);
             }
-        } else if (got) {
-            char stop[32];
-            ab_stop_text(calc, stop);
-            printf("state: stop=%s lines=%d running=%d soc=%d ulp-edges=%lu\n", stop, calc->prog_len, app.running, soc,
-                   (unsigned long)ulp_edges);
+        } else if (got && k == KEY_SAVE) {
+            save();
+        } else if (got && k == KEY_WIPE) {
+            printf("wipe: %s\n", flash.ctx && esp_partition_erase_range(flash.ctx, 0, 2 * flash.slot_size) == ESP_OK
+                                     ? "both slots erased" : "FAILED");
+        } else if (got && k == KEY_RESTART) {
+            fflush(stdout);
+            esp_restart();
+#ifdef AB_BENCH
+        } else if (got && k == KEY_EQNBENCH) {
+            eqnbench();
+        } else if (got && k == KEY_OPBENCH) {
+            opbench();
+        } else if (got && k == KEY_PROGBENCH) {
+            progbench();
+#endif
+        } else if (got) {                       /* -1: X, the stand-in's format, then Rev A's own facts */
+            dev_dump(calc, &app);
+            printf("reva: soc=%d vbat=%lu uV ulp-edges=%lu\n", soc, (unsigned long)vbat_uv, (unsigned long)ulp_edges);
         }
         if (gdev && (uint32_t)(now - last_gauge) >= 30000) {
             gauge_reading g;
@@ -477,6 +537,15 @@ static void calc_task(void *arg)
             app.tone = -1;
         }
         apps_save();                            /* unit 037 */
+        {   /* a program's run starting and stopping, as the stand-in says it (unit 053: accept.txt reads it) */
+            static bool was_running;
+            if (app.running != was_running) {
+                char stop[32];
+                ab_stop_text(calc, stop);
+                printf(app.running ? "run: started\n" : "run: stopped (%s)\n", stop);
+                was_running = app.running;
+            }
+        }
         {   /* no light sleep while an app ticks (rule 7): the lock held once, released once */
             static bool held;
             bool want = app_ticking(&app);
@@ -529,6 +598,7 @@ void app_main(void)
     esp_sleep_wakeup_cause_t why = esp_sleep_get_wakeup_cause();
     bool woke = why == ESP_SLEEP_WAKEUP_EXT1 || why == ESP_SLEEP_WAKEUP_TIMER;
     /* the outputs' first levels (pins.c), keeping BOOST_EN and DISP high after a wake */
+#ifndef REVA_HEADLESS
     for (int i = 0; i < PIN_BOOT_COUNT; i++) {
         const pin_boot *p = &PIN_BOOT[i];
         if (woke && p->pin == PIN_EXTCOMIN) continue;   /* the ULP's pad since the first boot */
@@ -538,6 +608,7 @@ void app_main(void)
         if (woke) gpio_hold_dis(p->pin);
     }
     gpio_deep_sleep_hold_dis();
+#endif
     gpio_set_direction(PIN_ON, GPIO_MODE_INPUT);
     for (int r = 0; r < KB_ROWS; r++) {
         gpio_set_direction(ROWS[r], GPIO_MODE_INPUT);
@@ -548,13 +619,18 @@ void app_main(void)
 
     shown = heap_caps_malloc(sizeof *shown, MALLOC_CAP_SPIRAM);     /* the frame last sent, 12 KB (apps.h v1.2) */
     lcd_init(!woke);
+#ifndef REVA_HEADLESS
     if (!woke) {                                    /* EXTCOMIN: the ULP, from the first boot on, started */
         ESP_ERROR_CHECK(ulp_riscv_load_binary(ulp_main_bin_start, (size_t)(ulp_main_bin_end - ulp_main_bin_start)));
         ulp_set_wakeup_period(0, 500000);           /* after DISP rises: Sharp 6-2's order (review R3) */
         ulp_riscv_cfg_t cfg = ULP_RISCV_DEFAULT_CONFIG();
         ESP_ERROR_CHECK(ulp_riscv_config_and_run(&cfg));
     }
+#endif
 
+#ifdef REVA_HEADLESS
+    printf("gauge: head-less\n");                 /* (its bus would be the stand-in's RGB lines 40, 41) */
+#else
     i2c_master_bus_handle_t bus;
     i2c_master_bus_config_t bc = {.i2c_port = 0, .sda_io_num = PIN_SDA, .scl_io_num = PIN_SCL,
                                   .clk_source = I2C_CLK_SRC_DEFAULT, .glitch_ignore_cnt = 7};
@@ -566,6 +642,7 @@ void app_main(void)
             if (!gauge_init(&gbus, &version)) printf("gauge: not found\n");
         }
     }
+#endif
 
     const esp_partition_t *p = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, 0x40, "abstate");
     if (p) flash = (ab_flash){(void *)p, 4096, p->size / 2, fl_erase, fl_write, fl_read};
@@ -624,6 +701,7 @@ void app_main(void)
     /* unit 023: automatic light sleep. The pins that must keep their level or their pull through it
        are taken out of IDF's sleep isolation, which would otherwise let DISP, BOOST_EN, the LCD's
        lines and the columns float (seen on the stand-in: "isolate all GPIO pins in sleep state") */
+#ifndef REVA_HEADLESS                                /* (head-less: awake for the console, keys from it) */
     {
         const int keep[] = {PIN_DISP, PIN_BOOST_EN, PIN_SCS, PIN_SCLK, PIN_SI, PIN_PIEZO, PIN_EN1, PIN_EN2, PIN_ON};
         for (size_t i = 0; i < sizeof keep / sizeof keep[0]; i++) gpio_sleep_sel_dis(keep[i]);
@@ -640,8 +718,14 @@ void app_main(void)
         }
         key_wake_init();
     }
+#endif
+    printf("reva: heap internal %u (largest block %u), PSRAM %u\n", (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
+           (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL),
+           (unsigned)heap_caps_get_free_size(MALLOC_CAP_SPIRAM));   /* (the stand-in's line, unit 053) */
     if (!calc_stack || !xTaskCreateStaticPinnedToCore(calc_task, "calc", 32768, NULL, 4, calc_stack, &calc_tcb, 1))
         printf("reva: the calc task could not be created\n");
+#ifndef REVA_HEADLESS
     xTaskCreatePinnedToCore(scan_task, "scan", 4096, NULL, 6, NULL, 0);
+#endif
     xTaskCreatePinnedToCore(console_task, "console", 4096, NULL, 3, NULL, 0);
 }

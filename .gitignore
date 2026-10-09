@@ -5,3 +5,4 @@ tests/device/build-*/
 tests/device/main/generated/
 tests/device/sdkconfig*.old
 build-prof/
+build-headless/

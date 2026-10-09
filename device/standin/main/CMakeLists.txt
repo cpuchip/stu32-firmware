@@ -43,7 +43,7 @@ add_custom_target(ab_commit ALL
     BYPRODUCTS ${AB_COMMIT_H} VERBATIM)
 add_dependencies(${COMPONENT_LIB} ab_commit)
 target_include_directories(${COMPONENT_LIB} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
-target_compile_definitions(${COMPONENT_LIB} PRIVATE AB_HAVE_COMMIT_H=1 AB_CASIM=1)
+target_compile_definitions(${COMPONENT_LIB} PRIVATE AB_HAVE_COMMIT_H=1 AB_CASIM=1 AB_BENCH=1)   # dev_bench.h (053)
 target_compile_definitions(${COMPONENT_LIB} PRIVATE
     DECIMAL_CALL_BY_REFERENCE=0 DECIMAL_GLOBAL_ROUNDING=0 DECIMAL_GLOBAL_EXCEPTION_FLAGS=0)
 target_link_libraries(${COMPONENT_LIB} PRIVATE "${BID_LIB}")

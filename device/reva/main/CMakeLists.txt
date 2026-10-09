@@ -47,6 +47,14 @@ add_custom_target(ab_commit ALL
 add_dependencies(${COMPONENT_LIB} ab_commit)
 target_include_directories(${COMPONENT_LIB} PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 target_compile_definitions(${COMPONENT_LIB} PRIVATE AB_HAVE_COMMIT_H=1 AB_CASIM=1)
+# unit 053: REVA_HEADLESS (device/reva/headless.sh) runs this main on the stand-in's S3, driving none of Rev A's pins,
+# with the benches; AB_BENCH alone adds the benches (dev_bench.h) to a Rev A image for bring-up timing. Neither is in
+# the default image (decision 68).
+if(REVA_HEADLESS)
+    target_compile_definitions(${COMPONENT_LIB} PRIVATE REVA_HEADLESS=1 AB_BENCH=1)
+elseif(AB_BENCH)
+    target_compile_definitions(${COMPONENT_LIB} PRIVATE AB_BENCH=1)
+endif()
 target_compile_definitions(${COMPONENT_LIB} PRIVATE
     DECIMAL_CALL_BY_REFERENCE=0 DECIMAL_GLOBAL_ROUNDING=0 DECIMAL_GLOBAL_EXCEPTION_FLAGS=0)
 target_link_libraries(${COMPONENT_LIB} PRIVATE "${BID_LIB}")

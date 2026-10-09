@@ -1,6 +1,6 @@
 # unit 034 rule 3: ->POL's time before and after, ->REC's in RAD (POLBENCH)
 send RESTART
-wait STANDIN READY 30
+wait READY 30
 send X
 expect state: 5
 send POLBENCH
