@@ -39,6 +39,25 @@ static const ab_op V1_OPS[] = {
 };
 #define V1_N ((int)(sizeof V1_OPS / sizeof V1_OPS[0]))
 
+/* The image version from which each status may be the message showing, in abn_status's order; 0 for one that never
+   shows as a message (the brief notices). A status added to abn.h fails the assert below until it has its entry here
+   (056: four were added without one, and an image saved while one showed was refused). */
+static const uint8_t STATUS_SINCE[] = {
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, /* ABN_OK .. ABN_BAD_IMAGE */
+    1, 1,                       /* ABN_OVERFLOW, ABN_UNDERFLOW (unit 026) */
+    0, 0, 0, 0,                 /* ABN_RPN_ONLY, ABN_STU_ONLY, ABN_NO_EQN, ABN_NO_VAR: brief notices */
+    12, 12, 12, 12,             /* CAS 004: ABN_CAS_TOO_LONG .. ABN_CAS_COPY */
+    14,                         /* unit 047: ABN_TOO_DEEP */
+    15, 15, 15, 15,             /* unit 048: ABN_CAS_NOT_POLY .. ABN_CAS_EXPR_ONLY */
+    16, 16, 16, 16,             /* unit 056: ABN_CAS_IMPROPER .. ABN_CAS_BOUND_REAL */
+};
+_Static_assert(sizeof STATUS_SINCE == ABN_STATUS_LAST + 1, "an image version for every status (STATUS_SINCE)");
+
+static bool status_in_image(unsigned st, int version)
+{
+    return st <= ABN_STATUS_LAST && STATUS_SINCE[st] && version >= STATUS_SINCE[st];
+}
+
 enum { T_MODES = 1, T_STACK, T_VARS, T_STAT, T_IND, T_PROG, T_EQNS, T_ENTRY, T_EDITOR, T_RUN, T_SOLVE, T_MODE25, T_ALG,
        T_EQMODEL, T_TABLE, T_GRAPH, T_ZOOM, T_CAS, T_ENG };
 
@@ -667,10 +686,7 @@ static void sec_modes(rd *r)
         estatus = r8(r);
         rval(r, &ex);
         need(r, (ecode == 0xFFFF || ecode < (unsigned)V1_N) && eactive <= 2 &&
-                    (estatus <= ABN_UNDERFLOW || (estatus >= ABN_CAS_TOO_LONG && estatus <= ABN_CAS_COPY && r->version >= 12) ||
-                     (estatus == ABN_TOO_DEEP && r->version >= 14) ||
-                     (estatus >= ABN_CAS_NOT_POLY && estatus <= ABN_CAS_EXPR_ONLY && r->version >= 15) ||
-                     (estatus >= ABN_CAS_IMPROPER && estatus <= ABN_CAS_BOUND_REAL && r->version >= 16)));   /* unit 026
+                    status_in_image(estatus, r->version));   /* unit 026
                                                    added two; CAS 004 four; 047 one; 048 four */
     } else {
         msg = 0;                                /* an older image: no message to say */
