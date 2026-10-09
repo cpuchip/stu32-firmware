@@ -164,6 +164,11 @@ badw "a wasm game with sources" '$a sources = w/*.c' "a wasm game has no sources
 badw "a wasm game without its toolchain" "/^toolchain/d" "lacks toolchain"
 badw "a wasm game whose hash is not hex" "s/^aot_sha256 = .*/aot_sha256 = nothex/" "64 hex digits"
 badw "a wasm game whose .aot is not at the pin" "s|^aot = .*|aot = w/none.aot|" "is not at the pin"
+# a wasm game whose .aot is a symbolic link to a copy of itself, so only the link check can refuse it (soroban, 055's gate)
+rm -rf "$T/repos/bw" "$T/bw.git"; mkwasm bw BADW
+(cd "$T/repos/bw" && mv w/g.aot w/real.aot && ln -s real.aot w/g.aot && git add -A \
+    && git -c user.email=t@t -c user.name=t commit -q -m link && git push -q origin HEAD:main 2>/dev/null)
+printf 'bw bw %s MIT game.txt\n' "$(git -C "$T/repos/bw" rev-parse HEAD)" > "$T/fw/games.list"; run 1 "a wasm game whose .aot is a symbolic link" "symbolic link"
 bad "a native game with an aot" '$a aot = x.aot' "a native game has no aot"
 bad "an unknown kind" '$a kind = lua' "kind must be native or wasm"
 [ "$ok" = 1 ] && { echo "GAMES-LIST GENERATOR GREEN"; exit 0; }
