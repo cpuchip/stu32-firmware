@@ -1,6 +1,10 @@
 # Rev A: ESP32-S3-WROOM-1-N16R8 (16 MB flash, 8 MB octal PSRAM; docs/hw facts section 2)
 CONFIG_IDF_TARGET="esp32s3"
 CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
+# unit 051 (abacus #5309): the module's flash read four bits a clock. The N16R8's 16 MB flash is quad SPI, inside the
+# module (Espressif's WROOM datasheet v1.8, Table 1-1, p. 3). On the stand-in it made SOLVE 39% faster. Bring-up
+# check: the boot log says "SPI Mode : QIO", and the store saves and loads across a reset.
+CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
 CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
 CONFIG_SPIRAM=y
 CONFIG_SPIRAM_MODE_OCT=y
