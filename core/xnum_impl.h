@@ -89,7 +89,13 @@ static abn_status XN_(div_to_abn_)(abn *out, const XN_T *a, const XN_T *b, BI_T 
     /* scale the numerator so the quotient carries at least 45 digits */
     *num = a->m;
     int extra = 45 + (BI_(ndigits)(&b->m) > BI_(ndigits)(num) ? BI_(ndigits)(&b->m) - BI_(ndigits)(num) : 0);
-    if (!BI_(mul_pow10)(num, extra) || !BI_(div)(q, num, &b->m, &inexact)) return ABN_RANGE;
+    if (!BI_(mul_pow10)(num, extra)) return ABN_RANGE;
+    if (b->m.n == 1 && b->m.l[0] == 1)          /* a divisor of 1 (yˣ's exact power, rounded): the quotient is the
+                                                   numerator, exact, so the rounding gets what the division would
+                                                   have given it, without it (unit 050: on the S3 that division was
+                                                   about a third of an equation SOLVE) */
+        return BI_(to_abn)(out, num, a->neg != b->neg, a->e - b->e - extra, false);
+    if (!BI_(div)(q, num, &b->m, &inexact)) return ABN_RANGE;
     return BI_(to_abn)(out, q, a->neg != b->neg, a->e - b->e - extra, inexact);
 }
 
