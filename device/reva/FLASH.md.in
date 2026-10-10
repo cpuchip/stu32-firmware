@@ -7,7 +7,9 @@ and no button.
 
 ## On Windows (fermion)
 
-**1. Copy it from lepton and check it.** Lepton accepts the fermion seats' key (`claude-seats@fermion`):
+**1. Copy it from lepton and check it.** The a5a2734 package is already on fermion, at workspace/drop/reva/
+(abacus #6185). For a newer one, use the fermion seats' pinned alias for lepton (the mesh name fails host-key
+verification from there):
 
     scp -r <build host>:<checkout>/build/reva-image-@S7@ .
     cd reva-image-@S7@
@@ -25,8 +27,9 @@ To find n:
     python -m serial.tools.list_ports -v
 
 It is the port with `VID:PID=303A:1001` (Espressif's USB-Serial-JTAG). A board never flashed shows the same port: the
-S3's ROM brings USB up itself. If no 303A:1001 port appears, put the chip in download mode by hand: hold the IO0
-test pad to GND, touch the EN pad to GND and let go, then let go of IO0.
+S3's ROM brings USB up itself. If no 303A:1001 port appears, put the chip in download mode by hand: hold C (it is
+IO0), poke the reset pinhole, then let go of C (decision 34). If that fails, the same with the test pads: hold IO0 to
+GND, touch EN to GND and let go, then let go of IO0.
 
 **4. Flash** (COMn as found above):
 
@@ -43,7 +46,8 @@ three parts, from `flash_args`:
 - Nothing past the app is written, so a store already saved (abstate at 0x710000, abapps at 0x790000) is kept.
   The single image does blank the NVS and PHY areas below the app, which Rev A doesn't use.
 
-**5. The session:**
+**5. The session**, at guide step 8, with the cell fitted: the gauge runs from the cell, so without one its rows
+read NOT MET.
 
     python talk.py COMn bringup.log bringup.txt
 
@@ -106,6 +110,7 @@ Rev A will differ there:
     REVA READY
 
 - **`load: no image: MEMORY CLEAR`** is right on the first boot; after a SAVE the line is `load: N bytes ok`.
-- **`gauge: not found`** means the MAX17048 didn't answer on I2C.
+- **`gauge: not found` is expected with no cell fitted:** the MAX17048 runs from the cell (VBAT), so at guide
+  step 2, flashed without a cell, it is right. With a cell in, it means the gauge didn't answer on I2C.
 - **The heap line:** head-less on the stand-in it reads 185,495 B (largest block 90,112). Rev A's own figure,
   with its gauge, panel, ULP and light sleep running, is first measured here.
