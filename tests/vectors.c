@@ -608,6 +608,36 @@ static char *trim(char *s)
     return s;
 }
 
+/* The ids a file has used, and their lines: a reused id is a malformed file (abacus #6362: cas004's K26 and K27
+   were given twice, so a report naming one could not say which) */
+static struct seen_id { char *id; int line; } *seen;
+static int seen_n, seen_cap;
+
+static void seen_reset(void)
+{
+    for (int i = 0; i < seen_n; i++) free(seen[i].id);
+    seen_n = 0;
+}
+
+/* 0 the first time id is given (it is remembered), else the line that gave it first */
+static int seen_add(const char *id, int line)
+{
+    for (int i = 0; i < seen_n; i++)
+        if (!strcmp(seen[i].id, id)) return seen[i].line;
+    if (seen_n == seen_cap) {
+        int cap = seen_cap ? 2 * seen_cap : 256;
+        struct seen_id *p = realloc(seen, (size_t)cap * sizeof *p);
+        if (!p) return 0;                       /* out of memory: the check is skipped, the vectors still run */
+        seen = p, seen_cap = cap;
+    }
+    size_t n = strlen(id) + 1;
+    char *copy = malloc(n);
+    if (!copy) return 0;
+    memcpy(copy, id, n);
+    seen[seen_n].id = copy, seen[seen_n].line = line, seen_n++;
+    return 0;
+}
+
 /* Runs one vectors file from f (opened by the caller, who closes it); name labels the report.
  * Returns 0 when every vector passes, 1 on a failure, 2 on a malformed file. */
 int vectors_run(const char *name, FILE *f)
@@ -619,6 +649,7 @@ int vectors_run(const char *name, FILE *f)
 #endif
     char line[LINE_MAX_];
     int lineno = 0, vectors = 0, vectors_ok = 0, checks = 0, checks_ok = 0;
+    seen_reset();
     while (fgets(line, sizeof line, f)) {
         lineno++;
         char *s = trim(line);
@@ -637,6 +668,11 @@ int vectors_run(const char *name, FILE *f)
             return 2;
         }
         char *id = trim(field[0]), *keys = trim(field[2]), *expect = trim(field[3]);
+        int first = seen_add(id, lineno);
+        if (first) {
+            fprintf(stderr, "%s:%d: id %s is line %d's already\n", name, lineno, id, first);
+            return 2;
+        }
 
         ab_calc *cp = &calc;
 #define c (*cp)

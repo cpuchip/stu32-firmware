@@ -33,6 +33,6 @@ K27 | CAS 004 F5 (abacus #4836: keep): XEQ while SUBST's replacement is typed su
 K28 | CAS 004 F5: and SOLVE substitutes, then solves the result | STU EQ:X^2-Y CASSUB:Y 4 SOLVE:X | X=2 %EQN=2 %EQ=X^2-4
 # rc5's depth guard at 44 (casim #6348, abacus #6321), its edge through the keys. A bare STU power chain stores even at K12's
 # 60, but simplify's answer brackets each level, so at 44 casim answers and the core refuses to store the answer (NESTED
-# TOO DEEP); at 45 casim refuses (TOO COMPLEX). At dbb6d4c (guard 46) K27 was NESTED TOO DEEP too: a guard that moves fails here.
-K26 | CAS 004 rule 5: a 44-deep STU power chain: casim answers, its bracketed answer too deep to store, nothing added | STU EQ:X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X CASSIMP | ERR %ERR=TOO_DEEP %EQN=1
-K27 | CAS 004 rule 5: one deeper, 45: past casim's guard, TOO COMPLEX, nothing added | STU EQ:X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X CASSIMP | ERR %ERR=CAS_NO_ROOM %ERRMSG=TOO_COMPLEX %EQN=1
+# TOO DEEP); at 45 casim refuses (TOO COMPLEX). At dbb6d4c (guard 46) K30 was NESTED TOO DEEP too: a guard that moves fails here.
+K29 | CAS 004 rule 5: a 44-deep STU power chain: casim answers, its bracketed answer too deep to store, nothing added | STU EQ:X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X CASSIMP | ERR %ERR=TOO_DEEP %EQN=1
+K30 | CAS 004 rule 5: one deeper, 45: past casim's guard, TOO COMPLEX, nothing added | STU EQ:X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X^X CASSIMP | ERR %ERR=CAS_NO_ROOM %ERRMSG=TOO_COMPLEX %EQN=1
