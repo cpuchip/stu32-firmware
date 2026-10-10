@@ -40,7 +40,8 @@ three parts, from `flash_args`:
 - **dio, not qio, is right.** ESP-IDF writes a DIO header and its bootloader switches the flash to QIO. The check is
   the boot log's `SPI Mode       : QIO`. Don't pass `--flash_mode qio`.
 - esptool should print `Chip is ESP32-S3`, a 16 MB flash, and end with "Hard resetting via RTS pin...".
-- Nothing past the app is written, so a store already saved (abstate, at 0x710000) is kept.
+- Nothing past the app is written, so a store already saved (abstate at 0x710000, abapps at 0x790000) is kept.
+  The single image does blank the NVS and PHY areas below the app, which Rev A doesn't use.
 
 **5. The session:**
 
@@ -63,6 +64,18 @@ three parts, from `flash_args`:
 | `TIME 10:00` | set the clock |
 
 Ctrl+Z, then Enter, ends it.
+
+**6. Timing, after the session (step 8's PSRAM ECC and 32 KB cache rows).** The image above has no benches
+(decision 68). For timing only, flash the bench image, run the benches, then flash the image above again:
+
+    python -m esptool --chip esp32s3 -p COMn -b 460800 --before default_reset --after hard_reset write_flash 0x0 abacus_reva-bench-@S7@.bin
+    python talk.py COMn speed.log speed.txt
+    python -m esptool --chip esp32s3 -p COMn -b 460800 --before default_reset --after hard_reset write_flash 0x0 abacus_reva-@S7@.bin
+
+- The session should end `talk.py: ALL MET`. Send `speed.log` to abacus with `bringup.log`.
+- For comparison, head-less on the stand-in's S3 Rev A gives SOLVE about 17,000 µs, the integral about 29,000 µs, and
+  PROGBENCH about 198 / 255 ms (units 059, 061).
+- The store is kept across both writes.
 
 ## On lepton
 

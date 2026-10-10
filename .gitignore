@@ -8,3 +8,4 @@ build-prof/
 build-headless/
 build-headless-usb/
 device/*/build-wasm/
+device/*/build-bench/
