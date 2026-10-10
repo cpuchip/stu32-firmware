@@ -1,9 +1,11 @@
-# MINES under APPS on the board (arcade's unit, soroban's gate; stu32-arcade docs/mines.md): APPS (blue 0) lists KEYS,
-# BABAL, AIM, LAND and SNAKE, then on its second page (K5, more) MINES on K0. ENTER for a game, a first open at the
-# cursor (12, 6), which deals the board on the chip (the hardware RNG's seed), FRAMEBENCH, then 80 paced presses: a
-# move and an open at a time round the field's edge. The board cannot see the field, so winning and losing are the
-# host's check (stu32-arcade make minescheck); on the host the same keys end the game for 199 of 200 seeds. X prints
-# stack-free before app:, so expect-min comes first. C ends MINES, and 2 ENTER 3 + must still give 5.
+# MINES under APPS on the board (arcade's unit, soroban's gate; stu32-arcade docs/mines.md revision 2): APPS (blue 0)
+# lists KEYS, BABAL, AIM, LAND and SNAKE, then on its second page (K5, more) MINES on K0. On the title, 0 for the
+# settings, 6 twice (HARD, 30 x 16 with 99 mines, from any board the save holds; the rules and sound rows are as the
+# save has them), ENTER back and ENTER for a game. A first open at the cursor (15, 8) deals the board on the chip
+# across ticks (the hardware RNG's seed; the slowest measured deal is 1.95 s, so 3 s pass), then FRAMEBENCH and 79
+# paced presses: a move and an open at a time round the field's edge. The board cannot see the field, so winning and
+# losing are the host's check (stu32-arcade make minescheck); on the host the same keys end the game for 200 of 200
+# seeds. X prints stack-free before app:, so expect-min comes first. C ends MINES, and 2 ENTER 3 + must give 5.
 send RESTART
 wait STANDIN READY 30
 # X starts at 4 here, so the closing 2 ENTER 3 + = 5 can fail: the state survives a reset, and X was already 5
@@ -33,12 +35,25 @@ send U0
 sleep 1
 send X
 expect app: MINES
+send K43
+send U43
+sleep 0.5
+send K33
+send U33
+sleep 0.5
+send K33
+send U33
+sleep 0.5
 send K18
 send U18
-sleep 1
+sleep 0.5
+send K18
+send U18
+sleep 0.5
 send K32
 send U32
 sleep 0.2
+sleep 3
 send FRAMEBENCH
 expect framebench: MINES 30
 send K38
@@ -77,6 +92,30 @@ sleep 0.2
 send K32
 send U32
 sleep 0.2
+send K38
+send U38
+sleep 0.2
+send K32
+send U32
+sleep 0.2
+send K31
+send U31
+sleep 0.2
+send K32
+send U32
+sleep 0.2
+send K31
+send U31
+sleep 0.2
+send K32
+send U32
+sleep 0.2
+send K31
+send U31
+sleep 0.2
+send K32
+send U32
+sleep 0.2
 send K31
 send U31
 sleep 0.2
@@ -221,50 +260,20 @@ sleep 0.2
 send K32
 send U32
 sleep 0.2
-send K33
-send U33
+send K26
+send U26
 sleep 0.2
 send K32
 send U32
 sleep 0.2
-send K33
-send U33
+send K26
+send U26
 sleep 0.2
 send K32
 send U32
 sleep 0.2
-send K33
-send U33
-sleep 0.2
-send K32
-send U32
-sleep 0.2
-send K33
-send U33
-sleep 0.2
-send K32
-send U32
-sleep 0.2
-send K33
-send U33
-sleep 0.2
-send K32
-send U32
-sleep 0.2
-send K33
-send U33
-sleep 0.2
-send K32
-send U32
-sleep 0.2
-send K33
-send U33
-sleep 0.2
-send K32
-send U32
-sleep 0.2
-send K33
-send U33
+send K26
+send U26
 sleep 0.2
 send K32
 send U32
