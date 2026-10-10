@@ -1,5 +1,5 @@
 #!/bin/sh
-# Casimir (cpuchip/casimir, PRIVATE; the casim seat's computer algebra, CAS 004): its src/ at CASIM_PIN,
+# Casimir (cpuchip/casimir, public since decision 72; the casim seat's computer algebra, CAS 004): its src/ at CASIM_PIN,
 # exported read-only with git archive from a local clone (CASIM_REPO, default ../casim) into build/casim;
 # a build never writes into that clone. The pin must be on the clone's origin (a pushed commit, as of
 # its last fetch), as the games list requires.
