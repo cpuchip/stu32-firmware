@@ -5,6 +5,13 @@ CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
 # module (Espressif's WROOM datasheet v1.8, Table 1-1, p. 3). On the stand-in it made SOLVE 39% faster. Bring-up
 # check: the boot log says "SPI Mode : QIO", and the store saves and loads across a reset.
 CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
+# unit 059 (abacus #5989): a 32 KB instruction cache, not 16. The core runs from flash, and its misses were the time
+# left after QIO: Rev A head-less SOLVE -41%, an integral -41%, the cubic at 34 digits -75%, programs -25 to -33%, the
+# same answers digit for digit. SRAM0's 16 KB block becomes cache and its code moves into the shared SRAM: internal RAM
+# +16,383 B static, the heap after boot 185,495 B with a largest block of 90,112 (the ceiling for any internal block).
+# A 64 KB data cache was measured and gave nothing (work/059). The stand-in stays at 16 KB: its keyboard image needs
+# its 128 KB region.
+CONFIG_ESP32S3_INSTRUCTION_CACHE_32KB=y
 CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
 CONFIG_SPIRAM=y
 CONFIG_SPIRAM_MODE_OCT=y
