@@ -250,6 +250,7 @@ test: all
 	@mkdir -p build/standin
 	./build/standin_test tests/frames/standin.crc
 	python3 scripts/gen_keymap.py --check
+	python3 device/reva/gen_bringup.py --check
 	@mkdir -p build/frames
 	./build/screen_test tests/frames
 	python3 scripts/gen_font.py --check

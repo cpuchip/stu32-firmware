@@ -16,8 +16,9 @@
  * - Power (power.h, gauge.h): the MAX17048 read every 30 s; CHG_N and PGOOD_N; BOOT levels from
  *   pins.c, except BOOST_EN and DISP after a deep-sleep wake (they were held high).
  * - The console (unit 053: the stand-in's, so its scripts run here unchanged): K<n> presses key n, U<n> releases it, X
- *   prints the state (dev_common.h's format), SAVE, WIPE, RESTART, TIME, BEEP, VOL; with AB_BENCH, EQNBENCH, OPBENCH,
- *   PROGBENCH.
+ *   prints the state (dev_common.h's format), SAVE, WIPE, RESTART, TIME, BEEP, VOL, KEYS (unit 061: echo each key);
+ *   with AB_BENCH, EQNBENCH, OPBENCH, PROGBENCH. Since unit 061 it is the USB-C port's (USB-Serial-JTAG, the primary
+ *   console: a secondary one takes no input); head-less keeps UART0.
  * - REVA_HEADLESS (unit 053, device/reva/headless.sh): this main on the stand-in's S3 before the boards come, driving
  *   none of Rev A's pins (some are the stand-in's RGB lines): no LCD sends, ULP, piezo, gauge, matrix, light or deep
  *   sleep; keys come from the console. What only the real board can test is listed in work/053. */
@@ -93,6 +94,7 @@ static int soc = -1;
 static uint32_t vbat_uv;                    /* the gauge's last cell voltage, 0 not read (SYS BATT) */
 static uint32_t last_image;                 /* the last image saved: SYS FLASH's room left (unit 027) */
 static char time_text[16];                  /* TIME's argument, for the calc task (unit 027) */
+static volatile bool key_echo;              /* KEYS: each key printed as it goes down and up (unit 061, bring-up) */
 RTC_DATA_ATTR static bool rtc_batt_low;     /* BATT's latch through OFF and wake: RTC memory keeps it
                                                through deep sleep, a power-on clears it (abacus #4238) */
 
@@ -424,7 +426,10 @@ static void console_task(void *arg)
         }
         line[n] = 0;
         n = 0;
-        if (line[0] == 'K') {
+        if (!strcmp(line, "KEYS")) {            /* unit 061: the matrix's keys echoed, for bring-up (before K<n>) */
+            key_echo = !key_echo;
+            printf("keys: echo %s\n", key_echo ? "on" : "off");
+        } else if (line[0] == 'K') {
             int k = atoi(line + 1);
             xQueueSend(keys_q, &k, 0);
         } else if (line[0] == 'U' && line[1] >= '0' && line[1] <= '9') {   /* U<n>: key n released */
@@ -451,6 +456,19 @@ static void console_task(void *arg)
             piezo_level = atoi(line + 3);       /* bring-up: VOL 0..4 (piezo.h) */
         }
     }
+}
+
+/* KEYS's line for a key down (n) or up (KEY_UP_BASE - n): its number, row, column and face legend (unit 061) */
+static void echo_key(int k)
+{
+    bool up = k <= KEY_UP_BASE;
+    int n = up ? KEY_UP_BASE - k : k;
+    const km_action *f = km_lookup(n, KM_FACE);
+    char name[16];
+    const char *legend = f->legend && *f->legend ? f->legend : "-";
+    if (f->kind == KM_SOFT) snprintf(name, sizeof name, "SOFT%d", f->arg + 1), legend = name;
+    else if (f->kind == KM_SHIFT) legend = f->arg == 1 ? "GOLD" : "BLUE";
+    printf("key: %d r%d c%d %s %s\n", n, n / KB_COLS, n % KB_COLS, legend, up ? "up" : "down");
 }
 
 /* No light sleep on USB power (unit 023 rule 5): the lock follows PGOOD_N. */
@@ -482,6 +500,7 @@ static void calc_task(void *arg)
         TickType_t wait = ms >= 3600000u ? portMAX_DELAY : pdMS_TO_TICKS(ms);
         bool got = xQueueReceive(keys_q, &k, wait) == pdTRUE;
         now = now_ms();
+        if (got && key_echo && ((k >= 0 && k < KB_KEYS) || (k <= KEY_UP_BASE && k > KEY_UP_BASE - KB_KEYS))) echo_key(k);
         if (got && k >= 0) {
             memory_clear_msg = false;
             app_key(&app, k, now);
@@ -514,7 +533,10 @@ static void calc_task(void *arg)
 #endif
         } else if (got) {                       /* -1: X, the stand-in's format, then Rev A's own facts */
             dev_dump(calc, &app);
-            printf("reva: soc=%d vbat=%lu uV ulp-edges=%lu\n", soc, (unsigned long)vbat_uv, (unsigned long)ulp_edges);
+            printf("reva: soc=%d vbat=%lu uV ulp-edges=%lu chg_n=%d pgood_n=%d\n", soc, (unsigned long)vbat_uv,
+                   (unsigned long)ulp_edges, gpio_get_level(PIN_CHG_N), gpio_get_level(PIN_PGOOD_N));   /* (061) */
+            printf("reva: set radix=%c off=%u vol=%u h24=%d\n", app.set.radix, (unsigned)app.set.off_min,
+                   (unsigned)app.set.vol, app.set.h24);   /* unit 061: a setting kept across a reset (bring-up) */
         }
         if (gdev && (uint32_t)(now - last_gauge) >= 30000) {
             gauge_reading g;
@@ -640,6 +662,7 @@ void app_main(void)
         if (i2c_master_bus_add_device(bus, &d, &gdev) == ESP_OK) {
             gbus = (gauge_bus){NULL, g_xfer};
             if (!gauge_init(&gbus, &version)) printf("gauge: not found\n");
+            else printf("gauge: version 0x%04x\n", version);           /* bring-up step 8 (unit 061) */
         }
     }
 #endif

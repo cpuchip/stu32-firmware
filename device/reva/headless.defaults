@@ -1,3 +1,6 @@
 # unit 053: Rev A's main on the stand-in's S3 (8 MB of flash; Rev A's partitions end at 0x7A2000, inside it). The rest
 # is Rev A's own sdkconfig.defaults.
 CONFIG_ESPTOOLPY_FLASHSIZE_8MB=y
+# unit 061: Rev A's console is its USB-C port's; head-less keeps UART0, the stand-in's CH340, for 053's scripts.
+# (USB=1 device/reva/headless.sh runs it on the stand-in's native USB port instead: Rev A's console, head-less.)
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y

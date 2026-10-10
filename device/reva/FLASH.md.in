@@ -1,0 +1,98 @@
+# Rev A: flash and first session (abacus-firmware @SHA@)
+
+Made by `device/reva/package.sh` (unit 061). This folder holds Rev A's image built from commit @SHA@, the console
+program `talk.py`, the bring-up session `bringup.txt` (step 8 of docs/hw/rev-a-bring-up.md), and `SHA256SUMS`.
+Rev A has one USB port, the S3's own (USB-Serial-JTAG): it flashes and talks over that port, with no other chip
+and no button.
+
+## On Windows (fermion)
+
+**1. Copy it from lepton and check it.** Lepton accepts the fermion seats' key (`claude-seats@fermion`):
+
+    scp -r <build host>:<checkout>/build/reva-image-@S7@ .
+    cd reva-image-@S7@
+    python -c "import hashlib; [print(('OK  ' if hashlib.sha256(open(f,'rb').read()).hexdigest() == h else 'BAD ') + f) for h, f in (l.split() for l in open('SHA256SUMS'))]"
+
+Every line must say OK. (On the LAN, lepton is <LAN address>.)
+
+**2. Tools, once.** `python -m pip show esptool`. If it is missing or not 4.9.0 (ESP-IDF v5.4.2's version, the one
+this was built and tested with): `python -m pip install esptool==4.9.0`. That also installs pyserial, which talk.py
+needs.
+
+**3. The port.** Plug Rev A into fermion. Windows shows it as "USB Serial Device (COMn)" with its built-in driver.
+To find n:
+
+    python -m serial.tools.list_ports -v
+
+It is the port with `VID:PID=303A:1001` (Espressif's USB-Serial-JTAG). A board never flashed shows the same port: the
+S3's ROM brings USB up itself. If no 303A:1001 port appears, put the chip in download mode by hand: hold the IO0
+test pad to GND, touch the EN pad to GND and let go, then let go of IO0.
+
+**4. Flash** (COMn as found above):
+
+    python -m esptool --chip esp32s3 -p COMn -b 460800 --before default_reset --after hard_reset write_flash 0x0 abacus_reva-@S7@.bin
+
+The single image holds the bootloader at 0x0, the partition table at 0x8000 and the app at 0x10000. The same write in
+three parts, from `flash_args`:
+
+    python -m esptool --chip esp32s3 -p COMn -b 460800 --before default_reset --after hard_reset write_flash --flash_mode dio --flash_freq 80m --flash_size 16MB 0x0 bootloader.bin 0x8000 partition-table.bin 0x10000 abacus_reva.bin
+
+- **dio, not qio, is right.** ESP-IDF writes a DIO header and its bootloader switches the flash to QIO. The check is
+  the boot log's `SPI Mode       : QIO`. Don't pass `--flash_mode qio`.
+- esptool should print `Chip is ESP32-S3`, a 16 MB flash, and end with "Hard resetting via RTS pin...".
+- Nothing past the app is written, so a store already saved (abstate, at 0x710000) is kept.
+
+**5. The session:**
+
+    python talk.py COMn bringup.log bringup.txt
+
+- Lines marked `>>>` are for you. Each key has 60 s. A question ending `[y/n]` waits for y or n, then Enter.
+- The session ends with `talk.py: ALL MET` or `talk.py: N NOT MET`.
+- **Send `bringup.log` to abacus,** whatever the result: the log holds the boot log, the heap line and the state lines.
+- The calculator turns itself off after 10 minutes without a key, on USB power too, and C wakes it. The session keeps
+  keys coming.
+
+**Without the session**, a console: `python talk.py COMn session.log`. Then type a command and Enter:
+
+| command | what it does |
+|---|---|
+| `X` | the state lines and Rev A's line: soc, vbat, ulp-edges, chg_n, pgood_n, the settings |
+| `KEYS` | turns on, or off again, an echo of each key: `key: 15 r2 c3 SIN down` |
+| `BEEP`, `VOL0` to `VOL4` | a tone at the current volume; set the volume |
+| `SAVE`, `RESTART` | save the state; restart the chip |
+| `TIME 10:00` | set the clock |
+
+Ctrl+Z, then Enter, ends it.
+
+## On lepton
+
+The port is `/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_<MAC>-if00`, written BYID below. It can come
+back as another ttyACM after a reset, so use the by-id path. In ESP-IDF's image (nothing installed on the host):
+
+    docker run --rm -it -v "$PWD:/w" -w /w -v /dev:/dev --device-cgroup-rule='c 166:* rmw' \
+        --user "$(id -u):$(id -g)" --group-add "$(stat -L -c %g BYID)" -e HOME=/tmp espressif/idf:v5.4.2 bash -c '
+    . "$IDF_PATH/export.sh" >/dev/null
+    esptool.py --chip esp32s3 -p "$(readlink -f BYID)" -b 460800 --before default_reset --after hard_reset write_flash 0x0 abacus_reva-@S7@.bin
+    python talk.py BYID bringup.log bringup.txt'
+
+## What a good boot looks like
+
+From Rev A's console head-less on the stand-in's S3 (unit 061). The stand-in has an 8 MB header and no gauge, so
+Rev A will differ there:
+
+    ESP-ROM:esp32s3-20210327
+    rst:0x15 (USB_UART_CHIP_RESET),boot:0x8 (SPI_FAST_FLASH_BOOT)
+    ...
+    I (42) boot.esp32s3: SPI Mode       : QIO
+    I (45) boot.esp32s3: SPI Flash Size : 16MB
+    ...
+    I (1209) app_init: Project name:     abacus_reva
+    gauge: version 0x....
+    load: no image: MEMORY CLEAR
+    reva: heap internal ...... (largest block .....), PSRAM .......
+    REVA READY
+
+- **`load: no image: MEMORY CLEAR`** is right on the first boot; after a SAVE the line is `load: N bytes ok`.
+- **`gauge: not found`** means the MAX17048 didn't answer on I2C.
+- **The heap line:** head-less on the stand-in it reads 185,495 B (largest block 90,112). Rev A's own figure,
+  with its gauge, panel, ULP and light sleep running, is first measured here.

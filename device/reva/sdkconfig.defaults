@@ -12,6 +12,12 @@ CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
 # A 64 KB data cache was measured and gave nothing (work/059). The stand-in stays at 16 KB: its keyboard image needs
 # its 128 KB region.
 CONFIG_ESP32S3_INSTRUCTION_CACHE_32KB=y
+# unit 061 (abacus #6106): the console on the USB-C port (USB-Serial-JTAG), the primary one. As a secondary console
+# (UART0 primary, IDF's default) it printed but took no input: vfs_console.c's console_read reads the primary alone
+# (IDF v5.4.2), and Rev A's UART0 is only test pads. Measured on the S3 at f9401bd: X sent over USB, no reply. With
+# no host reading, a write waits at most 50 ms once and then drops (usb_serial_jtag_vfs.c), as the secondary did.
+# Head-less keeps UART0 (headless.defaults), so 053's scripts run over the stand-in's CH340 unchanged.
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
 CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
 CONFIG_SPIRAM=y
 CONFIG_SPIRAM_MODE_OCT=y

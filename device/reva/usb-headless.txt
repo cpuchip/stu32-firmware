@@ -1,0 +1,73 @@
+# unit 061: Rev A's console on its USB-Serial-JTAG port, head-less on the stand-in's native USB port:
+#   USB=1 device/reva/headless.sh /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_<MAC>-if00 device/reva/usb-headless.txt
+# Input over USB (the secondary console took none), KEYS's echo, X's charger fields, and the pieces of bringup.txt that
+# run head-less: a reset over the port, the stack and the RADIX comma kept across it, and a typed key showing in X.
+reset
+expect SPI_FAST_FLASH_BOOT 20
+expect SPI Mode       : QIO 10
+expect Project name:     abacus_reva 10
+expect gauge: head-less 10
+expect REVA READY 20
+send X
+expect-range pgood_n 0 1
+send X
+expect-range chg_n 0 1
+send KEYS
+expect keys: echo on
+send K15
+expect key: 15 r2 c3 SIN down
+send U15
+expect key: 15 r2 c3 SIN up
+send K0
+expect key: 0 r0 c0 SOFT1 down
+send K30
+expect key: 30 r5 c0 GOLD down
+send K30
+expect key: 30 r5 c0 GOLD down
+send K22
+expect key: 22 r3 c4 ← down
+send K19
+expect key: 19 r3 c1 x↔y down
+send KEYS
+expect keys: echo off
+send K15
+expect-none key: 15 3
+send K42
+send K42
+# RADIX , then 1.5 ENTER, kept across a reset over the port (bringup.txt's flash section)
+send K30
+send K39
+send K1
+send K37
+send K44
+send K32
+send K18
+send X
+expect state: X=1.5 stop
+expect radix=,
+send SAVE
+expect save:
+reset
+expect bytes ok 30
+expect REVA READY 20
+send X
+expect state: X=1.5 stop
+expect radix=,
+# the held-key check's falsifier: a 2 typed replaces 1.5 in X
+send K38
+send X
+expect-none state: X=1.5 stop 3
+send K42
+send K30
+send K39
+send K0
+send X
+expect radix=.
+send SAVE
+expect save:
+# RESTART over the port: the link stays (a software reset), as a reset over the port does
+send RESTART
+expect REVA READY 30
+expect-none talk.py: port lost 3
+send X
+expect state: 20
