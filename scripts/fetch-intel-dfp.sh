@@ -53,14 +53,28 @@ fi
 if [ ! -d "$SRC" ]; then
     tar -xzf "$TARBALL" -C "$TREE"
 fi
-# The trig functions' argument-reduction table (295 KB, one copy each in sin, cos and tan) is
-# only read, but is declared without const, so a firmware build would place it in RAM. Made
-# const here so it goes to flash; any write to it would now fail to compile. Idempotent.
-for f in sin cos tan; do
-    sed -i 's/^static BID_UINT384 bid_decimal128_moduli\[\] =/static const BID_UINT384 bid_decimal128_moduli[] =/' \
-        "$SRC/LIBRARY/src/bid128_$f.c"
-    grep -q '^static const BID_UINT384 bid_decimal128_moduli\[\] =' "$SRC/LIBRARY/src/bid128_$f.c" || {
-        echo "fetch-intel-dfp: bid128_$f.c: moduli table not found for the const patch" >&2; exit 1; }
+# The trig functions' argument-reduction table (295 KB) is only read, but is declared without
+# const, so a firmware build would place it in RAM. Made const here so it goes to flash; any write
+# to it would now fail to compile. And sin, cos and tan each define their own static copy of the
+# same table, three in the image (abacus #6374, ~590 KB): sin's becomes the one definition, and
+# cos and tan declare it extern, once their copies are checked identical to sin's. Idempotent.
+D='bid_decimal128_moduli\[\] ='
+L='bid_decimal128_moduli[] ='                  # the same, as awk's literal text
+body() { awk -v d="$L" 'index($0, d) {p=1; next} p {print} p && /^};/ {exit}' "$1"; }
+sed -i "s/^\(static \)\?\(const \)\?BID_UINT384 $D/const BID_UINT384 bid_decimal128_moduli[] =/" \
+    "$SRC/LIBRARY/src/bid128_sin.c"
+grep -q "^const BID_UINT384 $D" "$SRC/LIBRARY/src/bid128_sin.c" || {
+    echo "fetch-intel-dfp: bid128_sin.c: moduli table not found for the const patch" >&2; exit 1; }
+for f in cos tan; do
+    c="$SRC/LIBRARY/src/bid128_$f.c"
+    grep -q '^extern const BID_UINT384 bid_decimal128_moduli\[\];' "$c" && continue
+    grep -q "^\(static \)\?\(const \)\?BID_UINT384 $D" "$c" || {
+        echo "fetch-intel-dfp: bid128_$f.c: moduli table not found for the shared-table patch" >&2; exit 1; }
+    cmp -s <(body "$c") <(body "$SRC/LIBRARY/src/bid128_sin.c") || {
+        echo "fetch-intel-dfp: bid128_$f.c: its moduli table differs from sin's, so it is not shared" >&2; exit 1; }
+    awk -v d="$L" 'index($0, d) {print "extern const BID_UINT384 bid_decimal128_moduli[];"; skip=1; next}
+                   skip {if (/^};/) skip=0; next} {print}' "$c" > "$c.tmp" && mv "$c.tmp" "$c"
+    grep -q "$D" "$c" && { echo "fetch-intel-dfp: bid128_$f.c: the table is still defined" >&2; exit 1; }
 done
 # The library's makefile does not track flags: a build with other flags starts clean.
 STAMP="$SRC/.abacus-flags"
