@@ -5,3 +5,5 @@
 # ID   REPO          PIN                                       LICENCE                    MANIFEST
 # Babal: arcade's port of Babal by Christian Mauduit, gitlab.com/liberecofr/babal (public domain, the Unlicense)
 babal  stu32-arcade  599c51060bb63b011f03e9a4077cfea2328b88b4  MIT                        stu32-game.txt
+# AIM: arcade's, four tiles to the round's target in RPN (Michael's decision 71; stu32-arcade docs/aim.md)
+aim    stu32-arcade  5fe8ceaceedd3d4aac5513f1c7e713b45aa24509  MIT                        games/aim/stu32-game.txt
