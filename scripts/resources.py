@@ -136,8 +136,14 @@ def read_build(b, wasm=False):
 def iram_code(r):
     """IRAM code bytes: idf_size's IRAM region is a fixed 16 KB block the linker fills first; the rest of the IRAM code
     lies in the shared SRAM and is booked to DIRAM's .text (unit 052's control: a 1,163 B IRAM_ATTR function left the
-    block at 16,383 and added 1,172 to DIRAM). So IRAM code costs internal RAM byte for byte."""
-    return r["region"]["IRAM"]["used"] + r["region"]["DIRAM"]["parts"].get(".text", {}).get("size", 0)
+    block at 16,383 and added 1,172 to DIRAM). So IRAM code costs internal RAM byte for byte. With a 32 KB instruction
+    cache that block is cache, and idf_size lists no IRAM region: all the IRAM code is DIRAM's."""
+    return iram_block(r) + r["region"]["DIRAM"]["parts"].get(".text", {}).get("size", 0)
+
+
+def iram_block(r):
+    """the 16 KB block's used bytes; 0 when the build has no such block (a 32 KB instruction cache)"""
+    return r["region"].get("IRAM", {}).get("used", 0)
 
 
 def fmt(n):
@@ -262,7 +268,7 @@ def iram_options(args):
     tgt, tdir = args.target, TARGETS[args.target][0]
     base = build(wt, tgt, bdir="build-iram")
     sdk = open(os.path.join(wt, tdir, "build-iram/sdkconfig")).read()
-    used0 = base["region"]["IRAM"]["used"]
+    used0 = iram_block(base)
     iram0 = iram_code(base)
     r = docker(wt, r"""grep -rhE -A14 "^\s*config [A-Z0-9_]*(PLACE_[A-Z_]*FLASH|IN_IRAM|_IRAM_OPT|ISR_IRAM_SAFE|FUNC_IN_IRAM|ROM_IMPL)" \
         $IDF_PATH/components --include="Kconfig*" """)
@@ -292,7 +298,7 @@ def iram_options(args):
         except SystemExit as e:
             print(f"| {o} | {'y' if '=y' in line else 'n'} | did not build | | | {str(e)[:80]} |")
             continue
-        u = b["region"]["IRAM"]["used"]
+        u = iram_block(b)
         dd = b["region"]["DIRAM"]["used"] - base["region"]["DIRAM"]["used"]
         u = iram_code(b)
         print(f"| {o} | {'y' if '=y' in line else 'n'} | {fmt(u)} | {iram0 - u:,} | {dd:+,} | "
