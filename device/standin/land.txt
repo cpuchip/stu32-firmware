@@ -8,6 +8,12 @@ send RESTART
 wait STANDIN READY 30
 # X starts at 4 here, so the closing 2 ENTER 3 + = 5 can fail: the state survives a reset, and X was already 5
 # from the last run (soroban, at 064's gate)
+# C twice first: C leaves EQN mode (storing what is typed) or a menu, then clears X. At 065's gate a bench run had
+# left EQN mode on, and the state survives a reset, so 2 ENTER 2 + typed an equation and X stayed 0 (soroban)
+send K42
+send U42
+send K42
+send U42
 send K38
 send U38
 send K18
