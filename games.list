@@ -7,3 +7,5 @@
 babal  stu32-arcade  599c51060bb63b011f03e9a4077cfea2328b88b4  MIT                        stu32-game.txt
 # AIM: arcade's, four tiles to the round's target in RPN (Michael's decision 71; stu32-arcade docs/aim.md)
 aim    stu32-arcade  5fe8ceaceedd3d4aac5513f1c7e713b45aa24509  MIT                        games/aim/stu32-game.txt
+# LAND: arcade's, set the ship down on a pad (Michael's decision 71; stu32-arcade docs/land.md)
+land   stu32-arcade  e20cd98bed21758b256604011ae11b67a809d671  MIT                        games/land/stu32-game.txt
