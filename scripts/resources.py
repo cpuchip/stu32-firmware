@@ -6,9 +6,12 @@
         (nm, 0x3FC88000-0x3FD00000), for two commits; no board. --env sets a build option in both builds: with
         STU_WASM=1, WAMR is fetched into each worktree that has scripts/fetch-wamr.sh (WAMR_REPO from the
         environment, default ../wasm-micro-runtime); the device CMakeLists append device/sdkconfig.wasm
-    scripts/resources.py board BASE NEW --port PORT
-        on the stand-in: the internal heap free after boot, the worst stack through the keys (047's deepest site, 048's
-        CAS keys) and the speed benches (device/standin/speed.txt), each commit flashed in turn; the board is left on NEW
+    scripts/resources.py board BASE NEW --port PORT [--targets standin,reva]
+        on the stand-in's board: the internal heap free after boot and its largest block, the worst stack through the
+        keys (047's deepest site, 048's CAS keys) and the speed benches (device/standin/speed.txt), each commit flashed
+        in turn, for the stand-in and for Rev A's main head-less (device/reva/headless.sh, unit 053). Rev A's figure is
+        the one a unit reports (unit 059: Rev A's 32 KB instruction cache makes it ~40% faster than the stand-in); the
+        board is left on NEW's last target
     scripts/resources.py iram-options [--commit C]
         Rev A built once for each of ESP-IDF's placement options that would move code out of IRAM: the bytes each frees,
         with the option's own help text (what it costs). A measurement for a proposal: nothing is changed.
@@ -137,8 +140,10 @@ def iram_code(r):
     """IRAM code bytes: idf_size's IRAM region is a fixed 16 KB block the linker fills first; the rest of the IRAM code
     lies in the shared SRAM and is booked to DIRAM's .text (unit 052's control: a 1,163 B IRAM_ATTR function left the
     block at 16,383 and added 1,172 to DIRAM). So IRAM code costs internal RAM byte for byte. With a 32 KB instruction
-    cache that block is cache, and idf_size lists no IRAM region: all the IRAM code is DIRAM's."""
-    return iram_block(r) + r["region"]["DIRAM"]["parts"].get(".text", {}).get("size", 0)
+    cache that block is cache, and idf_size lists no IRAM region: all the IRAM code is DIRAM's, the vectors (1,027 B)
+    booked there as .vectors (unit 059: without them the same code read 1,027 B smaller)."""
+    parts = r["region"]["DIRAM"]["parts"]
+    return iram_block(r) + sum(parts.get(k, {}).get("size", 0) for k in (".text", ".vectors"))
 
 
 def iram_block(r):
@@ -169,7 +174,7 @@ def static(args):
         print(f"| internal RAM static (DIRAM, of {fmt(b['region']['DIRAM']['total'])}) | {fmt(ua)} | {fmt(ub)} | "
               f"{delta(ua, ub)} |")
         ia, ib = iram_code(a), iram_code(b)
-        print(f"| IRAM code (the 16 KB block + DIRAM's .text) | {fmt(ia)} | {fmt(ib)} | {delta(ia, ib)} |")
+        print(f"| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | {fmt(ia)} | {fmt(ib)} | {delta(ia, ib)} |")
         print(f"| calc_task's frame (under every deep path's stack), B | {fmt(a['frame'])} | {fmt(b['frame'])} | "
               f"{delta(a['frame'], b['frame'])} |")
         libs = sorted(set(a["arch"]) | set(b["arch"]), key=lambda k: -abs(b["arch"].get(k, 0) - a["arch"].get(k, 0)))
@@ -200,8 +205,13 @@ def static(args):
 STACK = [("the 153-unit mix at 047's deepest site", "m", 9), ("19 levels of SIN( there", "s", 19)]
 
 
-def talk(wt, port, script_lines, flash):
-    """the stand-in (flashed from <wt> when flash) running the script; its log"""
+RUNNERS = {"standin": ("device/standin/run.sh", "build/standin.log", "the stand-in"),
+           "reva": ("device/reva/headless.sh", "build/reva-headless.log", "Rev A head-less")}
+
+
+def talk(wt, port, script_lines, flash, target="standin"):
+    """the target (flashed from <wt> when flash) running the script on the board; its log"""
+    runner, logf, _ = RUNNERS[target]
     path = os.path.join(wt, "build", "res-script.txt")
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
@@ -209,9 +219,14 @@ def talk(wt, port, script_lines, flash):
     env = dict(os.environ, FLASH="1" if flash else "0", CASIM_REPO=os.path.join(ROOT, "..", "casim"))
     import time
     time.sleep(3)                               # (after a flash the board's port comes back, perhaps renumbered)
-    subprocess.run(["device/standin/run.sh", os.path.realpath(port), "build/res-script.txt"], cwd=wt, env=env,
+    if os.path.exists(os.path.join(wt, logf)):
+        os.remove(os.path.join(wt, logf))       # a failed run leaves no log, never the last run's
+    subprocess.run([runner, os.path.realpath(port), "build/res-script.txt"], cwd=wt, env=env,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    return open(os.path.join(wt, "build", "standin.log"), errors="replace").read()
+    try:
+        return open(os.path.join(wt, logf), errors="replace").read()
+    except FileNotFoundError:
+        return ""
 
 
 def board(args):
@@ -219,46 +234,61 @@ def board(args):
     gen = os.path.join(ROOT, "build", "stackkeys")
     if not os.path.exists(gen):
         sh(["make", "build/stackkeys"])
-    rows = {}
-    for c in (args.base, args.new):
-        sha, wt = worktree(c)
-        res = {}
-        log = talk(wt, port, ["sleep 3", "wait standin: heap 30", "sleep 2", "send X", "wait state: 10"], True)
-        m = re.findall(r"heap=(\d+) stack-free=(\d+)", log)
-        res["heap"] = int(m[-1][0]) if m else None
-        worst = None
-        for label, shape, depth in STACK:
-            out = sh([gen, "prog", str(depth), shape], capture=True)
-            keys = re.search(r"keys \(entry (\d+), then XEQ A\):(.*)", out)
-            mark, ks = int(keys.group(1)), keys.group(2).split()
-            lines = ["sleep 3", "wait standin: heap 30", "sleep 2"]
-            for i, k in enumerate(ks, 1):
-                lines += [f"send K{k}", "sleep 0.25"]
-                if i == mark:
-                    lines += ["sleep 2"]
-            lines += ["sleep 20", "send X", "wait state: 10"]
-            m = re.findall(r"stack-free=(\d+)", talk(wt, port, lines, False))
-            v = int(m[-1]) if m else None
-            res[label] = v
-            worst = v if worst is None or (v is not None and v < worst) else worst
-        res["worst"] = worst
-        log = "" if args.no_speed else talk(wt, port, open(os.path.join(ROOT, "device", "standin", "speed.txt")).read().splitlines(), False)
-        for key, pat in (("SOLVE", r"eqnbench: SOLVE [^:]*: (\d+) us"), ("integral", r"eqnbench: integral [^:]*: (\d+) us"),
-                         ("PROGBENCH SIN", r"progbench: 100 x SIN in a program (\d+) ms"),
-                         ("PROGBENCH LN", r"progbench: 100 x LN  in a program (\d+) ms")):
-            v = [int(x) for x in re.findall(pat, log)]
-            res[key] = min(v) if v else None
-        rows[sha] = res
-    (s0, a), (s1, b) = rows.items()
-    print(f"\n### the stand-in, through its console: {s0} -> {s1}\n")
-    print("| resource | before | after | change |\n|---|---|---|---|")
-    print(f"| internal heap free after boot, B | {fmt(a['heap'])} | {fmt(b['heap'])} | {delta(a['heap'], b['heap'])} |")
-    for label, _, _ in STACK:
-        print(f"| calc task stack free, {label}, B | {fmt(a[label])} | {fmt(b[label])} | {delta(a[label], b[label])} |")
-    print(f"| the worst stack free through the keys, B | {fmt(a['worst'])} | {fmt(b['worst'])} | {delta(a['worst'], b['worst'])} |")
-    for key, unit in (("SOLVE", "µs"), ("integral", "µs"), ("PROGBENCH SIN", "ms"), ("PROGBENCH LN", "ms")):
-        print(f"| {key}, {unit} (best) | {fmt(a[key])} | {fmt(b[key])} | {delta(a[key], b[key])} |")
-    print("\n(n/a where a commit lacks the bench: EQNBENCH from 24308a2, OPBENCH from 0594bae)")
+    targets = [t for t in args.targets.split(",") if t]
+    rows = {t: {} for t in targets}
+    for t in targets:
+        project = TARGETS[t][1]
+        for c in (args.base, args.new):
+            sha, wt = worktree(c)
+            res = {}
+
+            def run(lines, flash):
+                log = talk(wt, port, lines, flash, t)
+                names = re.findall(r"Project name:\s+(\S+)", log)
+                if not log or (names and names[-1] != project):
+                    # 2026-10-10: a failed build left the last image on the board, and it was benched as the new one
+                    sys.exit(f"resources: {t} at {sha}: the board ran {names[-1] if names else 'nothing'}, not {project}")
+                return log
+            log = run(["sleep 3", "wait : heap internal 30", "sleep 2", "send X", "wait state: 10"], True)
+            m = re.findall(r"heap=(\d+) stack-free=(\d+)", log)
+            res["heap"] = int(m[-1][0]) if m else None
+            m = re.findall(r"heap internal \d+ \(largest block (\d+)\)", log)
+            res["block"] = int(m[-1]) if m else None
+            worst = None
+            for label, shape, depth in STACK:
+                out = sh([gen, "prog", str(depth), shape], capture=True)
+                keys = re.search(r"keys \(entry (\d+), then XEQ A\):(.*)", out)
+                mark, ks = int(keys.group(1)), keys.group(2).split()
+                lines = ["sleep 3", "wait : heap internal 30", "sleep 2"]
+                for i, k in enumerate(ks, 1):
+                    lines += [f"send K{k}", "sleep 0.25"]
+                    if i == mark:
+                        lines += ["sleep 2"]
+                lines += ["sleep 20", "send X", "wait state: 10"]
+                m = re.findall(r"stack-free=(\d+)", run(lines, False))
+                v = int(m[-1]) if m else None
+                res[label] = v
+                worst = v if worst is None or (v is not None and v < worst) else worst
+            res["worst"] = worst
+            log = "" if args.no_speed else run(open(os.path.join(ROOT, "device", "standin", "speed.txt")).read().splitlines(), False)
+            for key, pat in (("SOLVE", r"eqnbench: SOLVE [^:]*: (\d+) us"), ("integral", r"eqnbench: integral [^:]*: (\d+) us"),
+                             ("PROGBENCH SIN", r"progbench: 100 x SIN in a program (\d+) ms"),
+                             ("PROGBENCH LN", r"progbench: 100 x LN  in a program (\d+) ms")):
+                v = [int(x) for x in re.findall(pat, log)]
+                res[key] = min(v) if v else None
+            rows[t][sha] = res
+    for t in targets:
+        (s0, a), (s1, b) = rows[t].items()
+        print(f"\n### {RUNNERS[t][2]}, through its console: {s0} -> {s1}\n")
+        print("| resource | before | after | change |\n|---|---|---|---|")
+        print(f"| internal heap free after boot, B | {fmt(a['heap'])} | {fmt(b['heap'])} | {delta(a['heap'], b['heap'])} |")
+        print(f"| largest internal block after boot, B | {fmt(a['block'])} | {fmt(b['block'])} | {delta(a['block'], b['block'])} |")
+        for label, _, _ in STACK:
+            print(f"| calc task stack free, {label}, B | {fmt(a[label])} | {fmt(b[label])} | {delta(a[label], b[label])} |")
+        print(f"| the worst stack free through the keys, B | {fmt(a['worst'])} | {fmt(b['worst'])} | {delta(a['worst'], b['worst'])} |")
+        for key, unit in (("SOLVE", "µs"), ("integral", "µs"), ("PROGBENCH SIN", "ms"), ("PROGBENCH LN", "ms")):
+            print(f"| {key}, {unit} (best) | {fmt(a[key])} | {fmt(b[key])} | {delta(a[key], b[key])} |")
+    print("\n(n/a where a commit lacks the bench: EQNBENCH from 24308a2, OPBENCH from 0594bae; Rev A head-less from 68683b5)")
 
 
 # ---- iram-options ----
@@ -298,7 +328,6 @@ def iram_options(args):
         except SystemExit as e:
             print(f"| {o} | {'y' if '=y' in line else 'n'} | did not build | | | {str(e)[:80]} |")
             continue
-        u = iram_block(b)
         dd = b["region"]["DIRAM"]["used"] - base["region"]["DIRAM"]["used"]
         u = iram_code(b)
         print(f"| {o} | {'y' if '=y' in line else 'n'} | {fmt(u)} | {iram0 - u:,} | {dd:+,} | "
@@ -318,6 +347,7 @@ def main():
     b.add_argument("new")
     b.add_argument("--port", required=True)
     b.add_argument("--no-speed", action="store_true", help="the heap and the stack only")
+    b.add_argument("--targets", default="standin,reva", help="standin, reva (Rev A's main head-less) or both")
     i = sp.add_parser("iram-options")
     i.add_argument("--commit", default="HEAD")
     i.add_argument("--target", default="reva", choices=sorted(TARGETS))
