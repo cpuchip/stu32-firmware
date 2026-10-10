@@ -51,6 +51,7 @@ script = sys.argv[3] if len(sys.argv) > 3 else None
 def open_port():
     p = serial.Serial()
     p.port, p.baudrate, p.timeout = os.path.realpath(port) if os.name == "posix" else port, 115200, 0.2
+    p.write_timeout = 2         # a console that stops reading fills the S3's USB FIFO: a failed send, not a hang (061)
     p.dtr = p.rts = False
     p.open()
     return p
