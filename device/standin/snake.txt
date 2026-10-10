@@ -1,0 +1,49 @@
+# SNAKE under APPS on the board (arcade's unit, soroban's gate; stu32-arcade docs/snake.md): APPS (blue 0) lists KEYS,
+# BABAL, AIM, LAND and SNAKE; SNAKE's title, ENTER for a game, the frame rate while it runs right into the wall (the
+# food comes from the hardware RNG, so eating is the host's check, stu32-arcade make snakecheck), GAME OVER, ENTER
+# and 8 for a second game that runs up into the top wall. X prints stack-free before app:, so expect-min comes
+# first. C ends SNAKE, and 2 ENTER 3 + must still give 5.
+send RESTART
+wait STANDIN READY 30
+send X
+expect stack-free
+send K36
+send U36
+send K43
+send U43
+sleep 1
+send K4
+send U4
+sleep 1
+send X
+expect app: SNAKE
+send K18
+send U18
+sleep 1
+send FRAMEBENCH
+expect framebench: SNAKE 30
+sleep 6
+send K18
+send U18
+sleep 0.2
+send K26
+send U26
+sleep 3
+send X
+expect-min stack-free 2048
+expect app: SNAKE
+send K42
+send U42
+sleep 1
+send X
+expect app: -
+send K38
+send U38
+send K18
+send U18
+send K39
+send U39
+send K46
+send U46
+send X
+expect X=5
