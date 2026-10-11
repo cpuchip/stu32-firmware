@@ -20,7 +20,7 @@ python3 "$ROOT/scripts/gen_games.py" "$ROOT/games.list" "$ROOT/build/games"
 "$ROOT/scripts/fetch-casim.sh"
 docker run --rm -i -v "$ROOT:/project" -w /project \
     --user "$(id -u):$(id -g)" --group-add "$(stat -c %g "$PORT")" --device "$PORT" \
-    -e HOME=/tmp -e PORT="$PORT" -e SCRIPT="$SCRIPT" "$IMAGE" bash -c '
+    -e HOME=/tmp -e AB_CORE_COMMIT_HOST="$(sh "$ROOT/scripts/host-commit.sh" "$ROOT")" -e PORT="$PORT" -e SCRIPT="$SCRIPT" "$IMAGE" bash -c '
 set -euo pipefail
 . "$IDF_PATH/export.sh" >/dev/null
 TARGET=esp32s3 scripts/fetch-intel-dfp.sh
@@ -33,7 +33,7 @@ sleep 3
 for i in 1 2 3 4 5 6 7 8 9 10; do PORT="$(readlink -f "$BYID")"; [ -e "$PORT" ] && break; sleep 1; done
 docker run --rm -i -v "$ROOT:/project" -w /project \
     --user "$(id -u):$(id -g)" --group-add "$(stat -c %g "$PORT")" --device "$PORT" \
-    -e HOME=/tmp -e PORT="$PORT" -e SCRIPT="$SCRIPT" "$IMAGE" bash -c '
+    -e HOME=/tmp -e AB_CORE_COMMIT_HOST="$(sh "$ROOT/scripts/host-commit.sh" "$ROOT")" -e PORT="$PORT" -e SCRIPT="$SCRIPT" "$IMAGE" bash -c '
 . "$IDF_PATH/export.sh" >/dev/null
 python device/standin/talk.py "$PORT" /project/build/prof.log "/project/$SCRIPT"
 '

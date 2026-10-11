@@ -35,6 +35,11 @@ for c in "$B" "$WT/device/reva/build-bench"; do
     grep -q '^CONFIG_ESPTOOLPY_FLASHMODE_QIO=y' "$c/sdkconfig" || { echo "package.sh: $c: not QIO" >&2; exit 1; }
     grep -q '^CONFIG_ESP_INT_WDT=y' "$c/sdkconfig" || { echo "package.sh: $c: the interrupt watchdog is off" >&2; exit 1; }
     ! grep -aq 'AB_MASK image' "$c/abacus_reva.bin" || { echo "package.sh: $c: an AB_MASK bench image" >&2; exit 1; }
+    # SYS VER's CORE must name the packaged commit, not "unknown" (a worktree's git unreachable in the container) or
+    # "+dirty" (abacus #6997: bring-up reads SYS VER)
+    grep -qx "#define AB_CORE_COMMIT \"$S7\"" "$c/esp-idf/main/ab_commit.h" ||
+        { echo "package.sh: $c: CORE is $(sed -n 's/^#define AB_CORE_COMMIT //p' "$c/esp-idf/main/ab_commit.h"), not \"$S7\"" >&2; exit 1; }
+    grep -aqF "$S7" "$c/abacus_reva.bin" || { echo "package.sh: $c: $S7 is not in abacus_reva.bin" >&2; exit 1; }
 done
 rm -rf "$OUT"
 mkdir -p "$OUT"

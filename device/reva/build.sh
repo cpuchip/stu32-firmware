@@ -16,7 +16,7 @@ fi
 python3 "$ROOT/scripts/gen_games.py" "$ROOT/games.list" "$ROOT/build/games"
 "$ROOT/scripts/fetch-casim.sh"
 [ "$WASM" = 1 ] && "$ROOT/scripts/fetch-wamr.sh"
-docker run --rm -v "$ROOT:/project" -w /project --user "$(id -u):$(id -g)" -e HOME=/tmp -e STU_WASM="$WASM" -e B="$B" -e BENCH="$BENCH" "$IMAGE" bash -c '
+docker run --rm -v "$ROOT:/project" -w /project --user "$(id -u):$(id -g)" -e HOME=/tmp -e AB_CORE_COMMIT_HOST="$(sh "$ROOT/scripts/host-commit.sh" "$ROOT")" -e STU_WASM="$WASM" -e B="$B" -e BENCH="$BENCH" "$IMAGE" bash -c '
 set -euo pipefail
 . "$IDF_PATH/export.sh" >/dev/null
 TARGET=esp32s3 scripts/fetch-intel-dfp.sh

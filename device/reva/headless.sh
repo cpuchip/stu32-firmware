@@ -43,7 +43,7 @@ done
 [ "${FLASH:-1}" = 1 ] && "$ROOT/scripts/fetch-casim.sh"
 docker run --rm -i -v "$ROOT:/project" -w /project \
     --user "$(id -u):$(id -g)" --group-add "$(stat -L -c %g "$PORT")" "${DEV[@]}" \
-    -e HOME=/tmp -e PORT="$PORT" -e FLASH="${FLASH:-1}" -e SCRIPT="$SCRIPT" -e B="$B" -e DEFAULTS="$DEFAULTS" -e MASKDEF="$MASKDEF" "$IMAGE" bash -c '
+    -e HOME=/tmp -e AB_CORE_COMMIT_HOST="$(sh "$ROOT/scripts/host-commit.sh" "$ROOT")" -e PORT="$PORT" -e FLASH="${FLASH:-1}" -e SCRIPT="$SCRIPT" -e B="$B" -e DEFAULTS="$DEFAULTS" -e MASKDEF="$MASKDEF" "$IMAGE" bash -c '
 set -euo pipefail
 . "$IDF_PATH/export.sh" >/dev/null
 if [ "$FLASH" = 1 ]; then
