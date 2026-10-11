@@ -205,19 +205,25 @@ def static(args):
 
 STACK = [("the 153-unit mix at 047's deepest site", "m", 9), ("19 levels of SIN( there", "s", 19)]
 
-# The saved calculator state moves the stack readings (one binary, 8cb8e2a's Rev A head-less: the mix 8,196 from the
-# factory state, 8,068 with one equation stored, 8,132 from "full", 8,164 from a state other scripts left; SIN( 8,932,
-# 8,932, 8,772; each with spread 0 across reflashes; abacus #6546, #6586, soroban #6585, #6592). So each reading starts
-# from a fixed state, made the same way for BEFORE and AFTER, and the gate takes the worst of them. The states are
-# points, not a bound: they do not add up, and "full" (stackkeys full: the most equations at their longest, every letter,
-# the statistics, the stack, RAD) is not the worst found, one stored equation being worse on the mix. And each reading
-# is per exact script, ±160 B unexplained: with the state fixed, a small change in the keys or the image moved one by up
-# to 160 B, each exact script repeating (under one 192-B interrupt frame: a hypothesis until a masked reading; #6635,
-# #6636). Each row carries its script's hash. A reading whose state did not take (no wipe line, the equation not shown,
-# the full image not loaded), or whose program was not typed whole and run to DONE, is no reading.
+# The stack's figure is the calculator's own path, read masked (abacus #6675). Unmasked, a reading moves by where an
+# interrupt frame lands near the deepest point: one binary repeated each exact script to the byte, but a different saved
+# state, a slightly different key sequence or another image moved it by up to 192 B, exactly one frame. Masked
+# (AB_MASK's MASK ON, the same binary), the deep mix read 8,196 B free in every state, key variant and image tried, and
+# SIN( 8,932, or 8,916 in RAD, the one path effect of state found (abacus #6636, prediction #6641, result #6674). The
+# one-equation state's -128 B was caught only in plain images; masked it equals factory, as every masked cell does.
+# So, on a target and commits with AB_MASK (Rev A head-less from 239adab): each state's readings in the AB_MASK image,
+# MASK OFF and MASK ON; the figure is the worst masked reading, less the 384 B allowance (two frames); and each row's
+# unmasked reading must be no lower than its masked reading less 384, so the allowance is checked, not assumed. The
+# three states (factory; one equation; full: stackkeys full, the most equations at their longest, every letter, the
+# statistics, the stack, RAD) guard a path that state might change one day; SIN( is read in RAD in each. Elsewhere (the
+# stand-in, older commits) the unmasked readings alone. Each row carries its script's hash, and BEFORE and AFTER must
+# run the same script. A reading whose state did not take (no wipe line, the equation not shown, the full image not
+# loaded, the mask not set), or whose program was not typed whole and run to DONE, is no reading.
 EQN_ONE = ["send K30", "sleep 0.25", "send K43", "sleep 0.5", "send K38", "sleep 0.25", "send K18", "sleep 0.5",
            "send X", "wait eqn: 2 | 10", "send K42", "sleep 0.5"]   # EQN, 2, ENTER (stored, shown), C
+RAD = ["send K36", "sleep 0.25", "send K38", "sleep 0.25", "send K1", "sleep 0.5"]   # the angle menu, RAD
 STATES = ["factory", "one equation", "full"]
+ALLOWANCE = 384                                 # two interrupt frames (XT_STK_FRMSZ 192): abacus's stack rule
 ABSTATE = {"standin": "0x510000", "reva": "0x710000"}   # each board's abstate partition (device/*/partitions.csv)
 
 
@@ -236,14 +242,15 @@ RUNNERS = {"standin": ("device/standin/run.sh", "build/standin.log", "the stand-
            "reva": ("device/reva/headless.sh", "build/reva-headless.log", "Rev A head-less")}
 
 
-def talk(wt, port, script_lines, flash, target="standin"):
-    """the target (flashed from <wt> when flash) running the script on the board; its log"""
+def talk(wt, port, script_lines, flash, target="standin", mask=False):
+    """the target (flashed from <wt> when flash; its AB_MASK image when mask) running the script on the board; its log"""
     runner, logf, _ = RUNNERS[target]
     path = os.path.join(wt, "build", "res-script.txt")
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
         f.write("\n".join(script_lines) + "\n")
-    env = dict(os.environ, FLASH="1" if flash else "0", CASIM_REPO=os.path.join(ROOT, "..", "casim"))
+    env = dict(os.environ, FLASH="1" if flash else "0", MASK="1" if mask else "0",
+               CASIM_REPO=os.path.join(ROOT, "..", "casim"))
     import time
     time.sleep(3)                               # (after a flash the board's port comes back, perhaps renumbered)
     if os.path.exists(os.path.join(wt, logf)):
@@ -266,82 +273,111 @@ def board(args):
     scripts = {}                                # each reading's script hash: a reading belongs to its exact script
     targets = [t for t in args.targets.split(",") if t]
     rows = {t: {} for t in targets}
+    masked = {t: t == "reva" and all(os.path.exists(os.path.join(worktree(c)[1], "device/reva/headless-mask.defaults"))
+                                     for c in (args.base, args.new)) for t in targets}
+    failed = []
     for t in targets:
         project = TARGETS[t][1]
+        modes = [("unmasked", "OFF"), ("masked", "ON")] if masked[t] else [("unmasked", None)]
         for c in (args.base, args.new):
             sha, wt = worktree(c)
             res = {}
 
-            def run(lines, flash):
-                log = talk(wt, port, lines, flash, t)
+            def run(lines, flash, mask=False):
+                log = talk(wt, port, lines, flash, t, mask)
                 names = re.findall(r"Project name:\s+(\S+)", log)
-                if not log or (names and names[-1] != project):
+                if not log or (names and names[-1] != project) or (flash and mask and "BENCH: AB_MASK" not in log):
                     # 2026-10-10: a failed build left the last image on the board, and it was benched as the new one
-                    sys.exit(f"resources: {t} at {sha}: the board ran {names[-1] if names else 'nothing'}, not {project}")
+                    sys.exit(f"resources: {t} at {sha}: the board ran {names[-1] if names else 'nothing'}, not {project}"
+                             + (" (AB_MASK)" if mask else ""))
                 return log
             log = run(["sleep 3", "wait : heap internal 30", "sleep 2", "send X", "wait state: 10"], True)
             m = re.findall(r"heap=(\d+) stack-free=(\d+)", log)
             res["heap"] = int(m[-1][0]) if m else None
             m = re.findall(r"heap internal \d+ \(largest block (\d+)\)", log)
             res["block"] = int(m[-1]) if m else None
-            for state in STATES:
-                worst = None
-                for label, shape, depth in STACK:
-                    out = sh([gen, "prog", str(depth), shape], capture=True)
-                    keys = re.search(r"keys \(entry (\d+), then XEQ A\):(.*)", out)
-                    mark, ks = int(keys.group(1)), keys.group(2).split()
-                    plines = re.search(r"program lines (\d+)", out).group(1)
-                    if state == "full" and not put_full(port, t):
-                        sys.exit(f"resources: {t} at {sha}: esptool did not write the full state")
-                    lines = ["sleep 3", "wait : heap internal 30", "sleep 2"]
-                    if state != "full":                 # both save slots wiped, a restart, and one equation's keys
-                        lines += ["send WIPE", "wait wipe: 10", "send RESTART", "wait : heap internal 30", "sleep 2"]
-                        lines += EQN_ONE if state == "one equation" else []
-                    for i, k in enumerate(ks, 1):
-                        lines += [f"send K{k}", "sleep 0.25"]
-                        if i == mark:
-                            lines += ["sleep 2"]
-                    lines += ["sleep 20", "send X", "wait state: 10"]
-                    h = hashlib.sha256("\n".join(lines + ([full_sha] if state == "full" else [])).encode()).hexdigest()[:8]
-                    if scripts.setdefault((state, label), h) != h:
-                        sys.exit(f"resources: {state}, {label}: BEFORE and AFTER would run different scripts")
-                    log = run(lines, False)
-                    m = re.findall(r"stop=(\S+) lines=(\d+) .*stack-free=(\d+)", log)
-                    took = (f"load: {full_bytes} bytes ok" in log if state == "full" else
-                            "wipe: both slots erased" in log and (state != "one equation" or "eqn: 2 |" in log))
-                    ran = m and m[-1][0] == "DONE" and m[-1][1] == plines   # the program typed whole, and run to its end
-                    v = int(m[-1][2]) if took and ran else None
-                    res[(state, label)] = v
-                    worst = v if worst is None or (v is not None and v < worst) else worst
-                res[(state, "worst")] = worst
-            ws = [res[(s, "worst")] for s in STATES]
-            res["worst"] = None if None in ws else min(ws)
             log = "" if args.no_speed else run(open(os.path.join(ROOT, "device", "standin", "speed.txt")).read().splitlines(), False)
             for key, pat in (("SOLVE", r"eqnbench: SOLVE [^:]*: (\d+) us"), ("integral", r"eqnbench: integral [^:]*: (\d+) us"),
                              ("PROGBENCH SIN", r"progbench: 100 x SIN in a program (\d+) ms"),
                              ("PROGBENCH LN", r"progbench: 100 x LN  in a program (\d+) ms")):
                 v = [int(x) for x in re.findall(pat, log)]
                 res[key] = min(v) if v else None
+            if masked[t]:                       # the stack in the AB_MASK image (the speed and heap above are the plain one's)
+                run(["wait REVA READY 40", "send X", "wait state: 10"], True, True)
+            for state in STATES:
+                for label, shape, depth in STACK:
+                    out = sh([gen, "prog", str(depth), shape], capture=True)
+                    keys = re.search(r"keys \(entry (\d+), then XEQ A\):(.*)", out)
+                    mark, ks = int(keys.group(1)), keys.group(2).split()
+                    plines = re.search(r"program lines (\d+)", out).group(1)
+                    for mode, mask in modes:
+                        if state == "full" and not put_full(port, t):
+                            sys.exit(f"resources: {t} at {sha}: esptool did not write the full state")
+                        lines = ["sleep 3", "wait : heap internal 30", "sleep 2"]
+                        if state != "full":             # both save slots wiped, a restart, and one equation's keys
+                            lines += ["send WIPE", "wait wipe: 10", "send RESTART", "wait : heap internal 30", "sleep 2"]
+                            lines += EQN_ONE if state == "one equation" else []
+                            lines += RAD if shape == "s" else []    # (full is in RAD already)
+                        lines += [f"send MASK {mask}", f"wait mask: {mask.lower()} 10"] if mask else []
+                        for i, k in enumerate(ks, 1):
+                            lines += [f"send K{k}", "sleep 0.25"]
+                            if i == mark:
+                                lines += ["sleep 2"]
+                        lines += ["sleep 20", "send X", "wait state: 10"]
+                        h = hashlib.sha256("\n".join(lines + ([full_sha] if state == "full" else [])).encode()).hexdigest()[:8]
+                        if scripts.setdefault((t, state, label, mode), h) != h:
+                            sys.exit(f"resources: {state}, {label}, {mode}: BEFORE and AFTER would run different scripts")
+                        log = run(lines, False, bool(mask))
+                        m = re.findall(r"stop=(\S+) lines=(\d+) .*stack-free=(\d+)", log)
+                        took = (f"load: {full_bytes} bytes ok" in log if state == "full" else
+                                "wipe: both slots erased" in log and (state != "one equation" or "eqn: 2 |" in log))
+                        took = took and (not mask or f"mask: {mask.lower()}" in log)
+                        ran = m and m[-1][0] == "DONE" and m[-1][1] == plines   # the program typed whole, run to its end
+                        res[(state, label, mode)] = int(m[-1][2]) if took and ran else None
+            for mode, _ in modes:
+                vs = [res[(s, label, mode)] for s in STATES for label, _, _ in STACK]
+                res[("worst", mode)] = None if None in vs else min(vs)
+            if masked[t]:                       # the interrupt's cost on each row, against the allowance
+                cost = [res[(s, label, "masked")] - res[(s, label, "unmasked")] for s in STATES for label, _, _ in STACK
+                        if res[(s, label, "masked")] is not None and res[(s, label, "unmasked")] is not None]
+                res["cost"] = max(cost) if cost else None
+                if res["cost"] is None or res["cost"] > ALLOWANCE:
+                    failed.append(f"{RUNNERS[t][2]} at {sha}: the interrupt's largest cost is "
+                                  f"{fmt(res['cost'])} B against the {ALLOWANCE} B allowance")
             rows[t][sha] = res
     for t in targets:
         (s0, a), (s1, b) = rows[t].items()
+        modes = ["unmasked", "masked"] if masked[t] else ["unmasked"]
         print(f"\n### {RUNNERS[t][2]}, through its console: {s0} -> {s1}\n")
         print("| resource | before | after | change |\n|---|---|---|---|")
         print(f"| internal heap free after boot, B | {fmt(a['heap'])} | {fmt(b['heap'])} | {delta(a['heap'], b['heap'])} |")
         print(f"| largest internal block after boot, B | {fmt(a['block'])} | {fmt(b['block'])} | {delta(a['block'], b['block'])} |")
         for state in STATES:
-            for label, _, _ in STACK:
-                k = (state, label)
-                print(f"| calc task stack free, {label}, {state} (script {scripts[k]}), B | {fmt(a[k])} | {fmt(b[k])} | "
-                      f"{delta(a[k], b[k])} |")
-        print(f"| the worst stack free through the keys, of the states above, B | {fmt(a['worst'])} | {fmt(b['worst'])} | "
-              f"{delta(a['worst'], b['worst'])} |")
+            for label, shape, _ in STACK:
+                for mode in modes:
+                    k = (state, label, mode)
+                    print(f"| calc task stack free, {label}{' (RAD)' if shape == 's' else ''}, {state}, {mode} "
+                          f"(script {scripts[(t,) + k]}), B | {fmt(a[k])} | {fmt(b[k])} | {delta(a[k], b[k])} |")
+        if masked[t]:
+            wa, wb = a[("worst", "masked")], b[("worst", "masked")]
+            print(f"| **the stack's figure: the worst masked reading (the path), B** | {fmt(wa)} | {fmt(wb)} | {delta(wa, wb)} |")
+            la, lb = (None if w is None else w - ALLOWANCE for w in (wa, wb))
+            print(f"| the figure less the {ALLOWANCE} B allowance (two interrupt frames), B | {fmt(la)} | {fmt(lb)} | {delta(la, lb)} |")
+            print(f"| the interrupt's largest cost on a row (masked - unmasked; at most {ALLOWANCE}), B | {fmt(a['cost'])} | "
+                  f"{fmt(b['cost'])} | {delta(a['cost'], b['cost'])} |")
+        wa, wb = a[("worst", "unmasked")], b[("worst", "unmasked")]
+        print(f"| the worst unmasked reading, B | {fmt(wa)} | {fmt(wb)} | {delta(wa, wb)} |")
         for key, unit in (("SOLVE", "µs"), ("integral", "µs"), ("PROGBENCH SIN", "ms"), ("PROGBENCH LN", "ms")):
             print(f"| {key}, {unit} (best) | {fmt(a[key])} | {fmt(b[key])} | {delta(a[key], b[key])} |")
     print("\n(n/a where a commit lacks the bench: EQNBENCH from 24308a2, OPBENCH from 0594bae; Rev A head-less from 68683b5;"
-          " for a stack state, where the state did not take, as a full image an older commit refuses)")
-    print("(the stack readings are per exact script; ±160 B unexplained: a small change in the keys or the image can move a"
-          " reading by up to 160 B with the state fixed, each exact script repeating; abacus #6636, soroban #6635)")
+          " for a stack state, where the state did not take, as a full image an older commit refuses; masked rows only"
+          " where both commits have AB_MASK, Rev A head-less from 239adab)")
+    print("(unmasked, a reading moves by up to one interrupt frame with the timing, each exact script repeating; the"
+          " masked reading is the path: abacus #6675)")
+    if failed:
+        for f in failed:
+            print(f"resources: FAIL: {f}")
+        sys.exit(1)
 
 
 # ---- iram-options ----
