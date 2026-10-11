@@ -465,6 +465,7 @@ int main(void)
        default): ALL's 123,456,789,012,345.7 (21 cells; ungrouped, .67890 would fit), so the last place 10^-1 */
     ab_init(&c);
     app_init(&a, &c, now);
+    ab_do_arg(&c, AB_SETALL, 0);                   /* ALL's line, as measured (a new calculator shows FIX 4, unit 067) */
     press(&a, "1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 . 6 7 8 9 0 1 ENTER GOLD 2 k:4");
     expect(a.set.group == 1 && c.eng_on && c.eng_low == -1 && c.eng_e == -3,
            "041 C: ENG\xe2\x86\x92 on a grouped ALL line: the place it shows, 10^-1");
@@ -877,6 +878,7 @@ int main(void)
         app_ui(&a, &ui);
         snprintf(want, sizeof want, "%lu B FREE  0 IND", (unsigned long)(65536 - ab_state_save(&c, NULL, 0)));
         expect(ui.prompt && !strcmp(ui.prompt, want), "041 C: 35s mode: and the indirect variables in use");
+        ab_do_arg(&c, AB_SETALL, 0);               /* VAR's lines in ALL (a new calculator shows FIX 4, unit 067) */
         press(&a, "C 3 STO ltr:C 4 STO ltr:D C BLUE 1 k:0");
         app_ui(&a, &ui);
         expect(a.cat == 1 && ui.view[3] && !strcmp(ui.view[3], "C=3"), "041 C: VAR: the first nonzero variable, C=3");
@@ -969,6 +971,7 @@ int main(void)
         expect(c.ind_top == 5 && ui.prompt && !strcmp(ui.prompt, want), "041 C: 35s mode: registers 0 to 5 in use, 6 IND");
         ab_init(&c);
         app_init(&a, &c, now);
+        ab_do_arg(&c, AB_SETALL, 0);               /* VAR's lines in ALL (a new calculator shows FIX 4, unit 067) */
         snprintf(kk, sizeof kk, "6 STO k:%d BLUE 1 k:0", ki);
         press(&a, kk);
         app_ui(&a, &ui);
@@ -1629,11 +1632,27 @@ int main(void)
         static screen_page pg;
         ab_init(&c);
         app_init(&a, &c, now);
+        ab_do_arg(&c, AB_SETALL, 0);               /* VIEW's text in ALL; unit 067's FIX 4 is checked below */
         press(&a, "5 STO ltr:A 7 GOLD STO ltr:A");
         app_ui(&a, &ui);
         screen_lines(&c, &ui, &pg);
         expect(pg.x.kind == SCREEN_VIEW && !strcmp(pg.x.text, "A=5") && !pg.x.label && x_of(&c) == 7,
                "VIEW A: A=5 on the X line, X still 7");
+        {   /* unit 067: a new calculator shows FIX 4, on the X line and in VIEW */
+            static ab_calc n;
+            static app_state na;
+            static screen_ui nui;
+            static screen_page np;
+            ab_init(&n);
+            app_init(&na, &n, now);
+            app_ui(&na, &nui);
+            screen_lines(&n, &nui, &np);
+            expect(!strcmp(np.x.text, "0.0000"), "067: a new calculator's X line is 0.0000 (FIX 4)");
+            press(&na, "5 STO ltr:A 7 GOLD STO ltr:A");
+            app_ui(&na, &nui);
+            screen_lines(&n, &nui, &np);
+            expect(np.x.kind == SCREEN_VIEW && !strcmp(np.x.text, "A=5.0000"), "067: and VIEW A shows A=5.0000");
+        }
         press(&a, "C");
         app_ui(&a, &ui);
         screen_lines(&c, &ui, &pg);
@@ -2908,6 +2927,7 @@ int main(void)
         static screen_page pg;
         ab_init(&c);
         app_init(&a, &c, now);
+        ab_do_arg(&c, AB_SETALL, 0);               /* the rows in ALL, as checked (a new calculator shows FIX 4, unit 067) */
         ab_do_arg(&c, AB_MODEL, 35);            /* TABLE's menu doesn't open in 33s mode (unit 041 A14, decision 58) */
         press(&a, "BLUE 8");
         app_ui(&a, &ui);

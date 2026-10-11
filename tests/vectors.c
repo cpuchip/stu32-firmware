@@ -867,6 +867,11 @@ int vectors_run(const char *name, FILE *f)
                 } else if (strcmp(ex, "%HSEL") == 0) {     /* the history entry shown, - none */
                     const char *h = c.hist_at >= 0 && c.hist_at < c.hist_n ? c.hist[c.hist_at] : "-";
                     snprintf(got, sizeof got, "%.*s", AB_EQN_LEN - 1, h);
+                } else if (strcmp(ex, "%DISP") == 0) {     /* the display setting: FIX4, SCI2, ENG3, ALL (unit 067) */
+                    const char *m = c.disp_mode == AB_FIX ? "FIX" : c.disp_mode == AB_SCI ? "SCI" : c.disp_mode == AB_ENG ? "ENG"
+                                    : c.disp_mode == AB_ALL ? "ALL" : "?";
+                    if (c.disp_mode == AB_ALL) snprintf(got, sizeof got, "%s", m);
+                    else snprintf(got, sizeof got, "%s%d", m, c.disp_n);
                 } else if (strcmp(ex, "%SHOW") == 0) {     /* SHOW's text, parts joined by /, - none (unit 030) */
                     char sh[2][AB_SHOW_LEN];
                     int n = ab_show_text(&c, sh);

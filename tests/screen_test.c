@@ -467,6 +467,7 @@ int main(int argc, char **argv)
 
     /* a message takes X, left at 20; the stack stays */
     ab_init(&c);
+    ab_do_arg(&c, AB_SETALL, 0);   /* Y's 1 one glyph wide, in ALL (a new calculator shows FIX 4, unit 067) */
     keys(&c, "1 ENTER 0 /");
     screen_render(&c, &ui, &f);
     expect(text_at(&f, 20, 128, 4, "DIVIDE BY 0", 1), "DIVIDE BY 0 in the X line");
@@ -814,15 +815,18 @@ int main(int argc, char **argv)
     keys(&c, "ENTER 1 2 . 5 E CHS 3");
     frame("03-typing", &c, &ui);
     ab_init(&c);
+    ab_do_arg(&c, AB_SETALL, 0);   /* the frames were drawn in ALL; a new calculator shows FIX 4 (unit 067) */
     ab_do_arg(&c, AB_MODEL, 35);
     keys(&c, "E 3 ENTER");
     frame("04-syntax-35", &c, &ui);
     keys(&c, "ENTER");
     frame("05-syntax-35-after", &c, &ui);
     ab_init(&c);
+    ab_do_arg(&c, AB_SETALL, 0);   /* the frames were drawn in ALL; a new calculator shows FIX 4 (unit 067) */
     keys(&c, "1 ENTER 0 /");
     frame("06-divide-by-0", &c, &ui);
     ab_init(&c);
+    ab_do_arg(&c, AB_SETALL, 0);   /* the frames were drawn in ALL; a new calculator shows FIX 4 (unit 067) */
     keys(&c, "RAD HEX 2 5 5 ENTER 1 6");
     ab_do_arg(&c, AB_SF, 1);
     ab_do_arg(&c, AB_SF, 3);
@@ -832,26 +836,32 @@ int main(int argc, char **argv)
     frame("07-status-band", &c, &ui);
     screen_ui_default(&ui);
     ab_init(&c);
+    ab_do_arg(&c, AB_SETALL, 0);   /* the frames were drawn in ALL; a new calculator shows FIX 4 (unit 067) */
     keys(&c, "FDISP 1 ENTER 3 / 2 ENTER 3 /");
     frame("08-fractions", &c, &ui);
     ab_init(&c);
+    ab_do_arg(&c, AB_SETALL, 0);   /* the frames were drawn in ALL; a new calculator shows FIX 4 (unit 067) */
     ab_do_arg(&c, AB_MODEL, 35);   /* complex and vector entry are 35s mode's (unit 041 A, decision 58) */
     keys(&c, "3 I 4 ENTER 5 THETA 3 0");
     frame("09-complex-typing", &c, &ui);
     keys(&c, "ENTER RTA");
     frame("10-complex-polar", &c, &ui);
     ab_init(&c);
+    ab_do_arg(&c, AB_SETALL, 0);   /* the frames were drawn in ALL; a new calculator shows FIX 4 (unit 067) */
     ab_do_arg(&c, AB_MODEL, 35);   /* complex and vector entry are 35s mode's (unit 041 A, decision 58) */
     keys(&c, "[ 1 , 2 , 3 ENTER [ 4 , 5");
     frame("11-vectors", &c, &ui);
     ab_init(&c);
+    ab_do_arg(&c, AB_SETALL, 0);   /* the frames were drawn in ALL; a new calculator shows FIX 4 (unit 067) */
     keys(&c, "1 ENTER 7 / PI 2 SQRT");
     frame("12-all-digits", &c, &ui);
     ab_init(&c);
+    ab_do_arg(&c, AB_SETALL, 0);   /* the frames were drawn in ALL; a new calculator shows FIX 4 (unit 067) */
     ab_do_arg(&c, AB_MODEL, 35);   /* complex and vector entry are 35s mode's (unit 041 A, decision 58) */
     keys(&c, "1234567890123456789012345 I 123456789012345");
     frame("13-window", &c, &ui);
     ab_init(&c);
+    ab_do_arg(&c, AB_SETALL, 0);   /* the frames were drawn in ALL; a new calculator shows FIX 4 (unit 067) */
     ab_eqn_add(&c, "A\xc3\x97" "B=C+SQRT(D)");     /* it turns Equation mode on */
     frame("14-equation", &c, &ui);
     c.eqn_typing = true;
@@ -859,20 +869,24 @@ int main(int argc, char **argv)
     c.ecur = 4;
     frame("15-equation-typing", &c, &ui);
     ab_init(&c);
+    ab_do_arg(&c, AB_SETALL, 0);   /* the frames were drawn in ALL; a new calculator shows FIX 4 (unit 067) */
     keys(&c, "4 2");
     c.stop = AB_STOP_INPUT;
     c.stop_var = 0;
     frame("16-prompt", &c, &ui);
     ab_init(&c);
+    ab_do_arg(&c, AB_SETALL, 0);   /* the frames were drawn in ALL; a new calculator shows FIX 4 (unit 067) */
     ui.busy = AB_INTEG;
     ui.battery = 5;
     frame("17-integrating", &c, &ui);
     screen_ui_default(&ui);
     ab_init(&c);
+    ab_do_arg(&c, AB_SETALL, 0);   /* the frames were drawn in ALL; a new calculator shows FIX 4 (unit 067) */
     keys(&c, "PRGM");
     ab_do_arg(&c, AB_LBL, 0);
     frame("18-program-entry", &c, &ui);
     ab_init(&c);
+    ab_do_arg(&c, AB_SETALL, 0);   /* the frames were drawn in ALL; a new calculator shows FIX 4 (unit 067) */
     {
         static const char *const SOFT[] = {"SOLVE", "\xe2\x88\xab", "PRGM", "x?y", "FLAGS", "\xe2\x88\xa1MODE"};
         for (int k = 0; k < SCREEN_SOFT; k++) ui.soft[k] = SOFT[k];
@@ -881,6 +895,7 @@ int main(int argc, char **argv)
     frame("19-soft-keys", &c, &ui);
     screen_ui_default(&ui);
     ab_init(&c);
+    ab_do_arg(&c, AB_SETALL, 0);   /* the frames were drawn in ALL; a new calculator shows FIX 4 (unit 067) */
     keys(&c, "PRGM");
     ab_do_arg(&c, AB_LBL, 'S' - 'A');
     ab_do(&c, AB_SIGMAPLUS);
@@ -909,6 +924,7 @@ int main(int argc, char **argv)
                    !strcmp(pg.y.text, "0.0125") && !strcmp(pg.y.label, "Y") && !strcmp(pg.t.label, "T"),
                "text: X and Y values, right aligned, their letters");
         ab_init(&c);
+        ab_do_arg(&c, AB_SETALL, 0);       /* the stack's text in ALL (a new calculator shows FIX 4, unit 067) */
         keys(&c, "1 ENTER 0 /");
         screen_lines(&c, &ui, &pg);
         expect(pg.x.kind == SCREEN_MESSAGE && !strcmp(pg.x.text, "DIVIDE BY 0") && !pg.x.label && pg.x.left &&
@@ -940,6 +956,7 @@ int main(int argc, char **argv)
         expect(pg.x.kind == SCREEN_EQN && !strcmp(pg.x.text, "EQN LIST TOP") && pg.status.eqn, "text: EQN LIST TOP, EQN on");
         /* a keyboard VIEW: Variable=Value in X, left, no letter (abacus #3979); drawn there too */
         ab_init(&c);
+        ab_do_arg(&c, AB_SETALL, 0);       /* VIEW's text in ALL (a new calculator shows FIX 4, unit 067) */
         keys(&c, "5");
         ab_do_arg(&c, AB_STO, 0);
         keys(&c, "7");

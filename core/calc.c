@@ -64,8 +64,10 @@ static void init_fields(ab_calc *c, bool keep_hist)
     c->gr_trace = true;
     c->gr_hf = c->gr_vf = abn_from_int(4);
     c->angle = AB_ANGLE_DEG;    /* and is in degrees (UG p.B-4) */
-    c->disp_mode = AB_ALL;      /* ALL is the default display (ours, unit 002) */
-    c->disp_n = 0;
+    /* FIX 4, the HP's original default (UG p.B-3, MEMORY CLEAR's (Default) column); unit 002's ALL start
+       ruled out by unit 067 (abacus #6964) */
+    c->disp_mode = AB_FIX;
+    c->disp_n = 4;
     c->ind_top = -1;
     c->exec_at = -1;
     c->pc = AB_PC_TOP;          /* program memory empty, the pointer at PRGM TOP (unit 011) */
@@ -4746,7 +4748,7 @@ void ab_clear_all(ab_calc *c)
  * too, and the device's slice kept (abacus #3971: a calloc'd host had budget 0, so every run
  * stopped at once).
  * Contrast, the radix mark and the thousands separator are the device's (the core shows numbers in
- * its own form). ab_init differs only in the display: ALL (unit 002, ours). */
+ * its own form). A new calculator (ab_init) shows the same FIX 4 (unit 067). */
 static void memory_clear(ab_calc *c, bool keep_hist)
 {
     long slice = c->slice;

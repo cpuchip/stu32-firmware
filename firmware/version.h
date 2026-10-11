@@ -4,7 +4,7 @@
 #ifndef VERSION_H
 #define VERSION_H
 
-#define AB_FW_VERSION "0.66"        /* "0.<the last work unit>" until 1.0; each unit bumps it
+#define AB_FW_VERSION "0.67"        /* "0.<the last work unit>" until 1.0; each unit bumps it
                                        (abacus #6810; scripts/check-version.sh) */
 #ifdef AB_HAVE_COMMIT_H
 #include "ab_commit.h"              /* generated at every build (scripts/gen_commit.cmake) */

@@ -1,0 +1,10 @@
+# Unit 067 (decision on first-boot-display, abacus #6964: "Both FIX 4, like the HP"): a new calculator and a cleared
+# one both show FIX 4, as the HP after MEMORY CLEAR (35s UG p.B-3, B-4); ALL is a setting chosen with the keys. %DISP is
+# the display setting (tests/vectors.c). Each vector starts from ab_init, the new calculator.
+# ID | description | keys | expected
+D01 | a new calculator shows FIX 4 | 1 ENTER | %DISP=FIX4 X=1
+D02 | MEMORY CLEAR from ALL: FIX 4 again, the same as new | ALL MEMCLR | %DISP=FIX4
+D03 | RND on a new calculator rounds to FIX 4's 4 places | 2.77777 RND | X=2.7778
+D04 | and 1/3 to 0.3333 | 1 ENTER 3 / RND | X=0.3333
+D05 | ALL is still a setting the keys choose | ALL 1 ENTER | %DISP=ALL
+D06 | FIX 2 from a new calculator | FIX2 1 ENTER | %DISP=FIX2
