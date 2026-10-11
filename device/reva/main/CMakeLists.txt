@@ -33,8 +33,12 @@ if(NOT CMAKE_SCRIPT_MODE_FILE)
                                 OBJECT_DEPENDS "${CASIM}/.pin")
 endif()
 
+# AB_MASK's level-5 stack sampler (ab_sample.S), head-less only: never in a product image (decision 68)
+if(REVA_HEADLESS AND AB_MASK)
+    set(SAMPLE_SRCS ab_sample.S)
+endif()
 idf_component_register(
-    SRCS ${WASM_SRCS} reva_main.c ${CORE_SRCS} "${FW}/screen.c" "${FW}/font5x7.c" "${FW}/draw.c" "${FW}/app.c" "${FW}/apps.c" "${FW}/keymap.c"
+    SRCS ${WASM_SRCS} ${SAMPLE_SRCS} reva_main.c ${CORE_SRCS} "${FW}/screen.c" "${FW}/font5x7.c" "${FW}/draw.c" "${FW}/app.c" "${FW}/apps.c" "${FW}/keymap.c"
          "${FW}/keys.c" "${FW}/power.c" "${FW}/store.c" "${FW}/ls027.c" "${FW}/gauge.c" "${FW}/pins.c" "${FW}/piezo.c" "${FW}/settings.c"
          ${GAMES_SRCS} "${CASIM}/casim.c"
     EMBED_FILES ${GAMES_EMBED}
@@ -64,6 +68,7 @@ if(REVA_HEADLESS)
     target_compile_definitions(${COMPONENT_LIB} PRIVATE REVA_HEADLESS=1 AB_BENCH=1)
     if(AB_MASK)                                 # (head-less only: MASK=1 headless.sh, the stack's masked readings)
         target_compile_definitions(${COMPONENT_LIB} PRIVATE AB_MASK=1)
+        target_link_libraries(${COMPONENT_LIB} INTERFACE "-u ld_include_ab_sample")    # the sampler's xt_highint5
     endif()
 elseif(AB_BENCH)
     target_compile_definitions(${COMPONENT_LIB} PRIVATE AB_BENCH=1)

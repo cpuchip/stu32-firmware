@@ -73,6 +73,52 @@ static volatile bool mask_runs;
         call;                                                                                                          \
         if (mask_now) portCLEAR_INTERRUPT_MASK_FROM_ISR(mask_level);                                                   \
     } while (0)
+
+/* The level-5 stack sampler (ab_sample.S; casim docs/stack-gate.md's S, the deepest stack pointer): SAMPLE ON <cycles>
+   arms the CPU's timer 2 on the calc task's core, and each sample keeps the lowest calc-task A1. Run under MASK ON, no
+   level 1-3 frame is on the stack, so the lowest A1 is the path's own. SAMPLE ROOM and SAMPLE FULL are its controls:
+   a 6,000-byte frame written only at its top, and the same frame written whole (predictions before the first build). */
+#include "esp_intr_alloc.h"
+extern volatile uint32_t ab_sample[9];
+static intr_handle_t sample_h;
+static uint32_t sample_lo, sample_period;
+enum { KEY_SAMPLE_ON = -20, KEY_SAMPLE_OFF = -21, KEY_SAMPLE = -22, KEY_SAMPLE_ROOM = -23, KEY_SAMPLE_FULL = -24 };
+static void sample_on(uint32_t period)          /* on the calc task's core: the timer and its interrupt are that core's */
+{
+    if (sample_h) esp_intr_disable(sample_h);
+    ab_sample[2] = period;
+    ab_sample[3] = sample_lo;
+    ab_sample[4] = sample_lo + 32768;
+    ab_sample[5] = ab_sample[4];
+    ab_sample[6] = ab_sample[7] = ab_sample[8] = 0;
+    uint32_t c;
+    __asm__ volatile("rsr %0, ccount" : "=r"(c));
+    c += period;
+    __asm__ volatile("wsr %0, ccompare2\n isync" ::"r"(c));
+    if (!sample_h && esp_intr_alloc(ETS_INTERNAL_TIMER2_INTR_SOURCE, ESP_INTR_FLAG_LEVEL5 | ESP_INTR_FLAG_IRAM, NULL, NULL,
+                                    &sample_h) != ESP_OK) {
+        printf("sample: no level-5 interrupt\n");
+        return;
+    }
+    esp_intr_enable(sample_h);
+    printf("sample: on, every %lu cycles\n", (unsigned long)period);
+}
+static void sample_report(void)
+{
+    uint32_t hi = ab_sample[4], lo = ab_sample[5];
+    printf("sample: depth %lu pc 0x%08lx in %lu of %lu samples\n", (unsigned long)(hi - lo), (unsigned long)ab_sample[6],
+           (unsigned long)ab_sample[7], (unsigned long)ab_sample[8]);
+}
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wframe-larger-than="
+static __attribute__((noinline)) void sample_ctrl(bool full)
+{
+    volatile uint8_t buf[6000];
+    if (full) memset((void *)buf, 0x5a, sizeof buf);
+    else buf[sizeof buf - 1] = 1;
+    esp_rom_delay_us(20000);
+}
+#pragma GCC diagnostic pop
 #else
 #define MASKED(call) call
 #endif
@@ -456,6 +502,19 @@ static void console_task(void *arg)
         } else if (!strcmp(line, "MASK ON") || !strcmp(line, "MASK OFF")) {
             mask_runs = line[6] == 'N';
             printf("mask: %s\n", mask_runs ? "on" : "off");
+        } else if (!strncmp(line, "SAMPLE", 6)) {
+            int k = KEY_SAMPLE;
+            if (!strncmp(line, "SAMPLE ON ", 10)) {
+                sample_period = (uint32_t)strtoul(line + 10, NULL, 10);
+                k = sample_period >= 200 ? KEY_SAMPLE_ON : KEY_SAMPLE;     /* (shorter: the handler outruns it) */
+            } else if (!strcmp(line, "SAMPLE OFF")) {
+                k = KEY_SAMPLE_OFF;
+            } else if (!strcmp(line, "SAMPLE ROOM")) {
+                k = KEY_SAMPLE_ROOM;
+            } else if (!strcmp(line, "SAMPLE FULL")) {
+                k = KEY_SAMPLE_FULL;
+            }
+            xQueueSend(keys_q, &k, 0);
 #endif
         } else if (line[0] == 'X') {
             int k = -1;
@@ -545,6 +604,18 @@ static void calc_task(void *arg)
         } else if (got && k == KEY_WIPE) {
             printf("wipe: %s\n", flash.ctx && esp_partition_erase_range(flash.ctx, 0, 2 * flash.slot_size) == ESP_OK
                                      ? "both slots erased" : "FAILED");
+#ifdef AB_MASK
+        } else if (got && k == KEY_SAMPLE_ON) {
+            sample_on(sample_period);
+        } else if (got && k == KEY_SAMPLE_OFF) {
+            if (sample_h) esp_intr_disable(sample_h);
+            printf("sample: off\n");
+        } else if (got && k == KEY_SAMPLE) {
+            sample_report();
+        } else if (got && (k == KEY_SAMPLE_ROOM || k == KEY_SAMPLE_FULL)) {
+            MASKED(sample_ctrl(k == KEY_SAMPLE_FULL));
+            printf("sample: %s done\n", k == KEY_SAMPLE_FULL ? "full" : "room");
+#endif
         } else if (got && k == KEY_RESTART) {
             fflush(stdout);
             esp_restart();
@@ -643,6 +714,9 @@ void app_main(void)
        its other buffers were in; see standin_main.c) */
     static StaticTask_t calc_tcb;
     StackType_t *calc_stack = heap_caps_malloc(32768, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+#ifdef AB_MASK
+    sample_lo = (uint32_t)calc_stack;
+#endif
     esp_sleep_wakeup_cause_t why = esp_sleep_get_wakeup_cause();
     bool woke = why == ESP_SLEEP_WAKEUP_EXT1 || why == ESP_SLEEP_WAKEUP_TIMER;
     /* the outputs' first levels (pins.c), keeping BOOST_EN and DISP high after a wake */
