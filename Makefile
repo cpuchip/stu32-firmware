@@ -146,6 +146,7 @@ build/diff_test: $(HDRS) $(ENGINE) tests/diff_test.c tests/dref.c tests/dref.h t
 	$(CC) $(CFLAGS) -Icore -Itests -o $@ tests/diff_test.c tests/dref.c $(ENGINE) $(LIBS)
 
 test: all
+	sh scripts/check-version.sh
 	./build/abn_test
 	./build/diff_test
 	./build/xnum_test
