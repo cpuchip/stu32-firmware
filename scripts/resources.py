@@ -223,7 +223,9 @@ EQN_ONE = ["send K30", "sleep 0.25", "send K43", "sleep 0.5", "send K38", "sleep
            "send X", "wait eqn: 2 | 10", "send K42", "sleep 0.5"]   # EQN, 2, ENTER (stored, shown), C
 RAD = ["send K36", "sleep 0.25", "send K38", "sleep 0.25", "send K1", "sleep 0.5"]   # the angle menu, RAD
 STATES = ["factory", "one equation", "full"]
-ALLOWANCE = 384                                 # two interrupt frames (XT_STK_FRMSZ 192): abacus's stack rule
+ALLOWANCE = 384                                 # one interrupt frame (XT_STK_FRMSZ 192) + 192 B of a frame's unwritten room
+                                                # below the watermark: a bound only if that room is <= 192 (abacus #6853;
+                                                # the per-row allowance, casim docs/stack-gate.md, replaces it)
 ABSTATE = {"standin": "0x510000", "reva": "0x710000"}   # each board's abstate partition (device/*/partitions.csv)
 
 
@@ -362,7 +364,7 @@ def board(args):
             wa, wb = a[("worst", "masked")], b[("worst", "masked")]
             print(f"| **the stack's figure: the worst masked reading (the path), B** | {fmt(wa)} | {fmt(wb)} | {delta(wa, wb)} |")
             la, lb = (None if w is None else w - ALLOWANCE for w in (wa, wb))
-            print(f"| the figure less the {ALLOWANCE} B allowance (two interrupt frames), B | {fmt(la)} | {fmt(lb)} | {delta(la, lb)} |")
+            print(f"| the figure less the {ALLOWANCE} B allowance (a bound only if unwritten room <= 192), B | {fmt(la)} | {fmt(lb)} | {delta(la, lb)} |")
             print(f"| the interrupt's largest cost on a row (masked - unmasked; at most {ALLOWANCE}), B | {fmt(a['cost'])} | "
                   f"{fmt(b['cost'])} | {delta(a['cost'], b['cost'])} |")
         wa, wb = a[("worst", "unmasked")], b[("worst", "unmasked")]
@@ -374,6 +376,7 @@ def board(args):
           " where both commits have AB_MASK, Rev A head-less from 239adab)")
     print("(unmasked, a reading moves by up to one interrupt frame with the timing, each exact script repeating; the"
           " masked reading is the path: abacus #6675)")
+    print("(the masked figure counts writes, not sp: an interrupt's frame lands below the deepest sp, which may lie up to a frame's unwritten room below the watermark; the allowance is a bound only if that room is <= 192 B, abacus #6853)")
     if failed:
         for f in failed:
             print(f"resources: FAIL: {f}")
