@@ -7,5 +7,6 @@ tests/device/sdkconfig*.old
 build-prof/
 build-headless/
 build-headless-usb/
+build-headless-mask/
 device/*/build-wasm/
 device/*/build-bench/

@@ -62,6 +62,9 @@ target_compile_definitions(${COMPONENT_LIB} PRIVATE AB_HAVE_COMMIT_H=1 AB_CASIM=
 # the default image (decision 68).
 if(REVA_HEADLESS)
     target_compile_definitions(${COMPONENT_LIB} PRIVATE REVA_HEADLESS=1 AB_BENCH=1)
+    if(AB_MASK)                                 # (head-less only: MASK=1 headless.sh, the stack's masked readings)
+        target_compile_definitions(${COMPONENT_LIB} PRIVATE AB_MASK=1)
+    endif()
 elseif(AB_BENCH)
     target_compile_definitions(${COMPONENT_LIB} PRIVATE AB_BENCH=1)
 endif()

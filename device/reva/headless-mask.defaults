@@ -1,0 +1,4 @@
+# MASK=1 device/reva/headless.sh (abacus #6636): the bench image for the stack's masked readings, head-less only. With
+# MASK ON a SOLVE runs with interrupts masked on the calc task's core, longer than the interrupt watchdog's 300 ms, so the
+# watchdog is off here, and only here: package.sh refuses an image without it.
+CONFIG_ESP_INT_WDT=n

@@ -33,6 +33,8 @@ B="$WT/device/reva/build"
 for c in "$B" "$WT/device/reva/build-bench"; do
     grep -q '^CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y' "$c/sdkconfig" || { echo "package.sh: $c: the console is not USB's" >&2; exit 1; }
     grep -q '^CONFIG_ESPTOOLPY_FLASHMODE_QIO=y' "$c/sdkconfig" || { echo "package.sh: $c: not QIO" >&2; exit 1; }
+    grep -q '^CONFIG_ESP_INT_WDT=y' "$c/sdkconfig" || { echo "package.sh: $c: the interrupt watchdog is off" >&2; exit 1; }
+    ! grep -aq 'AB_MASK image' "$c/abacus_reva.bin" || { echo "package.sh: $c: an AB_MASK bench image" >&2; exit 1; }
 done
 rm -rf "$OUT"
 mkdir -p "$OUT"

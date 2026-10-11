@@ -60,6 +60,23 @@
 #include "dev_common.h"
 #include "dev_bench.h"
 
+#ifdef AB_MASK
+/* AB_MASK (MASK=1 device/reva/headless.sh, head-less only, never a product image: abacus #6636): MASK ON masks
+   interrupts up to the kernel's level on the calc task's core under each key and each run's slice, so no interrupt frame
+   lands on the calc task's stack there, and the stack readings can be taken with and without. Its sdkconfig turns the
+   interrupt watchdog off (a SOLVE runs longer masked than its 300 ms); package.sh refuses an image with this banner. */
+static volatile bool mask_runs;
+#define MASKED(call)                                                                                                   \
+    do {                                                                                                               \
+        bool mask_now = mask_runs; /* (read once: the console task may change it meanwhile) */                        \
+        UBaseType_t mask_level = mask_now ? portSET_INTERRUPT_MASK_FROM_ISR() : 0;                                     \
+        call;                                                                                                          \
+        if (mask_now) portCLEAR_INTERRUPT_MASK_FROM_ISR(mask_level);                                                   \
+    } while (0)
+#else
+#define MASKED(call) call
+#endif
+
 extern const uint8_t ulp_main_bin_start[] asm("_binary_ulp_main_bin_start");
 extern const uint8_t ulp_main_bin_end[] asm("_binary_ulp_main_bin_end");
 
@@ -435,6 +452,11 @@ static void console_task(void *arg)
         } else if (line[0] == 'U' && line[1] >= '0' && line[1] <= '9') {   /* U<n>: key n released */
             int u = KEY_UP_BASE - atoi(line + 1);
             xQueueSend(keys_q, &u, 0);
+#ifdef AB_MASK
+        } else if (!strcmp(line, "MASK ON") || !strcmp(line, "MASK OFF")) {
+            mask_runs = line[6] == 'N';
+            printf("mask: %s\n", mask_runs ? "on" : "off");
+#endif
         } else if (line[0] == 'X') {
             int k = -1;
             xQueueSend(keys_q, &k, 0);
@@ -485,6 +507,9 @@ static void calc_task(void *arg)
     (void)arg;
     uint32_t last_gauge = 0;
     render(0);
+#ifdef AB_MASK
+    printf("BENCH: AB_MASK image, MASK ON masks interrupts under keys and runs; never a product image\n");
+#endif
     printf("REVA READY\n");
     for (;;) {
         int k;
@@ -503,9 +528,9 @@ static void calc_task(void *arg)
         if (got && key_echo && ((k >= 0 && k < KB_KEYS) || (k <= KEY_UP_BASE && k > KEY_UP_BASE - KB_KEYS))) echo_key(k);
         if (got && k >= 0) {
             memory_clear_msg = false;
-            app_key(&app, k, now);
+            MASKED(app_key(&app, k, now));
         } else if (got && k <= KEY_UP_BASE) {
-            app_key_up(&app, KEY_UP_BASE - k, now);
+            MASKED(app_key_up(&app, KEY_UP_BASE - k, now));
         } else if (got && k == -2) {
             int64_t w;
             if (dev_parse_time(&app, now, time_text, &w)) {
@@ -547,7 +572,8 @@ static void calc_task(void *arg)
             last_gauge = now;
         }
         pwr_inputs in = {gpio_get_level(PIN_CHG_N), gpio_get_level(PIN_PGOOD_N), soc, false};
-        app_action act = app_tick(&app, &in, now);
+        app_action act;
+        MASKED(act = app_tick(&app, &in, now));
         rtc_batt_low = app.batt_low;
         if (app.tone >= 0) {                    /* VOL's new level, or a use's sound (units 022, 027) */
             uint32_t hz, ms;
