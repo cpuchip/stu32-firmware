@@ -223,6 +223,9 @@ EQN_ONE = ["send K30", "sleep 0.25", "send K43", "sleep 0.5", "send K38", "sleep
            "send X", "wait eqn: 2 | 10", "send K42", "sleep 0.5"]   # EQN, 2, ENTER (stored, shown), C
 RAD = ["send K36", "sleep 0.25", "send K38", "sleep 0.25", "send K1", "sleep 0.5"]   # the angle menu, RAD
 STATES = ["factory", "one equation", "full"]
+PERIODS = [480, 337, 613]                       # the level-5 sampler's periods in cycles: three phases, S the deepest seen
+SHOW_INTERIM = True                             # the interim figure beside the new one for one unit, then off (#7138)
+FRAME = 192                                     # one interrupt (or coprocessor exception) frame, XT_STK_FRMSZ
 ALLOWANCE = 384                                 # one interrupt frame (XT_STK_FRMSZ 192) + 192 B of a frame's unwritten room
                                                 # below the watermark: a bound only if that room is <= 192 (abacus #6853;
                                                 # the per-row allowance, casim docs/stack-gate.md, replaces it)
@@ -238,6 +241,24 @@ def put_full(port, target):
                         f'esptool.py --chip esp32s3 -p {p} write_flash {ABSTATE[target]} build/full-state.bin'],
                        text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     return r.returncode == 0 and "Hash of data verified" in r.stdout
+
+
+
+def owners(wt, pcs):
+    """each sampled PC's function, from the AB_MASK image's ELF in the worktree; the S3's ROM (0x40000000-0x4005ffff)
+    has no symbols here"""
+    out = {pc: "ROM" for pc in pcs if 0x40000000 <= int(pc, 16) < 0x40060000}
+    rest = [pc for pc in pcs if pc not in out]
+    elf = "device/reva/build-headless-mask/abacus_reva.elf"
+    if rest and os.path.exists(os.path.join(wt, elf)):
+        r = subprocess.run(["docker", "run", "--rm", "-v", f"{wt}:/w", "-w", "/w", "--user", f"{os.getuid()}:{os.getgid()}",
+                            "-e", "HOME=/tmp", IMAGE, "bash", "-c",
+                            f'. "$IDF_PATH/export.sh" >/dev/null 2>&1; echo ADDR2LINE; xtensa-esp32s3-elf-addr2line -f -e {elf} {" ".join(rest)}'],
+                           text=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        lines = r.stdout.split("ADDR2LINE\n", 1)[-1].splitlines()     # (the image's entrypoint prints first)
+        names = [l for i, l in enumerate(lines) if i % 2 == 0]
+        out.update(zip(rest, names))
+    return out
 
 
 RUNNERS = {"standin": ("device/standin/run.sh", "build/standin.log", "the stand-in"),
@@ -284,6 +305,7 @@ def board(args):
         for c in (args.base, args.new):
             sha, wt = worktree(c)
             res = {}
+            sampler = masked[t] and os.path.exists(os.path.join(wt, "device/reva/main/ab_sample.S"))   # (from fcfafdf)
 
             def run(lines, flash, mask=False):
                 log = talk(wt, port, lines, flash, t, mask)
@@ -312,7 +334,8 @@ def board(args):
                     keys = re.search(r"keys \(entry (\d+), then XEQ A\):(.*)", out)
                     mark, ks = int(keys.group(1)), keys.group(2).split()
                     plines = re.search(r"program lines (\d+)", out).group(1)
-                    for mode, mask in modes:
+                    runs = [(mode, mask, p) for mode, mask in modes for p in (PERIODS if mask == "ON" and sampler else [None])]
+                    for mode, mask, period in runs:
                         if state == "full" and not put_full(port, t):
                             sys.exit(f"resources: {t} at {sha}: esptool did not write the full state")
                         lines = ["sleep 3", "wait : heap internal 30", "sleep 2"]
@@ -321,31 +344,65 @@ def board(args):
                             lines += EQN_ONE if state == "one equation" else []
                             lines += RAD if shape == "s" else []    # (full is in RAD already)
                         lines += [f"send MASK {mask}", f"wait mask: {mask.lower()} 10"] if mask else []
+                        lines += [f"send SAMPLE ON {period}", "wait sample: on 5"] if period else []
                         for i, k in enumerate(ks, 1):
                             lines += [f"send K{k}", "sleep 0.25"]
                             if i == mark:
                                 lines += ["sleep 2"]
-                        lines += ["sleep 20", "send X", "wait state: 10"]
+                        lines += ["sleep 20"] + (["send SAMPLE", "wait sample: depth 5"] if period else []) + ["send X", "wait state: 10"]
+                        key = mode if period is None else f"{mode}@{period}"
                         h = hashlib.sha256("\n".join(lines + ([full_sha] if state == "full" else [])).encode()).hexdigest()[:8]
-                        if scripts.setdefault((t, state, label, mode), h) != h:
-                            sys.exit(f"resources: {state}, {label}, {mode}: BEFORE and AFTER would run different scripts")
+                        if scripts.setdefault((t, state, label, key), h) != h:
+                            sys.exit(f"resources: {state}, {label}, {key}: BEFORE and AFTER would run different scripts")
                         log = run(lines, False, bool(mask))
                         m = re.findall(r"stop=(\S+) lines=(\d+) .*stack-free=(\d+)", log)
                         took = (f"load: {full_bytes} bytes ok" in log if state == "full" else
                                 "wipe: both slots erased" in log and (state != "one equation" or "eqn: 2 |" in log))
-                        took = took and (not mask or f"mask: {mask.lower()}" in log)
+                        took = took and (not mask or f"mask: {mask.lower()}" in log) and (not period or "sample: on" in log)
                         ran = m and m[-1][0] == "DONE" and m[-1][1] == plines   # the program typed whole, run to its end
-                        res[(state, label, mode)] = int(m[-1][2]) if took and ran else None
+                        free = int(m[-1][2]) if took and ran else None
+                        smp = re.findall(r"sample: depth (\d+) pc (0x[0-9a-f]+) in (\d+)", log) if period else []
+                        if period is None:
+                            res[(state, label, mode)] = free
+                        else:                       # the three sampled runs: M from each (it must repeat), S and its PC
+                            res.setdefault((state, label, "Ms"), []).append(free)
+                            res.setdefault((state, label, "S"), []).append(int(smp[-1][0]) if smp and int(smp[-1][2]) else None)
+                            res.setdefault((state, label, "pc"), []).append(smp[-1][1] if smp else None)
+                    if sampler:
+                        ms = res[(state, label, "Ms")]
+                        res[(state, label, "masked")] = None if None in ms else min(ms)
+                        res[(state, label, "Mvaries")] = None not in ms and len(set(ms)) > 1
             for mode, _ in modes:
                 vs = [res[(s, label, mode)] for s in STATES for label, _, _ in STACK]
                 res[("worst", mode)] = None if None in vs else min(vs)
-            if masked[t]:                       # the interrupt's cost on each row, against the allowance
-                cost = [res[(s, label, "masked")] - res[(s, label, "unmasked")] for s in STATES for label, _, _ in STACK
-                        if res[(s, label, "masked")] is not None and res[(s, label, "unmasked")] is not None]
+            if masked[t]:                       # each row's R, its bound, and the unmasked reading against it
+                if sampler:
+                    pcs = sorted({x for st in STATES for lb, _, _ in STACK for x in res[(st, lb, "pc")] if x})
+                    names = owners(wt, pcs)
+                cost, need = [], []
+                for st in STATES:
+                    for lb, _, _ in STACK:
+                        mf, uf = res[(st, lb, "masked")], res[(st, lb, "unmasked")]
+                        r = None
+                        if sampler and mf is not None and None not in res[(st, lb, "S")]:
+                            ss = res[(st, lb, "S")]
+                            r = max(0, max(ss) - (32768 - mf))
+                            res[(st, lb, "spread")] = max(ss) - min(ss)
+                            res[(st, lb, "owner")] = names.get(res[(st, lb, "pc")][ss.index(max(ss))], "?")
+                        res[(st, lb, "R")] = r
+                        used = max(r or 0, FRAME)           # S is a sampled lower bound: never less than the interim (#7138)
+                        res[(st, lb, "Rused")] = used
+                        if mf is not None:
+                            need.append(mf - used - FRAME)
+                        if mf is not None and uf is not None:
+                            cost.append(mf - uf)
+                            if uf < mf - used - FRAME:
+                                failed.append(f"{RUNNERS[t][2]} at {sha}: {st}, {lb}: unmasked {uf} B free, below the row's bound "
+                                              f"{mf - used - FRAME} (masked {mf} less R {used} less {FRAME})")
+                        elif mf is None or uf is None:
+                            failed.append(f"{RUNNERS[t][2]} at {sha}: {st}, {lb}: a reading is missing")
                 res["cost"] = max(cost) if cost else None
-                if res["cost"] is None or res["cost"] > ALLOWANCE:
-                    failed.append(f"{RUNNERS[t][2]} at {sha}: the interrupt's largest cost is "
-                                  f"{fmt(res['cost'])} B against the {ALLOWANCE} B allowance")
+                res["figure"] = min(need) if len(need) == len(STATES) * len(STACK) else None
             rows[t][sha] = res
     for t in targets:
         (s0, a), (s1, b) = rows[t].items()
@@ -358,14 +415,30 @@ def board(args):
             for label, shape, _ in STACK:
                 for mode in modes:
                     k = (state, label, mode)
+                    sk = [s for s in scripts if s[:3] == (t, state, label) and s[3].split("@")[0] == mode]
                     print(f"| calc task stack free, {label}{' (RAD)' if shape == 's' else ''}, {state}, {mode} "
-                          f"(script {scripts[(t,) + k]}), B | {fmt(a[k])} | {fmt(b[k])} | {delta(a[k], b[k])} |")
+                          f"(script {', '.join(scripts[x] for x in sk)}), B | {fmt(a[k])} | {fmt(b[k])} | {delta(a[k], b[k])} |")
+                if masked[t]:
+                    for side in (a, b):
+                        side.setdefault((state, label, "S"), [])
+                    def srow(d):
+                        ss = d.get((state, label, "S")) or []
+                        if not ss or None in ss or d.get((state, label, "R")) is None:
+                            return "n/a"
+                        flag = " SPREAD" if d.get((state, label, "spread"), 0) > 32 else ""
+                        flag += " M VARIES" if d.get((state, label, "Mvaries")) else ""
+                        return f"S {'/'.join(map(str, ss))}, R {d[(state, label, 'R')]} ({d[(state, label, 'owner')]}){flag}"
+                    print(f"| the deepest sp sampled, {label}, {state} (S at {'/'.join(map(str, PERIODS))} cycles, R = S - M) "
+                          f"| {srow(a)} | {srow(b)} | |")
         if masked[t]:
-            wa, wb = a[("worst", "masked")], b[("worst", "masked")]
-            print(f"| **the stack's figure: the worst masked reading (the path), B** | {fmt(wa)} | {fmt(wb)} | {delta(wa, wb)} |")
-            la, lb = (None if w is None else w - ALLOWANCE for w in (wa, wb))
-            print(f"| the figure less the {ALLOWANCE} B allowance (a bound only if unwritten room <= 192), B | {fmt(la)} | {fmt(lb)} | {delta(la, lb)} |")
-            print(f"| the interrupt's largest cost on a row (masked - unmasked; at most {ALLOWANCE}), B | {fmt(a['cost'])} | "
+            fa, fb = a.get("figure"), b.get("figure")
+            print(f"| **the stack's figure: the worst row's masked free less max(R, {FRAME}) less {FRAME} (casim docs/stack-gate.md), B** "
+                  f"| {fmt(fa)} | {fmt(fb)} | {delta(fa, fb)} |")
+            if SHOW_INTERIM:
+                wa, wb = a[("worst", "masked")], b[("worst", "masked")]
+                la, lb = (None if w is None else w - ALLOWANCE for w in (wa, wb))
+                print(f"| (the interim figure: the worst masked reading less {ALLOWANCE}, for comparison), B | {fmt(la)} | {fmt(lb)} | {delta(la, lb)} |")
+            print(f"| the interrupt's largest cost on a row (masked - unmasked), B | {fmt(a['cost'])} | "
                   f"{fmt(b['cost'])} | {delta(a['cost'], b['cost'])} |")
         wa, wb = a[("worst", "unmasked")], b[("worst", "unmasked")]
         print(f"| the worst unmasked reading, B | {fmt(wa)} | {fmt(wb)} | {delta(wa, wb)} |")
@@ -376,7 +449,13 @@ def board(args):
           " where both commits have AB_MASK, Rev A head-less from 239adab)")
     print("(unmasked, a reading moves by up to one interrupt frame with the timing, each exact script repeating; the"
           " masked reading is the path: abacus #6675)")
-    print("(the masked figure counts writes, not sp: an interrupt's frame lands below the deepest sp, which may lie up to a frame's unwritten room below the watermark; the allowance is a bound only if that room is <= 192 B, abacus #6853)")
+    print("(the masked reading counts writes, not sp: S, the deepest sp, is sampled at level 5 in the AB_MASK image (fcfafdf) at"
+          " three periods, and R = S - M is the room below the watermark. S is a lower bound, so each row takes max(R, 192):"
+          " the figure is never less conservative than the interim \"less 384\", and a row whose R passes 192 tightens it"
+          " (abacus #7138). Each unmasked reading must be within its row's bound. SPREAD: the three S readings differ by more"
+          " than 32 B; M VARIES: the three masked readings differ)")
+    print("(M is the image's own: the sampler's code moved the masked mix by 8 B, 8,196 to 8,204, with the sampler off as well;"
+          " M and S come from the same image, abacus #7138)")
     if failed:
         for f in failed:
             print(f"resources: FAIL: {f}")
