@@ -20,6 +20,7 @@ Each commit is built in a worktree under build/res/ (Espressif's pinned image, a
 clone and the staged games are the main tree's. The tables print as Markdown, for the unit's work file.
 """
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -204,6 +205,32 @@ def static(args):
 
 STACK = [("the 153-unit mix at 047's deepest site", "m", 9), ("19 levels of SIN( there", "s", 19)]
 
+# The saved calculator state moves the stack readings (one binary, 8cb8e2a's Rev A head-less: the mix 8,196 from the
+# factory state, 8,068 with one equation stored, 8,132 from "full", 8,164 from a state other scripts left; SIN( 8,932,
+# 8,932, 8,772; each with spread 0 across reflashes; abacus #6546, #6586, soroban #6585, #6592). So each reading starts
+# from a fixed state, made the same way for BEFORE and AFTER, and the gate takes the worst of them. The states are
+# points, not a bound: they do not add up, and "full" (stackkeys full: the most equations at their longest, every letter,
+# the statistics, the stack, RAD) is not the worst found, one stored equation being worse on the mix. And each reading
+# is per exact script, ±160 B unexplained: with the state fixed, a small change in the keys or the image moved one by up
+# to 160 B, each exact script repeating (under one 192-B interrupt frame: a hypothesis until a masked reading; #6635,
+# #6636). Each row carries its script's hash. A reading whose state did not take (no wipe line, the equation not shown,
+# the full image not loaded), or whose program was not typed whole and run to DONE, is no reading.
+EQN_ONE = ["send K30", "sleep 0.25", "send K43", "sleep 0.5", "send K38", "sleep 0.25", "send K18", "sleep 0.5",
+           "send X", "wait eqn: 2 | 10", "send K42", "sleep 0.5"]   # EQN, 2, ENTER (stored, shown), C
+STATES = ["factory", "one equation", "full"]
+ABSTATE = {"standin": "0x510000", "reva": "0x710000"}   # each board's abstate partition (device/*/partitions.csv)
+
+
+def put_full(port, target):
+    """build/full-state.bin written to the board's abstate partition, as the state the next boot loads"""
+    p = os.path.realpath(port)
+    r = subprocess.run(["docker", "run", "--rm", "-v", f"{ROOT}:/project", "-w", "/project",
+                        "--user", f"{os.getuid()}:{os.getgid()}", "--group-add", str(os.stat(p).st_gid), "--device", p,
+                        "-e", "HOME=/tmp", IMAGE, "bash", "-c", f'. "$IDF_PATH/export.sh" >/dev/null 2>&1; '
+                        f'esptool.py --chip esp32s3 -p {p} write_flash {ABSTATE[target]} build/full-state.bin'],
+                       text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    return r.returncode == 0 and "Hash of data verified" in r.stdout
+
 
 RUNNERS = {"standin": ("device/standin/run.sh", "build/standin.log", "the stand-in"),
            "reva": ("device/reva/headless.sh", "build/reva-headless.log", "Rev A head-less")}
@@ -232,8 +259,11 @@ def talk(wt, port, script_lines, flash, target="standin"):
 def board(args):
     port = args.port                            # the by-id link, resolved at each use
     gen = os.path.join(ROOT, "build", "stackkeys")
-    if not os.path.exists(gen):
-        sh(["make", "build/stackkeys"])
+    sh(["make", "build/stackkeys"])
+    full = sh([gen, "full", os.path.join(ROOT, "build", "full-state.bin")], capture=True)
+    full_bytes = re.search(r"full: image (\d+) bytes", full).group(1)
+    full_sha = hashlib.sha256(open(os.path.join(ROOT, "build", "full-state.bin"), "rb").read()).hexdigest()[:8]
+    scripts = {}                                # each reading's script hash: a reading belongs to its exact script
     targets = [t for t in args.targets.split(",") if t]
     rows = {t: {} for t in targets}
     for t in targets:
@@ -254,22 +284,38 @@ def board(args):
             res["heap"] = int(m[-1][0]) if m else None
             m = re.findall(r"heap internal \d+ \(largest block (\d+)\)", log)
             res["block"] = int(m[-1]) if m else None
-            worst = None
-            for label, shape, depth in STACK:
-                out = sh([gen, "prog", str(depth), shape], capture=True)
-                keys = re.search(r"keys \(entry (\d+), then XEQ A\):(.*)", out)
-                mark, ks = int(keys.group(1)), keys.group(2).split()
-                lines = ["sleep 3", "wait : heap internal 30", "sleep 2"]
-                for i, k in enumerate(ks, 1):
-                    lines += [f"send K{k}", "sleep 0.25"]
-                    if i == mark:
-                        lines += ["sleep 2"]
-                lines += ["sleep 20", "send X", "wait state: 10"]
-                m = re.findall(r"stack-free=(\d+)", run(lines, False))
-                v = int(m[-1]) if m else None
-                res[label] = v
-                worst = v if worst is None or (v is not None and v < worst) else worst
-            res["worst"] = worst
+            for state in STATES:
+                worst = None
+                for label, shape, depth in STACK:
+                    out = sh([gen, "prog", str(depth), shape], capture=True)
+                    keys = re.search(r"keys \(entry (\d+), then XEQ A\):(.*)", out)
+                    mark, ks = int(keys.group(1)), keys.group(2).split()
+                    plines = re.search(r"program lines (\d+)", out).group(1)
+                    if state == "full" and not put_full(port, t):
+                        sys.exit(f"resources: {t} at {sha}: esptool did not write the full state")
+                    lines = ["sleep 3", "wait : heap internal 30", "sleep 2"]
+                    if state != "full":                 # both save slots wiped, a restart, and one equation's keys
+                        lines += ["send WIPE", "wait wipe: 10", "send RESTART", "wait : heap internal 30", "sleep 2"]
+                        lines += EQN_ONE if state == "one equation" else []
+                    for i, k in enumerate(ks, 1):
+                        lines += [f"send K{k}", "sleep 0.25"]
+                        if i == mark:
+                            lines += ["sleep 2"]
+                    lines += ["sleep 20", "send X", "wait state: 10"]
+                    h = hashlib.sha256("\n".join(lines + ([full_sha] if state == "full" else [])).encode()).hexdigest()[:8]
+                    if scripts.setdefault((state, label), h) != h:
+                        sys.exit(f"resources: {state}, {label}: BEFORE and AFTER would run different scripts")
+                    log = run(lines, False)
+                    m = re.findall(r"stop=(\S+) lines=(\d+) .*stack-free=(\d+)", log)
+                    took = (f"load: {full_bytes} bytes ok" in log if state == "full" else
+                            "wipe: both slots erased" in log and (state != "one equation" or "eqn: 2 |" in log))
+                    ran = m and m[-1][0] == "DONE" and m[-1][1] == plines   # the program typed whole, and run to its end
+                    v = int(m[-1][2]) if took and ran else None
+                    res[(state, label)] = v
+                    worst = v if worst is None or (v is not None and v < worst) else worst
+                res[(state, "worst")] = worst
+            ws = [res[(s, "worst")] for s in STATES]
+            res["worst"] = None if None in ws else min(ws)
             log = "" if args.no_speed else run(open(os.path.join(ROOT, "device", "standin", "speed.txt")).read().splitlines(), False)
             for key, pat in (("SOLVE", r"eqnbench: SOLVE [^:]*: (\d+) us"), ("integral", r"eqnbench: integral [^:]*: (\d+) us"),
                              ("PROGBENCH SIN", r"progbench: 100 x SIN in a program (\d+) ms"),
@@ -283,12 +329,19 @@ def board(args):
         print("| resource | before | after | change |\n|---|---|---|---|")
         print(f"| internal heap free after boot, B | {fmt(a['heap'])} | {fmt(b['heap'])} | {delta(a['heap'], b['heap'])} |")
         print(f"| largest internal block after boot, B | {fmt(a['block'])} | {fmt(b['block'])} | {delta(a['block'], b['block'])} |")
-        for label, _, _ in STACK:
-            print(f"| calc task stack free, {label}, B | {fmt(a[label])} | {fmt(b[label])} | {delta(a[label], b[label])} |")
-        print(f"| the worst stack free through the keys, B | {fmt(a['worst'])} | {fmt(b['worst'])} | {delta(a['worst'], b['worst'])} |")
+        for state in STATES:
+            for label, _, _ in STACK:
+                k = (state, label)
+                print(f"| calc task stack free, {label}, {state} (script {scripts[k]}), B | {fmt(a[k])} | {fmt(b[k])} | "
+                      f"{delta(a[k], b[k])} |")
+        print(f"| the worst stack free through the keys, of the states above, B | {fmt(a['worst'])} | {fmt(b['worst'])} | "
+              f"{delta(a['worst'], b['worst'])} |")
         for key, unit in (("SOLVE", "µs"), ("integral", "µs"), ("PROGBENCH SIN", "ms"), ("PROGBENCH LN", "ms")):
             print(f"| {key}, {unit} (best) | {fmt(a[key])} | {fmt(b[key])} | {delta(a[key], b[key])} |")
-    print("\n(n/a where a commit lacks the bench: EQNBENCH from 24308a2, OPBENCH from 0594bae; Rev A head-less from 68683b5)")
+    print("\n(n/a where a commit lacks the bench: EQNBENCH from 24308a2, OPBENCH from 0594bae; Rev A head-less from 68683b5;"
+          " for a stack state, where the state did not take, as a full image an older commit refuses)")
+    print("(the stack readings are per exact script; ±160 B unexplained: a small change in the keys or the image can move a"
+          " reading by up to 160 B with the state fixed, each exact script repeating; abacus #6636, soroban #6635)")
 
 
 # ---- iram-options ----

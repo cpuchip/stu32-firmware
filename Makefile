@@ -70,8 +70,8 @@ build/app_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) $(APP) $(GAMES_O) build/game
 	$(CC) $(CFLAGS) -Icore -Ifirmware -Ibuild/games -o $@ $(CORE) $(SCREEN) $(APP) $(GAMES_O) tests/app_test.c $(ENGINE) $(LIBS)
 
 # unit 052: the key sequences to the deepest stacks, for scripts/resources.py's board measurements
-build/stackkeys: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) $(APP) $(GAMES_O) build/games/games.h firmware/app.h firmware/keymap.h tests/stackkeys.c | build
-	$(CC) $(CFLAGS) -Icore -Ifirmware -Ibuild/games -o $@ $(CORE) $(SCREEN) $(APP) $(GAMES_O) tests/stackkeys.c $(ENGINE) $(LIBS)
+build/stackkeys: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) $(APP) $(GAMES_O) build/games/games.h firmware/app.h firmware/keymap.h firmware/store.c firmware/store.h tests/stackkeys.c | build
+	$(CC) $(CFLAGS) -Icore -Ifirmware -Ibuild/games -o $@ $(CORE) $(SCREEN) $(APP) $(GAMES_O) firmware/store.c tests/stackkeys.c $(ENGINE) $(LIBS)
 
 build/standin_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) $(APP) $(GAMES_O) build/games/games.h firmware/standin.c firmware/standin.h firmware/app.h firmware/keymap.h firmware/screen.h tests/standin_test.c | build
 	$(CC) $(CFLAGS) -Icore -Ifirmware -Ibuild/games -o $@ $(CORE) $(SCREEN) $(APP) $(GAMES_O) firmware/standin.c tests/standin_test.c $(ENGINE) $(LIBS)
