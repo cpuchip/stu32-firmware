@@ -82,7 +82,8 @@ static volatile bool mask_runs;
 extern volatile uint32_t ab_sample[9];
 static intr_handle_t sample_h;
 static uint32_t sample_lo, sample_period;
-enum { KEY_SAMPLE_ON = -20, KEY_SAMPLE_OFF = -21, KEY_SAMPLE = -22, KEY_SAMPLE_ROOM = -23, KEY_SAMPLE_FULL = -24 };
+enum { KEY_SAMPLE_ON = -20, KEY_SAMPLE_OFF = -21, KEY_SAMPLE = -22, KEY_SAMPLE_ROOM = -23, KEY_SAMPLE_FULL = -24,
+       KEY_SAMPLE_FPU = -25 };
 static void sample_on(uint32_t period)          /* on the calc task's core: the timer and its interrupt are that core's */
 {
     if (sample_h) esp_intr_disable(sample_h);
@@ -513,6 +514,8 @@ static void console_task(void *arg)
                 k = KEY_SAMPLE_ROOM;
             } else if (!strcmp(line, "SAMPLE FULL")) {
                 k = KEY_SAMPLE_FULL;
+            } else if (!strcmp(line, "SAMPLE FPU")) {   /* the calc task takes the FPU now (casim #7133: libbid's FPU */
+                k = KEY_SAMPLE_FPU;                    /* code, a lazy coprocessor exception at its first use) */
             }
             xQueueSend(keys_q, &k, 0);
 #endif
@@ -612,6 +615,10 @@ static void calc_task(void *arg)
             printf("sample: off\n");
         } else if (got && k == KEY_SAMPLE) {
             sample_report();
+        } else if (got && k == KEY_SAMPLE_FPU) {
+            volatile float fa = 1.5f, fb = 3.0f;
+            fa = fa / fb;
+            printf("sample: fpu taken (%d)\n", (int)(fa * 1000.0f));
         } else if (got && (k == KEY_SAMPLE_ROOM || k == KEY_SAMPLE_FULL)) {
             MASKED(sample_ctrl(k == KEY_SAMPLE_FULL));
             printf("sample: %s done\n", k == KEY_SAMPLE_FULL ? "full" : "room");
