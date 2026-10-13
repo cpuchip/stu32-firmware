@@ -1027,6 +1027,13 @@ static void do_action(app_state *a, const km_action *act)
 
 app_action app_tick(app_state *a, const pwr_inputs *in, uint32_t now_ms)
 {
+    bool usb = pwr_external(in);
+    if (usb != a->usb_was) {                    /* the power source changed */
+        if (a->usb_was && !a->soft_off)
+            pwr_activity(&a->pwr, now_ms);      /* 068: unplugged while on: the idle clock from here (abacus #7571) */
+        a->usb_was = usb;
+        a->render = true;                       /* (the status band may change) */
+    }
     if (a->off && pwr_external(in)) {           /* 068: OFF on USB power is a soft off; the chip stays up */
         a->off = false;
         if (a->app) app_exit(a);                /* (the app saved first) */
@@ -1158,6 +1165,7 @@ static uint32_t left(uint32_t now_ms, uint32_t since, uint32_t span)
 
 uint32_t app_next_wake(const app_state *a, const pwr_inputs *in, uint32_t now_ms)
 {
+    if (pwr_external(in) != a->usb_was) return 0;      /* the power source changed: seen now (068) */
     if (a->soft_off) return a->render || a->dirty ? 0 : UINT32_MAX;   /* 068: only a key or USB going away (the device looks) */
     if (a->running || a->render || a->off || a->graphing || (a->c->gr_on && a->graph && !a->gr_live)) return 0;
     if (a->app) {                               /* unit 037: the app's next tick, or keys alone; a tune's next note */

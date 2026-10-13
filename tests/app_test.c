@@ -377,7 +377,18 @@ int main(void)
         app_init(&a, &c, now);
         press(&a, "1");
         expect(app_tick(&a, &usb, now + 3 * PWR_IDLE_MS) != APP_OFF, "068: on USB, idle past auto-off: still on");
+        ab_init(&c);                                /* (a fresh one: after a USB tick, the cell's is an unplug) */
+        app_init(&a, &c, now);
+        press(&a, "1");
         expect(app_tick(&a, &cell, now + 3 * PWR_IDLE_MS) == APP_OFF, "068: on the cell, idle: off, as before");
+        ab_init(&c);                                /* unplugged after a long idle on USB: the clock restarts there */
+        app_init(&a, &c, now);
+        press(&a, "1");
+        uint32_t tu = now + 3 * PWR_IDLE_MS;
+        expect(app_tick(&a, &usb, tu - 1000) != APP_OFF, "068: on USB, long idle: on");
+        expect(app_tick(&a, &cell, tu) != APP_OFF, "068: unplugged after a long idle: still on (abacus #7571)");
+        expect(app_tick(&a, &cell, tu + PWR_IDLE_MS - 1) != APP_OFF, "068: a millisecond short of auto-off after the unplug: on");
+        expect(app_tick(&a, &cell, tu + PWR_IDLE_MS) == APP_OFF, "068: auto-off after the unplug, counted from it");
         ab_init(&c);
         app_init(&a, &c, now);
         press(&a, "1 ENTER 2");
