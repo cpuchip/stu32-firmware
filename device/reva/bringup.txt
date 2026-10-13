@@ -10,11 +10,12 @@
 
 # ---- flash: QIO, the 16 MB header, a save and a setting across a pinhole reset; IO0's strap; the 32 KB icache's heap
 say Rev A bring-up (unit 061). Resetting the board through its USB port.
-# (068: a reset passes when the boot count goes up; X reports the boot's reason and the flash header the ROM booted
-# from, so a port that reopens after the boot lines, as on Windows, still checks them)
+# (068: a reset passes on a new boot; X reports the boot's reason and the flash: io= the mode the driver runs,
+# chip= its size, header= the image header's DIO/16MB, so a port that reopens after the boot lines, as on Windows,
+# still checks them)
 reset
 send X
-expect flash: mode=QIO size=16MB
+expect flash: io=QIO chip=16MB header=DIO/16MB
 expect-range soc 0 100
 # RADIX , (GOLD 3, soft key 2), a setting; then 1.5 ENTER, the stack
 send K30

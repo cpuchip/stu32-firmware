@@ -56,19 +56,23 @@ static void dev_boot_count_up(void)            /* first thing in app_main */
     }
     dev_boot_count++;
 }
-/* the flash header the ROM boots from (the bootloader's, at 0x0): byte 2 the SPI mode, byte 3's high nibble the size
-   (IDF's esp_app_format.h: esp_image_header_t, esp_image_spi_mode_t, esp_image_flash_size_t), for X, so bring-up
-   checks QIO and 16 MB after a reset whose boot lines it missed (068) */
+/* the flash, for X, so bring-up checks it after a reset whose boot lines it missed (068): io= the read mode the flash
+   driver runs (esp_flash_default_chip->read_mode, what the boot log prints as "flash io"), chip= the size the chip
+   reports, and header= the mode and size in the bootloader's image header at 0x0, which is not the running mode: IDF
+   writes DIO there and the bootloader then switches to QIO (FLASH.md; abacus #7580). The header's byte 2 is the mode,
+   byte 3's high nibble the size (IDF's esp_app_format.h). */
 static void dev_flash_print(void)
 {
-    static const char *const MODE[] = {"QIO", "QOUT", "DIO", "DOUT", "FAST_READ", "SLOW_READ"};
+    static const char *const IO[] = {"SLOWRD", "FASTRD", "DOUT", "DIO", "QOUT", "QIO"};
+    static const char *const HMODE[] = {"QIO", "QOUT", "DIO", "DOUT", "FAST_READ", "SLOW_READ"};
     static const char *const SIZE[] = {"1MB", "2MB", "4MB", "8MB", "16MB", "32MB", "64MB", "128MB"};
     uint8_t h[4];
-    if (esp_flash_read(NULL, h, 0, sizeof h) != ESP_OK || h[0] != 0xE9) {
-        printf("flash: header ?\n");
-        return;
-    }
-    printf("flash: mode=%s size=%s\n", h[2] < 6 ? MODE[h[2]] : "?", (h[3] >> 4) < 8 ? SIZE[h[3] >> 4] : "?");
+    uint32_t chip = 0;
+    int io = esp_flash_default_chip ? (int)esp_flash_default_chip->read_mode : -1;
+    bool hdr = esp_flash_read(NULL, h, 0, sizeof h) == ESP_OK && h[0] == 0xE9;
+    esp_flash_get_physical_size(NULL, &chip);
+    printf("flash: io=%s chip=%luMB header=%s/%s\n", io >= 0 && io < 6 ? IO[io] : "?", (unsigned long)(chip >> 20),
+           hdr && h[2] < 6 ? HMODE[h[2]] : "?", hdr && (h[3] >> 4) < 8 ? SIZE[h[3] >> 4] : "?");
 }
 static void dev_boot_print(void)
 {
