@@ -68,6 +68,12 @@ def docker(wt, script, port=None, env=None):
            "-e", "HOME=/tmp"]
     for k, v in sorted((env or {}).items()):
         cmd += ["-e", f"{k}={v}"]
+    # the worktree's commit, computed on the host: inside the container a worktree's .git points outside the mount, so
+    # gen_commit.cmake's git fails and the image says CORE "unknown" (the 949a8fd fix, which this script missed: the
+    # rewrite's build check at the flip saw "unknown" in all four images, so it could not see the commit string differ)
+    hc = subprocess.run(["sh", os.path.join(ROOT, "scripts", "host-commit.sh"), wt], capture_output=True, text=True).stdout
+    if hc.strip():
+        cmd += ["-e", f"AB_CORE_COMMIT_HOST={hc.strip()}"]
     if port:
         cmd += ["--group-add", str(os.stat(port).st_gid), "--device", port, "-e", f"PORT={port}"]
     cmd += [IMAGE, "bash", "-c", ". \"$IDF_PATH/export.sh\" >/dev/null 2>&1\nset -euo pipefail\n" + script]
