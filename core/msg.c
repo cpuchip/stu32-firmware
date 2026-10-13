@@ -55,6 +55,7 @@ const char *ab_status_message(abn_status st)
     case ABN_CAS_UNDEFINED: return "UNDEFINED";
     case ABN_CAS_BOUND_LETTER: return "BOUND NOT NUMERIC";
     case ABN_CAS_BOUND_REAL: return "BOUND NOT REAL";
+    case ABN_CAS_UNDECIDED: return "CAN'T DECIDE";              /* CAS 015 rule 5: not UNDEFINED's "no limit" */
     }
     return "";
 }

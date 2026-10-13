@@ -3890,6 +3890,7 @@ static abn_status cas_step(ab_calc *c, int op, int var, const char *repl, const 
                    ? ABN_CAS_EXPR_ONLY : ABN_DOMAIN;    /* 057: CAS 010's take polynomials */
     case CASIM_IMPROPER: return ABN_CAS_IMPROPER;          /* unit 056: CAS 009 */
     case CASIM_UNDEFINED: return ABN_CAS_UNDEFINED;        /* unit 056: CAS 008, any op (INVALID DATA before) */
+    case CASIM_UNDECIDED: return ABN_CAS_UNDECIDED;        /* CAS 015 rule 5: limit's walk undecided */
     default: return ABN_DOMAIN;             /* INVALID DATA */
     }
 #else
