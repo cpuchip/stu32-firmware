@@ -16,6 +16,11 @@ Copies every line the board prints to stdout and LOG. With a SCRIPT, runs its li
     expect-grows KEY [SECONDS]
                            the next printed KEY=<integer> must be larger than the last one printed
                            before this line (unit 061: the ULP's edge count climbing)
+    remember KEY           keep the last KEY=<integer> printed so far, for expect-step
+    expect-step KEY N [SECONDS]
+                           the next printed KEY=<integer> must be exactly N more than the one remembered
+                           (068: boots up by one, so a sleep that bounced awake shows; the firmware prints
+                           its own boot line at each boot, so "the last printed" would already be the new one)
     expect-none TEXT SECONDS
                            no printed line may contain TEXT for SECONDS: one that does is a FAIL
                            (unit 061: a key bounce, a ghost)
@@ -150,6 +155,7 @@ def send(text):
 
 
 failures = 0
+remembered = {}
 if script:
     pos = [0]
     for n, raw in enumerate(open(script, encoding="utf-8"), 1):
@@ -197,6 +203,17 @@ if script:
             got = wait_value(key, limit, pos)
             ok = was is not None and got is not None and got > was
             note(f"talk.py: {'PASS' if ok else 'FAIL'} line {n}: expect-grows {key} (was {was}, got {got})")
+            failures += not ok
+        elif word == "remember":
+            remembered[rest.strip()] = last_value(rest.strip(), pos[0])
+            note(f"talk.py: line {n}: remember {rest.strip()}={remembered[rest.strip()]}")
+        elif word == "expect-step":
+            p = rest.split()
+            key, step, limit = p[0], int(p[1]), float(p[2]) if len(p) > 2 else 10.0
+            was = remembered.get(key)
+            got = wait_value(key, limit, pos)
+            ok = was is not None and got is not None and got == was + step
+            note(f"talk.py: {'PASS' if ok else 'FAIL'} line {n}: expect-step {key} {step} (was {was}, got {got})")
             failures += not ok
         elif word == "expect-none":
             text, _, secs = rest.rpartition(" ")

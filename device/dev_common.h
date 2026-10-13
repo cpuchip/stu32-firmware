@@ -14,6 +14,9 @@
 #include "esp_attr.h"
 #include "esp_flash.h"
 #include "esp_heap_caps.h"
+#include "esp_sleep.h"
+#include "soc/rtc_io_reg.h"
+#include "soc/soc.h"
 #include "esp_system.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -74,10 +77,32 @@ static void dev_flash_print(void)
     printf("flash: io=%s chip=%luMB header=%s/%s\n", io >= 0 && io < 6 ? IO[io] : "?", (unsigned long)(chip >> 20),
            hdr && h[2] < 6 ? HMODE[h[2]] : "?", hdr && (h[3] >> 4) < 8 ? SIZE[h[3] >> 4] : "?");
 }
+/* What woke a deep sleep (abacus #7591: an auto-off back in ~1 s, the reason unseen), with the pins for EXT1 and GPIO */
+static const char *dev_wake_name(esp_sleep_wakeup_cause_t w)
+{
+    switch (w) {
+    case ESP_SLEEP_WAKEUP_UNDEFINED: return "none";
+    case ESP_SLEEP_WAKEUP_EXT0: return "EXT0";
+    case ESP_SLEEP_WAKEUP_EXT1: return "EXT1";
+    case ESP_SLEEP_WAKEUP_TIMER: return "TIMER";
+    case ESP_SLEEP_WAKEUP_TOUCHPAD: return "TOUCH";
+    case ESP_SLEEP_WAKEUP_ULP: return "ULP";
+    case ESP_SLEEP_WAKEUP_GPIO: return "GPIO";
+    case ESP_SLEEP_WAKEUP_UART: return "UART";
+    case ESP_SLEEP_WAKEUP_COCPU: return "COCPU";
+    case ESP_SLEEP_WAKEUP_COCPU_TRAP_TRIG: return "COCPU_TRAP";
+    default: return "other";
+    }
+}
+
 static void dev_boot_print(void)
 {
-    printf("boot: boots=%lu reason=%s new=%d\n", (unsigned long)dev_boot_count, dev_reset_name(esp_reset_reason()),
-           !dev_boot_shown);
+    esp_sleep_wakeup_cause_t w = esp_sleep_get_wakeup_cause();
+    uint64_t pins = w == ESP_SLEEP_WAKEUP_EXT1 ? esp_sleep_get_ext1_wakeup_status()
+                  : w == ESP_SLEEP_WAKEUP_GPIO ? (REG_READ(RTC_GPIO_STATUS_REG) >> RTC_GPIO_STATUS_INT_S) & RTC_GPIO_STATUS_INT
+                  : 0;   /* (GPIO on the S3: the RTC IO pads' wake, RTC GPIO n = GPIO n for 0-21) */
+    printf("boot: boots=%lu reason=%s new=%d wake=%s pins=0x%llx\n", (unsigned long)dev_boot_count,
+           dev_reset_name(esp_reset_reason()), !dev_boot_shown, dev_wake_name(w), (unsigned long long)pins);
 }
 
 /* app.set_wall: the clock set from the keys, kept in the RTC */

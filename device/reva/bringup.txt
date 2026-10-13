@@ -256,6 +256,23 @@ send X
 expect-grows ulp-edges
 send X
 expect clock=10:0
+send X
+expect wake=EXT1 pins=0x1
+
+# ---- auto-off on the cell (abacus #7591): idle past the off time, it stays off until C. 949a8fd's auto-off on USB
+# woke at once (the light sleep's GPIO wakes armed into deep sleep, 068 (5)): one boot per C, woken by C (EXT1)
+send X
+expect off=10
+remember boots
+say With the cell fitted, unplug USB and leave the calculator untouched for 12 minutes (it turns off at 10).
+say Then look at it (it should have stayed off, no chirp), press C to wake it, and plug USB back in.
+wait talk.py: port open again 1200
+confirm Did it turn itself off at about 10 minutes and stay off (no chirp, no restart) until C?
+sleep 3
+send X
+expect-step boots 1
+send X
+expect wake=EXT1 pins=0x1
 
 # ---- what the log cannot judge (each answered here; a meter where it says so)
 confirm With a meter on the cell: deep sleep (OFF) draws well under 1 mA, BOOST_EN and DISP held? (n if not measured)

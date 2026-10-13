@@ -159,6 +159,7 @@ typedef struct {
 } offclk_wake;
 RTC_DATA_ATTR static uint32_t offclk_s;         /* the timer's period in s; 0: REFRESH_US, as built */
 RTC_DATA_ATTR static bool offclk_print;
+RTC_DATA_ATTR static bool offclk_nofix;         /* NOFIX: leave the light sleep's GPIO wakes armed into deep sleep */
 RTC_DATA_ATTR static uint64_t offclk_ticks_at;  /* the RTC ticks at the last sleep entry, 0 none */
 RTC_DATA_ATTR static uint64_t offclk_slept_us;  /* the timer it set */
 RTC_DATA_ATTR static uint32_t offclk_n;         /* timer wakes recorded since OFFCLK RESET (or a power-on) */
@@ -558,8 +559,8 @@ static void offclk_report(void)
     int n = offclk_n < OFFCLK_RING ? (int)offclk_n : OFFCLK_RING;
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    printf("offclk: period=%lus wakes=%lu kept=%d print=%d wall=%lld.%06ld\n", (unsigned long)offclk_s,
-           (unsigned long)offclk_n, n, offclk_print, (long long)tv.tv_sec, (long)tv.tv_usec);
+    printf("offclk: period=%lus wakes=%lu kept=%d print=%d nofix=%d wall=%lld.%06ld\n", (unsigned long)offclk_s,
+           (unsigned long)offclk_n, n, offclk_print, offclk_nofix, (long long)tv.tv_sec, (long)tv.tv_usec);
     static const char *names[] = {"boot", "main", "load", "render", "print", "awake", "rc-awake", "cal"};
     for (int f = 0; f < 8 && n > 0; f++) {
         int32_t v[OFFCLK_RING];
@@ -603,6 +604,20 @@ static void sleep_now(void)
     pwr_release st;
     while ((st = pwr_release_step(&rs, gpio_get_level(PIN_ON), now_ms())) == PWR_RELEASE_WAIT)
         vTaskDelay(pdMS_TO_TICKS(5));
+    /* Only EXT1 and the timer wake it (decision 34). key_wake_init armed the rows and IO0 as low-level wakes for light
+       sleep (esp_sleep_enable_gpio_wakeup, gpio_wakeup_enable). IDF 5.4.2 hands every enabled trigger to deep sleep
+       (sleep_modes.c, call_rtc_sleep_start), and on the S3 gpio_wakeup_enable on an RTC pad also arms the pad's RTC IO
+       wake (gpio.c), which works in deep sleep. The rows' pull-ups are the digital pad's (gpio_pullup_en, with
+       SOC_GPIO_SUPPORT_RTC_INDEPENDENT), which deep sleep need not keep: a row that floats low wakes it at once (abacus
+       #7591: board 0005's auto-off back in about a second; shown on the stand-in, 068 (3)). */
+#ifdef AB_OFFCLK
+    if (!offclk_nofix)
+#endif
+    {
+        esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_GPIO);
+        for (int r = 0; r < KB_ROWS; r++) gpio_wakeup_disable(ROWS[r]);
+        gpio_wakeup_disable(PIN_ON);
+    }
     if (st == PWR_RELEASE_OK) esp_sleep_enable_ext1_wakeup(pin_wake_mask(), ESP_EXT1_WAKEUP_ANY_LOW);
 #ifdef AB_OFFCLK
     uint64_t us = st != PWR_RELEASE_OK ? STUCK_RECHECK_US : offclk_s ? offclk_s * 1000000ull : REFRESH_US;
@@ -678,6 +693,8 @@ static void console_task(void *arg)
 #ifdef AB_OFFCLK
         } else if (!strncmp(line, "OFFCLK", 6)) {
             if (!strcmp(line, "OFFCLK PRINT")) offclk_print = !offclk_print;
+            else if (!strcmp(line, "OFFCLK NOFIX")) offclk_nofix = !offclk_nofix;
+            else if (!strcmp(line, "OFFCLK ARMKEYS")) key_wake_init();    /* head-less: the light sleep's wakes, as Rev A's */
             else if (!strcmp(line, "OFFCLK RESET")) offclk_n = 0, offclk_ticks_at = 0;
             else if (line[6] == ' ') offclk_s = (uint32_t)strtoul(line + 7, NULL, 10);
             offclk_report();
