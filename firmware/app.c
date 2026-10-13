@@ -461,6 +461,17 @@ static void app_exit(app_state *a);
 void app_key(app_state *a, int key, uint32_t now_ms)
 {
     const km_action *face = km_lookup(key, KM_FACE);
+    if (a->soft_off) {                          /* 068: OFF on USB power; C alone turns it on, and only that */
+        if (face->kind == KM_OP && face->op == AB_CANCEL) {
+            a->soft_off = false;
+            a->shift = 0;
+            a->render = true;
+            a->last_key_ms = a->now_ms = now_ms;
+            pwr_activity(&a->pwr, now_ms);
+            app_powered_on(a);
+        }
+        return;
+    }
     if (a->app) {                               /* an app runs: the key is its, C ends it (unit 037) */
         a->last_key_ms = now_ms;
         app_key_to(a, key, true, now_ms);
@@ -1016,6 +1027,23 @@ static void do_action(app_state *a, const km_action *act)
 
 app_action app_tick(app_state *a, const pwr_inputs *in, uint32_t now_ms)
 {
+    if (a->off && pwr_external(in)) {           /* 068: OFF on USB power is a soft off; the chip stays up */
+        a->off = false;
+        if (a->app) app_exit(a);                /* (the app saved first) */
+        a->soft_off = true;
+        a->shift = 0;
+        a->render = true;
+    }
+    if (a->soft_off) {
+        if (!pwr_external(in)) return APP_OFF;  /* USB unplugged meanwhile: the deep sleep */
+        if (a->dirty) return APP_SAVE;          /* saved first, as OFF saves before its sleep */
+        if (a->render) {
+            a->render = false;
+            a->now_ms = now_ms;
+            return APP_RENDER;
+        }
+        return APP_IDLE;
+    }
     bool msg = a->c->msg;
     if (a->app && a->idle_limit && now_ms - a->last_key_ms >= 2u * a->set.off_min * 60000u)
         app_exit(a);                            /* the idle limit (abacus #4639): twice auto-off with no key, the
@@ -1130,6 +1158,7 @@ static uint32_t left(uint32_t now_ms, uint32_t since, uint32_t span)
 
 uint32_t app_next_wake(const app_state *a, const pwr_inputs *in, uint32_t now_ms)
 {
+    if (a->soft_off) return a->render || a->dirty ? 0 : UINT32_MAX;   /* 068: only a key or USB going away (the device looks) */
     if (a->running || a->render || a->off || a->graphing || (a->c->gr_on && a->graph && !a->gr_live)) return 0;
     if (a->app) {                               /* unit 037: the app's next tick, or keys alone; a tune's next note */
         uint32_t t = now_ms - a->app_t0, w = 3600000u;
@@ -1267,6 +1296,10 @@ void app_undo_buffers(app_state *a, uint8_t *b0, uint8_t *b1, size_t cap)
 void app_ui(const app_state *a, screen_ui *ui)
 {
     screen_ui_default(ui);
+    if (a->soft_off) {                          /* 068: the soft off draws nothing (the off screen: card off-screen) */
+        ui->blank = true;
+        return;
+    }
     ui->shift = a->shift;
     ui->radix = a->set.radix;
     ui->separator = a->set.group;
@@ -1439,6 +1472,7 @@ void app_powered_on(app_state *a)
 
 void app_key_up(app_state *a, int key, uint32_t now_ms)
 {
+    if (a->soft_off) return;                    /* 068: the soft off drops releases too */
     if (a->app) {                               /* unit 037: the release to the app (C's never) */
         app_key_to(a, key, false, now_ms);
         return;

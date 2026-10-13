@@ -84,8 +84,8 @@ static __attribute__((noinline, unused)) void dev_dump(const ab_calc *calc, app_
            (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL), (unsigned)uxTaskGetStackHighWaterMark(NULL));
     screen_ui ui;                               /* (on the stack while X runs, not 176 B of internal RAM for good) */
     app_ui(app, &ui);
-    printf("ui: clock=%s%c view=%s soft1=%s\n", ui.clock, ui.ampm ? ui.ampm : ' ', ui.view[0] ? ui.view[0] : "-",
-           ui.soft[0] && ui.soft[0][0] ? ui.soft[0] : "-");
+    printf("ui: clock=%s%c view=%s soft1=%s off=%d\n", ui.clock, ui.ampm ? ui.ampm : ' ', ui.view[0] ? ui.view[0] : "-",
+           ui.soft[0] && ui.soft[0][0] ? ui.soft[0] : "-", app->soft_off);   /* off=1: the soft off on USB (068) */
     printf("app: %s\n", app_running(app) ? app->app->name : "-");          /* unit 037 */
     printf("eqn: %s | note=%s | rep=%s\n", calc->eqn_mode && calc->eqn_cur >= 0 ? calc->eqn[calc->eqn_cur] : "-",
            ab_cas_note(calc) ? ab_cas_note(calc) : "-", ab_cas_report(calc) ? ab_cas_report(calc) : "-");   /* 048 */

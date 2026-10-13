@@ -4,8 +4,8 @@
 #   python talk.py PORT bringup.log bringup.txt      (FLASH.md: the port's name on lepton and on Windows)
 #
 # An expect is judged from the log; a confirm is answered y or n here by the person at the board. bringup.log is
-# what goes back to abacus. The calculator turns itself off after 10 minutes without a key, USB power or not: the
-# sections keep a key coming, and C wakes it. Keys by number (keys.h: row * 6 + column), as accept.txt: 1 37,
+# what goes back to abacus. On USB power it never turns itself off, and OFF is a soft off (068): blank, the port
+# stays, C turns it on. Deep sleep is on the cell alone. Keys by number (keys.h: row * 6 + column), as accept.txt: 1 37,
 # 2 38, 3 39, 0 43, . 44, ENTER 18, + 46, XEQ 24, GOLD 30, 4 31, 9 27, R/S 45, C 42, soft keys 0-5; A 6.
 
 # ---- flash: QIO, the 16 MB header, a save and a setting across a pinhole reset; IO0's strap; the 32 KB icache's heap
@@ -236,16 +236,26 @@ sleep 1
 confirm Five beeps: the first silent, then each louder than the last?
 send VOL4
 
-# ---- C on IO0, deep sleep, the image held, the RTC and the ULP through it
+# ---- OFF on USB is a soft off (068): the screen blank, the port stays, keys dropped, C alone turns it on
+say Press GOLD then C (OFF), holding C for a second. On USB the screen goes blank and the port stays.
+expect save: 60
+sleep 3
+send X
+expect off=1
+confirm Is the screen blank?
+say Press 5 (nothing should happen), then press C to turn it on.
+sleep 10
+send X
+expect off=0
+confirm Is the screen back as it was, and did C chirp?
+
+# ---- deep sleep on the cell (USB out): C on IO0, OFF waiting for C's release, the image held, the RTC and the ULP
 send TIME 10:00
 expect time: set 10:00:00
-send X
-say Press GOLD then C (OFF). The USB port goes away; the screen should keep its image.
-expect save: 60
-sleep 20
-confirm Is the screen still showing its image, unchanged, after 20 s off?
-say Press C to wake it.
-wait talk.py: port open again 120
+say With the cell fitted, unplug USB. Press GOLD then C (OFF), and hold C for 2 s. The screen should keep its image.
+say After 20 s, check the screen, then press C to wake it, and plug USB back in.
+wait talk.py: port open again 300
+confirm After 20 s off, was the screen still showing its image, unchanged, and did it stay off until C?
 sleep 3
 send X
 expect-grows ulp-edges

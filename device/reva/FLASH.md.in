@@ -54,8 +54,9 @@ read NOT MET.
 - Lines marked `>>>` are for you. Each key has 60 s. A question ending `[y/n]` waits for y or n, then Enter.
 - The session ends with `talk.py: ALL MET` or `talk.py: N NOT MET`.
 - **Send `bringup.log` to abacus,** whatever the result: the log holds the boot log, the heap line and the state lines.
-- The calculator turns itself off after 10 minutes without a key, on USB power too, and C wakes it. The session keeps
-  keys coming.
+- On USB power the calculator never turns itself off, and OFF (GOLD then C) is a soft off: the screen goes blank, the
+  port stays, and C alone turns it back on (068). On the cell alone it turns itself off after 10 minutes without a key,
+  sleeps deeply, and C wakes it.
 
 **Without the session**, a console: `python talk.py COMn session.log`. Then type a command and Enter:
 

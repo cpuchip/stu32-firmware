@@ -116,6 +116,7 @@ typedef struct {
     int busy_op;            /* the op that started it, for ab_busy_message */
     bool dirty;             /* changed since the last save */
     bool off;               /* the OFF key was pressed */
+    bool soft_off;          /* OFF on USB power: the chip stays up, the screen blank, C alone turns it on (068) */
     bool render;            /* the screen changed since the last APP_RENDER */
     uint8_t *undo[2];       /* UNDO's images: [0] the state before the last change, [1] scratch */
     size_t undo_cap, undo_len;  /* undo_len 0: nothing to undo */

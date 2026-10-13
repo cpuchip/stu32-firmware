@@ -367,6 +367,40 @@ int main(void)
     press(&a, "GOLD C");
     expect(app_tick(&a, &in, now) == APP_OFF, "the OFF key: off");
 
+    /* 068 (2), Michael's ruling (abacus #7567): on USB power (PGOOD_N low) the calculator stays up for the console. No
+       auto-off; OFF is a soft off (the screen blank, keys dropped but C, which turns it on with ON's chirp); USB unplugged
+       during a soft off is the deep sleep */
+    {
+        pwr_inputs usb = {true, false, 80, false}, cell = {true, true, 80, false};
+        screen_ui u;
+        ab_init(&c);
+        app_init(&a, &c, now);
+        press(&a, "1");
+        expect(app_tick(&a, &usb, now + 3 * PWR_IDLE_MS) != APP_OFF, "068: on USB, idle past auto-off: still on");
+        expect(app_tick(&a, &cell, now + 3 * PWR_IDLE_MS) == APP_OFF, "068: on the cell, idle: off, as before");
+        ab_init(&c);
+        app_init(&a, &c, now);
+        press(&a, "1 ENTER 2");
+        a.dirty = true;
+        press(&a, "GOLD C");
+        app_action r68 = app_tick(&a, &usb, now + 10);
+        expect(r68 == APP_SAVE && a.soft_off, "068: OFF on USB is a soft off, not the deep sleep, and saves first, as OFF does");
+        app_saved(&a);
+        expect(app_tick(&a, &usb, now + 11) == APP_RENDER, "068: then draws the soft off");
+        app_ui(&a, &u);
+        expect(u.blank, "068: the soft off's screen is blank");
+        press(&a, "5");
+        expect(a.soft_off && x_of(&c) == 2, "068: in the soft off, a key other than C is dropped");
+        a.tone = -1;
+        press(&a, "C");
+        app_ui(&a, &u);
+        expect(!a.soft_off && !u.blank && a.tone_use == DEV_USE_ON, "068: C turns it on, the screen back, with ON's chirp");
+        expect(x_of(&c) == 2, "068: and C's press turned it on only (X still 2)");
+        press(&a, "GOLD C");
+        expect(app_tick(&a, &usb, now + 20) != APP_OFF && a.soft_off, "068: OFF on USB again: a soft off");
+        expect(app_tick(&a, &cell, now + 30) == APP_OFF, "068: USB unplugged during a soft off: the deep sleep");
+    }
+
     /* saving: after a change, once 30 s pass quietly; not again until another change */
     ab_init(&c);
     app_init(&a, &c, now);
@@ -1977,7 +2011,7 @@ int main(void)
             app_key(&a5, 43, t0 + 10);
             app_key(&a5, 0, t0 + 20);
             bool off5 = false, run_at_7 = false;
-            const pwr_inputs pin5 = {false, false, 80, false};
+            const pwr_inputs pin5 = {true, true, 80, false};       /* on the cell: on USB there is no auto-off (068) */
             for (uint32_t ms = 30; ms < 7 * 60000; ms += 50) {
                 if (ms == 3 * 60000 + 30) app_key(&a5, 37, t0 + ms);     /* a key at 3 min: the clock restarts */
                 if (ms == 7 * 60000 - 20) run_at_7 = app_running(&a5);

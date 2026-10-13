@@ -911,6 +911,7 @@ void screen_render(const ab_calc *c, const screen_ui *ui, ls027_frame *f)
 {
     composed *k = &comp;
     screen_clear(f);
+    if (ui->blank) return;                      /* 068: the soft off */
     compose(c, ui, k);
     status_band(f, c, ui, k->ind);
     if (c->gr_on && ui->graph) {                /* a graph in place of the stack (unit 033) */

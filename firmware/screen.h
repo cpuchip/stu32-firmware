@@ -69,6 +69,7 @@ typedef struct {
     const screen_graph *graph;      /* a graph open (unit 033), NULL none */
     int show_n;                     /* SHOW held (unit 030): its parts (ab_show_text), 0 none */
     char show[2][AB_SHOW_LEN];
+    bool blank;                     /* the soft off (068): nothing drawn */
 } screen_ui;
 
 void screen_ui_default(screen_ui *ui);

@@ -8,6 +8,8 @@
  * - Low battery: off when the charge is below PWR_LOW_SOC % and no input source is present, so
  *   memory is saved while the cell still holds the board up (ours; the gauge's datasheet suggests
  *   shutting down at 3 or 5 %, p.8). A program running does not hold this off.
+ * - On USB power (PGOOD_N low) there is no auto-off: Michael, 068, "while plugged in we should keep the s3 in a state
+ *   for it to respond to you". A low battery still turns it off.
  * - The charger (BQ24072, SLUS810N 10.2.2.4): CHG_N low while charging, PGOOD_N low while a valid
  *   input source is present. */
 #ifndef POWER_H
@@ -43,7 +45,7 @@ bool pwr_radio_allowed(uint32_t vbat_uv);
 void pwr_init(pwr_state *p, uint32_t now_ms);
 void pwr_activity(pwr_state *p, uint32_t now_ms);
 pwr_action pwr_check(pwr_state *p, const pwr_inputs *in, uint32_t now_ms);
-/* The ms until pwr_check would turn the calculator off with these inputs (0: it would now), for
+/* The ms until pwr_check would turn the calculator off with these inputs (0: it would now; UINT32_MAX: never), for
    the device's sleep (unit 023). Not busy: a run's own deadlines are the app's. */
 uint32_t pwr_next(const pwr_state *p, const pwr_inputs *in, uint32_t now_ms);
 /* OFF waits for C's release before deep sleep (Rev A board 0005, abacus #7561). C is IO0, the only wake pin, and it

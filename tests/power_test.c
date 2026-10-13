@@ -130,7 +130,7 @@ int main(void)
         pwr_inputs low = {true, true, PWR_LOW_SOC - 1, false}, low_usb = {true, false, PWR_LOW_SOC - 1, false};
         pwr_init(&p, 0);
         expect(pwr_next(&p, &low, 10) == 0, "pwr_next: a low battery with no input is due now");
-        expect(pwr_next(&p, &low_usb, 10) == PWR_IDLE_MS - 10, "pwr_next: a low battery on USB waits for the auto-off");
+        expect(pwr_next(&p, &low_usb, 10) == UINT32_MAX, "pwr_next: on USB nothing turns it off (068): never");
     }
     {   /* the contract, at random: pwr_check before the deadline stays on, at it turns off */
         unsigned seed = 12345;
@@ -150,7 +150,12 @@ int main(void)
                 ok = ok && pwr_check(&q, &ri, now + (seed >> 8) % w) == PWR_STAY;
             }
             pwr_state q = p;
-            ok = ok && w != UINT32_MAX && pwr_check(&q, &ri, now + w) != PWR_STAY;
+            if (w == UINT32_MAX) {              /* never (068: on USB): it stays at any time */
+                seed = seed * 1103515245u + 12345u;
+                ok = ok && !ri.pgood_n && pwr_check(&q, &ri, now + (seed >> 4)) == PWR_STAY;
+            } else {
+                ok = ok && pwr_check(&q, &ri, now + w) != PWR_STAY;
+            }
         }
         expect(ok, "pwr_next's contract over 2000 random states");
     }

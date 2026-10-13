@@ -592,6 +592,7 @@ static void calc_task(void *arg)
             uint32_t gone = now - last_gauge, g = gone >= 30000 ? 0 : 30000 - gone;
             if (g < ms) ms = g;
         }
+        if (app.soft_off && ms > 1000) ms = 1000;      /* 068: a soft off sleeps once USB goes: PGOOD each second */
         TickType_t wait = ms >= 3600000u ? portMAX_DELAY : pdMS_TO_TICKS(ms);
         bool got = xQueueReceive(keys_q, &k, wait) == pdTRUE;
         now = now_ms();
