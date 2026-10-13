@@ -8,5 +8,6 @@ build-prof/
 build-headless/
 build-headless-usb/
 build-headless-mask/
+build-headless-offclk/
 device/*/build-wasm/
 device/*/build-bench/
