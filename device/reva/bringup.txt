@@ -10,14 +10,12 @@
 
 # ---- flash: QIO, the 16 MB header, a save and a setting across a pinhole reset; IO0's strap; the 32 KB icache's heap
 say Rev A bring-up (unit 061). Resetting the board through its USB port.
+# (068: a reset passes when the boot count goes up; X reports the boot's reason and the flash header the ROM booted
+# from, so a port that reopens after the boot lines, as on Windows, still checks them)
 reset
-expect SPI_FAST_FLASH_BOOT 20
-expect SPI Mode       : QIO 10
-expect SPI Flash Size : 16MB 5
-expect Project name:     abacus_reva 10
-expect gauge: version 10
-expect reva: heap internal 10
-expect REVA READY 20
+send X
+expect flash: mode=QIO size=16MB
+expect-range soc 0 100
 # RADIX , (GOLD 3, soft key 2), a setting; then 1.5 ENTER, the stack
 send K30
 send K39
@@ -33,10 +31,7 @@ send SAVE
 expect save:
 say Press the pinhole reset (EN) once now. The USB port goes away and comes back.
 wait talk.py: port open again 120
-# (the boot's first lines can pass before the port is open again: a reset over USB shows them all)
 reset
-expect bytes ok 30
-expect REVA READY 20
 send X
 expect state: X=1.5 stop
 expect radix=,
@@ -52,7 +47,6 @@ expect save:
 say Hold the 2 key down now, and keep holding it until asked to let go.
 sleep 3
 reset
-expect REVA READY 30
 say Let go of 2 now.
 sleep 3
 send X

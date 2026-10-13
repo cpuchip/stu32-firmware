@@ -580,6 +580,7 @@ static void calc_task(void *arg)
 #ifdef AB_MASK
     printf("BENCH: AB_MASK image, MASK ON masks interrupts under keys and runs; never a product image\n");
 #endif
+    dev_boot_print();                           /* the reason, once the console is up (068) */
     printf("REVA READY\n");
     for (;;) {
         int k;
@@ -726,6 +727,7 @@ static void sysinfo_cb(void *ctx, app_sysinfo *o)
 
 void app_main(void)
 {
+    dev_boot_count_up();                        /* 068: the boot line's count, first */
     /* the calc task's stack first, in one internal block (the stand-in failed to find 32 KB once
        its other buffers were in; see standin_main.c) */
     static StaticTask_t calc_tcb;

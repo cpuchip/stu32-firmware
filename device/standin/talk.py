@@ -22,7 +22,9 @@ Copies every line the board prints to stdout and LOG. With a SCRIPT, runs its li
     say TEXT               print TEXT for the person at the board, marked >>> (unit 061)
     confirm TEXT           ask the person at the board TEXT, answered y or n on this program's stdin;
                            n or no answer is reported as FAIL (unit 061: what a log cannot judge)
-    reset                  pulse EN through the board's auto-reset (RTS, with DTR held low)
+    reset [SECONDS]        pulse EN through the board's auto-reset (RTS, with DTR held low); passes when the
+                           firmware shows a new boot (new=1 on its boot line, 068) within SECONDS (20)
+    expect-boot REASON [SECONDS]  sends X and checks the boot's reason=REASON (POWERON, SW, DEEPSLEEP, ...)
     press0 MS              hold IO0 low for MS ms through the auto-reset's DTR line (RTS high), as
                            pressing BOOT: a key for the light-sleep probe (unit 023)
     sleep SECONDS
@@ -210,10 +212,31 @@ if script:
             note(f"talk.py: {'PASS' if ok else 'FAIL'} line {n}: confirm {rest!r} (answer {answer or 'none'!r})")
             failures += not ok
         elif word == "reset":
+            # 068 (abacus #7578): a reset passes when the firmware shows a new boot. X marks the boot it reports as seen,
+            # so after the X here a later X (or the boot's own line) printing new=1 can only be a new boot, even when the
+            # port reopened after the boot lines (Windows) and even after a chip reset (EN), which starts boots= again
+            send("X")
+            was = wait_value("boots", 5, pos)
+            wait_value("new", 2, pos)
             s.dtr = False
             s.rts = True
             time.sleep(0.15)
             s.rts = False
+            fresh, got, end = False, None, time.time() + float(rest or 20)
+            while time.time() < end and not fresh:
+                time.sleep(2)
+                send("X")
+                got = wait_value("boots", 3, pos)
+                fresh = wait_value("new", 1, pos) == 1 or (got is not None and was is not None and got > was)
+            note(f"talk.py: {'PASS' if fresh else 'FAIL'} line {n}: reset (boots {was} -> {got}, new boot {'seen' if fresh else 'not seen'})")
+            failures += not fresh
+        elif word == "expect-boot":           # the boot's reason by name (068): POWERON, SW, DEEPSLEEP, BROWNOUT, ...
+            p = rest.split()
+            reason, limit = p[0], float(p[1]) if len(p) > 1 else 10.0
+            send("X")
+            ok = wait_for(f"reason={reason} ", limit, pos)
+            note(f"talk.py: {'PASS' if ok else 'FAIL'} line {n}: expect-boot {reason}")
+            failures += not ok
         elif word == "press0":               # IO0 low (DTR asserted, RTS not), then released
             s.rts = False
             s.dtr = True

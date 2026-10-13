@@ -43,7 +43,7 @@ idf_component_register(
          ${GAMES_SRCS} "${CASIM}/casim.c"
     EMBED_FILES ${GAMES_EMBED}
     INCLUDE_DIRS . "${REPO}/core" "${FW}" ${WASM_INC} "${REPO}/device" "${REPO}/build/games" "${CASIM}"
-    REQUIRES esp_driver_spi esp_driver_i2c esp_driver_gpio esp_driver_ledc esp_psram esp_partition esp_timer ulp esp_hw_support ${WASM_REQUIRES})
+    REQUIRES esp_driver_spi esp_driver_i2c esp_driver_gpio esp_driver_ledc esp_psram esp_partition spi_flash esp_timer ulp esp_hw_support ${WASM_REQUIRES})
 
 set(ulp_app_name ulp_${COMPONENT_NAME})
 ulp_embed_binary(${ulp_app_name} "ulp/main.c" "reva_main.c")

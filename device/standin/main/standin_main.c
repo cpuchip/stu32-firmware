@@ -1137,6 +1137,7 @@ static void calc_task(void *arg)
     pwr_inputs in = {true, true, -1, false};    /* no charger pins or gauge on the stand-in */
     bool was_running = false;
     render(0);
+    dev_boot_print();                           /* the reason, once the console is up (068) */
     printf("STANDIN READY\n");
     for (;;) {
         event ev;
@@ -1271,6 +1272,7 @@ static void sysinfo_cb(void *ctx, app_sysinfo *o)
 
 void app_main(void)
 {
+    dev_boot_count_up();                        /* 068: the boot line's count, first */
     /* the calc task's stack first, before the keyboard image and the panel's buffers split the internal heap: 32 KB in
        one block (it failed at boot once those had: largest block 31 KB). Both large blocks come from one 128 KB region:
        the line says what is left (unit 053; arcade's boots, #5492: the order doesn't change the margin) */

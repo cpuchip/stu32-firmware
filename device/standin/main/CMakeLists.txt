@@ -39,7 +39,7 @@ idf_component_register(
          ${GAMES_SRCS} "${CASIM}/casim.c"
     EMBED_FILES ${GAMES_EMBED}
     INCLUDE_DIRS . "${REPO}/core" "${FW}" ${WASM_INC} "${REPO}/device" "${REPO}/build/games" "${CASIM}"
-    REQUIRES esp_lcd esp_driver_i2c esp_driver_gpio esp_driver_uart vfs esp_psram esp_partition esp_timer ${WASM_REQUIRES})
+    REQUIRES esp_lcd esp_driver_i2c esp_driver_gpio esp_driver_uart vfs esp_psram esp_partition spi_flash esp_timer ${WASM_REQUIRES})
 
 if(NOT EXISTS "${BID_LIB}")
     message(FATAL_ERROR "no ${BID_LIB}: run TARGET=esp32s3 scripts/fetch-intel-dfp.sh")

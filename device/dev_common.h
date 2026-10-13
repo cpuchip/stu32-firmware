@@ -11,11 +11,70 @@
 
 #include "app.h"
 #include "calc.h"
+#include "esp_attr.h"
+#include "esp_flash.h"
 #include "esp_heap_caps.h"
+#include "esp_system.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "screen.h"
 #include "version.h"
+
+/* The boot line (068, abacus #7577/#7578): the reset's reason by name and a count of boots kept in RTC no-init memory,
+   which survives software resets, watchdogs and deep sleep (not a power cut: the magic word starts it again). printed
+   once when the console is up, and by X with new=1 until an X has shown this boot, so a session that missed the boot
+   lines still sees that, and why, the chip restarted (talk.py's reset and expect-boot read it). */
+#define DEV_BOOT_MAGIC 0xB0075EEDu
+RTC_NOINIT_ATTR static uint32_t dev_boot_magic, dev_boot_count;
+static bool dev_boot_shown;                     /* an X has shown this boot */
+static const char *dev_reset_name(esp_reset_reason_t r)
+{
+    switch (r) {
+    case ESP_RST_POWERON: return "POWERON";
+    case ESP_RST_EXT: return "EXT";
+    case ESP_RST_SW: return "SW";
+    case ESP_RST_PANIC: return "PANIC";
+    case ESP_RST_INT_WDT: return "INT_WDT";
+    case ESP_RST_TASK_WDT: return "TASK_WDT";
+    case ESP_RST_WDT: return "WDT";
+    case ESP_RST_DEEPSLEEP: return "DEEPSLEEP";
+    case ESP_RST_BROWNOUT: return "BROWNOUT";
+    case ESP_RST_SDIO: return "SDIO";
+    case ESP_RST_USB: return "USB";
+    case ESP_RST_JTAG: return "JTAG";
+    case ESP_RST_EFUSE: return "EFUSE";
+    case ESP_RST_PWR_GLITCH: return "PWR_GLITCH";
+    case ESP_RST_CPU_LOCKUP: return "CPU_LOCKUP";
+    default: return "UNKNOWN";
+    }
+}
+static void dev_boot_count_up(void)            /* first thing in app_main */
+{
+    if (dev_boot_magic != DEV_BOOT_MAGIC) {     /* a power cut (or the first boot): RTC memory holds noise */
+        dev_boot_magic = DEV_BOOT_MAGIC;
+        dev_boot_count = 0;
+    }
+    dev_boot_count++;
+}
+/* the flash header the ROM boots from (the bootloader's, at 0x0): byte 2 the SPI mode, byte 3's high nibble the size
+   (IDF's esp_app_format.h: esp_image_header_t, esp_image_spi_mode_t, esp_image_flash_size_t), for X, so bring-up
+   checks QIO and 16 MB after a reset whose boot lines it missed (068) */
+static void dev_flash_print(void)
+{
+    static const char *const MODE[] = {"QIO", "QOUT", "DIO", "DOUT", "FAST_READ", "SLOW_READ"};
+    static const char *const SIZE[] = {"1MB", "2MB", "4MB", "8MB", "16MB", "32MB", "64MB", "128MB"};
+    uint8_t h[4];
+    if (esp_flash_read(NULL, h, 0, sizeof h) != ESP_OK || h[0] != 0xE9) {
+        printf("flash: header ?\n");
+        return;
+    }
+    printf("flash: mode=%s size=%s\n", h[2] < 6 ? MODE[h[2]] : "?", (h[3] >> 4) < 8 ? SIZE[h[3] >> 4] : "?");
+}
+static void dev_boot_print(void)
+{
+    printf("boot: boots=%lu reason=%s new=%d\n", (unsigned long)dev_boot_count, dev_reset_name(esp_reset_reason()),
+           !dev_boot_shown);
+}
 
 /* app.set_wall: the clock set from the keys, kept in the RTC */
 static void dev_set_wall(void *ctx, int64_t secs)
@@ -82,6 +141,9 @@ static __attribute__((noinline, unused)) void dev_dump(const ab_calc *calc, app_
     printf("state: X=%s stop=%s lines=%d prgm=%d running=%d shift=%d prompt=%s msg=%s heap=%u stack-free=%u\n", x, stop,
            calc->prog_len, calc->prgm, app->running, app->shift, app->prompt_op >= 0 ? app->prompt_text : "-", m ? m : "-",
            (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL), (unsigned)uxTaskGetStackHighWaterMark(NULL));
+    dev_boot_print();
+    dev_boot_shown = true;
+    dev_flash_print();
     screen_ui ui;                               /* (on the stack while X runs, not 176 B of internal RAM for good) */
     app_ui(app, &ui);
     printf("ui: clock=%s%c view=%s soft1=%s off=%d\n", ui.clock, ui.ampm ? ui.ampm : ' ', ui.view[0] ? ui.view[0] : "-",
