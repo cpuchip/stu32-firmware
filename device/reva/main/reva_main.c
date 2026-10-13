@@ -128,6 +128,7 @@ extern const uint8_t ulp_main_bin_start[] asm("_binary_ulp_main_bin_start");
 extern const uint8_t ulp_main_bin_end[] asm("_binary_ulp_main_bin_end");
 
 #define REFRESH_US (100ull * 60 * 1000000)     /* under Sharp's two hours (p.4) */
+#define STUCK_RECHECK_US (10ull * 1000000)   /* C held down through OFF: look again in 10 s (sleep_now) */
 #define IMAGE_CAP (256u * 1024u)
 #define TX_CAP (2 + LS027_H * (LS027_ROW_BYTES + 2))
 
@@ -467,9 +468,16 @@ static void sleep_now(void)
        without this line, and stops when RTC_PERIPH is forced off */
     esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
     /* C alone wakes it (decision 34): EXT1 ANY_LOW on IO0, whose external pull-up holds with the
-       RTC peripherals off */
-    esp_sleep_enable_ext1_wakeup(pin_wake_mask(), ESP_EXT1_WAKEUP_ANY_LOW);
-    esp_sleep_enable_timer_wakeup(REFRESH_US);
+       RTC peripherals off. OFF is taken on C's key down, so wait for C's release first, or IO0 still
+       low wakes the chip at once (board 0005, abacus #7561; power.h). Held 3 s: sleep without C's
+       wake and look again in STUCK_RECHECK_US, so a key held in a bag neither wakes it nor keeps it up. */
+    pwr_release_state rs;
+    pwr_release_init(&rs, now_ms());
+    pwr_release st;
+    while ((st = pwr_release_step(&rs, gpio_get_level(PIN_ON), now_ms())) == PWR_RELEASE_WAIT)
+        vTaskDelay(pdMS_TO_TICKS(5));
+    if (st == PWR_RELEASE_OK) esp_sleep_enable_ext1_wakeup(pin_wake_mask(), ESP_EXT1_WAKEUP_ANY_LOW);
+    esp_sleep_enable_timer_wakeup(st == PWR_RELEASE_OK ? REFRESH_US : STUCK_RECHECK_US);
     esp_deep_sleep_start();
 }
 

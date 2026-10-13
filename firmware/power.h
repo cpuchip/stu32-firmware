@@ -46,6 +46,21 @@ pwr_action pwr_check(pwr_state *p, const pwr_inputs *in, uint32_t now_ms);
 /* The ms until pwr_check would turn the calculator off with these inputs (0: it would now), for
    the device's sleep (unit 023). Not busy: a run's own deadlines are the app's. */
 uint32_t pwr_next(const pwr_state *p, const pwr_inputs *in, uint32_t now_ms);
+/* OFF waits for C's release before deep sleep (Rev A board 0005, abacus #7561). C is IO0, the only wake pin, and it
+   wakes on low; OFF is taken on C's key down, so sleeping at once woke the chip while C was still held. The device
+   steps this with IO0's level until it says OK (high for PWR_RELEASE_DEBOUNCE_MS: arm C's wake) or STUCK (still low
+   after PWR_RELEASE_WAIT_MS: sleep without C's wake and look again soon, so a key held down in a bag can't keep the
+   chip awake, or wake it at once). */
+#define PWR_RELEASE_DEBOUNCE_MS 30u
+#define PWR_RELEASE_WAIT_MS 3000u
+typedef enum { PWR_RELEASE_WAIT = 0, PWR_RELEASE_OK, PWR_RELEASE_STUCK } pwr_release;
+typedef struct {
+    uint32_t start_ms;      /* when the wait began */
+    uint32_t high_ms;       /* when IO0 last went high */
+    bool high;              /* IO0 high at the last step */
+} pwr_release_state;
+void pwr_release_init(pwr_release_state *r, uint32_t now_ms);
+pwr_release pwr_release_step(pwr_release_state *r, bool on_high, uint32_t now_ms);
 bool pwr_charging(const pwr_inputs *in);
 bool pwr_external(const pwr_inputs *in);
 

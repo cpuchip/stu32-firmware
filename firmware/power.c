@@ -43,3 +43,23 @@ bool pwr_radio_allowed(uint32_t vbat_uv)
 {
     return vbat_uv >= PWR_RADIO_MIN_UV;         /* 0 (the gauge not read) is below it */
 }
+
+void pwr_release_init(pwr_release_state *r, uint32_t now_ms)
+{
+    r->start_ms = now_ms;
+    r->high_ms = now_ms;
+    r->high = false;
+}
+
+pwr_release pwr_release_step(pwr_release_state *r, bool on_high, uint32_t now_ms)
+{
+    if (on_high) {
+        if (!r->high) r->high_ms = now_ms;          /* the high starts now (a bounce starts it again) */
+        r->high = true;
+        if (now_ms - r->high_ms >= PWR_RELEASE_DEBOUNCE_MS) return PWR_RELEASE_OK;
+    } else {
+        r->high = false;
+        if (now_ms - r->start_ms >= PWR_RELEASE_WAIT_MS) return PWR_RELEASE_STUCK;
+    }
+    return PWR_RELEASE_WAIT;
+}

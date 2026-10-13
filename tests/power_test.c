@@ -244,6 +244,42 @@ int main(void)
         expect(piezo_duty(-1, 10) == 0 && piezo_duty(PIEZO_LEVELS, 10) == 0, "a level out of range: off");
     }
 
+    /* OFF waits for C's release (abacus #7561): high for 30 ms is OK, low for 3 s is STUCK, nothing earlier */
+    {
+        pwr_release_state r;
+        uint32_t t0 = 1000;
+        pwr_release_init(&r, t0);
+        int ok_at = -1;
+        for (uint32_t t = 0; t <= 400 && ok_at < 0; t += 5) {   /* C held 300 ms, then released */
+            pwr_release s = pwr_release_step(&r, t >= 300, t0 + t);
+            if (s == PWR_RELEASE_OK) ok_at = (int)t;
+            else expect(s == PWR_RELEASE_WAIT, "release: WAIT while held or not yet steady");
+        }
+        expect(ok_at == 330, "release: held 300 ms, OK after 30 ms high (at 330)");
+
+        pwr_release_init(&r, t0);                   /* a bounce: high 10 ms twice, then steady */
+        static const int lv[] = {1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1};
+        ok_at = -1;
+        for (int i = 0; i < (int)(sizeof lv / sizeof lv[0]) && ok_at < 0; i++)
+            if (pwr_release_step(&r, lv[i], t0 + 5u * (uint32_t)i) == PWR_RELEASE_OK) ok_at = 5 * i;
+        expect(ok_at == 65, "release: a bounce restarts the 30 ms (steady high from 35, OK at 65)");
+
+        pwr_release_init(&r, t0);                   /* already released: OK after the debounce */
+        expect(pwr_release_step(&r, 1, t0) == PWR_RELEASE_WAIT, "release: high at once, still WAIT");
+        expect(pwr_release_step(&r, 1, t0 + 29) == PWR_RELEASE_WAIT, "release: 29 ms high, WAIT");
+        expect(pwr_release_step(&r, 1, t0 + 30) == PWR_RELEASE_OK, "release: 30 ms high, OK");
+
+        pwr_release_init(&r, t0);                   /* stuck: low throughout */
+        expect(pwr_release_step(&r, 0, t0 + 2999) == PWR_RELEASE_WAIT, "release: low 2,999 ms, WAIT");
+        expect(pwr_release_step(&r, 0, t0 + 3000) == PWR_RELEASE_STUCK, "release: low 3 s, STUCK");
+
+        uint32_t tw = 0xFFFFFF00u;                  /* across the clock's wrap */
+        pwr_release_init(&r, tw);
+        expect(pwr_release_step(&r, 0, tw + 2000) == PWR_RELEASE_WAIT, "release: across the wrap, 2 s low, WAIT");
+        expect(pwr_release_step(&r, 1, tw + 2100) == PWR_RELEASE_WAIT, "release: across the wrap, high, WAIT");
+        expect(pwr_release_step(&r, 1, tw + 2130) == PWR_RELEASE_OK, "release: across the wrap, 30 ms high, OK");
+    }
+
     printf("power_test: %d/%d checks\n", checks - bad, checks);
     return bad != 0;
 }
