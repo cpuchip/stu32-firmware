@@ -33,6 +33,10 @@ I05 | 048 ∫ (I0022): CAN'T INTEGRATE, nothing inserted | STU RAD EQ:X×LN(X) C
 I06 | 048 ∫ (I0028): an equation, EXPRESSION ONLY | STU RAD EQ:X=1 CASINT:X | ERR %ERR=CAS_EXPR_ONLY %ERRMSG=EXPRESSION_ONLY %EQN=1
 I07 | 048 ∫ in the stamp: X^2^3 stamped STU is X^8 (by hand: X^9÷9, I0002's form) | STU RAD EQ:X^2^3 CASINT:X | %EQ=X^9÷9
 I08 | 048 ∫ in the stamp: stamped 35s it is X^6 (by hand: X^7÷7) | MODE35 EQ:X^2^3 C STU RAD EQN CASINT:X | %EQ=X^7÷7
+# CAS 013 (casim ad3c4ee, abacus #7881's repin): rational integrands through partial fractions, CAN'T INTEGRATE at
+# 89e8d17 (casim's CLI there: NOT_INTEGRABLE). Expected texts are casim's CLI at the pin; I05 still refuses.
+I10 | 048 ∫ (CAS 013): 1÷(X^2-1) answered, +C beside it | STU RAD EQ:1÷(X^2-1) CASINT:X | %EQ=0.5×LN(ABS(X-1))-0.5×LN(ABS(X+1)) %NOTE=+C %EQN=2
+I11 | 048 ∫ (CAS 013): the answer evaluates: ∫1÷(X×(X+1)) is LN(ABS(X))-LN(ABS(X+1)), at X 1 -LN(2) (mpmath, 34 digits) | STU RAD 1 STO:X EQ:1÷(X×(X+1)) CASINT:X XEQ RS | X=-0.6931471805599453094172321214581766
 F01 | 048 FACTOR (F0001): inserted after the original, no note | STU EQ:X^2-5×X+6 CASFACT:X | %EQ=(X-3)×(X-2) %NOTE=none %EQN=2
 F02 | 048 FACTOR (F0003): the content first | STU EQ:2×X^3-2×X CASFACT:X | %EQ=2×X×(X-1)×(X+1)
 F03 | 048 FACTOR (F0021): PARTIAL inserts the exact product, MAY FACTOR MORE beside it, not an error | STU EQ:69120×X^12-883584×X^11+3675072×X^10-4777824×X^9-2178000×X^8+7710864×X^7-2213952×X^6-2071296×X^5+775920×X^4+114000×X^3-36000×X^2-2 CASFACT:X | %EQ=2×(-18000×X^2+57000×X^3+387960×X^4-1035648×X^5-1106976×X^6+3855432×X^7-1089000×X^8-2388912×X^9+1837536×X^10-441792×X^11+34560×X^12-1) %NOTE=MAY_FACTOR_MORE %EQN=2
