@@ -1,4 +1,4 @@
-# Rev A: flash and first session (abacus-firmware @SHA@)
+# Rev A: flash and first session (stu32-firmware @SHA@)
 
 Made by `device/reva/package.sh` (unit 061). This folder holds Rev A's image built from commit @SHA@, the console
 program `talk.py`, the bring-up session `bringup.txt` (step 8 of docs/hw/rev-a-bring-up.md), and `SHA256SUMS`.
