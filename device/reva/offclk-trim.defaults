@@ -1,0 +1,17 @@
+# 068 (3) P0's trimmed wake (AB_OFFCLK=1 OFFCLK_TRIM=1 build.sh): what a timer wake from the off views costs without
+# the three largest parts of the boot the stand-in measured (97ffe88: 1,314 ms as built, 134 ms trimmed). A bench
+# image only, until each lands in sdkconfig.defaults by its ruling.
+#
+# Skip the app image's validation on a deep-sleep wake (~530 ms on the stand-in). Ruled by abacus #7600 for the off
+# views on three conditions: (a) every boot that is not a deep-sleep wake still validates (IDF's behaviour, kept);
+# (b) nothing may switch the boot partition and then deep-sleep: any future OTA ends in esp_restart, so the first boot
+# of a new image is never a deep-sleep wake; (c) bring-up checks that the first boot after a write is not DEEPSLEEP and
+# that a deep-sleep wake after it runs the new image (ver= and core= on the boot line).
+CONFIG_BOOTLOADER_SKIP_VALIDATE_IN_DEEP_SLEEP=y
+# The PSRAM's memory test at each boot (~410 ms on the stand-in's 8 MB). Mine to choose (abacus #7600); PSRAM ECC
+# stays on (decision 35).
+CONFIG_SPIRAM_MEMTEST=n
+# The bootloader's and the app's logs at WARN (~240 ms over the stand-in's UART0). Measured on Rev A's USB-JTAG
+# console before any change to the product: it also drops the "SPI Mode : QIO" line FLASH.md points at.
+CONFIG_BOOTLOADER_LOG_LEVEL_WARN=y
+CONFIG_LOG_DEFAULT_LEVEL_WARN=y

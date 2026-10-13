@@ -147,8 +147,9 @@ extern const uint8_t ulp_main_bin_end[] asm("_binary_ulp_main_bin_end");
      programmed (the period less DEEP_SLEEP_TIME_OVERHEAD_US, sleep_modes.c). Over a whole period the RC's drift and
      its calibration's spread enter it, so it is a cross-check, not the figure.
    The last OFFCLK_RING wakes stay in RTC memory, and OFFCLK prints them. OFFCLK PRINT adds a line at each wake with
-   the wall clock (the drift log). GLOG ms s logs CHG_N, PGOOD_N and the gauge every ms for s seconds (abacus #7587's
-   plug-in and cell-out rows). Never a product image: package.sh refuses its banner. */
+   the wall clock (the drift log). GLOG ms s logs CHG_N, PGOOD_N and the gauge every ms for s seconds; GLOG RING ms
+   into a ring that GLOG DUMP prints (abacus #7587's cell-out and plug-in rows). Never a product image: package.sh
+   refuses its banner. */
 #define OFFCLK_RING 32
 #define OFFCLK_OVERHEAD_US (250 + 100 * 240 / CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ)  /* sleep_modes.c, no 32 kHz crystal */
 typedef struct {
@@ -167,7 +168,21 @@ RTC_DATA_ATTR static offclk_wake offclk_ring[OFFCLK_RING];
 static offclk_wake offclk_now;
 static uint64_t offclk_ticks_main;     /* the RTC ticks at app_main */
 static bool offclk_timer_boot;
-static volatile uint32_t glog_ms, glog_s;
+/* GLOG: the charger's pins and the gauge sampled every glog_ms by a task of its own (the i2c_master driver takes the bus
+   per transaction, so the calc task's 30 s reading may interleave). Live, printed for glog_s seconds; or into a ring
+   of the last GLOG_RING samples, printed by GLOG DUMP: unplugging USB takes Rev A's console with it, so a plug-in is
+   recorded in the ring and read once the port is back (abacus #7587's plug-in row). */
+#define GLOG_RING 1200                  /* 2 min at 100 ms */
+typedef struct {
+    uint32_t t_ms, uv;
+    int32_t crate;
+    int8_t soc;
+    uint8_t chg_n, pgood_n, ok;
+} glog_sample;
+static glog_sample *glog_buf;
+static volatile uint32_t glog_ms = 100, glog_s, glog_t0;
+static volatile int glog_n, glog_at;
+static volatile bool glog_on, glog_live;
 #define OFFCLK_STAMP(field) (offclk_now.field = (uint32_t)esp_timer_get_time())
 #else
 #define OFFCLK_STAMP(field) ((void)0)
@@ -183,7 +198,7 @@ static QueueHandle_t keys_q;           /* key n down: n; released: KEY_UP_BASE -
                                            -2 the time */
 #define KEY_UP_BASE (-100)
 enum { KEY_SAVE = -3, KEY_WIPE = -4, KEY_RESTART = -5, KEY_EQNBENCH = -10, KEY_OPBENCH = -11, KEY_PROGBENCH = -12,
-       KEY_GLOG = -13 };
+       };
                                             /* the console's other commands, for the calc task (unit 053) */
 /* unit 023: light sleep between keys. usb_lock keeps the chip out of light sleep on USB power (the
    console stays usable, the power is free); tone_lock through a piezo tone (LEDC stops in light
@@ -515,6 +530,47 @@ static void on_busy(void *ctx, int op)
 }
 
 #ifdef AB_OFFCLK
+static void glog_task(void *arg)
+{
+    (void)arg;
+    TickType_t last = xTaskGetTickCount();
+    for (;;) {
+        if (!glog_on) {
+            vTaskDelay(pdMS_TO_TICKS(50));
+            last = xTaskGetTickCount();
+            continue;
+        }
+        gauge_reading g = {0};
+        glog_sample x = {now_ms() - glog_t0, 0, 0, 0, (uint8_t)pin_chg_n(), (uint8_t)pin_pgood_n(), 0};
+        if (gdev && gauge_sample(&gbus, &g)) x.uv = g.microvolts, x.crate = g.crate, x.soc = (int8_t)g.percent, x.ok = 1;
+        if (glog_live) {
+            printf("glog: t=%lu chg_n=%d pgood_n=%d vcell=%lu soc=%d crate=%ld ok=%d\n", (unsigned long)x.t_ms, x.chg_n,
+                   x.pgood_n, (unsigned long)x.uv, x.soc, (long)x.crate, x.ok);
+            if (x.t_ms >= glog_s * 1000u) {
+                glog_on = false;
+                printf("glog: done\n");
+            }
+        } else if (glog_buf) {
+            glog_buf[glog_at] = x;
+            glog_at = (glog_at + 1) % GLOG_RING;
+            if (glog_n < GLOG_RING) glog_n++;
+        }
+        vTaskDelayUntil(&last, pdMS_TO_TICKS(glog_ms ? glog_ms : 100));
+    }
+}
+
+static void glog_dump(void)
+{
+    glog_on = false;
+    vTaskDelay(pdMS_TO_TICKS(glog_ms + 50));        /* (the task's last sample stored) */
+    for (int i = 0; i < glog_n; i++) {
+        const glog_sample *x = &glog_buf[(glog_at - glog_n + i + GLOG_RING) % GLOG_RING];
+        printf("glog: t=%lu chg_n=%d pgood_n=%d vcell=%lu soc=%d crate=%ld ok=%d\n", (unsigned long)x->t_ms, x->chg_n,
+               x->pgood_n, (unsigned long)x->uv, x->soc, (long)x->crate, x->ok);
+    }
+    printf("glog: done n=%d\n", glog_n);
+}
+
 /* At the sleep entry: a timer boot's record into the ring, its line when OFFCLK PRINT is on, and the RTC ticks the
    next boot's RC figure starts from. */
 static void offclk_sleep(uint64_t us)
@@ -698,12 +754,25 @@ static void console_task(void *arg)
             else if (!strcmp(line, "OFFCLK RESET")) offclk_n = 0, offclk_ticks_at = 0;
             else if (line[6] == ' ') offclk_s = (uint32_t)strtoul(line + 7, NULL, 10);
             offclk_report();
-        } else if (!strncmp(line, "GLOG ", 5)) {        /* GLOG ms s */
+        } else if (!strcmp(line, "GLOG DUMP")) {
+            glog_dump();
+        } else if (!strncmp(line, "GLOG RING ", 10)) {   /* GLOG RING ms: into the ring until GLOG DUMP */
+            if (!glog_buf) glog_buf = heap_caps_malloc(GLOG_RING * sizeof *glog_buf, MALLOC_CAP_SPIRAM);
+            glog_on = false;
+            glog_ms = (uint32_t)strtoul(line + 10, NULL, 10);
+            glog_n = glog_at = 0;
+            glog_live = false;
+            glog_t0 = now_ms();
+            glog_on = glog_buf != NULL;
+            printf("glog: ring %s every %lu ms\n", glog_on ? "on" : "FAILED (no memory)", (unsigned long)glog_ms);
+        } else if (!strncmp(line, "GLOG ", 5)) {        /* GLOG ms s: printed live */
             char *e;
+            glog_on = false;
             glog_ms = (uint32_t)strtoul(line + 5, &e, 10);
             glog_s = (uint32_t)strtoul(e, NULL, 10);
-            int k = KEY_GLOG;
-            xQueueSend(keys_q, &k, 0);
+            glog_live = true;
+            glog_t0 = now_ms();
+            glog_on = true;
 #endif
         } else if (!strcmp(line, "BEEP")) {
             piezo_tone(PIEZO_HZ, 100);          /* bring-up: does the piezo sound */
@@ -798,19 +867,6 @@ static void calc_task(void *arg)
         } else if (got && (k == KEY_SAMPLE_ROOM || k == KEY_SAMPLE_FULL)) {
             MASKED(sample_ctrl(k == KEY_SAMPLE_FULL));
             printf("sample: %s done\n", k == KEY_SAMPLE_FULL ? "full" : "room");
-#endif
-#ifdef AB_OFFCLK
-        } else if (got && k == KEY_GLOG) {          /* (the calc task owns the gauge's bus) */
-            uint32_t t0 = now_ms(), ms = glog_ms ? glog_ms : 100;
-            TickType_t last = xTaskGetTickCount();
-            while (now_ms() - t0 < glog_s * 1000u) {
-                gauge_reading g = {0};
-                bool ok = gdev && gauge_sample(&gbus, &g);
-                printf("glog: t=%lu chg_n=%d pgood_n=%d vcell=%lu soc=%d crate=%ld ok=%d\n", (unsigned long)(now_ms() - t0),
-                       pin_chg_n(), pin_pgood_n(), (unsigned long)g.microvolts, g.percent, (long)g.crate, ok);
-                vTaskDelayUntil(&last, pdMS_TO_TICKS(ms));
-            }
-            printf("glog: done\n");
 #endif
         } else if (got && k == KEY_RESTART) {
             fflush(stdout);
@@ -1063,4 +1119,7 @@ void app_main(void)
     xTaskCreatePinnedToCore(scan_task, "scan", 4096, NULL, 6, NULL, 0);
 #endif
     xTaskCreatePinnedToCore(console_task, "console", 4096, NULL, 3, NULL, 0);
+#ifdef AB_OFFCLK
+    xTaskCreatePinnedToCore(glog_task, "glog", 4096, NULL, 3, NULL, 0);
+#endif
 }

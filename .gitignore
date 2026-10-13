@@ -11,3 +11,5 @@ build-headless-mask/
 build-headless-offclk/
 device/*/build-wasm/
 device/*/build-bench/
+device/*/build-offclk/
+device/*/build-offclk-trim/

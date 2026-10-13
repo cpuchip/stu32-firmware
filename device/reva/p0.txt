@@ -1,0 +1,35 @@
+# 068 (3) P0 on Rev A (abacus #7586, #7587, #7601): what a minute's wake from deep sleep costs, and the charger's pins.
+# Run it twice: with abacus_reva-offclk-<sha7>.bin (as built), then abacus_reva-offclk-trim-<sha7>.bin (trimmed).
+#   python talk.py COM18 p0.log p0.txt          (lepton: the by-id path)
+# The OFFCLK lines are the record: boot (the sleep timer's target to app_main), awake (all of a wake), each min/med/max
+# in microseconds over the wakes kept.
+send X
+expect boot: boots
+send OFFCLK RESET
+send OFFCLK 60
+expect offclk: period=60s
+# ---- six minute-wakes off on the cell
+say With the cell fitted, unplug USB, then press GOLD then C (OFF). The screen keeps its image.
+say Leave it 6 minutes (it wakes each minute, unseen), then press C and plug USB back in.
+wait talk.py: port open again 900
+sleep 3
+send OFFCLK
+expect offclk: awake min=
+send X
+expect wake=EXT1 pins=0x1
+# ---- VCELL with the cell out (abacus #7587: the detection cycle the 30 mV / 2 s cell rule must reject)
+say On USB: take the cell out, leaving USB in.
+confirm Is the cell out, and the calculator still on (USB power)?
+send GLOG 100 30
+wait glog: done 60
+say Refit the cell (USB stays in).
+confirm Is the cell back in?
+# ---- plug-in with the cell near full (abacus #7587: does CHG_N go low at all; it peaked at 4.196 V on 10-12)
+send GLOG RING 100
+expect glog: ring on
+say Unplug USB, wait 10 s, plug it back in, and leave it.
+wait talk.py: port open again 300
+sleep 60
+send GLOG DUMP
+wait glog: done n= 120
+say Done. Send p0.log to abacus.

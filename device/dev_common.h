@@ -101,8 +101,9 @@ static void dev_boot_print(void)
     uint64_t pins = w == ESP_SLEEP_WAKEUP_EXT1 ? esp_sleep_get_ext1_wakeup_status()
                   : w == ESP_SLEEP_WAKEUP_GPIO ? (REG_READ(RTC_GPIO_STATUS_REG) >> RTC_GPIO_STATUS_INT_S) & RTC_GPIO_STATUS_INT
                   : 0;   /* (GPIO on the S3: the RTC IO pads' wake, RTC GPIO n = GPIO n for 0-21) */
-    printf("boot: boots=%lu reason=%s new=%d wake=%s pins=0x%llx\n", (unsigned long)dev_boot_count,
-           dev_reset_name(esp_reset_reason()), !dev_boot_shown, dev_wake_name(w), (unsigned long long)pins);
+    printf("boot: boots=%lu reason=%s new=%d wake=%s pins=0x%llx ver=%s core=%s\n", (unsigned long)dev_boot_count,
+           dev_reset_name(esp_reset_reason()), !dev_boot_shown, dev_wake_name(w), (unsigned long long)pins,
+           AB_FW_VERSION, AB_CORE_COMMIT);  /* (ver and core: a deep-sleep wake shows the image it ran, abacus #7600) */
 }
 
 /* app.set_wall: the clock set from the keys, kept in the RTC */
