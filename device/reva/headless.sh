@@ -8,6 +8,9 @@
 #       the bench image for the stack's masked readings (AB_MASK, abacus #6636): MASK ON / MASK OFF on the console mask
 #       interrupts under keys and runs; the interrupt watchdog off (headless-mask.defaults); in build-headless-mask.
 #       Never a product image: package.sh refuses its banner.
+#   OFFCLK=1 device/reva/headless.sh /dev/ttyACM1 script.txt
+#       068 (3) P0's bench image (AB_OFFCLK): OFF sleeps (deep sleep, no Rev A pin held), a timer wake every OFFCLK s;
+#       OFFCLK reports each wake's timing, OFFCLK PRINT logs the wall clock at each. In build-headless-offclk.
 #   USB=1 device/reva/headless.sh /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_<MAC>-if00 script.txt
 #       Rev A's own console, the USB-Serial-JTAG port (unit 061), on the stand-in's native USB port: flashed and talked
 #       to there, in build-headless-usb. The port can come back under another name after a reset, so /dev is shared
@@ -28,6 +31,11 @@ if [ "${MASK:-0}" = 1 ]; then
     B=device/reva/build-headless-mask
     DEFAULTS="$DEFAULTS;headless-mask.defaults"
     MASKDEF=-DAB_MASK=1
+fi
+if [ "${OFFCLK:-0}" = 1 ]; then                # 068 (3) P0: the off clock's timing (AB_OFFCLK); deep sleep, head-less
+    B=device/reva/build-headless-offclk
+    MASKDEF="$MASKDEF -DAB_OFFCLK=1"
+    [ -n "${OFFCLK_DEFAULTS:-}" ] && DEFAULTS="$DEFAULTS;$OFFCLK_DEFAULTS"   # (a trim under test, relative to device/reva)
 fi
 if [ "$USB" = 1 ]; then
     B=device/reva/build-headless-usb

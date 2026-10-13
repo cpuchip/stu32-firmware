@@ -73,6 +73,10 @@ if(REVA_HEADLESS)
 elseif(AB_BENCH)
     target_compile_definitions(${COMPONENT_LIB} PRIVATE AB_BENCH=1)
 endif()
+# 068 (3) P0: AB_OFFCLK, the off clock's cost and the RC's drift (reva_main.c), head-less or on Rev A; package.sh refuses it
+if(AB_OFFCLK)
+    target_compile_definitions(${COMPONENT_LIB} PRIVATE AB_OFFCLK=1)
+endif()
 target_compile_definitions(${COMPONENT_LIB} PRIVATE
     DECIMAL_CALL_BY_REFERENCE=0 DECIMAL_GLOBAL_ROUNDING=0 DECIMAL_GLOBAL_EXCEPTION_FLAGS=0)
 target_link_libraries(${COMPONENT_LIB} PRIVATE "${BID_LIB}")

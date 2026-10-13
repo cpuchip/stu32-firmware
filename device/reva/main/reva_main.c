@@ -58,6 +58,12 @@
 #include "state.h"
 #include "store.h"
 #include "dev_common.h"
+#ifdef AB_OFFCLK
+#include <sys/time.h>
+#include "esp_private/esp_clk.h"
+#include "soc/rtc.h"
+#include "soc/rtc_cntl_reg.h"
+#endif
 #include "dev_bench.h"
 
 #ifdef AB_MASK
@@ -130,6 +136,41 @@ extern const uint8_t ulp_main_bin_end[] asm("_binary_ulp_main_bin_end");
 #define REFRESH_US (100ull * 60 * 1000000)     /* under Sharp's two hours (p.4) */
 #define STUCK_RECHECK_US (10ull * 1000000)   /* C held down through OFF: look again in 10 s (sleep_now) */
 #define IMAGE_CAP (256u * 1024u)
+#ifdef AB_OFFCLK
+/* 068 (3) P0 (abacus #7586, #7587): what a clock on the off screen costs, measured by the board. Off on the cell, a
+   timer wake every OFFCLK s takes the refresh path (render, sleep). Each wake is timed:
+   - the boot, on the RC: from the timer's target (RTC_CNTL_SLP_TIMER0/1, still set at the wake) to app_main, in RTC
+     ticks at this boot's calibration. Over about a second the RC's error is milliseconds. (esp_timer can't: the
+     systimer starts with the app, measured 40.9 ms at app_main where the boot log says 1,227 ms, rehearsal 1);
+   - the app, on the XTAL: esp_timer at app_main, after load(), around the render, before the print and at the sleep;
+   - a second figure across the sleep, on the RC: the RTC ticks from one sleep entry to the next, less the sleep IDF
+     programmed (the period less DEEP_SLEEP_TIME_OVERHEAD_US, sleep_modes.c). Over a whole period the RC's drift and
+     its calibration's spread enter it, so it is a cross-check, not the figure.
+   The last OFFCLK_RING wakes stay in RTC memory, and OFFCLK prints them. OFFCLK PRINT adds a line at each wake with
+   the wall clock (the drift log). GLOG ms s logs CHG_N, PGOOD_N and the gauge every ms for s seconds (abacus #7587's
+   plug-in and cell-out rows). Never a product image: package.sh refuses its banner. */
+#define OFFCLK_RING 32
+#define OFFCLK_OVERHEAD_US (250 + 100 * 240 / CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ)  /* sleep_modes.c, no 32 kHz crystal */
+typedef struct {
+    uint32_t main_us, load_us, render0_us, render1_us, print_us, sleep_us;  /* esp_timer at each point */
+    uint32_t boot_us;               /* the timer's target to app_main, on the RC */
+    int32_t rc_awake_us;            /* the RC's figure, sleep entry to sleep entry less the sleep */
+    uint32_t cal;                   /* the slow clock's period at this boot (esp_clk_slowclk_cal_get) */
+} offclk_wake;
+RTC_DATA_ATTR static uint32_t offclk_s;         /* the timer's period in s; 0: REFRESH_US, as built */
+RTC_DATA_ATTR static bool offclk_print;
+RTC_DATA_ATTR static uint64_t offclk_ticks_at;  /* the RTC ticks at the last sleep entry, 0 none */
+RTC_DATA_ATTR static uint64_t offclk_slept_us;  /* the timer it set */
+RTC_DATA_ATTR static uint32_t offclk_n;         /* timer wakes recorded since OFFCLK RESET (or a power-on) */
+RTC_DATA_ATTR static offclk_wake offclk_ring[OFFCLK_RING];
+static offclk_wake offclk_now;
+static uint64_t offclk_ticks_main;     /* the RTC ticks at app_main */
+static bool offclk_timer_boot;
+static volatile uint32_t glog_ms, glog_s;
+#define OFFCLK_STAMP(field) (offclk_now.field = (uint32_t)esp_timer_get_time())
+#else
+#define OFFCLK_STAMP(field) ((void)0)
+#endif
 #define TX_CAP (2 + LS027_H * (LS027_ROW_BYTES + 2))
 
 static const int ROWS[KB_ROWS] = PIN_ROWS, COLS[KB_COLS] = PIN_COLS;
@@ -140,7 +181,8 @@ static bool shown_valid;
 static QueueHandle_t keys_q;           /* key n down: n; released: KEY_UP_BASE - n (unit 030); -1 dump,
                                            -2 the time */
 #define KEY_UP_BASE (-100)
-enum { KEY_SAVE = -3, KEY_WIPE = -4, KEY_RESTART = -5, KEY_EQNBENCH = -10, KEY_OPBENCH = -11, KEY_PROGBENCH = -12 };
+enum { KEY_SAVE = -3, KEY_WIPE = -4, KEY_RESTART = -5, KEY_EQNBENCH = -10, KEY_OPBENCH = -11, KEY_PROGBENCH = -12,
+       KEY_GLOG = -13 };
                                             /* the console's other commands, for the calc task (unit 053) */
 /* unit 023: light sleep between keys. usb_lock keeps the chip out of light sleep on USB power (the
    console stays usable, the power is free); tone_lock through a piezo tone (LEDC stops in light
@@ -162,6 +204,26 @@ static char time_text[16];                  /* TIME's argument, for the calc tas
 static volatile bool key_echo;              /* KEYS: each key printed as it goes down and up (unit 061, bring-up) */
 RTC_DATA_ATTR static bool rtc_batt_low;     /* BATT's latch through OFF and wake: RTC memory keeps it
                                                through deep sleep, a power-on clears it (abacus #4238) */
+
+/* The charger's pins. AB_OFFCLK head-less: the stand-in's IO42 and IO47 are not Rev A's charger (IO47 reads low there,
+   which would make OFF a soft off), so they read as on the cell, not charging. */
+static int pin_chg_n(void)
+{
+#if defined(REVA_HEADLESS) && defined(AB_OFFCLK)
+    return 1;
+#else
+    return gpio_get_level(PIN_CHG_N);
+#endif
+}
+
+static int pin_pgood_n(void)
+{
+#if defined(REVA_HEADLESS) && defined(AB_OFFCLK)
+    return 1;
+#else
+    return gpio_get_level(PIN_PGOOD_N);
+#endif
+}
 
 static uint32_t now_ms(void)
 {
@@ -438,7 +500,7 @@ static void render(int busy)
     app_ui(&app, &ui);
     if (busy) ui.busy = busy;
     if (memory_clear_msg) ui.prompt = "MEMORY CLEAR";
-    pwr_inputs in = {gpio_get_level(PIN_CHG_N), gpio_get_level(PIN_PGOOD_N), soc, false};
+    pwr_inputs in = {pin_chg_n(), pin_pgood_n(), soc, false};
     ui.battery = soc;
     ui.charging = pwr_charging(&in);
     if (!app_draw(&app, &next)) screen_render(calc, &ui, &next);   /* an app's frame (unit 037) */
@@ -451,17 +513,82 @@ static void on_busy(void *ctx, int op)
     render(op);
 }
 
+#ifdef AB_OFFCLK
+/* At the sleep entry: a timer boot's record into the ring, its line when OFFCLK PRINT is on, and the RTC ticks the
+   next boot's RC figure starts from. */
+static void offclk_sleep(uint64_t us)
+{
+    uint64_t t = rtc_time_get();
+    if (offclk_timer_boot) {
+        OFFCLK_STAMP(print_us);
+        if (offclk_ticks_at) {      /* (the RC's interval holds the last wake's print, when OFFCLK PRINT is on) */
+            int64_t between = (int64_t)rtc_time_slowclk_to_us(t - offclk_ticks_at, offclk_now.cal);
+            offclk_now.rc_awake_us = (int32_t)(between - ((int64_t)offclk_slept_us - OFFCLK_OVERHEAD_US));
+        } else {
+            offclk_now.rc_awake_us = -1;
+        }
+        if (offclk_print) {
+            struct timeval tv;
+            gettimeofday(&tv, NULL);
+            printf("offclk: n=%lu wall=%lld.%06ld boot=%lu main=%lu load=%lu render=%lu awake=%lu rc=%ld cal=%lu\n",
+                   (unsigned long)offclk_n, (long long)tv.tv_sec, (long)tv.tv_usec, (unsigned long)offclk_now.boot_us,
+                   (unsigned long)offclk_now.main_us, (unsigned long)offclk_now.load_us,
+                   (unsigned long)(offclk_now.render1_us - offclk_now.render0_us),
+                   (unsigned long)(offclk_now.boot_us + offclk_now.print_us - offclk_now.main_us),
+                   (long)offclk_now.rc_awake_us, (unsigned long)offclk_now.cal);
+            fflush(stdout);
+        }
+        OFFCLK_STAMP(sleep_us);
+        offclk_ring[offclk_n % OFFCLK_RING] = offclk_now;
+        offclk_n++;
+    }
+    offclk_ticks_at = rtc_time_get();
+    offclk_slept_us = us;
+}
+
+static int offclk_cmp(const void *a, const void *b)
+{
+    int32_t x = *(const int32_t *)a, y = *(const int32_t *)b;
+    return x < y ? -1 : x > y;
+}
+
+/* OFFCLK's report: min, median and max of each figure over the ring's wakes, in us */
+static void offclk_report(void)
+{
+    int n = offclk_n < OFFCLK_RING ? (int)offclk_n : OFFCLK_RING;
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    printf("offclk: period=%lus wakes=%lu kept=%d print=%d wall=%lld.%06ld\n", (unsigned long)offclk_s,
+           (unsigned long)offclk_n, n, offclk_print, (long long)tv.tv_sec, (long)tv.tv_usec);
+    static const char *names[] = {"boot", "main", "load", "render", "print", "awake", "rc-awake", "cal"};
+    for (int f = 0; f < 8 && n > 0; f++) {
+        int32_t v[OFFCLK_RING];
+        for (int i = 0; i < n; i++) {
+            const offclk_wake *w = &offclk_ring[i];
+            v[i] = f == 0 ? (int32_t)w->boot_us : f == 1 ? (int32_t)w->main_us : f == 2 ? (int32_t)(w->load_us - w->main_us)
+                 : f == 3 ? (int32_t)(w->render1_us - w->render0_us) : f == 4 ? (int32_t)(w->sleep_us - w->print_us)
+                 : f == 5 ? (int32_t)(w->boot_us + w->sleep_us - w->main_us) : f == 6 ? w->rc_awake_us
+                 : (int32_t)w->cal;
+        }
+        qsort(v, (size_t)n, sizeof v[0], offclk_cmp);
+        printf("offclk: %s min=%ld med=%ld max=%ld\n", names[f], (long)v[0], (long)v[n / 2], (long)v[n - 1]);
+    }
+}
+#endif
+
 /* off: the image stays (BOOST_EN, DISP held; the ULP inverts COM), ON wakes, the timer refreshes */
 static void sleep_now(void)
 {
-#ifdef REVA_HEADLESS
+#if defined(REVA_HEADLESS) && !defined(AB_OFFCLK)
     printf("reva: off (head-less: no deep sleep)\n");
     return;
 #endif
+#ifndef REVA_HEADLESS                           /* (AB_OFFCLK head-less sleeps, driving none of Rev A's pins) */
     gpio_hold_en(PIN_BOOST_EN);
     gpio_hold_en(PIN_DISP);
     for (int c = 0; c < KB_COLS; c++) gpio_set_direction(COLS[c], GPIO_MODE_INPUT);
     gpio_deep_sleep_hold_en();
+#endif
     /* the ULP's domain kept on explicitly (review R1, ddc9b6c; on the S3 the slow-memory domain is not
        configurable in IDF 5.4.2, RTC_PERIPH is: "RTC IO, sensors and ULP co-processor"). Measured on
        the 4.3"'s S3 (device/ulp_probe): the ULP gives +20 edges in 10 s of deep sleep with or
@@ -477,7 +604,13 @@ static void sleep_now(void)
     while ((st = pwr_release_step(&rs, gpio_get_level(PIN_ON), now_ms())) == PWR_RELEASE_WAIT)
         vTaskDelay(pdMS_TO_TICKS(5));
     if (st == PWR_RELEASE_OK) esp_sleep_enable_ext1_wakeup(pin_wake_mask(), ESP_EXT1_WAKEUP_ANY_LOW);
+#ifdef AB_OFFCLK
+    uint64_t us = st != PWR_RELEASE_OK ? STUCK_RECHECK_US : offclk_s ? offclk_s * 1000000ull : REFRESH_US;
+    esp_sleep_enable_timer_wakeup(us);
+    offclk_sleep(us);
+#else
     esp_sleep_enable_timer_wakeup(st == PWR_RELEASE_OK ? REFRESH_US : STUCK_RECHECK_US);
+#endif
     esp_deep_sleep_start();
 }
 
@@ -542,6 +675,19 @@ static void console_task(void *arg)
             int k = line[0] == 'E' ? KEY_EQNBENCH : line[0] == 'O' ? KEY_OPBENCH : KEY_PROGBENCH;
             xQueueSend(keys_q, &k, 0);
 #endif
+#ifdef AB_OFFCLK
+        } else if (!strncmp(line, "OFFCLK", 6)) {
+            if (!strcmp(line, "OFFCLK PRINT")) offclk_print = !offclk_print;
+            else if (!strcmp(line, "OFFCLK RESET")) offclk_n = 0, offclk_ticks_at = 0;
+            else if (line[6] == ' ') offclk_s = (uint32_t)strtoul(line + 7, NULL, 10);
+            offclk_report();
+        } else if (!strncmp(line, "GLOG ", 5)) {        /* GLOG ms s */
+            char *e;
+            glog_ms = (uint32_t)strtoul(line + 5, &e, 10);
+            glog_s = (uint32_t)strtoul(e, NULL, 10);
+            int k = KEY_GLOG;
+            xQueueSend(keys_q, &k, 0);
+#endif
         } else if (!strcmp(line, "BEEP")) {
             piezo_tone(PIEZO_HZ, 100);          /* bring-up: does the piezo sound */
         } else if (!strncmp(line, "VOL", 3)) {
@@ -580,13 +726,16 @@ static void calc_task(void *arg)
 #ifdef AB_MASK
     printf("BENCH: AB_MASK image, MASK ON masks interrupts under keys and runs; never a product image\n");
 #endif
+#ifdef AB_OFFCLK
+    printf("BENCH: AB_OFFCLK image, the off clock's timing (OFFCLK, GLOG); never a product image\n");
+#endif
     dev_boot_print();                           /* the reason, once the console is up (068) */
     printf("REVA READY\n");
     for (;;) {
         int k;
         /* unit 023: block until a key, the app's next deadline or the gauge's next sample */
         uint32_t now = now_ms();
-        pwr_inputs in0 = {gpio_get_level(PIN_CHG_N), gpio_get_level(PIN_PGOOD_N), soc, false};
+        pwr_inputs in0 = {pin_chg_n(), pin_pgood_n(), soc, false};
         usb_lock_follow(!in0.pgood_n);
         uint32_t ms = app_next_wake(&app, &in0, now);
         if (gdev) {
@@ -633,6 +782,19 @@ static void calc_task(void *arg)
             MASKED(sample_ctrl(k == KEY_SAMPLE_FULL));
             printf("sample: %s done\n", k == KEY_SAMPLE_FULL ? "full" : "room");
 #endif
+#ifdef AB_OFFCLK
+        } else if (got && k == KEY_GLOG) {          /* (the calc task owns the gauge's bus) */
+            uint32_t t0 = now_ms(), ms = glog_ms ? glog_ms : 100;
+            TickType_t last = xTaskGetTickCount();
+            while (now_ms() - t0 < glog_s * 1000u) {
+                gauge_reading g = {0};
+                bool ok = gdev && gauge_sample(&gbus, &g);
+                printf("glog: t=%lu chg_n=%d pgood_n=%d vcell=%lu soc=%d crate=%ld ok=%d\n", (unsigned long)(now_ms() - t0),
+                       pin_chg_n(), pin_pgood_n(), (unsigned long)g.microvolts, g.percent, (long)g.crate, ok);
+                vTaskDelayUntil(&last, pdMS_TO_TICKS(ms));
+            }
+            printf("glog: done\n");
+#endif
         } else if (got && k == KEY_RESTART) {
             fflush(stdout);
             esp_restart();
@@ -647,7 +809,7 @@ static void calc_task(void *arg)
         } else if (got) {                       /* -1: X, the stand-in's format, then Rev A's own facts */
             dev_dump(calc, &app);
             printf("reva: soc=%d vbat=%lu uV ulp-edges=%lu chg_n=%d pgood_n=%d\n", soc, (unsigned long)vbat_uv,
-                   (unsigned long)ulp_edges, gpio_get_level(PIN_CHG_N), gpio_get_level(PIN_PGOOD_N));   /* (061) */
+                   (unsigned long)ulp_edges, pin_chg_n(), pin_pgood_n());   /* (061) */
             printf("reva: set radix=%c off=%u vol=%u h24=%d\n", app.set.radix, (unsigned)app.set.off_min,
                    (unsigned)app.set.vol, app.set.h24);   /* unit 061: a setting kept across a reset (bring-up) */
         }
@@ -659,7 +821,7 @@ static void calc_task(void *arg)
             }
             last_gauge = now;
         }
-        pwr_inputs in = {gpio_get_level(PIN_CHG_N), gpio_get_level(PIN_PGOOD_N), soc, false};
+        pwr_inputs in = {pin_chg_n(), pin_pgood_n(), soc, false};
         app_action act;
         MASKED(act = app_tick(&app, &in, now));
         rtc_batt_low = app.batt_low;
@@ -718,8 +880,8 @@ static void sysinfo_cb(void *ctx, app_sysinfo *o)
 {
     (void)ctx;
     o->soc = soc;
-    o->chg_n = gpio_get_level(PIN_CHG_N);
-    o->pgood_n = gpio_get_level(PIN_PGOOD_N);
+    o->chg_n = pin_chg_n();
+    o->pgood_n = pin_pgood_n();
     o->vbat_uv = vbat_uv;
     dev_sysinfo_common(o, flash.ctx && last_image <= flash.slot_size ? flash.slot_size - last_image : 0,
                        flash.ctx ? flash.slot_size : 0);
@@ -727,6 +889,10 @@ static void sysinfo_cb(void *ctx, app_sysinfo *o)
 
 void app_main(void)
 {
+    OFFCLK_STAMP(main_us);
+#ifdef AB_OFFCLK
+    offclk_ticks_main = rtc_time_get();
+#endif
     dev_boot_count_up();                        /* 068: the boot line's count, first */
     /* the calc task's stack first, in one internal block (the stand-in failed to find 32 KB once
        its other buffers were in; see standin_main.c) */
@@ -797,6 +963,7 @@ void app_main(void)
     }
     ab_init(calc);
     load();
+    OFFCLK_STAMP(load_us);
     app_init(&app, calc, now_ms());
     app.busy = on_busy;
     app.key_ups = true;                         /* the matrix sends releases (unit 030) */
@@ -832,7 +999,17 @@ void app_main(void)
     app.rng = rng_cb;                           /* apps.h v1.2: app_seed */
     app.batt_low = rtc_batt_low;                /* the latch, kept through OFF (abacus #4238) */
     if (why == ESP_SLEEP_WAKEUP_TIMER) {            /* the refresh: rewrite the image, sleep again */
+#ifdef AB_OFFCLK
+        offclk_timer_boot = true;
+        offclk_now.cal = esp_clk_slowclk_cal_get();
+        uint64_t target = REG_READ(RTC_CNTL_SLP_TIMER0_REG) |
+                          (uint64_t)(REG_READ(RTC_CNTL_SLP_TIMER1_REG) & RTC_CNTL_SLP_VAL_HI_V) << 32;
+        offclk_now.boot_us = offclk_ticks_main > target
+                                 ? (uint32_t)rtc_time_slowclk_to_us(offclk_ticks_main - target, offclk_now.cal) : 0;
+#endif
+        OFFCLK_STAMP(render0_us);
         render(0);
+        OFFCLK_STAMP(render1_us);
         sleep_now();
     }
     piezo_init();                               /* after boot: IO46 has been read */
@@ -853,7 +1030,7 @@ void app_main(void)
             esp_pm_lock_create(ESP_PM_NO_LIGHT_SLEEP, 0, "usb", &usb_lock);
             esp_pm_lock_create(ESP_PM_NO_LIGHT_SLEEP, 0, "tone", &tone_lock);
             esp_pm_lock_create(ESP_PM_NO_LIGHT_SLEEP, 0, "app", &app_lock);
-            usb_lock_follow(gpio_get_level(PIN_PGOOD_N) == 0);
+            usb_lock_follow(pin_pgood_n() == 0);
         } else {
             printf("reva: no power management (light sleep off)\n");
         }
