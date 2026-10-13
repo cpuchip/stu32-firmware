@@ -88,6 +88,7 @@ sys.stdout.reconfigure(errors="replace")    # (a Windows console's code page may
 s = open_port()
 out = open(log, "w", encoding="utf-8")
 lines, lock = [], threading.Lock()
+last_send = [0]                                # index in lines of the first line after the last send
 stop = False
 
 
@@ -190,6 +191,8 @@ def last_value(key, before):
 
 
 def send(text):
+    with lock:
+        last_send[0] = len(lines)
     try:
         s.write(text.encode() + b"\n")
     except (serial.SerialException, OSError) as e:
@@ -241,8 +244,12 @@ if script:
         elif word == "expect-grows":
             p = rest.split()
             key, limit = p[0], float(p[1]) if len(p) > 1 else 10.0
-            was = last_value(key, pos[0])
-            got = wait_value(key, limit, pos)
+            # the reply to the last send against the newest value before it (068 (5b), board 0001: a reset's extra X
+            # reply left unread made "was" and "got" two replies from before the sleep, 3 and 3, while the count grew)
+            at = [last_send[0]]
+            was = last_value(key, at[0])
+            got = wait_value(key, limit, at)
+            pos[0] = max(pos[0], at[0])
             ok = was is not None and got is not None and got > was
             note(f"talk.py: {'PASS' if ok else 'FAIL'} line {n}: expect-grows {key} (was {was}, got {got})")
             failures += not ok
@@ -253,7 +260,9 @@ if script:
             p = rest.split()
             key, step, limit = p[0], int(p[1]), float(p[2]) if len(p) > 2 else 10.0
             was = remembered.get(key)
-            got = wait_value(key, limit, pos)
+            at = [last_send[0]]                 # the reply to the last send, as expect-grows (an unread reply is older)
+            got = wait_value(key, limit, at)
+            pos[0] = max(pos[0], at[0])
             ok = was is not None and got is not None and got == was + step
             note(f"talk.py: {'PASS' if ok else 'FAIL'} line {n}: expect-step {key} {step} (was {was}, got {got})")
             failures += not ok
