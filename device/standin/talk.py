@@ -55,12 +55,32 @@ port, log = sys.argv[1], sys.argv[2]
 script = sys.argv[3] if len(sys.argv) > 3 else None
 
 
+def usb_jtag(dev):
+    """the S3's USB-Serial-JTAG (Espressif's VID 0x303A), not a USB-UART bridge"""
+    try:
+        from serial.tools import list_ports
+        return any(q.device == dev and q.vid == 0x303A for q in list_ports.comports())
+    except Exception:
+        return False
+
+
 def open_port():
     p = serial.Serial()
     p.port, p.baudrate, p.timeout = os.path.realpath(port) if os.name == "posix" else port, 115200, 0.2
     p.write_timeout = 2         # a console that stops reading fills the S3's USB FIFO: a failed send, not a hang (061)
-    p.dtr = p.rts = False
-    p.open()
+    if sys.platform.startswith("linux") and usb_jtag(p.port):
+        # Linux's cdc-acm raises DTR and RTS together at every open, whatever pyserial asks first. Releasing DTR before
+        # RTS then resets an S3's USB-Serial-JTAG into download mode (board 0001 on lepton, 068: boot:0x23 at each
+        # open); releasing RTS first does not reset it (esp-idf-monitor's open_serial, Apache-2.0, does the same). Only
+        # the S3's own port: on the stand-in's CH340 this order pulses IO0 (a C press, seen waking a deep sleep), and
+        # its scripts count on the old order's reset at open ("wait REVA READY").
+        p.dtr = p.rts = True
+        p.open()
+        p.rts = False
+        p.dtr = False
+    else:
+        p.dtr = p.rts = False
+        p.open()
     return p
 
 
