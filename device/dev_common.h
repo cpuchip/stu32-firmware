@@ -14,6 +14,7 @@
 #include "esp_attr.h"
 #include "esp_flash.h"
 #include "esp_heap_caps.h"
+#include "esp_random.h"
 #include "esp_sleep.h"
 #include "soc/rtc_io_reg.h"
 #include "soc/soc.h"
@@ -29,6 +30,9 @@
    lines still sees that, and why, the chip restarted (talk.py's reset and expect-boot read it). */
 #define DEV_BOOT_MAGIC 0xB0075EEDu
 RTC_NOINIT_ATTR static uint32_t dev_boot_magic, dev_boot_count;
+static uint32_t dev_boot_id;                    /* random at each boot (abacus #7605 (2): a POWERON starts boots= at 1
+                                                   again and a lost X reply can take new=1, so talk.py's reset compares
+                                                   the id instead) */
 static bool dev_boot_shown;                     /* an X has shown this boot */
 static const char *dev_reset_name(esp_reset_reason_t r)
 {
@@ -58,6 +62,7 @@ static void dev_boot_count_up(void)            /* first thing in app_main */
         dev_boot_count = 0;
     }
     dev_boot_count++;
+    dev_boot_id = esp_random();
 }
 /* the flash, for X, so bring-up checks it after a reset whose boot lines it missed (068): io= the read mode the flash
    driver runs (esp_flash_default_chip->read_mode, what the boot log prints as "flash io"), chip= the size the chip
@@ -101,9 +106,9 @@ static void dev_boot_print(void)
     uint64_t pins = w == ESP_SLEEP_WAKEUP_EXT1 ? esp_sleep_get_ext1_wakeup_status()
                   : w == ESP_SLEEP_WAKEUP_GPIO ? (REG_READ(RTC_GPIO_STATUS_REG) >> RTC_GPIO_STATUS_INT_S) & RTC_GPIO_STATUS_INT
                   : 0;   /* (GPIO on the S3: the RTC IO pads' wake, RTC GPIO n = GPIO n for 0-21) */
-    printf("boot: boots=%lu reason=%s new=%d wake=%s pins=0x%llx ver=%s core=%s\n", (unsigned long)dev_boot_count,
+    printf("boot: boots=%lu reason=%s new=%d wake=%s pins=0x%llx ver=%s core=%s id=%08lx\n", (unsigned long)dev_boot_count,
            dev_reset_name(esp_reset_reason()), !dev_boot_shown, dev_wake_name(w), (unsigned long long)pins,
-           AB_FW_VERSION, AB_CORE_COMMIT);  /* (ver and core: a deep-sleep wake shows the image it ran, abacus #7600) */
+           AB_FW_VERSION, AB_CORE_COMMIT, (unsigned long)dev_boot_id);  /* (ver and core: a deep-sleep wake shows the image it ran, abacus #7600) */
 }
 
 /* app.set_wall: the clock set from the keys, kept in the RTC */

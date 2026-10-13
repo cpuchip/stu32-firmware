@@ -898,6 +898,13 @@ static void calc_task(void *arg)
         app_action act;
         MASKED(act = app_tick(&app, &in, now));
         rtc_batt_low = app.batt_low;
+        {   /* the soft off's start and end, for bring-up to wait on (abacus #7605 (4): a save at OFF is not always due) */
+            static bool was_soft;
+            if (app.soft_off != was_soft) {
+                printf(app.soft_off ? "off: soft\n" : "off: on\n");
+                was_soft = app.soft_off;
+            }
+        }
         if (app.tone >= 0) {                    /* VOL's new level, or a use's sound (units 022, 027) */
             uint32_t hz, ms;
             dev_tone_of(app.tone_use, PIEZO_HZ, &hz, &ms);

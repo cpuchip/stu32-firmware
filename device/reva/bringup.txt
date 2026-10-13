@@ -70,6 +70,7 @@ confirm With a USB meter: the board draws at most about 0.5 A while charging (EN
 
 # ---- the LS027 and EXTCOMIN: the image, the ULP's inversion awake
 send X
+expect ulp-edges=
 sleep 5
 send X
 expect-grows ulp-edges
@@ -181,7 +182,16 @@ expect key: 15 r2 c3 SIN down 30
 expect-none key: 22 r3 c4 8
 confirm Did the echo above list exactly SIN, COS and E going down and up (nothing else, no ←)?
 send K42
-# C and R/S stop a running program (accept.txt's program: LBL A, 1, +, GTO A)
+# C and R/S stop a running program (accept.txt's program: LBL A, 1, +, GTO A). MODE 35s and RPN first (BLUE
+# ENTER, soft keys 2 and 4): in 35s and STU modes GTO and XEQ take a letter and then ENTER (unit 036b), and in
+# 33s mode an ENTER after them would be a program line; 0005 ran in 35s, and its GTO A took GOLD 9 as a digit
+# (abacus #7605 (3), replayed on the host from each mode)
+send K36
+send K18
+send K1
+send K36
+send K18
+send K3
 send K30
 send K27
 send K0
@@ -193,6 +203,7 @@ send K46
 send K30
 send K31
 send K6
+send K18
 send K30
 send K27
 send K0
@@ -201,11 +212,13 @@ expect prgm=0
 send K43
 send K24
 send K6
+send K18
 expect run: started
 say A program is running. Press R/S on the keyboard to stop it.
 expect run: stopped 60
 send K24
 send K6
+send K18
 expect run: started
 say Running again. Press C on the keyboard to stop it.
 expect run: stopped 60
@@ -233,13 +246,12 @@ send VOL4
 
 # ---- OFF on USB is a soft off (068): the screen blank, the port stays, keys dropped, C alone turns it on
 say Press GOLD then C (OFF), holding C for a second. On USB the screen goes blank and the port stays.
-expect save: 60
-sleep 3
+expect off: soft 60
 send X
 expect off=1
 confirm Is the screen blank?
 say Press 5 (nothing should happen), then press C to turn it on.
-sleep 10
+expect off: on 60
 send X
 expect off=0
 confirm Is the screen back as it was, and did C chirp?

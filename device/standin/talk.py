@@ -156,6 +156,28 @@ def wait_value(key, limit, seen_from):
     return None
 
 
+def wait_boot(limit, seen_from):
+    """the next boot line ("boot: boots=N reason=R new=B ... id=H"), its fields as a dict, or None. One read of the
+    whole line: boots=, new= and id= share it, and reading them one wait_value at a time skipped past it (068)"""
+    end = time.time() + limit
+    while time.time() < end:
+        with lock:
+            for i in range(seen_from[0], len(lines)):
+                if "boot: boots=" in lines[i]:
+                    seen_from[0] = i + 1
+                    return dict(re.findall(r"(\w+)=(\S+)", lines[i]))
+        time.sleep(0.05)
+    return None
+
+
+def set_lines(dtr, rts):
+    """RTS then DTR, DTR always written: Windows' usbser.sys passes line changes on only when DTR is set, so an RTS
+    change alone never reached the S3 (abacus #7605 (1): talk.py's reset did not reboot board 0005 on Windows);
+    esp-idf-monitor writes them the same way"""
+    s.rts = rts
+    s.dtr = dtr
+
+
 def last_value(key, before):
     """the integer in the last KEY=<integer> printed before line index BEFORE, or None"""
     pat = re.compile(re.escape(key) + r"=(-?\d+)")
@@ -252,19 +274,25 @@ if script:
             # 068 (abacus #7578): a reset passes when the firmware shows a new boot. X marks the boot it reports as seen,
             # so after the X here a later X (or the boot's own line) printing new=1 can only be a new boot, even when the
             # port reopened after the boot lines (Windows) and even after a chip reset (EN), which starts boots= again
+            # Since 068 (5b) the boot line also carries id=, random at each boot, and a changed id is the new boot: a
+            # POWERON starts boots= again, and an X reply lost while the port reopens can take new=1 (abacus #7605 (2))
             send("X")
-            was = wait_value("boots", 5, pos)
-            wait_value("new", 2, pos)
-            s.dtr = False
-            s.rts = True
+            before = wait_boot(5, pos) or {}
+            set_lines(dtr=False, rts=True)
             time.sleep(0.15)
-            s.rts = False
-            fresh, got, end = False, None, time.time() + float(rest or 20)
+            set_lines(dtr=False, rts=False)
+            fresh, after, end = False, {}, time.time() + float(rest or 20)
             while time.time() < end and not fresh:
                 time.sleep(2)
                 send("X")
-                got = wait_value("boots", 3, pos)
-                fresh = wait_value("new", 1, pos) == 1 or (got is not None and was is not None and got > was)
+                after = wait_boot(3, pos) or {}
+                if "id" in before and "id" in after:
+                    fresh = after["id"] != before["id"]
+                else:
+                    fresh = after.get("new") == "1" or (after.get("boots", "").isdigit() and
+                                                        before.get("boots", "").isdigit() and
+                                                        int(after["boots"]) > int(before["boots"]))
+            was, got = before.get("boots"), after.get("boots")
             note(f"talk.py: {'PASS' if fresh else 'FAIL'} line {n}: reset (boots {was} -> {got}, new boot {'seen' if fresh else 'not seen'})")
             failures += not fresh
         elif word == "expect-boot":           # the boot's reason by name (068): POWERON, SW, DEEPSLEEP, BROWNOUT, ...
@@ -275,10 +303,9 @@ if script:
             note(f"talk.py: {'PASS' if ok else 'FAIL'} line {n}: expect-boot {reason}")
             failures += not ok
         elif word == "press0":               # IO0 low (DTR asserted, RTS not), then released
-            s.rts = False
-            s.dtr = True
+            set_lines(dtr=True, rts=False)
             time.sleep(float(rest) / 1000)
-            s.dtr = False
+            set_lines(dtr=False, rts=False)
         elif word == "sleep":
             time.sleep(float(rest))
         else:
