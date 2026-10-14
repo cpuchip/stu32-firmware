@@ -1,0 +1,30 @@
+# unit 069 on the stand-in: SYS VER opened from the keys shows every pin, and X's dump carries the view's lines and
+# the full pins. Ends with a control that must FAIL (VER 0.68), so a script that passes everything is suspect.
+# CORE 9c8cbc4 and BUILT Oct 14 2026 are the gate's build: a later build changes them in the view line below.
+send RESTART
+wait STANDIN READY 30
+send K42
+send K42
+send X
+expect-none view: 3
+send K36
+send K42
+send K1
+sleep 1
+send X
+# X prints pins: before view:, and a match moves talk.py past its line, so pins comes first and view is one expect
+# (the first run split them and failed on the script, not the device: the lines it wanted were on the board)
+expect pins: casim=4b9173969f66e8f1168ddb465be38ab0980bb740 games=60e775c babal= 5
+expect view: VER 0.69 | CORE 9c8cbc4 | BUILT Oct 14 2026 | CASIM 4b91739 GAMES 60e775c 5
+send K42
+sleep 1
+send X
+expect-none view: 3
+send K36
+send K42
+send K1
+sleep 1
+send X
+# CONTROL: must FAIL
+expect view: VER 0.68 3
+send K42

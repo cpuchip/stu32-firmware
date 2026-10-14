@@ -2,7 +2,7 @@
 
 **From:** Michael's card, routed by abacus (#8126): his phone showed "VER ? / CORE ? / BUILT ?", and he couldn't tell
 that the app predated the CAS. The shape was proposed in soroban #8129 and accepted in abacus #8130. **Gate:** soroban.
-**Status:** built and checked on the host. The device check is listed below.
+**Status:** built and checked on the host and on the stand-in (below).
 
 ## What it is
 
@@ -72,8 +72,35 @@ who can't look a commit up. It also catches a build from another list (GAMES_LIS
   - The fourth line planted 8 characters longer: the screen check fails, and the frame shows the line cut with an
     ellipsis.
   - Each was restored and is green again.
-- **The device:** the stand-in runs the build, opens SYS VER from the keys, and the X dump's `view:` and `pins:` lines
-  carry the device's own lines (the log is named in the reply).
+- **The device:** the stand-in runs 9c8cbc4 (boot `ver=0.69 core=9c8cbc4`). device/standin/ver069.txt opens SYS VER
+  from the keys (BLUE, C, then VER's soft key) and X's dump reads:
+
+      pins: casim=4b9173969f66e8f1168ddb465be38ab0980bb740 games=60e775c babal=599c510... aim=5fe8cea... land=e20cd98... snake=a01609b... mines=7344045...
+      view: VER 0.69 | CORE 9c8cbc4 | BUILT Oct 14 2026 | CASIM 4b91739 GAMES 60e775c
+
+  - Before the keys and after the key that leaves, X shows no `view:`.
+  - The control, which expects `VER 0.68`, fails.
+  - The first run failed two expects on the script: talk.py moves past a matched line, and the script split the view
+    line and wanted `pins:` after it. The board printed the right lines in that run too.
+  - The console has no frame dump, so the scale-2 render on the panel is checked on the host (screen_test and the frame).
+    The device shows that the renderer gets these four lines.
+
+## Decision 68 (385ca62 -> 9c8cbc4, scripts/resources.py)
+
+| | stand-in | Rev A head-less |
+|---|---|---|
+| flash | +560 | +576 |
+| DIRAM, IRAM code, internal-RAM symbols | +0 | +0 |
+| calc_task's frame | +0 (144) | +0 (128) |
+| heap free after boot / largest block | +0 (62,819 / 31,744) | +0 (185,487 / 90,112) |
+| stack, worst unmasked reading | +0 (8,188) | +0 (8,196); the figure +0 (7,812) |
+| SOLVE, µs | 29,862 -> 30,530 (+668) | 17,134 -> 16,755 (-379) |
+| integral, µs | 49,142 -> 51,653 (+2,511) | 30,023 -> 28,602 (-1,421) |
+| PROGBENCH SIN / LN, ms | -1 / +2 | -4 / -7 |
+
+- About 200 B of the flash is the changed code (libmain +202 / +207).
+- libesp_app_format moved +364. That library's size changes on every build: +216 / +212 at 385ca62, +128 at 71962cb.
+- Speed moves both ways between the targets, as it did at 385ca62. No calc path changed, so I read it as layout.
 
 ## For the consumers
 
