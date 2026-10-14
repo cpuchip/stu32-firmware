@@ -31,9 +31,13 @@ $(INTEL_LIB):
 	CC="$(CC)" scripts/fetch-intel-dfp.sh
 
 # The library's headers are its own; -isystem keeps our warning flags off them.
-build/casim/.pin build/casim/casim.c build/casim/casim.h build/casim/casim_pin.h: CASIM_PIN
+# build/casim/.pin is the export's one target: fetch-casim.sh writes it last, so it stands for casim.c, casim.h and
+# casim_pin.h. With all four as targets, make -j ran the script once per target at once, and the runs raced on rm -rf
+# (abacus #8172; 4 of 5 fresh make -j4 build/casim.o failed at c3981fd). A missing export file forces a run.
+CASIM_FILES := build/casim/casim.c build/casim/casim.h build/casim/casim_pin.h
+build/casim/.pin: CASIM_PIN $(if $(filter 3,$(words $(wildcard $(CASIM_FILES)))),,FORCE)
 	scripts/fetch-casim.sh
-$(CASIM_O): build/casim/.pin build/casim/casim.c build/casim/casim.h build/casim/casim_pin.h core/abn.h | build
+$(CASIM_O): build/casim/.pin core/abn.h | build
 	$(CC) $(CFLAGS) -Wframe-larger-than=1024 -Icore -c -o $@ build/casim/casim.c
 
 build/abn_intel.o: core/abn_intel.c core/abn.h $(INTEL_LIB) | build

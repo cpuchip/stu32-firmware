@@ -9,7 +9,8 @@ ROOT=$(cd "$(dirname "$0")/.." && pwd)
 PIN=$(cat "$ROOT/CASIM_PIN")
 REPO=${CASIM_REPO:-$ROOT/../casim}
 OUT=$ROOT/build/casim
-if [ -f "$OUT/.pin" ] && [ "$(cat "$OUT/.pin")" = "$PIN" ] && [ -f "$OUT/casim_pin.h" ]; then
+if [ -f "$OUT/.pin" ] && [ "$(cat "$OUT/.pin")" = "$PIN" ] && [ -f "$OUT/casim.c" ] && [ -f "$OUT/casim.h" ] &&
+    [ -f "$OUT/casim_pin.h" ]; then
     exit 0
 fi
 case "$PIN" in *[!0-9a-f]*|"") echo "fetch-casim: CASIM_PIN is not a commit" >&2; exit 1;; esac
