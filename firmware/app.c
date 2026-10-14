@@ -884,6 +884,7 @@ static void view_open(app_state *a, int view)
         snprintf(t[0], sizeof t[0], "VER %s", si.version ? si.version : "?");
         snprintf(t[1], sizeof t[1], "CORE %s", si.commit ? si.commit : "?");
         snprintf(t[2], sizeof t[2], "BUILT %s", si.built ? si.built : "?");
+        snprintf(t[3], sizeof t[3], "CASIM %.7s GAMES %s", si.casim ? si.casim : "?", si.games ? si.games : "?");  /* 069 */
     } else if (view == APP_VIEW_FLASH) {
         snprintf(t[0], sizeof t[0], "FLASH %lu B FREE", (unsigned long)si.flash_free);
         snprintf(t[1], sizeof t[1], "HEAP %lu B", (unsigned long)si.heap_free);

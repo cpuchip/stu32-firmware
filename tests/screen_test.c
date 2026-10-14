@@ -903,6 +903,21 @@ int main(int argc, char **argv)
     ab_do(&c, AB_XWBAR);
     ab_do(&c, AB_YHAT);
     frame("20-listing-marks", &c, &ui);
+    screen_ui_default(&ui);
+    ab_init(&c);
+    {
+        /* unit 069: SYS VER's four lines, the 4th the longest a view has drawn (27 characters): it fits whole at scale 2,
+           in X's row, from the left */
+        static const char *const VER[4] = {"VER 0.69", "CORE 385ca62", "BUILT Oct 14 2026", "CASIM 4b91739 GAMES 60e775c"};
+        for (int i = 0; i < 4; i++) ui.view[i] = VER[i];
+        ui.battery = 100;
+        ls027_frame vf;
+        screen_render(&c, &ui, &vf);
+        int bx = find_glyph(&vf, 156 - 14, 2, 'C');
+        expect(bx >= 0 && bx + 27 * 12 <= 400 && text_at(&vf, bx, 156 - 14, 2, VER[3], 1),
+               "069 SYS VER: CASIM 4b91739 GAMES 60e775c whole at scale 2 in X's row");
+    }
+    frame("21-sys-ver", &c, &ui);
     expect(screen_missed == 0, "a frame drew a character the face lacks");
 
     /* abacus #3971: the screen as text, by screen_render's rules */

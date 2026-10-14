@@ -79,6 +79,8 @@ typedef struct {
     bool chg_n, pgood_n;    /* the charger's pins (power.h) */
     uint32_t vbat_uv;       /* the cell's voltage from the gauge, 0 not known */
     const char *version, *commit, *built;   /* the firmware's version, the core's commit, the build date */
+    const char *casim, *games;  /* unit 069: casim's pin (40 hex, VER shows 7) and the games list's digest (7 hex, or
+                                   "none" for no game); NULL not known */
     uint32_t flash_free;    /* the state partition's free bytes */
     uint32_t slot_size;     /* the state image's slot: its most bytes (MEM's bytes free, unit 041 C); 0 not known */
     uint32_t heap_free, heap_largest;       /* the internal heap's free bytes and largest block */
@@ -251,5 +253,8 @@ bool app_wall(const app_state *a, uint32_t now_ms, int64_t *secs);
 void app_interrupt(app_state *a);
 /* The device woke from OFF (a power-on, not a light-sleep wake): ON's chirp (unit 027). */
 void app_powered_on(app_state *a);
+/* SYS's VER facts this build knows (unit 069): version, commit, built, casim and games, from version.h and games.h, so the
+   device's sysinfo and a host app's fill them the same way (apps.c). The rest of o is left as it is. */
+void app_sysinfo_build(app_sysinfo *o);
 
 #endif

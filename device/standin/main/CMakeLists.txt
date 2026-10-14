@@ -25,7 +25,7 @@ endif()
 include("${REPO}/build/games/games.cmake")
 # Casimir (CAS 004): build/casim from scripts/fetch-casim.sh, its file under the frame guard, the core's CAS step on
 set(CASIM "${REPO}/build/casim")
-if(NOT EXISTS "${CASIM}/.pin")
+if(NOT EXISTS "${CASIM}/.pin" OR NOT EXISTS "${CASIM}/casim_pin.h")   # casim_pin.h: SYS VER's CASIM (unit 069)
     message(FATAL_ERROR "no ${CASIM}: run scripts/fetch-casim.sh")
 endif()
 if(NOT CMAKE_SCRIPT_MODE_FILE)

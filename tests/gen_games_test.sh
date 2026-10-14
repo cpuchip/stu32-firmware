@@ -35,6 +35,18 @@ run() { # run EXPECT(0|1) WHAT [WANTED-MESSAGE]: the list in $T/fw/games.list
 }
 printf 'one one %s MIT game.txt\ntwo two %s MIT game.txt\n' "$PIN1" "$PIN2" > "$T/fw/games.list"
 run 0 "two games"
+# unit 069: GAMES_PINS_ID is the shell's digest of the list (sha256sum, not the generator's hashlib); GAMES_PINS every pin
+want=$(grep -v '^#' "$T/fw/games.list" | awk 'NF{print $1, $2, $3}' | sha256sum | cut -c1-7)
+gh=$T/fw/build/games/games.h
+grep -qx "#define GAMES_PINS_ID \"$want\"" "$gh" && grep -qx "#define GAMES_PINS \"one=$PIN1 two=$PIN2\"" "$gh" \
+    && echo "  ok: GAMES_PINS_ID $want, the list's digest by sha256sum; GAMES_PINS both pins" \
+    || { echo "FAIL: GAMES_PINS_ID/GAMES_PINS, want $want: $(grep PINS "$gh")"; ok=0; }
+printf '# no games\n' > "$T/fw/games.list"
+run 0 "no game"
+grep -qx '#define GAMES_PINS_ID "none"' "$gh" && grep -qx '#define GAMES_PINS ""' "$gh" \
+    && echo '  ok: no game: GAMES_PINS_ID "none", GAMES_PINS ""' || { echo "FAIL: no game: $(grep PINS "$gh")"; ok=0; }
+printf 'one one %s MIT game.txt\ntwo two %s MIT game.txt\n' "$PIN1" "$PIN2" > "$T/fw/games.list"
+run 0 "two games again"
 mk=$T/fw/build/games/games.mk
 grep -q "GAME_one_C := build/games/one/src/a.c build/games/one/src/b.c$" "$mk" && ! grep -q deeper "$mk" \
     && echo "  ok: src/*.c takes src/a.c and src/b.c, not src/deeper/z.c" || { echo "FAIL: sources: $(grep GAME_one_C "$mk")"; ok=0; }

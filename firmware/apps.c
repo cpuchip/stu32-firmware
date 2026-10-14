@@ -3,10 +3,12 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "app.h"
 #include "apps.h"
-#include "games.h" /* generated from games.list by scripts/gen_games.py: GAMES_DECLARE, GAMES_ENTRIES */
+#include "games.h" /* generated from games.list by scripts/gen_games.py: GAMES_DECLARE, GAMES_ENTRIES, GAMES_PINS_ID */
 #include "keymap.h"
 #include "screen.h"
+#include "version.h"
 
 typedef struct {
     int key, presses;
@@ -79,3 +81,20 @@ static const app_def keys_app = {"KEYS", sizeof(keys_ctx), keys_load, keys_start
 GAMES_DECLARE
 const app_def *const app_registry[] = {&keys_app GAMES_ENTRIES};
 const int app_registry_n = sizeof app_registry / sizeof app_registry[0];
+
+void app_sysinfo_build(app_sysinfo *o)
+{
+    o->version = AB_FW_VERSION;
+    o->commit = AB_CORE_COMMIT;
+    o->built = AB_BUILT;
+#ifdef AB_CASIM_PIN
+    o->casim = AB_CASIM_PIN;
+#else
+    o->casim = NULL;
+#endif
+#ifdef GAMES_PINS_ID
+    o->games = GAMES_PINS_ID;
+#else
+    o->games = NULL;                            /* a games.h from before unit 069 */
+#endif
+}

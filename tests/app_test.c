@@ -12,6 +12,7 @@
 #include "const.h"
 #include "state.h"
 #include "eqn.h"
+#include "version.h"
 #include "fn.h"
 
 static int bad, checks;
@@ -178,6 +179,24 @@ static void fake_set_wall(void *ctx, int64_t secs)
 {
     (void)ctx;
     rtc_set = secs;
+}
+
+/* VER's expected CASIM and GAMES come from the Makefile (unit 069); a compile without them (clang-check) gets values no
+   build shows, so an app_test built that way fails rather than passes */
+#ifndef VER_CASIM
+#define VER_CASIM "(no VER_CASIM)"
+#endif
+#ifndef VER_GAMES
+#define VER_GAMES "(no VER_GAMES)"
+#endif
+
+/* SYS's facts as the device fills its VER (unit 069): app_sysinfo_build, nothing else */
+static void build_sysinfo(void *ctx, app_sysinfo *o)
+{
+    (void)ctx;
+    memset(o, 0, sizeof *o);
+    o->soc = -1;
+    app_sysinfo_build(o);
 }
 
 static void fake_sysinfo(void *ctx, app_sysinfo *o)
@@ -3283,6 +3302,23 @@ int main(void)
                 com = com || strstr(ui.view[i], "abc1234");
             }
         expect(a.view == APP_VIEW_VER && ver && com, "027 SYS VER: version and commit");
+        expect(ui.view[3] && !strcmp(ui.view[3], "CASIM ? GAMES ?"), "069 SYS VER: CASIM ? GAMES ? when sysinfo knows neither");
+        /* unit 069: VER from app_sysinfo_build, line for line; CASIM and GAMES against the Makefile's VER_CASIM and VER_GAMES
+           (CASIM_PIN cut to 7; the shell's sha256sum over the build's list, "none" for no game), not the generator's */
+        press(&a, "C");
+        a.sysinfo = build_sysinfo;
+        press(&a, "BLUE C k:1");
+        app_ui(&a, &ui);
+        static const char *const VER_LINES[4] = {"VER " AB_FW_VERSION, "CORE " AB_CORE_COMMIT, "BUILT " AB_BUILT,
+                                                 "CASIM " VER_CASIM " GAMES " VER_GAMES};
+        bool lines = a.view == APP_VIEW_VER;
+        for (int i = 0; i < 4; i++)
+            if (!ui.view[i] || strcmp(ui.view[i], VER_LINES[i])) {
+                lines = false;
+                printf("  069 VER line %d: \"%s\", want \"%s\"\n", i, ui.view[i] ? ui.view[i] : "(none)", VER_LINES[i]);
+            }
+        expect(lines, "069 SYS VER: VER, CORE, BUILT, then CASIM " VER_CASIM " GAMES " VER_GAMES);
+        a.sysinfo = fake_sysinfo;
         press(&a, "C BLUE C k:2");
         app_ui(&a, &ui);
         bool fl = false, heap = false;

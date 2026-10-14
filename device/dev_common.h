@@ -21,6 +21,7 @@
 #include "esp_system.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "games.h"                              /* GAMES_PINS (unit 069) */
 #include "screen.h"
 #include "version.h"
 
@@ -143,9 +144,7 @@ static bool dev_parse_time(const app_state *a, uint32_t now, const char *s, int6
 static void dev_sysinfo_common(app_sysinfo *o, uint32_t flash_free, uint32_t slot_size)
 {
     o->slot_size = slot_size;                   /* MEM's bytes free: this less the image now (unit 041 C) */
-    o->version = AB_FW_VERSION;
-    o->commit = AB_CORE_COMMIT;
-    o->built = AB_BUILT;
+    app_sysinfo_build(o);                       /* version, commit, built, casim, games (unit 069) */
     o->flash_free = flash_free;
     o->heap_free = (uint32_t)heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
     o->heap_largest = (uint32_t)heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL);
@@ -179,10 +178,17 @@ static __attribute__((noinline, unused)) void dev_dump(const ab_calc *calc, app_
     dev_boot_print();
     dev_boot_shown = true;
     dev_flash_print();
+    app_sysinfo si = {0};
+    app_sysinfo_build(&si);
+    printf("pins: casim=%s games=%s%s%s\n", si.casim ? si.casim : "?", si.games ? si.games : "?",
+           GAMES_PINS[0] ? " " : "", GAMES_PINS);                       /* every pin in full (unit 069) */
     screen_ui ui;                               /* (on the stack while X runs, not 176 B of internal RAM for good) */
     app_ui(app, &ui);
     printf("ui: clock=%s%c view=%s soft1=%s off=%d\n", ui.clock, ui.ampm ? ui.ampm : ' ', ui.view[0] ? ui.view[0] : "-",
            ui.soft[0] && ui.soft[0][0] ? ui.soft[0] : "-", app->soft_off);   /* off=1: the soft off on USB (068) */
+    if (ui.view[0] || ui.view[1] || ui.view[2] || ui.view[3])           /* SYS's view open: every line (unit 069) */
+        printf("view: %s | %s | %s | %s\n", ui.view[0] ? ui.view[0] : "-", ui.view[1] ? ui.view[1] : "-",
+               ui.view[2] ? ui.view[2] : "-", ui.view[3] ? ui.view[3] : "-");
     printf("app: %s\n", app_running(app) ? app->app->name : "-");          /* unit 037 */
     printf("eqn: %s | note=%s | rep=%s\n", calc->eqn_mode && calc->eqn_cur >= 0 ? calc->eqn[calc->eqn_cur] : "-",
            ab_cas_note(calc) ? ab_cas_note(calc) : "-", ab_cas_report(calc) ? ab_cas_report(calc) : "-");   /* 048 */

@@ -2,13 +2,14 @@
 # Casimir (cpuchip/casimir, public since decision 72; the casim seat's computer algebra, CAS 004): its src/ at CASIM_PIN,
 # exported read-only with git archive from a local clone (CASIM_REPO, default ../casim) into build/casim;
 # a build never writes into that clone. The pin must be on the clone's origin (a pushed commit, as of
-# its last fetch), as the games list requires.
+# its last fetch), as the games list requires. Beside them, casim_pin.h: AB_CASIM_PIN, the pin, for SYS's VER and the console's
+# X (unit 069; firmware/version.h).
 set -eu
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 PIN=$(cat "$ROOT/CASIM_PIN")
 REPO=${CASIM_REPO:-$ROOT/../casim}
 OUT=$ROOT/build/casim
-if [ -f "$OUT/.pin" ] && [ "$(cat "$OUT/.pin")" = "$PIN" ]; then
+if [ -f "$OUT/.pin" ] && [ "$(cat "$OUT/.pin")" = "$PIN" ] && [ -f "$OUT/casim_pin.h" ]; then
     exit 0
 fi
 case "$PIN" in *[!0-9a-f]*|"") echo "fetch-casim: CASIM_PIN is not a commit" >&2; exit 1;; esac
@@ -17,5 +18,6 @@ git -C "$REPO" merge-base --is-ancestor "$PIN" "$HEAD" || { echo "fetch-casim: $
 rm -rf "$OUT"
 mkdir -p "$OUT"
 git -C "$REPO" archive "$PIN" src/casim.c src/casim.h | tar -x -C "$OUT" --strip-components=1
+printf '#define AB_CASIM_PIN "%s"\n' "$PIN" > "$OUT/casim_pin.h"
 echo "$PIN" > "$OUT/.pin"
 echo "casim $PIN"

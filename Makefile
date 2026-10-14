@@ -31,9 +31,9 @@ $(INTEL_LIB):
 	CC="$(CC)" scripts/fetch-intel-dfp.sh
 
 # The library's headers are its own; -isystem keeps our warning flags off them.
-build/casim/.pin build/casim/casim.c build/casim/casim.h: CASIM_PIN
+build/casim/.pin build/casim/casim.c build/casim/casim.h build/casim/casim_pin.h: CASIM_PIN
 	scripts/fetch-casim.sh
-$(CASIM_O): build/casim/.pin build/casim/casim.c build/casim/casim.h core/abn.h | build
+$(CASIM_O): build/casim/.pin build/casim/casim.c build/casim/casim.h build/casim/casim_pin.h core/abn.h | build
 	$(CC) $(CFLAGS) -Wframe-larger-than=1024 -Icore -c -o $@ build/casim/casim.c
 
 build/abn_intel.o: core/abn_intel.c core/abn.h $(INTEL_LIB) | build
@@ -66,8 +66,13 @@ build/games/.stamp build/games/games.h: build/games/games.mk
 ifeq ($(filter clean,$(MAKECMDGOALS)),)       # (clean needs no games, nor a clone to make them)
 include build/games/games.mk
 endif
-build/app_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) $(APP) $(GAMES_O) build/games/games.h firmware/app.h firmware/keymap.h firmware/power.h firmware/screen.h tests/app_test.c | build
-	$(CC) $(CFLAGS) -Icore -Ifirmware -Ibuild/games -o $@ $(CORE) $(SCREEN) $(APP) $(GAMES_O) tests/app_test.c $(ENGINE) $(LIBS)
+# unit 069: VER's expected CASIM and GAMES, apart from what the build generates: casim's pin cut from CASIM_PIN, and the list's
+# digest by the shell's sha256sum over the list (not gen_games.py's hashlib), "none" for no game; a comment ends any line, as
+# the generator reads it
+VER_CASIM = $(shell cut -c1-7 CASIM_PIN)
+VER_GAMES = $(shell g=$$(sed 's/\#.*//' $(GAMES_SRC) 2>/dev/null | awk 'NF{print $$1, $$2, $$3}'); if [ -n "$$g" ]; then echo "$$g" | sha256sum | cut -c1-7; else echo none; fi)
+build/app_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) $(APP) $(GAMES_O) build/games/games.h firmware/app.h firmware/keymap.h firmware/power.h firmware/screen.h firmware/version.h tests/app_test.c | build
+	$(CC) $(CFLAGS) -Icore -Ifirmware -Ibuild/games -DVER_CASIM='"$(VER_CASIM)"' -DVER_GAMES='"$(VER_GAMES)"' -o $@ $(CORE) $(SCREEN) $(APP) $(GAMES_O) tests/app_test.c $(ENGINE) $(LIBS)
 
 # unit 052: the key sequences to the deepest stacks, for scripts/resources.py's board measurements
 build/stackkeys: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) $(APP) $(GAMES_O) build/games/games.h firmware/app.h firmware/keymap.h firmware/store.c firmware/store.h tests/stackkeys.c | build
