@@ -29,7 +29,7 @@ I01 | 048 ∫ (I0001, X^3+X^2+X canonical): the antiderivative inserted after th
 I02 | 048 ∫ (I0010, SIN(X)×180÷π canonical): in DEG, SIN carries 180÷π | STU DEG EQ:COS(X) CASINT:X | %EQ=180×SIN(X)÷π %NOTE=+C
 I03 | 048 ∫ (I0011, -COS(3×X)×200÷π÷3 canonical): in GRAD, 200÷π | STU GRAD EQ:SIN(3×X) CASINT:X | %EQ=-200×COS(3×X)÷3÷π
 I04 | 048 ∫, as 057 ruled (#5632, #5670 rule 1): the note stays with its answer when the list moves off and back (it went before 057) | STU RAD EQ:3×X^2+2×X+1 CASINT:X BST SST | %EQ=X+X^2+X^3 %NOTE=+C
-I05 | 048 ∫ (I0022): CAN'T INTEGRATE, nothing inserted | STU RAD EQ:X×LN(X) CASINT:X | ERR %ERR=CAS_NOT_INTEGRABLE %ERRMSG=CAN'T_INTEGRATE %EQN=1 %NOTE=none
+I05 | 048 ∫: CAN'T INTEGRATE, nothing inserted (I0022's X×LN(X) answers since CAS 017, I12; EXP(X^2) has no elementary antiderivative) | STU RAD EQ:EXP(X^2) CASINT:X | ERR %ERR=CAS_NOT_INTEGRABLE %ERRMSG=CAN'T_INTEGRATE %EQN=1 %NOTE=none
 I06 | 048 ∫ (I0028): an equation, EXPRESSION ONLY | STU RAD EQ:X=1 CASINT:X | ERR %ERR=CAS_EXPR_ONLY %ERRMSG=EXPRESSION_ONLY %EQN=1
 I07 | 048 ∫ in the stamp: X^2^3 stamped STU is X^8 (by hand: X^9÷9, I0002's form) | STU RAD EQ:X^2^3 CASINT:X | %EQ=X^9÷9
 I08 | 048 ∫ in the stamp: stamped 35s it is X^6 (by hand: X^7÷7) | MODE35 EQ:X^2^3 C STU RAD EQN CASINT:X | %EQ=X^7÷7
@@ -37,6 +37,16 @@ I08 | 048 ∫ in the stamp: stamped 35s it is X^6 (by hand: X^7÷7) | MODE35 EQ:
 # 89e8d17 (casim's CLI there: NOT_INTEGRABLE). Expected texts are casim's CLI at the pin; I05 still refuses.
 I10 | 048 ∫ (CAS 013): 1÷(X^2-1) answered, +C beside it | STU RAD EQ:1÷(X^2-1) CASINT:X | %EQ=0.5×LN(ABS(X-1))-0.5×LN(ABS(X+1)) %NOTE=+C %EQN=2
 I11 | 048 ∫ (CAS 013): the answer evaluates: ∫1÷(X×(X+1)) is LN(ABS(X))-LN(ABS(X+1)), at X 1 -LN(2) (mpmath, 34 digits) | STU RAD 1 STO:X EQ:1÷(X×(X+1)) CASINT:X XEQ RS | X=-0.6931471805599453094172321214581766
+# CAS 017 (casim 3c3b6fb, abacus #8246's repin): substitution and by parts. Expected texts are casim's CLI at the pin at
+# the calculator's arena, 8,192 B (core/arena.h): there the rational path doesn't fit inside a substitution or a part
+# (casim work/017 rule 7), so X×ATAN(X) refuses, and a sum whose rational term runs out is TOO COMPLEX.
+I12 | 048 ∫ (CAS 017): X×LN(X) by parts, +C beside it | STU RAD EQ:X×LN(X) CASINT:X | %EQ=-0.25×X^2+0.5×X^2×LN(X) %NOTE=+C %EQN=2
+I13 | 048 ∫ (CAS 017): the answer evaluates: at X 3, 4.5×LN(3)-2.25 (mpmath, 34 digits, within 8 units: the answer is three rounded operations) | STU RAD 3 STO:X EQ:X×LN(X) CASINT:X XEQ RS | X^2.693755299006493611278603566151366
+I14 | 048 ∫ (CAS 017): ATAN(X) by substitution, its LN without ABS (X^2+1 is positive for every X) | STU RAD EQ:ATAN(X) CASINT:X | %EQ=-0.5×LN(X^2+1)+X×ATAN(X) %NOTE=+C %EQN=2
+I15 | 048 ∫ (CAS 017): the answer evaluates: at X 1, π÷4-LN(2)÷2 (mpmath, 34 digits) | STU RAD 1 STO:X EQ:ATAN(X) CASINT:X XEQ RS | X=0.4388245731174756549070447850907874
+I16 | 048 ∫ (CAS 017): the cycle, EXP(X)×SIN(X) | STU RAD EQ:EXP(X)×SIN(X) CASINT:X | %EQ=0.5×EXP(X)×SIN(X)-0.5×EXP(X)×COS(X) %NOTE=+C %EQN=2
+I17 | 048 ∫ (CAS 017): X×ATAN(X) is CAN'T INTEGRATE at 8 KB (casim answers it at 16 KB), nothing inserted | STU RAD EQ:X×ATAN(X) CASINT:X | ERR %ERR=CAS_NOT_INTEGRABLE %ERRMSG=CAN'T_INTEGRATE %EQN=1 %NOTE=none
+I18 | 048 ∫ (CAS 017): SIN(X)+1÷(X^2-1) is TOO COMPLEX at 8 KB (CAN'T INTEGRATE before; casim answers it at 64 KB) | STU RAD EQ:SIN(X)+1÷(X^2-1) CASINT:X | ERR %ERR=CAS_NO_ROOM %ERRMSG=TOO_COMPLEX %EQN=1 %NOTE=none
 F01 | 048 FACTOR (F0001): inserted after the original, no note | STU EQ:X^2-5×X+6 CASFACT:X | %EQ=(X-3)×(X-2) %NOTE=none %EQN=2
 F02 | 048 FACTOR (F0003): the content first | STU EQ:2×X^3-2×X CASFACT:X | %EQ=2×X×(X-1)×(X+1)
 F03 | 048 FACTOR (F0021): PARTIAL inserts the exact product, MAY FACTOR MORE beside it, not an error | STU EQ:69120×X^12-883584×X^11+3675072×X^10-4777824×X^9-2178000×X^8+7710864×X^7-2213952×X^6-2071296×X^5+775920×X^4+114000×X^3-36000×X^2-2 CASFACT:X | %EQ=2×(-18000×X^2+57000×X^3+387960×X^4-1035648×X^5-1106976×X^6+3855432×X^7-1089000×X^8-2388912×X^9+1837536×X^10-441792×X^11+34560×X^12-1) %NOTE=MAY_FACTOR_MORE %EQN=2
