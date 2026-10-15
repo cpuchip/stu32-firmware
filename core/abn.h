@@ -76,10 +76,15 @@ typedef enum {
                                pole in any op (CAS 016: TAN(π÷2), LN(0); 048's P01-P05): UNDEFINED */
     ABN_CAS_BOUND_LETTER,   /* unit 056: ∫AB's bound holds a letter (casim's BAD_ARG, told by the text): BOUND NOT NUMERIC */
     ABN_CAS_BOUND_REAL,     /* unit 056: ∫AB's bound isn't real (casim's BAD_ARG otherwise): BOUND NOT REAL */
-    ABN_CAS_UNDECIDED       /* CAS 015 rule 5: casim's walk couldn't decide a limit, never "no limit": CAN'T DECIDE */
+    ABN_CAS_UNDECIDED,      /* CAS 015 rule 5: casim's walk couldn't decide a limit, never "no limit": CAN'T DECIDE */
+    ABN_CAS_NO_CLOSED,      /* unit 070: CAS 018's sum has no closed form casim finds: NO CLOSED FORM (Michael, #8294) */
+    ABN_CAS_BAD_BOUND,      /* unit 070: a sum's bound casim refuses (BAD_ARG: a constant not whole, -∞ as the upper,
+                               the variable in a bound): BAD BOUND (provisional, abacus #8545) */
+    ABN_CAS_WHERE           /* unit 070: an op on a sum's condition row (WHERE), which is no equation: A CONDITION
+                               (provisional, abacus #8545: the screen says what it is) */
 } abn_status;
 
-#define ABN_STATUS_LAST ABN_CAS_UNDECIDED   /* the last status: loops over every status end here (056: screen_test's
+#define ABN_STATUS_LAST ABN_CAS_WHERE       /* the last status: loops over every status end here (056: screen_test's
                                                ended at ABN_BAD_IMAGE and missed every one after it) */
 
 abn abn_zero(void);

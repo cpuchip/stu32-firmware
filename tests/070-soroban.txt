@@ -1,0 +1,74 @@
+# Unit 070: CAS 018's sums on the keys (casim 4f24e3e, which holds CAS 018 from 65369cb; abacus #8507, proposed soroban
+# #8544, ruled abacus #8545). Token CASSUM:v is Σ in variable v (CAS2's fifth key): then the lower bound typed, ENTER,
+# the upper typed, ENTER. INF is the typing bar's ∞ (its fourth key while Σ's upper bound is typed). Each answer is
+# casim's CLI at 4f24e3e with the calculator's arena (casim --arena 8800 sum "<text>" K LO HI RAD), as the firmware
+# stores it. A condition casim gives after "; " is a row of its own after the answer, labeled WHERE.
+#
+# The answers, each with its rows
+S01 | 070: Σ K from 1 to 10 is 55, added term by term (rule 7) | STU RAD EQ:K CASSUM:K 1 ENTER 10 ENTER | %EQ=55 %EQN=2 %NOTE=none
+S02 | 070: Σ K from 1 to N, a closed form | STU RAD EQ:K CASSUM:K 1 ENTER RCL:N ENTER | %EQ=0.5×N+0.5×N^2 %EQN=2
+S03 | 070: Σ K^2 from 1 to N | STU RAD EQ:K^2 CASSUM:K 1 ENTER RCL:N ENTER | %EQ=N÷6+0.5×N^2+N^3÷3 %EQN=2
+S04 | 070: Σ 2^K from 0 to N, a constant ratio: no row | STU RAD EQ:2^K CASSUM:K 0 ENTER RCL:N ENTER | %EQ=2^(N+1)-1 %EQN=2 %NOTE=none
+S05 | 070: Σ X^K from 0 to N: the answer shown, its row after it | STU RAD EQ:X^K CASSUM:K 0 ENTER RCL:N ENTER | %EQ=-1÷(X-1)+X^(N+1)÷(X-1) %EQN=3 %NOTE=none
+S06 | 070: its row X≠1, labeled WHERE (Michael, #8294) | STU RAD EQ:X^K CASSUM:K 0 ENTER RCL:N ENTER SST | %EQ=X≠1 %NOTE=WHERE
+S07 | 070: two letter groups, a row each in their letters' order | STU RAD EQ:X^K+Y^K CASSUM:K 0 ENTER RCL:N ENTER | %EQ=-1÷(X-1)-1÷(Y-1)+X^(N+1)÷(X-1)+Y^(N+1)÷(Y-1) %EQN=4
+S08 | 070: the first, X≠1 | STU RAD EQ:X^K+Y^K CASSUM:K 0 ENTER RCL:N ENTER SST | %EQ=X≠1 %NOTE=WHERE
+S09 | 070: the second, Y≠1 | STU RAD EQ:X^K+Y^K CASSUM:K 0 ENTER RCL:N ENTER SST SST | %EQ=Y≠1 %NOTE=WHERE
+S10 | 070: telescoping, 1÷(K×(K+1)) from 1 to N | STU RAD EQ:1÷(K×(K+1)) CASSUM:K 1 ENTER RCL:N ENTER | %EQ=-1÷(N+1)+1 %EQN=2
+S11 | 070: hi below lo is the empty sum, 0 | STU RAD EQ:K CASSUM:K 5 ENTER 1 ENTER | %EQ=0 %EQN=2
+S12 | 070: terms with no closed form, few enough, are written out | STU RAD EQ:SIN(K) CASSUM:K 1 ENTER 3 ENTER | %EQ=SIN(1)+SIN(2)+SIN(3) %EQN=2
+#
+# To ∞, from the bar's ∞
+S13 | 070: Σ (1÷2)^K from 0 to ∞ is 2 | STU RAD EQ:(1÷2)^K CASSUM:K 0 ENTER INF ENTER | %EQ=2 %EQN=2
+S14 | 070: Σ X^K from 0 to ∞, on condition it converges | STU RAD EQ:X^K CASSUM:K 0 ENTER INF ENTER | %EQ=-1÷(X-1) %EQN=3
+S15 | 070: its row ABS(X)<1, labeled WHERE | STU RAD EQ:X^K CASSUM:K 0 ENTER INF ENTER SST | %EQ=ABS(X)<1 %NOTE=WHERE
+S16 | 070: (X÷2)^K: ABS(X)<2 | STU RAD EQ:(X÷2)^K CASSUM:K 0 ENTER INF ENTER SST | %EQ=ABS(X)<2 %NOTE=WHERE
+S57 | 070: its answer, -2÷(X-2) | STU RAD EQ:(X÷2)^K CASSUM:K 0 ENTER INF ENTER | %EQ=-2÷(X-2) %EQN=3 %NOTE=none
+S17 | 070: telescoping to ∞ | STU RAD EQ:1÷(K×(K+1)) CASSUM:K 1 ENTER INF ENTER | %EQ=1 %EQN=2
+S18 | 070: Σ K to ∞ diverges: ∞ | STU RAD EQ:K CASSUM:K 1 ENTER INF ENTER | %EQ=∞ %EQN=2
+#
+# casim's statuses, each its message; the list is as it was
+S19 | 070: partial sums that swing: UNDEFINED | STU RAD EQ:(-1)^K CASSUM:K 0 ENTER INF ENTER | ERR %ERRMSG=UNDEFINED %EQN=1
+S20 | 070: equal growth: CAN'T DECIDE | STU RAD EQ:3+(-1)^K×K CASSUM:K 0 ENTER INF ENTER | ERR %ERRMSG=CAN'T_DECIDE %EQN=1
+S21 | 070: no closed form: NO CLOSED FORM (Michael, #8294) | STU RAD EQ:1÷K^2 CASSUM:K 1 ENTER RCL:N ENTER | ERR %ERR=CAS_NO_CLOSED %ERRMSG=NO_CLOSED_FORM %EQN=1
+S22 | 070: the same for SIN(K) to N | STU RAD EQ:SIN(K) CASSUM:K 1 ENTER RCL:N ENTER | ERR %ERRMSG=NO_CLOSED_FORM %EQN=1
+S54 | 070: forty terms written out pass 191 bytes: RESULT TOO LONG | STU RAD EQ:SIN(K) CASSUM:K 1 ENTER 40 ENTER | ERR %ERR=CAS_TOO_LONG %EQN=1
+S58 | 070: casim 5ab9b59: a closed form that runs out of room is TOO COMPLEX, not RESULT TOO LONG (casim's own row; 65369cb said TOO_LONG; it answers at 65,536 B) | STU RAD EQ:12×(561+16×K^4+160×K^3+568×K^2+856×K)÷((1+2×K)×(3+2×K)^2×(7+2×K)×(9+2×K)^2) CASSUM:K 1 ENTER 50 ENTER | ERR %ERR=CAS_NO_ROOM %EQN=1
+S23 | 070: past the arena: TOO COMPLEX | STU RAD EQ:K^12×X^K CASSUM:K 0 ENTER RCL:N ENTER | ERR %ERR=CAS_NO_ROOM %EQN=1
+S24 | 070: a bound not whole: BAD BOUND (provisional, #8545) | STU RAD EQ:K CASSUM:K 1.5 ENTER RCL:N ENTER | ERR %ERR=CAS_BAD_BOUND %ERRMSG=BAD_BOUND %EQN=1
+S25 | 070: -∞ as the upper goes to casim as typed: BAD BOUND | STU RAD EQ:K CASSUM:K 1 ENTER - INF ENTER | ERR %ERRMSG=BAD_BOUND %EQN=1
+S55 | 070: ∞ in any other text (∞+1): SYNTAX, still typed, never sent (fresh eyes; C clears the message, ← ← ENTER sums to ∞) | STU RAD EQ:K CASSUM:K 1 ENTER INF + 1 ENTER C BKSP BKSP ENTER | ERR %ERR=SYNTAX %EQ=∞ %EQN=2
+S56 | 070: ∞ with a blank after it (the bar's SPC): SYNTAX, still typed | STU RAD EQ:K CASSUM:K 1 ENTER INF SPACE ENTER C BKSP ENTER | ERR %ERR=SYNTAX %EQ=∞ %EQN=2
+S26 | 070: the variable in a bound: BAD BOUND | STU RAD EQ:K CASSUM:K 1 ENTER RCL:K ENTER | ERR %ERRMSG=BAD_BOUND %EQN=1
+S27 | 070: an equation: EXPRESSION ONLY, as ∫AB | STU RAD EQ:Y=K CASSUM:K 1 ENTER 10 ENTER | ERR %ERRMSG=EXPRESSION_ONLY %EQN=1
+S28 | 070: a bound that doesn't parse: SYNTAX, still typed (C clears the message, unit 017 rule 4; 2 ENTER completes it: Σ K from 3 to 10) | STU RAD EQ:K CASSUM:K 1 + ENTER C 2 ENTER 10 ENTER | ERR %ERR=SYNTAX %EQ=52 %EQN=2
+#
+# The bar's ∞ only as Σ's upper bound
+S30 | 070: in the lower bound it types nothing (the empty bound cancels) | STU RAD EQ:K CASSUM:K INF ENTER | %EQN=1
+S31 | 070: in an equation typed, nothing | STU RAD EQN 2 INF ENTER | %EQ=2
+S32 | 070: in ∫AB's upper bound, nothing | STU RAD EQ:X CASDEF:X 0 ENTER INF 2 ENTER | %EQ=2 %EQN=2
+S33 | 070: C in Σ's step keeps the list | STU RAD EQ:K CASSUM:K 1 ENTER C | %EQN=1 %EQ=K
+S34 | 070: 33s mode: STU ONLY | EQ:K CASSUM:K | ERR %ERR=STU_ONLY
+#
+# A WHERE row is no equation: each op on it says A CONDITION (provisional, #8545), and the list is as it was
+S35 | 070: a CAS op on it | STU RAD EQ:X^K CASSUM:K 0 ENTER RCL:N ENTER SST CASSIMP | ERR %ERR=CAS_WHERE %ERRMSG=A_CONDITION %EQN=3
+S36 | 070: Σ on it, before its editor opens | STU RAD EQ:X^K CASSUM:K 0 ENTER RCL:N ENTER SST CASSUM:K | ERR %ERR=CAS_WHERE %EQN=3
+S37 | 070: SOLVE on it, before any prompt | STU RAD EQ:X^K CASSUM:K 0 ENTER RCL:N ENTER SST SOLVE:X | ERR %ERR=CAS_WHERE %EQN=3
+S38 | 070: ∫ on it | STU RAD EQ:X^K CASSUM:K 0 ENTER RCL:N ENTER SST INTEG:X | ERR %ERR=CAS_WHERE %EQN=3
+S39 | 070: XEQ on it | STU RAD EQ:X^K CASSUM:K 0 ENTER RCL:N ENTER SST XEQ | ERR %ERR=CAS_WHERE %EQN=3
+S40 | 070: ENTER on it | STU RAD EQ:X^K CASSUM:K 0 ENTER RCL:N ENTER SST ENTER | ERR %ERR=CAS_WHERE %EQN=3
+S41 | 070: TABLE on it | STU RAD EQ:X^K CASSUM:K 0 ENTER RCL:N ENTER SST TABLE | ERR %ERR=CAS_WHERE
+S42 | 070: GRAPH on it | STU RAD EQ:X^K CASSUM:K 0 ENTER RCL:N ENTER SST GRAPH | ERR %ERR=CAS_WHERE
+S43 | 070: the answer above it is an equation: SIMP acts | STU RAD EQ:X^K CASSUM:K 0 ENTER RCL:N ENTER CASSIMP | %EQN=4
+S44 | 070: edited, it loses its label (057) and is typed text | STU RAD EQ:X^K CASSUM:K 0 ENTER RCL:N ENTER SST < BKSP 2 ENTER | %EQ=X≠2 %NOTE=none
+#
+# Saved and loaded (version 19): the label and each message
+S45 | 070: the WHERE label | STU RAD EQ:X^K CASSUM:K 0 ENTER RCL:N ENTER SST SAVE LOAD | %EQ=X≠1 %NOTE=WHERE
+S46 | 070: NO CLOSED FORM showing | STU RAD EQ:1÷K^2 CASSUM:K 1 ENTER RCL:N ENTER SAVE LOAD | ERR %ERR=CAS_NO_CLOSED
+S47 | 070: BAD BOUND showing | STU RAD EQ:K CASSUM:K 1.5 ENTER RCL:N ENTER SAVE LOAD | ERR %ERR=CAS_BAD_BOUND
+S48 | 070: A CONDITION showing | STU RAD EQ:X^K CASSUM:K 0 ENTER RCL:N ENTER SST CASSIMP SAVE LOAD | ERR %ERR=CAS_WHERE
+S49 | 070: an image as version 18 with NO CLOSED FORM showing is refused (the message is version 19's) | STU RAD EQ:1÷K^2 CASSUM:K 1 ENTER RCL:N ENTER SAVE IMGVER:18 LOAD | ERR %ERR=BAD_IMAGE
+S50 | 070: an image as version 18 holding a WHERE label is refused (the label is version 19's) | STU RAD EQ:X^K CASSUM:K 0 ENTER RCL:N ENTER SAVE IMGVER:18 LOAD | ERR %ERR=BAD_IMAGE
+S51 | 070: the control: the same image as version 19 loads | STU RAD EQ:X^K CASSUM:K 0 ENTER RCL:N ENTER SAVE IMGVER:19 LOAD | %EQN=3
+S52 | 070: ∞ has no place on ALG's line: RPN ONLY | STU ALG 2 INF | ERR %ERR=RPN_ONLY
+S53 | 070: in program entry ∞ records no line | STU PRGM INF PRGM | %LINES=0

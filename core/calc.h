@@ -150,10 +150,14 @@ typedef enum {
     /* unit 057 (CAS 010, the CAS menu's third page), in arg's variable: QUOT and GCD take g in the editor ("÷ BY",
        "GCD WITH"); QUOT inserts q then r, labeled QUOTIENT and REMAINDER; GCD the gcd; CANCL the reduced quotient,
        then each value it removed as an equation labeled NOT AT */
-    AB_CASQUOT, AB_CASGCD, AB_CASCANCL
+    AB_CASQUOT, AB_CASGCD, AB_CASCANCL,
+    /* unit 070 (CAS 018, the CAS menu's second page), in arg's variable: Σ from lo to hi, the editor taking each bound as
+       ∫AB's does ("ΣK FROM", "ΣK TO"); the answer is inserted, then each condition casim gives as a row labeled WHERE.
+       ∞ types U+221E, on the typing bar's fourth key while Σ's upper bound is typed (and nowhere else) */
+    AB_CASSUM, AB_KINF
 } ab_op;
 
-#define AB_OP_LAST AB_CASCANCL /* the last op: loops over every op end here */
+#define AB_OP_LAST AB_KINF     /* the last op: loops over every op end here */
 
 /* Why the last run stopped (unit 012 rule 1): the device draws it; the core never waits. */
 typedef enum {
@@ -351,6 +355,7 @@ typedef struct {
     uint8_t cas_def;        /* unit 056: ∫AB's variable + 1 while a bound is typed, else 0; not in the image (a restart
                                mid-entry cancels the step: state.c saves no typing then) */
     uint8_t cas_def_step;   /* 1: the lower bound is typed; 2: the upper, the lower held in cas_lo */
+    bool cas_def_sum;       /* unit 070: the bounds are Σ's (CAS 018), not ∫AB's; not in the image (as cas_def) */
     char cas_lo[AB_EQN_LEN];    /* the lower bound, implied products written, while the upper is typed */
     bool eng_on;            /* unit 041 C (B4): ENG→ / ←ENG's view of X showing (until the next key); in the image */
     int16_t eng_e;          /* its exponent, a multiple of three */
@@ -603,7 +608,8 @@ const char *ab_cas_note(const ab_calc *c);
 #define AB_NOTE_QUOT 3          /* unit 057 */
 #define AB_NOTE_REM 4
 #define AB_NOTE_NOTAT 5
-#define AB_NOTE_LAST AB_NOTE_NOTAT
+#define AB_NOTE_WHERE 6         /* unit 070: a sum's condition (casim's text, X≠1, ABS(X)<1), not an equation */
+#define AB_NOTE_LAST AB_NOTE_WHERE
 /* Units 056, 057: while a CAS step's text is typed, Y's label ("∫X FROM", "∫X TO", "÷ BY", "GCD WITH"), else NULL. */
 const char *ab_cas_prompt_label(const ab_calc *c, char *buf, int size);
 

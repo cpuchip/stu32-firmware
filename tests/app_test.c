@@ -4052,8 +4052,8 @@ int main(void)
         app_ui(&a, &ui);
         expect(ui.soft[0] && !strcmp(ui.soft[0], "SOLVE") && ui.soft[1] && !strcmp(ui.soft[1], "\xe2\x88\xab" "DX") &&
                    ui.soft[2] && !strcmp(ui.soft[2], "FACTR") && ui.soft[3] && !strcmp(ui.soft[3], "\xe2\x88\xab" "AB") &&
-                   (!ui.soft[4] || !ui.soft[4][0]) && ui.soft[5] && !strcmp(ui.soft[5], "\xe2\x96\xb8"),
-               "048, 056: CAS2: SOLVE \xe2\x88\xab" "DX FACTR \xe2\x88\xab" "AB, its sixth key back");
+                   ui.soft[4] && !strcmp(ui.soft[4], "\xce\xa3") && ui.soft[5] && !strcmp(ui.soft[5], "\xe2\x96\xb8"),
+               "048, 056, 070: CAS2: SOLVE \xe2\x88\xab" "DX FACTR \xe2\x88\xab" "AB \xce\xa3, its sixth key back");
         press(&a, "k:0");
         app_ui(&a, &ui);
         expect(ui.prompt && !strcmp(ui.prompt, "SOLVE _"), "048: SOLVE prompts for the variable");
@@ -4101,6 +4101,49 @@ int main(void)
         expect(c.eqn_count == n + 1 && c.eqn_cur >= 0 && !strcmp(c.eqn[c.eqn_cur], "LN(3)") && !ab_cas_note(&c) &&
                    !c.eqn_typing && !c.cas_def,
                "056: \xe2\x88\xab" "AB X of 1\xc3\xb7X from 1 to 3 through the keys: LN(3) inserted, no note, the step closed");
+        /* unit 070: Σ through the keys (CAS2's fifth key): the variable, "ΣK FROM", ENTER, "ΣK TO"; while the upper
+           bound is typed the bar's fourth key is ∞ (= elsewhere) and types it; X^K from 0 to ∞ inserts its answer,
+           shown, then the condition after it, labeled WHERE */
+        {
+            char lb[24];
+            ab_init(&c);
+            app_init(&a, &c, now);
+            ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+            ab_do(&c, AB_RAD);
+            ab_eqn_add(&c, "X^K");
+            press(&a, "k:4 k:5 k:4");
+            app_ui(&a, &ui);
+            expect(ui.prompt && !strcmp(ui.prompt, "\xce\xa3 _"), "070: \xce\xa3 prompts for the variable");
+            press(&a, "ltr:K");
+            app_ui(&a, &ui);
+            expect(ab_cas_prompt_label(&c, lb, sizeof lb) && !strcmp(lb, "\xce\xa3K FROM") && ui.soft[3] &&
+                       !strcmp(ui.soft[3], "="), "070: \xce\xa3K FROM on Y; the bar's fourth key = there");
+            press(&a, "k:3");
+            expect(c.ebuf[0] == '=', "070: in the lower bound the fourth key types = as ever (no \xe2\x88\x9e)");
+            press(&a, "\xe2\x86\x90 0 ENTER");
+            app_ui(&a, &ui);
+            expect(ab_cas_prompt_label(&c, lb, sizeof lb) && !strcmp(lb, "\xce\xa3K TO") && ui.soft[3] &&
+                       !strcmp(ui.soft[3], "\xe2\x88\x9e"), "070: \xce\xa3K TO on Y; the bar's fourth key \xe2\x88\x9e");
+            press(&a, "k:3");
+            expect(!strcmp(c.ebuf, "\xe2\x88\x9e"), "070: the fourth key types \xe2\x88\x9e in the upper bound");
+            n = c.eqn_count;
+            press(&a, "ENTER");
+            expect(c.eqn_count == n + 2 && !strcmp(c.eqn[c.eqn_cur], "-1\xc3\xb7(X-1)") && !ab_cas_note(&c) &&
+                       c.eqn_note[c.eqn_cur + 1] == AB_NOTE_WHERE && !strcmp(c.eqn[c.eqn_cur + 1], "ABS(X)<1") &&
+                       !c.eqn_typing && !c.cas_def,
+                   "070: \xce\xa3 X^K from 0 to \xe2\x88\x9e: the answer shown, ABS(X)<1 after it labeled WHERE, the step closed");
+            app_ui(&a, &ui);
+            expect(ui.soft[3] && !strcmp(ui.soft[3], "NEW"), "070: the step closed: the list's bar, NEW in the \xe2\x88\x9e's place");
+            /* ∫AB's upper bound keeps the plain bar */
+            ab_init(&c);
+            app_init(&a, &c, now);
+            ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+            ab_eqn_add(&c, "X");
+            press(&a, "k:4 k:5 k:3 ltr:X 0 ENTER");
+            app_ui(&a, &ui);
+            expect(c.cas_def && c.cas_def_step == 2 && ui.soft[3] && !strcmp(ui.soft[3], "="),
+                   "070: \xe2\x88\xab" "AB's upper bound keeps = on the bar");
+        }
         /* unit 057: CAS2's sixth key goes on to CAS3 (QUOT, GCD, CANCL); QUOT through the keys: the variable, g, ENTER:
            q and r inserted, q shown, labeled QUOTIENT */
         ab_init(&c);

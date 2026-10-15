@@ -82,7 +82,7 @@ static void prompt_open(app_state *a, int op, int kind)
                        : op == AB_CASSUB ? "SUBST" : op == AB_FN ? "FN=" : op == AB_CASSOLVE ? "SOLVE"
                        : op == AB_CASINT ? "\xe2\x88\xab" "DX" : op == AB_CASFACT ? "FACTR"
                        : op == AB_CASDEF ? "\xe2\x88\xab" "AB" : op == AB_CASQUOT ? "QUOT" : op == AB_CASGCD ? "GCD"
-                       : op == AB_CASCANCL ? "CANCL" : "";
+                       : op == AB_CASCANCL ? "CANCL" : op == AB_CASSUM ? "\xce\xa3" : "";
     char buf[16] = "";
     if (op >= AB_STOADD && op <= AB_STODIV) snprintf(buf, sizeof buf, "STO%s", ARITH[op - AB_STOADD]);
     else if (op >= AB_RCLADD && op <= AB_RCLDIV) snprintf(buf, sizeof buf, "RCL%s", ARITH[op - AB_RCLADD]);
@@ -445,7 +445,8 @@ static int eqn_bar(const app_state *a)
     if (ab_view_linear(a->c)) return menu_named("LIN VIEW");         /* x= y= (z=): unit 035 */
     if (ab_cas_report(a->c)) return menu_named("CAS REPORT");       /* SOLVE's exact roots: unit 048 */
     if (a->c->alg && !a->c->prgm) return menu_named("ALG LINE");    /* STU's line (unit 029) */
-    if (a->c->eqn_typing) return menu_named("EQN TYPE");
+    if (a->c->eqn_typing)                       /* Σ's upper bound: the bar's = key is ∞ there (unit 070) */
+        return menu_named(a->c->cas_def && a->c->cas_def_sum && a->c->cas_def_step == 2 ? "EQN TYPE SUM" : "EQN TYPE");
     if (a->c->eqn_mode && !a->c->prgm) {         /* GOLD: the list's bank, the REG names (unit 046) */
         int m = a->shift == 1 ? menu_named("EQN LIST GOLD") : -1;
         return m >= 0 ? m : menu_named("EQN LIST");

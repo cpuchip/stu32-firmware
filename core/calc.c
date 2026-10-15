@@ -3192,6 +3192,7 @@ static abn_status program_key(ab_calc *c, ab_op op, int arg)
     case AB_CASD: case AB_CASSIMP: case AB_CASEXP: case AB_CASCOL: case AB_CASSUB:              /* CAS 004 */
     case AB_CASSOLVE: case AB_CASINT: case AB_CASFACT: case AB_CASDEF:                          /* 048, 056 */
     case AB_CASQUOT: case AB_CASGCD: case AB_CASCANCL:                                          /* 057 */
+    case AB_CASSUM:                                                                             /* 070 */
         return ABN_NONPROGRAMMABLE;
     case AB_FDISP:
     case AB_CLALL:                          /* in program entry the menu offers CLPGM in its place
@@ -3225,6 +3226,7 @@ static abn_status program_key(ab_calc *c, ab_op op, int arg)
         c->prgm = false;
         return ABN_OK;
     case AB_KEQ: case AB_KPAREN: case AB_KLEFT: case AB_KRIGHT: case AB_KSPACE: case AB_KREG: case AB_EQTOP:
+    case AB_KINF:                           /* (070) */
         return ABN_OK;                      /* Equation mode's keys: no line, as they do nothing
                                                outside it (ours, unit 018; an older image's such
                                                line still loads) */
@@ -3272,6 +3274,13 @@ static void eqn_delete(ab_calc *c, int i)
     c->eqn_count--;
     c->eqn_cur = i - 1;
     while (c->eqn_cur >= 0 && eqn_builtin(c, c->eqn_cur) && !ab_mode35(c)) c->eqn_cur--;   /* 33s: past them (041 A4) */
+}
+
+/* Unit 070: the equation shown is a sum's condition (labeled WHERE), casim's text, not an equation: an op on it says
+   A CONDITION (abacus #8545), never SYNTAX; editing it is allowed, and the edited text loses the label (057) */
+static bool eqn_where(const ab_calc *c)
+{
+    return c->eqn_cur >= 0 && c->eqn_note[c->eqn_cur] == AB_NOTE_WHERE;
 }
 
 /* ENTER or C while typing stores the text: a new equation after the one shown, or the edited one
@@ -3540,6 +3549,7 @@ static abn_status eqn_solve_key(ab_calc *c, ab_op op, int code)
     abn_status st;
     slot sl;
     if (c->eqn_cur < 0) return ABN_OK;             /* EQN LIST TOP: nothing (ours) */
+    if (eqn_where(c)) return ABN_CAS_WHERE;        /* a sum's condition, before any prompt (070) */
     if (c->active) return ABN_NESTED;              /* a SOLVE or integral of a program waits (its prompt
                                                       kept): refused before anything is touched (035 review) */
     b = eqn_builtin(c, c->eqn_cur);
@@ -3653,6 +3663,7 @@ static abn_status eqn_evaluate(ab_calc *c, bool enter)
     abn_status st;
     if (c->eqn_cur < 0) return ABN_DOMAIN;         /* EQN LIST TOP: nothing to evaluate (ours) */
     if (eqn_builtin(c, c->eqn_cur)) return ABN_OK; /* a built-in: ENTER, XEQ do nothing (p.7-6) */
+    if (eqn_where(c)) return ABN_CAS_WHERE;        /* a sum's condition, not shown as a message (070) */
     t = c->eqn[c->eqn_cur];
     av = eqn_assign_var(t, c->eqn_model[c->eqn_cur] == 33);
     rhs = enter && av >= 0;
@@ -3784,7 +3795,8 @@ static void cas_stamp(ab_calc *c, const char *text)
 
 /* Unit 057 (#5670 rule 5): CAS 010's rows ("q; r", "quotient; X=a; ..."), each inserted as an equation after the one
    shown, in order, with its label; all or none: the free places are counted first, and an insert that fails takes
-   back those before it. The first row is shown. */
+   back those before it. The first row is shown. Unit 070: CAS 018's sum the same ("answer; X≠1; ..."), each condition
+   labeled WHERE (casim's text kept: the list stores a text it can't parse as typed). */
 static abn_status cas_rows(ab_calc *c, int op, const char *out)
 {
     char rows[14][AB_EQN_LEN];
@@ -3806,7 +3818,8 @@ static abn_status cas_rows(ab_calc *c, int op, const char *out)
             return st;
         }
         if (i == 0) first = c->eqn_cur;
-        c->eqn_note[c->eqn_cur] = op == CASIM_PDIV ? (i == 0 ? AB_NOTE_QUOT : AB_NOTE_REM) : i == 0 ? 0 : AB_NOTE_NOTAT;
+        c->eqn_note[c->eqn_cur] = op == CASIM_PDIV ? (i == 0 ? AB_NOTE_QUOT : AB_NOTE_REM) : i == 0 ? 0
+                                  : op == CASIM_SUM ? AB_NOTE_WHERE : AB_NOTE_NOTAT;
         cas_stamp(c, rows[i]);
     }
     c->eqn_cur = first;
@@ -3855,7 +3868,8 @@ static abn_status cas_step(ab_calc *c, int op, int var, const char *repl, const 
             return ABN_INTERRUPTED;
         }
     }
-    if ((op == CASIM_PDIV || op == CASIM_CANCEL) && cs == CASIM_OK) return cas_rows(c, op, out);    /* unit 057 */
+    if ((op == CASIM_PDIV || op == CASIM_CANCEL || op == CASIM_SUM) && cs == CASIM_OK)
+        return cas_rows(c, op, out);            /* units 057, 070 */
     if (op == CASIM_SOLVE && cs == CASIM_OK) {  /* a report, not an equation: its view opens on the status row */
         snprintf(c->cas_rep, sizeof c->cas_rep, "%s", out);
         c->cas_row = 0;
@@ -3882,6 +3896,7 @@ static abn_status cas_step(ab_calc *c, int op, int var, const char *repl, const 
     case CASIM_NOT_NUMERIC: return ABN_CAS_NOT_NUMERIC;
     case CASIM_NOT_INTEGRABLE: return ABN_CAS_NOT_INTEGRABLE;
     case CASIM_BAD_ARG:                     /* ∫ and FACTOR take an expression; the variable and angle are in range */
+        if (op == CASIM_SUM) return ABN_CAS_BAD_BOUND;  /* 070: the equation was refused before the call */
         if (op == CASIM_DEFINT)             /* 056 (#5630 rule 3): an equation was refused before the call, so a
                                                bound: one with a letter, else one that isn't real (casim decides the
                                                refusal; the text only picks its message) */
@@ -3891,6 +3906,7 @@ static abn_status cas_step(ab_calc *c, int op, int var, const char *repl, const 
     case CASIM_IMPROPER: return ABN_CAS_IMPROPER;          /* unit 056: CAS 009 */
     case CASIM_UNDEFINED: return ABN_CAS_UNDEFINED;        /* unit 056: CAS 008, any op (INVALID DATA before) */
     case CASIM_UNDECIDED: return ABN_CAS_UNDECIDED;        /* CAS 015 rule 5: limit's walk undecided */
+    case CASIM_NO_CLOSED_FORM: return ABN_CAS_NO_CLOSED;   /* unit 070: CAS 018 rule 6 */
     default: return ABN_DOMAIN;             /* INVALID DATA */
     }
 #else
@@ -3905,8 +3921,10 @@ static abn_status cas_key(ab_calc *c, ab_op op, int arg)
 {
     if (!c->stu) return ABN_STU_ONLY;
     if (c->eqn_cur < 0 || eqn_builtin(c, c->eqn_cur)) return ABN_NO_EQN;
+    if (eqn_where(c)) return ABN_CAS_WHERE;     /* a sum's condition (070): before any editor opens */
     if ((op == AB_CASD || op == AB_CASCOL || op == AB_CASSUB || op == AB_CASSOLVE || op == AB_CASINT ||
-         op == AB_CASFACT || op == AB_CASDEF || op == AB_CASQUOT || op == AB_CASGCD || op == AB_CASCANCL) &&
+         op == AB_CASFACT || op == AB_CASDEF || op == AB_CASQUOT || op == AB_CASGCD || op == AB_CASCANCL ||
+         op == AB_CASSUM) &&
         (arg < 0 || arg > 25))
         return ABN_DOMAIN;
 #ifdef AB_CASIM
@@ -3924,10 +3942,12 @@ static abn_status cas_key(ab_calc *c, ab_op op, int arg)
     default: break;
     }
 #endif
-    if (op != AB_CASSUB && op != AB_CASDEF && op != AB_CASQUOT && op != AB_CASGCD) return cas_step(c, 0, 0, NULL, NULL);
-    if (op == AB_CASDEF) {                      /* unit 056: the editor opens for the lower bound */
+    if (op != AB_CASSUB && op != AB_CASDEF && op != AB_CASQUOT && op != AB_CASGCD && op != AB_CASSUM)
+        return cas_step(c, 0, 0, NULL, NULL);
+    if (op == AB_CASDEF || op == AB_CASSUM) {   /* units 056, 070: the editor opens for the lower bound */
         c->cas_def = (uint8_t)(arg + 1);
         c->cas_def_step = 1;
+        c->cas_def_sum = op == AB_CASSUM;
         c->cas_lo[0] = '\0';
     } else if (op == AB_CASQUOT || op == AB_CASGCD) {   /* unit 057: the editor opens for g */
         c->cas_pop = op == AB_CASQUOT ? 1 : 2;
@@ -3987,14 +4007,21 @@ static abn_status cas_poly_done(ab_calc *c, bool run)
 /* Unit 056: a bound of ∫AB typed (run: ENTER) or dropped (C). The lower bound is held and the editor opens for the
    upper; the upper runs CAS 009's defint. ENTER on an empty bound, or C, cancels the step and keeps the list. Each
    bound is checked against the parser's bound (047) and has its implied products written in, read as STU's, as
-   SUBST's replacement. An equation is refused before casim is called (#5630 rule 3). */
+   SUBST's replacement. An equation is refused before casim is called (#5630 rule 3). Unit 070: Σ's bounds the same,
+   and the upper runs CAS 018's sum. The parser has no ∞, and casim takes exactly two texts holding one: ∞, the sum to
+   infinity, and -∞, its BAD_ARG (BAD BOUND), so those two go to casim as typed. Any other text holding ∞ (∞+1, a
+   blank after it) fails the parser here, SYNTAX and still typed; sent, casim would say SYNTAX too, but after the step
+   had closed (fresh eyes). */
 static abn_status cas_def_bound(ab_calc *c, bool run)
 {
     int var = c->cas_def - 1;
     char t[AB_EQN_LEN];
-    if (run && c->ebuf[0] && eqn_too_deep(c, c->ebuf, AB_MODEL_STU))
+    bool up = c->cas_def_sum && c->cas_def_step == 2;
+    bool inf = up && (!strcmp(c->ebuf, "\xe2\x88\x9e") || !strcmp(c->ebuf, "-\xe2\x88\x9e"));
+    if (inf) strcpy(t, c->ebuf);
+    if (run && c->ebuf[0] && !inf && eqn_too_deep(c, c->ebuf, AB_MODEL_STU))
         return ABN_TOO_DEEP;                    /* nested past the bound (unit 047): still typed */
-    if (run && c->ebuf[0] && eqn_write_implied(c, c->ebuf, t, sizeof t) != 1)
+    if (run && c->ebuf[0] && !inf && eqn_write_implied(c, c->ebuf, t, sizeof t) != 1)
         return ABN_SYNTAX;                      /* doesn't parse (or won't fit): still typed, as 031 answer I */
     if (!run || !c->ebuf[0]) {
         c->cas_def = c->cas_def_step = 0;
@@ -4016,7 +4043,7 @@ static abn_status cas_def_bound(ab_calc *c, bool run)
     c->cas_lo[0] = '\0';
     if (c->eqn_cur >= 0 && strchr(c->eqn[c->eqn_cur], '=')) return ABN_CAS_EXPR_ONLY;
 #ifdef AB_CASIM
-    return cas_step(c, CASIM_DEFINT, var, lo, t);
+    return cas_step(c, c->cas_def_sum ? CASIM_SUM : CASIM_DEFINT, var, lo, t);
 #else
     (void)var;
     return cas_step(c, 0, 0, lo, t);
@@ -4041,9 +4068,12 @@ static abn_status eqn_key(ab_calc *c, ab_op op, int arg)
         return eqn_evaluate(c, true);
     case AB_CASD: case AB_CASSIMP: case AB_CASEXP: case AB_CASCOL: case AB_CASSUB:
     case AB_CASSOLVE: case AB_CASINT: case AB_CASFACT: case AB_CASDEF:
-    case AB_CASQUOT: case AB_CASGCD: case AB_CASCANCL:
-        if (c->eqn_typing) return ABN_OK;           /* the list's keys (CAS 004, 048, 056) */
+    case AB_CASQUOT: case AB_CASGCD: case AB_CASCANCL: case AB_CASSUM:
+        if (c->eqn_typing) return ABN_OK;           /* the list's keys (CAS 004, 048, 056, 070) */
         return cas_key(c, op, arg);
+    case AB_KINF:                               /* unit 070: ∞, only as Σ's upper bound (the bar shows it there) */
+        if (c->eqn_typing && c->cas_def && c->cas_def_sum && c->cas_def_step == 2) ed_insert(c, "\xe2\x88\x9e", 0);
+        return ABN_OK;
     case AB_XEQ:
         if (arg != AB_TGT_EQN) return ABN_OK;
         if (c->eqn_typing && (st = eqn_store_typed(c)) != ABN_OK) return st;
@@ -4564,7 +4594,8 @@ static bool casrep_key(ab_calc *c, ab_op op, abn_status *st)
    since 056, read for the equation shown. */
 const char *ab_cas_note(const ab_calc *c)
 {
-    static const char *const TEXT[AB_NOTE_LAST + 1] = {NULL, "+C", "MAY FACTOR MORE", "QUOTIENT", "REMAINDER", "NOT AT"};
+    static const char *const TEXT[AB_NOTE_LAST + 1] = {NULL, "+C", "MAY FACTOR MORE", "QUOTIENT", "REMAINDER", "NOT AT",
+                                                       "WHERE"};      /* (070) */
     if (!c->eqn_mode || c->eqn_typing || c->eqn_cur < 0 || c->eqn_note[c->eqn_cur] > AB_NOTE_LAST) return NULL;
     return TEXT[c->eqn_note[c->eqn_cur]];       /* unit 057: the equation's own label, wherever it now is */
 }
@@ -4577,7 +4608,8 @@ const char *ab_cas_prompt_label(const ab_calc *c, char *buf, int size)
         return buf;
     }
     if (!c->cas_def || !c->eqn_typing) return NULL;
-    snprintf(buf, (size_t)size, "\xe2\x88\xab%c %s", 'A' + c->cas_def - 1, c->cas_def_step == 2 ? "TO" : "FROM");
+    snprintf(buf, (size_t)size, "%s%c %s", c->cas_def_sum ? "\xce\xa3" : "\xe2\x88\xab", 'A' + c->cas_def - 1,
+             c->cas_def_step == 2 ? "TO" : "FROM");    /* (070: Σ's, "ΣK FROM", "ΣK TO") */
     return buf;
 }
 
@@ -5147,8 +5179,8 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
         return cancel_key(c);
     case AB_CASD: case AB_CASSIMP: case AB_CASEXP: case AB_CASCOL: case AB_CASSUB:
     case AB_CASSOLVE: case AB_CASINT: case AB_CASFACT: case AB_CASDEF:
-    case AB_CASQUOT: case AB_CASGCD: case AB_CASCANCL:
-        return c->stu ? ABN_NO_EQN : ABN_STU_ONLY;     /* CAS 004, 048, 056: from Equation mode's list only */
+    case AB_CASQUOT: case AB_CASGCD: case AB_CASCANCL: case AB_CASSUM:
+        return c->stu ? ABN_NO_EQN : ABN_STU_ONLY;     /* CAS 004, 048, 056, 070: from Equation mode's list only */
     case AB_EQN:
         c->eqn_mode = true;                     /* neutral (UG p.B-5) */
         if (!ab_mode35(c) && eqn_builtin(c, c->eqn_cur)) c->eqn_cur = -1;     /* 33s mode: no built-ins (041 A4) */
@@ -5157,6 +5189,7 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
     case AB_KPAREN:
     case AB_KLEFT:
     case AB_KRIGHT:
+    case AB_KINF:                               /* (070) */
         return ABN_OK;                          /* only in Equation mode */
     case AB_FN: {
         abn_status st = fn_op(c, arg);          /* FN= enables lift (not in p.B-5's lists) */
@@ -5606,6 +5639,7 @@ static abn_status table_go(ab_calc *c)
     if (c->eqn_mode && c->eqn_typing && (st = eqn_store_typed(c)) != ABN_OK) return st;
     e = c->eqn_cur;
     if (e < 0 || e >= c->eqn_count || c->eqn[e][0] == '\x01') return ABN_NO_EQN;   /* answer 2 */
+    if (c->eqn_note[e] == AB_NOTE_WHERE) return ABN_CAS_WHERE;                  /* a sum's condition (070) */
     int v = c->tbl_var;
     if (v < 0) {                                /* the equation's first variable (answer 3) */
         int n = eqn_vars(c->eqn[e], false, false, c->eqn_model[e], vars);
@@ -6296,6 +6330,7 @@ static abn_status graph_go(ab_calc *c)
     if (c->eqn_mode && c->eqn_typing && (st = eqn_store_typed(c)) != ABN_OK) return st;
     e = c->eqn_cur;
     if (e < 0 || e >= c->eqn_count || c->eqn[e][0] == '\x01') return ABN_NO_EQN;
+    if (c->eqn_note[e] == AB_NOTE_WHERE) return ABN_CAS_WHERE;                  /* a sum's condition (070) */
     int v = c->tbl_var;
     if (v < 0) {
         const char *t = c->eqn[e];

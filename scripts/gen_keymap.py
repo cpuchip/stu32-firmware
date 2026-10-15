@@ -232,7 +232,8 @@ MENUS = [
     # unit 048 (abacus #5267): the second page, each prompting for the variable: SOLVE's exact roots (a report),
     # the antiderivative, the factors; its sixth key back to the first page
     ("CAS2", [p("SOLVE", "AB_CASSOLVE", "KM_ARG_VAR"), p("\u222bDX", "AB_CASINT", "KM_ARG_VAR"),
-              p("FACTR", "AB_CASFACT", "KM_ARG_VAR"), p("\u222bAB", "AB_CASDEF", "KM_ARG_VAR"), NONE,   # 056
+              p("FACTR", "AB_CASFACT", "KM_ARG_VAR"), p("\u222bAB", "AB_CASDEF", "KM_ARG_VAR"),        # 056
+              p("\u03a3", "AB_CASSUM", "KM_ARG_VAR"),                                                 # 070: Σ
               ("\u25b8", "KM_MENU", "0", "CAS3", 0)]),                                             # 057: on to CAS3
     # unit 048: SOLVE's report open: up and down step among its rows (ENTER copies a root, C leaves)
     ("CAS REPORT", [o("\u25b2", "AB_BST"), o("\u25bc", "AB_SST"), NONE, NONE, NONE, NONE]),
@@ -244,6 +245,10 @@ MENUS = [
     # prompt for the variable, then take g in the editor; CANCL acts on the num÷den shown; the sixth key back to CAS
     ("CAS3", [p("QUOT", "AB_CASQUOT", "KM_ARG_VAR"), p("GCD", "AB_CASGCD", "KM_ARG_VAR"),
               p("CANCL", "AB_CASCANCL", "KM_ARG_VAR"), NONE, NONE, ("\u25b8", "KM_MENU", "0", "CAS", 0)]),
+    # unit 070 (abacus #8545): typing's bar while Σ's upper bound is typed, last in this list so no menu's index moves;
+    # = has no meaning in a bound, so its key types ∞ there (the label shows it while it is live)
+    ("EQN TYPE SUM", [o("\u25c0", "AB_KLEFT"), o("\u25b6", "AB_KRIGHT"), o("( )", "AB_KPAREN"), o("\u221e", "AB_KINF"),
+                      o("SPC", "AB_KSPACE"), ("REG", "KM_MENU", "0", "REG", 0)]),
 ]
 # Menu legends that act as plain ops until their menu is ruled (abacus #3867): the EQN menu's
 # first item will take this over.

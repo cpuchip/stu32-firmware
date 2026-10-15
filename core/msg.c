@@ -56,6 +56,9 @@ const char *ab_status_message(abn_status st)
     case ABN_CAS_BOUND_LETTER: return "BOUND NOT NUMERIC";
     case ABN_CAS_BOUND_REAL: return "BOUND NOT REAL";
     case ABN_CAS_UNDECIDED: return "CAN'T DECIDE";              /* CAS 015 rule 5: not UNDEFINED's "no limit" */
+    case ABN_CAS_NO_CLOSED: return "NO CLOSED FORM";            /* unit 070: Michael's word (#8294) */
+    case ABN_CAS_BAD_BOUND: return "BAD BOUND";                 /* unit 070: provisional (abacus #8545) */
+    case ABN_CAS_WHERE: return "A CONDITION";                   /* unit 070: provisional (abacus #8545) */
     }
     return "";
 }

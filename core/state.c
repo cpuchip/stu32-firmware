@@ -51,6 +51,7 @@ static const uint8_t STATUS_SINCE[] = {
     15, 15, 15, 15,             /* unit 048: ABN_CAS_NOT_POLY .. ABN_CAS_EXPR_ONLY */
     16, 16, 16, 16,             /* unit 056: ABN_CAS_IMPROPER .. ABN_CAS_BOUND_REAL */
     18,                         /* CAS 015: ABN_CAS_UNDECIDED */
+    19, 19, 19,                 /* unit 070: ABN_CAS_NO_CLOSED .. ABN_CAS_WHERE */
 };
 _Static_assert(sizeof STATUS_SINCE == ABN_STATUS_LAST + 1, "an image version for every status (STATUS_SINCE)");
 
@@ -637,6 +638,7 @@ bool ab_line_ok(ab_op op, int32_t arg)
     case AB_CASD: case AB_CASSIMP: case AB_CASEXP: case AB_CASCOL: case AB_CASSUB:                    /* (CAS 004) */
     case AB_CASSOLVE: case AB_CASINT: case AB_CASFACT: case AB_CASDEF:                                /* (048, 056) */
     case AB_CASQUOT: case AB_CASGCD: case AB_CASCANCL:                                                /* (057) */
+    case AB_CASSUM: case AB_KINF:                                                                     /* (070) */
     case AB_ENGL: case AB_ENGR:                                                                       /* (041 C) */
     case AB_FRACFMT: case AB_CLEQN:     /* nonprogrammable since 019 and 021 (load_fuzz's line sweep) */
         return false;
@@ -824,7 +826,8 @@ static void sec_eqnote(rd *r)
     need(r, (int)n == r->eqn_count);
     for (unsigned i = 0; i < n && !r->bad; i++) {
         note[i] = (uint8_t)r8(r);
-        need(r, note[i] <= AB_NOTE_LAST && (!note[i] || !r->builtin[i]));
+        need(r, note[i] <= (r->version >= 19 ? AB_NOTE_LAST : AB_NOTE_NOTAT) && (!note[i] || !r->builtin[i]));
+                                                /* (WHERE, a sum's condition, from version 19: unit 070) */
     }
     if (r->bad || !r->c) return;
     memcpy(r->c->eqn_note, note, n);

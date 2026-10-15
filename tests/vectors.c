@@ -54,7 +54,7 @@ static const struct { const char *name; ab_op op; } NAMED[] = {
     {"[", AB_KVEC}, {",", AB_KCOMMA},
     {"PRGM", AB_PRGM}, {"RTN", AB_RTN}, {"RS", AB_RS}, {"PSE", AB_PSE}, {"SST", AB_SST},
     {"BST", AB_BST}, {"CLPGM", AB_CLPGM}, {"C", AB_CANCEL},
-    {"EQN", AB_EQN}, {"EQTOP", AB_EQTOP} /* EQN LIST's NEW (tutor #4941) */, {"SPACE", AB_KSPACE}, {"=", AB_KEQ}, {"()", AB_KPAREN}, {"<", AB_KLEFT}, {">", AB_KRIGHT},
+    {"EQN", AB_EQN}, {"EQTOP", AB_EQTOP} /* EQN LIST's NEW (tutor #4941) */, {"SPACE", AB_KSPACE}, {"=", AB_KEQ}, {"INF", AB_KINF} /* 070: ∞ */, {"()", AB_KPAREN}, {"<", AB_KLEFT}, {">", AB_KRIGHT},
     {"AND", AB_AND}, {"XOR", AB_XOR}, {"OR", AB_OR}, {"NOT", AB_NOT}, {"NAND", AB_NAND}, {"NOR", AB_NOR},
     {"SIGMA+", AB_SIGMAPLUS}, {"SIGMA-", AB_SIGMAMINUS}, {"CLSIGMA", AB_CLSIGMA},
     {"XBAR", AB_XBAR}, {"YBAR", AB_YBAR}, {"XWBAR", AB_XWBAR}, {"SX", AB_SX}, {"SY", AB_SY},
@@ -207,7 +207,8 @@ static const char *const STATUS_NAMES[] = {"OK", "DIV_ZERO", "RANGE", "BAD_TEXT"
                                            "NO_EQN", "NO_VAR", "CAS_TOO_LONG", "CAS_NO_ROOM", "CAS_UNSUPPORTED",
                                            "CAS_COPY", "TOO_DEEP", "CAS_NOT_POLY", "CAS_NOT_NUMERIC",
                                            "CAS_NOT_INTEGRABLE", "CAS_EXPR_ONLY", "CAS_IMPROPER", "CAS_UNDEFINED",
-                                           "CAS_BOUND_LETTER", "CAS_BOUND_REAL", "CAS_UNDECIDED"};
+                                           "CAS_BOUND_LETTER", "CAS_BOUND_REAL", "CAS_UNDECIDED", "CAS_NO_CLOSED",
+                                           "CAS_BAD_BOUND", "CAS_WHERE"};
 _Static_assert(sizeof STATUS_NAMES / sizeof STATUS_NAMES[0] == ABN_STATUS_LAST + 1, "a name for every status (056)");
 
 /* Applies one key token. Returns 0, or -1 for an unknown token. */
@@ -552,6 +553,7 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
             {"CASSOLVE:", AB_CASSOLVE, true}, {"CASINT:", AB_CASINT, true}, {"CASFACT:", AB_CASFACT, true},   /* 048 */
             {"CASDEF:", AB_CASDEF, true},                                                                       /* 056 */
             {"CASQUOT:", AB_CASQUOT, true}, {"CASGCD:", AB_CASGCD, true}, {"CASCANCL:", AB_CASCANCL, true},  /* 057 */
+            {"CASSUM:", AB_CASSUM, true},                                                                       /* 070 */
             {"CASSIMP", AB_CASSIMP, false}, {"CASEXP", AB_CASEXP, false}};
         for (size_t i = 0; i < sizeof CAS / sizeof CAS[0]; i++) {
             size_t n = strlen(CAS[i].t);

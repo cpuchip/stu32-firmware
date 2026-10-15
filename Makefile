@@ -240,6 +240,7 @@ test: all
 	./build/vectors tests/048-soroban.txt    # (no save/load pass: the report and the notes are not in the image)
 	./build/vectors tests/056-soroban.txt    # (no save/load pass: a bound being typed isn't in the image; D46-D47 test that)
 	./build/vectors tests/057-soroban.txt    # (no save/load pass: g being typed isn't in the image; L07-L09 and Q12 save and load)
+	./build/vectors tests/070-soroban.txt    # (no save/load pass: a bound being typed isn't in the image; S45-S51 save and load)
 	./build/vectors tests/050-soroban.txt
 	AB_SAVELOAD=1 AB_STORE=1 ./build/vectors tests/050-soroban.txt
 	./build/vectors tests/054-soroban.txt
@@ -358,6 +359,7 @@ accuracy: build/fn_drive build/fn_drive_p37 build/cx_drive build/vectors
 	for n in 1 7 1000; do AB_SLICE=$$n ./build/vectors tests/048-soroban.txt || exit 1; done    # (048: slices only)
 	for n in 1 7 1000; do AB_SLICE=$$n ./build/vectors tests/056-soroban.txt || exit 1; done    # (056: slices only)
 	for n in 1 7 1000; do AB_SLICE=$$n ./build/vectors tests/057-soroban.txt || exit 1; done    # (057: slices only)
+	for n in 1 7 1000; do AB_SLICE=$$n ./build/vectors tests/070-soroban.txt || exit 1; done    # (070: slices only)
 	./build/load_fuzz 100000 7
 
 # The on-chip test app (tests/device), built and run on the host: the same runners and bundle
