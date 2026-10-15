@@ -285,6 +285,26 @@ int main(void)
         expect(pwr_release_step(&r, 1, tw + 2130) == PWR_RELEASE_OK, "release: across the wrap, 30 ms high, OK");
     }
 
+    /* unit 074: the sleep's plan (C's wake only when C is up), and the bench image's note of it (abacus #8590) */
+    {
+        const uint64_t refresh = 100ull * 60 * 1000000, stuck = 10ull * 1000000;
+        pwr_sleep_plan ok = pwr_plan_sleep(PWR_RELEASE_OK, refresh, stuck);
+        pwr_sleep_plan st = pwr_plan_sleep(PWR_RELEASE_STUCK, refresh, stuck);
+        expect(ok.ext1 && ok.timer_us == refresh, "074: released: C's wake armed, the refresh's timer");
+        expect(!st.ext1 && st.timer_us == stuck, "074: stuck: no C wake, the 10 s look again");
+        pwr_sleep_note n = pwr_note_sleep(4, PWR_RELEASE_OK, true, &ok);
+        expect(n.cause == 4 && n.release == PWR_RELEASE_OK && n.io0 == 1 && n.ext1 == 1 && n.timer_s == 6000,
+               "074: a refresh wake's note: cause 4, OK, IO0 high, C's wake armed, 6,000 s");
+        n = pwr_note_sleep(4, PWR_RELEASE_STUCK, false, &st);
+        expect(n.cause == 4 && n.release == PWR_RELEASE_STUCK && n.io0 == 0 && n.ext1 == 0 && n.timer_s == 10,
+               "074: a stuck note: STUCK, IO0 low, no C wake, 10 s");
+        n = pwr_note_sleep(3, PWR_RELEASE_OK, true, &ok);
+        expect(n.cause == 3 && n.ext1 == 1, "074: after C's wake (cause 3): its cause kept, C's wake armed again");
+        pwr_sleep_plan odd = {true, stuck};         /* the note copies the plan, whatever it holds */
+        n = pwr_note_sleep(0, PWR_RELEASE_STUCK, false, &odd);
+        expect(n.ext1 == 1 && n.timer_s == 10, "074: the note says what was armed, not what the answer meant");
+    }
+
     printf("power_test: %d/%d checks\n", checks - bad, checks);
     return bad != 0;
 }

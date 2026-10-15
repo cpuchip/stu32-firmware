@@ -1,0 +1,21 @@
+# Unit 074 on the stand-in, head-less (OFFCLK=1 device/reva/headless.sh PORT device/reva/off074.txt): each deep sleep's
+# note in the AB_OFFCLK ring, live. OFF (GOLD, C) from a cold boot sleeps with C's wake armed and a 10 s timer; each
+# timer wake prints its line with the note, then sleeps again. The stand-in's USB bridge stays powered while the S3
+# sleeps, so the console carries every line. No STUCK case here: talk.py's press0 resets this board (75d6804), so the
+# release's STUCK answer is power_test's. Ends with a reset out of the loop (the ring goes with it; the lines are kept).
+wait : heap internal 30
+sleep 2
+send OFFCLK RESET
+expect offclk: period=0s sleeps=0 5
+send OFFCLK PRINT
+expect print=1 5
+send OFFCLK 10
+expect offclk: period=10s 5
+# OFF: GOLD, then C (taken on C's key down; the release then waits for IO0 high, the BOOT button up)
+send K30
+sleep 0.5
+send K42
+expect offclk: n=0 cause=0 release=1 io0=1 ext1=1 timer=10s 15
+expect cause=4 release=1 io0=1 ext1=1 timer=10s 30
+expect cause=4 release=1 io0=1 ext1=1 timer=10s 30
+reset 30

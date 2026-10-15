@@ -147,7 +147,10 @@ extern const uint8_t ulp_main_bin_end[] asm("_binary_ulp_main_bin_end");
      programmed (the period less DEEP_SLEEP_TIME_OVERHEAD_US, sleep_modes.c). Over a whole period the RC's drift and
      its calibration's spread enter it, so it is a cross-check, not the figure.
    The last OFFCLK_RING wakes stay in RTC memory, and OFFCLK prints them. OFFCLK PRINT adds a line at each wake with
-   the wall clock (the drift log). GLOG ms s logs CHG_N, PGOOD_N and the gauge every ms for s seconds; GLOG RING ms
+   the wall clock (the drift log). Unit 074 (abacus #8590, C didn't wake board 0005 after a long sleep): every sleep
+   entry is recorded, not only a timer wake's, each with its note (pwr_sleep_note: the wake cause of the boot before
+   it, the release's answer and IO0's level then, whether C's wake was armed, the timer). The timings are a timer
+   wake's only, and OFFCLK's figures take only those. GLOG ms s logs CHG_N, PGOOD_N and the gauge every ms for s seconds; GLOG RING ms
    into a ring that GLOG DUMP prints (abacus #7587's cell-out and plug-in rows). Never a product image: package.sh
    refuses its banner. */
 #define OFFCLK_RING 32
@@ -157,17 +160,20 @@ typedef struct {
     uint32_t boot_us;               /* the timer's target to app_main, on the RC */
     int32_t rc_awake_us;            /* the RC's figure, sleep entry to sleep entry less the sleep */
     uint32_t cal;                   /* the slow clock's period at this boot (esp_clk_slowclk_cal_get) */
+    pwr_sleep_note note;            /* unit 074: what this sleep armed, and why */
 } offclk_wake;
 RTC_DATA_ATTR static uint32_t offclk_s;         /* the timer's period in s; 0: REFRESH_US, as built */
 RTC_DATA_ATTR static bool offclk_print;
 RTC_DATA_ATTR static bool offclk_nofix;         /* NOFIX: leave the light sleep's GPIO wakes armed into deep sleep */
 RTC_DATA_ATTR static uint64_t offclk_ticks_at;  /* the RTC ticks at the last sleep entry, 0 none */
 RTC_DATA_ATTR static uint64_t offclk_slept_us;  /* the timer it set */
-RTC_DATA_ATTR static uint32_t offclk_n;         /* timer wakes recorded since OFFCLK RESET (or a power-on) */
+RTC_DATA_ATTR static uint32_t offclk_n;         /* sleeps recorded since OFFCLK RESET (or a power-on; timer wakes
+                                                   only before unit 074) */
 RTC_DATA_ATTR static offclk_wake offclk_ring[OFFCLK_RING];
 static offclk_wake offclk_now;
 static uint64_t offclk_ticks_main;     /* the RTC ticks at app_main */
 static bool offclk_timer_boot;
+static int offclk_cause;               /* unit 074: this boot's wake cause (ESP_SLEEP_WAKEUP_*), for the note */
 /* GLOG: the charger's pins and the gauge sampled every glog_ms by a task of its own (the i2c_master driver takes the bus
    per transaction, so the calc task's 30 s reading may interleave). Live, printed for glog_s seconds; or into a ring
    of the last GLOG_RING samples, printed by GLOG DUMP: unplugging USB takes Rev A's console with it, so a plug-in is
@@ -571,12 +577,22 @@ static void glog_dump(void)
     printf("glog: done n=%d\n", glog_n);
 }
 
-/* At the sleep entry: a timer boot's record into the ring, its line when OFFCLK PRINT is on, and the RTC ticks the
-   next boot's RC figure starts from. */
-static void offclk_sleep(uint64_t us)
+/* At the sleep entry: its record into the ring (a timer boot's with its timings; unit 074: every sleep with its note),
+   its line when OFFCLK PRINT is on, and the RTC ticks the next boot's RC figure starts from. */
+static void offclk_sleep(uint64_t us, const pwr_sleep_note *note)
 {
     uint64_t t = rtc_time_get();
-    if (offclk_timer_boot) {
+    if (!offclk_timer_boot) {                   /* unit 074: a cold boot's or C's wake's sleep: its note, no timings */
+        offclk_wake w = {0};
+        w.note = *note;
+        if (offclk_print) {
+            printf("offclk: n=%lu cause=%u release=%u io0=%u ext1=%u timer=%lus\n", (unsigned long)offclk_n,
+                   note->cause, note->release, note->io0, note->ext1, (unsigned long)note->timer_s);
+            fflush(stdout);
+        }
+        offclk_ring[offclk_n % OFFCLK_RING] = w;
+        offclk_n++;
+    } else {
         OFFCLK_STAMP(print_us);
         if (offclk_ticks_at) {      /* (the RC's interval holds the last wake's print, when OFFCLK PRINT is on) */
             int64_t between = (int64_t)rtc_time_slowclk_to_us(t - offclk_ticks_at, offclk_now.cal);
@@ -587,15 +603,18 @@ static void offclk_sleep(uint64_t us)
         if (offclk_print) {
             struct timeval tv;
             gettimeofday(&tv, NULL);
-            printf("offclk: n=%lu wall=%lld.%06ld boot=%lu main=%lu load=%lu render=%lu awake=%lu rc=%ld cal=%lu\n",
+            printf("offclk: n=%lu wall=%lld.%06ld boot=%lu main=%lu load=%lu render=%lu awake=%lu rc=%ld cal=%lu"
+                   " cause=%u release=%u io0=%u ext1=%u timer=%lus\n",
                    (unsigned long)offclk_n, (long long)tv.tv_sec, (long)tv.tv_usec, (unsigned long)offclk_now.boot_us,
                    (unsigned long)offclk_now.main_us, (unsigned long)offclk_now.load_us,
                    (unsigned long)(offclk_now.render1_us - offclk_now.render0_us),
                    (unsigned long)(offclk_now.boot_us + offclk_now.print_us - offclk_now.main_us),
-                   (long)offclk_now.rc_awake_us, (unsigned long)offclk_now.cal);
+                   (long)offclk_now.rc_awake_us, (unsigned long)offclk_now.cal, note->cause, note->release, note->io0,
+                   note->ext1, (unsigned long)note->timer_s);
             fflush(stdout);
         }
         OFFCLK_STAMP(sleep_us);
+        offclk_now.note = *note;
         offclk_ring[offclk_n % OFFCLK_RING] = offclk_now;
         offclk_n++;
     }
@@ -615,20 +634,31 @@ static void offclk_report(void)
     int n = offclk_n < OFFCLK_RING ? (int)offclk_n : OFFCLK_RING;
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    printf("offclk: period=%lus wakes=%lu kept=%d print=%d nofix=%d wall=%lld.%06ld\n", (unsigned long)offclk_s,
-           (unsigned long)offclk_n, n, offclk_print, offclk_nofix, (long long)tv.tv_sec, (long)tv.tv_usec);
     static const char *names[] = {"boot", "main", "load", "render", "print", "awake", "rc-awake", "cal"};
-    for (int f = 0; f < 8 && n > 0; f++) {
+    uint8_t tw[OFFCLK_RING];                    /* unit 074: the figures are the timer wakes' only */
+    int m = 0;
+    for (int i = 0; i < n; i++)
+        if (offclk_ring[i].note.cause == ESP_SLEEP_WAKEUP_TIMER) tw[m++] = (uint8_t)i;
+    printf("offclk: period=%lus sleeps=%lu kept=%d timer-kept=%d print=%d nofix=%d wall=%lld.%06ld\n",
+           (unsigned long)offclk_s, (unsigned long)offclk_n, n, m, offclk_print, offclk_nofix, (long long)tv.tv_sec,
+           (long)tv.tv_usec);
+    for (int f = 0; f < 8 && m > 0; f++) {
         int32_t v[OFFCLK_RING];
-        for (int i = 0; i < n; i++) {
-            const offclk_wake *w = &offclk_ring[i];
+        for (int i = 0; i < m; i++) {
+            const offclk_wake *w = &offclk_ring[tw[i]];
             v[i] = f == 0 ? (int32_t)w->boot_us : f == 1 ? (int32_t)w->main_us : f == 2 ? (int32_t)(w->load_us - w->main_us)
                  : f == 3 ? (int32_t)(w->render1_us - w->render0_us) : f == 4 ? (int32_t)(w->sleep_us - w->print_us)
                  : f == 5 ? (int32_t)(w->boot_us + w->sleep_us - w->main_us) : f == 6 ? w->rc_awake_us
                  : (int32_t)w->cal;
         }
-        qsort(v, (size_t)n, sizeof v[0], offclk_cmp);
-        printf("offclk: %s min=%ld med=%ld max=%ld\n", names[f], (long)v[0], (long)v[n / 2], (long)v[n - 1]);
+        qsort(v, (size_t)m, sizeof v[0], offclk_cmp);
+        printf("offclk: %s min=%ld med=%ld max=%ld\n", names[f], (long)v[0], (long)v[m / 2], (long)v[m - 1]);
+    }
+    /* unit 074: each kept sleep's note, oldest first (the ring's slot k holds sleep k mod OFFCLK_RING) */
+    for (uint32_t k = offclk_n > OFFCLK_RING ? offclk_n - OFFCLK_RING : 0; k < offclk_n; k++) {
+        const pwr_sleep_note *e = &offclk_ring[k % OFFCLK_RING].note;
+        printf("offclk: sleep %lu cause=%u release=%u io0=%u ext1=%u timer=%lus\n", (unsigned long)k, e->cause,
+               e->release, e->io0, e->ext1, (unsigned long)e->timer_s);
     }
 }
 #endif
@@ -658,8 +688,12 @@ static void sleep_now(void)
     pwr_release_state rs;
     pwr_release_init(&rs, now_ms());
     pwr_release st;
-    while ((st = pwr_release_step(&rs, gpio_get_level(PIN_ON), now_ms())) == PWR_RELEASE_WAIT)
+    bool io0;                                   /* IO0's level when the release answered (unit 074's note) */
+    for (;;) {
+        io0 = gpio_get_level(PIN_ON);
+        if ((st = pwr_release_step(&rs, io0, now_ms())) != PWR_RELEASE_WAIT) break;
         vTaskDelay(pdMS_TO_TICKS(5));
+    }
     /* Only EXT1 and the timer wake it (decision 34). key_wake_init armed the rows and IO0 as low-level wakes for light
        sleep (esp_sleep_enable_gpio_wakeup, gpio_wakeup_enable). IDF 5.4.2 hands every enabled trigger to deep sleep
        (sleep_modes.c, call_rtc_sleep_start), and on the S3 gpio_wakeup_enable on an RTC pad also arms the pad's RTC IO
@@ -674,13 +708,19 @@ static void sleep_now(void)
         for (int r = 0; r < KB_ROWS; r++) gpio_wakeup_disable(ROWS[r]);
         gpio_wakeup_disable(PIN_ON);
     }
-    if (st == PWR_RELEASE_OK) esp_sleep_enable_ext1_wakeup(pin_wake_mask(), ESP_EXT1_WAKEUP_ANY_LOW);
+    /* what it arms is unit 074's plan, the bench image's record of it the same plan */
 #ifdef AB_OFFCLK
-    uint64_t us = st != PWR_RELEASE_OK ? STUCK_RECHECK_US : offclk_s ? offclk_s * 1000000ull : REFRESH_US;
-    esp_sleep_enable_timer_wakeup(us);
-    offclk_sleep(us);
+    pwr_sleep_plan plan = pwr_plan_sleep(st, offclk_s ? offclk_s * 1000000ull : REFRESH_US, STUCK_RECHECK_US);
 #else
-    esp_sleep_enable_timer_wakeup(st == PWR_RELEASE_OK ? REFRESH_US : STUCK_RECHECK_US);
+    pwr_sleep_plan plan = pwr_plan_sleep(st, REFRESH_US, STUCK_RECHECK_US);
+#endif
+    if (plan.ext1) esp_sleep_enable_ext1_wakeup(pin_wake_mask(), ESP_EXT1_WAKEUP_ANY_LOW);
+    esp_sleep_enable_timer_wakeup(plan.timer_us);
+#ifdef AB_OFFCLK
+    pwr_sleep_note note = pwr_note_sleep(offclk_cause, st, io0, &plan);
+    offclk_sleep(plan.timer_us, &note);
+#else
+    (void)io0;
 #endif
     esp_deep_sleep_start();
 }
@@ -983,6 +1023,9 @@ void app_main(void)
 #endif
     esp_sleep_wakeup_cause_t why = esp_sleep_get_wakeup_cause();
     bool woke = why == ESP_SLEEP_WAKEUP_EXT1 || why == ESP_SLEEP_WAKEUP_TIMER;
+#ifdef AB_OFFCLK
+    offclk_cause = (int)why;                    /* unit 074: the note's cause */
+#endif
     /* the outputs' first levels (pins.c), keeping BOOST_EN and DISP high after a wake */
 #ifndef REVA_HEADLESS
     for (int i = 0; i < PIN_BOOT_COUNT; i++) {

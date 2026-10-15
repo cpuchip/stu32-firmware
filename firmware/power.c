@@ -65,3 +65,15 @@ pwr_release pwr_release_step(pwr_release_state *r, bool on_high, uint32_t now_ms
     }
     return PWR_RELEASE_WAIT;
 }
+
+pwr_sleep_plan pwr_plan_sleep(pwr_release st, uint64_t refresh_us, uint64_t stuck_us)
+{
+    pwr_sleep_plan p = {st == PWR_RELEASE_OK, st == PWR_RELEASE_OK ? refresh_us : stuck_us};
+    return p;
+}
+
+pwr_sleep_note pwr_note_sleep(int cause, pwr_release st, bool io0_high, const pwr_sleep_plan *plan)
+{
+    pwr_sleep_note n = {(uint8_t)cause, (uint8_t)st, io0_high, plan->ext1, (uint32_t)(plan->timer_us / 1000000u)};
+    return n;
+}

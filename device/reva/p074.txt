@@ -1,0 +1,29 @@
+# Unit 074 on Rev A (abacus #8590, #8647): what each deep sleep armed, on the cell, past two refreshes. With the
+# AB_OFFCLK image abacus_reva-offclk-<sha7>.bin flashed:
+#   python talk.py COM18 p074.log p074.txt          (lepton: the by-id path)
+# Each sleep is recorded with its note: cause (0 cold boot, 3 C, 4 the timer), release (1 OK: C up; 2 STUCK: C read
+# down for 3 s), io0 (C's level then, 1 up), ext1 (1: C's wake armed), timer (s). OFFCLK prints the kept ones.
+send X
+expect boot: boots
+send OFFCLK RESET
+expect offclk: period=0s sleeps=0
+send OFFCLK PRINT
+expect print=1
+# ---- the control, 2 minutes: 068 (5)'s case, so the image itself wakes on C
+say With the cell fitted, unplug USB, then press GOLD then C (OFF). Wait 20 s, press C: it must wake. Plug USB back in.
+wait talk.py: port open again 600
+sleep 3
+send OFFCLK
+expect offclk: sleep 0 cause=0 release=1 io0=1 ext1=1
+confirm Did C wake it after the 20 s?
+send OFFCLK RESET
+expect offclk: period=0s sleeps=0
+# ---- the run: at least 3.5 h off on the cell (two 100 min refreshes)
+say Unplug USB, press GOLD then C (OFF), and note the time. Leave it at least 3.5 hours, then press C and note the time.
+say If C wakes it: plug USB in. If C does NOT wake it: plug USB in WITHOUT pressing reset, and leave this running.
+wait talk.py: port open again 21600
+sleep 3
+send OFFCLK
+wait offclk: sleep 2 600
+confirm Did C wake it after the long sleep? (n: leave the console open up to 100 min; each wake prints its line)
+say Done. Send p074.log to abacus, with the two times you noted.

@@ -63,6 +63,21 @@ typedef struct {
 } pwr_release_state;
 void pwr_release_init(pwr_release_state *r, uint32_t now_ms);
 pwr_release pwr_release_step(pwr_release_state *r, bool on_high, uint32_t now_ms);
+/* Unit 074: what a deep sleep arms, from the release's answer: C's wake (EXT1) only when C is up (OK), and the timer,
+   the off image's refresh then or STUCK's look again. Rev A's sleep_now arms from it, and the AB_OFFCLK bench image's
+   record keeps it, so the record says what was armed, not what was meant (abacus #8590: C didn't wake board 0005). */
+typedef struct {
+    bool ext1;              /* C's wake armed */
+    uint64_t timer_us;      /* the timer's wake */
+} pwr_sleep_plan;
+pwr_sleep_plan pwr_plan_sleep(pwr_release st, uint64_t refresh_us, uint64_t stuck_us);
+/* Unit 074: one sleep entry, for the bench image's record: the wake cause of the boot that led to it (the chip's
+   number, ESP_SLEEP_WAKEUP_*), the release's answer, IO0's level when it answered, C's wake armed, the timer in s. */
+typedef struct {
+    uint8_t cause, release, io0, ext1;
+    uint32_t timer_s;
+} pwr_sleep_note;
+pwr_sleep_note pwr_note_sleep(int cause, pwr_release st, bool io0_high, const pwr_sleep_plan *plan);
 bool pwr_charging(const pwr_inputs *in);
 bool pwr_external(const pwr_inputs *in);
 
