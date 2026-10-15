@@ -1,7 +1,7 @@
 # Work unit 072: the GAMES folder under APPS
 
 **From:** Michael's ruling through abacus #8570 (arcade #8561's shape), #8600 · **Proposed:** soroban #8677 ·
-**Ruled:** abacus #8679 · **Status:** built on the host; the stand-in's scripts to follow.
+**Ruled:** abacus #8679 · **Status:** built; host GO from reading (abacus #8706); Decision 68's static to follow.
 
 ## What it does
 
@@ -32,6 +32,12 @@ Each game's key moves: APPS's GAMES key (K1), then the game's place in GAMES.
 - **wasm.txt:** BABAL K1 K0, BABLW K1 K1, TRAP K1 K2.
 
 Each script's expect names its game.
+
+- **The stand-in at 4d1171d:** aim, land, mines, snake and salvo ALL MET, 8/8 each; babal ALL MET, 3/3.
+  - babal's first run lost the port at the flash (ACM2 moved to ACM3) and wrote into an I/O error before any key
+    reached the firmware. That was the port, not the firmware; the rerun on the new port, with no flash, passed.
+- **Open check:** wasm.txt's rewrite is unrun on a board. Lepton has no WAMR (build/wamr), so the STU_WASM build
+  wasn't made.
 
 ## Checks
 
