@@ -29,6 +29,7 @@
 #include <unistd.h>
 
 #include "driver/gpio.h"
+#include "driver/rtc_io.h"
 #include "esp_attr.h"
 #include "esp_pm.h"
 #include "esp_timer.h"
@@ -121,6 +122,21 @@ static void sleep_as_reva(const char *m)
 void app_main(void)
 {
     esp_sleep_wakeup_cause_t why = esp_sleep_get_wakeup_cause();
+    if (!strcmp(mode, "IO0") && (why == ESP_SLEEP_WAKEUP_TIMER || why == ESP_SLEEP_WAKEUP_EXT1)) {
+        /* abacus #8590: Rev A's refresh wake reads C (IO0, the BOOT button here) with gpio_set_direction only, before
+           anything reconfigures the pad EXT1 used. Read it so for 3 s, then after rtc_gpio_deinit, untouched both
+           times: a low count with the button up is pwr_release's STUCK (sleep without C's wake) */
+        gpio_set_direction(GPIO_NUM_0, GPIO_MODE_INPUT);
+        int lo = 0, n = 0;
+        for (; n < 60; n++, vTaskDelay(pdMS_TO_TICKS(50))) lo += !gpio_get_level(GPIO_NUM_0);
+        printf("io0: wake cause %d, as Rev A's refresh reads it: low %d of %d\n", (int)why, lo, n);
+        rtc_gpio_deinit(GPIO_NUM_0);
+        gpio_set_direction(GPIO_NUM_0, GPIO_MODE_INPUT);
+        lo = 0;
+        for (n = 0; n < 60; n++, vTaskDelay(pdMS_TO_TICKS(50))) lo += !gpio_get_level(GPIO_NUM_0);
+        printf("io0: after rtc_gpio_deinit: low %d of %d\n", lo, n);
+        fflush(stdout);
+    }
     if (why == ESP_SLEEP_WAKEUP_TIMER || why == ESP_SLEEP_WAKEUP_EXT1 || why == ESP_SLEEP_WAKEUP_ULP) {
         uint32_t after = ulp_edges;
         printf("wake: cause %d, mode %s, edges after %lu, delta %ld over 10 s (one edge per 500 ms: about 20)\n",
@@ -168,7 +184,7 @@ void app_main(void)
         line[n] = 0;
         n = 0;
         if (!strcmp(line, "SLEEP") || !strcmp(line, "PERIPHON") || !strcmp(line, "PERIPHOFF") || !strcmp(line, "HALT") ||
-            !strcmp(line, "ULPWAKE") || !strcmp(line, "RCFAST"))
+            !strcmp(line, "ULPWAKE") || !strcmp(line, "RCFAST") || !strcmp(line, "IO0"))
             sleep_as_reva(line);
         else if (!strcmp(line, "LIGHT") || !strcmp(line, "LIGHTHALT") || !strcmp(line, "LIGHTKEY") ||
                  !strcmp(line, "LIGHTSETTLE"))

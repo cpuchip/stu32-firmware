@@ -1,0 +1,14 @@
+# abacus #8590 (board 0005: C doesn't wake it after a long sleep): deep sleep as Rev A's (EXT1 on IO0, the timer), then
+# on the timer's wake read IO0 (the BOOT button, up) as Rev A's refresh path reads it, before and after
+# rtc_gpio_deinit. "low 60 of 60" before and "low 0" after would be pwr_release's STUCK on every refresh. Cause 4 is
+# the timer.
+wait PROBE READY 30
+send IO0
+expect io0: wake cause 4, as Rev A's refresh reads it 30
+expect io0: after rtc_gpio_deinit 10
+wait PROBE READY 15
+send IO0
+expect io0: wake cause 4, as Rev A's refresh reads it 30
+expect io0: after rtc_gpio_deinit 10
+# No EXT1 control on the stand-in: press0 (IO0 low through the CH343's DTR, RTS high) reset the chip there instead of
+# waking it (a cold boot, "awake: edges 3", no wake line; 2026-10-15), so a pressed C's wake is untested here.
