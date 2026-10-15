@@ -16,8 +16,8 @@
  *                             with dev_image_save in store.c's slot 0 of the abstate partition (OUT, 512 KB, the
  *                             second slot erased), for esptool at 0x710000 on Rev A, 0x510000 on the stand-in.
  *                             Checked here: the list refuses one more, and the image loads back through the store and
- *                             saves again the same. Programs are not filled: the stack readings' own keys clear
- *                             program memory (CLPGM) first.
+ *                             saves again the same. Programs are not filled: the stack readings' keys type their
+ *                             program into empty program memory (every state starts with none).
  *
  * Prints what the host did, then "keys (entry N, ...): k k k...", N the keys up to the stored line.
  */
@@ -343,10 +343,14 @@ int main(int argc, char **argv)
     stu();
     if (!strcmp(argv[1], "prog")) {
         int d = atoi(argv[2]);
-        gold("9");                              /* PRGM, then CLPGM */
-        tap(0);
+        /* PRGM, into empty program memory: no CLPGM, which asks CLR PGMS? since abacus #8497 and acts at once
+           before it, while resources.py sends one key list to both commits (each of its states starts empty) */
+        if (c.prog_len) {
+            fprintf(stderr, "stackkeys: program memory is not empty\n");
+            return 1;
+        }
         gold("9");
-        tap(5);
+        tap(0);
         for (int i = 0; i < 19; i++) {         /* LBL A..S: XEQ the next, RTN */
             gold("XEQ");
             tap(letter('A' + i));
