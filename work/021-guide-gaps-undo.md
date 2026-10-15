@@ -35,7 +35,12 @@ The menu draft (unit 019) also asks for four functions the WP 34S added for accu
    - The core gets the op that clears data and keeps modes. Read appendix B for what "settings" means,
      and say if it differs from ab_memory_clear.
    - This is CLEAR's F5 in unit 019.
-4. **UNDO (ours; the 35s has none)** is one level, and a second UNDO puts it back.
+4. **UNDO (ours)** is one level, and a second UNDO puts it back.
+   - Corrected 2026-10-15 (abacus #8495, #8497): this rule first said "the 35s has none". It has one. The 35s's
+     Undo key (UG p.1-11) "serves largely to recover from the deletion of an entry": an entry, an equation
+     deleted in Equation mode, a program line, or a register cleared from the CLEAR menu, only straight after
+     the deletion; and while editing, a character or an expression just deleted. Ours is wider: it undoes any
+     key that changes the state.
    - Before each key that changes the calculator's state, the device keeps the state image (unit
      016's), so UNDO restores the state from before the last such key. Two calculators' images are
      about 212 KB, so one more image is affordable in PSRAM.

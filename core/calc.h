@@ -282,16 +282,16 @@ typedef struct {
     ab_val plit;            /* in program entry, the number being keyed as a line */
     int labelpos[26];       /* the line of each label, -1 if none (rebuilt after each edit) */
     uint16_t flags;         /* flags 0..6, 10, 11 (7, 8, 9 are fdisp, flag8, flag9) */
-    bool yes;               /* the last test's answer, shown as YES / NO from the keyboard */
+    bool yes;               /* the last test's answer, shown as YES / NO from the keyboard (AB_VIEW_TEST) */
     long budget;            /* lines a run may execute: AB_RUN_BUDGET unless a device changes it */
     ab_stop stop;           /* why the last run stopped (unit 012) */
     int stop_var;           /* INPUT / VIEW / PSE: the variable (A..Z 0..25, i 26, or -27..-32, or
                                1000 + an unnamed address); -1 for none */
     bool viewing;           /* a keyboard VIEW's display, Variable=Value (UG p.3-4), until the next key:
                                C or backspace only clears it, any other key clears it and acts
-                               (abacus #3979); not in the state image */
+                               (abacus #3979); in the state image since its version 4 */
     int view_id;            /* its variable, as stop_var's ids (A..Z 0..25, i 26, 1000 + an indirect
-                               address, -27..-32 the statistics) */
+                               address, -27..-32 the statistics), or one of the AB_VIEW_ views below */
     int stop_line;          /* the line an error stopped at */
     int fn;                 /* FN=: the label chosen (0..25), -1 none (unit 013) */
     int active;             /* 0, or AB_SOLVE / AB_INTEG while its function is being evaluated */
@@ -586,6 +586,7 @@ bool ab_view_key(ab_calc *c, int op);
    and registers): the integral's result in X ("∫="), the 2x2 solver's X and Y, the 3x3's X, Y and Z
    (down and up step among them, 35s p.7-7). */
 #define AB_VIEW_INTEG (-33)
+#define AB_VIEW_TEST (-34)          /* a keyboard test's YES / NO (UG p.14-7; abacus #8495) */
 #define AB_VIEW_LIN2 (-40)          /* -40 X, -41 Y */
 #define AB_VIEW_LIN3 (-50)          /* -50 X, -51 Y, -52 Z */
 bool ab_view_linear(const ab_calc *c);  /* a linear solution's view is showing (its bar: up, down) */

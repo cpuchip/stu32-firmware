@@ -398,7 +398,7 @@ int main(void)
             static const struct { km_kind kind; int op, prompt; const char *legend; } P[6] = {
                 {KM_OP, AB_PRGM, 0, "PRGM"}, {KM_PROMPT, AB_LBL, KM_ARG_LABEL, "LBL"},
                 {KM_PROMPT, AB_INPUT, KM_ARG_VAR, "INPUT"}, {KM_PROMPT, AB_FN, KM_ARG_FN, "FN="},   /* 041 C */
-                {KM_OP, AB_BST, 0, "BST"}, {KM_OP, AB_CLPGM, 0, "CLPGM"}};
+                {KM_OP, AB_BST, 0, "BST"}, {KM_CONFIRM, AB_CLPGM, 0, "CLPGM"}};      /* CLR PGMS? first (#8497) */
             for (int i = 0; i < 6; i++) {
                 const km_action *it = &pm->item[i];
                 snprintf(m, sizeof m, "PRGM menu soft key %d: %s", i + 1, P[i].legend);

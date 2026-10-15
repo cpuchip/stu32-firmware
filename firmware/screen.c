@@ -681,6 +681,10 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
         line_add(xl, ui->notice);
         k->x_left = true;
         k->xk = SCREEN_MESSAGE;
+    } else if (c->viewing && c->view_id == AB_VIEW_TEST) {    /* a keyboard test: YES or NO (UG p.14-7) */
+        line_add(xl, c->yes ? "YES" : "NO");
+        k->x_left = true;
+        k->xk = SCREEN_VIEW;
     } else if (c->viewing) {                    /* a keyboard VIEW: Variable=Value (UG p.3-4) */
         char name[16];
         ab_val v;

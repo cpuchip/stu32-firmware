@@ -78,7 +78,7 @@ MENUS = [
     ("PRGM", [("PRGM", "KM_OP", "AB_PRGM", 0, 0), ("LBL", "KM_PROMPT", "AB_LBL", 0, "KM_ARG_LABEL"),
               # unit 041 C (B7): FN= in SST's cell (SST is blue R/S; proposed, abacus #4836 reply)
               ("INPUT", "KM_PROMPT", "AB_INPUT", 0, "KM_ARG_VAR"), ("FN=", "KM_PROMPT", "AB_FN", 0, "KM_ARG_FN"),
-              ("BST", "KM_OP", "AB_BST", 0, 0), ("CLPGM", "KM_OP", "AB_CLPGM", 0, 0)]),
+              ("BST", "KM_OP", "AB_BST", 0, 0), ("CLPGM", "KM_CONFIRM", "AB_CLPGM", 0, 0)]),
     # Michael, #3901: FIX, SCI, ENG then a digit setting (UG p.1-21), ALL; then ENG→ and ←ENG (unit 041 C, B4: abacus
     # #4878 (a)), whose xiy and rθa moved to CMPLX
     ("DISP", [("FIX", "KM_PROMPT", "AB_SETFIX", 0, "KM_ARG_DIGITS"),

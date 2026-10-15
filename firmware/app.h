@@ -30,8 +30,8 @@
  *   "CLVAR___" filling as they come; the third completes it, backspace takes one back, C cancels,
  *   other keys do nothing.
  * - A yes/no prompt (CLEAR ALL, unit 021; UG p.1-5's CLR ALL? Y N; the item is PGM, CLR PGMS?,
- *   in program entry and EQN, CLR EQN?, in Equation mode): soft key 1 is yes, and any other key,
- *   a shift included, only cancels.
+ *   in program entry and EQN, CLR EQN?, in Equation mode; PRGM's CLPGM asks CLR PGMS? too, abacus #8497):
+ *   soft key 1 is yes, and any other key, a shift included, only cancels.
  * - Equation mode's bar (unit 020, provisional): with no menu open, the soft keys are the editor's,
  *   from keymap.h's EQN LIST (up, down, EDIT, NEW, -, EXIT) while the list shows and EQN TYPE
  *   (left, right, ( ), =, SPC, REG >) while an equation is typed; it follows the core's state, so

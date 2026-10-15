@@ -666,6 +666,40 @@ int main(void)
         press(&a, "k:0");
         expect(c.prog_len == 0 && c.prgm, "Y: the programs cleared, still in program entry");
         press(&a, "GOLD 9 k:0");
+        /* PRGM's CLPGM asks the same (abacus #8495, #8497): in program entry and out of it */
+        press(&a, "GOLD 9 k:0 GOLD XEQ ltr:A 2 BLUE XEQ GOLD 9 k:5");
+        app_ui(&a, &ui);
+        expect(c.prgm && ui.prompt && !strcmp(ui.prompt, "CLR PGMS?") && c.prog_len == 3,
+               "PRGM's CLPGM in program entry: CLR PGMS?, nothing cleared yet");
+        press(&a, "k:1");
+        app_ui(&a, &ui);
+        expect(c.prog_len == 3 && !ui.prompt, "N: the programs kept");
+        press(&a, "GOLD 9 k:0 GOLD 9 k:5");
+        app_ui(&a, &ui);
+        expect(!c.prgm && ui.prompt && !strcmp(ui.prompt, "CLR PGMS?") && c.prog_len == 3,
+               "PRGM's CLPGM out of program entry: CLR PGMS? too");
+        press(&a, "k:0");
+        app_ui(&a, &ui);
+        expect(c.prog_len == 0 && !ui.prompt, "Y: the programs cleared");
+        press(&a, "BLUE \xe2\x86\x90");
+        expect(c.prog_len == 3, "UNDO after CLPGM: the programs back");
+        /* and its Y clears in Equation mode and in ALG too (fresh eyes: it asked, then did nothing; unit 021: never a
+           silent no-op once the device has asked) */
+        press(&a, "GOLD 0 GOLD 9 k:5");
+        app_ui(&a, &ui);
+        expect(c.eqn_mode && ui.prompt && !strcmp(ui.prompt, "CLR PGMS?") && c.prog_len == 3,
+               "Equation mode: PRGM's CLPGM asks CLR PGMS?");
+        press(&a, "k:0");
+        app_ui(&a, &ui);
+        expect(c.prog_len == 0 && !ui.prompt && !c.msg && !ui.notice, "Equation mode: Y clears the programs");
+        press(&a, "GOLD 0 GOLD 9 k:0 GOLD XEQ ltr:A 2 BLUE XEQ GOLD 9 k:0 BLUE ENTER k:2 BLUE ENTER k:4 GOLD 9 k:5");
+        app_ui(&a, &ui);
+        expect(c.alg && !c.eqn_mode && ui.prompt && !strcmp(ui.prompt, "CLR PGMS?") && c.prog_len == 3,
+               "ALG: PRGM's CLPGM asks CLR PGMS?");
+        press(&a, "k:0");
+        app_ui(&a, &ui);
+        expect(c.prog_len == 0 && !ui.prompt && !c.msg && !ui.notice, "ALG: Y clears the programs, no RPN ONLY");
+        press(&a, "BLUE ENTER k:0");
 
         /* UNDO after a short program: a run is one key */
         ab_init(&c);
@@ -1307,6 +1341,56 @@ int main(void)
         expect(c.yes, "FS? 11: yes");
         press(&a, "GOLD x\xe2\x86\x94y k:4 . 1");
         expect(c.yes, "TEST's FS? 11: yes");
+        {   /* a keyboard test shows YES or NO (33s p.13-7, 35s p.14-7/14-8; abacus #8495, #8497) as a VIEW's display:
+               C or backspace only clears it, any other key clears it and acts, in 35s mode too (no error, so no
+               017 rule 4 swallow); in program entry the test is a line, and nothing shows */
+            static screen_page pg;
+            static uint8_t img[1 << 18];
+            ab_init(&c);
+            app_init(&a, &c, now);
+            press(&a, "1 ENTER 2 GOLD 6 k:3");
+            app_ui(&a, &ui);
+            screen_lines(&c, &ui, &pg);
+            expect(pg.x.kind == SCREEN_VIEW && !strcmp(pg.x.text, "YES") && x_of(&c) == 2,
+                   "x>y? with y 1, x 2: YES on the X line, X still 2");
+            press(&a, "GOLD 6 k:2");
+            app_ui(&a, &ui);
+            screen_lines(&c, &ui, &pg);
+            expect(pg.x.kind == SCREEN_VIEW && !strcmp(pg.x.text, "NO"), "x<y?: NO");
+            size_t n = ab_state_save(&c, img, sizeof img);
+            {
+                static ab_calc t;
+                ab_init(&t);
+                expect(n > 0 && n <= sizeof img && ab_state_load(&t, img, n) == ABN_OK && t.viewing &&
+                       t.view_id == AB_VIEW_TEST && !t.yes, "the NO display is in the image, and loads");
+            }
+            press(&a, "C");
+            app_ui(&a, &ui);
+            screen_lines(&c, &ui, &pg);
+            expect(pg.x.kind != SCREEN_VIEW && x_of(&c) == 2 && !c.entry.active, "C only clears YES / NO: X 2");
+            press(&a, "GOLD 6 k:3 \xe2\x86\x90");
+            app_ui(&a, &ui);
+            screen_lines(&c, &ui, &pg);
+            expect(pg.x.kind != SCREEN_VIEW && x_of(&c) == 2, "backspace only clears it too: X 2, not cleared");
+            press(&a, "GOLD 6 k:3 +");
+            app_ui(&a, &ui);
+            screen_lines(&c, &ui, &pg);
+            expect(pg.x.kind != SCREEN_VIEW && x_of(&c) == 3, "a test then +: the display goes and + adds (1 + 2)");
+            ab_do_arg(&c, AB_MODEL, 35);
+            press(&a, "0 BLUE 5 k:3");
+            app_ui(&a, &ui);
+            screen_lines(&c, &ui, &pg);
+            expect(pg.x.kind == SCREEN_VIEW && !strcmp(pg.x.text, "NO"), "35s mode: x>0? of 0: NO");
+            press(&a, "+");
+            expect(x_of(&c) == 3 && !c.viewing, "35s mode: the next key acts (3 + 0), not swallowed");
+            ab_do_arg(&c, AB_MODEL, 33);
+            press(&a, "GOLD 9 k:0 GOLD 6 k:3");
+            app_ui(&a, &ui);
+            screen_lines(&c, &ui, &pg);
+            expect(c.prgm && c.prog_len == 1 && pg.x.kind != SCREEN_VIEW && !c.viewing,
+                   "in program entry the test is a line: no YES / NO");
+            press(&a, "GOLD 9 k:0");
+        }
         /* BASE, and BASE > LOGIC > AND (12 AND 10 is 8); LOGIC, the suffixes and CMPLX's i are 35s mode's (unit 041
            A, decision 58) */
         ab_do_arg(&c, AB_MODEL, 35);

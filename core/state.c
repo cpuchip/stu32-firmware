@@ -704,7 +704,8 @@ static void sec_modes(rd *r)
         viewing = r8(r);
         view_id = ri32(r);
         need(r, flag_byte(viewing) &&
-                    (viewing ? id_ok(view_id, false) || view_id == AB_VIEW_INTEG || view_id == AB_VIEW_LIN2 ||
+                    (viewing ? id_ok(view_id, false) || view_id == AB_VIEW_INTEG || view_id == AB_VIEW_TEST ||
+                                   view_id == AB_VIEW_LIN2 ||
                                    view_id == AB_VIEW_LIN2 - 1 || (view_id <= AB_VIEW_LIN3 && view_id >= AB_VIEW_LIN3 - 2)
                              : view_id == 0));   /* (unit 035's views) */
     }

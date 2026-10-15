@@ -4296,8 +4296,8 @@ static abn_status alg_key(ab_calc *c, ab_op op, int arg)
        function after a result starting a new one) */
     if (op == AB_MODEL || op == AB_ENTRYM || op == AB_DEG || op == AB_RAD || op == AB_GRAD || op == AB_SETFIX ||
         op == AB_SETSCI || op == AB_SETENG || op == AB_SETALL || op == AB_DEC || op == AB_HEX || op == AB_OCT ||
-        op == AB_BIN || op == AB_FDISP || op == AB_CLALL || op == AB_CLVARS || op == AB_VIEW || op == AB_FRACFMT ||
-        op == AB_SF || op == AB_CF || op == AB_BEEP || op == AB_XIY || op == AB_RTA)
+        op == AB_BIN || op == AB_FDISP || op == AB_CLALL || op == AB_CLPGM || op == AB_CLVARS || op == AB_VIEW ||
+        op == AB_FRACFMT || op == AB_SF || op == AB_CF || op == AB_BEEP || op == AB_XIY || op == AB_RTA)
         return do_key(c, op, arg);
     /* a key with no place on the line (= is ENTER's here) has no meaning on it: RPN ONLY, the line
        as it was (rule 7; the reviewer's sweep: →POL, CLΣ, LBL, ISG, RCL+, /c and the rest) */
@@ -4478,11 +4478,11 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
     c->err_set = false;
     c->ovf = 0;
     if (c->cas_rep[0] && casrep_key(c, op, &st)) goto done;    /* unit 048: SOLVE's report open */
-    /* CLEAR ALL and CLR EQN act in Equation mode too (unit 021: never a silent no-op once the
-       device has asked CLR ALL? or CLR EQN?) */
+    /* CLEAR ALL, CLR EQN and CLPGM act in Equation mode too (unit 021: never a silent no-op once the
+       device has asked CLR ALL?, CLR EQN? or CLR PGMS?; CLPGM's question: abacus #8497) */
     if (c->prgm) st = program_key(c, op, arg);
     else if (c->alg) st = alg_key(c, op, arg);      /* STU's expression line (unit 029) */
-    else if (c->eqn_mode && !c->eqn_pending && op != AB_CLALL && op != AB_CLEQN && !(op >= AB_TABLE && op <= AB_TSTEP) &&
+    else if (c->eqn_mode && !c->eqn_pending && op != AB_CLALL && op != AB_CLEQN && op != AB_CLPGM && !(op >= AB_TABLE && op <= AB_TSTEP) &&
              !(op >= AB_GRAPH && op <= AB_GAUTO))
         st = eqn_key(c, op, arg);               /* (TABLE's GO and settings act in Equation mode: 032) */
     else st = do_key(c, op, arg);
@@ -5115,7 +5115,10 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
         bool t;
         abn_status st = prog_test(c, op, arg, &t);
         if (st != ABN_OK) return st;
-        c->yes = t;                             /* YES / NO (UG p.14-7) */
+        c->yes = t;                             /* YES / NO (UG p.14-7), shown as a VIEW is: until the next key,
+                                                   C or backspace only clearing it (abacus #8497) */
+        c->viewing = true;
+        c->view_id = AB_VIEW_TEST;
         break;
     }
     case AB_ISG:
