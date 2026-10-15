@@ -1,0 +1,241 @@
+# abacus #8424's repin (CASIM_PIN casimir a4dd723, the CAS arena 8,800 B) on the stand-in: VER names the new pin; three
+# CAS 017 integrals typed from the keys give what casim's CLI gives at a4dd723 and 8,800 B in DEG (MEMORY CLEAR's angle):
+# the two that refused at 8,192 B now answer, and X×ATAN(X)+1÷(X^2-1) runs out (TOO COMPLEX, where 3c3b6fb said CAN'T
+# INTEGRATE). Then the calc task's stack low-water mark after them is no lower than the deep paths' worst (8,188 B
+# free at 385ca62 and 9c8cbc4). Keys from tests/stackkeys.c (cas i TEXT). Ends with a control that must FAIL (the old
+# pin in the same place on the view line).
+# The saved state first: resources.py leaves its "full" state (the equation list full), where a typed equation can't
+# be stored. WIPE, and the next boot is MEMORY CLEAR.
+wait : heap internal 30
+sleep 3
+send WIPE
+expect wipe: both slots erased
+send RESTART
+expect load: no image: MEMORY CLEAR 30
+wait READY 30
+sleep 2
+send K42
+send K42
+send K36
+send K42
+send K1
+sleep 1
+send X
+# X prints boot:, pins: and view: in that order, and a match moves talk.py past its line, so one expect per line: the
+# view line's is the part only it carries
+expect ver=0.69 core= 5
+expect pins: casim=a4dd723dbd800eb3b099c50e8f77313fb65710d9 5
+expect | CASIM a4dd723 GAMES 60e775c 5
+send K42
+sleep 1
+# X×ATAN(X), by parts: in DEG it needs all 8,800 B (8,592 in RAD; 048's I17, I23)
+send K42
+sleep 0.25
+send K42
+sleep 0.25
+send K36
+sleep 0.25
+send K18
+sleep 0.25
+send K2
+sleep 0.25
+send K42
+sleep 0.25
+send K30
+sleep 0.25
+send K43
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K34
+sleep 0.25
+send K13
+sleep 0.25
+send K6
+sleep 0.25
+send K13
+sleep 0.25
+send K26
+sleep 0.25
+send K13
+sleep 0.25
+send K6
+sleep 0.25
+send K13
+sleep 0.25
+send K19
+sleep 0.25
+send K2
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K1
+sleep 0.25
+send K18
+sleep 0.25
+send K4
+sleep 0.25
+send K5
+sleep 0.25
+send K1
+sleep 0.25
+send K33
+sleep 0.25
+send X
+expect eqn: 0.5×ATAN(X)-90×X÷π+0.5×X^2×ATAN(X) | note=+C 10
+# SIN(X)+1÷(X^2-1): TOO COMPLEX at 8,192 B; in DEG it answers from 8,776 B (8,760 in RAD; 048's I18)
+send K42
+sleep 0.25
+send K42
+sleep 0.25
+send K36
+sleep 0.25
+send K18
+sleep 0.25
+send K2
+sleep 0.25
+send K42
+sleep 0.25
+send K30
+sleep 0.25
+send K43
+sleep 0.25
+send K15
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K1
+sleep 0.25
+send K46
+sleep 0.25
+send K37
+sleep 0.25
+send K28
+sleep 0.25
+send K2
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K9
+sleep 0.25
+send K38
+sleep 0.25
+send K40
+sleep 0.25
+send K37
+sleep 0.25
+send K1
+sleep 0.25
+send K18
+sleep 0.25
+send K4
+sleep 0.25
+send K5
+sleep 0.25
+send K1
+sleep 0.25
+send K33
+sleep 0.25
+send X
+expect eqn: 0.5×LN(ABS(X-1))-0.5×LN(ABS(X+1))-180×COS(X)÷π | note=+C 10
+# X×ATAN(X)+1÷(X^2-1): the search runs out at 8,800 B, TOO COMPLEX (048's I19)
+send K42
+sleep 0.25
+send K42
+sleep 0.25
+send K36
+sleep 0.25
+send K18
+sleep 0.25
+send K2
+sleep 0.25
+send K42
+sleep 0.25
+send K30
+sleep 0.25
+send K43
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K34
+sleep 0.25
+send K13
+sleep 0.25
+send K6
+sleep 0.25
+send K13
+sleep 0.25
+send K26
+sleep 0.25
+send K13
+sleep 0.25
+send K6
+sleep 0.25
+send K13
+sleep 0.25
+send K19
+sleep 0.25
+send K2
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K1
+sleep 0.25
+send K46
+sleep 0.25
+send K37
+sleep 0.25
+send K28
+sleep 0.25
+send K2
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K9
+sleep 0.25
+send K38
+sleep 0.25
+send K40
+sleep 0.25
+send K37
+sleep 0.25
+send K1
+sleep 0.25
+send K18
+sleep 0.25
+send K4
+sleep 0.25
+send K5
+sleep 0.25
+send K1
+sleep 0.25
+send K33
+sleep 0.25
+send X
+expect msg=TOO COMPLEX 10
+send X
+expect-min stack-free 8188 10
+send K42
+send K42
+send K36
+send K42
+send K1
+sleep 1
+send X
+# CONTROL: must FAIL
+expect | CASIM 3c3b6fb GAMES 3
+send K42

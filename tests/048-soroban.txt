@@ -41,17 +41,20 @@ I11 | 048 ∫ (CAS 013): the answer evaluates: ∫1÷(X×(X+1)) is LN(ABS(X))-LN
 # the calculator's arena (core/arena.h). At 8,192 B the rational path didn't fit inside a substitution or a part (casim
 # work/017 rule 7): X×ATAN(X) refused (it answers from 8,592 B) and SIN(X)+1÷(X^2-1) was TOO COMPLEX (from 8,760 B).
 # The arena is 8,800 B since the a4dd723 repin (Michael's arena card, cas-arena-8800), so both answer (I17-I21), and
-# since casim a4dd723 a search that runs out says TOO COMPLEX, never CAN'T INTEGRATE (I19, from 9,592 B).
+# since casim a4dd723 a search that runs out says TOO COMPLEX, never CAN'T INTEGRATE (I19, I22). Those figures are RAD's:
+# in DEG and GRAD, X×ATAN(X) needs 8,800 B exactly and SIN(X)+1÷(X^2-1) 8,776 (I23 holds the DEG answer).
 I12 | 048 ∫ (CAS 017): X×LN(X) by parts, +C beside it | STU RAD EQ:X×LN(X) CASINT:X | %EQ=-0.25×X^2+0.5×X^2×LN(X) %NOTE=+C %EQN=2
 I13 | 048 ∫ (CAS 017): the answer evaluates: at X 3, 4.5×LN(3)-2.25 (mpmath, 34 digits, within 8 units: the answer is three rounded operations) | STU RAD 3 STO:X EQ:X×LN(X) CASINT:X XEQ RS | X^2.693755299006493611278603566151366
 I14 | 048 ∫ (CAS 017): ATAN(X) by substitution, its LN without ABS (X^2+1 is positive for every X) | STU RAD EQ:ATAN(X) CASINT:X | %EQ=-0.5×LN(X^2+1)+X×ATAN(X) %NOTE=+C %EQN=2
 I15 | 048 ∫ (CAS 017): the answer evaluates: at X 1, π÷4-LN(2)÷2 (mpmath, 34 digits) | STU RAD 1 STO:X EQ:ATAN(X) CASINT:X XEQ RS | X=0.4388245731174756549070447850907874
 I16 | 048 ∫ (CAS 017): the cycle, EXP(X)×SIN(X) | STU RAD EQ:EXP(X)×SIN(X) CASINT:X | %EQ=0.5×EXP(X)×SIN(X)-0.5×EXP(X)×COS(X) %NOTE=+C %EQN=2
-I17 | 048 ∫ (CAS 017): X×ATAN(X) by parts at the 8,800 B arena (CAN'T INTEGRATE at 8,192 B; it answers from 8,592 B) | STU RAD EQ:X×ATAN(X) CASINT:X | %EQ=-0.5×X+0.5×ATAN(X)+0.5×X^2×ATAN(X) %NOTE=+C %EQN=2
-I18 | 048 ∫ (CAS 017): SIN(X)+1÷(X^2-1) at 8,800 B (TOO COMPLEX at 8,192 B; it answers from 8,760 B) | STU RAD EQ:SIN(X)+1÷(X^2-1) CASINT:X | %EQ=0.5×LN(ABS(X-1))-0.5×LN(ABS(X+1))-COS(X) %NOTE=+C %EQN=2
-I19 | 048 ∫ (CAS 017, casim a4dd723): X×ATAN(X)+1÷(X^2-1) runs out at 8,800 B (it answers from 9,592 B): TOO COMPLEX, where 3c3b6fb said CAN'T INTEGRATE | STU RAD EQ:X×ATAN(X)+1÷(X^2-1) CASINT:X | ERR %ERR=CAS_NO_ROOM %ERRMSG=TOO_COMPLEX %EQN=1 %NOTE=none
+I17 | 048 ∫ (CAS 017): X×ATAN(X) by parts at the 8,800 B arena (in RAD it answers from 8,592 B; at 8,192 B it was CAN'T INTEGRATE at 3c3b6fb and is TOO COMPLEX at a4dd723) | STU RAD EQ:X×ATAN(X) CASINT:X | %EQ=-0.5×X+0.5×ATAN(X)+0.5×X^2×ATAN(X) %NOTE=+C %EQN=2
+I18 | 048 ∫ (CAS 017): SIN(X)+1÷(X^2-1) at 8,800 B (TOO COMPLEX at 8,192 B; in RAD it answers from 8,760 B) | STU RAD EQ:SIN(X)+1÷(X^2-1) CASINT:X | %EQ=0.5×LN(ABS(X-1))-0.5×LN(ABS(X+1))-COS(X) %NOTE=+C %EQN=2
+I19 | 048 ∫ (CAS 017, casim a4dd723): X×ATAN(X)+1÷(X^2-1) runs out at 8,800 B (it answers from 9,592 B): TOO COMPLEX, where 3c3b6fb at 8,800 B says CAN'T INTEGRATE | STU RAD EQ:X×ATAN(X)+1÷(X^2-1) CASINT:X | ERR %ERR=CAS_NO_ROOM %ERRMSG=TOO_COMPLEX %EQN=1 %NOTE=none
 I20 | 048 ∫ (CAS 017): I17's answer evaluates: at X 1, π÷4-0.5 (mpmath, 34 digits, within 8 units: the answer is several rounded operations; mpmath's quadrature of X×ATAN(X) over [0, 1] agrees) | STU RAD 1 STO:X EQ:X×ATAN(X) CASINT:X XEQ RS | X^0.2853981633974483096156608458198757
 I21 | 048 ∫ (CAS 017): I18's answer evaluates: at X 2, -0.5×LN(3)-COS(2) (mpmath, 34 digits, within 8 units) | STU RAD 2 STO:X EQ:SIN(X)+1÷(X^2-1) CASINT:X XEQ RS | X^-0.1331593077869124587000543889605007
+I22 | 048 ∫ (casim a4dd723): a rational piece with no room for partfrac to start is a run-out: (X^2+3×X-1)×(3×X+2)÷(3×X+2)^2 is TOO COMPLEX at 8,800 B (it answers from 10,776 B), where 360979f and 3c3b6fb say CAN'T INTEGRATE | STU RAD EQ:(X^2+3×X-1)×(3×X+2)÷(3×X+2)^2 CASINT:X | ERR %ERR=CAS_NO_ROOM %ERRMSG=TOO_COMPLEX %EQN=1 %NOTE=none
+I23 | 048 ∫ (CAS 017): I17 in DEG, MEMORY CLEAR's angle, answers at 8,800 B with no byte to spare (TOO COMPLEX at 8,799 B) | STU DEG EQ:X×ATAN(X) CASINT:X | %EQ=0.5×ATAN(X)-90×X÷π+0.5×X^2×ATAN(X) %NOTE=+C %EQN=2
 # CAS 016 (the same repin): a pole in any op has no value, so each CAS step refuses it as UNDEFINED. At 4b91739 these
 # were inserted as typed (TAN(π÷2), LN(0), ATANH(1)×X's integral) or refused as COEF_NOT_NUMERIC (SOLVE).
 P01 | CAS 016: TAN(π÷2) has no value, UNDEFINED, nothing inserted | STU RAD EQ:TAN(π÷2) CASSIMP | ERR %ERR=CAS_UNDEFINED %ERRMSG=UNDEFINED %EQN=1
