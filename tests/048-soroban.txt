@@ -50,8 +50,7 @@ I16 | 048 ∫ (CAS 017): the cycle, EXP(X)×SIN(X) | STU RAD EQ:EXP(X)×SIN(X) C
 I17 | 048 ∫ (CAS 017): X×ATAN(X) is CAN'T INTEGRATE at 8 KB (casim answers it at 16 KB), nothing inserted | STU RAD EQ:X×ATAN(X) CASINT:X | ERR %ERR=CAS_NOT_INTEGRABLE %ERRMSG=CAN'T_INTEGRATE %EQN=1 %NOTE=none
 I18 | 048 ∫ (CAS 017): SIN(X)+1÷(X^2-1) is TOO COMPLEX at 8 KB (CAN'T INTEGRATE before; it answers from 8,760 B) | STU RAD EQ:SIN(X)+1÷(X^2-1) CASINT:X | ERR %ERR=CAS_NO_ROOM %ERRMSG=TOO_COMPLEX %EQN=1 %NOTE=none
 # CAS 016 (the same repin): a pole in any op has no value, so each CAS step refuses it as UNDEFINED. At 4b91739 these
-# were inserted as typed (TAN(π÷2), LN(0)) or refused as COEF_NOT_NUMERIC (SOLVE). P04, ATANH(1)×X's integral, was
-# UNDEFINED at 4b91739 too: it holds the behaviour, and like I05 and I17 it doesn't tell the pins apart.
+# were inserted as typed (TAN(π÷2), LN(0), ATANH(1)×X's integral) or refused as COEF_NOT_NUMERIC (SOLVE).
 P01 | CAS 016: TAN(π÷2) has no value, UNDEFINED, nothing inserted | STU RAD EQ:TAN(π÷2) CASSIMP | ERR %ERR=CAS_UNDEFINED %ERRMSG=UNDEFINED %EQN=1
 P02 | CAS 016: LN(0) the same | STU RAD EQ:LN(0) CASSIMP | ERR %ERR=CAS_UNDEFINED %ERRMSG=UNDEFINED %EQN=1
 P03 | CAS 016: in DEG, TAN(90) is the pole | STU DEG EQ:TAN(90) CASSIMP | ERR %ERR=CAS_UNDEFINED %ERRMSG=UNDEFINED %EQN=1
