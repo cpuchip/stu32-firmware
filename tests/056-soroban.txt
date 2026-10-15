@@ -28,7 +28,7 @@ D25 | 056: a bound holding another letter is BOUND NOT NUMERIC | STU RAD EQ:X^2 
 D26 | 056: a bound that isn't real (SQRT(-1)) is BOUND NOT REAL | STU RAD EQ:X^2 CASDEF:X 0 ENTER SQRT 1 CHS ENTER | ERR %ERRMSG=BOUND_NOT_REAL %EQN=1
 D27 | 056: a bound with no value (LN(0)) is UNDEFINED | STU RAD EQ:X^2 CASDEF:X LN 0 ENTER 1 ENTER | ERR %ERRMSG=UNDEFINED %EQN=1
 D28 | 056: CAS 006's refusal passes through: X×LN(X) is CAN'T INTEGRATE | STU RAD EQ:X×LN(X) CASDEF:X 1 ENTER 2 ENTER | ERR %ERRMSG=CAN'T_INTEGRATE %EQN=1
-D29 | 056: past the 8 KB arena: TOO COMPLEX (#5630 rule 5) | STU RAD EQ:(X^3+2×X^2-X+1)×(X^4-3×X+2)×(X^2+7) CASDEF:X SQRT 2 ENTER PI / 4 ENTER | ERR %ERRMSG=TOO_COMPLEX %EQN=1
+D29 | 056: past the arena: TOO COMPLEX (#5630 rule 5). The arena is 8,800 B since the a4dd723 repin, where the first three factors alone are RESULT TOO LONG (from 8,272 B); with X^2+X+1 it is TOO COMPLEX up to 10,023 B (casim's CLI) | STU RAD EQ:(X^3+2×X^2-X+1)×(X^4-3×X+2)×(X^2+7)×(X^2+X+1) CASDEF:X SQRT 2 ENTER PI / 4 ENTER | ERR %ERRMSG=TOO_COMPLEX %EQN=1
 # the two steps: cancel at either, and nothing left behind
 D40 | 056: C at the lower bound cancels, the list kept | STU RAD EQ:X^2 CASDEF:X 1 C | %EQN=1 %EQ=X^2
 D41 | 056: C at the upper bound cancels | STU RAD EQ:X^2 CASDEF:X 1 ENTER 2 C | %EQN=1 %EQ=X^2

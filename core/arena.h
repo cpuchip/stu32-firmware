@@ -30,9 +30,10 @@ bool ar_bi(int n, ...);
 /* The most numbers live at once since start (for the measurement). */
 int ar_peak(void);
 
-/* CAS 004: Casimir's working memory, 8 KB (the unit's budget), beside the pool (so placed with it: PSRAM on the
-   devices); only the calc task's CAS step uses it, and nothing in it outlives the step. */
-#define AB_CAS_ARENA 8192
+/* CAS 004: Casimir's working memory, beside the pool (so placed with it: PSRAM on the devices); only the calc task's
+   CAS step uses it, and nothing in it outlives the step. 8,192 B (the unit's budget) until the a4dd723 repin, then
+   8,800 B (Michael's arena card, cas-arena-8800): X×ATAN(X) needs 8,592 B and SIN(X)+1÷(X^2-1) 8,760 (048's I17, I18). */
+#define AB_CAS_ARENA 8800
 #ifdef AB_CASIM
 extern unsigned char ab_cas_arena[AB_CAS_ARENA];
 #endif

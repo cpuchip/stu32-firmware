@@ -61,14 +61,15 @@ typedef enum {
     ABN_NO_VAR,             /* unit 032: TABLE of an equation with no variable (abacus's answer 3) */
     /* CAS 004 (casim's statuses as messages, #4797): */
     ABN_CAS_TOO_LONG,       /* the result is past 191 bytes: RESULT TOO LONG */
-    ABN_CAS_NO_ROOM,        /* the arena ran out, or the depth guard stopped a walk: TOO COMPLEX */
+    ABN_CAS_NO_ROOM,        /* the arena ran out (anywhere in ∫'s search since casim a4dd723: 048's I19), or the
+                               depth guard stopped a walk: TOO COMPLEX */
     ABN_CAS_UNSUPPORTED,    /* a construct refused, by name (a function D/DX refuses): UNSUPPORTED name */
     ABN_CAS_COPY,           /* SUBST would copy a draw: CAN'T COPY RAND (or SEED) */
     ABN_TOO_DEEP,           /* unit 047: an equation nested past the parser's bound: NESTED TOO DEEP */
     ABN_CAS_NOT_POLY,       /* unit 048: SOLVE or FACTOR of what is not a polynomial in the variable: NOT A POLYNOMIAL */
     ABN_CAS_NOT_NUMERIC,    /* unit 048: a coefficient another letter, π, a root, a draw: COEF NOT NUMERIC */
-    ABN_CAS_NOT_INTEGRABLE, /* unit 048: no rule answers: CAN'T INTEGRATE (since CAS 017, also a try that ran out of
-                               room deeper in the search, which casim drops: X×ATAN(X) at 8,192 B; 048's I17) */
+    ABN_CAS_NOT_INTEGRABLE, /* unit 048: no rule answers: CAN'T INTEGRATE (a search that ran out of room is TOO COMPLEX
+                               since casim a4dd723; at 3c3b6fb it was this, X×ATAN(X) at 8,192 B) */
     ABN_CAS_EXPR_ONLY,      /* unit 048: ∫ or FACTOR of an equation (L=R): EXPRESSION ONLY */
     ABN_CAS_IMPROPER,       /* unit 056: ∫AB with a pole or domain edge on the interval (CAS 009): IMPROPER INTEGRAL */
     ABN_CAS_UNDEFINED,      /* unit 056: an exact 0 under a negative power, or a bound with no value (CAS 008), or a
