@@ -67,10 +67,12 @@ typedef enum {
     ABN_TOO_DEEP,           /* unit 047: an equation nested past the parser's bound: NESTED TOO DEEP */
     ABN_CAS_NOT_POLY,       /* unit 048: SOLVE or FACTOR of what is not a polynomial in the variable: NOT A POLYNOMIAL */
     ABN_CAS_NOT_NUMERIC,    /* unit 048: a coefficient another letter, π, a root, a draw: COEF NOT NUMERIC */
-    ABN_CAS_NOT_INTEGRABLE, /* unit 048: not one of the integral table's forms: CAN'T INTEGRATE */
+    ABN_CAS_NOT_INTEGRABLE, /* unit 048: no rule answers: CAN'T INTEGRATE (since CAS 017, also a try that ran out of
+                               room deeper in the search, which casim drops: X×ATAN(X) at 8,192 B; 048's I17) */
     ABN_CAS_EXPR_ONLY,      /* unit 048: ∫ or FACTOR of an equation (L=R): EXPRESSION ONLY */
     ABN_CAS_IMPROPER,       /* unit 056: ∫AB with a pole or domain edge on the interval (CAS 009): IMPROPER INTEGRAL */
-    ABN_CAS_UNDEFINED,      /* unit 056: an exact 0 under a negative power, or a bound with no value (CAS 008): UNDEFINED */
+    ABN_CAS_UNDEFINED,      /* unit 056: an exact 0 under a negative power, or a bound with no value (CAS 008), or a
+                               pole in any op (CAS 016: TAN(π÷2), LN(0); 048's P01-P05): UNDEFINED */
     ABN_CAS_BOUND_LETTER,   /* unit 056: ∫AB's bound holds a letter (casim's BAD_ARG, told by the text): BOUND NOT NUMERIC */
     ABN_CAS_BOUND_REAL,     /* unit 056: ∫AB's bound isn't real (casim's BAD_ARG otherwise): BOUND NOT REAL */
     ABN_CAS_UNDECIDED       /* CAS 015 rule 5: casim's walk couldn't decide a limit, never "no limit": CAN'T DECIDE */
