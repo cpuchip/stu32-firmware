@@ -1,9 +1,11 @@
-# abacus #8246's repin (CASIM_PIN casimir 3c3b6fb) on the stand-in: VER names the new pin, two CAS 017 integrals typed
-# from the keys answer as casim's CLI at 8,192 B (048's I12; I16's cycle in DEG), and the calc task's stack low-water mark after
-# them is no lower than the deep paths' worst (8,188 B free at 385ca62 and 9c8cbc4). Keys from tests/stackkeys.c (cas i
-# TEXT). Ends with a control that must FAIL (the old pin).
-# the saved state first: resources.py leaves the "full" state (the equation list full, lines=67), where a typed
-# equation can't be stored; stackkeys' sequences start from MEMORY CLEAR
+# abacus #8246's repin (CASIM_PIN casimir 3c3b6fb) on the stand-in: VER names the new pin; five CAS 017 integrals typed
+# from the keys give what casim's CLI gives at the calculator's 8,192 B arena in DEG (MEMORY CLEAR's angle), the two
+# arena-limited refusals among them; and the calc task's stack low-water mark after them is no lower than the deep
+# paths' worst (8,188 B free at 385ca62 and 9c8cbc4). Keys from tests/stackkeys.c (cas i TEXT): each sequence starts
+# with C C and stores its equation, so each integral goes on the list after the last. Ends with a control that must
+# FAIL (the old pin in the same place on the view line).
+# The saved state first: resources.py leaves its "full" state (the equation list full, lines=67), where a typed
+# equation can't be stored. WIPE, and the next boot is MEMORY CLEAR.
 wait : heap internal 30
 sleep 3
 send WIPE
@@ -19,11 +21,14 @@ send K42
 send K1
 sleep 1
 send X
+# X prints boot:, pins: and view: in that order, and a match moves talk.py past its line, so one expect per line: the
+# view line's is the part only it carries
+expect ver=0.69 core= 5
 expect pins: casim=3c3b6fb79af3cc7b78cef372256d89013a9265cc 5
-expect view: VER 0.69 | CORE b02038a | BUILT 5
+expect | CASIM 3c3b6fb GAMES 60e775c 5
 send K42
 sleep 1
-# X×LN(X) by parts
+# X×LN(X), by parts
 send K42
 sleep 0.25
 send K42
@@ -74,7 +79,7 @@ send K33
 sleep 0.25
 send X
 expect eqn: -0.25×X^2+0.5×X^2×LN(X) | note=+C 10
-# EXP(X)×SIN(X), the cycle, in DEG (MEMORY CLEAR's angle): casim's CLI at 8,192 B in DEG gives this text
+# EXP(X)×SIN(X), the cycle
 send K42
 sleep 0.25
 send K42
@@ -133,6 +138,177 @@ send K33
 sleep 0.25
 send X
 expect eqn: -180×(π×EXP(X)×COS(X)-180×EXP(X)×SIN(X))÷(π^2+32400) | note=+C 10
+# ATAN(X), by substitution, its LN without ABS
+send K42
+sleep 0.25
+send K42
+sleep 0.25
+send K36
+sleep 0.25
+send K18
+sleep 0.25
+send K2
+sleep 0.25
+send K42
+sleep 0.25
+send K30
+sleep 0.25
+send K43
+sleep 0.25
+send K13
+sleep 0.25
+send K6
+sleep 0.25
+send K13
+sleep 0.25
+send K26
+sleep 0.25
+send K13
+sleep 0.25
+send K6
+sleep 0.25
+send K13
+sleep 0.25
+send K19
+sleep 0.25
+send K2
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K1
+sleep 0.25
+send K18
+sleep 0.25
+send K4
+sleep 0.25
+send K5
+sleep 0.25
+send K1
+sleep 0.25
+send K33
+sleep 0.25
+send X
+expect eqn: X×ATAN(X)-90×LN(X^2+1)÷π | note=+C 10
+# X×ATAN(X), CAN'T INTEGRATE: the part's rational path doesn't fit 8,192 B (it answers from 8,592)
+send K42
+sleep 0.25
+send K42
+sleep 0.25
+send K36
+sleep 0.25
+send K18
+sleep 0.25
+send K2
+sleep 0.25
+send K42
+sleep 0.25
+send K30
+sleep 0.25
+send K43
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K34
+sleep 0.25
+send K13
+sleep 0.25
+send K6
+sleep 0.25
+send K13
+sleep 0.25
+send K26
+sleep 0.25
+send K13
+sleep 0.25
+send K6
+sleep 0.25
+send K13
+sleep 0.25
+send K19
+sleep 0.25
+send K2
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K1
+sleep 0.25
+send K18
+sleep 0.25
+send K4
+sleep 0.25
+send K5
+sleep 0.25
+send K1
+sleep 0.25
+send K33
+sleep 0.25
+send X
+expect msg=CAN'T INTEGRATE 10
+# SIN(X)+1÷(X^2-1), TOO COMPLEX: the sum's own rational term runs out (it answers from 8,760 B)
+send K42
+sleep 0.25
+send K42
+sleep 0.25
+send K36
+sleep 0.25
+send K18
+sleep 0.25
+send K2
+sleep 0.25
+send K42
+sleep 0.25
+send K30
+sleep 0.25
+send K43
+sleep 0.25
+send K15
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K1
+sleep 0.25
+send K46
+sleep 0.25
+send K37
+sleep 0.25
+send K28
+sleep 0.25
+send K2
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K9
+sleep 0.25
+send K38
+sleep 0.25
+send K40
+sleep 0.25
+send K37
+sleep 0.25
+send K1
+sleep 0.25
+send K18
+sleep 0.25
+send K4
+sleep 0.25
+send K5
+sleep 0.25
+send K1
+sleep 0.25
+send K33
+sleep 0.25
+send X
+expect msg=TOO COMPLEX 10
 send X
 expect-min stack-free 8188 10
 send K42
@@ -143,5 +319,5 @@ send K1
 sleep 1
 send X
 # CONTROL: must FAIL
-expect CASIM 4b91739 GAMES 3
+expect | CASIM 4b91739 GAMES 3
 send K42
