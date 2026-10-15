@@ -58,6 +58,14 @@ Also in 35s and STU wherever the 35s has them.
   HYP_ prefix for hyperbolic functions" (4-6); p.4-6's table, as abacus read the rendered page, keys SINH as HYP then
   SIN and ASINH as HYP then the shifted ASIN; p.1-13's annunciator table has HYP, "Hyperbolic function is active".
   35s mode now has the prefix as 33s mode does. STU keeps the menu only; whether it should is design input for Michael.
+- **Two predicate gaps, noted and not changed (abacus #8543):**
+  - ab_rec35 and ab_recstu read a program label's stamp, the program's line or the running one's, and otherwise the
+    mode. Neither reads an equation's own stamp (eqn_model). While an equation is typed or edited, the mode decides.
+  - 33s mode's CMPLX prefix (unit 039; cx_prefix, firmware/app.c) gates on !c->m35, the device's mode, where B10's
+    gate now takes the label's stamp. On a label stamped for another mode, the two gates can answer differently. The
+    gap is older than B10's correction.
+  - **Not built either:** the 35s's HYP_ prompt and its HYP annunciator (p.1-13). Ours shows the HYP menu while the
+    prefix waits. abacus #8543 calls it a small 35s-fidelity unit, for later.
 
 **Checksums** (B6, p.6-18 and 12-21) are not in this unit: they need a byte format, a design of their own.
 
