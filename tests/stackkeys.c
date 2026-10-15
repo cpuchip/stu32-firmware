@@ -7,6 +7,7 @@
  *   stackkeys cas OP TEXT     048's CAS keys: TEXT typed in STU's Equation mode and stored, then CAS's second page,
  *                             OP (s SOLVE, i ∫DX, f FACTR) in X
  *   stackkeys cas d TEXT LO HI   056's ∫AB the same way, in X, then the bounds LO and HI typed, each with ENTER
+ *   stackkeys cas S TEXT LO HI   070's Σ (CAS2's fifth key) the same way, in K; an HI of ∞ is the bar's ∞
  *   stackkeys cas q TEXT G       057's QUOT on CAS's third page, in X, then G typed with ENTER (g GCD the same;
  *   stackkeys cas c TEXT         c CANCL, with no text)
  *
@@ -172,6 +173,10 @@ static void type_text(const char *t)
         else if (ch == '(') tap(c.eqn_typing ? 2 : 5);
         else if (ch == ')') tap(1);
         else if (ch == '=') tap(3);
+        else if (ch == '\xe2' && !strncmp(t - 1, "\xe2\x88\x9e", 3)) {
+            tap(3);                             /* 070: ∞, the bar's fourth key while Σ's upper bound is typed */
+            t += 2;
+        }
         else if (ch >= 'A' && ch <= 'Z') rcl(ch);
         else {
             fprintf(stderr, "stackkeys: can't type %c\n", ch);
@@ -325,7 +330,7 @@ static void print_keys(int mark, const char *then)
 
 int main(int argc, char **argv)
 {
-    bool def = argc == 6 && !strcmp(argv[1], "cas") && !strcmp(argv[2], "d");
+    bool def = argc == 6 && !strcmp(argv[1], "cas") && (!strcmp(argv[2], "d") || !strcmp(argv[2], "S"));
     bool poly = argc == 5 && !strcmp(argv[1], "cas") && (!strcmp(argv[2], "q") || !strcmp(argv[2], "g"));
     if (argc == 3 && !strcmp(argv[1], "full")) {
         ab_init(&c);
@@ -334,7 +339,7 @@ int main(int argc, char **argv)
     }
     bool cas3 = argc > 2 && !strcmp(argv[1], "cas") && strchr("qgc", argv[2][0]);
     if ((argc != 4 && !def && !poly) || (strcmp(argv[1], "prog") && strcmp(argv[1], "cas"))) {
-        fprintf(stderr, "usage: stackkeys prog D SHAPE | stackkeys cas OP TEXT | stackkeys cas d TEXT LO HI | "
+        fprintf(stderr, "usage: stackkeys prog D SHAPE | stackkeys cas OP TEXT | stackkeys cas d|S TEXT LO HI | "
                         "stackkeys full OUT\n");
         return 2;
     }
@@ -399,14 +404,14 @@ int main(int argc, char **argv)
             tap(5);
             tap(argv[2][0] == 'q' ? 0 : argv[2][0] == 'g' ? 1 : 2);
         } else
-            tap(argv[2][0] == 's' ? 0 : argv[2][0] == 'i' ? 1 : argv[2][0] == 'f' ? 2 : 3);
-        tap(letter('X'));
+            tap(argv[2][0] == 's' ? 0 : argv[2][0] == 'i' ? 1 : argv[2][0] == 'f' ? 2 : argv[2][0] == 'S' ? 4 : 3);
+        tap(letter(argv[2][0] == 'S' ? 'K' : 'X'));
         if (poly) {                             /* 057: g, ENTER */
             type_text(argv[4]);
             tap(face("ENTER"));
         }
         if (cas3) printf("result: %s\n", c.eqn_cur >= 0 ? c.eqn[c.eqn_cur] : "-");
-        if (def) {                              /* 056: the lower bound, ENTER, the upper, ENTER */
+        if (def) {                              /* 056, 070: the lower bound, ENTER, the upper, ENTER */
             type_text(argv[4]);
             tap(face("ENTER"));
             type_text(argv[5]);
