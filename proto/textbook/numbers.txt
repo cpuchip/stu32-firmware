@@ -1,0 +1,23 @@
+tb_node 18 B, tb_tree 5808 B (TB_MAX_NODES 320)
+
+sample     form  bytes |   w@2  fit2 ln2  h@2 |   w@3  fit3 ln3  h@3 | nodes dep |  us/draw
+xlnx       dec      26 |   208   yes   1   15 |   315   yes   1   26 |    15   5 |     1.97
+xlnx       frac     21 |   132   yes   1   35 |   201   yes   1   56 |    15   5 |     1.59
+atan       dec      26 |   251   yes   1   19 |   378   yes   1   32 |    14   7 |     2.33
+atan       frac     24 |   217   yes   1   39 |   327   yes   1   62 |    14   7 |     2.29
+cycle      dec      39 |   264   yes   1   15 |   399    no   2   61 |    18   5 |     2.63
+cycle      frac     35 |   200   yes   1   35 |   303   yes   1   56 |    15   5 |     2.52
+atandeg    dec      29 |   243   yes   1   39 |   366   yes   1   62 |    16   8 |     2.69
+pow43      dec      14 |    35   yes   1   45 |    55   yes   1   76 |     9   5 |     0.69
+lnabs      dec      53 |   386   yes   1   18 |   579    no   2   63 |    27   7 |     3.56
+lnabs      frac     51 |   298   yes   1   38 |   447    no   2  123 |    29   7 |     3.73
+partfrac   dec      58 |   323   yes   1   35 |   489    no   2  121 |    39   8 |     4.07
+sum        dec      47 |   143   yes   1   58 |   233   yes   1   89 |    29   6 |     2.16
+long       dec     106 |   517    no   2   95 |   794    no   3  213 |    71   9 |     9.38
+long       frac     88 |   421    no   2   95 |   650    no   2  143 |    66   9 |     7.52
+taylor189  dec     189 |   922    no   3  264 |  1389    no   5  691 |   103  10 |    17.83
+taylor189  frac    194 |   650    no   2  194 |   985    no   4  603 |   114  11 |    16.57
+
+(width available 391 px; ln: lines after wrapping at the top-level + and -, 0 when a term alone is too wide; h: the answer's height wrapped, with its conditions, of 180 px for entries; nodes: the pool's high-water mark across scale 2 and 3 including the wrap's new nodes)
+
+worksheet ws-b (three entries, parse + fit + draw, frame cleared): 6.65 us on the host
