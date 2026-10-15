@@ -4,6 +4,7 @@
 # package.sh builds that and refuses this banner.
 #
 #   device/reva/package-offclk.sh [COMMIT]          (default HEAD) -> build/reva-offclk-<sha7>/
+#   SESSION=p074.txt device/reva/package-offclk.sh   another session (unit 074's wake probe; p0.txt by default)
 set -euo pipefail
 IMAGE="espressif/idf:v5.4.2"
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -36,7 +37,8 @@ set -euo pipefail
 esptool.py --chip esp32s3 merge_bin -o /out/$n \$(head -1 flash_args) \$(tail -n +2 flash_args)
 "
 done
-cp "$WT/device/standin/talk.py" "$WT/device/reva/p0.txt" "$OUT/"
-(cd "$OUT" && sha256sum abacus_reva-offclk-"$S7".bin abacus_reva-offclk-trim-"$S7".bin talk.py p0.txt > SHA256SUMS)
+SESSION="${SESSION:-p0.txt}"
+cp "$WT/device/standin/talk.py" "$WT/device/reva/$SESSION" "$OUT/"
+(cd "$OUT" && sha256sum abacus_reva-offclk-"$S7".bin abacus_reva-offclk-trim-"$S7".bin talk.py "$SESSION" > SHA256SUMS)
 echo "package-offclk.sh: $OUT"
 cat "$OUT/SHA256SUMS"
