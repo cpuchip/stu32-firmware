@@ -1,5 +1,5 @@
-# AIM under APPS on the board (arcade's unit, soroban's gate; stu32-arcade docs/aim.md): APPS (blue 0) lists KEYS,
-# BABAL and AIM; AIM's title, ENTER for a round, the frame rate, refused keys (0 ENTER: no tile is 0), then 20 rounds
+# AIM under APPS on the board (arcade's unit, soroban's gate; stu32-arcade docs/aim.md): APPS (blue 0) lists KEYS and
+# GAMES (unit 072), and GAMES lists BABAL, then AIM on K1; AIM's title, ENTER for a round, the frame rate, refused keys (0 ENTER: no tile is 0), then 20 rounds
 # through SHOW and NEW (each runs the solver and the generator on the chip; the tiles come from the hardware RNG, so
 # winning is the host's check, stu32-arcade make aimcheck). The calc task's stack-free is read after them; C ends
 # AIM, and 2 ENTER 3 + must still give 5.
@@ -32,8 +32,11 @@ send U36
 send K43
 send U43
 sleep 1
-send K2
-send U2
+send K1
+send U1
+sleep 1
+send K1
+send U1
 sleep 1
 send X
 expect app: AIM

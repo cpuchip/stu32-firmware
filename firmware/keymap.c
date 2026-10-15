@@ -114,6 +114,7 @@ static const km_menu MENUS[] = {
     {"EQN LIST GOLD", {{KM_OP, AB_KREG, 0, 0, "REGX"}, {KM_OP, AB_KREG, 1, 0, "REGY"}, {KM_OP, AB_KREG, 2, 0, "REGZ"}, {KM_OP, AB_KREG, 3, 0, "REGT"}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}}, 0},
     {"CAS3", {{KM_PROMPT, AB_CASQUOT, 0, KM_ARG_VAR, "QUOT"}, {KM_PROMPT, AB_CASGCD, 0, KM_ARG_VAR, "GCD"}, {KM_PROMPT, AB_CASCANCL, 0, KM_ARG_VAR, "CANCL"}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_MENU, 0, 52, 0, "\xe2\x96\xb8"}}, 0},
     {"EQN TYPE SUM", {{KM_OP, AB_KLEFT, 0, 0, "\xe2\x97\x80"}, {KM_OP, AB_KRIGHT, 0, 0, "\xe2\x96\xb6"}, {KM_OP, AB_KPAREN, 0, 0, "( )"}, {KM_OP, AB_KINF, 0, 0, "\xe2\x88\x9e"}, {KM_OP, AB_KSPACE, 0, 0, "SPC"}, {KM_MENU, 0, 40, 0, "REG"}}, 0},
+    {"GAMES", {{KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, "more"}}, KM_PAGED_GAMES},
 };
 
 const km_menu *km_menu_at(int index)

@@ -222,7 +222,8 @@ MENUS = [
              ("FLASH", "KM_DEVICE", "3", "KM_DEV_VIEW", 0), NONE, NONE, NONE]),
     # rule 3: the one paged menu; the app fills soft keys 1-5 from the core's constants
     ("CONST", [NONE, NONE, NONE, NONE, NONE, ("more", "KM_NONE", "0", 0, 0)], "AB_CONST"),
-    # unit 037: APPS on blue 0, paged as CONST: the app fills soft keys 1-5 with the registered apps
+    # unit 037: APPS on blue 0, paged as CONST: the app fills soft keys 1-5 with the registered apps (unit 072: those
+    # outside the GAMES folder, then a GAMES key that opens GAMES)
     ("APPS", [NONE, NONE, NONE, NONE, NONE, ("more", "KM_NONE", "0", 0, 0)], "KM_PAGED_APPS"),
     # CAS 004 (casim's work/004 rule 4, proposed): Casimir on the equation shown, from EQN LIST's fifth key, in STU
     # only (the app shows no CAS in 33s or 35s mode); D/DX, COLCT and SUBST prompt for the variable as SOLVE does
@@ -249,6 +250,9 @@ MENUS = [
     # = has no meaning in a bound, so its key types ∞ there (the label shows it while it is live)
     ("EQN TYPE SUM", [o("\u25c0", "AB_KLEFT"), o("\u25b6", "AB_KRIGHT"), o("( )", "AB_KPAREN"), o("\u221e", "AB_KINF"),
                       o("SPC", "AB_KSPACE"), ("REG", "KM_MENU", "0", "REG", 0)]),
+    # unit 072 (Michael via abacus #8570, #8600, #8679): APPS's GAMES key opens it: the GAMES folder's apps, paged as
+    # APPS and CONST are (five a page, then more); C or back-arrow returns to APPS. Last, so no menu's index moves
+    ("GAMES", [NONE, NONE, NONE, NONE, NONE, ("more", "KM_NONE", "0", 0, 0)], "KM_PAGED_GAMES"),
 ]
 # Menu legends that act as plain ops until their menu is ruled (abacus #3867): the EQN menu's
 # first item will take this over.

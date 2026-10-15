@@ -150,6 +150,7 @@ typedef struct {
        device's), its clock and next tick, the apps' saves (apart from the calculator's image) */
     const app_def *const *apps;
     int napps;
+    const uint8_t *folders;     /* unit 072: each listed app's folder (APP_FOLDER_*); NULL: all in APPS */
     const app_def *app;
     void *app_ctx;
     uint32_t app_ctx_cap;
@@ -229,7 +230,8 @@ void app_graph_buffer(app_state *a, app_graph *g);
    device's, at least the largest app's ctx_size; none: an app cannot start); whether an app runs, and
    whether it wants ticks (the device keeps out of light sleep); its frame (true while an app runs: the
    device draws it in place of screen_render); the apps' saves as a byte image for the store, and back. */
-void app_apps(app_state *a, const app_def *const *list, int n);
+void app_apps(app_state *a, const app_def *const *list, int n);     /* (its folders NULL: all in APPS) */
+void app_apps_folders(app_state *a, const uint8_t *folders);       /* unit 072: the list's folders, after app_apps */
 void app_ctx_buffer(app_state *a, void *buf, uint32_t cap);
 bool app_running(const app_state *a);
 bool app_ticking(const app_state *a);

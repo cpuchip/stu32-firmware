@@ -68,5 +68,10 @@ void app_tune(const uint16_t *notes, uint8_t n);
 
 extern const app_def *const app_registry[];     /* the built-in apps (apps.c) */
 extern const int app_registry_n;
+/* unit 072: the folder of each registered app, as the registry; gen_games.py's numbers (TOOLS 0, GAMES 1). APPS lists
+   the tools, then a GAMES key; GAMES lists the games */
+#define APP_FOLDER_TOOLS 0
+#define APP_FOLDER_GAMES 1
+extern const uint8_t app_registry_folder[];
 
 #endif

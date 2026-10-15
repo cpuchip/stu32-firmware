@@ -2,7 +2,8 @@
 # with keys held, then TRAP: key 0 recurses 100 deep and returns, key 1 never stops and must trap. The calc task's
 # stack-free in each X line is the least ever free, so each bounds its step and all before it; read them from the
 # log (2026-10-09 on the S3 at ab51544: 29,060 through BABAL and BABLW, 23,300 after TRAP's key 0); after the trap it
-# must be at least 2,048 (expect-min). Then C, and 2 ENTER 3 + must still give 5.
+# must be at least 2,048 (expect-min). Then C, and 2 ENTER 3 + must still give 5. Each game is under APPS's GAMES key
+# (unit 072): BABAL K0, BABLW K1, TRAP K2.
 send RESTART
 wait STANDIN READY 30
 send X
@@ -14,6 +15,9 @@ send U43
 sleep 1
 send K1
 send U1
+sleep 1
+send K0
+send U0
 sleep 1
 send K31
 sleep 2
@@ -35,8 +39,11 @@ send U36
 send K43
 send U43
 sleep 1
-send K2
-send U2
+send K1
+send U1
+sleep 1
+send K1
+send U1
 sleep 1
 send K31
 sleep 2
@@ -58,8 +65,11 @@ send U36
 send K43
 send U43
 sleep 1
-send K3
-send U3
+send K1
+send U1
+sleep 1
+send K2
+send U2
 sleep 1
 send K0
 send U0

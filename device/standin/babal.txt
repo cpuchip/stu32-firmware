@@ -1,4 +1,4 @@
-# Babal under APPS on the board (arcade's patch, merge gate): APPS (blue 0) lists KEYS and BABAL; BABAL starts,
+# Babal under APPS on the board (arcade's patch, merge gate): APPS (blue 0) lists KEYS and GAMES (unit 072), and GAMES lists BABAL first; BABAL starts,
 # ticks and draws; C ends it and the calculator comes back
 send RESTART
 wait READY 30
@@ -7,9 +7,11 @@ expect state: 5
 send K36
 send K43
 send K1
+sleep 1
+send K0
 sleep 4
 send X
-expect app: 5
+expect app: BABAL 5
 send K42
 sleep 1
 send X

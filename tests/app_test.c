@@ -1294,8 +1294,15 @@ int main(void)
             tap(&a, k);
             app_ui(&a, &ui);
             bool ok = true;
+            const char *tools[8];                   /* unit 072: APPS lists the tools, then GAMES (any game listed) */
+            int nt = 0, ng = 0;
+            for (int r = 0; r < app_registry_n; r++) {
+                if (app_registry_folder[r] == APP_FOLDER_GAMES) ng++;
+                else if (nt < 8) tools[nt++] = app_registry[r]->name;
+            }
+            if (ng && nt < 8) tools[nt++] = "GAMES";
             for (int i = 0; i < 6; i++) {
-                const char *want = mn->paged == KM_PAGED_APPS ? (i < 5 ? (i < app_registry_n ? app_registry[i]->name : NULL) : "more")
+                const char *want = mn->paged == KM_PAGED_APPS ? (i < 5 ? (i < nt ? tools[i] : NULL) : "more")
                                    : mn->paged ? (i < 5 ? ab_const_symbol(i) : "more") : mn->item[i].legend;
                 if (!want) {                            /* (APPS: fewer apps than five) */
                     ok = ok && (!ui.soft[i] || !*ui.soft[i]);
@@ -3053,6 +3060,57 @@ int main(void)
         press(&a, "GOLD RCL k:5 k:5 k:5 k:5 k:5 k:5 k:5 k:5");
         app_ui(&a, &ui);
         expect(ui.soft[0] && e && !strcmp(ui.soft[0], e) && !ui.soft[1], "041 B: 35s mode: CONST's ninth page is e alone");
+    }
+
+    /* unit 072 (abacus #8570, #8600, #8679): APPS lists KEYS, then GAMES; GAMES pages the folder's games five at a time
+       with more, in the registry's order; C or back-arrow returns to APPS; a game starts from GAMES */
+    {
+        const char *g[8];
+        int ng = 0;
+        for (int r = 0; r < app_registry_n && ng < 8; r++)
+            if (app_registry_folder[r] == APP_FOLDER_GAMES) g[ng++] = app_registry[r]->name;
+        static uint8_t gctx[APP_CTX_MAX];         /* (a game's state: the device's buffer) */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        app_ctx_buffer(&a, gctx, sizeof gctx);
+        press(&a, "BLUE 0");
+        app_ui(&a, &ui);
+        expect(ui.soft[0] && !strcmp(ui.soft[0], "KEYS") && ui.soft[1] && !strcmp(ui.soft[1], "GAMES") &&
+                   (!ui.soft[2] || !*ui.soft[2]) && ui.soft[5] && !strcmp(ui.soft[5], "more"),
+               "072: APPS: KEYS, GAMES, nothing more listed");
+        press(&a, "k:1");
+        app_ui(&a, &ui);
+        bool p1 = ng > 5;
+        for (int i = 0; i < 5 && i < ng; i++) p1 = p1 && ui.soft[i] && !strcmp(ui.soft[i], g[i]);
+        expect(p1 && ui.soft[5] && !strcmp(ui.soft[5], "more"), "072: GAMES's first page: five games, then more");
+        press(&a, "k:5");
+        app_ui(&a, &ui);
+        bool p2 = true;
+        for (int i = 0; i < 5; i++)
+            p2 = p2 && (5 + i < ng ? ui.soft[i] && !strcmp(ui.soft[i], g[5 + i]) : !ui.soft[i] || !*ui.soft[i]);
+        expect(p2 && !strcmp(g[ng - 1], "SALVO"), "072: GAMES's second page: SALVO, last in the registry");
+        press(&a, "k:5");
+        app_ui(&a, &ui);
+        expect(ui.soft[0] && !strcmp(ui.soft[0], g[0]), "072: more on the last page wraps to the first");
+        press(&a, "C");
+        app_ui(&a, &ui);
+        expect(ui.soft[1] && !strcmp(ui.soft[1], "GAMES") && a.menu >= 0, "072: C in GAMES returns to APPS");
+        press(&a, "C");
+        expect(a.menu < 0, "072: C in APPS closes it, as before");
+        press(&a, "BLUE 0 k:1 \xe2\x86\x90");
+        app_ui(&a, &ui);
+        expect(ui.soft[0] && !strcmp(ui.soft[0], "KEYS") && a.menu >= 0, "072: back-arrow in GAMES returns to APPS");
+        press(&a, "k:1 k:0");
+        expect(a.app && !strcmp(a.app->name, g[0]), "072: a game starts from GAMES");
+        /* a list with no folders (a test's, app_apps): every app in APPS, no GAMES key */
+        static const app_def *const one[] = {&tapps[0], &tapps[1]};
+        ab_init(&c);
+        app_init(&a, &c, now);
+        app_apps(&a, one, 2);
+        press(&a, "BLUE 0");
+        app_ui(&a, &ui);
+        expect(ui.soft[1] && !strcmp(ui.soft[1], one[1]->name) && (!ui.soft[2] || !*ui.soft[2]),
+               "072: without folders every app is APPS's, no GAMES key");
     }
 
     /* the games list (soroban's gate): each game's app_def name is the name its manifest gives (what APPS shows) */

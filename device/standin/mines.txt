@@ -1,5 +1,5 @@
 # MINES under APPS on the board (arcade's unit, soroban's gate; stu32-arcade docs/mines.md revision 2): APPS (blue 0)
-# lists KEYS, BABAL, AIM, LAND and SNAKE, then on its second page (K5, more) MINES on K0. On the title, 0 for the
+# lists KEYS and GAMES (unit 072); GAMES lists BABAL, AIM, LAND, SNAKE, then MINES on K4. On the title, 0 for the
 # settings, 6 twice (HARD, 30 x 16 with 99 mines, from any board the save holds; the rules and sound rows are as the
 # save has them), ENTER back and ENTER for a game. A first open at the cursor (15, 8) deals the board on the chip
 # across ticks (the hardware RNG's seed; the slowest measured deal is 1.95 s, so 3 s pass), then FRAMEBENCH and 79
@@ -33,11 +33,11 @@ send U36
 send K43
 send U43
 sleep 1
-send K5
-send U5
-sleep 0.5
-send K0
-send U0
+send K1
+send U1
+sleep 1
+send K4
+send U4
 sleep 1
 send X
 expect app: MINES

@@ -1,5 +1,5 @@
-# LAND under APPS on the board (arcade's unit, soroban's gate; stu32-arcade docs/land.md): APPS (blue 0) lists KEYS,
-# BABAL, AIM and LAND; LAND's title, ENTER for a game, the frame rate, then rounds flown blind (the terrain comes from
+# LAND under APPS on the board (arcade's unit, soroban's gate; stu32-arcade docs/land.md): APPS (blue 0) lists KEYS and
+# GAMES (unit 072), and GAMES lists BABAL, AIM, then LAND on K2; LAND's title, ENTER for a game, the frame rate, then rounds flown blind (the terrain comes from
 # the hardware RNG, so landing is the host's check, stu32-arcade make landcheck): the engine held 3 s, then every
 # round falls and crashes, 200 fuel each, until the tank is empty and GAME OVER shows (about a minute). Then ENTER
 # starts a new game. X prints stack-free before app:, so expect-min comes first (060's gate). C ends LAND, and
@@ -31,8 +31,11 @@ send U36
 send K43
 send U43
 sleep 1
-send K3
-send U3
+send K1
+send U1
+sleep 1
+send K2
+send U2
 sleep 1
 send X
 expect app: LAND

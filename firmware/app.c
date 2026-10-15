@@ -31,6 +31,7 @@ void app_init(app_state *a, ab_calc *c, uint32_t now_ms)
     a->beeps = c->beeps;
     a->apps = app_registry;                     /* unit 037: the built-in apps */
     a->napps = app_registry_n;
+    a->folders = app_registry_folder;           /* unit 072: APPS's tools, GAMES's games */
     pwr_init(&a->pwr, now_ms);
     dev_settings_default(&a->set);
     c->slice = APP_SLICE_LINES;
@@ -457,6 +458,28 @@ static int eqn_bar(const app_state *a)
 static void app_key_to(app_state *a, int key, bool down, uint32_t now_ms);   /* unit 037 (below) */
 static void app_tick_app(app_state *a, uint32_t now_ms);
 static void app_start(app_state *a, const app_def *d);
+
+/* Unit 072: the k-th entry of APPS's list (games false: the apps outside the GAMES folder, then the GAMES key when any
+   game is listed) or GAMES's (the games), in the registry's order: the app's index, APP_ENTRY_GAMES for the GAMES key,
+   -1 past the end; *count the list's length. Without folders (a test's list) every app is APPS's. */
+#define APP_ENTRY_GAMES (-2)
+static int app_entry(const app_state *a, bool games, int k, int *count)
+{
+    int n = 0, at = -1, ng = 0;
+    for (int i = 0; i < a->napps; i++) {
+        bool g = a->folders && a->folders[i] == APP_FOLDER_GAMES;
+        ng += g;
+        if (g != games) continue;
+        if (n == k) at = i;
+        n++;
+    }
+    if (!games && ng) {
+        if (n == k) at = APP_ENTRY_GAMES;
+        n++;
+    }
+    if (count) *count = n;
+    return at;
+}
 static void app_exit(app_state *a);
 
 void app_key(app_state *a, int key, uint32_t now_ms)
@@ -777,16 +800,22 @@ void app_key(app_state *a, int key, uint32_t now_ms)
         int at = a->menu, page = a->menu_page;
         const km_menu *mn = km_menu_at(at);
         a->menu = -1;
-        if (face->kind == KM_SOFT && mn && mn->paged) {     /* CONST, APPS: five a page, then more */
-            bool apps = mn->paged == KM_PAGED_APPS;
-            int n = apps ? a->napps : ab_consts(a->c), i = page * 5 + face->arg;
+        if (face->kind == KM_SOFT && mn && mn->paged) {     /* CONST, APPS, GAMES: five a page, then more */
+            bool apps = mn->paged == KM_PAGED_APPS || mn->paged == KM_PAGED_GAMES;
+            int i = page * 5 + face->arg, n = 0;
+            int e = apps ? app_entry(a, mn->paged == KM_PAGED_GAMES, i, &n) : -1;
+            if (!apps) n = ab_consts(a->c);
             a->shift = 0;
             if (face->arg == 5) {
                 a->menu = at;
                 a->menu_page = (page + 1) * 5 < n ? page + 1 : 0;
+            } else if (apps && e == APP_ENTRY_GAMES) {
+                a->menu = menu_named("GAMES");  /* unit 072: APPS's GAMES key */
+                a->menu_page = 0;
+            } else if (apps) {
+                if (e >= 0) app_start(a, a->apps[e]);   /* unit 037 */
             } else if (i < n) {
-                if (apps) app_start(a, a->apps[i]);     /* unit 037 */
-                else do_op(a, mn->paged, i);
+                do_op(a, mn->paged, i);
             }
             return;
         }
@@ -831,9 +860,14 @@ void app_key(app_state *a, int key, uint32_t now_ms)
                 return;
             }
         }
-        if (face->kind == KM_OP && (face->op == AB_CANCEL || face->op == AB_KBKSP) && a->shift == 0)
+        if (face->kind == KM_OP && (face->op == AB_CANCEL || face->op == AB_KBKSP) && a->shift == 0) {
+            if (mn && mn->paged == KM_PAGED_GAMES) {    /* unit 072: GAMES backs out to APPS */
+                a->menu = menu_named("APPS");
+                a->menu_page = 0;
+            }
             return;                             /* C or back-arrow only closes it (35s p.1-9: "cancels any other
                                                    menu"; back-arrow backs out of MEM one level: 041 C) */
+        }
     }
     if (face->kind == KM_SOFT && eqn_bar(a) >= 0) {     /* Equation mode's bar (unit 020) */
         int bar = eqn_bar(a);                   /* (with the shift's bank: unit 040) */
@@ -1409,7 +1443,10 @@ void app_ui(const app_state *a, screen_ui *ui)
         const km_action *it = &mn->item[i];
         if (mn->paged && i < 5) {               /* CONST's page: its constants by name; APPS's: the apps */
             int k = a->menu_page * 5 + i;
-            if (mn->paged == KM_PAGED_APPS) ui->soft[i] = k < a->napps ? a->apps[k]->name : NULL;
+            if (mn->paged == KM_PAGED_APPS || mn->paged == KM_PAGED_GAMES) {   /* (unit 072: each its list) */
+                int e = app_entry(a, mn->paged == KM_PAGED_GAMES, k, NULL);
+                ui->soft[i] = e == APP_ENTRY_GAMES ? "GAMES" : e >= 0 ? a->apps[e]->name : NULL;
+            }
             else ui->soft[i] = k < ab_consts(a->c) ? ab_const_symbol(k) : NULL;     /* by symbol (#3958) */
             continue;
         }
@@ -1574,6 +1611,12 @@ void app_apps(app_state *a, const app_def *const *list, int n)
 {
     a->apps = list;
     a->napps = n;
+    a->folders = NULL;
+}
+
+void app_apps_folders(app_state *a, const uint8_t *folders)
+{
+    a->folders = folders;
 }
 
 void app_ctx_buffer(app_state *a, void *buf, uint32_t cap)

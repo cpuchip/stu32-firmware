@@ -81,6 +81,9 @@ static const app_def keys_app = {"KEYS", sizeof(keys_ctx), keys_load, keys_start
 GAMES_DECLARE
 const app_def *const app_registry[] = {&keys_app GAMES_ENTRIES};
 const int app_registry_n = sizeof app_registry / sizeof app_registry[0];
+/* unit 072: each registered app's folder, as the registry (APP_FOLDER_*: KEYS a tool; games.h's from each manifest) */
+const uint8_t app_registry_folder[] = {APP_FOLDER_TOOLS GAMES_FOLDERS};
+_Static_assert(sizeof app_registry_folder == sizeof app_registry / sizeof app_registry[0], "a folder for every app");
 
 void app_sysinfo_build(app_sysinfo *o)
 {
