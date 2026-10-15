@@ -1,0 +1,147 @@
+# abacus #8246's repin (CASIM_PIN casimir 3c3b6fb) on the stand-in: VER names the new pin, two CAS 017 integrals typed
+# from the keys answer as casim's CLI at 8,192 B (048's I12; I16's cycle in DEG), and the calc task's stack low-water mark after
+# them is no lower than the deep paths' worst (8,188 B free at 385ca62 and 9c8cbc4). Keys from tests/stackkeys.c (cas i
+# TEXT). Ends with a control that must FAIL (the old pin).
+# the saved state first: resources.py leaves the "full" state (the equation list full, lines=67), where a typed
+# equation can't be stored; stackkeys' sequences start from MEMORY CLEAR
+wait : heap internal 30
+sleep 3
+send WIPE
+expect wipe: both slots erased
+send RESTART
+expect load: no image: MEMORY CLEAR 30
+wait READY 30
+sleep 2
+send K42
+send K42
+send K36
+send K42
+send K1
+sleep 1
+send X
+expect pins: casim=3c3b6fb79af3cc7b78cef372256d89013a9265cc 5
+expect view: VER 0.69 | CORE b02038a | BUILT 5
+send K42
+sleep 1
+# X×LN(X) by parts
+send K42
+sleep 0.25
+send K42
+sleep 0.25
+send K36
+sleep 0.25
+send K18
+sleep 0.25
+send K2
+sleep 0.25
+send K42
+sleep 0.25
+send K30
+sleep 0.25
+send K43
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K34
+sleep 0.25
+send K13
+sleep 0.25
+send K17
+sleep 0.25
+send K13
+sleep 0.25
+send K19
+sleep 0.25
+send K2
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K1
+sleep 0.25
+send K18
+sleep 0.25
+send K4
+sleep 0.25
+send K5
+sleep 0.25
+send K1
+sleep 0.25
+send K33
+sleep 0.25
+send X
+expect eqn: -0.25×X^2+0.5×X^2×LN(X) | note=+C 10
+# EXP(X)×SIN(X), the cycle, in DEG (MEMORY CLEAR's angle): casim's CLI at 8,192 B in DEG gives this text
+send K42
+sleep 0.25
+send K42
+sleep 0.25
+send K36
+sleep 0.25
+send K18
+sleep 0.25
+send K2
+sleep 0.25
+send K42
+sleep 0.25
+send K30
+sleep 0.25
+send K43
+sleep 0.25
+send K13
+sleep 0.25
+send K10
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K13
+sleep 0.25
+send K21
+sleep 0.25
+send K2
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K1
+sleep 0.25
+send K34
+sleep 0.25
+send K15
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K1
+sleep 0.25
+send K18
+sleep 0.25
+send K4
+sleep 0.25
+send K5
+sleep 0.25
+send K1
+sleep 0.25
+send K33
+sleep 0.25
+send X
+expect eqn: -180×(π×EXP(X)×COS(X)-180×EXP(X)×SIN(X))÷(π^2+32400) | note=+C 10
+send X
+expect-min stack-free 8188 10
+send K42
+send K42
+send K36
+send K42
+send K1
+sleep 1
+send X
+# CONTROL: must FAIL
+expect CASIM 4b91739 GAMES 3
+send K42
