@@ -1,7 +1,7 @@
 # Work unit 072: the GAMES folder under APPS
 
 **From:** Michael's ruling through abacus #8570 (arcade #8561's shape), #8600 · **Proposed:** soroban #8677 ·
-**Ruled:** abacus #8679 · **Status:** built; host GO from reading (abacus #8706); Decision 68's static to follow.
+**Ruled:** abacus #8679 · **Status:** built and measured; host GO from reading (abacus #8706).
 
 ## What it does
 
@@ -54,3 +54,14 @@ Each script's expect names its game.
 | G2 | GAMES never pages (CONST's paging too, the shared code) | 6 |
 | G3 | C in GAMES closes it | 3 |
 | G4 | APPS's GAMES key opens nothing | 6 |
+
+## Decision 68
+
+Static, `scripts/resources.py static 65c1ce4 4d1171d`:
+
+| | stand-in | Rev A |
+|---|---|---|
+| flash | +384 (libmain +370) | +384 (libmain +374) |
+| DIRAM, IRAM, calc_task's frame, internal-RAM symbols | +0 | +0 |
+
+No board pass: no bench path opens a menu.
