@@ -54,6 +54,11 @@ Also in 35s and STU wherever the 35s has them.
 | B7 | FN= from the keyboard (SOLVE or ∫ of a program) | p.14-1 |
 | B10 | HYP as a prefix in 33s mode (HYP then SIN), as the 33s has it. The menu stays in 35s and STU. | p.4-6 |
 
+- **B10 corrected 2026-10-15 (abacus #8495, #8497):** the 35s's HYP is a prefix too. Its index says HYP "Displays the
+  HYP_ prefix for hyperbolic functions" (4-6); p.4-6's table, as abacus read the rendered page, keys SINH as HYP then
+  SIN and ASINH as HYP then the shifted ASIN; p.1-13's annunciator table has HYP, "Hyperbolic function is active".
+  35s mode now has the prefix as 33s mode does. STU keeps the menu only; whether it should is design input for Michael.
+
 **Checksums** (B6, p.6-18 and 12-21) are not in this unit: they need a byte format, a design of their own.
 
 ## Part D: the 33s's equation syntax, in 33s-mode equations (B9)
@@ -79,7 +84,8 @@ as it decides its grouping.
   - Accepted 33s-mode vectors that used a hidden feature are moved to 35s mode or amended in place, saying which,
     with the decision 58 reference.
   - tutor's lessons are checked by their own harness. poly-04 already plans a 33s variant through 039's pairs.
-- **Mutants:** a hidden feature leaking back into 33s mode, one per part; HYP's prefix leaking into 35s.
+- **Mutants:** a hidden feature leaking back into 33s mode, one per part; HYP's prefix leaking into 35s (since B10's
+  correction: into STU).
 
 ## Part A accepted (abacus, 2026-10-07, at 58f108d)
 

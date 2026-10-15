@@ -4621,6 +4621,19 @@ bool ab_rec35(const ab_calc *c)
     return ab_mode35(c);
 }
 
+bool ab_recstu(const ab_calc *c)
+{
+    if (c->running <= 0 && c->prgm && c->pc >= 0 && c->pc < c->prog_len) {
+        int l = prog_owner(c, c->pc);           /* the label the new line joins */
+        if (l >= 0 && c->lmode[l]) return c->lmode[l] == AB_MODEL_STU;
+    }
+    if (c->running > 0 && c->exec_at >= 0 && c->exec_at < c->prog_len) {
+        int l = prog_owner(c, c->exec_at);
+        if (l >= 0 && c->lmode[l]) return c->lmode[l] == AB_MODEL_STU;
+    }
+    return c->stu;
+}
+
 bool ab_hidden(const ab_calc *c, int op)
 {
     if (ab_rec35(c)) return op == AB_CUBE || op == AB_CBRT;     /* 33s mode's features the 35s lacks (041 C) */

@@ -550,6 +550,8 @@ bool ab_hidden(const ab_calc *c, int op);
    while a line runs, and otherwise (the keyboard, lines before the first label), ab_mode35. ab_hidden, ab_consts and
    the line-address gate ask here. */
 bool ab_rec35(const ab_calc *c);
+/* As ab_rec35, whether that mode is STU (HYP's prefix is the 33s's and the 35s's, not STU's: abacus #8497). */
+bool ab_recstu(const ab_calc *c);
 #define AB_ENG_LIMIT 6400   /* unit 041 C (B4): the furthest exponent or last place an ENG view keeps (beyond decimal128's) */
 /* Unit 043: Equation mode shows a built-in solver (2*2 or 3*3 lin. solve), so SOLVE takes no letter (35s p.7-6). */
 bool ab_builtin_shown(const ab_calc *c);

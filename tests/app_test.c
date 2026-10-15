@@ -872,7 +872,8 @@ int main(void)
 
     /* unit 041 C (B10): in 33s mode HYP is also a prefix (33s p.4-6): HYP then SIN is SINH, HYP then GOLD SIN
        ASINH, in program entry and an equation's typing too; its soft keys stay the menu's; any other key closes it
-       as a menu. In 35s mode and STU, the menu only (the trig keys close it and act) */
+       as a menu. 35s mode the same (35s p.4-6: abacus #8497, B10 corrected). STU, the menu only (the trig keys
+       close it and act); in program entry the label's stamp decides, as ab_rec35 */
     {
         char t[24];
         ab_init(&c);
@@ -905,10 +906,32 @@ int main(void)
         app_init(&a, &c, now);
         ab_do_arg(&c, AB_MODEL, 35);
         press(&a, "1 BLUE LN SIN");
-        expect(fabs(x_of(&c) - sin(acos(-1.0) / 180)) < 1e-12 && a.menu < 0, "041 C: 35s mode: HYP then SIN closes the menu, SIN acts");
+        expect(fabs(x_of(&c) - sinh(1.0)) < 1e-12 && a.menu < 0, "35s mode: HYP SIN is SINH, the prefix closed (35s p.4-6)");
+        press(&a, "C 2 BLUE LN GOLD COS");
+        expect(fabs(x_of(&c) - acosh(2.0)) < 1e-12, "35s mode: HYP GOLD COS is ACOSH");
+        press(&a, "C 2 ENTER 3 BLUE LN +");
+        expect(x_of(&c) == 5 && a.menu < 0, "35s mode: another key closes HYP and acts");
+        press(&a, "C");
+        ab_do(&c, AB_PRGM);
+        press(&a, "GOLD XEQ ltr:A BLUE LN TAN");
+        ab_prog_line(&c, c.pc, NULL, t, sizeof t);
+        expect(!strcmp(t, "TANH"), "35s mode: HYP TAN in program entry records TANH");
+        ab_do(&c, AB_PRGM);
+        press(&a, "C GOLD 0 BLUE LN SIN");
+        expect(c.eqn_typing && !strncmp(c.ebuf, "SINH(", 5), "35s mode: HYP SIN in an equation types SINH(");
+        press(&a, "C C");                       /* the typing cancelled, then Equation mode left */
+        expect(!c.eqn_mode, "35s mode: out of Equation mode");
         ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
         press(&a, "C 1 BLUE LN COS");
-        expect(fabs(x_of(&c) - cos(acos(-1.0) / 180)) < 1e-12, "041 C: STU: HYP then COS is COS");
+        expect(fabs(x_of(&c) - cos(acos(-1.0) / 180)) < 1e-12 && a.menu < 0, "041 C: STU: HYP then COS is COS");
+        ab_do(&c, AB_PRGM);                     /* the pointer on A's lines: A is stamped 35, so the prefix */
+        press(&a, "BLUE LN SIN");
+        ab_prog_line(&c, c.pc, NULL, t, sizeof t);
+        expect(!strcmp(t, "SINH"), "STU: in program entry on a 35s label, HYP SIN records SINH (the label's stamp)");
+        press(&a, "GOLD XEQ ltr:B BLUE LN SIN");
+        ab_prog_line(&c, c.pc, NULL, t, sizeof t);
+        expect(!strcmp(t, "SIN"), "STU: on a label stamped STU, HYP then SIN records SIN (the menu only)");
+        ab_do(&c, AB_PRGM);
     }
 
     /* unit 041 C (B7): FN= on the keys (until now only the core's token): PRGM's fourth item, in SST's cell (SST is

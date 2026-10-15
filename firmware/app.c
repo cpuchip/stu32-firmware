@@ -373,7 +373,7 @@ static void mem_fill(app_state *a)
     else snprintf(a->mem_text, sizeof a->mem_text, "%s B FREE", room);
 }
 
-/* The hyperbolic function the 33s's HYP prefix makes of a trig key (unit 041 C, B10; 33s p.4-6), -1 none. */
+/* The hyperbolic function HYP's prefix makes of a trig key (unit 041 C, B10; 33s and 35s p.4-6), -1 none. */
 static int hyp_of(const km_action *act)
 {
     static const int TRIG[6] = {AB_SIN, AB_COS, AB_TAN, AB_ASIN, AB_ACOS, AB_ATAN};
@@ -816,10 +816,11 @@ void app_key(app_state *a, int key, uint32_t now_ms)
                 return;
             }
         }
-        if (at == menu_named("HYP") && !ab_rec35(a->c)) {
-            /* 33s mode: HYP is also the prefix (unit 041 C, B10; 33s p.4-6): a trig key, or its gold inverse, is
-               the hyperbolic function, on the stack, in program entry or typed; the soft keys stay the menu's; any
-               other key closes it, as a menu. 35s mode and STU keep the menu only. */
+        if (at == menu_named("HYP") && !ab_recstu(a->c)) {
+            /* 33s and 35s modes: HYP is also the prefix (unit 041 C, B10; 33s p.4-6; the 35s's too, 35s p.4-6:
+               abacus #8497): a trig key, or its gold inverse, is the hyperbolic function, on the stack, in program
+               entry or typed; the soft keys stay the menu's; any other key closes it, as a menu. STU keeps the menu
+               only (its keyboard is Michael's to rule). */
             const km_action *op = km_lookup(key, a->shift);
             if (op->kind == KM_NONE) op = face;
             int h = hyp_of(op);
