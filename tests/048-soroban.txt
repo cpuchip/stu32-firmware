@@ -41,7 +41,7 @@ I11 | 048 ∫ (CAS 013): the answer evaluates: ∫1÷(X×(X+1)) is LN(ABS(X))-LN
 # the calculator's arena (core/arena.h). At 8,192 B the rational path didn't fit inside a substitution or a part (casim
 # work/017 rule 7): X×ATAN(X) refused (it answers from 8,592 B) and SIN(X)+1÷(X^2-1) was TOO COMPLEX (from 8,760 B).
 # The arena is 8,800 B since the a4dd723 repin (Michael's arena card, cas-arena-8800), so both answer (I17-I21), and
-# since casim a4dd723 a search that runs out says TOO COMPLEX, never CAN'T INTEGRATE (I19, I22). Those figures are RAD's:
+# since casim a4dd723 a search that runs out says TOO COMPLEX, never CAN'T INTEGRATE (I19). Those figures are RAD's:
 # in DEG and GRAD, X×ATAN(X) needs 8,800 B exactly and SIN(X)+1÷(X^2-1) 8,776 (I23 holds the DEG answer).
 I12 | 048 ∫ (CAS 017): X×LN(X) by parts, +C beside it | STU RAD EQ:X×LN(X) CASINT:X | %EQ=-0.25×X^2+0.5×X^2×LN(X) %NOTE=+C %EQN=2
 I13 | 048 ∫ (CAS 017): the answer evaluates: at X 3, 4.5×LN(3)-2.25 (mpmath, 34 digits, within 8 units: the answer is three rounded operations) | STU RAD 3 STO:X EQ:X×LN(X) CASINT:X XEQ RS | X^2.693755299006493611278603566151366
@@ -53,8 +53,9 @@ I18 | 048 ∫ (CAS 017): SIN(X)+1÷(X^2-1) at 8,800 B (TOO COMPLEX at 8,192 B; i
 I19 | 048 ∫ (CAS 017, casim a4dd723): X×ATAN(X)+1÷(X^2-1) runs out at 8,800 B (it answers from 9,592 B): TOO COMPLEX, where 3c3b6fb at 8,800 B says CAN'T INTEGRATE | STU RAD EQ:X×ATAN(X)+1÷(X^2-1) CASINT:X | ERR %ERR=CAS_NO_ROOM %ERRMSG=TOO_COMPLEX %EQN=1 %NOTE=none
 I20 | 048 ∫ (CAS 017): I17's answer evaluates: at X 1, π÷4-0.5 (mpmath, 34 digits, within 8 units: the answer is several rounded operations; mpmath's quadrature of X×ATAN(X) over [0, 1] agrees) | STU RAD 1 STO:X EQ:X×ATAN(X) CASINT:X XEQ RS | X^0.2853981633974483096156608458198757
 I21 | 048 ∫ (CAS 017): I18's answer evaluates: at X 2, -0.5×LN(3)-COS(2) (mpmath, 34 digits, within 8 units) | STU RAD 2 STO:X EQ:SIN(X)+1÷(X^2-1) CASINT:X XEQ RS | X^-0.1331593077869124587000543889605007
-I22 | 048 ∫ (casim a4dd723): a rational piece with no room for partfrac to start is a run-out: (X^2+3×X-1)×(3×X+2)÷(3×X+2)^2 is TOO COMPLEX at 8,800 B (it answers from 10,776 B), where 360979f and 3c3b6fb say CAN'T INTEGRATE | STU RAD EQ:(X^2+3×X-1)×(3×X+2)÷(3×X+2)^2 CASINT:X | ERR %ERR=CAS_NO_ROOM %ERRMSG=TOO_COMPLEX %EQN=1 %NOTE=none
+I22 | 048 ∫ (casim 4f24e3e, CAS 013 rule 8 B): the reduced fraction first, so (X^2+3×X-1)×(3×X+2)÷(3×X+2)^2 answers at 8,800 B, X÷3+7÷9-(23÷9)÷(3×X+2) integrated (by hand), where a4dd723 to 65369cb ran out before partfrac (TOO COMPLEX; it answered from 10,776 B) | STU RAD EQ:(X^2+3×X-1)×(3×X+2)÷(3×X+2)^2 CASINT:X | %EQ=7×X÷9-23×LN(ABS(3×X+2))÷27+X^2÷6 %NOTE=+C %EQN=2
 I23 | 048 ∫ (CAS 017): I17 in DEG, MEMORY CLEAR's angle, answers at 8,800 B with no byte to spare (TOO COMPLEX at 8,799 B) | STU DEG EQ:X×ATAN(X) CASINT:X | %EQ=0.5×ATAN(X)-90×X÷π+0.5×X^2×ATAN(X) %NOTE=+C %EQN=2
+I24 | 048 ∫ (casim 4f24e3e, CAS 013 rule 8 B): (X^3+X)÷(X^2+1), which is X, answers 0.5×X^2 (d/dX is X), where 32e5ddd's rule made it TOO COMPLEX at 8,800 B (65369cb) and a4dd723 said CAN'T INTEGRATE (abacus #8545, #8556) | STU RAD EQ:(X^3+X)÷(X^2+1) CASINT:X | %EQ=0.5×X^2 %NOTE=+C %EQN=2
 # CAS 016 (the same repin): a pole in any op has no value, so each CAS step refuses it as UNDEFINED. At 4b91739 these
 # were inserted as typed (TAN(π÷2), LN(0), ATANH(1)×X's integral) or refused as COEF_NOT_NUMERIC (SOLVE).
 P01 | CAS 016: TAN(π÷2) has no value, UNDEFINED, nothing inserted | STU RAD EQ:TAN(π÷2) CASSIMP | ERR %ERR=CAS_UNDEFINED %ERRMSG=UNDEFINED %EQN=1
