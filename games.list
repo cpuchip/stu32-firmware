@@ -13,3 +13,5 @@ land   stu32-arcade  e20cd98bed21758b256604011ae11b67a809d671  MIT              
 snake  stu32-arcade  5947c16d6b96928b5511129a6024c2ea570d152e  MIT                        games/snake/stu32-game.txt
 # MINES: arcade's, clear the field with no guess ever needed (Michael's decision 71; stu32-arcade docs/mines.md)
 mines  stu32-arcade  7344045c918f2818963ab5946aca3f3d3fad644f  MIT                        games/mines/stu32-game.txt
+# SALVO: arcade's, hold off the swarm (Michael's ruling on the games plan, abacus #8569; stu32-arcade docs/salvo.md)
+salvo  stu32-arcade  5947c16d6b96928b5511129a6024c2ea570d152e  MIT                        games/salvo/stu32-game.txt

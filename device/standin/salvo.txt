@@ -1,0 +1,71 @@
+# SALVO under APPS on the board (arcade's unit 071, soroban's gate; stu32-arcade docs/salvo.md): APPS (blue 0) lists
+# KEYS, BABAL, AIM, LAND and SNAKE, then on its second page (K5, more) MINES and SALVO on K1. ENTER for a game, 6 and 8
+# held together (moving and firing at once), the frame rate while the formation comes in, the keys let go, and the
+# ship left to be lost three times (an idle ship lasts about 18 s on the host); GAME OVER, then ENTER for a second
+# game. Scoring and the rules are the host's check (stu32-arcade make salvocheck). X prints stack-free before app:,
+# so expect-min comes first. C ends SALVO, and 2 ENTER 3 + must give 5.
+send RESTART
+wait STANDIN READY 30
+# C twice first, then X = 4, so the closing 2 ENTER 3 + = 5 can fail (soroban's shape, 6388bc4)
+send K42
+send U42
+send K42
+send U42
+send K38
+send U38
+send K18
+send U18
+send K38
+send U38
+send K46
+send U46
+send X
+expect X=4
+send X
+expect stack-free
+send K36
+send U36
+send K43
+send U43
+sleep 1
+send K5
+send U5
+sleep 1
+send K1
+send U1
+sleep 1
+send X
+expect app: SALVO
+send K18
+send U18
+sleep 1
+send K33
+send K26
+sleep 1
+send FRAMEBENCH
+expect framebench: SALVO 30
+sleep 4
+send U33
+send U26
+sleep 25
+send K18
+send U18
+sleep 2
+send X
+expect-min stack-free 2048
+expect app: SALVO
+send K42
+send U42
+sleep 1
+send X
+expect app: -
+send K38
+send U38
+send K18
+send U18
+send K39
+send U39
+send K46
+send U46
+send X
+expect X=5
