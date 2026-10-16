@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "const.h"
+#include "help.h"
 #include "keymap.h"
 #include "piezo.h"
 #include "state.h"
@@ -507,6 +508,92 @@ static int app_entry(const app_state *a, bool games, int k, int *count)
 }
 static void app_exit(app_state *a);
 
+/* Unit 075: HELP's page for a key, resolved as the key would act (an open menu's soft key, Equation mode's bar or its
+   GOLD bank, else the key in its shift, its face when the shift has none) and never run: the key and its legend, then
+   its entry's lines in the calculator's mode; a menu's key gets one line and its items. SYS's view shows it, so any
+   key closes it, and the core is never called (no lift, no UNDO mark). */
+static void help_page(app_state *a, int key, const km_action *face)
+{
+    static const char *const SH[3] = {"", "GOLD ", "BLUE "};
+    char (*t)[48] = a->view_text;
+    char out[3][HELP_LINE_BYTES];
+    const help_entry *e = NULL;
+    const km_action *act = NULL;
+    const char *legend = face->legend;
+    memset(a->view_text, 0, sizeof a->view_text);
+    int m = face->kind == KM_SOFT ? (a->menu >= 0 ? a->menu : eqn_bar(a)) : -1;
+    const km_menu *mn = m >= 0 ? km_menu_at(m) : NULL;
+    if (mn) {
+        int i = face->arg, k = a->menu_page * 5 + i;
+        if (mn->paged && i == 5) {              /* more: the next page (fresh eyes) */
+            legend = "more";
+            e = help_find(HELP_MORE, 0, -1, NULL);
+        } else if (mn->paged && i < 5) {        /* APPS, GAMES: an app (or APPS's GAMES key); CONST: a constant */
+            if (mn->paged == KM_PAGED_APPS || mn->paged == KM_PAGED_GAMES) {
+                int en = app_entry(a, mn->paged == KM_PAGED_GAMES, k, NULL);
+                legend = en == APP_ENTRY_GAMES ? "GAMES" : en >= 0 ? a->apps[en]->name : NULL;
+                e = en == APP_ENTRY_GAMES ? help_find(HELP_MENU, 0, -1, "GAMES") : en >= 0 ? help_find(HELP_APP, 0, -1, NULL) : NULL;
+            } else {
+                legend = k < ab_consts(a->c) ? ab_const_symbol(k) : NULL;
+                e = legend ? help_find(HELP_CONST, 0, -1, NULL) : NULL;
+            }
+            if (!legend) e = help_find(HELP_SOFT, 0, -1, NULL);
+        } else {
+            act = &mn->item[i];
+            legend = act->legend;
+            e = act->kind == KM_NONE ? help_find(HELP_SOFT, 0, -1, NULL) : help_for_action(act);
+        }
+        snprintf(t[0], sizeof t[0], "F%d in %s: %s", i + 1, mn->name, legend && legend[0] ? legend : "-");
+    } else {
+        act = km_lookup(key, a->shift);
+        if (act->kind == KM_NONE && a->shift == 0) act = face;
+        legend = act->legend;
+        e = face->kind == KM_SOFT ? help_find(HELP_SOFT, 0, -1, NULL) : help_for_action(act);
+        /* the keys app_key takes before their action (fresh eyes): an open graph's digits (GOLD: ten pixels), and the
+           prefixes, HYP's trig keys (in every mode, unit 073) and 33s mode's CMPLX on an operator */
+        const km_action *fa = km_lookup(key, a->shift);
+        if (fa->kind == KM_NONE) fa = face;
+        int h = a->menu >= 0 && a->menu == menu_named("HYP") ? hyp_of(fa) : -1;
+        if (a->c->gr_on && face->kind == KM_OP && face->op >= AB_K1 && face->op <= AB_K9 && a->shift != 2) {
+            e = help_find(HELP_GRAPHPAD, 0, -1, NULL);
+            act = NULL;
+        } else if (h >= 0) {
+            e = help_find(HELP_OP, h, 0, NULL);
+            act = NULL;
+        } else if (cx_prefix(a, a->menu) && cx_pair_of(fa) >= 0) {
+            e = help_find(HELP_CMPLXPAIR, 0, -1, NULL);
+            act = NULL;
+        }
+        if (face->kind == KM_SOFT)              /* a soft key with nothing over it: named by its place */
+            snprintf(t[0], sizeof t[0], "%sF%d: -", SH[a->shift], face->arg + 1);
+        else
+            snprintf(t[0], sizeof t[0], "%s%s%s: %s", h >= 0 ? "HYP " : "", SH[a->shift], face->legend,
+                     legend && legend[0] ? legend : "-");
+    }
+    int model = ab_rec_model(a->c);             /* in a program, its label's (abacus #8740, H52) */
+    int n = help_lines(e, model, legend, out, 3);
+    if (!e) snprintf(out[0], sizeof out[0], "No help for this key yet."), n = 1;
+    if (act && act->kind == KM_MENU && act->arg >= 0) {   /* a menu: one line, then its items */
+        const km_menu *sub = km_menu_at(act->arg);
+        char items[2][HELP_LINE_BYTES] = {"", ""};
+        int row = 0;
+        for (int j = 0; sub && j < KM_SOFT_KEYS && row < 2; j++) {
+            const char *l = sub->item[j].legend;
+            if (sub->item[j].kind == KM_NONE || !l || !l[0]) continue;
+            if (screen_cells(items[row]) + 1 + screen_cells(l) > HELP_LINE_CELLS && items[row][0] && ++row >= 2) break;
+            size_t len = strlen(items[row]);
+            snprintf(items[row] + len, sizeof items[row] - len, "%s%s", len ? " " : "", l);
+        }
+        n = n > 1 ? 1 : n;
+        for (int r = 0; r < 2 && items[r][0] && n < 3; r++) memcpy(out[n++], items[r], sizeof out[0]);
+    }
+    for (int i = 0; i < n && i < 3; i++) {     /* (the same 48 bytes, each ended) */
+        memcpy(t[1 + i], out[i], sizeof t[1 + i]);
+        t[1 + i][sizeof t[1 + i] - 1] = '\0';
+    }
+    a->view = APP_VIEW_HELP;
+}
+
 void app_key(app_state *a, int key, uint32_t now_ms)
 {
     const km_action *face = km_lookup(key, KM_FACE);
@@ -541,6 +628,17 @@ void app_key(app_state *a, int key, uint32_t now_ms)
     }
     if (a->view) {                              /* SYS's view: any key leaves it, and only that */
         a->view = APP_VIEW_NONE;
+        a->shift = 0;
+        return;
+    }
+    if (a->help) {                              /* unit 075: HELP, then this key: its page, the key not run; a shift
+                                                   first arms, switches or cancels as ever (HELP, GOLD, 7: GOLD 7's) */
+        if (face->kind == KM_SHIFT) {
+            a->shift = a->shift == face->arg ? 0 : face->arg;
+            return;
+        }
+        help_page(a, key, face);
+        a->help = false;
         a->shift = 0;
         return;
     }
@@ -776,6 +874,10 @@ void app_key(app_state *a, int key, uint32_t now_ms)
         if (act->kind == KM_NONE) act = face;
         int sh = a->shift, bar = a->menu;
         a->shift = 0;
+        if (act->kind == KM_DEVICE && act->arg == KM_DEV_HELP) {
+            a->help = true;                     /* unit 075: HELP keeps the catalog and its bar (fresh eyes) */
+            return;
+        }
         if (face->kind == KM_OP && face->op == AB_CANCEL && sh == 0) {
             a->cat = 0;
             a->menu = -1;
@@ -825,6 +927,14 @@ void app_key(app_state *a, int key, uint32_t now_ms)
         int at = a->menu, page = a->menu_page;
         const km_menu *mn = km_menu_at(at);
         a->menu = -1;
+        const km_action *hl = km_lookup(key, a->shift);
+        if (hl->kind == KM_DEVICE && hl->arg == KM_DEV_HELP) {
+            a->menu = at;                       /* unit 075: HELP keeps the menu, so a soft key's item is explained */
+            a->menu_page = page;
+            a->help = true;
+            a->shift = 0;
+            return;
+        }
         if (face->kind == KM_SOFT && mn && mn->paged) {     /* CONST, APPS, GAMES: five a page, then more */
             bool apps = mn->paged == KM_PAGED_APPS || mn->paged == KM_PAGED_GAMES;
             int i = page * 5 + face->arg, n = 0;
@@ -933,7 +1043,7 @@ static void view_open(app_state *a, int view)
     si.soc = -1;
     if (a->sysinfo) a->sysinfo(a->ctx, &si);
     memset(a->view_text, 0, sizeof a->view_text);
-    char (*t)[40] = a->view_text;
+    char (*t)[48] = a->view_text;
     if (view == APP_VIEW_BATT) {
         if (si.soc >= 0) snprintf(t[0], sizeof t[0], "BATT %d%%", si.soc);
         else snprintf(t[0], sizeof t[0], "BATT --");
@@ -1083,6 +1193,10 @@ static void do_action(app_state *a, const km_action *act)
             a->cat = 0;
             do_op(a, AB_GTOPOS, l * 1000);
             if (!a->c->prgm) do_op(a, AB_PRGM, 0);
+            break;
+        }
+        if (act->arg == KM_DEV_HELP) {          /* unit 075: the next key is explained, not run */
+            a->help = true;
             break;
         }
         if (act->arg == KM_DEV_OFF) a->off = true;
@@ -1382,6 +1496,8 @@ void app_ui(const app_state *a, screen_ui *ui)
     ui->separator = a->set.group;
     ui->busy = a->running ? a->busy_op : 0;
     ui->prompt = a->prompt_op >= 0 ? a->prompt_text : NULL;
+    ui->help = a->help;                         /* unit 075: HELP armed: its prompt (below) and the band's HELP */
+    if (a->help) ui->prompt = "HELP_";
     if (!ui->prompt && cx_prefix(a, a->menu))
         ui->prompt = "CMPLX_";               /* 33s mode's prefix (unit 039; 33s p.G-6) */
     ui->hyp = a->menu >= 0 && a->menu == menu_named("HYP");    /* unit 073: the prefix armed, its annunciator */

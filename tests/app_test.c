@@ -3180,6 +3180,90 @@ int main(void)
         expect(c.eqn_mode && ui.notice && !strcmp(ui.notice, "REDO"), "073: and the next is its REDO");
     }
 
+    /* unit 075 (abacus #8736, #8738): HELP (blue 9), then a key: its page, the key never run; HELP_ and the band's
+       HELP while armed; a shift first, then the key (GOLD 7's); in an open menu a soft key's item; the closing key does
+       nothing else; no lift, no UNDO mark, the image as it was */
+    {
+        static uint8_t h0[262144], h1[262144];
+        ab_init(&c);
+        app_init(&a, &c, now);
+        app_undo_buffers(&a, h0, h1, sizeof h0);
+        press(&a, "2 ENTER 3");
+        uint32_t crc = img_crc(&c);
+        size_t ul = a.undo_len;
+        press(&a, "BLUE 9");
+        app_ui(&a, &ui);
+        expect(a.help && ui.prompt && !strcmp(ui.prompt, "HELP_") && ui.help, "075: HELP armed: HELP_ and the band's HELP");
+        press(&a, "SIN");
+        app_ui(&a, &ui);
+        expect(a.view == APP_VIEW_HELP && ui.view[0] && strstr(ui.view[0], "SIN") && img_crc(&c) == crc &&
+                   a.undo_len == ul && !a.help, "075: HELP SIN: SIN's page, nothing run (the image, UNDO as they were)");
+        press(&a, "5");
+        expect(a.view == APP_VIEW_NONE && img_crc(&c) == crc, "075: a key closes the page and does nothing else");
+        press(&a, "BLUE 9 GOLD 7");
+        app_ui(&a, &ui);
+        expect(a.view == APP_VIEW_HELP && ui.view[0] && !strncmp(ui.view[0], "GOLD 7: ", 8), "075: HELP GOLD 7: GOLD 7's page");
+        press(&a, "C");
+        expect(a.view == APP_VIEW_NONE && img_crc(&c) == crc, "075: C closes it, nothing else");
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        ab_eqn_add(&c, "X^2");
+        press(&a, "k:4 k:5");                   /* CAS, its second page */
+        int menu = a.menu;
+        press(&a, "BLUE 9");
+        expect(a.help && a.menu == menu, "075: HELP over a menu keeps it open");
+        press(&a, "k:4");
+        app_ui(&a, &ui);
+        expect(a.view == APP_VIEW_HELP && ui.view[0] && !strncmp(ui.view[0], "F5 in CAS2: \xce\xa3", 15) && !c.cas_def,
+               "075: then F5: CAS2's \xce\xa3 explained, not started");
+        /* fresh eyes: the keys app_key takes first are explained as they act; MEM's catalog kept */
+        static uint8_t g0[APP_CTX_MAX];
+        ab_init(&c);
+        app_init(&a, &c, now);
+        app_ctx_buffer(&a, g0, sizeof g0);
+        press(&a, "5 STO ltr:A BLUE 1 k:0");     /* MEM, VAR: the catalog */
+        int cat = a.cat, bar = a.menu;
+        press(&a, "BLUE 9 k:0");
+        app_ui(&a, &ui);
+        expect(cat && a.view == APP_VIEW_HELP && a.cat == cat && a.menu == bar && ui.view[1],
+               "075: HELP in MEM's catalog explains its bar's key, the catalog kept");
+        press(&a, "5");
+        expect(a.cat == cat && a.menu == bar, "075: and the page closed, the catalog as it was");
+        ab_init(&c);
+        app_init(&a, &c, now);
+        press(&a, "BLUE LN BLUE 9 SIN");
+        app_ui(&a, &ui);
+        expect(ui.view[0] && !strncmp(ui.view[0], "HYP SIN", 7), "075: HYP open, HELP SIN: SINH's page (the prefix)");
+        ab_init(&c);
+        app_init(&a, &c, now);
+        press(&a, "BLUE +/\xe2\x88\x92 BLUE 9 \xc3\xb7");
+        app_ui(&a, &ui);
+        expect(ui.view[1] && !strncmp(ui.view[1], "33s CMPLX", 9), "075: 33s CMPLX open, HELP \xc3\xb7: the pair operation");
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        ab_eqn_add(&c, "X^2");
+        ab_do(&c, AB_GRAPH);
+        press(&a, "BLUE 9 GOLD 7");
+        app_ui(&a, &ui);
+        expect(c.gr_on && ui.view[1] && !strncmp(ui.view[1], "Moves the graph's cursor", 24),
+               "075: a graph open, HELP GOLD 7: the cursor's ten pixels, not SOLVE");
+        ab_init(&c);
+        app_init(&a, &c, now);
+        press(&a, "BLUE 0 BLUE 9 k:1");
+        app_ui(&a, &ui);
+        expect(ui.view[0] && !strcmp(ui.view[0], "F2 in APPS: GAMES") && ui.view[1] && !strncmp(ui.view[1], "Games:", 6),
+               "075: APPS's GAMES key has its page");
+        press(&a, "C BLUE 0 k:1 BLUE 9 k:5");
+        app_ui(&a, &ui);
+        expect(ui.view[1] && !strcmp(ui.view[1], "Shows the next five."), "075: GAMES's more has its page");
+        press(&a, "C C C");                     /* the page, GAMES back to APPS, APPS closed */
+        press(&a, "BLUE 9 k:2");
+        app_ui(&a, &ui);
+        expect(ui.view[0] && !strcmp(ui.view[0], "F3: -"), "075: a soft key with nothing over it is named by its place");
+    }
+
     /* unit 072 (abacus #8570, #8600, #8679): APPS lists KEYS, then GAMES; GAMES pages the folder's games five at a time
        with more, in the registry's order; C or back-arrow returns to APPS; a game starts from GAMES */
     {

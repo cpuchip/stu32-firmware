@@ -58,7 +58,7 @@ static const want W[] = {
     MENU(4, 1, KM_BLUE, "GRAPH"),
     OPK(4, 2, KM_FACE, AB_K8, "8"), {4, 2, KM_GOLD, KM_PROMPT, AB_INTEG, 0, KM_ARG_VAR, "\xe2\x88\xab"} /* rule 4 */,
     MENU(4, 2, KM_BLUE, "TABLE"),
-    OPK(4, 3, KM_FACE, AB_K9, "9"), {4, 3, KM_GOLD, KM_MENU, 0, 0, 0, "PRGM"} /* menu 0 (#3877) */, MENU(4, 3, KM_BLUE, "TUTOR"),
+    OPK(4, 3, KM_FACE, AB_K9, "9"), {4, 3, KM_GOLD, KM_MENU, 0, 0, 0, "PRGM"} /* menu 0 (#3877) */, {4, 3, KM_BLUE, KM_DEVICE, 0, KM_DEV_HELP, 0, "HELP"} /* unit 075: was TUTOR */,
     OPK(4, 4, KM_FACE, AB_DIV, "\xc3\xb7"), OPK(4, 4, KM_GOLD, AB_IDIV, "INT\xc3\xb7"), OPK(4, 4, KM_BLUE, AB_RMDR, "Rmdr"),
     /* row 5 */
     {5, 0, KM_FACE, KM_SHIFT, 0, 1, 0, ""},
@@ -308,25 +308,14 @@ int main(void)
                    "SOLVE (gold 7) asks for a variable, then solves");
             expect(in->kind == KM_PROMPT && in->op == AB_INTEG && in->prompt == KM_ARG_VAR && !strcmp(in->legend, "\xe2\x88\xab"),
                    "integrate (gold 8) asks for a variable, then integrates");
-            /* rule 5: these stay not defined */
-            static const char *const LATER[] = {"TUTOR"};   /* APPS: unit 037; MEM: 041 C */   /* RADIX, SETUP: unit 022; EXP #3958; SYS: unit 027; TABLE: 032 */
+            /* rule 5's list of menus not yet defined is empty since unit 075 (TUTOR became HELP, a device action);
+               APPS: unit 037; MEM: 041 C; RADIX, SETUP: unit 022; EXP #3958; SYS: unit 027; TABLE: 032 */
             {   /* unit 041 C (B5): MEM (blue 1) opens VAR and PGM */
                 const km_action *mem = km_lookup(37, 2);
                 const km_menu *mm = mem->kind == KM_MENU && mem->arg >= 0 ? km_menu_at(mem->arg) : NULL;
                 expect(mm && !strcmp(mm->name, "MEM") && mm->item[0].kind == KM_DEVICE && mm->item[0].arg == KM_DEV_CAT &&
                            mm->item[0].op == 1 && mm->item[1].kind == KM_DEVICE && mm->item[1].op == 2,
                        "041 C: MEM (blue 1) is a menu: VAR, PGM");
-            }
-            for (size_t i = 0; i < sizeof LATER / sizeof LATER[0]; i++) {
-                bool found = false, undefined = true;
-                for (int k = 0; k < KB_KEYS; k++)
-                    for (int sh = 1; sh < 3; sh++)
-                        if (!strcmp(km_lookup(k, sh)->legend, LATER[i])) {
-                            found = true;
-                            undefined = km_lookup(k, sh)->kind == KM_MENU && km_lookup(k, sh)->arg == -1;
-                        }
-                snprintf(m, sizeof m, "%s stays not defined (rule 5)", LATER[i]);
-                expect(found && undefined, m);
             }
         }
         /* abacus #3958: every soft legend and every constant's symbol draws with no hollow box, fits its

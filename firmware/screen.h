@@ -71,6 +71,7 @@ typedef struct {
     char show[2][AB_SHOW_LEN];
     bool blank;                     /* the soft off (068): nothing drawn */
     bool hyp;                       /* unit 073: HYP's prefix armed: the band's HYP annunciator (35s UG p.1-13) */
+    bool help;                      /* unit 075: HELP armed: HELP in the shift's place until a shift is pressed */
 } screen_ui;
 
 void screen_ui_default(screen_ui *ui);

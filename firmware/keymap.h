@@ -46,7 +46,9 @@ enum { KM_DEV_OFF = 1, KM_DEV_UNDO,
        /* unit 040: the graph's next page; its readout on or off; ZFACT's factor, 2 4 8 10 in turn */
        KM_DEV_GPAGE, KM_DEV_GXY, KM_DEV_GFACT,
        /* unit 041 C (B5): MEM's catalogs: open one (op 1 VAR, 2 PGM); up, down; run and open the label shown */
-       KM_DEV_CAT, KM_DEV_CATUP, KM_DEV_CATDN, KM_DEV_CATXEQ, KM_DEV_CATPRGM };
+       KM_DEV_CAT, KM_DEV_CATUP, KM_DEV_CATDN, KM_DEV_CATXEQ, KM_DEV_CATPRGM,
+       /* unit 075: HELP, then a key: that key's page, the key not run (help.h) */
+       KM_DEV_HELP };
 
 typedef struct {
     km_kind kind;

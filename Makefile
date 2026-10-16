@@ -21,7 +21,7 @@ LIBS := -lm
 # make accuracy needs a python with mpmath: make all-checks PYTHON=...
 PYTHON ?= python3
 KEYV := $(filter-out work/002-vectors.txt work/016-vectors.txt work/017-vectors.txt work/018-vectors.txt,$(filter-out %-fmt-vectors.txt,$(wildcard work/*-vectors.txt))) tests/021-soroban.txt tests/019-soroban.txt tests/003-soroban.txt tests/018-soroban.txt tests/029-soroban.txt tests/034-soroban.txt tests/harness-soroban.txt tests/046-soroban.txt tests/047-soroban.txt tests/050-soroban.txt tests/054-soroban.txt tests/fc-soroban.txt tests/067-soroban.txt
-all: build/standin_test build/app_test build/keymap_test build/power_test build/offscreen_test build/screen_test build/keys_test build/ls027_test build/draw_test build/store_test build/load_fuzz build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test build/bi_drive build/hp_drive build/deep_test build/eqn_depth build/eqn_stack build/stackkeys build/namedrive
+all: build/standin_test build/app_test build/keymap_test build/help_test build/power_test build/offscreen_test build/screen_test build/keys_test build/ls027_test build/draw_test build/store_test build/load_fuzz build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test build/bi_drive build/hp_drive build/deep_test build/eqn_depth build/eqn_stack build/stackkeys build/namedrive
 
 # every build/ target is order-only on the directory: a fresh clone has none (abacus #3803)
 build:
@@ -48,7 +48,8 @@ SCREEN := firmware/screen.c firmware/font5x7.c firmware/draw.c
 build/keymap_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) firmware/keymap.c firmware/keymap.h firmware/keys.c firmware/keys.h firmware/screen.h tests/keymap_test.c | build
 	$(CC) $(CFLAGS) -Icore -Ifirmware -o $@ $(CORE) $(SCREEN) firmware/keymap.c firmware/keys.c tests/keymap_test.c $(ENGINE) $(LIBS)
 
-APP := firmware/app.c firmware/apps.c firmware/keymap.c firmware/keys.c firmware/power.c firmware/settings.c firmware/piezo.c
+APP := firmware/app.c firmware/apps.c firmware/keymap.c firmware/keys.c firmware/power.c firmware/settings.c firmware/piezo.c \
+       firmware/help.c firmware/help_text.c
 # The games (games.list): scripts/gen_games.py exports each at its pin into build/games and writes
 # build/games/games.mk (GAMES_C, GAMES_O, and a rule a game: its manifest's flags and its own include directories, always
 # -Wframe-larger-than=1024 (an error by CFLAGS' -Werror; the spelling clang takes too), every object depending on the export's stamp, since git archive gives
@@ -87,6 +88,11 @@ build/standin_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) $(APP) $(GAMES_O) build/
 
 build/offscreen_test: firmware/offscreen.c firmware/offscreen.h tests/offscreen_test.c | build
 	$(CC) $(CFLAGS) -Ifirmware -o $@ firmware/offscreen.c tests/offscreen_test.c
+
+# unit 075: HELP's text against the keymap (help_test.c). firmware/help_text.c is generated from help/help.txt by
+# scripts/gen_help.py and committed, as keymap.c is; no rule remakes it, so make test's --check finds a stale one
+build/help_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) firmware/keymap.c firmware/keymap.h firmware/keys.c firmware/help.c firmware/help.h firmware/help_text.c tests/help_test.c | build
+	$(CC) $(CFLAGS) -Icore -Ifirmware -o $@ $(CORE) $(SCREEN) firmware/keymap.c firmware/keys.c firmware/help.c firmware/help_text.c tests/help_test.c $(ENGINE) $(LIBS)
 
 build/power_test: firmware/gauge.c firmware/gauge.h firmware/power.c firmware/power.h firmware/pins.c firmware/pins.h firmware/piezo.c firmware/piezo.h tests/power_test.c | build
 	$(CC) $(CFLAGS) -Ifirmware -o $@ firmware/gauge.c firmware/power.c firmware/pins.c firmware/piezo.c tests/power_test.c -lm
@@ -262,6 +268,8 @@ test: all
 	./build/draw_test
 	./build/keys_test
 	./build/power_test
+	python3 scripts/gen_help.py --check
+	./build/help_test
 	./build/offscreen_test
 	./build/keymap_test
 	./build/app_test

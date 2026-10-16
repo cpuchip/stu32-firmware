@@ -52,6 +52,7 @@ MEANING = {
     # the device's own
     "OFF": ("KM_DEVICE", "0", "KM_DEV_OFF", 0),
     "UNDO": ("KM_DEVICE", "0", "KM_DEV_UNDO", 0),
+    "HELP": ("KM_DEVICE", "0", "KM_DEV_HELP", 0),     # unit 075 (abacus #8736): blue 9, then any key
     "→FRAC": OP("AB_FDISP"),                     # the Fraction-display toggle, ch.5 (abacus #3822)
 }
 

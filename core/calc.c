@@ -4686,6 +4686,18 @@ bool ab_mode35(const ab_calc *c)
     return c->m35;
 }
 
+/* Unit 075: the model a key acts in: in program entry the edited label's stamp, during a run the running label's,
+   else the calculator's (33, 35 or AB_MODEL_STU); HELP describes that one (abacus #8740, H52) */
+int ab_rec_model(const ab_calc *c)
+{
+    int pc = c->running <= 0 && c->prgm ? c->pc : c->running > 0 ? c->exec_at : -1;
+    if (pc >= 0 && pc < c->prog_len) {
+        int l = prog_owner(c, pc);
+        if (l >= 0 && c->lmode[l]) return c->lmode[l];
+    }
+    return c->stu ? AB_MODEL_STU : c->m35 ? 35 : 33;
+}
+
 bool ab_rec35(const ab_calc *c)
 {
     if (c->running <= 0 && c->prgm && c->pc >= 0 && c->pc < c->prog_len) {

@@ -71,7 +71,8 @@
 #define APP_CLOCK_UNSET_S 1735689600        /* a wall time before 2025-01-01: the clock was never set */
 #define APP_CLOCK_KEYS_DATE 1767225600      /* the date a time set from the keys takes: 2026-01-01 */
 
-enum { APP_VIEW_NONE = 0, APP_VIEW_BATT, APP_VIEW_VER, APP_VIEW_FLASH };   /* SYS's views (unit 027) */
+enum { APP_VIEW_NONE = 0, APP_VIEW_BATT, APP_VIEW_VER, APP_VIEW_FLASH,   /* SYS's views (unit 027) */
+       APP_VIEW_HELP };                                                  /* HELP's page (unit 075) */
 
 /* What SYS shows that only the device knows (unit 027 rule 5). */
 typedef struct {
@@ -144,6 +145,7 @@ typedef struct {
                                APP_BATT_OK_SOC. The device keeps it through OFF and wake (Rev A: RTC
                                memory), so the tone means "first time low this discharge" (#4238) */
     int view;               /* APP_VIEW_*: SYS's view showing, any key leaves it */
+    bool help;              /* unit 075: HELP pressed: the next key (a shift waits) is explained, not run */
     bool show;              /* unit 030: SHOW held: X's full mantissa in place of the stack */
     bool graphing;          /* unit 033: a graph's samples being computed, a slice at each tick */
     struct app_graph *graph;    /* its buffer (the device's, in PSRAM: app_graph_buffer); NULL: none drawn */
@@ -180,7 +182,7 @@ typedef struct {
                                one key to the next (Rev A's matrix): a key pressed while SHOW is held
                                ends it and acts; false (the console, the one-finger touch panel): the
                                next key only ends it (unit 030 answer 7) */
-    char view_text[4][40];  /* its lines */
+    char view_text[4][48];  /* its lines (48: HELP's 31 cells, some of them two or three bytes, unit 075) */
     int cat;                /* unit 041 C (B5): MEM's catalog showing: 0 none, 1 VAR, 2 PGM */
     int cat_at;             /* the variable (0..25) or label (0..25) it shows */
     char cat_text[2][40];   /* its lines */

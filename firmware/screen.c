@@ -398,9 +398,9 @@ static void status_band(ls027_frame *f, const ab_calc *c, const screen_ui *ui, i
 {
     /* the clock at the left (unit 027 rule 4: Michael's decided layout, "Clock"), its 12-hour a/p
        half size after it; the shift held covers it while armed (both brief at that spot) */
-    if (ui->shift == 1 || ui->shift == 2) {     /* the shift held, light on dark */
+    if (ui->shift == 1 || ui->shift == 2 || ui->help) {     /* the shift held, light on dark; HELP armed (075) */
         screen_fill(f, 0, 0, 70, 18, true);
-        screen_text(f, 3, 2, 2, ui->shift == 1 ? "GOLD" : "BLUE", false);
+        screen_text(f, 3, 2, 2, ui->shift == 1 ? "GOLD" : ui->shift == 2 ? "BLUE" : "HELP", false);
     } else if (ui->clock[0]) {
         int cells = screen_text(f, 3, 2, 2, ui->clock, true);
         if (ui->ampm) {

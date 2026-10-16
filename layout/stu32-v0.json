@@ -27,7 +27,7 @@
       {"letter": "R", "face": "XEQ", "gold": "LBL", "blue": "RTN"},
       {"letter": "S", "face": "7", "gold": "SOLVE", "gold_menu": true, "blue": "GRAPH", "blue_menu": true},
       {"letter": "T", "face": "8", "gold": "∫", "gold_menu": true, "blue": "TABLE", "blue_menu": true},
-      {"letter": "U", "face": "9", "gold": "PRGM", "gold_menu": true, "blue": "TUTOR", "blue_menu": true},
+      {"letter": "U", "face": "9", "gold": "PRGM", "gold_menu": true, "blue": "HELP"},
       {"face": "÷", "gold": "INT÷", "blue": "Rmdr"}]},
     {"name": "5", "cols": 5, "keys": [
       {"face": "", "cap": "gold"},
