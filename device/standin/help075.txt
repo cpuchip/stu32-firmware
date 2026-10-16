@@ -1,6 +1,6 @@
 # Unit 075's HELP on the stand-in's keys: blue 9 (K36 K27) arms HELP, the next key shows its page in the view and is
 # never run, any key closes the page and does nothing else, and a key after acts as ever. Keys (keys.h: row * 6 +
-# column): 2 38, ENTER 18, SIN 15, 7 25, C 42, BLUE 36, GOLD 30, 9 27. The dump prints state: before view:, and an
+# column): 2 38, ENTER 18, SIN 15, 7 25, C 42, BLUE 36, GOLD 30, 9 27, 0 43, STO 12. The dump prints state: before view:, and an
 # expect reads forward, so each X's state is checked before its view. Ends with a control that must FAIL.
 wait READY 30
 send WIPE
@@ -38,5 +38,16 @@ send K25
 send X
 expect X=0.0348994967
 expect-none view: 2
+# the review's note (abacus #8753): Equation mode on (GOLD 0, EQN), HELP STO says it's refused there, on the title row;
+# C closes the page, C again leaves Equation mode
+send K30
+send K43
+send K36
+send K27
+send K12
+send X
+expect view: STO: STO  NOT IN EQN | STO letter: copies X into it.
+send K42
+send K42
 # CONTROL: must FAIL
 expect view: NO SUCH PAGE 3

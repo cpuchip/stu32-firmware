@@ -194,3 +194,18 @@ Each item was verified in the code at df9ae2a before its text changed. These are
     - the dispatch's old refusals are marked as backstops.
   - It found no core behavior change.
 - make test rc 0; app_test 768; keymap_test 2867.
+
+### Decision 68 and the stand-in, this round
+
+**Static, `scripts/resources.py static df9ae2a 7d9715c`:**
+- Flash +1,840 on the stand-in and +1,888 on Rev A (libmain +1,994: the predicates, the note, the catalog mirror;
+  the text 148 B smaller).
+- DIRAM +0, IRAM +0, calc_task's frame +0. No internal-RAM symbol changed.
+- From a44047d, unit 075 in all: +32,224 / +32,304 B flash, +32 B DIRAM.
+
+**The stand-in at 7d9715c, help075.txt:** ALL MET, and the control failed as it must.
+- The new rows: Equation mode on (GOLD 0), then HELP STO shows "STO: STO  NOT IN EQN" on its title row.
+- Heap 62,747 B free and stack-free 29,044 B, unchanged.
+- The port moved at the flash again (ACM3 to ACM2). The rerun on the new port, with no flash, passed. The image reads
+  7d9715c+dirty only because help075.txt was not yet committed; the firmware sources are the commit's.
+- make clang-check: 66 files, 0 failing. casim-build: casim 4f24e3e built against 7d9715c.
