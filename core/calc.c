@@ -4067,9 +4067,56 @@ static bool eqn_setting(ab_op op)
     }
 }
 
+/* a key ab_do does nothing with: a 35s feature in 33s mode, or a 33s one in 35s (unit 041 A, C); XEQ or GTO to a
+   line number in 33s mode (33s p.13-4; abacus #4799 rule 3.2; GTO . to one moves the pointer: AB_GTOPOS, p.13-6); the
+   35s's 41st constant, e, in 33s mode (041 B) */
+static bool key_inert(const ab_calc *c, ab_op op, int arg)
+{
+    return ab_hidden(c, op) || (!ab_rec35(c) && (op == AB_XEQ || op == AB_GTO) && arg >= 0 && arg % 1000 != 0) ||
+           (op == AB_CONST && arg >= ab_consts(c));
+}
+
+/* whether ab_do takes the key before ALG's line or Equation mode see it (unit 075's predicates): ENG's view keys, an
+   inert key, an open table or graph (their keys alone), SHOW */
+static bool key_taken_first(const ab_calc *c, ab_op op, int arg)
+{
+    return op == AB_ENGL || op == AB_ENGR || key_inert(c, op, arg) || c->tbl_on || c->gr_on || op == AB_SHOW;
+}
+
+/* the keys eqn_key's switch acts on itself, never refused there (unit 075: ab_eqn_refuses reads it; a key added to the
+   switch goes here too, or the predicate refuses it first, and help_test's side-by-side run fails) */
+static bool eqn_handles(ab_op op)
+{
+    switch (op) {
+    case AB_EQN: case AB_CANCEL: case AB_ENTER: case AB_CASD: case AB_CASSIMP: case AB_CASEXP: case AB_CASCOL:
+    case AB_CASSUB: case AB_CASSOLVE: case AB_CASINT: case AB_CASFACT: case AB_CASDEF: case AB_CASQUOT: case AB_CASGCD:
+    case AB_CASCANCL: case AB_CASSUM: case AB_KINF: case AB_XEQ: case AB_SOLVE: case AB_INTEG: case AB_EQTOP:
+    case AB_SST: case AB_BST: case AB_KBKSP: case AB_KLEFT: case AB_KRIGHT:
+        return true;
+    default:
+        return false;
+    }
+}
+
+/* whether ab_do sends the key to eqn_key: Equation mode's list or editor, where CLEAR ALL, CLR EQN and CLPGM act
+   (unit 021) and TABLE's and GRAPH's keys act as ever (032, 033) */
+static bool eqn_routes(const ab_calc *c, ab_op op)
+{
+    return c->eqn_mode && !c->eqn_pending && !c->prgm && !c->alg && op != AB_CLALL && op != AB_CLEQN &&
+           op != AB_CLPGM && !(op >= AB_TABLE && op <= AB_TSTEP) && !(op >= AB_GRAPH && op <= AB_GAUTO);
+}
+
+bool ab_eqn_refuses(const ab_calc *c, ab_op op, int arg)
+{
+    if (key_taken_first(c, op, arg) || !eqn_routes(c, op) || eqn_setting(op)) return false;
+    if (op == AB_XEQ) return arg != AB_TGT_EQN;     /* XEQ of a label (unit 073) */
+    return !eqn_handles(op) && !eqn_typable(op, arg);
+}
+
 static abn_status eqn_key(ab_calc *c, ab_op op, int arg)
 {
     abn_status st;
+    if (ab_eqn_refuses(c, op, arg)) return ABN_NOT_IN_EQN;     /* unit 075: the one test, which HELP's page asks too */
     if (eqn_setting(op)) {                          /* unit 073: the typed text stored first (the edit ends) */
         if (c->cas_sub) cas_subst_done(c, false);   /* a CAS step's text: the step dropped, never run (fresh eyes) */
         else if (c->cas_def) cas_def_bound(c, false);
@@ -4102,7 +4149,7 @@ static abn_status eqn_key(ab_calc *c, ab_op op, int arg)
         if (c->eqn_typing && c->cas_def && c->cas_def_sum && c->cas_def_step == 2) ed_insert(c, "\xe2\x88\x9e", 0);
         return ABN_OK;
     case AB_XEQ:
-        if (arg != AB_TGT_EQN) return ABN_NOT_IN_EQN;  /* XEQ of a label: refused, as it says (unit 073) */
+        if (arg != AB_TGT_EQN) return ABN_NOT_IN_EQN;  /* (a backstop: ab_eqn_refuses refused it first, 075) */
         if (c->eqn_typing && (st = eqn_store_typed(c)) != ABN_OK) return st;
         return eqn_evaluate(c, false);
     case AB_SOLVE:
@@ -4142,7 +4189,7 @@ static abn_status eqn_key(ab_calc *c, ab_op op, int arg)
     }
     /* a key that types: the first one starts a new equation (p.6-4); any other is refused, NOT IN EQN, where it did
        nothing silently (unit 073: the screen says what a key does) */
-    if (!eqn_typable(op, arg)) return ABN_NOT_IN_EQN;
+    if (!eqn_typable(op, arg)) return ABN_NOT_IN_EQN;     /* (a backstop: ab_eqn_refuses refused it first, 075) */
     eqn_type(c, op, arg);
     return ABN_OK;
 }
@@ -4271,9 +4318,44 @@ bool ab_rpn_only(const ab_calc *c, ab_op op)
     }
 }
 
+/* the mode and display settings ALG's line lets act as ever (alg_key passes them to do_key) */
+static bool alg_setting(ab_op op)
+{
+    switch (op) {
+    case AB_MODEL: case AB_ENTRYM: case AB_DEG: case AB_RAD: case AB_GRAD: case AB_SETFIX: case AB_SETSCI:
+    case AB_SETENG: case AB_SETALL: case AB_DEC: case AB_HEX: case AB_OCT: case AB_BIN: case AB_FDISP: case AB_CLALL:
+    case AB_CLPGM: case AB_CLVARS: case AB_VIEW: case AB_FRACFMT: case AB_SF: case AB_CF: case AB_BEEP: case AB_XIY:
+    case AB_RTA:
+        return true;
+    default:
+        return false;
+    }
+}
+
+/* the keys alg_key's switch acts on itself (unit 075: ab_alg_refuses reads it; a key added to the switch goes here too,
+   or the predicate refuses it first, and help_test's side-by-side run fails) */
+static bool alg_handles(ab_op op)
+{
+    switch (op) {
+    case AB_CANCEL: case AB_HUP: case AB_HDOWN: case AB_ENTER: case AB_KLEFT: case AB_KRIGHT: case AB_KBKSP: case AB_STO:
+    case AB_TABLE: case AB_TVAR: case AB_GRAPH: case AB_GAUTO: case AB_XMIN: case AB_XMAX: case AB_YMIN: case AB_YMAX:
+    case AB_TSTART: case AB_TSTEP: case AB_ANS: case AB_LASTX:
+        return true;
+    default:
+        return false;
+    }
+}
+
+bool ab_alg_refuses(const ab_calc *c, ab_op op, int arg)
+{
+    if (!c->alg || c->prgm || key_taken_first(c, op, arg)) return false;
+    if (ab_rpn_only(c, op)) return true;
+    return !alg_handles(op) && !alg_setting(op) && (op == AB_KEQ || !eqn_typable(op, arg));
+}
+
 static abn_status alg_key(ab_calc *c, ab_op op, int arg)
 {
-    if (ab_rpn_only(c, op)) return ABN_RPN_ONLY;
+    if (ab_alg_refuses(c, op, arg)) return ABN_RPN_ONLY;   /* unit 075: the one test, which HELP's page asks too */
     switch (op) {
     case AB_CANCEL:                                 /* C clears the line; the history stays */
         alg_new_line(c, false);
@@ -4366,14 +4448,10 @@ static abn_status alg_key(ab_calc *c, ab_op op, int arg)
     }
     /* mode and display settings act as ever; a key that types types into the line (a digit or a
        function after a result starting a new one) */
-    if (op == AB_MODEL || op == AB_ENTRYM || op == AB_DEG || op == AB_RAD || op == AB_GRAD || op == AB_SETFIX ||
-        op == AB_SETSCI || op == AB_SETENG || op == AB_SETALL || op == AB_DEC || op == AB_HEX || op == AB_OCT ||
-        op == AB_BIN || op == AB_FDISP || op == AB_CLALL || op == AB_CLPGM || op == AB_CLVARS || op == AB_VIEW ||
-        op == AB_FRACFMT || op == AB_SF || op == AB_CF || op == AB_BEEP || op == AB_XIY || op == AB_RTA)
-        return do_key(c, op, arg);
+    if (alg_setting(op)) return do_key(c, op, arg);
     /* a key with no place on the line (= is ENTER's here) has no meaning on it: RPN ONLY, the line
        as it was (rule 7; the reviewer's sweep: →POL, CLΣ, LBL, ISG, RCL+, /c and the rest) */
-    if (op == AB_KEQ || !eqn_typable(op, arg)) return ABN_RPN_ONLY;
+    if (op == AB_KEQ || !eqn_typable(op, arg)) return ABN_RPN_ONLY;     /* (a backstop: ab_alg_refuses, 075) */
     if (c->alg_shown && op != AB_ADD && op != AB_SUB && op != AB_MUL && op != AB_DIV && op != AB_POW)
         alg_new_line(c, false);
     if (c->hist_at >= 0) c->hist_at = -1;
@@ -4532,11 +4610,7 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
         goto done;
     }
     c->eng_on = false;                          /* the view lasts until the next key */
-    if (ab_hidden(c, op)) return ABN_OK;       /* unit 041 A: a 35s feature in 33s mode, or C: a 33s one in 35s: nothing */
-    if (!ab_rec35(c) && (op == AB_XEQ || op == AB_GTO) && arg >= 0 && arg % 1000 != 0)
-        return ABN_OK;                          /* nor XEQ or GTO to a line number (33s p.13-4; abacus #4799 rule 3.2;
-                                                   GTO . to one moves the pointer: AB_GTOPOS, p.13-6) */
-    if (op == AB_CONST && arg >= ab_consts(c)) return ABN_OK;     /* nor the 35s's 41st constant, e (041 B) */
+    if (key_inert(c, op, arg)) return ABN_OK;
     if (c->tbl_on || c->gr_on) {                /* the table or the graph open: its keys alone (units 032,
                                                    033), each with a fresh error record and overflow count */
         c->err_set = false;
@@ -4554,8 +4628,7 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
        device has asked CLR ALL?, CLR EQN? or CLR PGMS?; CLPGM's question: abacus #8497) */
     if (c->prgm) st = program_key(c, op, arg);
     else if (c->alg) st = alg_key(c, op, arg);      /* STU's expression line (unit 029) */
-    else if (c->eqn_mode && !c->eqn_pending && op != AB_CLALL && op != AB_CLEQN && op != AB_CLPGM && !(op >= AB_TABLE && op <= AB_TSTEP) &&
-             !(op >= AB_GRAPH && op <= AB_GAUTO))
+    else if (eqn_routes(c, op))
         st = eqn_key(c, op, arg);               /* (TABLE's GO and settings act in Equation mode: 032) */
     else st = do_key(c, op, arg);
 done:

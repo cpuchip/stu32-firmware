@@ -512,6 +512,31 @@ static void app_exit(app_state *a);
    GOLD bank, else the key in its shift, its face when the shift has none) and never run: the key and its legend, then
    its entry's lines in the calculator's mode; a menu's key gets one line and its items. SYS's view shows it, so any
    key closes it, and the core is never called (no lift, no UNDO mark). */
+
+/* Whether the key is refused now, from the core's own test (abacus #8753): RPN ONLY on ALG's line, NOT IN EQN in
+   Equation mode; NULL when it acts. A prompted key as app_key takes it: refused before its argument, else with a
+   letter (A), or XEQ evaluating the equation shown. */
+static const char *help_refused(const app_state *a, int kind, int op, int arg)
+{
+    const ab_calc *c = a->c;
+    if (kind == KM_DEVICE) {                    /* MEM's catalog runs, or opens, the label shown (app_key) */
+        if (op == KM_DEV_CATXEQ && !c->prgm) return help_refused(a, KM_OP, AB_XEQ, a->cat_at * 1000);
+        if (op != KM_DEV_CATPRGM) return NULL;
+        const char *r = help_refused(a, KM_OP, AB_GTOPOS, a->cat_at * 1000);
+        return r || c->prgm ? r : help_refused(a, KM_OP, AB_PRGM, 0);
+    }
+    if (ab_hidden(c, op)) return NULL;          /* a key hidden in this mode does nothing (041) */
+    if (kind == KM_OP && op == AB_ENTRYM && arg == 1 && !c->stu) return NULL;   /* blank outside STU: nothing (app_key) */
+    if (kind == KM_PROMPT) {
+        if (ab_rpn_only(c, (ab_op)op) || ab_not_in_eqn(c, (ab_op)op))
+            return ab_status_message(c->alg ? ABN_RPN_ONLY : ABN_NOT_IN_EQN);
+        arg = op == AB_XEQ && c->eqn_mode && !c->prgm ? AB_TGT_EQN : 0;
+    }
+    if (ab_alg_refuses(c, (ab_op)op, arg)) return ab_status_message(ABN_RPN_ONLY);
+    if (ab_eqn_refuses(c, (ab_op)op, arg)) return ab_status_message(ABN_NOT_IN_EQN);
+    return NULL;
+}
+
 static void help_page(app_state *a, int key, const km_action *face)
 {
     static const char *const SH[3] = {"", "GOLD ", "BLUE "};
@@ -519,7 +544,8 @@ static void help_page(app_state *a, int key, const km_action *face)
     char out[3][HELP_LINE_BYTES];
     const help_entry *e = NULL;
     const km_action *act = NULL;
-    const char *legend = face->legend;
+    const char *legend = face->legend, *now = NULL;
+    int h = -1;
     memset(a->view_text, 0, sizeof a->view_text);
     int m = face->kind == KM_SOFT ? (a->menu >= 0 ? a->menu : eqn_bar(a)) : -1;
     const km_menu *mn = m >= 0 ? km_menu_at(m) : NULL;
@@ -536,6 +562,7 @@ static void help_page(app_state *a, int key, const km_action *face)
             } else {
                 legend = k < ab_consts(a->c) ? ab_const_symbol(k) : NULL;
                 e = legend ? help_find(HELP_CONST, 0, -1, NULL) : NULL;
+                if (legend) now = help_refused(a, KM_OP, AB_CONST, k);
             }
             if (!legend) e = help_find(HELP_SOFT, 0, -1, NULL);
         } else {
@@ -546,14 +573,14 @@ static void help_page(app_state *a, int key, const km_action *face)
         snprintf(t[0], sizeof t[0], "F%d in %s: %s", i + 1, mn->name, legend && legend[0] ? legend : "-");
     } else {
         act = km_lookup(key, a->shift);
-        if (act->kind == KM_NONE && a->shift == 0) act = face;
+        if (act->kind == KM_NONE) act = face;   /* no separate legend: the face action, as app_key (#3827) */
         legend = act->legend;
         e = face->kind == KM_SOFT ? help_find(HELP_SOFT, 0, -1, NULL) : help_for_action(act);
         /* the keys app_key takes before their action (fresh eyes): an open graph's digits (GOLD: ten pixels), and the
            prefixes, HYP's trig keys (in every mode, unit 073) and 33s mode's CMPLX on an operator */
         const km_action *fa = km_lookup(key, a->shift);
         if (fa->kind == KM_NONE) fa = face;
-        int h = a->menu >= 0 && a->menu == menu_named("HYP") ? hyp_of(fa) : -1;
+        h = a->menu >= 0 && a->menu == menu_named("HYP") ? hyp_of(fa) : -1;
         if (a->c->gr_on && face->kind == KM_OP && face->op >= AB_K1 && face->op <= AB_K9 && a->shift != 2) {
             e = help_find(HELP_GRAPHPAD, 0, -1, NULL);
             act = NULL;
@@ -564,15 +591,52 @@ static void help_page(app_state *a, int key, const km_action *face)
             e = help_find(HELP_CMPLXPAIR, 0, -1, NULL);
             act = NULL;
         }
+        const km_letter *hx = km_letter_of(key);  /* HEX: keys 6-11 type A-F before their own action (app_key) */
+        if (a->shift == 0 && a->c->base == 16 && key >= 6 && key <= 11 && hx->kind == KL_LETTER && hx->value < 6)
+            now = help_refused(a, KM_OP, AB_KA + hx->value, 0), act = NULL;
+        if (a->cat && face->kind != KM_SOFT) {  /* the keys MEM's catalog takes first, as app_key (abacus's review) */
+            const km_action *ca = km_lookup(key, a->shift);
+            if (ca->kind == KM_NONE) ca = face;
+            int ck = face->kind == KM_OP && face->op == AB_CANCEL && a->shift == 0 ? HELP_CAT_C :
+                     ca->kind == KM_MENU && ca->arg >= 0 && ca->arg == menu_named("CLEAR") ? HELP_CAT_CLEAR :
+                     face->kind == KM_OP && face->op == AB_KBKSP && a->shift == 0 ? HELP_CAT_BACK :
+                     a->cat == 1 && ca->kind == KM_OP && ca->op == AB_ENTER ? HELP_CAT_ENTER : 0;
+            if (ck) {
+                e = help_find(HELP_CATKEY, ck, -1, NULL);
+                act = NULL;
+                if (ck == HELP_CAT_ENTER && !a->c->prgm)
+                    now = help_refused(a, KM_OP, AB_RCL, a->cat_at == 26 ? AB_VAR_SI : AB_VAR_A + a->cat_at);
+            } else if (a->cat == 2 && ((ca->kind == KM_PROMPT && ca->op == AB_XEQ) || (ca->kind == KM_OP && ca->op == AB_RS))) {
+                e = help_find(HELP_DEV, KM_DEV_CATXEQ, -1, NULL);
+                act = NULL;
+                now = help_refused(a, KM_DEVICE, KM_DEV_CATXEQ, 0);
+            }
+        }
         if (face->kind == KM_SOFT)              /* a soft key with nothing over it: named by its place */
             snprintf(t[0], sizeof t[0], "%sF%d: -", SH[a->shift], face->arg + 1);
         else
             snprintf(t[0], sizeof t[0], "%s%s%s: %s", h >= 0 ? "HYP " : "", SH[a->shift], face->legend,
                      legend && legend[0] ? legend : "-");
     }
+    if (now) ;                                  /* (a constant's or the catalog's, above) */
+    else if (h >= 0) now = help_refused(a, KM_OP, h, 0);
+    else if (act && act->kind == KM_DEVICE) now = help_refused(a, KM_DEVICE, act->arg, 0);
+    else if (act && (act->kind == KM_OP || act->kind == KM_PROMPT || act->kind == KM_CONFIRM))
+        now = help_refused(a, act->kind, act->op, act->arg);
+    bool bottom = false;
+    if (now) {                                  /* on the title row when it fits, else the bottom row */
+        char tl[96];
+        snprintf(tl, sizeof tl, "%s  %s", t[0], now);
+        if (screen_cells(tl) <= HELP_LINE_CELLS && strlen(tl) < sizeof t[0]) memcpy(t[0], tl, strlen(tl) + 1);
+        else bottom = true;
+    }
     int model = ab_rec_model(a->c);             /* in a program, its label's (abacus #8740, H52) */
     int n = help_lines(e, model, legend, out, 3);
     if (!e) snprintf(out[0], sizeof out[0], "No help for this key yet."), n = 1;
+    if (bottom) {                               /* a full page: its last line gives way (help_test lists where) */
+        int r = n < 3 ? n++ : 2;
+        snprintf(out[r], sizeof out[r], "Now: %s.", now);
+    }
     if (act && act->kind == KM_MENU && act->arg >= 0) {   /* a menu: one line, then its items */
         const km_menu *sub = km_menu_at(act->arg);
         char items[2][HELP_LINE_BYTES] = {"", ""};

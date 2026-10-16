@@ -496,6 +496,11 @@ bool ab_rpn_only(const ab_calc *c, ab_op op);
 /* Unit 073: a prompted key Equation mode refuses whatever its argument (STO, LBL, VIEW, ...), so the app refuses it
    before the prompt, NOT IN EQN, as ALG's RPN ONLY (fresh eyes: it asked for the letter, then refused) */
 bool ab_not_in_eqn(const ab_calc *c, ab_op op);
+/* Unit 075: whether the key, with that argument, is refused in c's state: RPN ONLY on ALG's line, NOT IN EQN in Equation
+   mode. alg_key and eqn_key ask these first, so HELP's page says what the key does now from the same test. (A message,
+   a view or SOLVE's report showing takes the key before either; the page asks in the state under them.) */
+bool ab_alg_refuses(const ab_calc *c, ab_op op, int arg);
+bool ab_eqn_refuses(const ab_calc *c, ab_op op, int arg);
 
 /* Unit 030: what SHOW shows, as one or two parts, each a sign (- only) and all ABN_DIGITS significant
    digits, trailing zeros kept, no point, no exponent (33s p.1-21, 35s p.1-26): X's, a complex X's real

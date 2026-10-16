@@ -91,8 +91,8 @@ build/offscreen_test: firmware/offscreen.c firmware/offscreen.h tests/offscreen_
 
 # unit 075: HELP's text against the keymap (help_test.c). firmware/help_text.c is generated from help/help.txt by
 # scripts/gen_help.py and committed, as keymap.c is; no rule remakes it, so make test's --check finds a stale one
-build/help_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) firmware/keymap.c firmware/keymap.h firmware/keys.c firmware/help.c firmware/help.h firmware/help_text.c tests/help_test.c | build
-	$(CC) $(CFLAGS) -Icore -Ifirmware -o $@ $(CORE) $(SCREEN) firmware/keymap.c firmware/keys.c firmware/help.c firmware/help_text.c tests/help_test.c $(ENGINE) $(LIBS)
+build/help_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) $(APP) $(GAMES_O) build/games/games.h firmware/app.h firmware/apps.h firmware/keymap.h firmware/help.h firmware/power.h firmware/screen.h tests/help_test.c | build
+	$(CC) $(CFLAGS) -Icore -Ifirmware -Ibuild/games -DVER_CASIM='"$(VER_CASIM)"' -DVER_GAMES='"$(VER_GAMES)"' -Wl,--wrap=help_lines -o $@ $(CORE) $(SCREEN) $(APP) $(GAMES_O) tests/help_test.c $(ENGINE) $(LIBS)
 
 build/power_test: firmware/gauge.c firmware/gauge.h firmware/power.c firmware/power.h firmware/pins.c firmware/pins.h firmware/piezo.c firmware/piezo.h tests/power_test.c | build
 	$(CC) $(CFLAGS) -Ifirmware -o $@ firmware/gauge.c firmware/power.c firmware/pins.c firmware/piezo.c tests/power_test.c -lm

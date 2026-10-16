@@ -12,10 +12,10 @@ text lines:
     [AB_TEST:3]         the op with that argument (tried before the plain op); the argument is C (a number or a name)
     [menu:CAS]          a menu's key
     [dev:UNDO]          a device action (KM_DEV_UNDO)
-    [shift:GOLD]        a shift key (GOLD or BLUE)
+    [catkey:C]          a key MEM's catalog takes before its own action: C, CLEAR, BACK (the back-arrow), ENTER
     [app] [const]       a paged menu's soft key: an app (APPS, GAMES), a constant (CONST)
     [soft]              a soft key with nothing under it
-    [none] [undefined]  a key with no legend in that shift; a legend with no meaning yet
+    [undefined]         a legend with no meaning yet
     [more]              a paged menu's sixth key (CONST, APPS, GAMES)
     [graphpad]          a digit while a graph is open (it moves the cursor, GOLD ten pixels)
     [cmplxpair]         an operator while 33s mode's CMPLX prefix waits (the pair operation)
@@ -105,10 +105,12 @@ def c_entry(e):
         return f"{{HELP_MENU, 0, -1, {cstr(k[5:] + chr(0x1f) + chr(10).join(e['lines']))}}}"
     if k.startswith("dev:"):
         return f"{{HELP_DEV, KM_DEV_{k[4:]}, -1, {text}}}"
-    if k in ("shift:GOLD", "shift:BLUE"):
-        return f"{{HELP_SHIFT, {1 if k.endswith('GOLD') else 2}, -1, {text}}}"
-    special = {"app": "HELP_APP", "const": "HELP_CONST", "soft": "HELP_SOFT", "none": "HELP_NONE",
-               "undefined": "HELP_UNDEF", "more": "HELP_MORE", "graphpad": "HELP_GRAPHPAD", "cmplxpair": "HELP_CMPLXPAIR"}
+    if k.startswith("catkey:"):
+        cats = {"C": "HELP_CAT_C", "CLEAR": "HELP_CAT_CLEAR", "BACK": "HELP_CAT_BACK", "ENTER": "HELP_CAT_ENTER"}
+        if k[7:] not in cats:
+            fail(f"[{k}]: not a catalog key (C, CLEAR, BACK, ENTER)")
+        return f"{{HELP_CATKEY, {cats[k[7:]]}, -1, {text}}}"
+    special = {"app": "HELP_APP", "const": "HELP_CONST", "soft": "HELP_SOFT", "undefined": "HELP_UNDEF", "more": "HELP_MORE", "graphpad": "HELP_GRAPHPAD", "cmplxpair": "HELP_CMPLXPAIR"}
     if k in special:
         return f"{{{special[k]}, 0, -1, {text}}}"
     fail(f"[{k}]: not a key this file knows")

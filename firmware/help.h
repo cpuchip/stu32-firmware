@@ -9,14 +9,16 @@
 
 #include "keymap.h"
 
-typedef enum { HELP_OP = 1, HELP_MENU, HELP_DEV, HELP_SHIFT, HELP_APP, HELP_CONST, HELP_SOFT, HELP_NONE,
-               HELP_UNDEF, HELP_MORE, HELP_GRAPHPAD, HELP_CMPLXPAIR } help_kind;
+typedef enum { HELP_OP = 1, HELP_MENU, HELP_DEV, HELP_APP, HELP_CONST, HELP_SOFT, HELP_UNDEF, HELP_MORE,
+               HELP_GRAPHPAD, HELP_CMPLXPAIR, HELP_CATKEY } help_kind;
 /* (HELP_MORE: a paged menu's sixth key; HELP_GRAPHPAD: a digit while a graph is open; HELP_CMPLXPAIR: an operator
-   while 33s mode's CMPLX prefix waits: the keys app_key takes before their own action, fresh eyes) */
+   while 33s mode's CMPLX prefix waits: the keys app_key takes before their own action, fresh eyes; HELP_CATKEY: a key
+   MEM's catalog takes, op one of HELP_CAT_*, abacus's 075 review. A shift after HELP only arms, so it has no page.) */
+enum { HELP_CAT_C = 1, HELP_CAT_CLEAR, HELP_CAT_BACK, HELP_CAT_ENTER };
 
 typedef struct {
     uint8_t kind;           /* help_kind */
-    int16_t op;             /* HELP_OP: the ab_op (KM_OP, KM_PROMPT, KM_CONFIRM); HELP_DEV: KM_DEV_*; HELP_SHIFT: 1, 2 */
+    int16_t op;             /* HELP_OP: the ab_op (KM_OP, KM_PROMPT, KM_CONFIRM); HELP_DEV: KM_DEV_*; HELP_CATKEY: HELP_CAT_* */
     int16_t arg;            /* HELP_OP: the argument it is for, -1 any */
     const char *text;       /* its lines, '\n' between, each perhaps prefixed with modes (33: 35: STU: 33,35:);
                                HELP_MENU's start with the menu's name and HELP_MENU_END (12 B an entry on the S3) */

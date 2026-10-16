@@ -33,10 +33,9 @@ const help_entry *help_for_action(const km_action *act)
     case KM_OP: case KM_PROMPT: case KM_CONFIRM: return help_find(HELP_OP, act->op, act->arg, NULL);
     case KM_MENU: return help_find(HELP_MENU, 0, -1, act->legend);
     case KM_DEVICE: return help_find(HELP_DEV, act->arg, -1, NULL);
-    case KM_SHIFT: return help_find(HELP_SHIFT, act->arg, -1, NULL);
     case KM_SOFT: return help_find(HELP_SOFT, 0, -1, NULL);
     case KM_UNDEFINED: return help_find(HELP_UNDEF, 0, -1, NULL);
-    default: return help_find(HELP_NONE, 0, -1, NULL);
+    default: return NULL;                   /* (a shift: it arms, no page; no key: never asked) */
     }
 }
 

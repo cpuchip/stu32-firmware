@@ -10,16 +10,12 @@ MODE: menu:CMPLX AB_XEQ AB_GTO AB_KPOINT AB_K3 AB_K0 menu:GRAPH menu:TABLE menu:
 
 [dev:HELP]
 HELP, then a key: what it does.
-That key is not run.
-Any key closes the page.
+A shift first picks its legend.
+Not run. Any key closes it.
 
 [soft]
 No item on this soft key now.
 A menu puts its items here.
-
-[none]
-No legend here: the key does
-its plain (unshifted) action.
 
 [AB_SQRT]
 Square root of X.
@@ -47,8 +43,7 @@ In an equation, types ALOG(.
 
 [menu:EXP]
 More powers and logs of X.
-35,STU: More powers and logs of X.
-35,STU: ∛x is dimmed: 33s mode only.
+35,STU: Powers and logs. ∛x: 33s only.
 
 [AB_LN]
 Natural log (base e) of X.
@@ -60,8 +55,7 @@ Common log (base 10) of X.
 In an equation, types LOG(.
 
 [menu:HYP]
-Then SIN COS TAN: hyperbolic.
-Then ASIN ACOS ATAN: inverse.
+Then a trig key: hyperbolic.
 
 [AB_POW]
 33,35: Y to the power X.
@@ -76,8 +70,7 @@ The X-th root of Y.
 In an equation, types XROOT(.
 
 [menu:POW]
-Whole and fraction parts, sign.
-RND rounds X to the display.
+Parts, sign, rounding of X.
 
 [AB_INV]
 1 divided by X.
@@ -108,8 +101,7 @@ statistics, to fix a mistake.
 X then shows n.
 
 [menu:STAT]
-Means and standard deviations.
-s: sample. σ: population.
+Means. s sample, σ population.
 
 [AB_STO]
 STO letter: copies X into it.
@@ -125,13 +117,12 @@ The stack doesn't change.
 In Equation mode: NOT IN EQN.
 
 [menu:VARS]
-Variables. CLR clears them all.
-x↔ swaps X with a letter.
+Variables: CLR all, x↔ swaps.
 
 [AB_RCL]
 RCL letter: copies it into X.
 RCL + − × ÷ letter: X op it.
-Equation: types the letter.
+EQN, ALG: types the letter.
 
 [menu:CONST]
 41 constants into X. F6: more.
@@ -155,8 +146,7 @@ STU: In Equation mode: NOT IN EQN.
 STU: In ALG: RPN ONLY.
 
 [menu:STACK]
-Stack tools. SHOW: all digits.
-SHOW, held: X's full digits.
+Stack tools. SHOW held: digits.
 33: Stack tools. CLSTK: not 33s.
 
 [AB_SIN]
@@ -219,10 +209,7 @@ STU: last operation. ALG: types ANS.
 STU: In Equation mode: NOT IN EQN.
 
 [menu:MODE]
-33,35: Picks 33s, 35s or STU mode.
-33,35: On a LBL line: sets its mode.
-STU: Mode, and RPN or ALG entry.
-STU: On a LBL line: sets its mode.
+Mode. On a LBL line: its mode.
 
 [AB_XY]
 Swaps X and Y. Z and T stay.
@@ -232,8 +219,7 @@ STU: In Equation mode: NOT IN EQN.
 STU: In ALG: RPN ONLY.
 
 [menu:TEST]
-Tests: the keys show YES or NO.
-A program skips a line if NO.
+YES or NO. Programs skip if NO.
 
 [menu:BASE]
 Number bases, logic, suffixes.
@@ -251,8 +237,7 @@ In an equation, types ABS(.
 
 [menu:CMPLX]
 Complex numbers and vectors.
-33: Prefix: then + − × ÷ on pairs.
-33: Z+iT with X+iY, to X+iY.
+33: Prefix: + − × ÷ on Z+iT, X+iY.
 
 [AB_KE]
 Exponent: 2 E 3 is 2000.
@@ -267,8 +252,7 @@ Puts π in X.
 In an equation, types π.
 
 [menu:FRAC]
-Fraction display and its form.
-/c: the largest denominator.
+Fraction display, /c's limit.
 
 [AB_KBKSP]
 Erases the last key, or X to 0.
@@ -276,10 +260,8 @@ Shown equation or program line:
 deletes it. Closes a menu.
 
 [menu:CLEAR]
-Clear X, stack, vars, Σ or ALL.
-ALL asks first: CLR ALL?
-33: Clear X, vars, Σ or ALL.
-33: ALL asks first: CLR ALL?
+Clears X, stack, vars, Σ, ALL.
+33: Clears X, vars, Σ or ALL.
 
 [dev:UNDO]
 Undoes the last change.
@@ -296,7 +278,7 @@ In Equation mode: evaluates it.
 [AB_LBL]
 In program entry, LBL letter
 starts a program there.
-Elsewhere it does nothing.
+Elsewhere: only ends a number.
 
 [AB_RTN]
 In a program: returns or stops.
@@ -305,10 +287,7 @@ pointer goes to the top.
 
 [AB_K7]
 Types the digit 7.
-Ignored in BIN.
-STU: Types the digit 7.
-STU: Ignored in BIN.
-STU: Graph open: cursor up-left.
+BIN: ignored in a number.
 
 [AB_SOLVE]
 SOLVE letter: a root for it, in
@@ -322,10 +301,7 @@ STU: Plots the equation shown.
 
 [AB_K8]
 Types the digit 8.
-Ignored in OCT and BIN.
-STU: Types the digit 8.
-STU: Ignored in OCT and BIN.
-STU: Graph open: cursor up.
+OCT, BIN: ignored in a number.
 
 [AB_INTEG]
 ∫ letter: integral of the shown
@@ -339,19 +315,18 @@ STU: Table of the equation shown.
 
 [AB_K9]
 Types the digit 9.
-Ignored in OCT and BIN.
-STU: Types the digit 9.
-STU: Ignored in OCT and BIN.
-STU: Graph open: cursor up-right.
+OCT, BIN: ignored in a number.
 
 [menu:PRGM]
-Program entry and its tools.
-PRGM: program entry on or off.
+Program entry: PRGM on or off.
 
 [AB_DIV]
 Divides Y by X.
-HEX, OCT, BIN: whole numbers.
+HEX OCT BIN cut: −7÷2 is −3.
 In an equation, types ÷.
+STU: Divides Y by X.
+STU: HEX OCT BIN cut: −7÷2 is −3.
+STU: ALG or an equation: types ÷.
 
 [AB_IDIV]
 Whole quotient of Y÷X, floored:
@@ -363,24 +338,16 @@ Remainder of Y÷X, X's sign:
 −17 Rmdr 5 is 3.
 In an equation, types RMDR(.
 
-[shift:GOLD]
-The next key does its gold
-legend. GOLD again cancels.
-BLUE switches to blue.
-
 [AB_K4]
 Types the digit 4.
-Ignored in BIN.
-STU: Types the digit 4.
-STU: Ignored in BIN.
-STU: Graph open: cursor left.
+BIN: ignored in a number.
 
 [AB_GTO]
-GTO letter: moves the program
-pointer there, not running.
+GTO letter: the pointer there.
+GTO . letter nnnn: that line.
 GTO . . : to the top.
 35,STU: GTO letter ENTER: pointer.
-35,STU: Letter + 3 digits: a line.
+35,STU: GTO (.) letter nnn: a line.
 35,STU: GTO . . : to the top.
 
 [AB_ISG]
@@ -390,10 +357,7 @@ Program: skips a line if > fff.
 
 [AB_K5]
 Types the digit 5.
-Ignored in BIN.
-STU: Types the digit 5.
-STU: Ignored in BIN.
-STU: Graph open: cursor to center.
+BIN: ignored in a number.
 
 [AB_DSE]
 Subtracts the step from the
@@ -402,27 +366,27 @@ Program: skips a line if ≤ fff.
 
 [menu:x?0]
 Compares X with 0: YES or NO.
-A program skips a line if NO.
 
 [AB_K6]
 Types the digit 6.
-Ignored in BIN.
-STU: Types the digit 6.
-STU: Ignored in BIN.
-STU: Graph open: cursor right.
+BIN: ignored in a number.
 
 [menu:x?y]
 Compares X with Y: YES or NO.
-A program skips a line if NO.
 
 [menu:FLAGS]
-Set, clear or test flags 0-11.
-Flags 10, 11: . then 0 or 1.
+Set, clear, test flags 0-11.
 
 [AB_MUL]
-Multiplies Y by X.
-HEX, OCT, BIN: whole numbers.
-In an equation, types ×.
+33: Y times X.
+33: HEX OCT BIN: OVERFLOW, the max.
+33: In an equation, types ×.
+35: Y times X. Two vectors: dot.
+35: HEX OCT BIN: OVERFLOW, the max.
+35: In an equation, types ×.
+STU: Y times X. Two vectors: dot.
+STU: HEX OCT BIN: OVERFLOW, the max.
+STU: ALG or an equation: types ×.
 
 [AB_FACT]
 X factorial (n!). A non-integer
@@ -432,19 +396,13 @@ In an equation, types !.
 [menu:PROB]
 Counting and random numbers.
 
-[shift:BLUE]
-Blue shift: the next key does
-its blue legend. BLUE again
-cancels it, GOLD switches.
-
 [AB_K1]
 Types the digit {} into the
 number or equation being typed.
-A graph open: moves its cursor.
 
 [menu:UNITS]
 Converts X: gal↔l, mile↔km.
-33: Converts X: gal↔l (km dimmed).
+33: Converts X: gal↔l only.
 
 [menu:MEM]
 Bytes free, VAR and PGM lists.
@@ -452,7 +410,7 @@ Bytes free, VAR and PGM lists.
 [AB_K2]
 Types the digit {} into the
 number or equation being typed.
-A graph open: moves its cursor.
+BIN: ignored in a number.
 
 [menu:DISP]
 Display: FIX, SCI, ENG or ALL.
@@ -463,10 +421,10 @@ Angle mode: DEG, RAD or GRAD.
 [AB_K3]
 33: Types the digit 3.
 33: STO 3, RCL 3: the variable i.
-33: A graph open: moves its cursor.
+33: BIN: ignored in a number.
 35,STU: Types the digit 3.
 35,STU: STO 3, RCL 3: (I), indirect.
-35,STU: A graph open: moves its cursor.
+35,STU: BIN: ignored in a number.
 
 [menu:RADIX]
 Decimal mark, digit grouping.
@@ -477,20 +435,23 @@ Auto-off, volume, beeps, clock.
 [AB_SUB]
 Y minus X. The stack drops.
 In an equation, types a minus.
+STU: Y minus X. The stack drops.
+STU: ALG or an equation: a minus.
 
 [AB_RAND]
 A random number 0<r<1 to X.
 SEED sets where it starts.
+Equation, ALG: types its name.
 
 [AB_SEED]
 Seeds RAND with X. X stays.
-The same seed gives the same
-numbers again.
+Same seed, same numbers again.
+Equation, ALG: types its name.
 
 [AB_CANCEL]
 33: Clears X or the number typed,
 33: a prompt, menu, EQN, PRGM, run.
-33: Error shown: next key acts too.
+33: Error shown: C just clears it.
 35,STU: Clears X or the number typed,
 35,STU: a prompt, menu, EQN, PRGM, run.
 35,STU: Error shown: a key only clears.
@@ -555,6 +516,8 @@ In EQN or a list: the next one.
 [AB_ADD]
 Y plus X. The stack drops.
 In an equation, types +.
+STU: Y plus X. The stack drops.
+STU: ALG or an equation: types +.
 
 [menu:SUMS]
 Recalls the Σ+ sums to X.
@@ -586,7 +549,7 @@ program. Any other key: no.
 
 [AB_CLALL]
 Asks CLR ALL? F1 clears stack,
-variables, programs, equations.
+variables, Σ, programs, eqns.
 In PRGM or EQN: only those.
 
 [AB_SETFIX]
@@ -598,8 +561,8 @@ SCI, then a digit: scientific
 form, that many decimals.
 
 [AB_SETENG]
-ENG, then a digit: exponents in
-threes, that many decimals.
+ENG, then a digit n: exponent
+a multiple of 3, n+1 digits.
 
 [AB_SETALL]
 Shows every digit X needs.
@@ -676,75 +639,91 @@ In an equation, types ATANH(.
 
 [AB_XBAR]
 Mean of the x data (Σ+), to X.
-In an equation, types its name.
+Equation, ALG: types its name.
 
 [AB_YBAR]
 Mean of the y data (Σ+), to X.
-In an equation, types its name.
+Equation, ALG: types its name.
 
 [AB_SX]
 Sample standard deviation of x
 (n−1), to X.
+Equation, ALG: types its name.
 
 [AB_SY]
 Sample standard deviation of y
 (n−1), to X.
+Equation, ALG: types its name.
 
 [AB_PSX]
 Population standard deviation
 of x (n), to X.
+Equation, ALG: types its name.
 
 [AB_PSY]
 Population standard deviation
 of y (n), to X.
+Equation, ALG: types its name.
 
 [AB_XHAT]
 Estimates x for the y in X, on
 the line fit to the Σ+ data.
+Equation, ALG: types its name.
 
 [AB_YHAT]
 Estimates y for the x in X, on
 the line fit to the Σ+ data.
+Equation, ALG: types its name.
 
 [AB_CORR]
 Correlation r of the Σ+ data:
 how near a line it lies.
+Equation, ALG: types its name.
 
 [AB_SLOPE]
 Slope m of the line fit to the
 Σ+ data.
+Equation, ALG: types its name.
 
 [AB_YINT]
 Y-intercept b of the line fit
 to the Σ+ data.
+Equation, ALG: types its name.
 
 [AB_XWBAR]
 Mean of x weighted by y (Σ+),
 to X.
+Equation, ALG: types its name.
 
 [AB_NSUM]
 Recalls n, the number of Σ+
 data points, to X.
+Equation, ALG: types its name.
 
 [AB_SUMX]
 Recalls Σx, the sum of the x
 data, to X.
+Equation, ALG: types its name.
 
 [AB_SUMY]
 Recalls Σy, the sum of the y
 data, to X.
+Equation, ALG: types its name.
 
 [AB_SUMX2]
 Recalls Σx², the sum of the
 squares of x, to X.
+Equation, ALG: types its name.
 
 [AB_SUMY2]
 Recalls Σy², the sum of the
 squares of y, to X.
+Equation, ALG: types its name.
 
 [AB_SUMXY]
 Recalls Σxy, the sum of the
 products x·y, to X.
+Equation, ALG: types its name.
 
 [AB_NCR]
 Combinations: n in Y, r in X.
@@ -772,6 +751,7 @@ program: skips a line if not.
 [AB_BEEP]
 Sounds one beep, in a program
 too. The stack is untouched.
+Silent: BEEP's PRGM off, VOL 0.
 
 [AB_TEST]
 Tests {}: X against Y or 0.
@@ -794,49 +774,41 @@ Shows X's integer part in base
 2 (36-bit two's complement).
 + - × ÷ work on whole numbers.
 [menu:LOGIC]
-Bit logic on whole numbers as
-36-bit patterns: Y with X.
+Bit logic on 36-bit words.
 33: Not in 33s mode.
 [menu:SUFX]
-Type digits, then d h o or b:
-reads them in that base.
+Digits, then d h o b: its base.
 33: Not in 33s mode.
 [AB_AND]
 Bitwise AND of Y and X (whole
 numbers, 36 bits), stack drops.
-33: Not in 33s mode.
 [AB_OR]
 Bitwise OR of Y and X (whole
 numbers, 36 bits), stack drops.
-33: Not in 33s mode.
 [AB_XOR]
 Bitwise XOR of Y and X (whole
 numbers, 36 bits), stack drops.
-33: Not in 33s mode.
 [AB_NOT]
 Flips every bit of X (a whole
 number, 36 bits): NOT 0 is -1.
-33: Not in 33s mode.
 [AB_NAND]
 Bitwise NAND of Y and X (whole
 numbers, 36 bits), stack drops.
-33: Not in 33s mode.
 [AB_NOR]
 Bitwise NOR of Y and X (whole
 numbers, 36 bits), stack drops.
-33: Not in 33s mode.
 [AB_KI]
 Typing a number: starts its
 imaginary part, as x i y.
 In an equation it types i.
 33: Not in 33s mode, except in
-33: an equation: it types i.
+33: an equation: types variable i.
 [AB_KTHETA]
 Typing a number: starts its
 angle, as r θ a (polar).
 In an equation it types θ.
-33: Not in 33s mode, except in
-33: an equation: it types θ.
+33: Not in 33s mode. Typed in an
+33: equation, θ is a SYNTAX ERROR.
 [AB_ARG]
 Angle of complex X in the angle
 mode, a real X is x i 0.
@@ -943,22 +915,22 @@ Changes nothing.
 [AB_MODEL:33]
 33s mode: works as the HP 33s,
 35s extras are off. Ends ALG.
-On a PRGM LBL: sets its mode.
+PRGM: only on a LBL, its mode.
 [AB_MODEL:35]
 35s mode: works as the HP 35s.
 Ends ALG.
-On a PRGM LBL: sets its mode.
+PRGM: only on a LBL, its mode.
 [AB_MODEL:1]
 STU mode: the 35s plus CAS,
 TABLE, GRAPH and ALG entry.
-On a PRGM LBL: sets its mode.
+PRGM: only on a LBL, its mode.
 [AB_ENTRYM]
 RPN entry: numbers go on the
 stack. From ALG, ANS goes to X.
 [AB_ENTRYM:1]
 ALG entry: type a whole line,
 ENTER works it. ANS = X first.
-Not in Equation mode.
+Not in EQN mode or PRGM.
 33,35: Blank: ALG is in STU
 33,35: mode only.
 [AB_IP]
@@ -981,25 +953,26 @@ EDIT: edits the equation shown,
 cursor at its start (not TOP or
 a built-in). ▶: cursor right.
 [AB_EQTOP]
-Goes to the list's TOP: the
-next key that types starts a
-new equation.
+Goes to the list's TOP, so the
+next equation typed goes first.
 [menu:CAS]
-STU only: algebra on the
-equation shown. ▸: CAS2, CAS3.
+Algebra on the equation shown.
 33,35: STU ONLY: MODE, STU.
 [AB_TVAR]
 VAR, then a letter: the
-variable the table steps. The
-start follows its value again.
-33: STU ONLY: MODE, STU.
+variable TABLE and GRAPH step.
+The start follows it again.
+35: Sets it, but the table runs
+35: in STU only: MODE, STU.
 [AB_TSTART]
 The table starts at X (else at
 the variable's value at GO).
-33: STU ONLY: MODE, STU.
+35: Sets it, but the table runs
+35: in STU only: MODE, STU.
 [AB_TSTEP]
 The table steps by X.
-33: STU ONLY: MODE, STU.
+35: Sets it, but the table runs
+35: in STU only: MODE, STU.
 [AB_TABLE]
 Table of the equation shown or
 last shown. ▲▼ rows, ENTER
@@ -1014,28 +987,33 @@ takes its value, C leaves.
 [AB_XMIN]
 Sets the graph's left edge,
 XMIN, to X.
-33: STU ONLY: MODE, STU.
+35: Sets it, but the graph runs
+35: in STU only: MODE, STU.
 
 [AB_XMAX]
 Sets the graph's right edge,
 XMAX, to X. X stays.
-33: STU ONLY: MODE, STU.
+35: Sets it, but the graph runs
+35: in STU only: MODE, STU.
 [AB_YMIN]
 Sets the graph's bottom, YMIN,
 to X. Turns AUTO's Y fit off.
-33: STU ONLY: MODE, STU.
+35: Sets it, but the graph runs
+35: in STU only: MODE, STU.
 [AB_YMAX]
 Sets the graph's top, YMAX,
 to X. Turns AUTO's Y fit off.
-33: STU ONLY: MODE, STU.
+35: Sets it, but the graph runs
+35: in STU only: MODE, STU.
 [AB_GAUTO]
 Fits Y to the curve again over
 XMIN to XMAX (after YMIN/YMAX).
-33: STU ONLY: MODE, STU.
+35: Sets it, but the graph runs
+35: in STU only: MODE, STU.
 [AB_GRAPH]
 Draws the equation shown (or
-last shown). ENTER puts the
-traced y in X, C leaves.
+last shown). C leaves. ENTER:
+traced y to X, or ALG's line.
 33,35: STU ONLY: MODE, STU.
 [AB_GLEFT]
 Moves the graph's cursor one
@@ -1053,6 +1031,7 @@ readout on or off.
 [AB_GMARK]
 Marks the cursor's point, the
 first corner for BOXZ and AREA.
+A zoom clears it.
 [dev:GPAGE]
 Next page of graph keys: BAR,
 ZOOM, FCN. GOLD/BLUE show more.
@@ -1104,27 +1083,31 @@ Square pixels: the x span is
 set to y's scale. Y stays.
 [AB_GZOOM:14]
 X from -π to π, for trig.
-Y stays.
+Y stays, or refits if AUTO.
 [AB_GFCN]
 {}: a root near the cursor,
-which moves there. For L=R:
-where L=R. ENTER puts it in X.
+which moves there. L=R: where
+equal. ENTER: X, or ALG's line.
 [AB_GFCN:1]
 The curve's slope at the
-cursor's x. ENTER puts it in X.
+cursor's x.
+ENTER: X, or ALG's line.
 [AB_GFCN:2]
 A max or min near the cursor,
-which moves there. ENTER: X.
+which moves there.
+ENTER: X, or ALG's line.
 [AB_GFCN:3]
 Area under the curve from MARK
-to the cursor. MARK first.
-ENTER puts it in X.
+to the cursor, using up MARK.
+ENTER: X, or ALG's line.
 [AB_GFCN:4]
 The curve's value at the
-cursor's x. ENTER puts it in X.
+cursor's x.
+ENTER: X, or ALG's line.
 [AB_GFCN:5]
 Draws the tangent line at the
-cursor: Y=m·X+b. ENTER: m to X.
+cursor: Y=m·X+b.
+ENTER: m to X, or ALG's line.
 [AB_KLEFT]
 Moves the cursor a place left.
 ALG: on a history line, edits
@@ -1199,6 +1182,17 @@ wraps at the end.
 [dev:CATXEQ]
 Runs the program at the label
 shown. Not in program entry.
+[catkey:C]
+Leaves the catalog.
+[catkey:CLEAR]
+Clears the variable shown, or
+deletes the program shown.
+[catkey:BACK]
+Back to MEM's menu.
+[catkey:ENTER]
+Copies the variable shown to X.
+EQN or ALG: types its letter.
+In program entry: nothing.
 [dev:CATPRGM]
 Opens program entry at the
 label shown (its LBL line).
@@ -1217,74 +1211,59 @@ C always ends it.
 D/DX, then a letter: derivative
 of the equation shown, added
 after it. The original stays.
-33,35: STU ONLY: MODE, STU.
 [AB_CASSIMP]
 Simplifies the equation shown,
 the result is added after it.
-33,35: STU ONLY: MODE, STU.
 [AB_CASEXP]
 Expands the equation shown,
 the result is added after it.
-33,35: STU ONLY: MODE, STU.
 [AB_CASCOL]
 COLCT, then a letter: groups
 terms by its powers, the result
 is added after it.
-33,35: STU ONLY: MODE, STU.
 [AB_CASSUB]
 SUBST, then a letter: type what
 replaces it, ENTER. C cancels.
 The result is added.
-33,35: STU ONLY: MODE, STU.
 [AB_CASSOLVE]
 SOLVE, then a letter: the exact
 roots in a list. ▲▼ step,
 ENTER puts one in X, C leaves.
-33,35: STU ONLY: MODE, STU.
 [AB_CASINT]
 ∫DX, then a letter: the anti-
 derivative, +C beside it.
 Expressions only, not L=R.
-33,35: STU ONLY: MODE, STU.
 [AB_CASFACT]
 FACTR, then a letter: factors,
 added. MAY FACTOR MORE: maybe
 not all the way.
-33,35: STU ONLY: MODE, STU.
 [AB_CASDEF]
 ∫AB, then a letter: type FROM,
-ENTER, TO, ENTER: exact answer.
-Expressions only, not L=R.
-33,35: STU ONLY: MODE, STU.
+ENTER, TO, ENTER: its value is
+added. Expressions only.
 [AB_CASSUM]
 Σ, then a letter: type FROM,
 ENTER, TO (F4 is ∞), ENTER.
-Conditions follow, as WHERE.
-33,35: STU ONLY: MODE, STU.
+Not L=R. WHERE rows follow.
 [AB_CASQUOT]
 QUOT, then a letter, then the
 divisor, ENTER: adds QUOTIENT
 and REMAINDER rows.
-33,35: STU ONLY: MODE, STU.
 [AB_CASGCD]
 GCD, then a letter, then the
 other polynomial, ENTER: adds
 their gcd.
-33,35: STU ONLY: MODE, STU.
 [AB_CASCANCL]
 CANCL, then a letter: reduces a
 top÷bottom. NOT AT rows: the
 values it removed.
-33,35: STU ONLY: MODE, STU.
 [AB_KINF]
 Types ∞ in Σ's upper bound, TO.
 ∞ alone: a sum to infinity.
-33,35: STU ONLY: MODE, STU.
 
 [AB_SUF]
 After digits: {} reads them in
 its base: b 2, o 8, d 10, h 16.
-33: Not in 33s mode.
 
 
 [menu:GAMES]
@@ -1296,8 +1275,8 @@ From the last page: the first.
 
 [graphpad]
 Moves the graph's cursor: 8 up,
-2 down, 4 left, 6 right, 5 home
-GOLD first: ten pixels a step.
+2 down (TRACE off), 4 left, 6
+right, 5 home. GOLD: 10 pixels.
 
 [cmplxpair]
 33s CMPLX: does it on complex
