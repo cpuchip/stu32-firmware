@@ -53,3 +53,23 @@ fractions, at 2ba7217 (casim's own "rewrite judge"):
   - VER names the pin;
   - from the keys in DEG: X×ATAN(X) in fractions, I19 answering, S59's TOO COMPLEX;
   - the stack's low-water mark no lower than the deep paths' 8,188 B free.
+
+## Decision 68 and the stand-in
+
+**Static, `scripts/resources.py static 894f066 77d0241`:**
+- Flash +4,560 on the stand-in and +4,576 on Rev A (casim's code).
+- Internal RAM +0, IRAM +0, calc_task's frame +0. No internal-RAM symbol changed.
+- The arena's +3,488 B is PSRAM (libmain's +8,029 counts it).
+
+**The stand-in at 77d0241:**
+- **repin2ba7217.txt:** ALL MET, the control red.
+  - The pin is 2ba7217.
+  - From the keys in DEG: X×ATAN(X) gives ATAN(X)÷2-90×X÷π+X^2×ATAN(X)÷2; I19 answers
+    LN(ABS(X-1))÷2-LN(ABS(X+1))÷2+ATAN(X)÷2-90×X÷π+X^2×ATAN(X)÷2; S59's sum is TOO COMPLEX.
+  - stack-free 23,828 B (floor 8,188); heap 62,747 B.
+  - The port moved at the flash (ACM3 to ACM2). The rerun on the new port, with no flash, passed.
+- **casrows.txt:** ALL MET.
+- **sum070.txt:** ALL MET bar its control.
+  - Σ K^10 reads in fractions.
+  - S58's sum now answers 39928985231992÷39720146275845 where it said TOO COMPLEX. Its row moved, as 070's S58 did.
+- make clang-check 66/0.

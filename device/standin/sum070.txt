@@ -283,8 +283,8 @@ sleep 0.25
 sleep 3
 send X
 expect eqn: 5×N÷66-N^3÷2+N^5-N^7+5×N^9÷6+N^10÷2+N^11÷11 | note=- 15
-# casim 5ab9b59's row: partfrac runs out of room (S58)
-# host: refused, TOO COMPLEX; the summand still shown
+# casim 5ab9b59's row (S58): partfrac ran out of room at 8,800 B; at 12,288 B (the CAS 019 repin) it answers
+# host: the exact sum, 39928985231992÷39720146275845 (Python's fractions over K = 1..50 agree)
 send K42
 sleep 0.25
 send K42
@@ -489,7 +489,7 @@ send K18
 sleep 0.25
 sleep 3
 send X
-expect msg=TOO COMPLEX 15
+expect eqn: 39928985231992÷39720146275845 | note=- 15
 # equal growth to ∞ (S20)
 # host: refused, CAN'T DECIDE; the summand still shown
 send K42
