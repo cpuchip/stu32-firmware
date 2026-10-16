@@ -209,3 +209,14 @@ Each item was verified in the code at df9ae2a before its text changed. These are
 - The port moved at the flash again (ACM3 to ACM2). The rerun on the new port, with no flash, passed. The image reads
   7d9715c+dirty only because help075.txt was not yet committed; the firmware sources are the commit's.
 - make clang-check: 66 files, 0 failing. casim-build: casim 4f24e3e built against 7d9715c.
+
+### abacus's last two (#8776), and acceptance on them
+
+- **×:** "HEX OCT BIN: OVERFLOW, the max." read as if every product overflows. It's now "HEX OCT BIN too big:
+  OVERFLOW." in all three modes.
+- **Item 19, ruled: GTO's dot form follows the label's stamp,** as the letter form and HELP do (H52's rule). app.c's
+  digit count and its prompt text read ab_rec35(a->c), no longer c->m35. Outside program entry ab_rec35 is the
+  device's mode, so nothing else changes.
+- **app_test, 771:** a 33s label edited in 35s mode takes four digits (A0003), and a 35s label in 33s mode three
+  (A004). With the old count all three checks are red.
+- Not re-measured on a board: the change is two expressions and three lines of text.

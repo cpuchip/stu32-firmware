@@ -81,7 +81,7 @@ const help_entry help_table[] = {
     {HELP_OP, AB_K6, -1, "Types the digit 6.\nBIN: ignored in a number."},
     {HELP_MENU, 0, -1, "x?y\037Compares X with Y: YES or NO."},
     {HELP_MENU, 0, -1, "FLAGS\037Set, clear, test flags 0-11."},
-    {HELP_OP, AB_MUL, -1, "33: Y times X.\n33: HEX OCT BIN: OVERFLOW, the max.\n33: In an equation, types \303\227.\n35: Y times X. Two vectors: dot.\n35: HEX OCT BIN: OVERFLOW, the max.\n35: In an equation, types \303\227.\nSTU: Y times X. Two vectors: dot.\nSTU: HEX OCT BIN: OVERFLOW, the max.\nSTU: ALG or an equation: types \303\227."},
+    {HELP_OP, AB_MUL, -1, "33: Y times X.\n33: HEX OCT BIN too big: OVERFLOW.\n33: In an equation, types \303\227.\n35: Y times X. Two vectors: dot.\n35: HEX OCT BIN too big: OVERFLOW.\n35: In an equation, types \303\227.\nSTU: Y times X. Two vectors: dot.\nSTU: HEX OCT BIN too big: OVERFLOW.\nSTU: ALG or an equation: types \303\227."},
     {HELP_OP, AB_FACT, -1, "X factorial (n!). A non-integer\ngives gamma of X+1.\nIn an equation, types !."},
     {HELP_MENU, 0, -1, "PROB\037Counting and random numbers."},
     {HELP_OP, AB_K1, -1, "Types the digit {} into the\nnumber or equation being typed."},

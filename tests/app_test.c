@@ -2313,6 +2313,25 @@ int main(void)
         press(&a, ". C");
         app_ui(&a, &ui);
         expect(!ui.prompt && c.pc == pc0, "036: C backs out of the address form, nothing moved");
+        /* in program entry, the edited label's mode counts the digits, as the letter form (abacus #8776, H52): a 33s
+           label edited in 35s mode takes four, a 35s label in 33s mode three */
+        c.lmode[0] = 33;
+        press(&a, "GOLD 9 k:0");
+        ab_do_arg(&c, AB_GTOPOS, 2);           /* A002: inside LBL A (a label's code times 1000, A is 0) */
+        press(&a, "GOLD 4 . ltr:A 0 0 0");
+        app_ui(&a, &ui);
+        expect(c.prgm && ui.prompt && !strcmp(ui.prompt, "GTO .A000_"), "075: a 33s label in 35s mode: GTO . takes four digits");
+        press(&a, "3");
+        ab_prog_addr(&c, c.pc, t);
+        expect(!strcmp(t, "A003"), "075: a 33s label in 35s mode: GTO . A0003 goes to A003");
+        c.lmode[0] = 35;
+        c.m35 = false;
+        press(&a, "GOLD 4 . ltr:A 0 0 4");
+        ab_prog_addr(&c, c.pc, t);
+        app_ui(&a, &ui);
+        expect(!ui.prompt && !strcmp(t, "A004"), "075: a 35s label in 33s mode: GTO . A004, three digits");
+        c.m35 = true;
+        press(&a, "GOLD 9 k:0");
     }
 
     /* unit 036b: in 35s and STU mode GTO and XEQ take a letter, then ENTER (its first line) or three digits

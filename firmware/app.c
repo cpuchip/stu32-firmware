@@ -49,10 +49,11 @@ static void prompt_close(app_state *a)
 }
 
 /* GTO's address form (unit 036): "GTO ._", then "GTO .A___" with the digits so far (three in 35s and STU
-   mode, 35s p.14-6; four in 33s mode, 33s p.13-5). */
+   mode, 35s p.14-6; four in 33s mode, 33s p.13-5). In program entry the edited label's mode, as the letter form
+   (abacus #8776, H52's rule). */
 static void gto_text(app_state *a)
 {
-    int need = a->c->m35 ? 3 : 4;
+    int need = ab_rec35(a->c) ? 3 : 4;
     char d[8] = "";
     if (a->gto_dot == 1) {
         snprintf(a->prompt_text, sizeof a->prompt_text, "GTO ._");
@@ -857,7 +858,7 @@ void app_key(app_state *a, int key, uint32_t now_ms)
         /* GTO . from the keyboard (unit 036; 33s p.13-5, 35s p.14-6): . . to PRGM TOP; . label and the
            line's digits to that line, the pointer only (AB_GTOPOS: never a line, in program entry too);
            backspace steps back, C backs out */
-        int need = a->c->m35 ? 3 : 4;
+        int need = ab_rec35(a->c) ? 3 : 4;     /* in program entry, the label's mode (abacus #8776) */
         bool dot = face->kind == KM_OP && face->op == AB_KPOINT && a->shift == 0;
         bool bk = face->kind == KM_OP && face->op == AB_KBKSP, cancel = face->kind == KM_OP && face->op == AB_CANCEL;
         if (a->gto_dot == 0 && dot) {

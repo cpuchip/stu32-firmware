@@ -379,13 +379,13 @@ Set, clear, test flags 0-11.
 
 [AB_MUL]
 33: Y times X.
-33: HEX OCT BIN: OVERFLOW, the max.
+33: HEX OCT BIN too big: OVERFLOW.
 33: In an equation, types ×.
 35: Y times X. Two vectors: dot.
-35: HEX OCT BIN: OVERFLOW, the max.
+35: HEX OCT BIN too big: OVERFLOW.
 35: In an equation, types ×.
 STU: Y times X. Two vectors: dot.
-STU: HEX OCT BIN: OVERFLOW, the max.
+STU: HEX OCT BIN too big: OVERFLOW.
 STU: ALG or an equation: types ×.
 
 [AB_FACT]
