@@ -233,7 +233,7 @@ sleep 3
 send X
 expect eqn: 1 | note=- 15
 # a degree-10 polynomial's closed form
-# host: 5×N÷66-0.5×N^3+N^5-N^7+5×N^9÷6+0.5×N^10+N^11÷11
+# host: 5×N÷66-N^3÷2+N^5-N^7+5×N^9÷6+N^10÷2+N^11÷11 (fractions since casim 2ba7217, CAS 019; 0.5× before)
 send K42
 sleep 0.25
 send K42
@@ -282,7 +282,7 @@ send K18
 sleep 0.25
 sleep 3
 send X
-expect eqn: 5×N÷66-0.5×N^3+N^5-N^7+5×N^9÷6+0.5×N^10+N^11÷11 | note=- 15
+expect eqn: 5×N÷66-N^3÷2+N^5-N^7+5×N^9÷6+N^10÷2+N^11÷11 | note=- 15
 # casim 5ab9b59's row: partfrac runs out of room (S58)
 # host: refused, TOO COMPLEX; the summand still shown
 send K42

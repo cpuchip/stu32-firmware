@@ -35,7 +35,7 @@ I07 | 048 ∫ in the stamp: X^2^3 stamped STU is X^8 (by hand: X^9÷9, I0002's f
 I08 | 048 ∫ in the stamp: stamped 35s it is X^6 (by hand: X^7÷7) | MODE35 EQ:X^2^3 C STU RAD EQN CASINT:X | %EQ=X^7÷7
 # CAS 013 (casim ad3c4ee, abacus #7881's repin): rational integrands through partial fractions, CAN'T INTEGRATE at
 # 89e8d17 (casim's CLI there: NOT_INTEGRABLE). Expected texts are casim's CLI at the pin; I05 still refuses.
-I10 | 048 ∫ (CAS 013): 1÷(X^2-1) answered, +C beside it | STU RAD EQ:1÷(X^2-1) CASINT:X | %EQ=0.5×LN(ABS(X-1))-0.5×LN(ABS(X+1)) %NOTE=+C %EQN=2
+I10 | 048 ∫ (CAS 013): 1÷(X^2-1) answered, +C beside it; fractions since casim 2ba7217 (CAS 019) | STU RAD EQ:1÷(X^2-1) CASINT:X | %EQ=LN(ABS(X-1))÷2-LN(ABS(X+1))÷2 %NOTE=+C %EQN=2
 I11 | 048 ∫ (CAS 013): the answer evaluates: ∫1÷(X×(X+1)) is LN(ABS(X))-LN(ABS(X+1)), at X 1 -LN(2) (mpmath, 34 digits) | STU RAD 1 STO:X EQ:1÷(X×(X+1)) CASINT:X XEQ RS | X=-0.6931471805599453094172321214581766
 # CAS 017 (casim 3c3b6fb, abacus #8246's repin): substitution and by parts. Expected texts are casim's CLI at the pin at
 # the calculator's arena (core/arena.h). At 8,192 B the rational path didn't fit inside a substitution or a part (casim
@@ -43,19 +43,19 @@ I11 | 048 ∫ (CAS 013): the answer evaluates: ∫1÷(X×(X+1)) is LN(ABS(X))-LN
 # The arena is 8,800 B since the a4dd723 repin (Michael's arena card, cas-arena-8800), so both answer (I17-I21), and
 # since casim a4dd723 a search that runs out says TOO COMPLEX, never CAN'T INTEGRATE (I19). Those figures are RAD's:
 # in DEG and GRAD, X×ATAN(X) needs 8,800 B exactly and SIN(X)+1÷(X^2-1) 8,776 (I23 holds the DEG answer).
-I12 | 048 ∫ (CAS 017): X×LN(X) by parts, +C beside it | STU RAD EQ:X×LN(X) CASINT:X | %EQ=-0.25×X^2+0.5×X^2×LN(X) %NOTE=+C %EQN=2
+I12 | 048 ∫ (CAS 017): X×LN(X) by parts, +C beside it; fractions since casim 2ba7217 (CAS 019) | STU RAD EQ:X×LN(X) CASINT:X | %EQ=-X^2÷4+X^2×LN(X)÷2 %NOTE=+C %EQN=2
 I13 | 048 ∫ (CAS 017): the answer evaluates: at X 3, 4.5×LN(3)-2.25 (mpmath, 34 digits, within 8 units: the answer is three rounded operations) | STU RAD 3 STO:X EQ:X×LN(X) CASINT:X XEQ RS | X^2.693755299006493611278603566151366
-I14 | 048 ∫ (CAS 017): ATAN(X) by substitution, its LN without ABS (X^2+1 is positive for every X) | STU RAD EQ:ATAN(X) CASINT:X | %EQ=-0.5×LN(X^2+1)+X×ATAN(X) %NOTE=+C %EQN=2
+I14 | 048 ∫ (CAS 017): ATAN(X) by substitution, its LN without ABS (X^2+1 is positive for every X); fractions since casim 2ba7217 (CAS 019) | STU RAD EQ:ATAN(X) CASINT:X | %EQ=-LN(X^2+1)÷2+X×ATAN(X) %NOTE=+C %EQN=2
 I15 | 048 ∫ (CAS 017): the answer evaluates: at X 1, π÷4-LN(2)÷2 (mpmath, 34 digits) | STU RAD 1 STO:X EQ:ATAN(X) CASINT:X XEQ RS | X=0.4388245731174756549070447850907874
-I16 | 048 ∫ (CAS 017): the cycle, EXP(X)×SIN(X) | STU RAD EQ:EXP(X)×SIN(X) CASINT:X | %EQ=0.5×EXP(X)×SIN(X)-0.5×EXP(X)×COS(X) %NOTE=+C %EQN=2
-I17 | 048 ∫ (CAS 017): X×ATAN(X) by parts at the 8,800 B arena (in RAD it answers from 8,592 B; at 8,192 B it was CAN'T INTEGRATE at 3c3b6fb and is TOO COMPLEX at a4dd723) | STU RAD EQ:X×ATAN(X) CASINT:X | %EQ=-0.5×X+0.5×ATAN(X)+0.5×X^2×ATAN(X) %NOTE=+C %EQN=2
-I18 | 048 ∫ (CAS 017): SIN(X)+1÷(X^2-1) at 8,800 B (TOO COMPLEX at 8,192 B; in RAD it answers from 8,760 B) | STU RAD EQ:SIN(X)+1÷(X^2-1) CASINT:X | %EQ=0.5×LN(ABS(X-1))-0.5×LN(ABS(X+1))-COS(X) %NOTE=+C %EQN=2
-I19 | 048 ∫ (CAS 017, casim a4dd723): X×ATAN(X)+1÷(X^2-1) runs out at 8,800 B (it answers from 9,592 B): TOO COMPLEX, where 3c3b6fb at 8,800 B says CAN'T INTEGRATE | STU RAD EQ:X×ATAN(X)+1÷(X^2-1) CASINT:X | ERR %ERR=CAS_NO_ROOM %ERRMSG=TOO_COMPLEX %EQN=1 %NOTE=none
+I16 | 048 ∫ (CAS 017): the cycle, EXP(X)×SIN(X); fractions since casim 2ba7217 (CAS 019) | STU RAD EQ:EXP(X)×SIN(X) CASINT:X | %EQ=EXP(X)×SIN(X)÷2-EXP(X)×COS(X)÷2 %NOTE=+C %EQN=2
+I17 | 048 ∫ (CAS 017): X×ATAN(X) by parts at the 8,800 B arena (in RAD it answers from 8,592 B; at 8,192 B it was CAN'T INTEGRATE at 3c3b6fb and is TOO COMPLEX at a4dd723); fractions since casim 2ba7217 (CAS 019) | STU RAD EQ:X×ATAN(X) CASINT:X | %EQ=-X÷2+ATAN(X)÷2+X^2×ATAN(X)÷2 %NOTE=+C %EQN=2
+I18 | 048 ∫ (CAS 017): SIN(X)+1÷(X^2-1) at 8,800 B (TOO COMPLEX at 8,192 B; in RAD it answers from 8,760 B); fractions since casim 2ba7217 (CAS 019) | STU RAD EQ:SIN(X)+1÷(X^2-1) CASINT:X | %EQ=LN(ABS(X-1))÷2-LN(ABS(X+1))÷2-COS(X) %NOTE=+C %EQN=2
+I19 | 048 ∫ (CAS 017): X×ATAN(X)+1÷(X^2-1) answers at the 12,288 B arena (the 019 repin, abacus #8809; it needs 9,592 B at a4dd723, and at 8,800 B it was TOO COMPLEX, CAN'T INTEGRATE at 3c3b6fb); by hand X^2×ATAN(X)÷2-X÷2+ATAN(X)÷2 plus I10's, in canonical order | STU RAD EQ:X×ATAN(X)+1÷(X^2-1) CASINT:X | %EQ=-X÷2+LN(ABS(X-1))÷2-LN(ABS(X+1))÷2+ATAN(X)÷2+X^2×ATAN(X)÷2 %NOTE=+C %EQN=2
 I20 | 048 ∫ (CAS 017): I17's answer evaluates: at X 1, π÷4-0.5 (mpmath, 34 digits, within 8 units: the answer is several rounded operations; mpmath's quadrature of X×ATAN(X) over [0, 1] agrees) | STU RAD 1 STO:X EQ:X×ATAN(X) CASINT:X XEQ RS | X^0.2853981633974483096156608458198757
 I21 | 048 ∫ (CAS 017): I18's answer evaluates: at X 2, -0.5×LN(3)-COS(2) (mpmath, 34 digits, within 8 units) | STU RAD 2 STO:X EQ:SIN(X)+1÷(X^2-1) CASINT:X XEQ RS | X^-0.1331593077869124587000543889605007
 I22 | 048 ∫ (casim 4f24e3e, CAS 013 rule 8 B): the reduced fraction first, so (X^2+3×X-1)×(3×X+2)÷(3×X+2)^2 answers at 8,800 B, X÷3+7÷9-(23÷9)÷(3×X+2) integrated (by hand), where a4dd723 to 65369cb ran out before partfrac (TOO COMPLEX; it answered from 10,776 B) | STU RAD EQ:(X^2+3×X-1)×(3×X+2)÷(3×X+2)^2 CASINT:X | %EQ=7×X÷9-23×LN(ABS(3×X+2))÷27+X^2÷6 %NOTE=+C %EQN=2
-I23 | 048 ∫ (CAS 017): I17 in DEG, MEMORY CLEAR's angle, answers at 8,800 B with no byte to spare (TOO COMPLEX at 8,799 B) | STU DEG EQ:X×ATAN(X) CASINT:X | %EQ=0.5×ATAN(X)-90×X÷π+0.5×X^2×ATAN(X) %NOTE=+C %EQN=2
-I24 | 048 ∫ (casim 4f24e3e, CAS 013 rule 8 B): (X^3+X)÷(X^2+1), which is X, answers 0.5×X^2 (d/dX is X), where 32e5ddd's rule made it TOO COMPLEX at 8,800 B (65369cb) and a4dd723 said CAN'T INTEGRATE (abacus #8545, #8556) | STU RAD EQ:(X^3+X)÷(X^2+1) CASINT:X | %EQ=0.5×X^2 %NOTE=+C %EQN=2
+I23 | 048 ∫ (CAS 017): I17 in DEG, MEMORY CLEAR's angle, answered at 8,800 B with no byte to spare (TOO COMPLEX at 8,799 B); 3,488 B to spare at 12,288 (the 019 repin, abacus #8809); fractions since casim 2ba7217 | STU DEG EQ:X×ATAN(X) CASINT:X | %EQ=ATAN(X)÷2-90×X÷π+X^2×ATAN(X)÷2 %NOTE=+C %EQN=2
+I24 | 048 ∫ (casim 4f24e3e, CAS 013 rule 8 B): (X^3+X)÷(X^2+1), which is X, answers 0.5×X^2 (d/dX is X), where 32e5ddd's rule made it TOO COMPLEX at 8,800 B (65369cb) and a4dd723 said CAN'T INTEGRATE (abacus #8545, #8556); fractions since casim 2ba7217 (CAS 019) | STU RAD EQ:(X^3+X)÷(X^2+1) CASINT:X | %EQ=X^2÷2 %NOTE=+C %EQN=2
 # CAS 016 (the same repin): a pole in any op has no value, so each CAS step refuses it as UNDEFINED. At 4b91739 these
 # were inserted as typed (TAN(π÷2), LN(0), ATANH(1)×X's integral) or refused as COEF_NOT_NUMERIC (SOLVE).
 P01 | CAS 016: TAN(π÷2) has no value, UNDEFINED, nothing inserted | STU RAD EQ:TAN(π÷2) CASSIMP | ERR %ERR=CAS_UNDEFINED %ERRMSG=UNDEFINED %EQN=1

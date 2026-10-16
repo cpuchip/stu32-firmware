@@ -6,8 +6,8 @@
 #
 # The answers, each with its rows
 S01 | 070: Σ K from 1 to 10 is 55, added term by term (rule 7) | STU RAD EQ:K CASSUM:K 1 ENTER 10 ENTER | %EQ=55 %EQN=2 %NOTE=none
-S02 | 070: Σ K from 1 to N, a closed form | STU RAD EQ:K CASSUM:K 1 ENTER RCL:N ENTER | %EQ=0.5×N+0.5×N^2 %EQN=2
-S03 | 070: Σ K^2 from 1 to N | STU RAD EQ:K^2 CASSUM:K 1 ENTER RCL:N ENTER | %EQ=N÷6+0.5×N^2+N^3÷3 %EQN=2
+S02 | 070: Σ K from 1 to N, a closed form, N(N+1)÷2 (fractions since casim 2ba7217, CAS 019) | STU RAD EQ:K CASSUM:K 1 ENTER RCL:N ENTER | %EQ=N÷2+N^2÷2 %EQN=2
+S03 | 070: Σ K^2 from 1 to N, N(N+1)(2N+1)÷6 (fractions since casim 2ba7217) | STU RAD EQ:K^2 CASSUM:K 1 ENTER RCL:N ENTER | %EQ=N÷6+N^2÷2+N^3÷3 %EQN=2
 S04 | 070: Σ 2^K from 0 to N, a constant ratio: no row | STU RAD EQ:2^K CASSUM:K 0 ENTER RCL:N ENTER | %EQ=2^(N+1)-1 %EQN=2 %NOTE=none
 S05 | 070: Σ X^K from 0 to N: the answer shown, its row after it | STU RAD EQ:X^K CASSUM:K 0 ENTER RCL:N ENTER | %EQ=-1÷(X-1)+X^(N+1)÷(X-1) %EQN=3 %NOTE=none
 S06 | 070: its row X≠1, labeled WHERE (Michael, #8294) | STU RAD EQ:X^K CASSUM:K 0 ENTER RCL:N ENTER SST | %EQ=X≠1 %NOTE=WHERE
@@ -33,7 +33,8 @@ S20 | 070: equal growth: CAN'T DECIDE | STU RAD EQ:3+(-1)^K×K CASSUM:K 0 ENTER 
 S21 | 070: no closed form: NO CLOSED FORM (Michael, #8294) | STU RAD EQ:1÷K^2 CASSUM:K 1 ENTER RCL:N ENTER | ERR %ERR=CAS_NO_CLOSED %ERRMSG=NO_CLOSED_FORM %EQN=1
 S22 | 070: the same for SIN(K) to N | STU RAD EQ:SIN(K) CASSUM:K 1 ENTER RCL:N ENTER | ERR %ERRMSG=NO_CLOSED_FORM %EQN=1
 S54 | 070: forty terms written out pass 191 bytes: RESULT TOO LONG | STU RAD EQ:SIN(K) CASSUM:K 1 ENTER 40 ENTER | ERR %ERR=CAS_TOO_LONG %EQN=1
-S58 | 070: casim 5ab9b59: a closed form that runs out of room is TOO COMPLEX, not RESULT TOO LONG (casim's own row; 65369cb said TOO_LONG; it answers at 65,536 B) | STU RAD EQ:12×(561+16×K^4+160×K^3+568×K^2+856×K)÷((1+2×K)×(3+2×K)^2×(7+2×K)×(9+2×K)^2) CASSUM:K 1 ENTER 50 ENTER | ERR %ERR=CAS_NO_ROOM %EQN=1
+S58 | 070: casim 5ab9b59's closed form that ran out of room (TOO COMPLEX at 8,800 B) answers at 12,288 B (the CAS 019 repin, abacus #8809), the exact sum (Python's fractions over K = 1..50 give 39928985231992/39720146275845) | STU RAD EQ:12×(561+16×K^4+160×K^3+568×K^2+856×K)÷((1+2×K)×(3+2×K)^2×(7+2×K)×(9+2×K)^2) CASSUM:K 1 ENTER 50 ENTER | %EQ=39928985231992÷39720146275845 %EQN=2
+S59 | 070: a closed form that runs out of room is TOO COMPLEX, at 12,288 B (S58's role since the arena grew): five partial-fraction terms from casim's golden corpus, NO_ROOM at 12,288 B, answering at 65,536 B | STU RAD EQ:1÷(K×(K+1)×(K+2))+1÷((K+1)×(K+2)×(K+3))+1÷(K×(K+1)×(K+3))+1÷(K×(K+2)×(K+3))+1÷((K+1)×(K+3)×(K+4)) CASSUM:K 1 ENTER RCL:N ENTER | ERR %ERR=CAS_NO_ROOM %ERRMSG=TOO_COMPLEX %EQN=1
 S23 | 070: past the arena: TOO COMPLEX | STU RAD EQ:K^12×X^K CASSUM:K 0 ENTER RCL:N ENTER | ERR %ERR=CAS_NO_ROOM %EQN=1
 S24 | 070: a bound not whole: BAD BOUND (provisional, #8545) | STU RAD EQ:K CASSUM:K 1.5 ENTER RCL:N ENTER | ERR %ERR=CAS_BAD_BOUND %ERRMSG=BAD_BOUND %EQN=1
 S25 | 070: -∞ as the upper goes to casim as typed: BAD BOUND | STU RAD EQ:K CASSUM:K 1 ENTER - INF ENTER | ERR %ERRMSG=BAD_BOUND %EQN=1

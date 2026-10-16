@@ -3859,6 +3859,9 @@ static abn_status cas_step(ab_calc *c, int op, int var, const char *repl, const 
     }
     casim_req rq = {(casim_op)op, text, c->eqn_model[c->eqn_cur], var, repl, AB_MODEL_STU, c->angle, repl2};  /* repl2: ∫AB's upper bound (056) */
     cs = casim_run(&rq, out, sizeof out, ab_cas_arena, sizeof ab_cas_arena);
+    if (cs == CASIM_DECIMAL_FORM) cs = CASIM_OK;    /* CAS 019 rule 5: fractions past the cap or the arena, so casim's
+                                                   answer in 4f24e3e's decimal form: an answer as before (its label waits
+                                                   on Michael's word, abacus #8809) */
     bool ext = op == CASIM_SOLVE || op == CASIM_INTEGRATE || op == CASIM_FACTOR;     /* unit 048's keys */
     if (ext) {
         if (c->intr_after > 0 && --c->intr_after == 0) c->intr = true;     /* the tests' interrupt */

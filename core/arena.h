@@ -33,8 +33,12 @@ int ar_peak(void);
 /* CAS 004: Casimir's working memory, beside the pool (so placed with it: PSRAM on the devices); only the calc task's
    CAS step uses it, and nothing in it outlives the step. 8,192 B (the unit's budget) until the a4dd723 repin, then
    8,800 B (Michael's arena card, cas-arena-8800): in RAD X×ATAN(X) needs 8,592 B and SIN(X)+1÷(X^2-1) 8,760 (048's I17,
-   I18); in DEG and GRAD X×ATAN(X) needs all 8,800 (048's I23). */
-#define AB_CAS_ARENA 8800
+   I18); in DEG and GRAD X×ATAN(X) needs all 8,800 (048's I23). 12,288 B since the CAS 019 repin (Michael: "bump the
+   CAS memory up"; abacus #8786, #8809): CAS 019's fractions read back into more nodes, so SQRT(1+X)×EXP(X)'s order-11
+   Taylor needs 10,476 B, and DEG/GRAD X×ATAN(X) gains 3,488 B of margin. casim's device bench at 12,288 (casim
+   8d28f58, work/arena-12288.txt): DEVICE PASS, the stack gate unchanged at 11,744 of 12,288, since the depth guard,
+   not the arena, bounds the stack. */
+#define AB_CAS_ARENA 12288
 #ifdef AB_CASIM
 extern unsigned char ab_cas_arena[AB_CAS_ARENA];
 #endif

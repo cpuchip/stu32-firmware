@@ -7,7 +7,7 @@
 Q01 | 057: QUOT X^2-1 by X-1: X+1, labeled QUOTIENT | STU RAD EQ:X^2-1 CASQUOT:X RCL:X - 1 ENTER | %EQ=X+1 %NOTE=QUOTIENT %EQN=3
 Q02 | 057: its remainder 0 after it, labeled REMAINDER | STU RAD EQ:X^2-1 CASQUOT:X RCL:X - 1 ENTER SST | %EQ=0 %NOTE=REMAINDER
 Q03 | 057: X^3+2 by X-1: X+X^2+1 remainder 3 | STU RAD EQ:X^3+2 CASQUOT:X RCL:X - 1 ENTER SST | %EQ=3 %NOTE=REMAINDER
-Q04 | 057: g typed with an implied product: 2X+1 is 2×X+1, so X^2 by it is 0.5×X-0.25 | STU RAD EQ:X^2 CASQUOT:X 2 RCL:X + 1 ENTER | %EQ=0.5×X-0.25 %NOTE=QUOTIENT
+Q04 | 057: g typed with an implied product: 2X+1 is 2×X+1, so X^2 by it is X÷2-1÷4 (by hand; 0.5×X-0.25 before casim 2ba7217's fractions, CAS 019) | STU RAD EQ:X^2 CASQUOT:X 2 RCL:X + 1 ENTER | %EQ=X÷2-1÷4 %NOTE=QUOTIENT
 Q05 | 057: g = 0 is UNDEFINED, nothing inserted | STU RAD EQ:X^2 CASQUOT:X 0 ENTER | ERR %ERRMSG=UNDEFINED %EQN=1
 Q06 | 057: not a polynomial: NOT A POLYNOMIAL | STU RAD EQ:SIN(X) CASQUOT:X RCL:X ENTER | ERR %ERRMSG=NOT_A_POLYNOMIAL %EQN=1
 Q07 | 057: an equation is EXPRESSION ONLY, before the call | STU RAD EQ:Y=X^2 CASQUOT:X RCL:X ENTER | ERR %ERRMSG=EXPRESSION_ONLY %EQN=1
