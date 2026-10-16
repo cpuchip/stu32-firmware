@@ -1,4 +1,5 @@
-# Unit 070's Σ on the stand-in (CASIM_PIN casimir 4f24e3e): VER names 0.70 and the pin; six sums typed from the keys
+# Unit 070's Σ on the stand-in (written at casimir 4f24e3e): VER names a version and the pins (read, not pinned, so
+# the script runs on every later image: abacus #8734; the sums' texts are 4f24e3e's); six sums typed from the keys
 # (tests/stackkeys.c cas S) give what the host gives through the same keys and casim's CLI at 8,800 B; the first's
 # condition shows next, labeled WHERE. Then the calc task's stack low-water mark after them is no lower than the deep
 # paths' worst (8,188 B free at 385ca62, 9c8cbc4 and d3d0e3d). Ends with a control that must FAIL (VER 0.69).
@@ -20,9 +21,9 @@ send K1
 sleep 1
 send X
 # X prints boot:, pins: and view: in that order, and a match moves talk.py past its line, so one expect per line
-expect ver=0.70 core= 5
-expect pins: casim=4f24e3e32727b45c207d99911e6f36d3c1bbbc99 5
-expect | CASIM 4f24e3e GAMES 60e775c 5
+expect ver=0. 5
+expect pins: casim= 5
+expect | CASIM 5
 send K42
 sleep 1
 # Σ X^K from 0 to ∞ (070's S14): the answer shown; its condition next, labeled WHERE
