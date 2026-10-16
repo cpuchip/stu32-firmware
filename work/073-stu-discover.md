@@ -1,8 +1,7 @@
 # Work unit 073: stu-discover, a key does what its legend says or the screen says what it does
 
 **From:** Michael's stu-discover ruling ("adopt the rule and all these fixes", 2026-10-15 19:45Z), through abacus #8714,
-from the hidden-key audit (abacus #8495; its case ids in brackets) · **Status:** built on the host; Decision 68 to
-follow.
+from the hidden-key audit (abacus #8495; its case ids in brackets) · **Status:** built and measured.
 
 The rule for every item: a key does what its legend says, or the screen says what it does now.
 
@@ -113,3 +112,24 @@ version change: 056 D58 checks that its code is refused in an image, and D56 mov
 - (I) and (J) printed on the 3 and 0 keys [H28]: a legend change, routed to draftsman.
 - HELP (blue 9, then any key): its own unit.
 - H02, H14, H51 stay as they are.
+
+## Decision 68 and the stand-in
+
+**Static, `scripts/resources.py static 84b7c79 c19b292`:**
+
+| | stand-in | Rev A |
+|---|---|---|
+| flash | +1,088 (libmain +982) | +1,152 (libmain +1,054) |
+| DIRAM | +40 | +40 |
+| IRAM, calc_task's frame | +0 | +0 |
+| internal-RAM symbols | app 680 → 688 (`undone`), graph_tx 236 → 268 (the legend's 32 B) | the same |
+
+- Internal heap should be 40 B lower: inferred from the static, not measured on a board.
+- No board pass: no bench path runs through Equation mode's keys, the app's notices or the band.
+
+**The stand-in at c19b292:**
+- casrows.txt ALL MET (its CANCL row types its leading ( as GOLD then F6). Its first run lost the port at the flash
+  (ACM2 moved to ACM3, I/O errors before any key); the rerun on the new port, with no flash, passed.
+- accept.txt ALL MET (16/16).
+- sum070.txt: its six sums, the WHERE row and the stack (23,604 B free) pass. Its VER lines pin 070's image (0.70,
+  games 60e775c), so they fail on 0.74; that's the script's age, not this unit.
