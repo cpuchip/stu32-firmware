@@ -26,6 +26,9 @@ These stay in 35s and STU.
 | A11 | REGX…REGT and ARG in equations (SYNTAX, as `i` already is) | p.6-15 |
 | A14 | The TABLE and GRAPH menus. In 33s mode they don't open at all, rather than GO refusing. | — |
 
+- **A14 superseded by unit 073 (Michael's stu-discover ruling, abacus #8714):** blue TABLE and blue GRAPH in 33s mode
+  still don't open, but they no longer do so silently. They say STU ONLY: MODE, STU, as every STU-only refusal now
+  does (the CAS key in 33s and 35s modes too).
 - **What "hidden" means:**
   - the key or menu item does nothing in 33s mode (or the menu doesn't show the item);
   - an equation typed in 33s mode refuses the feature (SYNTAX);
@@ -66,6 +69,10 @@ Also in 35s and STU wherever the 35s has them.
     gap is older than B10's correction.
   - **Not built either:** the 35s's HYP_ prompt and its HYP annunciator (p.1-13). Ours shows the HYP menu while the
     prefix waits. abacus #8543 calls it a small 35s-fidelity unit, for later.
+- **B10 again, unit 073 (Michael's stu-discover ruling, abacus #8714):** HYP is the prefix in all three modes, STU
+  too, with the menu's soft keys kept. While it waits, HYP_ is the prompt and HYP the band's annunciator (35s p.1-13).
+  The gate no longer asks a mode, so ab_recstu is gone. The first gap above still stands for ab_rec35. The HYP_ prompt
+  and annunciator are built (the third point).
 
 **Checksums** (B6, p.6-18 and 12-21) are not in this unit: they need a byte format, a design of their own.
 

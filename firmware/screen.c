@@ -413,12 +413,16 @@ static void status_band(ls027_frame *f, const ab_calc *c, const screen_ui *ui, i
            033 drew it) */
         screen_graph_texts(c, ui, &graph_tx);
         screen_text(f, SCREEN_READOUT_X, SCREEN_READOUT_Y, 1, graph_tx.readout, true);
+        if (graph_tx.pad[0])                    /* unit 073: the digit pad's legend, right-aligned before STU */
+            screen_text(f, SCREEN_PAD_RIGHT - 6 * screen_cells(graph_tx.pad), SCREEN_READOUT_Y, 1, graph_tx.pad, true);
         ind = 0;
         goto right;
     }
     if (c->angle == AB_ANGLE_RAD) screen_text(f, 72, 2, 2, "RAD", true);
     else if (c->angle == AB_ANGLE_GRAD) screen_text(f, 72, 2, 2, "GRAD", true);
     if (c->base != 10) screen_text(f, 124, 2, 2, c->base == 16 ? "HEX" : c->base == 8 ? "OCT" : "BIN", true);
+    else if (ui->hyp) screen_text(f, 124, 2, 2, "HYP", true);   /* unit 073: the prefix armed (35s UG p.1-13), in the
+                                                   base's place, free in decimal; its prompt HYP_ shows it in any base */
     if (c->tbl_on) screen_text(f, 164, 2, 2, "TABLE", true);  /* a table open (unit 032), over PRGM/EQN */
     else if (c->gr_on) screen_text(f, 164, 2, 2, "GRAPH", true);  /* a graph open (unit 033) */
     else if (c->prgm) screen_text(f, 164, 2, 2, "PRGM", true);
@@ -526,6 +530,21 @@ void screen_graph_texts(const ab_calc *c, const screen_ui *ui, screen_graph_text
     }
     for (char *q = t->readout; *q; q++)
         if (*q == '\n') *q = ' ';
+    snprintf(t->pad, sizeof t->pad, "%s", screen_pad_legend(screen_cells(t->readout)));   /* unit 073 */
+}
+
+/* Unit 073 (stu-discover, abacus #8714): the digit pad's legend while a graph is open, in the band after a readout of
+   n cells, never over the plot: the longest form that leaves a cell between them. The shortest fits after the
+   longest readout (33 cells, TANL's). */
+const char *screen_pad_legend(int n)
+{
+    static const char *const PAD[3] = {"8\xe2\x96\xb2" "2\xe2\x96\xbc" "4\xe2\x97\x80" "6\xe2\x96\xb6 5HOME G\xc3\x97" "10",
+                                       "8\xe2\x96\xb2" "2\xe2\x96\xbc" "4\xe2\x97\x80" "6\xe2\x96\xb6" "5",
+                                       "8\xe2\x96\xb2" "2\xe2\x96\xbc" "4\xe2\x97\x80" "6\xe2\x96\xb6"};
+    int end = SCREEN_READOUT_X + 6 * n + 6;     /* (6 px a cell, small; a cell's gap) */
+    for (int k = 0; k < 3; k++)
+        if (end <= SCREEN_PAD_RIGHT - 6 * screen_cells(PAD[k])) return PAD[k];
+    return "";
 }
 
 int screen_graph_readout(const ab_calc *c, const screen_ui *ui, char *out, int size)
@@ -874,6 +893,7 @@ void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
     st->shift = ui->shift == 1 || ui->shift == 2 ? ui->shift : 0;
     st->angle = c->angle == AB_ANGLE_RAD ? "RAD" : c->angle == AB_ANGLE_GRAD ? "GRAD" : NULL;
     st->base = c->base == 16 ? "HEX" : c->base == 8 ? "OCT" : c->base == 2 ? "BIN" : NULL;
+    st->hyp = ui->hyp;                          /* unit 073 */
     st->prgm = c->prgm;
     st->entry = c->stu && !c->prgm ? (c->alg ? "ALG" : "RPN") : NULL;
     st->eqn = c->eqn_mode;
@@ -884,13 +904,14 @@ void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
     st->model = c->stu ? "STU" : c->m35 ? "35" : "33";
     st->battery = ui->battery;
     st->charging = ui->charging;
-    const char *parts[9];
+    const char *parts[10];
     int np = 0;
     st->clock = ui->clock[0] ? ui->clock : NULL;
     if (st->shift) parts[np++] = st->shift == 1 ? "GOLD" : "BLUE";
     else if (st->clock) parts[np++] = st->clock;
     if (st->angle) parts[np++] = st->angle;
     if (st->base) parts[np++] = st->base;
+    else if (st->hyp) parts[np++] = "HYP";     /* unit 073 */
     if (c->tbl_on) parts[np++] = "TABLE";      /* unit 032 */
     else if (c->gr_on) parts[np++] = "GRAPH";  /* unit 033 */
     else if (st->prgm) parts[np++] = "PRGM";

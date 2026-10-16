@@ -493,6 +493,9 @@ const char *ab_busy_message(ab_op op);
    programs, Equation mode, SOLVE and integration, statistics entry, STO arithmetic, x<>); false
    outside ALG. The device shows the notice before prompting for such an op's argument. */
 bool ab_rpn_only(const ab_calc *c, ab_op op);
+/* Unit 073: a prompted key Equation mode refuses whatever its argument (STO, LBL, VIEW, ...), so the app refuses it
+   before the prompt, NOT IN EQN, as ALG's RPN ONLY (fresh eyes: it asked for the letter, then refused) */
+bool ab_not_in_eqn(const ab_calc *c, ab_op op);
 
 /* Unit 030: what SHOW shows, as one or two parts, each a sign (- only) and all ABN_DIGITS significant
    digits, trailing zeros kept, no point, no exponent (33s p.1-21, 35s p.1-26): X's, a complex X's real
@@ -555,8 +558,6 @@ bool ab_hidden(const ab_calc *c, int op);
    while a line runs, and otherwise (the keyboard, lines before the first label), ab_mode35. ab_hidden, ab_consts and
    the line-address gate ask here. */
 bool ab_rec35(const ab_calc *c);
-/* As ab_rec35, whether that mode is STU (HYP's prefix is the 33s's and the 35s's, not STU's: abacus #8497). */
-bool ab_recstu(const ab_calc *c);
 #define AB_ENG_LIMIT 6400   /* unit 041 C (B4): the furthest exponent or last place an ENG view keeps (beyond decimal128's) */
 /* Unit 043: Equation mode shows a built-in solver (2*2 or 3*3 lin. solve), so SOLVE takes no letter (35s p.7-6). */
 bool ab_builtin_shown(const ab_calc *c);

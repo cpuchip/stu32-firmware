@@ -70,6 +70,7 @@ typedef struct {
     int show_n;                     /* SHOW held (unit 030): its parts (ab_show_text), 0 none */
     char show[2][AB_SHOW_LEN];
     bool blank;                     /* the soft off (068): nothing drawn */
+    bool hyp;                       /* unit 073: HYP's prefix armed: the band's HYP annunciator (35s UG p.1-13) */
 } screen_ui;
 
 void screen_ui_default(screen_ui *ui);
@@ -105,6 +106,7 @@ typedef struct {
     int shift;                      /* 0, 1 GOLD, 2 BLUE */
     const char *angle;              /* "RAD", "GRAD", NULL in degrees */
     const char *base;               /* "HEX", "OCT", "BIN", NULL in decimal */
+    bool hyp;                       /* unit 073: HYP's prefix armed */
     bool prgm, eqn;
     int frac;                       /* the fraction indicator: 1 up, -1 down, 0 none */
     char flags[6];                  /* the flags 0-4 that are set, as digits */
@@ -123,7 +125,11 @@ typedef struct {
     char readout[128];
     char xmin[24], xmax[24], ymin[24], ymax[24];
     char note[12];
+    char pad[32];           /* unit 073: the digit pad's legend at the band's right (8 2 4 6 move, 5 home, GOLD ten
+                               pixels), its long form where the readout leaves room, else the short; "" none */
 } screen_graph_text;
+#define SCREEN_PAD_RIGHT 328        /* unit 073: the pad legend ends here, clear of STU (330) */
+const char *screen_pad_legend(int readout_cells);   /* unit 073: the legend after a readout of so many cells */
 
 #define SCREEN_READOUT_X 74         /* unit 040: the readout's place, the status band (small font) */
 #define SCREEN_READOUT_Y 6

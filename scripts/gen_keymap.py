@@ -151,9 +151,10 @@ MENUS = [
     # from the core's state: the list's (NEW, ours: EQN LIST TOP) and typing's; REG > is one choice
     # of a register (UG p.B-7), then typing's bar again. On no key, like LOGIC and SUFFIX.
     ("EQN LIST", [o("\u25b2", "AB_BST"), o("\u25bc", "AB_SST"), o("EDIT", "AB_KRIGHT"), o("NEW", "AB_EQTOP"),
-                  ("CAS", "KM_MENU", "0", "CAS", 0), o("( )", "AB_KPAREN")]),    # CAS: STU's only (CAS 004)
-    # unit 046 (abacus #4996): the sixth key types "( )" in EXIT's place (C and gold 0 store and leave: eqn_key's one
-    # case), so an equation can begin with a parenthesis, as on the 35s's face key (p.1-2, p.6-6); see EQN LIST GOLD
+                  ("CAS", "KM_MENU", "0", "CAS", 0), o("EXIT", "AB_EQN")]),    # CAS: STU's only (CAS 004)
+    # unit 073 (stu-discover, abacus #8714): the sixth key is unit 020's EXIT again (EQN: off, the list kept), so the
+    # bar says how to leave; unit 046's "( )" (an equation begun with a parenthesis, as on the 35s's face key, p.1-2,
+    # p.6-6) moves to EQN LIST GOLD's sixth key, GOLD then F6
     # unit 032 (abacus #4350, #4353 answers): TABLE on blue 8: the variable prompted, START and STEP from X,
     # GO; while a table is open the app's bar scrolls it
     ("TABLE", [p("VAR", "AB_TVAR", "KM_ARG_VAR"), o("START", "AB_TSTART"), o("STEP", "AB_TSTEP"), o("GO", "AB_TABLE"),
@@ -241,7 +242,7 @@ MENUS = [
     # unit 046 (abacus #4996): EQN LIST's GOLD bank (eqn_bar takes it with GOLD), the REG names as a first character;
     # in 33s mode dimmed and doing nothing (041 A11)
     ("EQN LIST GOLD", [o("REGX", "AB_KREG", 0), o("REGY", "AB_KREG", 1), o("REGZ", "AB_KREG", 2), o("REGT", "AB_KREG", 3),
-                       NONE, NONE]),
+                       NONE, o("( )", "AB_KPAREN")]),                       # 073: ( ) here, from the bar's F6
     # unit 057 (abacus #5670): CAS 010 on the third page, last in this list so no menu's index moves; QUOT and GCD
     # prompt for the variable, then take g in the editor; CANCL acts on the num÷den shown; the sixth key back to CAS
     ("CAS3", [p("QUOT", "AB_CASQUOT", "KM_ARG_VAR"), p("GCD", "AB_CASGCD", "KM_ARG_VAR"),

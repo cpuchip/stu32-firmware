@@ -50,5 +50,6 @@ D53 | 056: the same for BOUND NOT REAL | STU RAD EQ:X^2 CASDEF:X 0 ENTER SQRT 1 
 # unit's), so the status is set in D51's image: byte 50 is the modes section's message status (D57 shows it is).
 D54 | CAS 015: an image saved while CAN'T DECIDE shows loads, the message still showing | STU EQ:1÷0 CASSIMP SAVE SETBYTE:50:41 FIXCRC LOAD | ERR %ERR=CAS_UNDEFINED %ERRMSG=CAN'T_DECIDE %EQN=1
 D55 | CAS 015: the same image as version 17 is refused (CAN'T DECIDE shows from 18) | STU EQ:1÷0 CASSIMP SAVE SETBYTE:50:41 IMGVER:17 LOAD | ERR %ERR=BAD_IMAGE %ERRMSG=UNDEFINED
-D56 | CAS 015: one past the last status (45, since unit 070's 42-44) is refused | STU EQ:1÷0 CASSIMP SAVE SETBYTE:50:45 FIXCRC LOAD | ERR %ERR=BAD_IMAGE
+D56 | CAS 015: one past the last status (46, since unit 070's 42-44 and 073's 45) is refused | STU EQ:1÷0 CASSIMP SAVE SETBYTE:50:46 FIXCRC LOAD | ERR %ERR=BAD_IMAGE
+D58 | 073: 45 (NOT IN EQN) is a brief notice, never the message an image holds: refused | STU EQ:1÷0 CASSIMP SAVE SETBYTE:50:45 FIXCRC LOAD | ERR %ERR=BAD_IMAGE
 D57 | CAS 015: byte 50 is the status: 37 there loads IMPROPER INTEGRAL | STU EQ:1÷0 CASSIMP SAVE SETBYTE:50:37 FIXCRC LOAD | ERR %ERRMSG=IMPROPER_INTEGRAL

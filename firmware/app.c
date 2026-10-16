@@ -126,17 +126,26 @@ static void undo_mark(app_state *a)
         return;
     }
     undo_swap(a, n);
+    a->undone = false;                          /* unit 073: the next UNDO undoes this change */
 }
 
-/* UNDO: the state and the undo image change places, so a second UNDO puts it back. */
+/* UNDO: the state and the undo image change places, so a second UNDO puts it back. Unit 073 (stu-discover, abacus
+   #8714): the screen says which, UNDO or REDO, as a brief notice. */
 static void undo(app_state *a)
 {
-    if (!a->undo_len) return;
+    if (!a->undo_len) {                         /* unit 073: the screen says so (none yet, or the state too large) */
+        a->notice = "NOTHING TO UNDO";
+        a->notice_ms = a->last_key_ms;
+        return;
+    }
     size_t n = ab_state_save(a->c, a->undo[1], a->undo_cap);
     uint16_t beeps = a->c->beeps;               /* a count for the device, not state (unit 027) */
     if (n == 0 || n > a->undo_cap || ab_state_load(a->c, a->undo[0], a->undo_len) != ABN_OK) return;
     a->c->beeps = beeps;
     undo_swap(a, n);
+    a->notice = a->undone ? "REDO" : "UNDO";
+    a->notice_ms = a->last_key_ms;
+    a->undone = !a->undone;
     a->dirty = true;
     a->gr_live = a->graphing = false;           /* a graph UNDO brings back is plotted afresh (review F1) */
     if (a->c->gr_on && a->graph) graph_start(a);
@@ -192,6 +201,8 @@ static void do_op(app_state *a, int op, int arg)
         a->run_t0 = a->last_key_ms;
         a->run_stopped = false;
     }
+    size_t undo_was = a->undo_len;              /* unit 073: a refused key leaves UNDO as it was (below) */
+    bool undone_was = a->undone;
     if (op != AB_VIEW && op != AB_ENGL && op != AB_ENGR) undo_mark(a);    /* ENG's view: no UNDO mark (041 C) */
     /* 040b: a call that may take long (a SOLVE, an integral, a run's first slice, a graph tool) is marked, so that
        the device's key task delivers C into it (app_interrupt); nothing left over before or after */
@@ -220,10 +231,17 @@ static void do_op(app_state *a, int op, int arg)
     }
     if (op == AB_GZOOM && st == ABN_OK && c->gr_on) graph_start(a);    /* unit 040: a zoom redraws */
     if (!c->gr_on) a->graphing = a->gr_live = false;
-    if (st == ABN_RPN_ONLY || st == ABN_STU_ONLY || st == ABN_NO_EQN || st == ABN_NO_VAR) {
-        /* brief notices, not messages: STU's line (unit 029), TABLE's refusals (unit 032) */
+    if (st == ABN_RPN_ONLY || st == ABN_STU_ONLY || st == ABN_NO_EQN || st == ABN_NO_VAR || st == ABN_NOT_IN_EQN) {
+        /* brief notices, not messages: STU's line (unit 029), TABLE's refusals (unit 032), Equation mode's (073) */
         a->notice = ab_status_message(st);
         a->notice_ms = a->last_key_ms;
+        /* unit 073: a refusal changed nothing, so its UNDO mark is taken back (the images swap back; a mark that
+           didn't fit swapped nothing): UNDO then still undoes, or redoes, what it did before (fresh eyes) */
+        if (op != AB_VIEW && op != AB_ENGL && op != AB_ENGR) {
+            if (a->undo_len) undo_swap(a, undo_was);
+            else a->undo_len = undo_was;
+            a->undone = undone_was;
+        }
     }
     if (st == ABN_CLAMPED || c->ovf > 0) a->ovf_pending = true;
     if (op == AB_MODEL && st == ABN_OK && on_lbl && (was != 33) != (arg != 33) &&
@@ -419,6 +437,13 @@ static bool menu_hidden(const ab_calc *c, const km_menu *mn)
         n++;
     }
     return n > 0;
+}
+
+/* Unit 073 (stu-discover, abacus #8714): an STU feature's menu, refused outside STU with where to go (CAS; TABLE and
+   GRAPH, which A14 had silent) */
+static bool stu_menu(const km_menu *mn)
+{
+    return mn && (!strcmp(mn->name, "CAS") || !strcmp(mn->name, "TABLE") || !strcmp(mn->name, "GRAPH"));
 }
 
 /* Whether an item is a 35s feature in 33s mode (unit 041 A): an op or a prompt for one, or such a menu. */
@@ -846,11 +871,11 @@ void app_key(app_state *a, int key, uint32_t now_ms)
                 return;
             }
         }
-        if (at == menu_named("HYP") && !ab_recstu(a->c)) {
-            /* 33s and 35s modes: HYP is also the prefix (unit 041 C, B10; 33s p.4-6; the 35s's too, 35s p.4-6:
-               abacus #8497): a trig key, or its gold inverse, is the hyperbolic function, on the stack, in program
-               entry or typed; the soft keys stay the menu's; any other key closes it, as a menu. STU keeps the menu
-               only (its keyboard is Michael's to rule). */
+        if (at == menu_named("HYP")) {
+            /* HYP is also the prefix (unit 041 C, B10; 33s p.4-6; the 35s's too, 35s p.4-6: abacus #8497; STU's
+               since unit 073, Michael's stu-discover ruling): a trig key, or its gold inverse, is the hyperbolic
+               function, on the stack, in program entry or typed; the soft keys stay the menu's; any other key closes
+               it, as a menu. While armed, HYP_ is the prompt and HYP the annunciator (35s p.1-13). */
             const km_action *op = km_lookup(key, a->shift);
             if (op->kind == KM_NONE) op = face;
             int h = hyp_of(op);
@@ -965,7 +990,13 @@ static void setting(app_state *a, const km_action *act)
 
 static void do_action(app_state *a, const km_action *act)
 {
-    if (item_hidden(a->c, act)) return;         /* 33s mode: a 35s feature does nothing (unit 041 A) */
+    if (item_hidden(a->c, act)) {               /* 33s mode: a 35s feature does nothing (unit 041 A) */
+        if (act->kind == KM_MENU && stu_menu(km_menu_at(act->arg))) {
+            a->notice = ab_status_message(ABN_STU_ONLY);    /* unit 073: STU's, so the screen says where to go */
+            a->notice_ms = a->last_key_ms;
+        }
+        return;
+    }
     switch (act->kind) {
     case KM_OP:
         if (act->op == AB_ENTRYM && act->arg == 1 && !a->c->stu) break;    /* ALG: shown in STU only */
@@ -984,8 +1015,9 @@ static void do_action(app_state *a, const km_action *act)
         do_op(a, act->op, act->arg);
         break;
     case KM_PROMPT:
-        if (ab_rpn_only(a->c, (ab_op)act->op)) {   /* refused before its argument (unit 029) */
-            a->notice = ab_status_message(ABN_RPN_ONLY);
+        if (ab_rpn_only(a->c, (ab_op)act->op) || ab_not_in_eqn(a->c, (ab_op)act->op)) {
+            /* refused before its argument: ALG's (unit 029), Equation mode's (unit 073) */
+            a->notice = ab_status_message(a->c->alg ? ABN_RPN_ONLY : ABN_NOT_IN_EQN);
             a->notice_ms = a->last_key_ms;
             break;
         }
@@ -1352,6 +1384,10 @@ void app_ui(const app_state *a, screen_ui *ui)
     ui->prompt = a->prompt_op >= 0 ? a->prompt_text : NULL;
     if (!ui->prompt && cx_prefix(a, a->menu))
         ui->prompt = "CMPLX_";               /* 33s mode's prefix (unit 039; 33s p.G-6) */
+    ui->hyp = a->menu >= 0 && a->menu == menu_named("HYP");    /* unit 073: the prefix armed, its annunciator */
+    if (!ui->prompt && ui->hyp && !a->c->eqn_typing && !a->c->alg)
+        ui->prompt = "HYP_";                    /* and its prompt (35s UG index, 4-6), every mode; never over a line
+                                                   being typed, where the annunciator says it (fresh eyes) */
     if (!ui->prompt && a->menu >= 0 && a->menu == menu_named("MEM"))
         ui->prompt = a->mem_text;            /* unit 041 C (B5): the bytes free */
     if (a->cat) {                            /* unit 041 C (B5): MEM's catalog on Y's and X's lines */

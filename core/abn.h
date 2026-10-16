@@ -80,11 +80,13 @@ typedef enum {
     ABN_CAS_NO_CLOSED,      /* unit 070: CAS 018's sum has no closed form casim finds: NO CLOSED FORM (Michael, #8294) */
     ABN_CAS_BAD_BOUND,      /* unit 070: a sum's bound casim refuses (BAD_ARG: a constant not whole, -∞ as the upper,
                                the variable in a bound): BAD BOUND (provisional, abacus #8545) */
-    ABN_CAS_WHERE           /* unit 070: an op on a sum's condition row (WHERE), which is no equation: A CONDITION
+    ABN_CAS_WHERE,          /* unit 070: an op on a sum's condition row (WHERE), which is no equation: A CONDITION
                                (provisional, abacus #8545: the screen says what it is) */
+    ABN_NOT_IN_EQN          /* unit 073: a key Equation mode refuses (R↓, x↔y, STO, LASTx, Σ+, ...), which did nothing
+                               silently: NOT IN EQN, a brief notice as RPN ONLY (stu-discover, abacus #8714) */
 } abn_status;
 
-#define ABN_STATUS_LAST ABN_CAS_WHERE       /* the last status: loops over every status end here (056: screen_test's
+#define ABN_STATUS_LAST ABN_NOT_IN_EQN      /* the last status: loops over every status end here (056: screen_test's
                                                ended at ABN_BAD_IMAGE and missed every one after it) */
 
 abn abn_zero(void);

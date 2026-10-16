@@ -1,0 +1,31 @@
+# Unit 073 (Michael's stu-discover ruling, abacus #8714): a key does what its legend says, or the screen says what it
+# does now. Equation mode, the list shown: a setting acts (35s UG p.6-8, a setting menu ends the equation's edit), the
+# typed text stored first; every other key that did nothing says NOT IN EQN, a brief notice (as RPN ONLY), and changes
+# nothing. EQ:t lists t and shows it (Equation mode).
+#
+# Settings act
+E01 | 073: RAD with the list shown sets RAD (it went nowhere before) | EQ:X^2 RAD EQN PI 2 / SIN | X=1 %EQN=1
+E02 | 073: the control: RAD outside Equation mode | RAD PI 2 / SIN | X=1
+E03 | 073: FIX 2 with the list shown | EQ:X^2 FIX2 | %DISP=FIX2 %EQN=1
+E04 | 073: while an equation is typed, a setting stores it first, then acts (the list still shown: EQN leaves it; RAD's SIN) | EQN 2 + 3 RAD EQN PI 2 / SIN | X=1 %EQN=1 %EQ=2+3
+E05 | 073: the model from MODE | EQ:X^2 STU EQN | %STU=1
+#
+# The rest says NOT IN EQN, and the list and stack are as they were
+E06 | 073: R↓, the stack and the list as they were | 5 ENTER 6 EQ:X^2 RDN EQN | ERR %ERR=NOT_IN_EQN %EQN=1 %EQ=X^2 X=6 Y=5
+E07 | 073: x↔y | 5 EQ:X^2 XY | ERR %ERR=NOT_IN_EQN
+E08 | 073: STO A, and A unchanged | 5 EQ:X^2 STO:A EQN RCL:A | ERR %ERR=NOT_IN_EQN X=0
+E09 | 073: LASTx | EQ:X^2 LASTX | ERR %ERR=NOT_IN_EQN
+E10 | 073: Σ+ | EQ:X^2 SIGMA+ | ERR %ERR=NOT_IN_EQN
+E11 | 073: XEQ of a label | EQ:X^2 XEQ:A | ERR %ERR=NOT_IN_EQN
+E12 | 073: while typing too: R↓ refused, the text kept | EQN 2 + RDN | ERR %ERR=NOT_IN_EQN %LINE=2+
+E13 | 073: a key that types still starts an equation | EQ:X^2 7 | %LINE=7
+E14 | 073: XEQ still evaluates the equation shown (X? prompts, R/S takes 3) | 3 STO:X EQ:X^2 XEQ RS | X=9
+E15 | 073: a brief notice, not a message: saved and loaded, the list as it was | 5 EQ:X^2 RDN SAVE LOAD | ERR %EQN=1 %EQ=X^2
+#
+# Fresh eyes' cases
+E16 | 073: ALG with the list shown is refused (ALG with Equation mode on is no state the image holds); the image loads | STU EQ:X^2 ALG SAVE LOAD | ERR %ERR=NOT_IN_EQN %ALG=0 %EQN=1
+E17 | 073: the complex format is a display setting: it acts | EQ:X^2 RTA | %EQN=1
+E18 | 073: a setting in ∫AB's bound drops the step, never runs it: no answer listed, then RAD | STU DEG EQ:SIN(X) CASDEF:X 0 ENTER 180 RAD EQN PI 2 / SIN | X=1 %EQN=1
+E19 | 073: 33s from MODE on a 35s built-in: the list's top, no built-in left shown (041 A4) | MODE35 EQN BST MODE33 | %EQ=TOP
+E20 | 073: the control: 35s mode keeps it | MODE35 EQN BST RAD | %EQ=3*3_lin._solve
+E21 | 073: CLVARS acts with the list shown | 5 STO:A EQ:X^2 CLVARS EQN RCL:A | X=0

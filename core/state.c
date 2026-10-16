@@ -52,6 +52,7 @@ static const uint8_t STATUS_SINCE[] = {
     16, 16, 16, 16,             /* unit 056: ABN_CAS_IMPROPER .. ABN_CAS_BOUND_REAL */
     18,                         /* CAS 015: ABN_CAS_UNDECIDED */
     19, 19, 19,                 /* unit 070: ABN_CAS_NO_CLOSED .. ABN_CAS_WHERE */
+    0,                          /* unit 073: ABN_NOT_IN_EQN, a brief notice */
 };
 _Static_assert(sizeof STATUS_SINCE == ABN_STATUS_LAST + 1, "an image version for every status (STATUS_SINCE)");
 

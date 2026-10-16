@@ -39,7 +39,7 @@ const char *ab_status_message(abn_status st)
                                                                    parts underflow stays the range error
                                                                    it was (unit 026) */
     case ABN_RPN_ONLY: return "RPN ONLY";                       /* ours: a stack key in ALG (unit 029) */
-    case ABN_STU_ONLY: return "STU ONLY";                       /* ours: TABLE outside STU (unit 032) */
+    case ABN_STU_ONLY: return "STU ONLY: MODE, STU";    /* ours: TABLE outside STU (unit 032); where to go (073) */
     case ABN_NO_EQN: return "NO EQUATION";                      /* ours: TABLE with none shown (unit 032) */
     case ABN_NO_VAR: return "NO VARIABLE";                      /* ours: TABLE of a constant (unit 032) */
     case ABN_CAS_TOO_LONG: return "RESULT TOO LONG";            /* CAS 004 rule 5: the texts approved in #4797 */
@@ -59,6 +59,7 @@ const char *ab_status_message(abn_status st)
     case ABN_CAS_NO_CLOSED: return "NO CLOSED FORM";            /* unit 070: Michael's word (#8294) */
     case ABN_CAS_BAD_BOUND: return "BAD BOUND";                 /* unit 070: provisional (abacus #8545) */
     case ABN_CAS_WHERE: return "A CONDITION";                   /* unit 070: provisional (abacus #8545) */
+    case ABN_NOT_IN_EQN: return "NOT IN EQN";                   /* unit 073: Equation mode's refusal, as RPN ONLY */
     }
     return "";
 }

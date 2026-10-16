@@ -4050,9 +4050,36 @@ static abn_status cas_def_bound(ab_calc *c, bool run)
 #endif
 }
 
+/* Unit 073: a setting acts in Equation mode, as on the 35s ("selecting a setting menu ... will end the equation edit
+   status", 35s UG p.6-8): the angle, the display (with the complex format, xiy and rθa), the base, the fraction
+   display, the model, the beeper, the flags; and the clearings that don't touch the list (variables, statistics), as
+   ALG lets them act. It went silently nowhere before (stu-discover, abacus #8714). Not the entry (RPN or ALG): ALG
+   with Equation mode on is no state the image holds (state.c), so it says NOT IN EQN (fresh eyes). */
+static bool eqn_setting(ab_op op)
+{
+    switch (op) {
+    case AB_DEG: case AB_RAD: case AB_GRAD: case AB_SETFIX: case AB_SETSCI: case AB_SETENG: case AB_SETALL:
+    case AB_DEC: case AB_HEX: case AB_OCT: case AB_BIN: case AB_FDISP: case AB_FRACFMT: case AB_MODEL:
+    case AB_XIY: case AB_RTA: case AB_BEEP: case AB_SF: case AB_CF: case AB_CLVARS: case AB_CLSIGMA:
+        return true;
+    default:
+        return false;
+    }
+}
+
 static abn_status eqn_key(ab_calc *c, ab_op op, int arg)
 {
     abn_status st;
+    if (eqn_setting(op)) {                          /* unit 073: the typed text stored first (the edit ends) */
+        if (c->cas_sub) cas_subst_done(c, false);   /* a CAS step's text: the step dropped, never run (fresh eyes) */
+        else if (c->cas_def) cas_def_bound(c, false);
+        else if (c->cas_pop) cas_poly_done(c, false);
+        else if (c->eqn_typing && (st = eqn_store_typed(c)) != ABN_OK) return st;
+        st = do_key(c, op, arg);
+        if (op == AB_MODEL && !ab_mode35(c) && eqn_builtin(c, c->eqn_cur))
+            c->eqn_cur = -1;                        /* 33s mode has no built-ins (041 A4): the list's top, as EQN does */
+        return st;
+    }
     switch (op) {
     case AB_EQN:
     case AB_CANCEL:                                 /* C stores what is typed and leaves (p.6-4) */
@@ -4075,7 +4102,7 @@ static abn_status eqn_key(ab_calc *c, ab_op op, int arg)
         if (c->eqn_typing && c->cas_def && c->cas_def_sum && c->cas_def_step == 2) ed_insert(c, "\xe2\x88\x9e", 0);
         return ABN_OK;
     case AB_XEQ:
-        if (arg != AB_TGT_EQN) return ABN_OK;
+        if (arg != AB_TGT_EQN) return ABN_NOT_IN_EQN;  /* XEQ of a label: refused, as it says (unit 073) */
         if (c->eqn_typing && (st = eqn_store_typed(c)) != ABN_OK) return st;
         return eqn_evaluate(c, false);
     case AB_SOLVE:
@@ -4113,8 +4140,9 @@ static abn_status eqn_key(ab_calc *c, ab_op op, int arg)
     default:
         break;
     }
-    /* a key that types: the first one starts a new equation (p.6-4); other keys do nothing in
-       Equation mode (ours) */
+    /* a key that types: the first one starts a new equation (p.6-4); any other is refused, NOT IN EQN, where it did
+       nothing silently (unit 073: the screen says what a key does) */
+    if (!eqn_typable(op, arg)) return ABN_NOT_IN_EQN;
     eqn_type(c, op, arg);
     return ABN_OK;
 }
@@ -4215,6 +4243,20 @@ static abn_status alg_x_shown(ab_calc *c, ab_val *v)
 /* A key on the expression line. The stack keys, programs and Equation mode are RPN ONLY (rule 7,
  * proposal 5); STO stores ANS, or the line's value when one is typed (rule 8); mode and display
  * settings act as ever. */
+bool ab_not_in_eqn(const ab_calc *c, ab_op op)
+{
+    if (!c->eqn_mode || c->eqn_pending || c->prgm || c->alg) return false;
+    switch (op) {
+    case AB_STO: case AB_STOADD: case AB_STOSUB: case AB_STOMUL: case AB_STODIV:
+    case AB_RCLADD: case AB_RCLSUB: case AB_RCLMUL: case AB_RCLDIV:     /* (plain RCL types its letter) */
+    case AB_LBL: case AB_INPUT: case AB_ISG: case AB_DSE: case AB_GTO: case AB_FN: case AB_FS: case AB_CLVARX:
+    case AB_XVAR: case AB_VIEW:
+        return true;
+    default:
+        return false;
+    }
+}
+
 bool ab_rpn_only(const ab_calc *c, ab_op op)
 {
     if (!c->alg || c->prgm) return false;
@@ -4518,7 +4560,7 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
     else st = do_key(c, op, arg);
 done:
     if (st != ABN_OK && st != ABN_CLAMPED && st != ABN_RPN_ONLY && st != ABN_STU_ONLY && st != ABN_NO_EQN &&
-        st != ABN_NO_VAR) {                     /* (the brief notices: not messages) */
+        st != ABN_NO_VAR && st != ABN_NOT_IN_EQN) {     /* (the brief notices: not messages) */
         if (st == ABN_OVERFLOW) note_overflow(c);   /* a complex or vector one (unit 026, abacus #4198) */
         c->msg = true;
         err_note(c, op, arg, &x0);
@@ -4651,19 +4693,6 @@ bool ab_rec35(const ab_calc *c)
         if (l >= 0 && c->lmode[l]) return c->lmode[l] != 33;
     }
     return ab_mode35(c);
-}
-
-bool ab_recstu(const ab_calc *c)
-{
-    if (c->running <= 0 && c->prgm && c->pc >= 0 && c->pc < c->prog_len) {
-        int l = prog_owner(c, c->pc);           /* the label the new line joins */
-        if (l >= 0 && c->lmode[l]) return c->lmode[l] == AB_MODEL_STU;
-    }
-    if (c->running > 0 && c->exec_at >= 0 && c->exec_at < c->prog_len) {
-        int l = prog_owner(c, c->exec_at);
-        if (l >= 0 && c->lmode[l]) return c->lmode[l] == AB_MODEL_STU;
-    }
-    return c->stu;
 }
 
 bool ab_hidden(const ab_calc *c, int op)

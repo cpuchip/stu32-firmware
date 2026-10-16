@@ -149,7 +149,8 @@ static void shape(char sh, int d)
     }
 }
 
-/* TEXT typed in Equation mode: digits . × ÷ + - ^ ( ) = A-Z, SIN( ("(" is EQN LIST's sixth key until typing starts) */
+/* TEXT typed in Equation mode: digits . × ÷ + - ^ ( ) = A-Z, SIN( ("(" is EQN LIST GOLD's sixth key until typing
+   starts, the bar's F6 before unit 073) */
 static void type_text(const char *t)
 {
     while (*t) {
@@ -170,7 +171,11 @@ static void type_text(const char *t)
         else if (ch == '+') tap(face("+"));
         else if (ch == '-') tap(face(MINUS));
         else if (ch == '^') tap(face(POW));
-        else if (ch == '(') tap(c.eqn_typing ? 2 : 5);
+        else if (ch == '(' && c.eqn_typing) tap(2);
+        else if (ch == '(') {                   /* the list's ( ): GOLD, then the sixth key (unit 073) */
+            tap(shift_key(1));
+            tap(5);
+        }
         else if (ch == ')') tap(1);
         else if (ch == '=') tap(3);
         else if (ch == '\xe2' && !strncmp(t - 1, "\xe2\x88\x9e", 3)) {

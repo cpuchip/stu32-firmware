@@ -123,6 +123,7 @@ typedef struct {
     bool render;            /* the screen changed since the last APP_RENDER */
     uint8_t *undo[2];       /* UNDO's images: [0] the state before the last change, [1] scratch */
     size_t undo_cap, undo_len;  /* undo_len 0: nothing to undo */
+    bool undone;            /* unit 073: the last UNDO undid (the next is a redo); a new change clears it */
     uint32_t last_key_ms;
     pwr_state pwr;
     dev_settings set;       /* the device's settings (unit 022): RADIX and SETUP change them */

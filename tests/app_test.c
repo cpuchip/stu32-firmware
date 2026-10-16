@@ -603,9 +603,19 @@ int main(void)
         after = img_crc(&c);
         expect(x_of(&c) == 5 && before != after, "2 ENTER 3 +");
         press(&a, "BLUE \xe2\x86\x90");
+        app_ui(&a, &ui);
         expect(img_crc(&c) == before, "UNDO after +: the state before + back");
+        expect(ui.notice && !strcmp(ui.notice, "UNDO"), "073: the first UNDO says UNDO");
         press(&a, "BLUE \xe2\x86\x90");
+        app_ui(&a, &ui);
         expect(img_crc(&c) == after && x_of(&c) == 5, "UNDO twice: + again (a redo)");
+        expect(ui.notice && !strcmp(ui.notice, "REDO"), "073: the second says REDO");
+        press(&a, "BLUE \xe2\x86\x90");
+        app_ui(&a, &ui);
+        expect(ui.notice && !strcmp(ui.notice, "UNDO") && img_crc(&c) == before, "073: a third is UNDO again");
+        press(&a, "BLUE \xe2\x86\x90 4 BLUE \xe2\x86\x90");    /* a REDO, then a new change: its UNDO says UNDO */
+        app_ui(&a, &ui);
+        expect(ui.notice && !strcmp(ui.notice, "UNDO"), "073: after a new change, UNDO says UNDO");
 
         /* a shift, a menu opening, a menu closed with C and VIEW are not undo points */
         press(&a, "7");
@@ -923,15 +933,34 @@ int main(void)
         expect(!c.eqn_mode, "35s mode: out of Equation mode");
         ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
         press(&a, "C 1 BLUE LN COS");
-        expect(fabs(x_of(&c) - cos(acos(-1.0) / 180)) < 1e-12 && a.menu < 0, "041 C: STU: HYP then COS is COS");
-        ab_do(&c, AB_PRGM);                     /* the pointer on A's lines: A is stamped 35, so the prefix */
+        expect(fabs(x_of(&c) - cosh(1.0)) < 1e-12 && a.menu < 0, "073: STU: HYP then COS is COSH (the prefix, every mode)");
+        ab_do(&c, AB_PRGM);
         press(&a, "BLUE LN SIN");
         ab_prog_line(&c, c.pc, NULL, t, sizeof t);
-        expect(!strcmp(t, "SINH"), "STU: in program entry on a 35s label, HYP SIN records SINH (the label's stamp)");
+        expect(!strcmp(t, "SINH"), "073: STU: in program entry on a 35s label, HYP SIN records SINH");
         press(&a, "GOLD XEQ ltr:B BLUE LN SIN");
         ab_prog_line(&c, c.pc, NULL, t, sizeof t);
-        expect(!strcmp(t, "SIN"), "STU: on a label stamped STU, HYP then SIN records SIN (the menu only)");
+        expect(!strcmp(t, "SINH"), "073: STU: on a label stamped STU, HYP then SIN records SINH too");
         ab_do(&c, AB_PRGM);
+        /* unit 073: while HYP waits, HYP_ is the prompt and HYP the band's annunciator, in each mode; a soft key acts as
+           the menu's, and any key ends both */
+        static const int MODEL[3] = {33, 35, AB_MODEL_STU};
+        for (int m = 0; m < 3; m++) {
+            ab_init(&c);
+            app_init(&a, &c, now);
+            ab_do_arg(&c, AB_MODEL, MODEL[m]);
+            press(&a, "BLUE LN");
+            app_ui(&a, &ui);
+            static screen_page pg;
+            screen_lines(&c, &ui, &pg);
+            char w[80];
+            snprintf(w, sizeof w, "073: mode %d: HYP armed: HYP_ the prompt, HYP the annunciator", MODEL[m]);
+            expect(ui.prompt && !strcmp(ui.prompt, "HYP_") && ui.hyp && pg.status.hyp && strstr(pg.status.text, "HYP"), w);
+            press(&a, "SIN");
+            app_ui(&a, &ui);
+            snprintf(w, sizeof w, "073: mode %d: after HYP SIN, no prompt and no annunciator", MODEL[m]);
+            expect(!ui.hyp && (!ui.prompt || strcmp(ui.prompt, "HYP_")) && a.menu < 0, w);
+        }
     }
 
     /* unit 041 C (B7): FN= on the keys (until now only the core's token): PRGM's fourth item, in SST's cell (SST is
@@ -1548,7 +1577,7 @@ int main(void)
 
     /* unit 020: in Equation mode the soft keys are the editor's bar (the list's, or typing's) */
     {
-        static const char *const LIST[6] = {"\xe2\x96\xb2", "\xe2\x96\xbc", "EDIT", "NEW", NULL, "( )"};   /* 046 */
+        static const char *const LIST[6] = {"\xe2\x96\xb2", "\xe2\x96\xbc", "EDIT", "NEW", NULL, "EXIT"};   /* 073 */
         static const char *const TYPE[6] = {"\xe2\x97\x80", "\xe2\x96\xb6", "( )", "=", "SPC", "REG"};   /* REG boxed (#3958) */
         bool ok;
         ab_init(&c);
@@ -1557,7 +1586,7 @@ int main(void)
         app_ui(&a, &ui);
         ok = c.eqn_mode;
         for (int i = 0; i < 6; i++) ok = ok && (LIST[i] ? ui.soft[i] && !strcmp(ui.soft[i], LIST[i]) : !ui.soft[i] || !ui.soft[i][0]);
-        expect(ok, "EQN: the list's bar, \xe2\x96\xb2 \xe2\x96\xbc EDIT NEW - ( ) (unit 046: ( ) in EXIT's place)");
+        expect(ok, "EQN: the list's bar, \xe2\x96\xb2 \xe2\x96\xbc EDIT NEW - EXIT (073: EXIT back; ( ) on GOLD's F6)");
         /* the guide's first equation, key by key (p.6-2; unit 014's M01-M04) */
         press(&a, "RCL ltr:V");
         app_ui(&a, &ui);
@@ -2760,6 +2789,8 @@ int main(void)
             for (size_t i = 0; i < sizeof T / sizeof T[0]; i++) {
                 screen_clear(&tf);
                 screen_text(&tf, T[i].x, T[i].y, 1, T[i].s, true);
+                if (i == 4 && gt.pad[0])        /* unit 073: the digit pad's legend shares the band, right-aligned */
+                    screen_text(&tf, SCREEN_PAD_RIGHT - 6 * screen_cells(gt.pad), SCREEN_READOUT_Y, 1, gt.pad, true);
                 for (int y = 0; y < 240; y++)
                     for (int x = 0; x < 400; x++) {
                         bool want = tf.px[y][x / 8] >> (x % 8) & 1, got = fr.px[y][x / 8] >> (x % 8) & 1;
@@ -2774,6 +2805,20 @@ int main(void)
             expect(gt.readout[0] == 'x' && gt.ymax[0] && missing == 0 && extra == 0 && !strcmp(ro, gt.readout) &&
                        gp.graph_on && !strcmp(gp.graph.readout, gt.readout) && !strcmp(gp.graph.ymin, gt.ymin),
                    "033b: the graph's texts are what the frame shows (labels, readout), and screen_lines carries them");
+            expect(gt.pad[0] == '8' && !strcmp(gp.graph.pad, gt.pad),
+                   "073: the digit pad's legend in the band beside the readout, and screen_lines carries it");
+            int r_end = SCREEN_READOUT_X + 6 * screen_cells(gt.readout), p_at = SCREEN_PAD_RIGHT - 6 * screen_cells(gt.pad);
+            expect(r_end + 6 <= p_at && p_at + 6 * screen_cells(gt.pad) <= 330,
+                   "073: the legend clear of the readout (a cell between) and of STU");
+            /* the forms by the readout's length: long to 22 cells, then 5 dropped, then 5 and HOME's cell, to 33 */
+            static const struct { int n, cells; } L[] = {{0, 19}, {22, 19}, {23, 9}, {32, 9}, {33, 8}};
+            bool lf = true;
+            for (size_t i = 0; i < sizeof L / sizeof L[0]; i++) {
+                const char *p = screen_pad_legend(L[i].n);
+                lf = lf && screen_cells(p) == L[i].cells &&
+                     SCREEN_READOUT_X + 6 * L[i].n + 6 <= SCREEN_PAD_RIGHT - 6 * screen_cells(p);
+            }
+            expect(lf, "073: the pad legend's form by the readout: 19 cells to 22, 9 to 32, 8 at the longest (33)");
         }
         /* the trace through the keys: the bar's right moves it; ENTER takes its value and leaves */
         abn tx;
@@ -2885,7 +2930,7 @@ int main(void)
         c.stu = false;
         press(&a, "BLUE 7 k:5");
         app_ui(&a, &ui);
-        expect(!c.gr_on && ui.notice && !strcmp(ui.notice, "STU ONLY"), "033: 35s mode: STU ONLY briefly");
+        expect(!c.gr_on && ui.notice && !strcmp(ui.notice, "STU ONLY: MODE, STU"), "033: 35s mode: STU ONLY briefly (073: where to go)");
     }
 
     /* unit 035: after a keyboard SOLVE the root is VIEWed (W=3.5000), no prompt on Y; the next key gives
@@ -3062,6 +3107,79 @@ int main(void)
         expect(ui.soft[0] && e && !strcmp(ui.soft[0], e) && !ui.soft[1], "041 B: 35s mode: CONST's ninth page is e alone");
     }
 
+    /* unit 073 (stu-discover, abacus #8714): an STU feature refused says where to go, never silence: blue GRAPH and blue
+       TABLE in 33s mode (041 A14 had them silent), and the list's CAS key in 33s and 35s modes */
+    {
+        static const char *const KEYS[2] = {"BLUE 7", "BLUE 8"};
+        for (int k = 0; k < 2; k++) {
+            ab_init(&c);
+            app_init(&a, &c, now);
+            ab_do_arg(&c, AB_MODEL, 33);
+            press(&a, KEYS[k]);
+            app_ui(&a, &ui);
+            char w[64];
+            snprintf(w, sizeof w, "073: 33s mode: %s says STU ONLY: MODE, STU, no menu", KEYS[k]);
+            expect(a.menu < 0 && ui.notice && !strcmp(ui.notice, "STU ONLY: MODE, STU"), w);
+        }
+        static const int M[2] = {33, 35};
+        for (int m = 0; m < 2; m++) {
+            ab_init(&c);
+            app_init(&a, &c, now);
+            ab_do_arg(&c, AB_MODEL, M[m]);
+            ab_eqn_add(&c, "X^2");              /* (listed and shown: Equation mode) */
+            press(&a, "k:4");
+            app_ui(&a, &ui);
+            char w[64];
+            snprintf(w, sizeof w, "073: %ds mode: the list's CAS says STU ONLY: MODE, STU", M[m]);
+            expect(ui.notice && !strcmp(ui.notice, "STU ONLY: MODE, STU") && a.menu < 0, w);
+        }
+        ab_init(&c);                            /* STU: the same keys open their menus */
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        press(&a, "BLUE 7");
+        expect(a.menu >= 0 && !a.notice, "073: STU: blue GRAPH opens its menu, no notice");
+    }
+
+    /* unit 073, fresh eyes: a prompted key Equation mode refuses says so before its prompt (RCL still prompts, its
+       letter types); HYP_ never covers an equation being typed (the annunciator says it); UNDO with nothing to undo
+       says so; a refused key keeps UNDO's last change, so UNDO undoes what came before it, then redoes it */
+    {
+        static uint8_t v0[262144], v1[262144];
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_eqn_add(&c, "X^2");
+        press(&a, "STO");
+        app_ui(&a, &ui);
+        expect(!a.prompt_text[0] && ui.notice && !strcmp(ui.notice, "NOT IN EQN"), "073: STO with the list shown: NOT IN EQN, no prompt");
+        press(&a, "RCL");
+        app_ui(&a, &ui);
+        expect(a.prompt_text[0] && ui.prompt && !strncmp(ui.prompt, "RCL", 3), "073: RCL with the list shown still prompts (it types its letter)");
+        press(&a, "C");
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, 35);
+        press(&a, "GOLD 0 2 + BLUE LN");
+        app_ui(&a, &ui);
+        expect(ui.hyp && (!ui.prompt || strcmp(ui.prompt, "HYP_")) && c.eqn_typing, "073: HYP while an equation is typed: the annunciator, no HYP_ over the line");
+        ab_init(&c);
+        app_init(&a, &c, now);
+        app_undo_buffers(&a, v0, v1, sizeof v0);
+        press(&a, "BLUE \xe2\x86\x90");
+        app_ui(&a, &ui);
+        expect(ui.notice && !strcmp(ui.notice, "NOTHING TO UNDO"), "073: UNDO with nothing to undo says so");
+        ab_do_arg(&c, AB_MODEL, 35);
+        press(&a, "2 ENTER 3 + GOLD 0");      /* EQN: the last change */
+        bool in = c.eqn_mode;
+        press(&a, "R\xe2\x86\x93");              /* R↓ refused: NOT IN EQN, no change */
+        press(&a, "BLUE \xe2\x86\x90");
+        app_ui(&a, &ui);
+        expect(in && !c.eqn_mode && x_of(&c) == 5 && ui.notice && !strcmp(ui.notice, "UNDO"),
+               "073: after a refused key, UNDO undoes the change before it (EQN), not the refusal");
+        press(&a, "BLUE \xe2\x86\x90");
+        app_ui(&a, &ui);
+        expect(c.eqn_mode && ui.notice && !strcmp(ui.notice, "REDO"), "073: and the next is its REDO");
+    }
+
     /* unit 072 (abacus #8570, #8600, #8679): APPS lists KEYS, then GAMES; GAMES pages the folder's games five at a time
        with more, in the registry's order; C or back-arrow returns to APPS; a game starts from GAMES */
     {
@@ -3187,7 +3305,7 @@ int main(void)
         c.m35 = true;
         press(&a, "BLUE 8 k:3");
         app_ui(&a, &ui);
-        expect(!c.tbl_on && ui.notice && !strcmp(ui.notice, "STU ONLY") && !c.msg, "032: 35s mode: STU ONLY briefly");
+        expect(!c.tbl_on && ui.notice && !strcmp(ui.notice, "STU ONLY: MODE, STU") && !c.msg, "032: 35s mode: STU ONLY briefly (073: where to go)");
         /* review F2: an ENTER that overflows and then errs leaves no OVERFLOW notice behind for C */
         ab_init(&c);
         app_init(&a, &c, now);
@@ -3947,6 +4065,22 @@ int main(void)
                "044: a plot's frames compute the trace's readout once; a moved cursor's readout is its new column's");
     }
 
+    /* unit 073: the list's sixth key is EXIT (unit 020's): Equation mode left, the list kept, in each mode */
+    {
+        static const int MODEL[3] = {AB_MODEL_STU, 35, 33};
+        int ok = 0;
+        for (int m = 0; m < 3; m++) {
+            ab_init(&c);
+            app_init(&a, &c, now);
+            ab_do_arg(&c, AB_MODEL, MODEL[m]);
+            ab_eqn_add(&c, "A+B");
+            int n0 = c.eqn_count;
+            press(&a, "k:5");
+            ok += !c.eqn_mode && c.eqn_count == n0 && !c.eqn_typing;
+        }
+        expect(ok == 3, "073: EXIT on the list's F6 leaves Equation mode, the list kept (STU, 35s, 33s)");
+    }
+
     /* unit 046 (abacus #4996): EQN LIST's sixth soft key is "( )", in EXIT's place: from EQN LIST TOP and from an
        equation shown, in each mode, it begins a new equation with the pair, the cursor between (35s p.6-6), and the
        rest types as ever; ENTER stores it. GOLD's bank holds REGX..REGT as a first character, hidden and dimmed in
@@ -3962,7 +4096,7 @@ int main(void)
                 ab_eqn_add(&c, "A+B");
                 if (!c.eqn_mode) press(&a, "GOLD 0");
                 if (from == 0) press(&a, "k:3");               /* NEW: EQN LIST TOP */
-                press(&a, "k:5");
+                press(&a, "GOLD k:5");                          /* 073: ( ) on GOLD's sixth key */
                 bool typing = c.eqn_typing && !strcmp(c.ebuf, "()");
                 press(&a, "2 + 1 k:1 ENTER");
                 paren += typing && !c.eqn_typing && c.eqn_mode && !strcmp(c.eqn[c.eqn_cur], "(2+1)");
@@ -3993,7 +4127,7 @@ int main(void)
             press(&a, "C");
             cexit += !c.eqn_mode && c.eqn_count == n0;
         }
-        expect(paren == 6, "046: ( ) on EQN LIST's sixth soft key begins an equation with the pair, from TOP and from "
+        expect(paren == 6, "046, 073: ( ) on EQN LIST GOLD's sixth key begins an equation with the pair, from TOP and from "
                            "an equation shown, in STU, 35s and 33s modes; ENTER stores (2+1)");
         expect(reg == 3 && regdim == 3, "046: GOLD's bank in EQN LIST: REGX..REGT begin an equation (STU, 35s); in 33s "
                                         "mode dimmed and doing nothing");
@@ -4012,7 +4146,7 @@ int main(void)
             ab_eqn_add(&c, "A+B");
             if (!c.eqn_mode) press(&a, "GOLD 0");
             int n0 = c.eqn_count;
-            press(&a, "k:5");                       /* ( ) begins the equation (046) */
+            press(&a, "GOLD k:5");                  /* ( ) begins the equation (046; GOLD's F6 since 073) */
             for (int i = 0; i < 19; i++) press(&a, "k:2");
             press(&a, "RCL ltr:X ENTER");
             const char *msg = ab_error_message(&c);

@@ -109,7 +109,7 @@ send K18
 sleep 0.25
 send X
 expect eqn: X+1 | note=- 10
-# c (X^2-1)÷(X-1)
+# c (X^2-1)÷(X-1)   (the leading ( is GOLD then the list's sixth key since unit 073)
 send K42
 sleep 0.25
 send K42
@@ -125,6 +125,8 @@ sleep 0.25
 send K30
 sleep 0.25
 send K43
+sleep 0.25
+send K30
 sleep 0.25
 send K5
 sleep 0.25
