@@ -1,0 +1,42 @@
+# Unit 075's HELP on the stand-in's keys: blue 9 (K36 K27) arms HELP, the next key shows its page in the view and is
+# never run, any key closes the page and does nothing else, and a key after acts as ever. Keys (keys.h: row * 6 +
+# column): 2 38, ENTER 18, SIN 15, 7 25, C 42, BLUE 36, GOLD 30, 9 27. The dump prints state: before view:, and an
+# expect reads forward, so each X's state is checked before its view. Ends with a control that must FAIL.
+wait READY 30
+send WIPE
+expect wipe: both slots erased
+send RESTART
+expect load: no image: MEMORY CLEAR 30
+wait READY 30
+send K38
+send X
+expect X=2 stop
+# HELP, then SIN: SIN's page (its legend, then its entry's first line), X still 2
+send K36
+send K27
+send K15
+send X
+expect X=2 stop
+expect view: SIN: SIN | Sine of X in the angle mode.
+# C closes the page and does nothing else: X still 2, no view
+send K42
+send X
+expect X=2 stop
+expect-none view: 2
+# SIN acts now: the sine of 2 degrees
+send K15
+send X
+expect X=0.0348994967
+# HELP, GOLD, 7: GOLD 7's page; a digit closes it without typing
+send K36
+send K27
+send K30
+send K25
+send X
+expect view: GOLD 7: SOLVE | SOLVE letter: a root for it, in
+send K25
+send X
+expect X=0.0348994967
+expect-none view: 2
+# CONTROL: must FAIL
+expect view: NO SUCH PAGE 3

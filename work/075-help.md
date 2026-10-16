@@ -75,3 +75,30 @@ for a student.
 
 - CATALOG (a stu-keys remap, later); help inside apps (an app's keys are the app's).
 - The printed HELP cap and (I)/(J) on 3 and 0: draftsman.
+
+## Decision 68 and the stand-in
+
+**Static, `scripts/resources.py static a44047d df9ae2a`:**
+
+| | stand-in | Rev A |
+|---|---|---|
+| flash | +30,384 | +30,416 |
+| DIRAM | +32 | +32 |
+| IRAM, calc_task's frame | +0 | +0 |
+| internal-RAM symbols | app 688 → 720 (view_text widened, `help`) | the same |
+
+- **Where the flash went (the stand-in's map):**
+  - help_text.c, 26,991 B: the strings 23,355 (0x5b3b) and the table 3,636 (0xe34);
+  - help.c, 1,201 B: help_find 246, help_for_action 342, help_lines 613;
+  - the rest is app.c's help_page and the wiring.
+- **idf_size misbooks the strings.** It books 23,452 B to libesp_app_format.a, whose objects did not change. The
+  strings sit in an unnamed merged section, `.rodata.str1.4`, and the map puts that section in help_text.c.obj.
+- help_mode_list is dropped from the device image: only help_test reads it.
+
+**The stand-in at df9ae2a, device/standin/help075.txt:** ALL MET, and the control failed as it must.
+- HELP SIN shows SIN's page (X still 2).
+- C closes it, X still 2, no view; then SIN runs (0.0348994967…).
+- HELP GOLD 7 shows GOLD 7's page, and the closing 7 types nothing.
+- Internal heap 62,747 B free, stack-free 29,044 B.
+- The first run lost the port at the flash (ACM2 moved to ACM3, I/O errors before any key). The rerun on the new
+  port, with no flash, passed.
