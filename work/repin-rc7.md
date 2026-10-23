@@ -82,3 +82,8 @@ in 1.0: CAS 025, 026).
 - **e5f798b..01267e8,** read here: src changes only CASIM_VERSION, "1.0.0-rc7" to "1.0.0"; the rest is
   work/release-1.0.0-rc7.md and the notes.
 - device/standin/repin-rc7.txt's pin line names 01267e8. Its rows are rc7's, and the src is the same.
+- make test rc 0 at 01267e8 (070 63/63).
+- **The stand-in at cd59f06:** repin-rc7.txt ALL MET, the control red.
+  - pins: casim=01267e8b2c2f22b91e3e1f15639cf9ebd3bc44de, the field VER's CASIM shows.
+  - S60 and S63/S64 as at rc7; stack-free 23,732 B.
+  - The port moved at the flash (ACM3 to ACM1). The rerun on the new port, with no flash, passed.
