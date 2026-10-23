@@ -97,3 +97,9 @@ in 1.0: CAS 025, 026).
 - **No row moved.** make test rc 0 at c40422c, peak RSS 236,800 KB: 048 65/65, 056 43/43, 057 37/37, 070 63/63,
   076 20/20, every one of the 87 vector files full. S63/S64's sum runs from 0, where CAS 027's shift (s <= lo) has no room.
 - device/standin/repin-rc7.txt's pin line names c40422c.
+- **070 S65, S66 put CAS 027 on the keys.** S63's sum from 1 answers
+  `-Y÷(Y×SIN(Z)-1)-Y^2×SIN(Z)÷2÷(Y×SIN(Z)-Y^2×SIN(Z)^2÷2-1÷2)` with one row, ABS(Y×SIN(Z))<1. That's casim's CLI at
+  c40422c, 16,384 B, the same in RAD and DEG.
+  - At 01267e8 both are red: the answer divides by SIN(Z), there are 4 lines, not 3, and the first row is Z≠0. That
+    answer has no value at Z = π, where the sum is Y.
+  - make test rc 0 with them, peak RSS 171,580 KB; 070 65/65 (127/127), its slices 1, 7 and 1,000 too.

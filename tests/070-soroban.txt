@@ -40,6 +40,8 @@ S61 | 070 at casimir rc7 (CAS 025): a letter at a negative whole power marks its
 S62 | 070 at rc7: S61's first row, Y≠0, labeled WHERE | STU RAD EQ:(X÷Y)^K÷Y CASSUM:K 0 ENTER INF ENTER SST | %EQ=Y≠0 %NOTE=WHERE
 S63 | 070 at casimir rc7 (CAS 026, decision 90): a row on a function factor wherever a term from lo divides by it (casim's example) | STU RAD EQ:K×(SIN(Z)×Y)^K÷SIN(Z) CASSUM:K 0 ENTER INF ENTER | %EQ=-Y÷2÷(Y×SIN(Z)-Y^2×SIN(Z)^2÷2-1÷2) %EQN=4
 S64 | 070 at rc7: S63's first row, SIN(Z)≠0, labeled WHERE | STU RAD EQ:K×(SIN(Z)×Y)^K÷SIN(Z) CASSUM:K 0 ENTER INF ENTER SST | %EQ=SIN(Z)≠0 %NOTE=WHERE
+S65 | 070 at casimir 1.0.1 (CAS 027): S63's sum from 1, where the shift reads SIN(Z) as a letter: no row on it (1.0.0 divided by SIN(Z) under the row Z≠0, so it had no value at SIN(Z)'s other zeros, Z = π for one, where the sum is Y; casim's example) | STU RAD EQ:K×(SIN(Z)×Y)^K÷SIN(Z) CASSUM:K 1 ENTER INF ENTER | %EQ=-Y÷(Y×SIN(Z)-1)-Y^2×SIN(Z)÷2÷(Y×SIN(Z)-Y^2×SIN(Z)^2÷2-1÷2) %EQN=3
+S66 | 070 at 1.0.1: S65's one row, ABS(Y×SIN(Z))<1, labeled WHERE | STU RAD EQ:K×(SIN(Z)×Y)^K÷SIN(Z) CASSUM:K 1 ENTER INF ENTER SST | %EQ=ABS(Y×SIN(Z))<1 %NOTE=WHERE
 S23 | 070: past the arena: TOO COMPLEX | STU RAD EQ:K^12×X^K CASSUM:K 0 ENTER RCL:N ENTER | ERR %ERR=CAS_NO_ROOM %EQN=1
 S24 | 070: a bound not whole: BAD BOUND (provisional, #8545) | STU RAD EQ:K CASSUM:K 1.5 ENTER RCL:N ENTER | ERR %ERR=CAS_BAD_BOUND %ERRMSG=BAD_BOUND %EQN=1
 S25 | 070: -∞ as the upper goes to casim as typed: BAD BOUND | STU RAD EQ:K CASSUM:K 1 ENTER - INF ENTER | ERR %ERRMSG=BAD_BOUND %EQN=1
