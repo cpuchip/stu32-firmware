@@ -2133,6 +2133,10 @@ int main(void)
         app_key(&a, 31, t + 120);               /* the 4 key, down then up */
         app_key_up(&a, 31, t + 180);
         expect(rec.keys == 2 && rec.key == 31 && !rec.down && rec.key_ms == 180, "037: keys and key-ups to the app, on its clock");
+        app_key(&a, APP_KEY_GOLD, t + 190);     /* GOLD is an app's key like any other: the games jump and fire on it */
+        expect(rec.keys == 3 && rec.key == APP_KEY_GOLD && rec.down && a.shift == 0, "037: GOLD to the app, no shift taken");
+        app_key_up(&a, APP_KEY_GOLD, t + 195);
+        expect(rec.keys == 4 && rec.key == APP_KEY_GOLD && !rec.down && a.shift == 0, "037: GOLD's release to the app");
         int draws = rec.draws;
         app_key(&a, 37, t + 200);               /* the 1 key: no redraw asked */
         expect(rec.draws == draws, "037: a key returning false is not drawn");
