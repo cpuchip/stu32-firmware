@@ -37,8 +37,10 @@ int ar_peak(void);
    CAS memory up"; abacus #8786, #8809): CAS 019's fractions read back into more nodes, so SQRT(1+X)×EXP(X)'s order-11
    Taylor needs 10,476 B, and DEG/GRAD X×ATAN(X) gains 3,488 B of margin. casim's device bench at 12,288 (casim
    8d28f58, work/arena-12288.txt): DEVICE PASS, the stack gate unchanged at 11,744 of 12,288, since the depth guard,
-   not the arena, bounds the stack. */
-#define AB_CAS_ARENA 12288
+   not the arena, bounds the stack. 16,384 B since the repin to Casimir 1.0.0's last release candidate (decision 88,
+   abacus #9615, #9747): casim's device bench at the v1.0.0-rc6 tag (casim work/arena-16384.txt), DEVICE PASS on
+   1,347 cases, the gate 12,288's; the most a case needs is 12,424 B, and five answers move to what 65,536 B gives. */
+#define AB_CAS_ARENA 16384
 #ifdef AB_CASIM
 extern unsigned char ab_cas_arena[AB_CAS_ARENA];
 #endif
