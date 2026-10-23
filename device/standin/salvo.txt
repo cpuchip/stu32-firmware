@@ -1,6 +1,6 @@
 # SALVO under APPS on the board (arcade's unit 071, soroban's gate; stu32-arcade docs/salvo.md): APPS (blue 0) lists
 # KEYS and GAMES (unit 072); GAMES lists BABAL, AIM, LAND, SNAKE and MINES, then on its second page (K5, more) SALVO
-# on K0. ENTER for a game, 6 and 8
+# on K0. ENTER for a game, 6 and SOFT5 (unit 077: Michael's layout, moving on 4 or 6 while a thumb fires)
 # held together (moving and firing at once), the frame rate while the formation comes in, the keys let go, and the
 # ship left to be lost three times (an idle ship lasts about 18 s on the host); GAME OVER, then ENTER for a second
 # game. Scoring and the rules are the host's check (stu32-arcade make salvocheck). X prints stack-free before app:,
@@ -44,13 +44,13 @@ send K18
 send U18
 sleep 1
 send K33
-send K26
+send K4
 sleep 1
 send FRAMEBENCH
 expect framebench: SALVO 30
 sleep 4
 send U33
-send U26
+send U4
 sleep 25
 send K18
 send U18
