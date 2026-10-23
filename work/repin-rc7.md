@@ -44,3 +44,21 @@ in 1.0: CAS 025, 026).
   - the pin;
   - from the keys in DEG: S60's sum answering; S63's answer and its SIN(Z)≠0 row, stepped with SST;
   - the stack's low-water mark no lower than the deep paths' 8,188 B free.
+
+## Decision 68 and the stand-in
+
+**Static, `scripts/resources.py static 6f12c13 ae71971`:**
+- Flash +17,008 on the stand-in and +16,848 on Rev A (casim's code, CAS 020 to 026).
+- Internal RAM +0, IRAM +0, calc_task's frame +0. No internal-RAM symbol changed.
+- The arena's +4,096 B is PSRAM (libmain's +20,940 counts it).
+
+**The stand-in at ae71971, interrupts live:**
+- **repin-rc7.txt:** ALL MET, the control red.
+  - The pin is e0ef88a.
+  - From the keys in DEG: S60's sum answers past 12,288 B; S63's answer, then SST to its first row, SIN(Z)≠0, labeled
+    WHERE.
+  - stack-free 23,732 B (floor 8,188); heap 62,747 B.
+  - The port moved at the flash (ACM1 to ACM3). The rerun on the new port, with no flash, passed.
+- **casrows.txt:** ALL MET.
+- **sum070.txt:** ALL MET bar its control.
+- make clang-check 66/0.
