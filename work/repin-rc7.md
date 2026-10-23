@@ -71,3 +71,7 @@ in 1.0: CAS 025, 026).
   - the README's counts, examples/hello.c's arena (8,800 to 16,384) and idf_component.yml's version;
   - work/rc7-mutants.txt, 428 of 428 on that tree.
 - make test rc 0 at e5f798b, peak RSS 235,576 KB; 070 63/63.
+- **The stand-in at 6c32e57:** repin-rc7.txt ALL MET, the control red.
+  - The pin is e5f798b.
+  - S60's sum answers, and S63 reaches SIN(Z)≠0 | note=WHERE.
+  - stack-free 23,732 B. The port held through the flash this time.
