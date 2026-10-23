@@ -22,3 +22,5 @@ C15 | 076 (fresh eyes): PARTIAL keeps its line; on, the quadratic's pair follows
 C16 | 076 (fresh eyes): off, PARTIAL leaves the pair out without a word (casim's follow-up, as C05's) | STU EQ:(X^2+1)×(X^3-2×X-5) CASSOLVE:X | %CASREP=PARTIAL,_DEGREE_3_LEFT
 C17 | 076 (fresh eyes): CPLX is STU's, as every CAS key: in 35s mode STU ONLY | MODE35 CASCPLX | ERR %ERR=STU_ONLY
 C18 | 076 (fresh eyes): and the setting is unchanged by it: SOLVE in STU then reports the hint | MODE35 CASCPLX STU EQ:X^2+X+1 CASSOLVE:X | ERR %CASREP=NO_REAL_ROOTS._CAS3_CPLX_ON
+C19 | 076 (abacus #9863): the image keeps CPLX: on, SAVE, MEMORY CLEAR (off), LOAD gives it back, so SOLVE gives the pair | STU CASCPLX SAVE MEMCLR LOAD EQ:X^2+X+1 CASSOLVE:X | %CASREP=SOLVED:_X=(-1-SQRT(3)×0i1)÷2;_X=(-1+SQRT(3)×0i1)÷2
+C20 | 076: and MEMORY CLEAR alone turns it off: the hint again | STU CASCPLX MEMCLR STU EQ:X^2+X+1 CASSOLVE:X | %CASREP=NO_REAL_ROOTS._CAS3_CPLX_ON

@@ -46,7 +46,7 @@
 
 ## Checks
 
-- **tests/076-soroban.txt, 18 rows.** Each text is casim's CLI at e5f798b (v1.0.0-rc7), 16,384 B, with and without
+- **tests/076-soroban.txt, 20 rows.** Each text is casim's CLI at e5f798b (v1.0.0-rc7), 16,384 B, with and without
   `--complex`.
   - Off: the hint (C01), and the pair left out over the reals (C05).
   - On: the pair (C02); ENTER on a root gives X = -0.5 i 0.866… (C03); the real root first, then the pair (C04).
@@ -75,7 +75,7 @@
 | M1 | the bit never sent | C02 C03 C04 C09 C10 |
 | M2 | the hint for 33s equations too | C08 |
 | M3 | no hint | C01 C06 |
-| M4 | the image byte not written | app_test's image check |
+| M4 | the image byte not written | app_test's image check; C19 (added after acceptance, abacus #9863) |
 | M5 | not an Equation-mode setting | C07 C09 C10, 3 app_test |
 | M6 | programmable | C13 |
 | M7 | the toggle only turns on | C06 |
@@ -109,3 +109,12 @@
     the same thing, and the fixed keys (F6, F6, F1) gave the pair. The rerun with them, with no flash, passed.
 - **casrows.txt:** ALL MET.
 - make clang-check 66/0.
+
+## Accepted (abacus #9863, at fca2079)
+
+- **From abacus's clean clone:** make test 0, 076 18/18, and its 7 hidden rows 7/7. Those were a second pair, a cubic,
+  the hint in 35s and none in 33s, SAVE/MEMCLR/LOAD keeping CPLX, MEMCLR clearing it, and ENTER giving 1i2.
+- **Its falsifications,** each red as it predicted. The image writing CPLX as 0 went red only on its own H04, so
+  the vectors didn't guard the image.
+- **C19 and C20 are added for that:** SAVE, MEMCLR, LOAD gives CPLX back, and MEMCLR alone clears it. C19 goes red
+  with the image byte written as 0.
