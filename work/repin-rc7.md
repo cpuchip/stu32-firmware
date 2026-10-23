@@ -62,3 +62,12 @@ in 1.0: CAS 025, 026).
 - **casrows.txt:** ALL MET.
 - **sum070.txt:** ALL MET bar its control.
 - make clang-check 66/0.
+
+## The tag: v1.0.0-rc7 (abacus #9784)
+
+- **The pin moves to e5f798b,** the commit of v1.0.0-rc7 (annotated tag 52aeadd).
+- **e0ef88a..e5f798b,** read here:
+  - src changes only CASIM_VERSION, "1.0.0-rc6" to "1.0.0-rc7";
+  - the README's counts, examples/hello.c's arena (8,800 to 16,384) and idf_component.yml's version;
+  - work/rc7-mutants.txt, 428 of 428 on that tree.
+- make test rc 0 at e5f798b, peak RSS 235,576 KB; 070 63/63.
