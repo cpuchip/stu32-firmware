@@ -96,3 +96,27 @@ Here, on 917deea: `make test` green, app_test 779 of 779; VER reads 0.77, and it
 - ENTER in BABAL and SALVO: Michael's to keep or drop.
 - The stand-in cannot show a game's picture, so the board scripts show only that the games run and end cleanly with
   the new keys held. The pictures are the benches' and the host's.
+
+## Soroban's gate (2026-10-23, on 917deea)
+
+- **The patches:** stu32-arcade 0271fee's patches/firmware/077, sha256 bf9f9679… and 8472c0a2… as sent. `git am` onto
+  917deea gives tree 6581db23ddf4. Every pin in games.list is on stu32-arcade's main.
+- **Read:** BABAL, LAND and SALVO from their old pins to bca20f0. No defect found. No include, allocation or file is
+  new. LAND's 16-bit mask holds its eleven keys, a key's down on the title still falls to the ENTER check, and SALVO's
+  fire loop now runs to SALVO_KEYS.
+- **Host:** make test rc 0 (peak 172,132 KB), app_test 779/779, VER_GAMES e3869b9. Two app.c mutants, GOLD kept from
+  the app and GOLD setting the shift, each fail exactly the two new checks (777/779). make clang-check 66/0.
+- **Decision 68, `scripts/resources.py static 917deea 0e82e68`** (the head with this file and 0.77): flash +304 on the
+  stand-in and +320 on Rev A; DIRAM, IRAM and calc_task's frame +0; no internal-RAM symbol changed. That's arcade's
+  table to the byte.
+- **The stand-in at 0e82e68:** ver=0.77, games=e3869b9, the three pins bca20f0. land.txt, salvo.txt and babal.txt
+  are ALL MET. LAND: 657.8 frames a second, stack-free 28,868 B.
+- **The board can tell the new keys apart, beside a control.** The scripts' expects pass with a dead key too, so each
+  was rerun with the new key swapped for + (dead in play now), and both runs were compared:
+  - **LAND, GOLD held 3 s:** the ten crashes come 10.8, 15.4, … 53.1 s after the frame-rate line. With + held they
+    come 2.8, 7.2, … 44.1 s after it. A round takes 4.2 to 5.2 s in both runs, so the first crash's 8 s is the engine.
+  - **SALVO, 6 with SOFT5:** 12 shot tones (1,200 Hz), 3 hit tones (880 Hz) and 3 ships lost. With 6 and + there is
+    one 1,200 Hz tone, no hit tones and no lost ship.
+  - The timing comes from a line-timestamping wrapper around run.sh, so it isn't a script expect. The control scripts
+    were throwaway copies (build/land-ctl077.txt, build/salvo-ctl077.txt).
+- The port moved at the flash (ACM1 to ACM3); the runs on ACM3 were made without a flash.
