@@ -75,3 +75,10 @@ in 1.0: CAS 025, 026).
   - The pin is e5f798b.
   - S60's sum answers, and S63 reaches SIN(Z)≠0 | note=WHERE.
   - stack-free 23,732 B. The port held through the flash this time.
+
+## Casimir 1.0.0 (abacus #9829)
+
+- **The pin moves to 01267e8,** the commit of v1.0.0 (annotated tag edab17b), published as Latest.
+- **e5f798b..01267e8,** read here: src changes only CASIM_VERSION, "1.0.0-rc7" to "1.0.0"; the rest is
+  work/release-1.0.0-rc7.md and the notes.
+- device/standin/repin-rc7.txt's pin line names 01267e8. Its rows are rc7's, and the src is the same.
