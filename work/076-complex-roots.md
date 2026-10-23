@@ -90,3 +90,22 @@
     - CAS3 stays open after CPLX;
     - CPLX is STU's.
   - Each of the last two is red without its fix: C17 and C18 for the STU check, 3 app_test checks for the open menu.
+
+## Decision 68 and the stand-in
+
+**Static, `scripts/resources.py static 351271e dff79e5`:**
+- Flash +656 on the stand-in and +592 on Rev A.
+- Internal RAM +0, IRAM +0, calc_task's frame +0. No internal-RAM symbol changed.
+- idf_size books 128 B of the help text's strings to libesp_app_format, as in 075.
+
+**The stand-in at dff79e5** (on Casimir 1.0.0's pin):
+- **cplx076.txt:** ALL MET, the control red.
+  - From the keys in STU: SOLVE of X^2+X+1 reports NO REAL ROOTS. CAS3 CPLX ON.
+  - CAS, CAS2, CAS3, CPLX turns it on, and CAS3 stays open.
+  - SOLVE again: SOLVED: X=(-1-SQRT(3)×0i1)÷2; X=(-1+SQRT(3)×0i1)÷2.
+  - stack-free 26,084 B; ver=0.76.
+  - **The first run failed on my script, not the firmware.** CAS3 stays open after CPLX, so the script's keys for the
+    Equation bar went to CAS3, and its F1 was D/DX. A replay of the script's keys through the app on the host showed
+    the same thing, and the fixed keys (F6, F6, F1) gave the pair. The rerun with them, with no flash, passed.
+- **casrows.txt:** ALL MET.
+- make clang-check 66/0.
