@@ -1,0 +1,19 @@
+# Unit 076 (decision 88, abacus #9798, approved #9803): CAS3's CPLX, the complex-roots setting. CASCPLX is its key (a
+# toggle, off at MEMORY CLEAR). With it on, every CAS call carries CASIM_COMPLEX (CAS 020), and only SOLVE reads it: a
+# quadratic factor's conjugate pair prints as (A±B×SQRT(r)×0i1)÷D. A 33s-stamped equation stays real (casim ignores
+# the bit in model 33). With it off, NO REAL ROOTS says where to turn it on, except for a 33s equation. Each expected
+# text is casim's CLI at e5f798b (the v1.0.0-rc7 tag), 16,384 B, with and without --complex. %CASREP's blanks are _.
+# ID | description | keys | expected
+C01 | 076: off (MEMORY CLEAR), NO REAL ROOTS says where: CAS3's CPLX | STU EQ:X^2+X+1 CASSOLVE:X | %CASREP=NO_REAL_ROOTS._CAS3_CPLX_ON %CASROW=NO_REAL_ROOTS._CAS3_CPLX_ON
+C02 | 076: on, the conjugate pair (CAS 020 rule 3), the negative imaginary part first | STU CASCPLX EQ:X^2+X+1 CASSOLVE:X | %CASREP=SOLVED:_X=(-1-SQRT(3)×0i1)÷2;_X=(-1+SQRT(3)×0i1)÷2
+C03 | 076: on, ENTER on the second root: its value to X through the core's evaluation, complex (-1+i√3)÷2 | STU CASCPLX EQ:X^2+X+1 CASSOLVE:X SST SST ENTER | X^-0.5i0.8660254037844386467637231707529362 %CASREP=none
+C04 | 076: on, the real root first, then the pair: (X-2)×(X^2+1) | STU CASCPLX EQ:(X-2)×(X^2+1) CASSOLVE:X | %CASREP=SOLVED:_X=2;_X=-0i1;_X=0i1
+C05 | 076: off, the pair left out over the reals, as before (casim's "leave them out"; a note is casim's follow-up) | STU EQ:(X-2)×(X^2+1) CASSOLVE:X | %CASREP=SOLVED:_X=2
+C06 | 076: on twice is off: the toggle | STU CASCPLX CASCPLX EQ:X^2+X+1 CASSOLVE:X | %CASREP=NO_REAL_ROOTS._CAS3_CPLX_ON
+C07 | 076: a 33s-stamped equation (typed in 33s mode, MEMORY CLEAR's) with CPLX on stays real: plain NO REAL ROOTS | EQ:X^2+X+1 C STU EQN CASCPLX CASSOLVE:X | %CASREP=NO_REAL_ROOTS
+C08 | 076: a 33s-stamped equation with CPLX off: plain NO REAL ROOTS, no hint (the setting can't help there) | EQ:X^2+X+1 C STU EQN CASSOLVE:X | %CASREP=NO_REAL_ROOTS
+C09 | 076: a 35s-stamped equation with CPLX on gets the pair (the reading confirmed in #9803) | MODE35 EQ:X^2+X+1 C STU EQN CASCPLX CASSOLVE:X | %CASREP=SOLVED:_X=(-1-SQRT(3)×0i1)÷2;_X=(-1+SQRT(3)×0i1)÷2
+C10 | 076: CPLX acts while the list is shown (an Equation-mode setting, 073) | STU EQ:X^2+X+1 CASCPLX CASSOLVE:X | %CASREP=SOLVED:_X=(-1-SQRT(3)×0i1)÷2;_X=(-1+SQRT(3)×0i1)÷2
+C11 | 076 (#9803 3): another op prints byte for byte the same with the bit: a derivative | STU CASCPLX RAD EQ:X^3×SIN(X) CASD:X | %EQ=3×X^2×SIN(X)+X^3×COS(X) %EQN=2
+C12 | 076 (#9803 3): and a sum (070's S03) | STU CASCPLX RAD EQ:K^2 CASSUM:K 1 ENTER RCL:N ENTER | %EQ=N÷6+N^2÷2+N^3÷3 %EQN=2
+C13 | 076: not a program line (NONPROGRAMMABLE, as ENTRYM) | STU PRGM CASCPLX | ERR %ERR=NONPROGRAMMABLE %LINES=0

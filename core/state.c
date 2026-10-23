@@ -62,7 +62,7 @@ static bool status_in_image(unsigned st, int version)
 }
 
 enum { T_MODES = 1, T_STACK, T_VARS, T_STAT, T_IND, T_PROG, T_EQNS, T_ENTRY, T_EDITOR, T_RUN, T_SOLVE, T_MODE25, T_ALG,
-       T_EQMODEL, T_TABLE, T_GRAPH, T_ZOOM, T_CAS, T_ENG, T_EQNOTE };
+       T_EQMODEL, T_TABLE, T_GRAPH, T_ZOOM, T_CAS, T_ENG, T_EQNOTE, T_CASCPLX };
 
 #define BUILTIN2 "\x01" "2*2 lin. solve"
 #define BUILTIN3 "\x01" "3*3 lin. solve"
@@ -439,6 +439,10 @@ size_t ab_state_save(const ab_calc *c, uint8_t *buf, size_t cap)
     for (int i = 0; i < c->eqn_count; i++) w8(&w, c->eqn_note[i]);
     sec_end(&w, s);
 
+    s = sec_begin(&w, T_CASCPLX);               /* version 20 (unit 076): CAS3's CPLX, SOLVE's complex roots */
+    w8(&w, c->cas_cplx);
+    sec_end(&w, s);
+
     {
         size_t total = w.len + 4;
         for (int i = 0; i < 4; i++)
@@ -640,6 +644,7 @@ bool ab_line_ok(ab_op op, int32_t arg)
     case AB_CASSOLVE: case AB_CASINT: case AB_CASFACT: case AB_CASDEF:                                /* (048, 056) */
     case AB_CASQUOT: case AB_CASGCD: case AB_CASCANCL:                                                /* (057) */
     case AB_CASSUM: case AB_KINF:                                                                     /* (070) */
+    case AB_CASCPLX:                                                                                  /* (076) */
     case AB_ENGL: case AB_ENGR:                                                                       /* (041 C) */
     case AB_FRACFMT: case AB_CLEQN:     /* nonprogrammable since 019 and 021 (load_fuzz's line sweep) */
         return false;
@@ -1233,7 +1238,7 @@ static bool parse(rd *r)
         unsigned tag = r16(r);
         uint32_t size = r32(r);
         size_t end;
-        if (r->bad || tag <= last || tag > T_EQNOTE || size > r->len - r->pos) return false;
+        if (r->bad || tag <= last || tag > T_CASCPLX || size > r->len - r->pos) return false;
         last = tag;
         end = r->pos + size;
         switch (tag) {
@@ -1282,6 +1287,15 @@ static bool parse(rd *r)
         case T_EQNOTE:
             if (r->version >= 17) sec_eqnote(r);
             else r->pos = end;                  /* an image before 057: no labels */
+            break;
+        case T_CASCPLX:                         /* unit 076; an image before 20 has none, so CPLX loads off */
+            if (r->version >= 20) {
+                unsigned on = r8(r);
+                need(r, flag_byte(on));
+                if (!r->bad && r->c) r->c->cas_cplx = on;
+            } else {
+                r->pos = end;                   /* (as T_EQNOTE before 17: the tests relabel newer images) */
+            }
             break;
         default: sec_solve(r); break;
         }

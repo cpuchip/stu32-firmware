@@ -247,7 +247,9 @@ MENUS = [
     # unit 057 (abacus #5670): CAS 010 on the third page, last in this list so no menu's index moves; QUOT and GCD
     # prompt for the variable, then take g in the editor; CANCL acts on the num÷den shown; the sixth key back to CAS
     ("CAS3", [p("QUOT", "AB_CASQUOT", "KM_ARG_VAR"), p("GCD", "AB_CASGCD", "KM_ARG_VAR"),
-              p("CANCL", "AB_CASCANCL", "KM_ARG_VAR"), NONE, NONE, ("\u25b8", "KM_MENU", "0", "CAS", 0)]),
+              p("CANCL", "AB_CASCANCL", "KM_ARG_VAR"),
+              o("CPLX", "AB_CASCPLX"),             # 076: SOLVE's complex roots on or off (decision 88), marked when on
+              NONE, ("\u25b8", "KM_MENU", "0", "CAS", 0)]),
     # unit 070 (abacus #8545): typing's bar while Σ's upper bound is typed, last in this list so no menu's index moves;
     # = has no meaning in a bound, so its key types ∞ there (the label shows it while it is live)
     ("EQN TYPE SUM", [o("\u25c0", "AB_KLEFT"), o("\u25b6", "AB_KRIGHT"), o("( )", "AB_KPAREN"), o("\u221e", "AB_KINF"),

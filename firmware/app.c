@@ -1678,7 +1678,8 @@ void app_ui(const app_state *a, screen_ui *ui)
                 c->lmode[c->prog[c->pc].arg])
                 mode = c->lmode[c->prog[c->pc].arg];
             ui->soft_on[i] = it->kind == KM_OP && ((it->op == AB_MODEL && it->arg == mode) ||
-                                                   (it->op == AB_ENTRYM && (it->arg == 1) == c->alg));
+                                                   (it->op == AB_ENTRYM && (it->arg == 1) == c->alg) ||
+                                                   (it->op == AB_CASCPLX && c->cas_cplx));    /* 076: CPLX on */
             if (it->kind == KM_OP && it->op == AB_ENTRYM && it->arg == 1 && !c->stu) ui->soft[i] = NULL;   /* STU's */
         }
         ui->soft_sub[i] = it->kind == KM_MENU;  /* a submenu: its box marked (#3958) */

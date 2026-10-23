@@ -3193,6 +3193,7 @@ static abn_status program_key(ab_calc *c, ab_op op, int arg)
     case AB_CASSOLVE: case AB_CASINT: case AB_CASFACT: case AB_CASDEF:                          /* 048, 056 */
     case AB_CASQUOT: case AB_CASGCD: case AB_CASCANCL:                                          /* 057 */
     case AB_CASSUM:                                                                             /* 070 */
+    case AB_CASCPLX:                        /* 076: a setting, as ENTRYM */
         return ABN_NONPROGRAMMABLE;
     case AB_FDISP:
     case AB_CLALL:                          /* in program entry the menu offers CLPGM in its place
@@ -3857,7 +3858,9 @@ static abn_status cas_step(ab_calc *c, int op, int var, const char *repl, const 
         if (r == 2) return ABN_CAS_TOO_LONG;
         text = t33;
     }
-    casim_req rq = {(casim_op)op, text, c->eqn_model[c->eqn_cur], var, repl, AB_MODEL_STU, c->angle, repl2};  /* repl2: ∫AB's upper bound (056) */
+    casim_req rq = {(casim_op)op, text, c->eqn_model[c->eqn_cur], var, repl, AB_MODEL_STU,
+                    (int)c->angle | (c->cas_cplx ? CASIM_COMPLEX : 0), repl2};  /* repl2: ∫AB's upper bound (056); 076:
+                                                   CPLX's bit on every op, as CAS 020 rule 2 allows */
     cs = casim_run(&rq, out, sizeof out, ab_cas_arena, sizeof ab_cas_arena);
     if (cs == CASIM_DECIMAL_FORM) cs = CASIM_OK;    /* CAS 019 rule 5: fractions past the cap or the arena, so casim's
                                                    answer in 4f24e3e's decimal form: an answer as before (its label waits
@@ -3874,6 +3877,9 @@ static abn_status cas_step(ab_calc *c, int op, int var, const char *repl, const 
     if ((op == CASIM_PDIV || op == CASIM_CANCEL || op == CASIM_SUM) && cs == CASIM_OK)
         return cas_rows(c, op, out);            /* units 057, 070 */
     if (op == CASIM_SOLVE && cs == CASIM_OK) {  /* a report, not an equation: its view opens on the status row */
+        if (!c->cas_cplx && c->eqn_model[c->eqn_cur] != 33 && !strcmp(out, "NO REAL ROOTS"))
+            snprintf(out, sizeof out, "NO REAL ROOTS. CAS3 CPLX ON");   /* 076: where to turn it on (stu-discover; a 33s
+                                                   equation has no complex numbers, so not there) */
         snprintf(c->cas_rep, sizeof c->cas_rep, "%s", out);
         c->cas_row = 0;
         return ABN_OK;
@@ -4064,6 +4070,7 @@ static bool eqn_setting(ab_op op)
     case AB_DEG: case AB_RAD: case AB_GRAD: case AB_SETFIX: case AB_SETSCI: case AB_SETENG: case AB_SETALL:
     case AB_DEC: case AB_HEX: case AB_OCT: case AB_BIN: case AB_FDISP: case AB_FRACFMT: case AB_MODEL:
     case AB_XIY: case AB_RTA: case AB_BEEP: case AB_SF: case AB_CF: case AB_CLVARS: case AB_CLSIGMA:
+    case AB_CASCPLX:                                /* unit 076: CPLX acts while the list is shown */
         return true;
     default:
         return false;
@@ -4328,7 +4335,7 @@ static bool alg_setting(ab_op op)
     case AB_MODEL: case AB_ENTRYM: case AB_DEG: case AB_RAD: case AB_GRAD: case AB_SETFIX: case AB_SETSCI:
     case AB_SETENG: case AB_SETALL: case AB_DEC: case AB_HEX: case AB_OCT: case AB_BIN: case AB_FDISP: case AB_CLALL:
     case AB_CLPGM: case AB_CLVARS: case AB_VIEW: case AB_FRACFMT: case AB_SF: case AB_CF: case AB_BEEP: case AB_XIY:
-    case AB_RTA:
+    case AB_RTA: case AB_CASCPLX:                   /* (076: CPLX, a setting) */
         return true;
     default:
         return false;
@@ -5359,6 +5366,10 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
         if (arg != AB_MODEL_STU) alg_leave(c);      /* ALG is STU's: 33s or 35s returns to RPN (rule 2) */
         c->stu = arg == AB_MODEL_STU;               /* STU behaves as 35s (decision 51, rule 1) */
         c->m35 = arg != 33;
+        return ABN_OK;
+    case AB_CASCPLX:                            /* unit 076: SOLVE's complex roots on or off (CAS3's CPLX); neutral
+                                                   for lift as the other settings */
+        c->cas_cplx = !c->cas_cplx;
         return ABN_OK;
     case AB_ENTRYM:
         /* RPN or ALG (unit 029 rule 2: ALG in STU only); neutral for lift as the other settings.

@@ -1,0 +1,73 @@
+# Work unit 076: CPLX, SOLVE's complex roots
+
+**From:** decision 88 (Michael), CAS 020's CASIM_COMPLEX · **Proposed:** soroban #9798, #9799 · **Ruled:** abacus #9803
+(approved as drafted; one more vector: a non-solve op byte for byte the same with the bit on). It doesn't gate Casimir
+1.0.0.
+
+## What it does
+
+- **CAS3's fourth key is CPLX,** empty before. It's a toggle, off at MEMORY CLEAR. When on, CAS3 shows it marked, as
+  MODE's keys are. A menu closes after its key, as every menu does, so the mark shows the next time CAS3 opens.
+- **With CPLX on, every CAS call carries CASIM_COMPLEX** in its angle (CAS 020 rule 2: any op takes it, only solve reads
+  it).
+  - SOLVE prints a quadratic factor's conjugate pair in casim's form: X^2+X+1 is
+    `SOLVED: X=(-1-SQRT(3)×0i1)÷2; X=(-1+SQRT(3)×0i1)÷2`.
+  - ENTER on a root puts its value in X through the core's evaluation, as for a real root (048 R02). In STU that's a
+    complex X.
+- **The CAS menu is STU's only, so "35s and STU modes" is the equation's stamp** (abacus #9803). A 35s- or STU-stamped
+  equation gets the pair. A 33s-stamped one stays real, because casim ignores the bit in model 33, whose equations
+  have no complex numbers.
+- **NO REAL ROOTS says where to turn it on** (the stu-discover rule). With CPLX off, an equation not stamped 33s, and
+  casim's row NO REAL ROOTS, the report's status row reads `NO REAL ROOTS. CAS3 CPLX ON` (27 cells). A 33s equation
+  keeps plain NO REAL ROOTS, since the setting can't help it.
+  - **Approved as `NO REAL ROOTS: CAS3 CPLX ON` (#9803); built with a period.** The report splits casim's line at its
+    first ": " into the status row and the root rows (ab_cas_row). With the colon the hint became a root row of its
+    own, where SST would stop and ENTER would try to evaluate "CAS3 CPLX ON". The first build showed it: 048 S05's
+    %CASROW read NO_REAL_ROOTS, the hint gone from the status row.
+- **A setting:**
+  - the calculator's field cas_cplx, in the image (version 20, the section T_CASCPLX, one byte; an image before 20 has
+    none and loads it off);
+  - toggling takes an UNDO mark;
+  - NONPROGRAMMABLE in program entry, as ENTRYM;
+  - it acts in Equation mode (eqn_setting) and on ALG's line (alg_setting), so 075's refusal predicates take it
+    from their own lists.
+- **HELP:** [AB_CASCPLX], and [AB_CASSOLVE]'s third line, "Complex ones: CAS3 CPLX on."
+
+## Not in this unit
+
+- With CPLX off, (X-2)×(X^2+1) says `SOLVED: X=2` and leaves the pair out without a word. That's casim's "leave them
+  out", right over the reals. A note that a complex pair was left out is casim's to add after 1.0 (abacus #9803, on
+  casim's follow-up list).
+- Programs toggling CPLX: after v1 if anyone asks (#9803).
+
+## Checks
+
+- **tests/076-soroban.txt, 13 rows.** Each text is casim's CLI at e5f798b (v1.0.0-rc7), 16,384 B, with and without
+  `--complex`.
+  - Off: the hint (C01), and the pair left out over the reals (C05).
+  - On: the pair (C02); ENTER on a root gives X = -0.5 i 0.866… (C03); the real root first, then the pair (C04).
+  - The toggle twice is off (C06).
+  - 33s-stamped, on and off: plain NO REAL ROOTS (C07, C08). 35s-stamped, on: the pair (C09).
+  - CPLX acts while the list is shown (C10).
+  - A derivative and a sum, byte for byte the same with the bit on (C11, C12; #9803's addition).
+  - NONPROGRAMMABLE (C13).
+- **app_test:** CAS3's fourth key is CPLX, unmarked at MEMORY CLEAR and marked when on. The image keeps it on, and keeps
+  it off. UNDO takes the toggle back.
+- **load_fuzz:** CASCPLX is never a program line (ab_line_ok). The first build left it out, and load_fuzz found it: a
+  forged CASCPLX line was accepted.
+- **The image's older versions:** a T_CASCPLX section in an image below 20 is skipped, as T_EQNOTE's below 17. The
+  first build refused it, and 025's N04 and N13 found that: they relabel a new image as version 4.
+- **048 S05 moved:** an STU equation with no real roots now shows the hint, as ruled.
+- make test rc 0, peak 170,952 KB. help_test 766,849 checks, 305 of 305 entries shown (the sweep reaches CPLX). app_test
+  777. keymap_test 2,871.
+- **Mutants,** each red:
+
+| mutant | what it breaks | red |
+|---|---|---|
+| M1 | the bit never sent | C02 C03 C04 C09 C10 |
+| M2 | the hint for 33s equations too | C08 |
+| M3 | no hint | C01 C06 |
+| M4 | the image byte not written | app_test's image check |
+| M5 | not an Equation-mode setting | C07 C09 C10, 3 app_test |
+| M6 | programmable | C13 |
+| M7 | the toggle only turns on | C06 |

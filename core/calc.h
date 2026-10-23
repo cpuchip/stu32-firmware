@@ -154,10 +154,14 @@ typedef enum {
     /* unit 070 (CAS 018, the CAS menu's second page), in arg's variable: Σ from lo to hi, the editor taking each bound as
        ∫AB's does ("ΣK FROM", "ΣK TO"); the answer is inserted, then each condition casim gives as a row labeled WHERE.
        ∞ types U+221E, on the typing bar's fourth key while Σ's upper bound is typed (and nowhere else) */
-    AB_CASSUM, AB_KINF
+    AB_CASSUM, AB_KINF,
+    /* unit 076 (decision 88, CAS 020): CAS3's CPLX, the complex-roots setting: on, every CAS call carries CASIM_COMPLEX,
+       so SOLVE prints a quadratic factor's conjugate pair as (A±B×SQRT(r)×0i1)÷D where it said NO REAL ROOTS (casim
+       ignores it in model 33, whose equations have no complex numbers); a setting in the image, not a program line */
+    AB_CASCPLX
 } ab_op;
 
-#define AB_OP_LAST AB_KINF     /* the last op: loops over every op end here */
+#define AB_OP_LAST AB_CASCPLX  /* the last op: loops over every op end here */
 
 /* Why the last run stopped (unit 012 rule 1): the device draws it; the core never waits. */
 typedef enum {
@@ -420,6 +424,7 @@ typedef struct {
        expression line in ebuf (the equation editor's), = evaluating it into ans */
     bool stu;               /* STU mode (MODE's F3); in the state image */
     bool alg;               /* ALG entry (MODE's F5, STU only); in the state image */
+    bool cas_cplx;          /* unit 076: CAS3's CPLX, SOLVE's complex roots (off at MEMORY CLEAR); in the state image */
     ab_val ans;             /* ANS: the last result, 0 to begin; in the state image */
     bool alg_eval;          /* the line is being evaluated: the parser knows ANS (not in the image) */
     bool alg_shown;         /* the line shows its result: the next digit or function starts a new

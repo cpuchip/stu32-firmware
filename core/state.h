@@ -22,7 +22,7 @@
 
 #include "calc.h"
 
-#define AB_STATE_VERSION 19     /* 19 (unit 070): no new field; a label may be WHERE (a sum's condition), and the messages
+#define AB_STATE_VERSION 20     /* 20 (unit 076): CAS3's CPLX, SOLVE's complex roots (T_CASCPLX, one byte); 19 (unit 070): no new field; a label may be WHERE (a sum's condition), and the messages
                                    NO CLOSED FORM, BAD BOUND and A CONDITION may be the one showing; 18 (CAS 015): no new field; the message CAN'T DECIDE (ABN_CAS_UNDECIDED) may be the one
                                    showing; 17 (unit 057): each equation's label (T_EQNOTE); 16 (unit 056): no new field; the messages IMPROPER INTEGRAL, UNDEFINED, BOUND NOT
                                    NUMERIC and BOUND NOT REAL may be the one showing; 15 (unit 048): no new field; the messages NOT A POLYNOMIAL, COEF NOT NUMERIC,

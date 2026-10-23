@@ -4542,6 +4542,36 @@ int main(void)
         }
     }
 
+    /* unit 076 (decision 88, abacus #9803): CAS3's fourth key is CPLX, SOLVE's complex roots: off at MEMORY CLEAR,
+       marked when on; the image keeps it (a fresh calculator loads it on); UNDO takes the toggle back, as a setting */
+    {
+        static uint8_t u0[262144], u1[262144], im[65536];
+        static ab_calc c2;
+        ab_init(&c);
+        app_init(&a, &c, now);
+        app_undo_buffers(&a, u0, u1, sizeof u0);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        ab_eqn_add(&c, "X^2+X+1");
+        press(&a, "k:4 k:5 k:5");
+        app_ui(&a, &ui);
+        expect(ui.soft[3] && !strcmp(ui.soft[3], "CPLX") && !ui.soft_on[3] && !c.cas_cplx,
+               "076: CAS3's fourth key is CPLX, off at MEMORY CLEAR, unmarked");
+        press(&a, "k:3");                       /* (a menu closes after its key, as MODE's) */
+        expect(c.cas_cplx, "076: CPLX on");
+        press(&a, "k:4 k:5 k:5");
+        app_ui(&a, &ui);
+        expect(ui.soft_on[3], "076: CAS3 again: CPLX's key marked when on");
+        size_t n = ab_state_save(&c, im, sizeof im);
+        ab_init(&c2);
+        expect(n > 0 && n <= sizeof im && ab_state_load(&c2, im, n) == ABN_OK && c2.cas_cplx,
+               "076: the image keeps CPLX: a fresh calculator loads it on");
+        press(&a, "C BLUE \xe2\x86\x90");           /* the menu closed, then UNDO */
+        expect(!c.cas_cplx, "076: UNDO takes the toggle back, as a setting");
+        n = ab_state_save(&c, im, sizeof im);
+        ab_init(&c2);
+        c2.cas_cplx = true;
+        expect(ab_state_load(&c2, im, n) == ABN_OK && !c2.cas_cplx, "076: an image with CPLX off loads it off");
+    }
     printf("app_test: %d/%d checks\n", checks - bad, checks);
     return bad != 0;
 }
