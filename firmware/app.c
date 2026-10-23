@@ -1029,9 +1029,10 @@ void app_key(app_state *a, int key, uint32_t now_ms)
             }
             do_action(a, it);
             if ((it->kind == KM_DEVICE && (it->arg == KM_DEV_USE || it->arg == KM_DEV_USEALL)) ||
-                (it->kind == KM_OP && (it->op == AB_ENGL || it->op == AB_ENGR)))
+                (it->kind == KM_OP && (it->op == AB_ENGL || it->op == AB_ENGR || it->op == AB_CASCPLX)))
                 a->menu = at;                   /* the buzzer's uses: toggled with the menu open (ours); ENG→ / ←ENG
-                                                   pressed again from DISP (ours, 041 C) */
+                                                   pressed again from DISP (ours, 041 C); CAS3's CPLX, so its mark
+                                                   shows the toggle at once (076, fresh eyes) */
             return;
         }
         if (cx_prefix(a, at)) {

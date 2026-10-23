@@ -6,8 +6,11 @@
 
 ## What it does
 
-- **CAS3's fourth key is CPLX,** empty before. It's a toggle, off at MEMORY CLEAR. When on, CAS3 shows it marked, as
-  MODE's keys are. A menu closes after its key, as every menu does, so the mark shows the next time CAS3 opens.
+- **CAS3's fourth key is CPLX,** empty before. It's a toggle, off at MEMORY CLEAR, and STU's, as every CAS key: in
+  33s or 35s mode the core says STU ONLY.
+  - When on, CAS3 shows it marked, as MODE's keys are.
+  - CAS3 stays open after CPLX, as the buzzer's USE keys keep theirs, so the mark shows the toggle at once. Fresh eyes
+    asked for this, since every other menu closes after its key.
 - **With CPLX on, every CAS call carries CASIM_COMPLEX** in its angle (CAS 020 rule 2: any op takes it, only solve reads
   it).
   - SOLVE prints a quadratic factor's conjugate pair in casim's form: X^2+X+1 is
@@ -35,14 +38,15 @@
 
 ## Not in this unit
 
-- With CPLX off, (X-2)×(X^2+1) says `SOLVED: X=2` and leaves the pair out without a word. That's casim's "leave them
+- With CPLX off, (X-2)×(X^2+1) says `SOLVED: X=2`, and (X^2+1)×(X^3-2×X-5) says `PARTIAL, DEGREE 3 LEFT` (fresh
+  eyes). Each leaves the pair out without a word. That's casim's "leave them
   out", right over the reals. A note that a complex pair was left out is casim's to add after 1.0 (abacus #9803, on
   casim's follow-up list).
 - Programs toggling CPLX: after v1 if anyone asks (#9803).
 
 ## Checks
 
-- **tests/076-soroban.txt, 13 rows.** Each text is casim's CLI at e5f798b (v1.0.0-rc7), 16,384 B, with and without
+- **tests/076-soroban.txt, 18 rows.** Each text is casim's CLI at e5f798b (v1.0.0-rc7), 16,384 B, with and without
   `--complex`.
   - Off: the hint (C01), and the pair left out over the reals (C05).
   - On: the pair (C02); ENTER on a root gives X = -0.5 i 0.866… (C03); the real root first, then the pair (C04).
@@ -51,6 +55,10 @@
   - CPLX acts while the list is shown (C10).
   - A derivative and a sum, byte for byte the same with the bit on (C11, C12; #9803's addition).
   - NONPROGRAMMABLE (C13).
+  - From fresh eyes:
+    - four pairs pass the 191-byte answer, RESULT TOO LONG where off gave the hint (C14);
+    - PARTIAL with the quadratic's pair on (C15), and off without it (C16);
+    - CPLX in 35s mode is STU ONLY (C17), and leaves the setting unchanged (C18).
 - **app_test:** CAS3's fourth key is CPLX, unmarked at MEMORY CLEAR and marked when on. The image keeps it on, and keeps
   it off. UNDO takes the toggle back.
 - **load_fuzz:** CASCPLX is never a program line (ab_line_ok). The first build left it out, and load_fuzz found it: a
@@ -71,3 +79,14 @@
 | M5 | not an Equation-mode setting | C07 C09 C10, 3 app_test |
 | M6 | programmable | C13 |
 | M7 | the toggle only turns on | C06 |
+- **Fresh eyes (a subagent) found no defect.** The bit reaches every casim call (one casim_run). casim strips it before
+  any angle check; six ops matched with it on and off in DEG, RAD and GRAD. The hint fires exactly on casim's lone
+  NO REAL ROOTS. The image, UNDO and MEMORY CLEAR are sound.
+  - What came of its notes:
+    - the PARTIAL case is in "Not in this unit" and C15/C16;
+    - CPLX's help says "a quadratic's complex pair";
+    - SOLVE's help says C ends the report again;
+    - C14 pins the RESULT TOO LONG;
+    - CAS3 stays open after CPLX;
+    - CPLX is STU's.
+  - Each of the last two is red without its fix: C17 and C18 for the STU check, 3 app_test checks for the open menu.

@@ -4556,11 +4556,11 @@ int main(void)
         app_ui(&a, &ui);
         expect(ui.soft[3] && !strcmp(ui.soft[3], "CPLX") && !ui.soft_on[3] && !c.cas_cplx,
                "076: CAS3's fourth key is CPLX, off at MEMORY CLEAR, unmarked");
-        press(&a, "k:3");                       /* (a menu closes after its key, as MODE's) */
-        expect(c.cas_cplx, "076: CPLX on");
-        press(&a, "k:4 k:5 k:5");
+        press(&a, "k:3");
         app_ui(&a, &ui);
-        expect(ui.soft_on[3], "076: CAS3 again: CPLX's key marked when on");
+        expect(c.cas_cplx, "076: CPLX on");
+        expect(ui.soft[3] && !strcmp(ui.soft[3], "CPLX") && ui.soft_on[3],
+               "076: CAS3 stays open, CPLX's key marked at once (as the buzzer's uses; fresh eyes)");
         size_t n = ab_state_save(&c, im, sizeof im);
         ab_init(&c2);
         expect(n > 0 && n <= sizeof im && ab_state_load(&c2, im, n) == ABN_OK && c2.cas_cplx,

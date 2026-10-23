@@ -1227,7 +1227,7 @@ replaces it, ENTER. C cancels.
 The result is added.
 [AB_CASSOLVE]
 SOLVE, then a letter: its exact
-roots. ▲▼ step, ENTER: to X.
+roots. ▲▼, ENTER: to X, C ends.
 Complex ones: CAS3 CPLX on.
 [AB_CASINT]
 ∫DX, then a letter: the anti-
@@ -1258,8 +1258,8 @@ CANCL, then a letter: reduces a
 top÷bottom. NOT AT rows: the
 values it removed.
 [AB_CASCPLX]
-On: SOLVE gives complex roots,
-in pairs, as 1-2×0i1, 1+2×0i1.
+On: SOLVE gives a quadratic's
+complex pair: 1-2×0i1, 1+2×0i1.
 33s equations stay real.
 [AB_KINF]
 Types ∞ in Σ's upper bound, TO.

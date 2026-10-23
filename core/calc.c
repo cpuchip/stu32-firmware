@@ -5368,7 +5368,8 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
         c->m35 = arg != 33;
         return ABN_OK;
     case AB_CASCPLX:                            /* unit 076: SOLVE's complex roots on or off (CAS3's CPLX); neutral
-                                                   for lift as the other settings */
+                                                   for lift as the other settings; STU's, as every CAS key (fresh eyes) */
+        if (!c->stu) return ABN_STU_ONLY;
         c->cas_cplx = !c->cas_cplx;
         return ABN_OK;
     case AB_ENTRYM:

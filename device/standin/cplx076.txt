@@ -1,0 +1,86 @@
+# Unit 076 on the stand-in: CAS3's CPLX from the keys. MEMORY CLEAR's CPLX is off: SOLVE of X^2+X+1 reports NO REAL
+# ROOTS with the hint; C leaves the report; CAS (F5), CAS2 (F6), CAS3 (F6), CPLX (F4) turns it on; SOLVE again gives the
+# conjugate pair, casim's text at e5f798b with --complex. Then the calc task's stack low-water mark is no lower than the
+# deep paths' worst (8,188 B free). Keys from tests/stackkeys.c (cas s). Ends with a control that must FAIL.
+wait : heap internal 30
+sleep 3
+send WIPE
+expect wipe: both slots erased
+send RESTART
+expect load: no image: MEMORY CLEAR 30
+wait READY 30
+send X
+expect ver=0.76 5
+send K42
+sleep 0.25
+send K42
+sleep 0.25
+send K36
+sleep 0.25
+send K18
+sleep 0.25
+send K2
+sleep 0.25
+send K42
+sleep 0.25
+send K30
+sleep 0.25
+send K43
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K9
+sleep 0.25
+send K38
+sleep 0.25
+send K46
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K46
+sleep 0.25
+send K37
+sleep 0.25
+send K18
+sleep 0.25
+send K4
+sleep 0.25
+send K5
+sleep 0.25
+send K0
+sleep 0.25
+send K33
+sleep 0.25
+sleep 3
+send X
+expect rep=NO REAL ROOTS. CAS3 CPLX ON 10
+send K42
+sleep 0.5
+send K4
+sleep 0.25
+send K5
+sleep 0.25
+send K5
+sleep 0.25
+send K3
+sleep 0.25
+send K4
+sleep 0.25
+send K5
+sleep 0.25
+send K0
+sleep 0.25
+send K33
+sleep 0.25
+sleep 3
+send X
+expect rep=SOLVED: X=(-1-SQRT(3)×0i1)÷2; X=(-1+SQRT(3)×0i1)÷2 10
+send X
+expect-min stack-free 8188 10
+send X
+# CONTROL: must FAIL
+expect rep=NO SUCH REPORT 3
