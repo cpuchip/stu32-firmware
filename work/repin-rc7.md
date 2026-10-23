@@ -87,3 +87,13 @@ in 1.0: CAS 025, 026).
   - pins: casim=01267e8b2c2f22b91e3e1f15639cf9ebd3bc44de, the field VER's CASIM shows.
   - S60 and S63/S64 as at rc7; stack-free 23,732 B.
   - The port moved at the flash (ACM3 to ACM1). The rerun on the new port, with no flash, passed.
+
+## Casimir 1.0.1 (abacus #10132)
+
+- **The pin moves to c40422c,** the commit of v1.0.1 (annotated tag 5f62b43), published as Latest.
+- **01267e8..c40422c, read here:** casim.h changes only the version (1.0.1, PATCH 1). casim.c is CAS 027 (accepted at
+  cfdb18f, #10109): the sum's shift reads a function factor of the ratio (SIN(Z), SQRT(Z), LN(Z)) as one more letter.
+  cfdb18f..c40422c is the version text alone.
+- **No row moved.** make test rc 0 at c40422c, peak RSS 236,800 KB: 048 65/65, 056 43/43, 057 37/37, 070 63/63,
+  076 20/20, every one of the 87 vector files full. S63/S64's sum runs from 0, where CAS 027's shift (s <= lo) has no room.
+- device/standin/repin-rc7.txt's pin line names c40422c.

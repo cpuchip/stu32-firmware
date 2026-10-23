@@ -1,4 +1,4 @@
-# The repin to Casimir 1.0.0 (CASIM_PIN casimir 01267e8, the v1.0.0 tag; its src is rc7's but for the version) with the CAS
+# The repin to Casimir 1.0.1 (CASIM_PIN casimir c40422c, the v1.0.1 tag; its src is rc7's plus CAS 027 and the version) with the CAS
 # arena at 16,384 B
 # (decision 88, abacus #9747), on the stand-in with interrupts live: VER names the pin; from the keys (DEG, MEMORY CLEAR's
 # angle; SIN(Z) is a function of the letter Z, not of K, so the angle changes no text here):
@@ -14,7 +14,7 @@ send RESTART
 expect load: no image: MEMORY CLEAR 30
 wait READY 30
 send X
-expect pins: casim=01267e8b2c2f22b91e3e1f15639cf9ebd3bc44de 5
+expect pins: casim=c40422c34b8a14f32c58f6e1c018372568ddf664 5
 # 070's S60: a closed form past 12,288 B
 send K42
 sleep 0.25
