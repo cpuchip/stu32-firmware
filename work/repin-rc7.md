@@ -103,3 +103,9 @@ in 1.0: CAS 025, 026).
   - At 01267e8 both are red: the answer divides by SIN(Z), there are 4 lines, not 3, and the first row is Z≠0. That
     answer has no value at Z = π, where the sum is Y.
   - make test rc 0 with them, peak RSS 171,580 KB; 070 65/65 (127/127), its slices 1, 7 and 1,000 too.
+- **The stand-in at 1da5600:** ver=0.77, pins casim=c40422c34b8a14f32c58f6e1c018372568ddf664.
+  - repin-rc7.txt: every row met, with the control at its line 384 red. S60's sum answers, S63's answer and its
+    SIN(Z)≠0 row (WHERE) are there, and stack-free is 23,732 B (floor 8,188).
+  - casrows.txt: ALL MET.
+  - The port moved at the flash (ACM3 to ACM1); the rerun with no flash passed.
+- abacus checked S65's text against its own log at both tags (#10153). tally builds the APK from 1da5600.
