@@ -1,0 +1,201 @@
+# MOLES under APPS on the board (arcade's unit 078, soroban's gate; stu32-arcade docs/moles.md): GAMES's second
+# page (K5, more) lists SALVO, 3720, MOLES and CATCH, so MOLES is K2 there. ENTER plays gentle, where a mole waits
+# until it is bonked. A sweep presses 7 8 9 4 5 6 1 2 3 in turn, quicker than 1.1 s, so it bonks exactly once
+# whatever the seed: the first 1.2 s after ENTER (the first mole rises at 1.0 s), each next one 2.5 s after the last
+# (abacus #10278). A bonk sounds 220 Hz then 1,320 Hz. Five sweeps, five bonks, and none until the next sweep; five
+# sweeps of + (no job), none. Which hole each key reaches is the host's check (make molescheck). C ends MOLES, and
+# 2 ENTER 3 + must give 5.
+send RESTART
+wait STANDIN READY 30
+# C twice first, then X = 4, so the closing 2 ENTER 3 + = 5 can fail (soroban's shape, 6388bc4)
+send K42
+send U42
+send K42
+send U42
+send K38
+send U38
+send K18
+send U18
+send K38
+send U38
+send K46
+send U46
+send X
+expect X=4
+send X
+expect stack-free
+send K36
+send U36
+send K43
+send U43
+sleep 1
+send K1
+send U1
+sleep 1
+send K5
+send U5
+sleep 1
+send K2
+send U2
+sleep 1
+send X
+expect app: MOLES
+send K18
+send U18
+sleep 1.2
+send K25
+send U25
+send K26
+send U26
+send K27
+send U27
+send K31
+send U31
+send K32
+send U32
+send K33
+send U33
+send K37
+send U37
+send K38
+send U38
+send K39
+send U39
+expect tone: app 220 Hz 30 ms 2
+expect-none tone: app 220 Hz 2.5
+send K25
+send U25
+send K26
+send U26
+send K27
+send U27
+send K31
+send U31
+send K32
+send U32
+send K33
+send U33
+send K37
+send U37
+send K38
+send U38
+send K39
+send U39
+expect tone: app 220 Hz 30 ms 2
+expect-none tone: app 220 Hz 2.5
+send K25
+send U25
+send K26
+send U26
+send K27
+send U27
+send K31
+send U31
+send K32
+send U32
+send K33
+send U33
+send K37
+send U37
+send K38
+send U38
+send K39
+send U39
+expect tone: app 220 Hz 30 ms 2
+expect-none tone: app 220 Hz 2.5
+send K25
+send U25
+send K26
+send U26
+send K27
+send U27
+send K31
+send U31
+send K32
+send U32
+send K33
+send U33
+send K37
+send U37
+send K38
+send U38
+send K39
+send U39
+expect tone: app 220 Hz 30 ms 2
+expect-none tone: app 220 Hz 2.5
+send K25
+send U25
+send K26
+send U26
+send K27
+send U27
+send K31
+send U31
+send K32
+send U32
+send K33
+send U33
+send K37
+send U37
+send K38
+send U38
+send K39
+send U39
+expect tone: app 220 Hz 30 ms 2
+expect-none tone: app 220 Hz 2.5
+send K46
+send U46
+send K46
+send U46
+send K46
+send U46
+send K46
+send U46
+send K46
+send U46
+send K46
+send U46
+send K46
+send U46
+send K46
+send U46
+send K46
+send U46
+expect-none tone: app 220 Hz 2.5
+send K46
+send U46
+send K46
+send U46
+send K46
+send U46
+send K46
+send U46
+send K46
+send U46
+send K46
+send U46
+send K46
+send U46
+send K46
+send U46
+send K46
+send U46
+expect-none tone: app 220 Hz 2.5
+send X
+expect-min stack-free 2048
+expect app: MOLES
+send K42
+send U42
+sleep 1
+send X
+expect app: -
+send K38
+send U38
+send K18
+send U18
+send K39
+send U39
+send K46
+send U46
+send X
+expect X=5

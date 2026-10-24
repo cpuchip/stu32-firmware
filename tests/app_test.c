@@ -3313,7 +3313,8 @@ int main(void)
         bool p2 = true;
         for (int i = 0; i < 5; i++)
             p2 = p2 && (5 + i < ng ? ui.soft[i] && !strcmp(ui.soft[i], g[5 + i]) : !ui.soft[i] || !*ui.soft[i]);
-        expect(p2 && !strcmp(g[ng - 1], "SALVO"), "072: GAMES's second page: SALVO, last in the registry");
+        expect(p2 && ng == 9 && !strcmp(g[5], "SALVO") && !strcmp(g[ng - 1], "CATCH"),
+               "078: GAMES's second page: SALVO, 3720, MOLES, CATCH, last in the registry");
         press(&a, "k:5");
         app_ui(&a, &ui);
         expect(ui.soft[0] && !strcmp(ui.soft[0], g[0]), "072: more on the last page wraps to the first");

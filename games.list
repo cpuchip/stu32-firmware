@@ -15,3 +15,10 @@ snake  stu32-arcade  5947c16d6b96928b5511129a6024c2ea570d152e  MIT              
 mines  stu32-arcade  7344045c918f2818963ab5946aca3f3d3fad644f  MIT                        games/mines/stu32-game.txt
 # SALVO: arcade's, hold off the swarm (Michael's ruling on the games plan, abacus #8569; stu32-arcade docs/salvo.md)
 salvo  stu32-arcade  bca20f0ef5161e63d287921f7cfed26a72dfd4e9  MIT                        games/salvo/stu32-game.txt
+# 3720: arcade's, fly through the rocks, for a young player who doesn't read yet (Michael, abacus #10254, #10280;
+# stu32-arcade docs/3720.md); the menu's name is 3720, the id rocks (an id starts with a letter)
+rocks  stu32-arcade  7686766a1e99a7c4555071d28b6189fb144a9bfd  MIT                        games/3720/stu32-game.txt
+# MOLES: arcade's, nine holes in the number pad's layout (Michael, abacus #10256, #10280; stu32-arcade docs/moles.md)
+moles  stu32-arcade  7686766a1e99a7c4555071d28b6189fb144a9bfd  MIT                        games/moles/stu32-game.txt
+# CATCH: arcade's, catch the falling stars (Michael, abacus #10256, #10280; stu32-arcade docs/catch.md)
+catch  stu32-arcade  7686766a1e99a7c4555071d28b6189fb144a9bfd  MIT                        games/catch/stu32-game.txt
