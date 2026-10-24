@@ -138,3 +138,13 @@ in 1.0: CAS 025, 026).
 - **device/standin/repin-rc7.txt** names 840f09a and gains, after the pin, (X-2)×(X^2+1) SOLVEd from the keys in STU
   with CPLX off: `rep=SOLVED, 2 CPLX: X=2`. The keys are `stackkeys cas s`, replayed through the app on the host to that
   report first. Then WIPE and RESTART, back to MEMORY CLEAR for S60's keys.
+
+**Decision 68, `scripts/resources.py static 3624a8c b7d98ea`:** flash +560 on the stand-in and +592 on Rev A (put_left_out);
+internal RAM +0, IRAM +0, calc_task's frame +0, no internal-RAM symbol changed.
+
+**The stand-in at b7d98ea:** ver=0.77, pins casim=840f09a588e0f18ab73f2931f2054092a37f8f1c.
+- repin-rc7.txt: every row met, with the control (its line 453) red. From the keys: `rep=SOLVED, 2 CPLX: X=2`;
+  S60's sum answers; S63's answer and its SIN(Z)≠0 row (WHERE); stack-free 23,732 B (floor 8,188).
+- casrows.txt: ALL MET.
+- A first run from the uncommitted tree (core=3624a8c+dirty) passed the same way, after the port moved at its flash
+  (ACM1 to ACM3). It was flashed again from the commit so the board names it; the port held.
