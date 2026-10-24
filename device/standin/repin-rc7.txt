@@ -1,10 +1,10 @@
-# The repin to Casimir 1.1.0 (CASIM_PIN casimir 840f09a, the v1.1.0 tag; its src is rc7's plus CAS 027, CAS 028 and the version) with the CAS
+# The repin to Casimir 1.1.1 (CASIM_PIN casimir 751b23c, the v1.1.1 tag; its src is rc7's plus CAS 027, CAS 028, CAS 029 and the version) with the CAS
 # arena at 16,384 B
 # (decision 88, abacus #9747), on the stand-in with interrupts live: VER names the pin; from the keys (DEG, MEMORY CLEAR's
 # angle; SIN(Z) is a function of the letter Z, not of K, so the angle changes no text here):
 # 070's S60, NO_ROOM at 12,288 B, answers at 16,384; 070's S63 (CAS 026) answers and its first
 # row is SIN(Z)≠0, labeled WHERE (at 2ba7217 the first row was ABS(Y×SIN(Z))<1); then the calc task's stack low-water
-# mark is no lower than the deep paths' worst (8,188 B free). Each expected text is casim's CLI at e0ef88a, 16,384 B (rc7 differs only in CASIM_VERSION).
+# mark is no lower than the deep paths' worst (8,188 B free). Each expected text is casim's CLI at e0ef88a, 16,384 B (rc7 differs only in CASIM_VERSION). 070's S67 and S68 (CAS 029) are casim's CLI at 751b23c.
 # Keys from tests/stackkeys.c; SST is blue R/S (36 45). Ends with a control that must FAIL (the old pin).
 wait : heap internal 30
 sleep 3
@@ -14,7 +14,7 @@ send RESTART
 expect load: no image: MEMORY CLEAR 30
 wait READY 30
 send X
-expect pins: casim=840f09a588e0f18ab73f2931f2054092a37f8f1c 5
+expect pins: casim=751b23c66bcaf56643cdef45d6b1840c4e5b0b14 5
 # CAS 028 (Casimir 1.1.0) on the keys: STU, (X-2)×(X^2+1) typed and SOLVEd with CPLX off; the pair left out is counted
 # (076 C05; keys from stackkeys cas s, replayed through the app on the host to this report)
 send K42
@@ -446,6 +446,73 @@ send K45
 sleep 0.5
 send X
 expect eqn: SIN(Z)≠0 | note=WHERE 10
+# 070's S67 and S68: CAS 029 (Casimir 1.1.1), X^K÷Y^K from 1 to N read as one ratio (NO_CLOSED_FORM at 1.1.0)
+send K42
+sleep 0.25
+send K42
+sleep 0.25
+send K36
+sleep 0.25
+send K18
+sleep 0.25
+send K2
+sleep 0.25
+send K42
+sleep 0.25
+send K30
+sleep 0.25
+send K43
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K9
+sleep 0.25
+send K13
+sleep 0.25
+send K16
+sleep 0.25
+send K28
+sleep 0.25
+send K13
+sleep 0.25
+send K37
+sleep 0.25
+send K9
+sleep 0.25
+send K13
+sleep 0.25
+send K16
+sleep 0.25
+send K18
+sleep 0.25
+send K4
+sleep 0.25
+send K5
+sleep 0.25
+send K4
+sleep 0.25
+send K16
+sleep 0.25
+send K37
+sleep 0.25
+send K18
+sleep 0.25
+send K13
+sleep 0.25
+send K19
+sleep 0.25
+send K18
+sleep 5
+send X
+expect eqn: -X÷(X-Y)+(X÷Y)^(N+1)÷(X÷Y-1) | note=- 15
+send K36
+sleep 0.25
+send K45
+sleep 0.5
+send X
+expect eqn: Y≠0 | note=WHERE 10
 send X
 expect-min stack-free 8188 10
 send X
