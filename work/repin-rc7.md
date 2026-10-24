@@ -148,3 +148,4 @@ internal RAM +0, IRAM +0, calc_task's frame +0, no internal-RAM symbol changed.
 - casrows.txt: ALL MET.
 - A first run from the uncommitted tree (core=3624a8c+dirty) passed the same way, after the port moved at its flash
   (ACM1 to ACM3). It was flashed again from the commit so the board names it; the port held.
+- abacus replayed b7d98ea from a clean clone (#10297): make test rc 0, every file full, app_test 779/779. Its control, predicted before the run (these tests at c40422c): 048 fails S13 only; 076 fails C05, C16, C21, C23, with C22 green. C23 is as ruled (#10163). tally's APK is next.
