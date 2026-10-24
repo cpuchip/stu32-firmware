@@ -68,7 +68,10 @@ B, MOLES 192 B, CATCH 136 B on the host, under APP_CTX_MAX), so internal RAM is 
     once, before the board had echoed the + keys, with no 220 Hz tone on the board. talk.py put its own verdicts in
     the lines expects search, and expect-none's verdict repeats its TEXT, so the next expect-none of the same TEXT
     matched it. 94c56cb keeps verdicts out (the port's notes and a failed send stay in, since scripts wait for
-    them). moles.txt is the only script with two such expect-nones in a row, so no earlier result changes.
+    them). No earlier result changes. help075.txt and ver069.txt repeat a same-text expect-none too, but with plain
+    expects between, which move the search past the verdict (abacus #10482). A verdict could also have made a later
+    plain expect pass if its text sat inside one; the tree's one such shape (reva/usb-headless.txt line 73's `state:`
+    after line 59's expect-none) has three plain expects between, so it could not.
   - With the fix: rocks.txt, moles.txt and catch.txt ALL MET. Five bonks (220 then 1,320 Hz) in five sweeps and none
     in the + sweeps; four wall bumps in CATCH; 3720 at 479.1 frames a second; stack-free 29,044 B in each.
   - **Each dead key's check fails when a live key replaces +** (throwaway scripts in build/): 3720 with GOLD for +,
