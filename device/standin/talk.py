@@ -92,12 +92,16 @@ last_send = [0]                                # index in lines of the first lin
 stop = False
 
 
-def note(text):
+def note(text, seen=False):
+    """print and log TEXT; only a note a script may wait for (seen: the port's loss and return, a failed send) joins
+    the lines that expects search. A verdict stays out: expect-none's repeats its own TEXT, so the next expect-none of
+    the same TEXT matched it at once and failed (moles.txt at unit 078's gate)"""
     print(text, flush=True)
     out.write(text + "\n")
     out.flush()
-    with lock:
-        lines.append(text)
+    if seen:
+        with lock:
+            lines.append(text)
 
 
 def reader():
@@ -107,11 +111,11 @@ def reader():
         try:
             buf += s.read(4096)
         except (serial.SerialException, OSError) as e:
-            note(f"talk.py: port lost ({e}); opening {port} again")
+            note(f"talk.py: port lost ({e}); opening {port} again", seen=True)
             while not stop:
                 try:
                     s = open_port()
-                    note(f"talk.py: port open again ({s.port})")
+                    note(f"talk.py: port open again ({s.port})", seen=True)
                     break
                 except (serial.SerialException, OSError):
                     time.sleep(0.1)
@@ -196,7 +200,7 @@ def send(text):
     try:
         s.write(text.encode() + b"\n")
     except (serial.SerialException, OSError) as e:
-        note(f"talk.py: send {text!r} failed ({e})")
+        note(f"talk.py: send {text!r} failed ({e})", seen=True)
 
 
 failures = 0
