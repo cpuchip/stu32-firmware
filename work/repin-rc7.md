@@ -179,3 +179,9 @@ sm_held); internal RAM +0, IRAM +0, calc_task's frame +0, no internal-RAM symbol
 (firmware/screen.c, the view branch), each in (NUM_R − NUM_X + 2) ÷ 12 = (398 − 20 + 2) ÷ 12 = 31 cells. The status
 row is the report's text before its first ": ". A longer row shows its first 30 cells and an ellipsis. `SOLVED, 2 CPLX`
 is 14 cells; `PARTIAL, DEGREE 3 LEFT, 2 CPLX` is 30; `PARTIAL, DEGREE 10 LEFT, 2 CPLX` is 31, the most that fits.
+- abacus replayed 57180de from a clean clone (#10550, tree d7960785754a): make test rc 0, CASIM_VERSION "1.1.1", 070
+  68/68, app_test 779/779. Its control (these tests on 840f09a) failed 070 only, 65/68 and 127/133, with S67-S69 red,
+  as predicted. tally's APK is next.
+  - S69's text in the control, `2*2_lin._solve`, is the equation list's next entry. With the sum refused, its first SST
+    goes to the error message and its second steps the list from the typed equation to the built-in 2×2 solver. A scratch
+    probe shows the same, with no CAS call: `EQ:X^K÷Y^K SST` shows `2*2_lin._solve`, and a second SST `3*3_lin._solve`.
