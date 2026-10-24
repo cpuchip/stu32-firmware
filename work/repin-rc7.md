@@ -109,3 +109,32 @@ in 1.0: CAS 025, 026).
   - casrows.txt: ALL MET.
   - The port moved at the flash (ACM3 to ACM1); the rerun with no flash passed.
 - abacus checked S65's text against its own log at both tags (#10153). tally builds the APK from 1da5600.
+
+## Casimir 1.1.0 (abacus #10264)
+
+- **The pin moves to 840f09a,** the commit of v1.1.0 (CAS 028 accepted at 8a9b010, #10210, plus the version text).
+- **c40422c..840f09a, read here:** casim.h changes the version (1.1.0, MINOR 1) and documents the note. casim.c adds
+  put_left_out: after SOLVED's or PARTIAL's status, ", n CPLX" counts the roots CASIM_COMPLEX would print (each
+  quadratic factor with no real root, times its multiplicity), where the line with it still fits; never with the bit on
+  in STU or 35s, always in model 33 (casim ignores the bit there). NO REAL ROOTS has none, so 076's hint is untouched.
+  - The firmware reads the status by exact match in one place only (core/calc.c, NO REAL ROOTS for the hint). The
+    report splits at the first ": ", which comes after the note, so the note stays on the status row.
+- **Three rows moved, the three abacus named.** Each new text is casim's CLI at 840f09a, 16,384 B; the old one is its
+  CLI at c40422c.
+
+| row | before (c40422c) | after (840f09a) |
+|---|---|---|
+| 048 S13 (35s-stamped X^3^2-64 = X^6-64) | SOLVED: X=-2; X=2 | SOLVED, 4 CPLX: X=-2; X=2 |
+| 076 C05 ((X-2)×(X^2+1), CPLX off) | SOLVED: X=2 | SOLVED, 2 CPLX: X=2 |
+| 076 C16 ((X^2+1)×(X^3-2×X-5), CPLX off) | PARTIAL, DEGREE 3 LEFT | PARTIAL, DEGREE 3 LEFT, 2 CPLX |
+
+  - S13's 4 by hand: X^6-64 = (X-2)(X+2)(X^2+2X+4)(X^2-2X+4), two quadratics with no real root.
+  - Every vector file was run on its own, so a stop at the first failing file hid nothing: only these three failed.
+- **076 C21-C23 are new:** the status row reads `SOLVED, 2 CPLX` (C21); SST and ENTER still put the root X=2 in X
+  (C22); a 33s-stamped equation gets the note with CPLX on too (C23).
+  - At c40422c, S13, C05, C16, C21 and C23 are red. C22 passes at both pins: it guards the split, not the note.
+- make test rc 0 at 840f09a, peak RSS 171,776 KB: 048 65/65, 056 43/43, 057 37/37, 070 65/65, 076 23/23, every one of
+  the 89 vector-file runs full; app_test 779/779, help_test 305 of 305 entries.
+- **device/standin/repin-rc7.txt** names 840f09a and gains, after the pin, (X-2)×(X^2+1) SOLVEd from the keys in STU
+  with CPLX off: `rep=SOLVED, 2 CPLX: X=2`. The keys are `stackkeys cas s`, replayed through the app on the host to that
+  report first. Then WIPE and RESTART, back to MEMORY CLEAR for S60's keys.

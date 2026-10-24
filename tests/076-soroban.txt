@@ -3,12 +3,13 @@
 # quadratic factor's conjugate pair prints as (A±B×SQRT(r)×0i1)÷D. A 33s-stamped equation stays real (casim ignores
 # the bit in model 33). With it off, NO REAL ROOTS says where to turn it on, except for a 33s equation. Each expected
 # text is casim's CLI at e5f798b (the v1.0.0-rc7 tag), 16,384 B, with and without --complex. %CASREP's blanks are _.
+# C05, C16 and C21-C23 are casim's CLI at 840f09a (the v1.1.0 tag, CAS 028: a pair left out is counted as ", n CPLX").
 # ID | description | keys | expected
 C01 | 076: off (MEMORY CLEAR), NO REAL ROOTS says where: CAS3's CPLX | STU EQ:X^2+X+1 CASSOLVE:X | %CASREP=NO_REAL_ROOTS._CAS3_CPLX_ON %CASROW=NO_REAL_ROOTS._CAS3_CPLX_ON
 C02 | 076: on, the conjugate pair (CAS 020 rule 3), the negative imaginary part first | STU CASCPLX EQ:X^2+X+1 CASSOLVE:X | %CASREP=SOLVED:_X=(-1-SQRT(3)×0i1)÷2;_X=(-1+SQRT(3)×0i1)÷2
 C03 | 076: on, ENTER on the second root: its value to X through the core's evaluation, complex (-1+i√3)÷2 | STU CASCPLX EQ:X^2+X+1 CASSOLVE:X SST SST ENTER | X^-0.5i0.8660254037844386467637231707529362 %CASREP=none
 C04 | 076: on, the real root first, then the pair: (X-2)×(X^2+1) | STU CASCPLX EQ:(X-2)×(X^2+1) CASSOLVE:X | %CASREP=SOLVED:_X=2;_X=-0i1;_X=0i1
-C05 | 076: off, the pair left out over the reals, as before (casim's "leave them out"; a note is casim's follow-up) | STU EQ:(X-2)×(X^2+1) CASSOLVE:X | %CASREP=SOLVED:_X=2
+C05 | 076: off, the pair left out over the reals, counted after the status since Casimir 1.1.0 (CAS 028's ", n CPLX") | STU EQ:(X-2)×(X^2+1) CASSOLVE:X | %CASREP=SOLVED,_2_CPLX:_X=2
 C06 | 076: on twice is off: the toggle | STU CASCPLX CASCPLX EQ:X^2+X+1 CASSOLVE:X | %CASREP=NO_REAL_ROOTS._CAS3_CPLX_ON
 C07 | 076: a 33s-stamped equation (typed in 33s mode, MEMORY CLEAR's) with CPLX on stays real: plain NO REAL ROOTS | EQ:X^2+X+1 C STU EQN CASCPLX CASSOLVE:X | %CASREP=NO_REAL_ROOTS
 C08 | 076: a 33s-stamped equation with CPLX off: plain NO REAL ROOTS, no hint (the setting can't help there) | EQ:X^2+X+1 C STU EQN CASSOLVE:X | %CASREP=NO_REAL_ROOTS
@@ -19,8 +20,11 @@ C12 | 076 (#9803 3): and a sum (070's S03) | STU CASCPLX RAD EQ:K^2 CASSUM:K 1 E
 C13 | 076: not a program line (NONPROGRAMMABLE, as ENTRYM) | STU PRGM CASCPLX | ERR %ERR=NONPROGRAMMABLE %LINES=0
 C14 | 076 (fresh eyes): on, the pairs can pass the 191-byte answer: RESULT TOO LONG, where off said NO REAL ROOTS with the hint (the decimal retry can't shorten a root, CAS 020 rule 6) | STU CASCPLX EQ:(X^2+X+1)×(X^2+3×X+7)×(X^2+5×X+11)×(X^2+7×X+19) CASSOLVE:X | ERR %ERR=CAS_TOO_LONG %ERRMSG=RESULT_TOO_LONG
 C15 | 076 (fresh eyes): PARTIAL keeps its line; on, the quadratic's pair follows (the cubic's own roots stay out, CAS 020 rule 1) | STU CASCPLX EQ:(X^2+1)×(X^3-2×X-5) CASSOLVE:X | %CASREP=PARTIAL,_DEGREE_3_LEFT:_X=-0i1;_X=0i1
-C16 | 076 (fresh eyes): off, PARTIAL leaves the pair out without a word (casim's follow-up, as C05's) | STU EQ:(X^2+1)×(X^3-2×X-5) CASSOLVE:X | %CASREP=PARTIAL,_DEGREE_3_LEFT
+C16 | 076 (fresh eyes): off, PARTIAL leaves the pair out, counted since 1.1.0 (CAS 028, as C05's) | STU EQ:(X^2+1)×(X^3-2×X-5) CASSOLVE:X | %CASREP=PARTIAL,_DEGREE_3_LEFT,_2_CPLX
 C17 | 076 (fresh eyes): CPLX is STU's, as every CAS key: in 35s mode STU ONLY | MODE35 CASCPLX | ERR %ERR=STU_ONLY
 C18 | 076 (fresh eyes): and the setting is unchanged by it: SOLVE in STU then reports the hint | MODE35 CASCPLX STU EQ:X^2+X+1 CASSOLVE:X | ERR %CASREP=NO_REAL_ROOTS._CAS3_CPLX_ON
 C19 | 076 (abacus #9863): the image keeps CPLX: on, SAVE, MEMORY CLEAR (off), LOAD gives it back, so SOLVE gives the pair | STU CASCPLX SAVE MEMCLR LOAD EQ:X^2+X+1 CASSOLVE:X | %CASREP=SOLVED:_X=(-1-SQRT(3)×0i1)÷2;_X=(-1+SQRT(3)×0i1)÷2
 C20 | 076: and MEMORY CLEAR alone turns it off: the hint again | STU CASCPLX MEMCLR STU EQ:X^2+X+1 CASSOLVE:X | %CASREP=NO_REAL_ROOTS._CAS3_CPLX_ON
+C21 | 076 at 1.1.0: the note stays on the status row (the report splits at the first ": ", after it) | STU EQ:(X-2)×(X^2+1) CASSOLVE:X | %CASROW=SOLVED,_2_CPLX
+C22 | 076 at 1.1.0: and the root is still its own row, ENTER putting it in X | STU EQ:(X-2)×(X^2+1) CASSOLVE:X SST ENTER | X=2
+C23 | 076 at 1.1.0: a 33s-stamped equation gets the note with CPLX on too (casim ignores the bit in model 33) | EQ:(X-2)×(X^2+1) C STU EQN CASCPLX CASSOLVE:X | %CASREP=SOLVED,_2_CPLX:_X=2

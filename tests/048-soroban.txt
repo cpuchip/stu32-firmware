@@ -16,7 +16,7 @@ S09 | 048 SOLVE (V0017): COEF NOT NUMERIC | STU EQ:A×X^2-1 CASSOLVE:X | ERR %ER
 S10 | 048 SOLVE (V0018): past solve's bounds, TOO COMPLEX | STU EQ:X^14-1 CASSOLVE:X | ERR %ERR=CAS_NO_ROOM %ERRMSG=TOO_COMPLEX
 S11 | 048 SOLVE (V0020): twelve roots past 191 bytes, RESULT TOO LONG | STU EQ:(X^2-X-3)×(X^2-X-5)×(X^2-X-7)×(X^2-X-11)×(X^2-X-13)×(X^2-X-17) CASSOLVE:X | ERR %ERR=CAS_TOO_LONG %ERRMSG=RESULT_TOO_LONG
 S12 | 048 SOLVE in the stamp (V0014): X^3^2-64 stamped STU is X^9-64 | STU EQ:X^3^2-64 CASSOLVE:X | %CASREP=PARTIAL,_DEGREE_9_LEFT
-S13 | 048 SOLVE in the stamp: stamped 35s it is X^6-64, (X-2)(X+2) and two quadratics with no real roots (by hand) | MODE35 EQ:X^3^2-64 C STU EQN CASSOLVE:X | %CASREP=SOLVED:_X=-2;_X=2
+S13 | 048 SOLVE in the stamp: stamped 35s it is X^6-64, (X-2)(X+2) and two quadratics with no real roots (by hand), counted as 4 CPLX since Casimir 1.1.0 (CAS 028) | MODE35 EQ:X^3^2-64 C STU EQN CASSOLVE:X | %CASREP=SOLVED,_4_CPLX:_X=-2;_X=2
 S14 | 048 SOLVE: STU only | MODE35 EQ:X^2-1 CASSOLVE:X | ERR %ERR=STU_ONLY
 R01 | 048 report ENTER: the root under the cursor to X, the stack lifted as RCL; the view left, nothing stored | 7 STU EQ:X^2-5×X+6=0 CASSOLVE:X SST ENTER | X=2 Y=7 %CASREP=none %EQN=1
 R02 | 048 report ENTER (V0006): (1+SQRT(5))÷4 through the core's evaluation, 34 digits (by hand: SQRT(5) rounded, +1, ÷4 exact) | STU EQ:0.5×X^2-0.25×X-0.125 CASSOLVE:X SST SST ENTER | X=0.809016994374947424102293417182819

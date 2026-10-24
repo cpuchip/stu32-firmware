@@ -42,6 +42,8 @@
   eyes). Each leaves the pair out without a word. That's casim's "leave them
   out", right over the reals. A note that a complex pair was left out is casim's to add after 1.0 (abacus #9803, on
   casim's follow-up list).
+  - **Added in Casimir 1.1.0 (CAS 028):** they now say `SOLVED, 2 CPLX: X=2` and `PARTIAL, DEGREE 3 LEFT, 2 CPLX`. C05
+    and C16 moved, and C21-C23 are new (work/repin-rc7.md, "Casimir 1.1.0").
 - Programs toggling CPLX: after v1 if anyone asks (#9803).
 
 ## Checks
