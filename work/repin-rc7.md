@@ -149,3 +149,33 @@ internal RAM +0, IRAM +0, calc_task's frame +0, no internal-RAM symbol changed.
 - A first run from the uncommitted tree (core=3624a8c+dirty) passed the same way, after the port moved at its flash
   (ACM1 to ACM3). It was flashed again from the commit so the board names it; the port held.
 - abacus replayed b7d98ea from a clean clone (#10297): make test rc 0, every file full, app_test 779/779. Its control, predicted before the run (these tests at c40422c): 048 fails S13 only; 076 fails C05, C16, C21, C23, with C22 green. C23 is as ruled (#10163). tally's APK is next.
+
+## Casimir 1.1.1 (abacus #10525)
+
+- **The pin moves to 751b23c,** the commit of v1.1.1 (annotated tag e529b8a): CAS 029 (accepted at 33b265d, #10353),
+  the version text (bb74460) and three of casim's rows for rule 3's positive base (751b23c).
+- **840f09a..751b23c's src, read here:** casim.h changes only the version (1.1.1, PATCH 1). casim.c adds sm_fall and
+  sm_held: in a sum, a typed divisor's power of b (b free of K) counts as kept where canon's power of b falls in K, so
+  `X^K÷Y^K` reads as the ratio `(X÷Y)^K` and gets its answer and rows. Sums 1.1.0 refused move; no answer it gave does.
+- **No row moved.** make test rc 0 at 751b23c, peak RSS 236,780 KB. Every vector file run on its own, each with its own
+  runner (vectors, or fmt_vectors for 002 and the -fmt files), is full: 048 65/65, 056 43/43, 057 37/37, 070 65/65,
+  076 23/23.
+- **070 S67-S69 put CAS 029 on the keys.** `X^K÷Y^K` from 1 to N answers `-X÷(X-Y)+(X÷Y)^(N+1)÷(X÷Y-1)` with the rows
+  `Y≠0` and `X÷Y≠1`. That's casim's CLI at 751b23c, 16,384 B,
+  the same in RAD and DEG. At 840f09a the CLI says NO_CLOSED_FORM, and 070 is 65/68 with S67-S69 red, the only file
+  that moves there.
+- device/standin/repin-rc7.txt names 751b23c and, after S63/S64, runs S67 and S68 from the keys (`stackkeys cas S`).
+
+**Decision 68, `scripts/resources.py static 6d6ed1d 584705e`:** flash +416 on the stand-in and +416 on Rev A (sm_fall and
+sm_held); internal RAM +0, IRAM +0, calc_task's frame +0, no internal-RAM symbol changed.
+
+**The stand-in at 584705e:** ver=0.78, pins casim=751b23c66bcaf56643cdef45d6b1840c4e5b0b14.
+- repin-rc7.txt: 12 of 12 met, with the control (its line 520) red. `rep=SOLVED, 2 CPLX: X=2`; S60's sum answers; S63's
+  answer and SIN(Z)≠0 (WHERE); S67's answer and Y≠0 (WHERE); stack-free 23,732 B (floor 8,188).
+- casrows.txt: ALL MET. make clang-check: 66 files, 0 failing.
+- The port moved at the flash (ACM1 to ACM3); the rerun with no flash passed.
+
+**The status row's room (for casim's CPLX wording, abacus #10525):** SOLVE's report draws four rows at scale 2
+(firmware/screen.c, the view branch), each in (NUM_R − NUM_X + 2) ÷ 12 = (398 − 20 + 2) ÷ 12 = 31 cells. The status
+row is the report's text before its first ": ". A longer row shows its first 30 cells and an ellipsis. `SOLVED, 2 CPLX`
+is 14 cells; `PARTIAL, DEGREE 3 LEFT, 2 CPLX` is 30; `PARTIAL, DEGREE 10 LEFT, 2 CPLX` is 31, the most that fits.
