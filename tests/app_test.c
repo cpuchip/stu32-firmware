@@ -3290,9 +3290,9 @@ int main(void)
     /* unit 072 (abacus #8570, #8600, #8679): APPS lists KEYS, then GAMES; GAMES pages the folder's games five at a time
        with more, in the registry's order; C or back-arrow returns to APPS; a game starts from GAMES */
     {
-        const char *g[8];
+        const char *g[16];
         int ng = 0;
-        for (int r = 0; r < app_registry_n && ng < 8; r++)
+        for (int r = 0; r < app_registry_n && ng < 16; r++)
             if (app_registry_folder[r] == APP_FOLDER_GAMES) g[ng++] = app_registry[r]->name;
         static uint8_t gctx[APP_CTX_MAX];         /* (a game's state: the device's buffer) */
         ab_init(&c);
