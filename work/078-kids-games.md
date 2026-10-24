@@ -46,4 +46,33 @@ B, MOLES 192 B, CATCH 136 B on the host, under APP_CTX_MAX), so internal RAM is 
 - **make test:** rc 0 at the unit's head: app_test 779/779 (the second page's row included), standin_test 349/349,
   the games-list generator GREEN. The row's falsifier, CATCH dropped from games.list: app_test 778/779 (run on the
   unit's first draft, the same row).
-- **The stand-in runs at the gate:** soroban's.
+- **The stand-in runs at the gate:** soroban's, below.
+
+## The gate (soroban, 2026-10-24)
+
+- **The patches:** sha256 b9995efc… and 7506dfda…, as sent (arcade #10464). git am onto b83431f gives tree 0b7e1fd30c9d,
+  as arcade's. The games built from a fresh stu32-arcade clone at 7686766 (on origin/main).
+- **make test rc 0** (peak RSS 170,284 KB): app_test 779/779, standin_test 349/349, help_test 305 of 305 entries, every
+  vector file full; gen_games 9 games; version 0.78. make clang-check 66 files, 0 failing.
+- **Mutants on the second page's row,** app_test each time:
+  - CATCH dropped from games.list: 778/779.
+  - GAMES's block back to eight slots: 778/779.
+  - **3720 and MOLES swapped: 779/779, a gap.** The row pinned SALVO first and CATCH last, not the two between,
+    though its message names all four. 70d6a11 checks each name in order: swapped, 778/779; MOLES moved last,
+    778/779; the real list 779/779.
+- **Decision 68, `scripts/resources.py static b83431f 70d6a11`:** arcade's figures to the byte. Flash +21,760 on the
+  stand-in and +21,392 on Rev A (libmain +21,115 and +21,071). DIRAM, IRAM and calc_task's frame +0; no internal-RAM
+  symbol changed.
+- **The stand-in at 70d6a11** (ver=0.78, pins rocks, moles and catch at 7686766):
+  - **moles.txt's first run failed, on my instrument.** Lines 164 and 183, the two + sweeps' expect-nones, failed at
+    once, before the board had echoed the + keys, with no 220 Hz tone on the board. talk.py put its own verdicts in
+    the lines expects search, and expect-none's verdict repeats its TEXT, so the next expect-none of the same TEXT
+    matched it. 94c56cb keeps verdicts out (the port's notes and a failed send stay in, since scripts wait for
+    them). moles.txt is the only script with two such expect-nones in a row, so no earlier result changes.
+  - With the fix: rocks.txt, moles.txt and catch.txt ALL MET. Five bonks (220 then 1,320 Hz) in five sweeps and none
+    in the + sweeps; four wall bumps in CATCH; 3720 at 479.1 frames a second; stack-free 29,044 B in each.
+  - **Each dead key's check fails when a live key replaces +** (throwaway scripts in build/): 3720 with GOLD for +,
+    FAIL at line 82 (the shot's click); MOLES with a real sweep for the first + sweep, FAIL at 164 on a sixth bonk;
+    CATCH with SOFT1 for +, FAIL at 58 (a wall bump).
+  - salvo, babal, land, aim, snake and mines ALL MET: the first page and SALVO's place on the second are unchanged.
+  - The port moved at the flash (ACM3 to ACM1); the reruns had no flash.
