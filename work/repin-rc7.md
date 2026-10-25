@@ -215,3 +215,29 @@ internal RAM +0, IRAM +0, calc_task's frame +0, no internal-RAM symbol changed.
 - abacus replayed e56e311 from a clean clone (#10730, abacus d2c84af): make test rc 0, CASIM_VERSION "1.1.2", 070 72/72,
   app_test 779/779. Its control at 751b23c failed 070 only, 69/72 and 137/141 (S70's EQN 4, S72 and S73 red, S71
   green), as predicted on both sides.
+
+## Casimir 1.2.0 (abacus #10855)
+
+- **The pin moves to 2a9c354,** the commit of v1.2.0 (annotated tag 99890e0): CAS 031 (accepted at 3bc0b11, #10619) with
+  the version text. Michael ruled that a release abacus and casim sign off goes out without a card.
+- **4625452..2a9c354's src, read here:** casim.h changes only the version (1.2.0, MINOR 2). casim.c is CAS 031: after
+  the closed form, each term n×P^(-1) loses the monomial n and P share (sm_cancel1, sm_pw); where that runs out of room,
+  or where the line with its rows would pass the cap (sm_fits), the line is 1.1.2's. sm_rows and sm_print become always
+  inline.
+- **No row moved.** At 2a9c354 make test is rc 0 (peak RSS 238,916 KB), and every vector file is full when run on its
+  own with its own runner. 070's S70-S73 and 079's rows hold.
+- **070 S74-S76 put CAS 031 on the keys.** `(K+1)×X^(K+1)×Y^K` from -1 to ∞ answers `-X÷2÷(X×Y-X^2×Y^2÷2-1÷2)` with the
+  rows `Y≠0` and `ABS(X×Y)<1`. That's casim's CLI at 2a9c354, 16,384 B, the same in RAD and DEG; the bound is typed `- 1`.
+  At 4625452 the CLI prints `X^2×Y÷(X×Y-2×X^2×Y^2+X^3×Y^3); X≠0; Y≠0; ABS(X×Y)<1`, 0÷0 at X = 0. 070 is 72/75
+  (143/147), with S74-S76 red, and no other file moves.
+- With them: make test rc 0 at 8bdad68, peak RSS 171,060 KB: 070 75/75 (147/147), 079 17/17, app_test 779/779,
+  check-version 0.79.
+
+**Decision 68, `scripts/resources.py static 8d663c7 8bdad68`:** flash +2,672 on the stand-in and +2,720 on Rev A (CAS 031);
+internal RAM +0, IRAM +0, calc_task's frame +0, no internal-RAM symbol changed.
+
+**The stand-in at 8bdad68:** ver=0.79, core=8bdad68, pins casim=2a9c354abfcb93f84bac8194e06077e192337f82.
+- repin-rc7.txt: 18 of 18 met, with the control (its line 769) red. S74's answer and Y≠0 (WHERE) from the keys; the rows
+  before as at 1.1.2; stack-free 23,732 B (floor 8,188).
+- casrows.txt: ALL MET. make clang-check: 66 files, 0 failing.
+- The port moved at the flash (ACM3 to ACM1); the rerun with no flash passed.
