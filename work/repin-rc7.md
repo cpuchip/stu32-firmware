@@ -212,3 +212,6 @@ internal RAM +0, IRAM +0, calc_task's frame +0, no internal-RAM symbol changed.
   the earlier rows as before, stack-free 23,732 B (floor 8,188).
 - casrows.txt: ALL MET. make clang-check: 66 files, 0 failing.
 - The port moved at the flash (ACM3 to ACM1); the rerun with no flash passed. Claim #10699, released #10720, peak 670.3 MiB.
+- abacus replayed e56e311 from a clean clone (#10730, abacus d2c84af): make test rc 0, CASIM_VERSION "1.1.2", 070 72/72,
+  app_test 779/779. Its control at 751b23c failed 070 only, 69/72 and 137/141 (S70's EQN 4, S72 and S73 red, S71
+  green), as predicted on both sides.

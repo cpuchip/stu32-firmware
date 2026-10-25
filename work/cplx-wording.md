@@ -1,9 +1,10 @@
-# The CPLX note's wording: "2 CPLX ROOTS NOT SHOWN" (blueprint)
+# Unit 079: the CPLX note's wording, "2 CPLX ROOTS NOT SHOWN" (blueprint)
 
 **From:** abacus #10707, Michael's ruling on the card cmplx-wording: Casimir's ", n CPLX" (CAS 028) keeps its count, but
 "2 CPLX" was unclear. The calculator shows **"SOLVED, 2 CPLX ROOTS NOT SHOWN"**. The firmware rewrites the row as it
 draws it, and Casimir doesn't change. A PARTIAL status is already up to 31 characters (`PARTIAL, DEGREE 10 LEFT, 2
-CPLX`), so its note moves to a row of its own under the status row. The unit number is abacus's to give.
+CPLX`), so its note moves to a row of its own under the status row. Unit 079 (abacus #10726, which asked for the
+census, the no-real-roots case, every reader of the report and the count's bound, below).
 
 ## What Casimir prints (its CLI at 4625452, the pin, 16,384 B; the first, fourth and X^6-64 rows the same with `--model 33`)
 
@@ -18,8 +19,73 @@ CPLX`), so its note moves to a row of its own under the status row. The unit num
 
 - The count is the roots left out, two for each quadratic factor with no real root, times its multiplicity. So it is
   even, and "ROOTS" is always plural.
-- (X-1)×(X^2+1)^k is NO_ROOM for k = 6 to 10, 12, 15, 20 and 30, so 10 is the largest count measured here.
+- **The count's bound is solve's degree cap, SOLVE_DEG 12** (casim.c; docs/language.md: "NO_ROOM (degree past 12, …)").
+  SOLVED with a note has at least one real root, so its quadratics with no real root take degree 11 at most: the count
+  is at most 10. Twelve complex roots fill degree 12, and that is NO REAL ROOTS, which carries no note. PARTIAL keeps a
+  factor of degree 3 or more, so its count is at most 8 (casim's solve_test has `PARTIAL, DEGREE 4 LEFT, 8 CPLX`).
+  Measured: `(X^2+1)^5×(X^2-2)` is `SOLVED, 10 CPLX: X=-SQRT(2); X=SQRT(2)`; `(X^2+1)^6` is NO REAL ROOTS;
+  (X-1)×(X^2+1)^k for k = 6 to 10, 12, 15, 20 and 30, and X^13-1, are NO_ROOM. casim writes at most two digits
+  (put_left_out), which the cap never needs past 12. Any count of one or two digits fits SOLVED's row anyway.
 - The note never comes with the bit on in STU or 35s, and always comes in model 33. NO REAL ROOTS never has one.
+
+## The census (abacus #10726): every status with CPLX in Casimir at 4625452
+
+Every file at 4625452 that holds "CPLX" was read for status prefixes (the text before the first ": "): the golden corpus
+(tests/golden/corpus.txt, decimal.txt, moved/cas-028.txt), tests/solve_test.c, docs/language.md and
+docs/canonical-form.md, README.md, the work/ examples and notes (005, 020, 028, the release notes) and the scripts.
+There are **8 distinct statuses, and each ends in ", <n> CPLX"**:
+
+| status | where | row 0 | row 1 |
+|---|---|---|---|
+| `SOLVED, 2 CPLX` | 12 files, 336 times | `SOLVED, 2 CPLX ROOTS NOT SHOWN` | the first root |
+| `SOLVED, 4 CPLX` | 7 files, 24 times | `SOLVED, 4 CPLX ROOTS NOT SHOWN` | the first root |
+| `SOLVED, 10 CPLX` | work/028-examples.txt, solve_test.c | `SOLVED, 10 CPLX ROOTS NOT SHOWN` (31 cells) | the first root |
+| `PARTIAL, DEGREE 3 LEFT, 2 CPLX` | 4 files | `PARTIAL, DEGREE 3 LEFT` | `2 CPLX ROOTS NOT SHOWN` |
+| `PARTIAL, DEGREE 4 LEFT, 6 CPLX` | corpus, decimal, moved/cas-028 | `PARTIAL, DEGREE 4 LEFT` | `6 CPLX ROOTS NOT SHOWN` |
+| `PARTIAL, DEGREE 4 LEFT, 8 CPLX` | solve_test.c | `PARTIAL, DEGREE 4 LEFT` | `8 CPLX ROOTS NOT SHOWN` |
+| `PARTIAL, DEGREE 6 LEFT, 2 CPLX` | solve_test.c | `PARTIAL, DEGREE 6 LEFT` | `2 CPLX ROOTS NOT SHOWN` |
+| `PARTIAL, DEGREE 10 LEFT, 2 CPLX` | 5 files | `PARTIAL, DEGREE 10 LEFT` | `2 CPLX ROOTS NOT SHOWN` |
+
+- **None has anything after CPLX, and none can.** The one producer is casim.c's put_left_out, which builds ", " plus one
+  or two digits plus " CPLX", and inserts it before the line's first ':'. So the note always ends the status.
+- The only other "CPLX" text is the firmware's own hint, "NO REAL ROOTS. CAS3 CPLX ON", quoted in casim's
+  work/028 notes. It has no ", <n> CPLX", so the rule leaves it alone, as it should. The rest are prose templates
+  (", n CPLX") and code, not statuses.
+- Two passes: a pattern for status prefixes, and a looser 32-character window around every "CPLX", sorted and counted.
+  They give the same 8.
+
+## No real roots (abacus #10726)
+
+- Casimir prints `NO REAL ROOTS` with no note for `X^2+1`, `(X^2+1)×(X^2+4)` and `(X^2+1)^6`, in STU and in model 33
+  alike (CLI 4625452, 16,384 B). CAS 028 gives NO REAL ROOTS no note.
+- **So only one rewrite can apply, never both.** 076's hint rewrites the stored line at the call (core/calc.c: STU, CPLX
+  off, not 33-stamped, the line exactly `NO REAL ROOTS`) to `NO REAL ROOTS. CAS3 CPLX ON`. That has no ", <n> CPLX", so
+  this unit's row rule leaves it as it is. A line with the note is never exactly `NO REAL ROOTS`, so the hint never
+  fires on one.
+- **The oracle row:** `(X^2+1)×(X^2+4)`, STU, CPLX off: `%CASREP` and `%CASROW` are both `NO_REAL_ROOTS._CAS3_CPLX_ON`,
+  and the report has one row, so SST stays on it. The screen's X row reads `NO REAL ROOTS. CAS3 CPLX ON` (27 cells),
+  and the three rows above it are blank. Stamped 33s, it's plain `NO REAL ROOTS`.
+
+## Every reader of the report (abacus #10726)
+
+From `git grep` of cas_rep, ab_cas_report, ab_cas_row(s) and cas_row over the whole repo at 9575871, work/ aside:
+
+| reader | what it does | after 079 |
+|---|---|---|
+| firmware/screen.c, the report view | draws rows cas_row−3..cas_row | **goes through ab_cas_row**: the student's screen |
+| core/calc.c casrep_key, SST/BST | counts rows with ab_cas_rows | **through ab_cas_row**: the note's row is counted |
+| core/calc.c casrep_key, ENTER | evaluates the row's text after "=" | **through ab_cas_row**: the note's row has no "=", so nothing happens |
+| core/calc.c, the store (SOLVE's result) | writes casim's line, or 076's hint | the raw line, on purpose: the single source the rows are built from |
+| firmware/app.c, the menu name | `ab_cas_report() != NULL` gives the soft keys "CAS REPORT" | truthiness only; shows no text |
+| device/dev_common.h, the board's `eqn:` line | `rep=` the raw line | **raw on purpose**: the bench's serial instrument, never on the LCD. 079 adds `row=`, through ab_cas_row |
+| tests/vectors.c | `%CASREP` raw, `%CASROW` through ab_cas_row | raw on purpose (the test instrument); `%CASROW` is the student's row |
+| tests/app_test.c | `ab_cas_report()` as open or closed only | truthiness only |
+
+- No history, worksheet, store, recall or copy path reads cas_rep. ENTER puts a root's value in X, never the line, and
+  the report isn't in the state image (calc.h), so neither SAVE nor LOAD sees it.
+- **Not checked from here:** stu32-tutor, the primer and tally's Android app aren't checked out on lepton. If any of
+  them reads `ab_cas_report()` and shows the text, rather than drawing through screen.c or ab_cas_row, it would show
+  the raw "2 CPLX". Each needs one grep for `ab_cas_report` where it's checked out.
 
 ## The rows the report will show
 
@@ -73,7 +139,9 @@ CPLX`), so its note moves to a row of its own under the status row. The unit num
 6. ENTER on the note's row does nothing: SST ENTER leaves X as it was and the report open (`%CASROW` the note).
 7. PARTIAL with a root: `(X-3)×(X^2+1)×(X^3-2×X-5)`, SST SST gives `%CASROW=X=3`, and SST SST ENTER puts 3 in X.
 8. A 33s-stamped equation with CPLX on gets the same rewrite (C23's equation): `%CASROW=SOLVED,_2_CPLX_ROOTS_NOT_SHOWN`.
-9. Nothing else moves: NO REAL ROOTS. CAS3 CPLX ON (C01), CPLX on in STU (C04, no note) and every existing
+9. No real roots: `(X^2+1)×(X^2+4)`, STU, CPLX off: `%CASROW=NO_REAL_ROOTS._CAS3_CPLX_ON`, the same after SST (one
+   row), and `%CASREP` the same. Passes at e56e311 too: it guards the two rewrites against each other.
+10. Nothing else moves: NO REAL ROOTS. CAS3 CPLX ON (C01), CPLX on in STU (C04, no note) and every existing
    `%CASREP` row. The full make test stays green.
 
 **The board (device/standin):** repin-rc7.txt's CAS 028 step adds `expect row=SOLVED, 2 CPLX ROOTS NOT SHOWN` beside
