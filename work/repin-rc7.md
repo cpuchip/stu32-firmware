@@ -185,3 +185,30 @@ is 14 cells; `PARTIAL, DEGREE 3 LEFT, 2 CPLX` is 30; `PARTIAL, DEGREE 10 LEFT, 2
   - S69's text in the control, `2*2_lin._solve`, is the equation list's next entry. With the sum refused, its first SST
     goes to the error message and its second steps the list from the typed equation to the built-in 2×2 solver. A scratch
     probe shows the same, with no CAS call: `EQ:X^K÷Y^K SST` shows `2*2_lin._solve`, and a second SST `3*3_lin._solve`.
+
+## Casimir 1.1.2 (abacus #10707, basecamp #10694)
+
+- **The pin moves to 4625452,** the commit of v1.1.2 (annotated tag db77072): CAS 030 (accepted at 8462e77, #10472) with
+  the version text.
+- **751b23c..4625452's src, read here:** casim.h changes only the version (1.1.2, PATCH 2). casim.c is CAS 030: to N,
+  where the answer has no value at a function factor's zero and a term from lo divides by it, SIN, COS, TAN, LN, LOG,
+  ACOS and ACOSH of a letter keep their row (`SIN(Z)≠0`), as a letter's; the row gives way where the line with it would
+  pass 191 B (sm_rput).
+- **No row moved.** At 4625452 make test is rc 0 (peak RSS 237,056 KB), and every vector file is full when run on its
+  own with its own runner. With S70-S73 added: make test rc 0 at ce980f1 (peak RSS 171,244 KB), 070 72/72 (141/141),
+  app_test 779/779, standin_test 349/349.
+- **070 S70-S73 put CAS 030 on the keys.** `(Y÷SIN(Z))^K` from 1 to N answers
+  `-Y÷(Y-SIN(Z))+(Y÷SIN(Z))^(N+1)÷(Y÷SIN(Z)-1)` with the rows `Z≠0`, `SIN(Z)≠0` and `Y÷SIN(Z)≠1`. That's casim's CLI at
+  4625452, 16,384 B, the same in RAD and DEG. At 751b23c the CLI has no `SIN(Z)≠0`. 070 is 69/72 (137/141): S70's EQN
+  is 4, S72 shows `Y÷SIN(Z)≠1` and S73 the equation list's 2×2 solver, while S71's `Z≠0` passes at both pins. No other
+  file moves.
+- device/standin/repin-rc7.txt names 4625452 and, after S67/S68, runs S70's answer and its second row from the keys.
+
+**Decision 68, `scripts/resources.py static 09b8ea5 ce980f1`:** flash +224 on the stand-in and +224 on Rev A (CAS 030);
+internal RAM +0, IRAM +0, calc_task's frame +0, no internal-RAM symbol changed.
+
+**The stand-in at ce980f1:** ver=0.78, pins casim=46254521d17c4f67caef1d8421fbaa99cb79a56c.
+- repin-rc7.txt: 14 of 14 met, with the control (its line 595) red. S70's answer and `SIN(Z)≠0` (WHERE) from the keys,
+  the earlier rows as before, stack-free 23,732 B (floor 8,188).
+- casrows.txt: ALL MET. make clang-check: 66 files, 0 failing.
+- The port moved at the flash (ACM3 to ACM1); the rerun with no flash passed. Claim #10699, released #10720, peak 670.3 MiB.
