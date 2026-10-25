@@ -21,7 +21,7 @@ LIBS := -lm
 # make accuracy needs a python with mpmath: make all-checks PYTHON=...
 PYTHON ?= python3
 KEYV := $(filter-out work/002-vectors.txt work/016-vectors.txt work/017-vectors.txt work/018-vectors.txt,$(filter-out %-fmt-vectors.txt,$(wildcard work/*-vectors.txt))) tests/021-soroban.txt tests/019-soroban.txt tests/003-soroban.txt tests/018-soroban.txt tests/029-soroban.txt tests/034-soroban.txt tests/harness-soroban.txt tests/046-soroban.txt tests/047-soroban.txt tests/050-soroban.txt tests/054-soroban.txt tests/fc-soroban.txt tests/067-soroban.txt
-all: build/standin_test build/app_test build/keymap_test build/help_test build/power_test build/offscreen_test build/screen_test build/keys_test build/ls027_test build/draw_test build/store_test build/load_fuzz build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test build/bi_drive build/hp_drive build/deep_test build/eqn_depth build/eqn_stack build/stackkeys build/namedrive
+all: build/standin_test build/app_test build/keymap_test build/help_test build/power_test build/offscreen_test build/screen_test build/tbook_test build/keys_test build/ls027_test build/draw_test build/store_test build/load_fuzz build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test build/bi_drive build/hp_drive build/deep_test build/eqn_depth build/eqn_stack build/stackkeys build/namedrive
 
 # every build/ target is order-only on the directory: a fresh clone has none (abacus #3803)
 build:
@@ -44,7 +44,7 @@ build/abn_intel.o: core/abn_intel.c core/abn.h $(INTEL_LIB) | build
 	@mkdir -p build
 	$(CC) $(CFLAGS) $(BID_FLAGS) -isystem $(INTEL_SRC) -c -o $@ core/abn_intel.c
 
-SCREEN := firmware/screen.c firmware/font5x7.c firmware/draw.c
+SCREEN := firmware/screen.c firmware/font5x7.c firmware/draw.c firmware/tbook.c
 build/keymap_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) firmware/keymap.c firmware/keymap.h firmware/keys.c firmware/keys.h firmware/screen.h tests/keymap_test.c | build
 	$(CC) $(CFLAGS) -Icore -Ifirmware -o $@ $(CORE) $(SCREEN) firmware/keymap.c firmware/keys.c tests/keymap_test.c $(ENGINE) $(LIBS)
 
@@ -99,6 +99,10 @@ build/power_test: firmware/gauge.c firmware/gauge.h firmware/power.c firmware/po
 
 build/screen_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) firmware/screen.h firmware/font5x7.h firmware/ls027.h tests/screen_test.c | build
 	$(CC) $(CFLAGS) -Icore -Ifirmware -o $@ $(CORE) $(SCREEN) tests/screen_test.c $(ENGINE) $(LIBS)
+# unit 080: the textbook display's readback over casim's golden corpus at CASIM_PIN (fetch-casim.sh exports it) and the
+# synthetic sweep, the census, and the drawn text tutor quotes
+build/tbook_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) firmware/screen.h firmware/tbook.h tests/tbook_test.c build/casim/.pin | build
+	$(CC) $(CFLAGS) -Icore -Ifirmware -o $@ $(CORE) $(SCREEN) tests/tbook_test.c $(ENGINE) $(LIBS)
 
 build/keys_test: firmware/keys.c firmware/keys.h tests/keys_test.c | build
 	$(CC) $(CFLAGS) -Ifirmware -o $@ firmware/keys.c tests/keys_test.c
@@ -281,6 +285,7 @@ test: all
 	python3 device/reva/gen_bringup.py --check
 	@mkdir -p build/frames
 	./build/screen_test tests/frames
+	./build/tbook_test build/casim/golden/corpus.txt
 	python3 scripts/gen_font.py --check
 	python3 tests/eqn_fuzz.py 1 2000 > build/eqn_fuzz.txt
 	./build/vectors build/eqn_fuzz.txt

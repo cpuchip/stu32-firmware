@@ -34,7 +34,7 @@ if(NOT CMAKE_SCRIPT_MODE_FILE)
 endif()
 
 idf_component_register(
-    SRCS ${WASM_SRCS} standin_main.c ${CORE_SRCS} "${FW}/screen.c" "${FW}/font5x7.c" "${FW}/draw.c" "${FW}/app.c" "${FW}/apps.c" "${FW}/keymap.c"
+    SRCS ${WASM_SRCS} standin_main.c ${CORE_SRCS} "${FW}/screen.c" "${FW}/tbook.c" "${FW}/font5x7.c" "${FW}/draw.c" "${FW}/app.c" "${FW}/apps.c" "${FW}/keymap.c"
          "${FW}/keys.c" "${FW}/power.c" "${FW}/standin.c" "${FW}/store.c" "${FW}/ls027.c" "${FW}/settings.c" "${FW}/piezo.c"
          "${FW}/help.c" "${FW}/help_text.c"
          ${GAMES_SRCS} "${CASIM}/casim.c"

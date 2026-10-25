@@ -38,7 +38,7 @@ if(REVA_HEADLESS AND AB_MASK)
     set(SAMPLE_SRCS ab_sample.S)
 endif()
 idf_component_register(
-    SRCS ${WASM_SRCS} ${SAMPLE_SRCS} reva_main.c ${CORE_SRCS} "${FW}/screen.c" "${FW}/font5x7.c" "${FW}/draw.c" "${FW}/app.c" "${FW}/apps.c" "${FW}/keymap.c"
+    SRCS ${WASM_SRCS} ${SAMPLE_SRCS} reva_main.c ${CORE_SRCS} "${FW}/screen.c" "${FW}/tbook.c" "${FW}/font5x7.c" "${FW}/draw.c" "${FW}/app.c" "${FW}/apps.c" "${FW}/keymap.c"
          "${FW}/keys.c" "${FW}/power.c" "${FW}/store.c" "${FW}/ls027.c" "${FW}/gauge.c" "${FW}/pins.c" "${FW}/piezo.c" "${FW}/settings.c"
          "${FW}/help.c" "${FW}/help_text.c"
          ${GAMES_SRCS} "${CASIM}/casim.c"
