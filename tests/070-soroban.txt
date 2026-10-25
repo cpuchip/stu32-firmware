@@ -49,6 +49,9 @@ S70 | 070 at casimir 1.1.2 (CAS 030): to N, a function factor keeps its row as a
 S71 | 070 at 1.1.2: S70's rows: the first, Z≠0 | STU RAD EQ:(Y÷SIN(Z))^K CASSUM:K 1 ENTER RCL:N ENTER SST | %EQ=Z≠0 %NOTE=WHERE
 S72 | 070 at 1.1.2: the second, SIN(Z)≠0 | STU RAD EQ:(Y÷SIN(Z))^K CASSUM:K 1 ENTER RCL:N ENTER SST SST | %EQ=SIN(Z)≠0 %NOTE=WHERE
 S73 | 070 at 1.1.2: the third, Y÷SIN(Z)≠1 | STU RAD EQ:(Y÷SIN(Z))^K CASSUM:K 1 ENTER RCL:N ENTER SST SST SST | %EQ=Y÷SIN(Z)≠1 %NOTE=WHERE
+S74 | 070 at casimir 1.2.0 (CAS 031): the closed form's common factor cancelled: (K+1)×X^(K+1)×Y^K from -1 to ∞ is 0 at X = 0, as the sum is, with no row X≠0 (1.1.2 printed X^2×Y÷(X×Y-2×X^2×Y^2+X^3×Y^3), 0÷0 there, under X≠0; casim's example) | STU RAD EQ:(K+1)×X^(K+1)×Y^K CASSUM:K - 1 ENTER INF ENTER | %EQ=-X÷2÷(X×Y-X^2×Y^2÷2-1÷2) %EQN=4
+S75 | 070 at 1.2.0: S74's first row, Y≠0 | STU RAD EQ:(K+1)×X^(K+1)×Y^K CASSUM:K - 1 ENTER INF ENTER SST | %EQ=Y≠0 %NOTE=WHERE
+S76 | 070 at 1.2.0: the second, ABS(X×Y)<1 | STU RAD EQ:(K+1)×X^(K+1)×Y^K CASSUM:K - 1 ENTER INF ENTER SST SST | %EQ=ABS(X×Y)<1 %NOTE=WHERE
 S23 | 070: past the arena: TOO COMPLEX | STU RAD EQ:K^12×X^K CASSUM:K 0 ENTER RCL:N ENTER | ERR %ERR=CAS_NO_ROOM %EQN=1
 S24 | 070: a bound not whole: BAD BOUND (provisional, #8545) | STU RAD EQ:K CASSUM:K 1.5 ENTER RCL:N ENTER | ERR %ERR=CAS_BAD_BOUND %ERRMSG=BAD_BOUND %EQN=1
 S25 | 070: -∞ as the upper goes to casim as typed: BAD BOUND | STU RAD EQ:K CASSUM:K 1 ENTER - INF ENTER | ERR %ERRMSG=BAD_BOUND %EQN=1
