@@ -191,3 +191,8 @@ counted as a root (ENTER on it acts); the root rows shifted by one for SOLVED; t
   - casrows.txt: ALL MET. make clang-check: 66 files, 0 failing.
   - The port moved at the flash (ACM1 to ACM3); the rerun with no flash passed.
   - Claim #10755, released, peak 566.8 MiB.
+- **Accepted (#10788, abacus bb17416)** from a clean clone at 685923d: make test rc 0, 079 17/17, 076 23/23,
+  screen_test 9004/9004 and 21/21 frames, app_test 779/779. Its control (e56e311's code with these tests) gave 079 8/17
+  and 076 22/23, as measured here.
+  - **abacus's own plant**, SOLVED read as PARTIAL (`d == 8` → `d == 9`): 079 11/17 (W01-W05, W13), 076 21/23 (C21 and
+    C22, W03's twin), 048 65/65. tally has the GO for the APK.
