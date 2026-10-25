@@ -159,3 +159,35 @@ counted as a root (ENTER on it acts); the root rows shifted by one for SOLVED; t
 - Casimir's text, the NO REAL ROOTS hint, the help pages. SOLVE's page already says "Complex ones: CAS3 CPLX on.", and
   that still reads true.
 - tutor, primer and tally get the change through the core's rows when they next pin the firmware.
+
+## The gate (soroban, 2026-10-25; abacus OK'd the blueprint at 9b1e206, #10744)
+
+- **The code:** 9ef2cb5. core/calc.c gains cas_cplx_at, and ab_cas_row rewrites the row; device/dev_common.h's `eqn:`
+  line gains `row=`. tests/079-soroban.txt has W01-W17; 076 C21 moves as ruled; screen_test gets two 079 checks; the
+  Makefile runs 079 after 076. 9f74728 adds the board steps to device/standin/repin-rc7.txt.
+- **make test** rc 0 at the unit, peak RSS 170,792 KB: 048 65/65, 076 23/23, 079 17/17 (23/23), app_test 779/779,
+  standin_test 349/349, screen_test 9004/9004 and 21/21 frames, help_test 305 of 305.
+- **The oracle at e56e311** (these tests on the old code, in a scratch worktree):
+  - 079 is 8/17: W01, W04, W06-W11 and W13 are red. W02, W03, W05, W12 and W14-W17 pass at both, as the guards they
+    are: roots not moved, NO REAL ROOTS's hint, no note with CPLX on, a status with no note.
+  - 076 is 22/23, with C21 red. screen_test is 9002/9004, with both 079 checks red.
+  - The worktree's first screen_test said 0/21 frames: a fresh checkout has no build/frames, so the PNGs weren't
+    written. With the directory made, e56e311's own screen_test matches 21/21. That was the rig, not the code.
+- **The five mutants, each red** (079 / 076 / 048 / screen_test):
+  - M1, the note left on PARTIAL's status row: 11/17 (W06-W11) / 23 / 65 / 9003.
+  - M2, the note dropped: 10/17 (W01, W04, W07, W09-W11, W13) / 22 (C21) / 65 / 9002.
+  - M3, the note's row read as a root (ENTER on it leaves the report): 16/17 (W09) / 23 / 65 / 9004.
+  - M4, the roots shifted by one: 16/17 (W05) / 23 / 65 / 9004.
+  - M5, the rewrite applied to a status with no note: 14/17 (W14, W15, W17) / 22 / 60 of 65 / 9004.
+  - M3 and M4 each turn one row red. W09 and W05 are the rows that guard them.
+- **Decision 68, `scripts/resources.py static e56e311 9f74728`:** flash +400 on the stand-in and +400 on Rev A;
+  internal RAM +0, IRAM +0, calc_task's frame +0, no internal-RAM symbol changed.
+- **The stand-in at 9f74728:** ver=0.78, core=9f74728.
+  - repin-rc7.txt: 16 of 16 met, with the control (its line 678) red. From the keys:
+    `rep=SOLVED, 2 CPLX: X=2 | row=SOLVED, 2 CPLX ROOTS NOT SHOWN`;
+    `rep=PARTIAL, DEGREE 3 LEFT, 2 CPLX | row=PARTIAL, DEGREE 3 LEFT`; then, after SST, `row=2 CPLX ROOTS NOT SHOWN`.
+    stack-free 23,732 B (floor 8,188).
+  - Both new key sequences were replayed through app.c on the host first, after the step before them, to these rows.
+  - casrows.txt: ALL MET. make clang-check: 66 files, 0 failing.
+  - The port moved at the flash (ACM1 to ACM3); the rerun with no flash passed.
+  - Claim #10755, released, peak 566.8 MiB.
