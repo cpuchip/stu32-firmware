@@ -5,7 +5,7 @@
 # 070's S60, NO_ROOM at 12,288 B, answers at 16,384; 070's S63 (CAS 026) answers and its first
 # row is SIN(Z)≠0, labeled WHERE (at 2ba7217 the first row was ABS(Y×SIN(Z))<1); then the calc task's stack low-water
 # mark is no lower than the deep paths' worst (8,188 B free). Each expected text is casim's CLI at e0ef88a, 16,384 B (rc7 differs only in CASIM_VERSION). 070's S67 and S68 (CAS 029) are casim's CLI at 751b23c, S70 and S72 (CAS 030) at 4625452.
-# Keys from tests/stackkeys.c; SST is blue R/S (36 45). Ends with a control that must FAIL (the old pin).
+# Keys from tests/stackkeys.c; SST is blue R/S (36 45). Ends with a control that must FAIL (the old pin). Unit 079: the eqn: line's row= is the report's row as the screen shows it.
 wait : heap internal 30
 sleep 3
 send WIPE
@@ -77,7 +77,90 @@ send K33
 sleep 0.25
 sleep 3
 send X
-expect rep=SOLVED, 2 CPLX: X=2 10
+expect rep=SOLVED, 2 CPLX: X=2 | row=SOLVED, 2 CPLX ROOTS NOT SHOWN 10
+# unit 079 on the keys: STU, (X^2+1)×(X^3-2×X-5) SOLVEd with CPLX off; the status row, then (SST) the note's own row (keys from
+# stackkeys cas s, replayed through the app on the host after the step above to these rows)
+send K42
+sleep 0.25
+send K42
+sleep 0.25
+send K36
+sleep 0.25
+send K18
+sleep 0.25
+send K2
+sleep 0.25
+send K42
+sleep 0.25
+send K30
+sleep 0.25
+send K43
+sleep 0.25
+send K30
+sleep 0.25
+send K5
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K9
+sleep 0.25
+send K38
+sleep 0.25
+send K46
+sleep 0.25
+send K37
+sleep 0.25
+send K1
+sleep 0.25
+send K34
+sleep 0.25
+send K2
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K9
+sleep 0.25
+send K39
+sleep 0.25
+send K40
+sleep 0.25
+send K38
+sleep 0.25
+send K34
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K40
+sleep 0.25
+send K32
+sleep 0.25
+send K1
+sleep 0.25
+send K18
+sleep 0.25
+send K4
+sleep 0.25
+send K5
+sleep 0.25
+send K0
+sleep 0.25
+send K33
+sleep 0.25
+sleep 3
+send X
+expect rep=PARTIAL, DEGREE 3 LEFT, 2 CPLX | row=PARTIAL, DEGREE 3 LEFT 10
+send K36
+sleep 0.25
+send K45
+sleep 0.5
+send X
+expect row=2 CPLX ROOTS NOT SHOWN 10
 # back to MEMORY CLEAR for S60's keys
 send WIPE
 expect wipe: both slots erased
