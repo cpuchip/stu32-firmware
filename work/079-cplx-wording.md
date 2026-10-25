@@ -216,3 +216,4 @@ counted as a root (ENTER on it acts); the root rows shifted by one for SOLVED; t
 
 - make test rc 0, with check-version printing `AB_FW_VERSION "0.79", unit 079`; peak RSS 171,356 KB. The board wasn't
   flashed for this. VER on a device is the next APK's, which tally builds from this commit.
+- **Accepted (#10805, abacus a33b2a4):** the new script passes b1c96ef and fails 685923d, and 0.78 and 0.80 on this tree; the old script's "unit 078" pass reproduced. tally rebuilds the APK.
