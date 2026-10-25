@@ -1,0 +1,10 @@
+tbprobe: control-none nodes=0 lines=0 live=796 renderer=512 total=1308 of 32768 us=5
+tbprobe: control-4000 nodes=0 lines=208 live=796 renderer=4080 total=4876 of 32768 us=88
+tbprobe: xlnx nodes=6 lines=1 live=796 renderer=800 total=1596 of 32768 us=252
+tbprobe: taylor123 nodes=134 lines=4 live=796 renderer=2160 total=2956 of 32768 us=1687
+tbprobe: factor16 nodes=74 lines=0 live=796 renderer=3120 total=3916 of 32768 us=1128
+tbprobe: expand21 nodes=139 lines=3 live=796 renderer=3456 total=4252 of 32768 us=1396
+tbprobe: sin33 nodes=38 lines=0 live=796 renderer=6112 total=6908 of 32768 us=1428
+tbprobe: xpow44 nodes=87 lines=1 live=796 renderer=11168 total=11964 of 32768 us=613
+rst:0x1 (POWERON),boot:0x8 (SPI_FAST_FLASH_BOOT)
+I (27) boot: ESP-IDF v5.4.2 2nd stage bootloader

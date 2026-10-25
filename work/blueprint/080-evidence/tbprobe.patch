@@ -1,0 +1,122 @@
+diff --git a/device/standin/main/CMakeLists.txt b/device/standin/main/CMakeLists.txt
+index f0b0fc0..33da6fc 100644
+--- a/device/standin/main/CMakeLists.txt
++++ b/device/standin/main/CMakeLists.txt
+@@ -34,7 +34,7 @@ if(NOT CMAKE_SCRIPT_MODE_FILE)
+ endif()
+ 
+ idf_component_register(
+-    SRCS ${WASM_SRCS} standin_main.c ${CORE_SRCS} "${FW}/screen.c" "${FW}/font5x7.c" "${FW}/draw.c" "${FW}/app.c" "${FW}/apps.c" "${FW}/keymap.c"
++    SRCS ${WASM_SRCS} standin_main.c tb.c ${CORE_SRCS} "${FW}/screen.c" "${FW}/font5x7.c" "${FW}/draw.c" "${FW}/app.c" "${FW}/apps.c" "${FW}/keymap.c"
+          "${FW}/keys.c" "${FW}/power.c" "${FW}/standin.c" "${FW}/store.c" "${FW}/ls027.c" "${FW}/settings.c" "${FW}/piezo.c"
+          "${FW}/help.c" "${FW}/help_text.c"
+          ${GAMES_SRCS} "${CASIM}/casim.c"
+diff --git a/device/standin/main/standin_main.c b/device/standin/main/standin_main.c
+index b658f72..733394f 100644
+--- a/device/standin/main/standin_main.c
++++ b/device/standin/main/standin_main.c
+@@ -57,7 +57,7 @@
+ #define GT911_ADDR 0x5D
+ 
+ enum { EV_KEY = 0, EV_OP, EV_DUMP, EV_SAVE, EV_WIPE, EV_RESTART, EV_TOUCHED, EV_BENCH, EV_TIME, EV_POWBENCH,
+-       EV_KEYUP, EV_TBLBENCH, EV_GRBENCH, EV_FRAMEBENCH,
++       EV_KEYUP, EV_TBLBENCH, EV_GRBENCH, EV_FRAMEBENCH, EV_TBPROBE,
+        EV_POLBENCH, EV_ZOOMBENCH, EV_CASBENCH, EV_DIFFBENCH, EV_FNBENCH, EV_HPBENCH, EV_PROGBENCH, EV_EQNBENCH, EV_OPBENCH };                          /* EV_KEYUP: a the key released (unit 030: SHOW, held) */
+ static char time_text[16];             /* TIME's argument, for the calc task (unit 027) */
+ 
+@@ -269,6 +269,56 @@ static void load(void)
+     }
+ }
+ 
++
++/* ---- TBPROBE: a THROWAWAY probe for unit 080's blueprint (scratch worktree, never main): the textbook prototype
++   (proto-textbook 8f98ea5) run inside render(), the calc task's draw site; the stack below the call point painted
++   0xA5 and scanned after, and each sample timed ---- */
++#include "tb.h"
++static volatile int tbprobe_pending;
++static uint8_t *tbprobe_base;
++static tb_tree tbprobe_tree;
++static const char *const TBPROBE[][2] = {
++    {"control-none", "-"},
++    {"control-4000", "+"},
++    {"xlnx", "X×LN(X)-X"},
++    {"taylor123", "1÷2+K×X÷2+X^2×(K^2-1)÷4-X^3×(K-K^3÷3)÷4-X^4×(K^2-K^4÷6-1)÷8+X^5×(K-K^3÷3+K^5÷30)÷8+X^6×(K^2-K^4÷6+K^6÷90-1)÷16-X^7×(K-K^3÷3+K^5÷30-K^7÷630)÷16"},
++    {"factor16", "2×(-3840×X-7680×X^2+66240×X^3+117120×X^4-413760×X^5-639360×X^6+1124160×X^7+1534080×X^8-1252800×X^9-1580160×X^10+480000×X^11+576000×X^12-1)"},
++    {"expand21", "3×X+3×Y+3×Z+3×X^2+X^3+3×Y^2+Y^3+3×Z^2+Z^3+6×X×Y+6×X×Y×Z+6×X×Z+3×X×Y^2+3×X×Z^2+6×Y×Z+3×Y×Z^2+3×X^2×Y+3×X^2×Z+3×Y^2×Z+1"},
++    {"sin33", "EXP(X^2)×SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(SIN(1))))))))))))))))))))))))))))))÷2"},
++    {"xpow44", "X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^X))))))))))))))))))))))))))))))))))))))))))"},
++};
++static __attribute__((noinline)) int tbprobe_touch(int n)   /* the positive control: n bytes of stack written */
++{
++    volatile uint8_t buf[4000];
++    for (int i = 0; i < n && i < (int)sizeof buf; i++) buf[i] = (uint8_t)i;
++    return buf[n / 2];
++}
++static __attribute__((noinline)) int tbprobe_work(const char *s, ls027_frame *f)
++{
++    if (!strcmp(s, "-")) return 0;                          /* the negative control: nothing */
++    if (!strcmp(s, "+")) return tbprobe_touch(4000);        /* the positive control: 4,000 B */
++    tb_style st = {2, 1, 1};
++    if (tb_parse(&tbprobe_tree, s, &st)) return -1;
++    int w = tb_layout(&tbprobe_tree, tbprobe_tree.root, 2), lines = 1;
++    if (w > 391) lines = tb_wrap(&tbprobe_tree, 391, 2);
++    tb_draw(&tbprobe_tree, tbprobe_tree.root, f, 4, 30);
++    return lines;
++}
++static __attribute__((noinline)) void tbprobe_run(ls027_frame *f)
++{
++    uint8_t *sp0 = (uint8_t *)(uintptr_t)__builtin_frame_address(0), *top = tbprobe_base + CALC_STACK;
++    for (size_t i = 0; i < sizeof TBPROBE / sizeof TBPROBE[0]; i++) {
++        uint8_t *lo = tbprobe_base + 512, *hi = sp0 - 512, *p = lo;
++        memset(lo, 0xA5, (size_t)(hi - lo));
++        int64_t t0 = esp_timer_get_time();
++        int r = tbprobe_work(TBPROBE[i][1], f);
++        int64_t t1 = esp_timer_get_time();
++        while (p < hi && *p == 0xA5) p++;
++        printf("tbprobe: %s nodes=%d lines=%d live=%d renderer=%d total=%d of %d us=%lld\n", TBPROBE[i][0],
++               tbprobe_tree.count, r, (int)(top - sp0), (int)(sp0 - p), (int)(top - p), CALC_STACK, (long long)(t1 - t0));
++    }
++}
++
+ /* ---- drawing ---- */
+ 
+ static si_keys_state keys_drawn = {-1, false, -1, false};
+@@ -281,6 +331,10 @@ static void render(int busy)
+     if (memory_clear_msg) ui.prompt = "MEMORY CLEAR";
+     int back = 1 - front;
+     if (!app_draw(&app, &fb[back])) screen_render(calc, &ui, &fb[back]);   /* an app's frame (unit 037) */
++    if (tbprobe_pending) {
++        tbprobe_pending = 0;
++        tbprobe_run(&fb[back]);
++    }
+     front = back;
+     si_keys_state ks = {app.shift, app.prompt_op >= 0, -1, calc->base == 16};
+     if (memcmp(&ks, &keys_drawn, sizeof ks)) {
+@@ -1112,7 +1166,8 @@ static void console_task(void *arg)
+         else if (!strcmp(line, "POWBENCH")) e.kind = EV_POWBENCH;
+         else if (!strcmp(line, "TBLBENCH")) e.kind = EV_TBLBENCH;  /* unit 032 rule 7: a screenful's time */
+         else if (!strcmp(line, "GRBENCH")) e.kind = EV_GRBENCH;    /* unit 033 rule 8: a full plot's time */
+-        else if (!strcmp(line, "FRAMEBENCH")) e.kind = EV_FRAMEBENCH;  /* unit 037 rule 6: full frames a second */
++        else if (!strcmp(line, "FRAMEBENCH")) e.kind = EV_FRAMEBENCH;
++        else if (!strcmp(line, "TBPROBE")) e.kind = EV_TBPROBE;  /* unit 037 rule 6: full frames a second */
+         else if (!strcmp(line, "POLBENCH")) e.kind = EV_POLBENCH;  /* unit 034 rule 3: ->POL before and after */
+         else if (!strcmp(line, "ZOOMBENCH")) e.kind = EV_ZOOMBENCH;  /* unit 040: a redraw after each zoom */
+         else if (!strcmp(line, "CASBENCH")) e.kind = EV_CASBENCH;    /* CAS 004: each step's time, the stack */
+@@ -1177,6 +1232,9 @@ static void calc_task(void *arg)
+             int64_t t1 = esp_timer_get_time();
+             printf("framebench: %s, 50 frames in %lld ms: %.1f frames a second\n", app_running(&app) ? app.app->name : "calculator",
+                    (long long)(t1 - t0) / 1000, 50.0e6 / (double)(t1 - t0));
++        } else if (got && ev.kind == EV_TBPROBE) {
++            tbprobe_pending = 1;
++            render(0);
+         } else if (got && ev.kind == EV_GRBENCH) {
+             grbench();
+         } else if (got && ev.kind == EV_TBLBENCH) {
+@@ -1279,6 +1337,7 @@ void app_main(void)
+     static StaticTask_t calc_tcb;
+     size_t blk0 = heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+     StackType_t *calc_stack = heap_caps_malloc(CALC_STACK, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
++    tbprobe_base = (uint8_t *)calc_stack;
+     events = xQueueCreate(32, sizeof(event));
+     size_t blk1 = heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+     keys_img = heap_caps_malloc(SI_IMG_BYTES, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);

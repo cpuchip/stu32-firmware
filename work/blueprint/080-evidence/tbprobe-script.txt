@@ -1,0 +1,16 @@
+# the 080 blueprint's stack probe (throwaway)
+send RESTART
+wait STANDIN READY 30
+send TBPROBE
+expect tbprobe: control-none 10
+expect tbprobe: control-4000 10
+expect tbprobe: xlnx 10
+expect tbprobe: taylor123 10
+expect tbprobe: factor16 10
+expect tbprobe: expand21 10
+expect tbprobe: sin33 10
+expect tbprobe: xpow44 10
+send TBPROBE
+expect tbprobe: xpow44 10
+send X
+expect stack-free 5
