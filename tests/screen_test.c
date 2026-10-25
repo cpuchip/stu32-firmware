@@ -405,6 +405,21 @@ int main(int argc, char **argv)
     expect(text_at(&f, 20 + 30 * 12, 142, 2, "_", 1), "the window ends at the cursor");
     expect(text_at(&f, 20 + 15 * 12, 142, 2, "123456789012345", 1), "the window's last digits");
 
+    /* unit 079: SOLVE's report as drawn, casim's line put in place (tests/079-soroban.txt makes it through casim):
+       the largest count's row is 31 cells, whole, with no ellipsis; PARTIAL's note on the row under its status */
+    ab_init(&c);
+    snprintf(c.cas_rep, sizeof c.cas_rep, "%s", "SOLVED, 10 CPLX: X=-SQRT(2); X=SQRT(2)");
+    c.cas_row = 0;
+    screen_render(&c, &ui, &f);
+    expect(text_at(&f, 20, 142, 2, "SOLVED, 10 CPLX ROOTS NOT SHOWN", 1) && find_glyph(&f, 142, 2, 0x2026) < 0,
+           "079: SOLVED, 10 CPLX ROOTS NOT SHOWN, all 31 cells, no ellipsis");
+    snprintf(c.cas_rep, sizeof c.cas_rep, "%s", "PARTIAL, DEGREE 3 LEFT, 2 CPLX: X=3");
+    c.cas_row = 1;
+    screen_render(&c, &ui, &f);
+    expect(text_at(&f, 20, 94, 2, "PARTIAL, DEGREE 3 LEFT", 1) && text_at(&f, 20, 142, 2, "2 CPLX ROOTS NOT SHOWN", 1),
+           "079: PARTIAL's status on Y, its note on X under it");
+    c.cas_rep[0] = '\0';
+
     /* the status band */
     ab_init(&c);
     keys(&c, "RAD HEX PRGM");

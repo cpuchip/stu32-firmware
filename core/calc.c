@@ -4658,14 +4658,36 @@ const char *ab_cas_report(const ab_calc *c)
     return c->cas_rep[0] ? c->cas_rep : NULL;
 }
 
+/* Unit 079 (Michael's wording, abacus #10707): casim's ", n CPLX" at the end of a status (CAS 028; put_left_out is its
+   one producer, so nothing follows it) is shown as "n CPLX ROOTS NOT SHOWN". The count's digits' offset in the status
+   of length len, or -1 for none. */
+static int cas_cplx_at(const char *r, int len)
+{
+    int d = len - 5;
+    if (d < 3 || strncmp(r + d, " CPLX", 5) != 0) return -1;
+    while (d > 0 && r[d - 1] >= '0' && r[d - 1] <= '9') d--;
+    return d < len - 5 && d >= 2 && r[d - 2] == ',' && r[d - 1] == ' ' ? d : -1;
+}
+
+/* the report's row i as the screen shows it (079): SOLVED keeps the note on its row ("SOLVED, 2 CPLX ROOTS NOT
+   SHOWN", 31 cells at most: solve's degree cap of 12 bounds the count at 10); any other status (PARTIAL, DEGREE n LEFT,
+   already up to 31 cells) gives the note a row of its own under it, before the roots. cas_rep keeps casim's line */
 bool ab_cas_row(const ab_calc *c, int i, char *out, int size)
 {
     const char *r = c->cas_rep, *p = strstr(r, ": ");
     if (!r[0] || i < 0) return false;
+    int len = p ? (int)(p - r) : (int)strlen(r), d = cas_cplx_at(r, len);
+    bool own = d >= 0 && !(d == 8 && strncmp(r, "SOLVED", 6) == 0);     /* the note on a row of its own */
     if (i == 0) {
-        snprintf(out, size, "%.*s", p ? (int)(p - r) : (int)strlen(r), r);
+        if (d >= 0 && !own) snprintf(out, size, "%.*s CPLX ROOTS NOT SHOWN", len - 5, r);
+        else snprintf(out, size, "%.*s", own ? d - 2 : len, r);
         return true;
     }
+    if (own && i == 1) {
+        snprintf(out, size, "%.*s CPLX ROOTS NOT SHOWN", len - 5 - d, r + d);
+        return true;
+    }
+    if (own) i--;
     if (!p) return false;
     p += 2;
     for (int k = 1; k < i; k++) {

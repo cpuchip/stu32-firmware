@@ -248,6 +248,7 @@ test: all
 	./build/vectors tests/057-soroban.txt    # (no save/load pass: g being typed isn't in the image; L07-L09 and Q12 save and load)
 	./build/vectors tests/070-soroban.txt    # (no save/load pass: a bound being typed isn't in the image; S45-S51 save and load)
 	./build/vectors tests/076-soroban.txt    # (no save/load pass: the report isn't in the image; app_test saves and loads CPLX)
+	./build/vectors tests/079-soroban.txt    # (no save/load pass: the report isn't in the image)
 	./build/vectors tests/073-soroban.txt    # (no save/load pass: E18 types a bound, which isn't in the image; E15, E16 save and load)
 	./build/vectors tests/050-soroban.txt
 	AB_SAVELOAD=1 AB_STORE=1 ./build/vectors tests/050-soroban.txt

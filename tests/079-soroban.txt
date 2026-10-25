@@ -1,0 +1,22 @@
+# Unit 079 (abacus #10707, Michael's wording; blueprint work/cplx-wording.md, OK'd #10744): casim's ", n CPLX" (CAS 028)
+# shown as "n CPLX ROOTS NOT SHOWN". SOLVED keeps it on the status row; PARTIAL's status row is up to 31 cells already,
+# so the note gets a row of its own under it, before the roots. The report (%CASREP) stays casim's line; %CASROW is the
+# row as the screen shows it. Each line is casim's CLI at 4625452 (the v1.1.2 tag), 16,384 B. Blanks are _.
+# ID | description | keys | expected
+W01 | 079: SOLVED's status row carries the note, reworded (casim: SOLVED, 2 CPLX: X=2) | STU EQ:(X-2)×(X^2+1) CASSOLVE:X | %CASROW=SOLVED,_2_CPLX_ROOTS_NOT_SHOWN %CASREP=SOLVED,_2_CPLX:_X=2
+W02 | 079: SOLVED's roots don't move: the first is still row 1 | STU EQ:(X-2)×(X^2+1) CASSOLVE:X SST | %CASROW=X=2
+W03 | 079: and ENTER on it puts it in X | STU EQ:(X-2)×(X^2+1) CASSOLVE:X SST ENTER | X=2 %CASREP=none
+W04 | 079: the largest count, 10 (solve's degree cap of 12 with a real root): 31 cells, the row's room (casim: SOLVED, 10 CPLX: X=-SQRT(2); X=SQRT(2)) | STU EQ:(X^2+1)^5×(X^2-2) CASSOLVE:X | %CASROW=SOLVED,_10_CPLX_ROOTS_NOT_SHOWN
+W05 | 079: its roots from row 1 | STU EQ:(X^2+1)^5×(X^2-2) CASSOLVE:X SST SST | %CASROW=X=SQRT(2)
+W06 | 079: PARTIAL's status row drops the note (casim: PARTIAL, DEGREE 3 LEFT, 2 CPLX) | STU EQ:(X^2+1)×(X^3-2×X-5) CASSOLVE:X | %CASROW=PARTIAL,_DEGREE_3_LEFT %CASREP=PARTIAL,_DEGREE_3_LEFT,_2_CPLX
+W07 | 079: the note is the row under it | STU EQ:(X^2+1)×(X^3-2×X-5) CASSOLVE:X SST | %CASROW=2_CPLX_ROOTS_NOT_SHOWN
+W08 | 079: two rows, so SST again wraps to the status | STU EQ:(X^2+1)×(X^3-2×X-5) CASSOLVE:X SST SST | %CASROW=PARTIAL,_DEGREE_3_LEFT
+W09 | 079: ENTER on the note's row does nothing: the report stays open on it, X as it was | STU 7 ENTER EQ:(X^2+1)×(X^3-2×X-5) CASSOLVE:X SST ENTER | X=7 %CASROW=2_CPLX_ROOTS_NOT_SHOWN
+W10 | 079: PARTIAL with a root: status, note, then the root (casim: PARTIAL, DEGREE 3 LEFT, 2 CPLX: X=3) | STU EQ:(X-3)×(X^2+1)×(X^3-2×X-5) CASSOLVE:X SST SST | %CASROW=X=3
+W11 | 079: ENTER on that root puts it in X | STU EQ:(X-3)×(X^2+1)×(X^3-2×X-5) CASSOLVE:X SST SST ENTER | X=3 %CASREP=none
+W12 | 079: BST from the status wraps to the root, the last row | STU EQ:(X-3)×(X^2+1)×(X^3-2×X-5) CASSOLVE:X BST | %CASROW=X=3
+W13 | 079: a 33s-stamped equation with CPLX on gets the note (casim ignores the bit in model 33), reworded the same | EQ:(X-2)×(X^2+1) C STU EQN CASCPLX CASSOLVE:X | %CASROW=SOLVED,_2_CPLX_ROOTS_NOT_SHOWN
+W14 | 079: no real roots: casim gives NO REAL ROOTS no note, so 076's hint alone applies (#10726) | STU EQ:(X^2+1)×(X^2+4) CASSOLVE:X | %CASROW=NO_REAL_ROOTS._CAS3_CPLX_ON %CASREP=NO_REAL_ROOTS._CAS3_CPLX_ON
+W15 | 079: one row, so SST stays on it | STU EQ:(X^2+1)×(X^2+4) CASSOLVE:X SST | %CASROW=NO_REAL_ROOTS._CAS3_CPLX_ON
+W16 | 079: a status with no note is as before (PARTIAL with a root and no pair: casim's docs' example) | STU EQ:(X+3)×(X^3-2×X-5) CASSOLVE:X SST | %CASROW=X=-3
+W17 | 079: CPLX on in STU prints the pair and no note: the status row is plain SOLVED | STU CASCPLX EQ:(X-2)×(X^2+1) CASSOLVE:X | %CASROW=SOLVED
