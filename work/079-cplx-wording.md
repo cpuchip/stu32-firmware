@@ -196,3 +196,23 @@ counted as a root (ENTER on it acts); the root rows shifted by one for SOLVED; t
   and 076 22/23, as measured here.
   - **abacus's own plant**, SOLVED read as PARTIAL (`d == 8` → `d == 9`): 079 11/17 (W01-W05, W13), 076 21/23 (C21 and
     C22, W03's twin), 048 65/65. tally has the GO for the APK.
+
+## The version text (abacus #10800)
+
+- **The miss:** 685923d shipped VER 0.78. Unit 079's own commit didn't bump firmware/version.h, and check-version passed:
+  it found the last unit from work/NNN-*.md alone, and this record was work/cplx-wording.md, with no number. tally's
+  APK (#10797) showed it. abacus's replay didn't read VER either.
+- **The fix:** this record is renamed work/079-cplx-wording.md, and AB_FW_VERSION is "0.79". check-version now takes the
+  last unit as the highest NNN over work/NNN-*.md and tests/NNN-*.txt. A unit with tests but a record named without its
+  number is still seen.
+- **Red, then green** (the old check is the script as it was at 685923d):
+
+| tree | old check | new check |
+|---|---|---|
+| as shipped: record cplx-wording.md, 0.78 | passes, "unit 078" (the miss) | **fails**: last unit 079, want "0.79" |
+| record renamed, still 0.78 | fails | fails |
+| record renamed, 0.79 | passes | passes |
+| 0.79, with work/ standing in for a tree with no 079 record (tests/079 alone) | — | passes, unit 079 |
+
+- make test rc 0, with check-version printing `AB_FW_VERSION "0.79", unit 079`; peak RSS 171,356 KB. The board wasn't
+  flashed for this. VER on a device is the next APK's, which tally builds from this commit.

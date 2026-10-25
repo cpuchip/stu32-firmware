@@ -1,4 +1,4 @@
-# Unit 079 (abacus #10707, Michael's wording; blueprint work/cplx-wording.md, OK'd #10744): casim's ", n CPLX" (CAS 028)
+# Unit 079 (abacus #10707, Michael's wording; blueprint work/079-cplx-wording.md, OK'd #10744): casim's ", n CPLX" (CAS 028)
 # shown as "n CPLX ROOTS NOT SHOWN". SOLVED keeps it on the status row; PARTIAL's status row is up to 31 cells already,
 # so the note gets a row of its own under it, before the roots. The report (%CASREP) stays casim's line; %CASROW is the
 # row as the screen shows it. Each line is casim's CLI at 4625452 (the v1.1.2 tag), 16,384 B. Blanks are _.
