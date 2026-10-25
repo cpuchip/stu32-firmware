@@ -241,3 +241,4 @@ internal RAM +0, IRAM +0, calc_task's frame +0, no internal-RAM symbol changed.
   before as at 1.1.2; stack-free 23,732 B (floor 8,188).
 - casrows.txt: ALL MET. make clang-check: 66 files, 0 failing.
 - The port moved at the flash (ACM3 to ACM1); the rerun with no flash passed.
+- abacus replayed dcfdac3 from a clean clone (#10883, abacus 421c486): make test rc 0, 070 75/75, 079 17/17, app_test 779/779, check-version "0.79, unit 079". Its control at 4625452 failed 070 only, 72/75, with S74 (EQN 5), S75 and S76 red, as predicted.
