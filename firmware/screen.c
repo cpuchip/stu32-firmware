@@ -647,8 +647,9 @@ typedef struct {
                                one part on Y and X, two on T and Z then Y and X */
     bool alg;               /* STU's ALG: the line in Y's place (left), its result in X's, the entry
                                before in T (left) and Z; no letters (unit 029) */
-    bool textbook;          /* unit 080: the shown STU equation drawn in 2D in the stack's place (X keeps its text) */
-    bool xexpr;             /* unit 082: X shows its value, an expression, in STU: drawn in 2D under Y when it fits */
+    bool textbook : 1;      /* unit 080: the shown STU equation drawn in 2D in the stack's place (X keeps its text) */
+    bool xexpr : 1;         /* unit 082: X shows its value, an expression, in STU: drawn in 2D under Y when it fits
+                               (one byte with textbook: comp stays 8,276 B of internal RAM, D68 +0) */
     int ind;
 } composed;
 
