@@ -83,6 +83,8 @@ uint32_t ab_crc32(const uint8_t *p, size_t n)
 typedef struct {
     uint8_t *buf;
     size_t cap, len;
+    const ab_calc *c;       /* the expressions' texts (unit 082); NULL where no value can be one */
+    unsigned ver;           /* the lowest version the content written so far needs (082: 20 without an expression) */
 } wr;
 
 static void w8(wr *w, unsigned v)
@@ -141,11 +143,23 @@ static bool is_zero_bits(const abn *a)
     return memcmp(a, &z, sizeof z) == 0;
 }
 
-/* A value: kind, length, which parts are not the all-zero number, those parts. */
+/* A value: kind, length, which parts are not the all-zero number, those parts. From version 21 (unit 082): an
+   expression is its kind, its text's length and a mask of 0, then the text (by content: the store's slot never reaches
+   the image); a name its kind and the letter's index, mask 0. */
 static void wval(wr *w, const ab_val *v)
 {
     const abn *part[3] = {&v->re, &v->im, &v->p3};
     unsigned mask = 0;
+    if (ab_is_sym(v)) {
+        const char *t = w->c ? ab_expr_text(w->c, v) : NULL;
+        size_t n = t && v->kind == AB_EXPR ? strlen(t) : 0;
+        w8(w, (unsigned)v->kind);
+        w8(w, v->kind == AB_EXPR ? (unsigned)n : (unsigned)v->len);
+        w8(w, 0);
+        if (n) wbytes(w, t, n);
+        if (w->ver < 21) w->ver = 21;
+        return;
+    }
     for (int i = 0; i < 3; i++)
         if (!is_zero_bits(part[i])) mask |= 1u << i;
     w8(w, (unsigned)v->kind);
@@ -193,7 +207,7 @@ static int kind_code(int k) { return k == AB_SOLVE ? 1 : k == AB_INTEG ? 2 : 0; 
 
 size_t ab_state_save(const ab_calc *c, uint8_t *buf, size_t cap)
 {
-    wr w = {buf, cap, 0};
+    wr w = {buf, cap, 0, c, 20};
     size_t s;
     if (c->running) return 0;
     wbytes(&w, "ABSI", 4);
@@ -224,6 +238,8 @@ size_t ab_state_save(const ab_calc *c, uint8_t *buf, size_t cap)
         wi32(&w, c->err_arg);
         w8(&w, (unsigned)kind_code(c->err_active));
         w8(&w, (unsigned)c->err_status);
+        if ((unsigned)c->err_status <= ABN_STATUS_LAST && STATUS_SINCE[c->err_status] > w.ver)
+            w.ver = STATUS_SINCE[c->err_status];    /* (082: MEMORY FULL and NOT A NUMBER need 21) */
         wval(&w, &c->err_x);
     }
     w8(&w, c->viewing);                     /* version 4: a keyboard VIEW's display, which decides what
@@ -446,6 +462,8 @@ size_t ab_state_save(const ab_calc *c, uint8_t *buf, size_t cap)
 
     {
         size_t total = w.len + 4;
+        for (int i = 0; i < 2; i++)                 /* the version the content needs (082), at most this build's */
+            if (4 + (size_t)i < w.cap) w.buf[4 + i] = (uint8_t)(w.ver >> (8 * i));
         for (int i = 0; i < 4; i++)
             if (8 + (size_t)i < w.cap) w.buf[8 + i] = (uint8_t)(total >> (8 * i));
         if (total <= cap) w32(&w, ab_crc32(buf, w.len));
@@ -457,7 +475,7 @@ size_t ab_state_save(const ab_calc *c, uint8_t *buf, size_t cap)
 size_t ab_state_label_bytes(const ab_calc *c, int l)
 {
     if (l < 0 || l >= 26 || c->labelpos[l] < 0 || c->labelpos[l] >= c->prog_len) return 0;
-    wr w = {NULL, 0, 0};                        /* counts only */
+    wr w = {NULL, 0, 0, NULL, 20};              /* counts only (a literal is never an expression) */
     for (int i = c->labelpos[l]; i < c->prog_len && (i == c->labelpos[l] || c->prog[i].op != AB_LBL); i++) {
         int op = c->prog[i].op;
         w16(&w, (unsigned)op_code((ab_op)op));
@@ -488,6 +506,11 @@ typedef struct {
     bool entry_seen;                /* (rentry: the last entry read was active) */
     bool table_on;                  /* an open table: no open graph beside it (unit 033) */
     int edit;
+    /* unit 082: the expressions' texts met so far, as offsets into the image (one slot each, in the order met; the same
+       text twice shares a slot) */
+    uint32_t xoff[AB_EXPR_SLOTS];
+    uint8_t xlen[AB_EXPR_SLOTS];
+    int nx;
 } rd;
 
 static unsigned r8(rd *r)
@@ -564,12 +587,46 @@ static void rnum(rd *r, abn *out)
     if (!r->bad && out) *out = v;
 }
 
-static void rval(rd *r, ab_val *out)
+/* an expression's text of n bytes at the read position (082): printable, its slot the one an equal text met before
+   took, else the next */
+static int rexpr(rd *r, unsigned n)
+{
+    int k;
+    need(r, n >= 1 && n < AB_EQN_LEN && n <= r->len - r->pos);
+    if (r->bad) return -1;
+    for (unsigned i = 0; i < n; i++) need(r, r->p[r->pos + i] >= 0x20);
+    for (k = 0; k < r->nx; k++)
+        if (r->xlen[k] == n && !memcmp(r->p + r->xoff[k], r->p + r->pos, n)) break;
+    if (k == r->nx) {
+        need(r, r->nx < AB_EXPR_SLOTS);         /* more than the store holds: not an image a store wrote */
+        if (r->bad) return -1;
+        r->xoff[k] = (uint32_t)r->pos;
+        r->xlen[k] = (uint8_t)n;
+        r->nx++;
+        if (r->c) {
+            memcpy(r->c->exprs[k], r->p + r->pos, n);
+            r->c->exprs[k][n] = '\0';
+        }
+    }
+    r->pos += n;
+    return k;
+}
+
+/* sym: the place may hold an expression or a name (082; not a program's literal, nor ANS: no op puts one there) */
+static void rval(rd *r, ab_val *out, bool sym)
 {
     unsigned kind = r8(r), len = r8(r), mask = r8(r);
     ab_val v;
     memset(&v, 0, sizeof v);
     v.re = v.im = v.p3 = abn_zero();
+    if (!r->bad && (kind == AB_EXPR || kind == AB_NAME)) {     /* unknown kinds past these stay refused (4C) */
+        need(r, sym && r->version >= 21 && mask == 0 && (kind == AB_EXPR || len <= 26));
+        if (r->bad) return;
+        v.kind = (ab_kind)kind;
+        v.len = kind == AB_EXPR ? rexpr(r, len) : (int)len;
+        if (!r->bad && out) *out = v;
+        return;
+    }
     need(r, kind <= AB_VECTOR && mask <= 7 && (kind == AB_VECTOR ? len >= 1 && len <= 3 : len == 0));
     if (r->bad) return;
     v.kind = (ab_kind)kind;
@@ -700,7 +757,7 @@ static void sec_modes(rd *r)
         earg = ri32(r);
         eactive = r8(r);
         estatus = r8(r);
-        rval(r, &ex);
+        rval(r, &ex, true);
         need(r, (ecode == 0xFFFF || ecode < (unsigned)V1_N) && eactive <= 2 &&
                     status_in_image(estatus, r->version));   /* unit 026
                                                    added two; CAS 004 four; 047 one; 048 four */
@@ -754,13 +811,13 @@ static void sec_stack(rd *r)
     ab_calc *c = r->c;
     ab_val x;
     memset(&x, 0, sizeof x);
-    rval(r, &x);
+    rval(r, &x, true);
     if (c) c->x = x;
     r->xreal = x.kind == AB_REAL;
-    rval(r, c ? &c->y : NULL);
-    rval(r, c ? &c->z : NULL);
-    rval(r, c ? &c->t : NULL);
-    rval(r, c ? &c->lastx : NULL);
+    rval(r, c ? &c->y : NULL, true);
+    rval(r, c ? &c->z : NULL, true);
+    rval(r, c ? &c->t : NULL, true);
+    rval(r, c ? &c->lastx : NULL, true);
 }
 
 /* version 5 (unit 025): i, each label's mode (0, 33 or 35), the message's mode */
@@ -768,7 +825,7 @@ static void sec_mode25(rd *r)
 {
     ab_val iv;
     uint8_t lm[26];
-    rval(r, &iv);
+    rval(r, &iv, true);
     for (int l = 0; l < 26; l++) {
         lm[l] = (uint8_t)r8(r);
         need(r, lm[l] == 0 || lm[l] == AB_MODEL_STU || lm[l] == 33 || lm[l] == 35);
@@ -788,7 +845,7 @@ static void sec_alg(rd *r)
 {
     unsigned stu = r8(r), alg = r8(r), shown = r8(r);
     ab_val ans;
-    rval(r, &ans);
+    rval(r, &ans, false);
     need(r, flag_byte(stu) && flag_byte(alg) && flag_byte(shown) && (!stu || r->m35) && (!shown || alg));
     need(r, !alg || (stu && r->typing && !r->emode && !r->prgm && r->edit == -1));
     r->stu = stu;
@@ -962,7 +1019,7 @@ static void sec_vars(rd *r)
         int i = (int)r8(r);
         need(r, i > last && i < 26);
         last = i;
-        if (!r->bad) rval(r, r->c ? &r->c->var[i] : NULL);
+        if (!r->bad) rval(r, r->c ? &r->c->var[i] : NULL, true);
     }
 }
 
@@ -999,7 +1056,7 @@ static void sec_prog(rd *r)
         if (op == AB_LIT) {
             need(r, lits < AB_PROG_LITS);
             if (r->bad) return;
-            rval(r, r->c ? &r->c->lit[lits] : NULL);
+            rval(r, r->c ? &r->c->lit[lits] : NULL, false);
             if (r->c) {
                 r->c->prog[i].op = AB_LIT;
                 r->c->prog[i].arg = lits;
@@ -1079,7 +1136,7 @@ static void sec_entry(rd *r)
     rentry(r, c ? &c->ventry[1] : NULL);
     vlen = r8(r);
     prgm = r8(r);
-    rval(r, c ? &c->plit : NULL);
+    rval(r, c ? &c->plit : NULL, false);
     need(r, cpart <= 2 && vlen <= 3 && flag_byte(prgm));
     r->prgm = prgm;
     r->typing_num = r->typing_num || cpart || vlen;
@@ -1175,18 +1232,18 @@ static void sec_solve(rd *r)
     rnum(r, c ? &c->ev_cx : NULL);
     rnum(r, c ? &c->ev_cf : NULL);
     cst = r8(r);
-    rval(r, c ? &c->ev_y : NULL);
-    rval(r, c ? &c->ev_z : NULL);
-    rval(r, c ? &c->ev_t : NULL);
+    rval(r, c ? &c->ev_y : NULL, true);
+    rval(r, c ? &c->ev_z : NULL, true);
+    rval(r, c ? &c->ev_t : NULL, true);
     skind = r8(r);
     svar = ri32(r);
     scode = ri32(r);
-    rval(r, c ? &c->susp.x : NULL);
-    rval(r, c ? &c->susp.y : NULL);
-    rval(r, c ? &c->susp.z : NULL);
-    rval(r, c ? &c->susp.t : NULL);
-    rval(r, c ? &c->susp.lastx : NULL);
-    rval(r, c ? &c->susp.var0 : NULL);
+    rval(r, c ? &c->susp.x : NULL, true);
+    rval(r, c ? &c->susp.y : NULL, true);
+    rval(r, c ? &c->susp.z : NULL, true);
+    rval(r, c ? &c->susp.t : NULL, true);
+    rval(r, c ? &c->susp.lastx : NULL, true);
+    rval(r, c ? &c->susp.var0 : NULL, true);
     slift = r8(r);
     spc = ri16(r);
     srbase = r8(r);
@@ -1239,7 +1296,8 @@ static bool parse(rd *r)
         unsigned tag = r16(r);
         uint32_t size = r32(r);
         size_t end;
-        if (r->bad || tag <= last || tag > T_CASCPLX || size > r->len - r->pos) return false;
+        if (r->bad || tag <= last || size > r->len - r->pos) return false;
+        if (tag > T_CASCPLX && r->version < 21) return false;   /* (a section after this build's last: 082 skips it) */
         last = tag;
         end = r->pos + size;
         switch (tag) {
@@ -1298,7 +1356,10 @@ static bool parse(rd *r)
                 r->pos = end;                   /* (as T_EQNOTE before 17: the tests relabel newer images) */
             }
             break;
-        default: sec_solve(r); break;
+        case T_SOLVE: sec_solve(r); break;
+        default:
+            r->pos = end;                       /* 082: a newer build's section (version 21 on), skipped by its size */
+            break;
         }
         if (r->pos != end) return false;
     }

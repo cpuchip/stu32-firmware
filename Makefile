@@ -21,7 +21,7 @@ LIBS := -lm
 # make accuracy needs a python with mpmath: make all-checks PYTHON=...
 PYTHON ?= python3
 KEYV := $(filter-out work/002-vectors.txt work/016-vectors.txt work/017-vectors.txt work/018-vectors.txt,$(filter-out %-fmt-vectors.txt,$(wildcard work/*-vectors.txt))) tests/021-soroban.txt tests/019-soroban.txt tests/003-soroban.txt tests/018-soroban.txt tests/029-soroban.txt tests/034-soroban.txt tests/harness-soroban.txt tests/046-soroban.txt tests/047-soroban.txt tests/050-soroban.txt tests/054-soroban.txt tests/fc-soroban.txt tests/067-soroban.txt
-all: build/standin_test build/app_test build/keymap_test build/help_test build/power_test build/offscreen_test build/screen_test build/tbook_test build/keys_test build/ls027_test build/draw_test build/store_test build/load_fuzz build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test build/bi_drive build/hp_drive build/deep_test build/eqn_depth build/eqn_stack build/stackkeys build/namedrive
+all: build/standin_test build/app_test build/keymap_test build/help_test build/power_test build/offscreen_test build/screen_test build/tbook_test build/keys_test build/ls027_test build/draw_test build/store_test build/load_fuzz build/expr_test build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test build/bi_drive build/hp_drive build/deep_test build/eqn_depth build/eqn_stack build/stackkeys build/namedrive
 
 # every build/ target is order-only on the directory: a fresh clone has none (abacus #3803)
 build:
@@ -115,6 +115,9 @@ build/ls027_test: firmware/ls027.c firmware/ls027.h tests/ls027_test.c | build
 
 build/store_test: $(CORE) $(HDRS) $(ENGINE) firmware/store.c firmware/store.h firmware/settings.c firmware/settings.h firmware/piezo.c tests/store_test.c | build
 	$(CC) $(CFLAGS) -Icore -Ifirmware -o $@ $(CORE) firmware/store.c firmware/settings.c firmware/piezo.c tests/store_test.c $(ENGINE) $(LIBS)
+
+build/expr_test: $(CORE) $(HDRS) $(ENGINE) tests/expr_test.c | build
+	$(CC) $(CFLAGS) -Icore -o $@ $(CORE) tests/expr_test.c $(ENGINE) $(LIBS)
 
 build/load_fuzz: $(CORE) $(HDRS) $(ENGINE) tests/load_fuzz.c | build
 	$(CC) $(CFLAGS) -Icore -o $@ $(CORE) tests/load_fuzz.c $(ENGINE) $(LIBS)
@@ -268,6 +271,7 @@ test: all
 	./build/vectors tests/038-soroban.txt
 	./build/vectors tests/golden-v1.txt
 	./build/load_fuzz 20000
+	./build/expr_test
 	bash tests/gen_games_test.sh
 	./build/store_test
 	./build/ls027_test
