@@ -4616,6 +4616,10 @@ int main(void)
         int cur0 = c.eqn_cur;
         press(&a, "BLUE R/S");
         expect(c.eqn_cur != cur0 && a.tb_line == 0, "080: SST on an answer that fits steps the list at once");
+        c.eqn_model[c.eqn_cur] = 33;                /* a 33s-stamped equation shown in STU mode groups another way */
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(!pg.textbook_on, "080: a 33s-stamped equation in STU mode is its text, not 2D (STU's grammar would misgroup it)");
     }
     printf("app_test: %d/%d checks\n", checks - bad, checks);
     return bad != 0;

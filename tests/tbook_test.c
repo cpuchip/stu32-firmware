@@ -228,6 +228,15 @@ int main(int argc, char **argv)
     expect(tb_parse(&t, "\x01" "2*2 lin. solve") < 0, "a built-in solver's entry doesn't parse: it's drawn as text");
     expect(tb_parse(&t, "IDIV(A,B)") < 0, "a function of two arguments is drawn as text");
     expect(tb_parse(&t, "\xe2\x88\x9e") == 0 && tb_parse(&t, "-\xe2\x88\x9e") == 0, "\xe2\x88\x9e parses");
+    {   /* the pool: 1+1+...+1 at the 191 B an equation holds is a node a byte, and its wrap adds a SUM and a ROWS a line,
+           past TB_NODES: it must stop cleanly (err 2) and be drawn as text, never write past the pool */
+        static char ones[192];
+        for (int i = 0; i < 191; i++) ones[i] = i % 2 ? '+' : '1';
+        ones[191] = '\0';
+        int p = tb_parse(&t, ones), s = p == 0 ? tb_fit(&t, 391) : 0;
+        printf("tbook pool: 1+1+...+1 (191 B): parse %d, fit %d, err %d, nodes %d of %d\n", p, s, t.err, t.count, TB_NODES);
+        expect(t.count <= TB_NODES && (s > 0 || t.err == 2), "a text past the pool stops at TB_NODES (err 2), drawn as text");
+    }
     sweep();
     corpus(argc > 1 ? argv[1] : "build/casim/golden/corpus.txt");
     printf("tbook_test: %d/%d checks\n", checks - bad, checks);
