@@ -60,13 +60,15 @@ const char *ab_status_message(abn_status st)
     case ABN_CAS_BAD_BOUND: return "BAD BOUND";                 /* unit 070: provisional (abacus #8545) */
     case ABN_CAS_WHERE: return "A CONDITION";                   /* unit 070: provisional (abacus #8545) */
     case ABN_NOT_IN_EQN: return "NOT IN EQN";                   /* unit 073: Equation mode's refusal, as RPN ONLY */
+    case ABN_EXPR_FULL: return "MEMORY FULL";                   /* unit 082: the expression store (UG p.F-3) */
+    case ABN_NOT_NUMBER: return "NOT A NUMBER";                 /* unit 082: an expression or a name read as a number */
     }
     return "";
 }
 
 static bool is_zero_val(const ab_val *v)
 {
-    return v->kind != AB_VECTOR && abn_is_zero(&v->re) && abn_is_zero(&v->im);
+    return (v->kind == AB_REAL || v->kind == AB_COMPLEX) && abn_is_zero(&v->re) && abn_is_zero(&v->im);
 }
 
 static bool takes_var(int op)

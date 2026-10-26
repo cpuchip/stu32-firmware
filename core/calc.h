@@ -244,14 +244,20 @@ typedef struct {
 /* What a stack level holds: a real number, a complex number (unit 009) or a vector of 1 to 3
    elements (unit 010). A register has three parts (UG p.2-2): a real fills the first, a complex
    number the first two, a vector one per element. */
-typedef enum { AB_REAL = 0, AB_COMPLEX, AB_VECTOR } ab_kind;
+typedef enum { AB_REAL = 0, AB_COMPLEX, AB_VECTOR,
+               AB_EXPR,     /* unit 082: an expression, its STU text in the store (exprs[len]); not a number */
+               AB_NAME      /* unit 082: a name, the letter itself (len 0-26: A-Z, i); not a number */
+} ab_kind;
 
 typedef struct {
     ab_kind kind;
     abn re, im;             /* parts 1 and 2: a real number is re, with im zero */
     abn p3;                 /* part 3: a 3-D vector's third element */
-    int len;                /* a vector's element count, 1..3 (0 otherwise) */
+    int len;                /* a vector's element count, 1..3 (0 otherwise); 082: an expression's store slot, a name's
+                               letter */
 } ab_val;
+
+#define AB_EXPR_SLOTS 48            /* unit 082: the expression store: X, Y, Z, T, LASTx, 27 letters, 16 history values */
 
 typedef struct {
     ab_val x, y, z, t;
@@ -437,6 +443,8 @@ typedef struct {
        so that an image loaded keeps it by clearing only what is before it (state.c) */
     char hist[AB_HIST][AB_EQN_LEN];
     ab_val hist_val[AB_HIST];
+    char exprs[AB_EXPR_SLOTS][AB_EQN_LEN];  /* unit 082: the expressions values hold, by slot; a slot no live value names is
+                                               free (ab_expr_new sweeps). In the image by content, never by slot */
     int hist_n;             /* entries kept, the newest at hist_n - 1 */
     int hist_at;            /* the entry shown by up and down, -1 none */
 } ab_calc;
@@ -612,6 +620,12 @@ bool ab_view_linear(const ab_calc *c);  /* a linear solution's view is showing (
 /* Unit 048: SOLVE's report while its view is open (casim's line), else NULL; its rows (0 the status, then each root)
    and the row under the cursor; the note beside the equation shown ("+C", "MAY FACTOR MORE"), else NULL. */
 int ab_eqn_step(const ab_calc *c, int i, int dir);    /* the list's next (1) or previous (-1) entry, -1 its TOP (081) */
+/* Unit 082: a new expression value of text (STU's, × written in) in *out. ABN_EXPR_FULL when every slot holds an
+   expression a live value names (nothing changed: an op asks before it commits). ab_expr_text: an expression's text, a
+   name's letter ("A"), else NULL. */
+abn_status ab_expr_new(ab_calc *c, const char *text, ab_val *out);
+const char *ab_expr_text(const ab_calc *c, const ab_val *v);
+bool ab_is_sym(const ab_val *v);    /* an expression or a name: not a number (082) */
 const char *ab_cas_report(const ab_calc *c);
 int ab_cas_rows(const ab_calc *c);
 bool ab_cas_row(const ab_calc *c, int i, char *out, int size);

@@ -488,6 +488,14 @@ static __attribute__((noinline)) int name_at(const char *s, int m, size_t *len)
     return best;
 }
 
+/* A value an equation reads (a letter, ANS, an indirect register): an expression or a name in it is NOT A NUMBER (unit
+   082, before 084's arithmetic), so no number is computed from one. */
+static void take_val(parser *p, ab_val *v, const ab_val *from)
+{
+    if (ab_is_sym(from)) fail(p, ABN_NOT_NUMBER);
+    else *v = *from;
+}
+
 static __attribute__((noinline)) void parse_ind(parser *p, const char *s, ab_val *v)
 {
     ab_val x;
@@ -495,7 +503,7 @@ static __attribute__((noinline)) void parse_ind(parser *p, const char *s, ab_val
     if (p->check || p->st != ABN_OK) return;
     st = ab_indirect(p->c, strncmp(s, IND_I, 3) == 0 ? AB_VAR_IND_I : AB_VAR_IND_J, &x);
     if (st != ABN_OK) fail(p, st);
-    else *v = x;
+    else take_val(p, v, &x);
 }
 
 static void parse_prim(parser *p, ab_val *v)
@@ -558,7 +566,7 @@ static void parse_prim(parser *p, ab_val *v)
     }
     if (p->c->alg_eval && at(p, "ANS")) {
         /* the expression line's last result (unit 029); a name on that line only */
-        if (!p->check && p->st == ABN_OK) *v = p->c->ans;
+        if (!p->check && p->st == ABN_OK) take_val(p, v, &p->c->ans);
         return;
     }
     if (at(p, IND_I) || at(p, IND_J)) {
@@ -567,14 +575,14 @@ static void parse_prim(parser *p, ab_val *v)
     }
     if (*s >= 'A' && *s <= 'Z') {
         p->i++;
-        if (!p->check && p->st == ABN_OK) *v = p->c->var[*s - 'A'];
+        if (!p->check && p->st == ABN_OK) take_val(p, v, &p->c->var[*s - 'A']);
         return;
     }
     if (*s == 'i' && p->m33) {
         /* typed in 33s mode: a lone i is the variable i; (i) is the indirect glyph above (33s p.13-23); by the
            equation's stamp, as the rest of its syntax (unit 041 A, fresh eyes; it was the mode in force) */
         p->i++;
-        if (!p->check && p->st == ABN_OK) *v = p->c->var[26];
+        if (!p->check && p->st == ABN_OK) take_val(p, v, &p->c->var[26]);
         return;
     }
     fail(p, ABN_SYNTAX);

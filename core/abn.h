@@ -82,11 +82,13 @@ typedef enum {
                                the variable in a bound): BAD BOUND (provisional, abacus #8545) */
     ABN_CAS_WHERE,          /* unit 070: an op on a sum's condition row (WHERE), which is no equation: A CONDITION
                                (provisional, abacus #8545: the screen says what it is) */
-    ABN_NOT_IN_EQN          /* unit 073: a key Equation mode refuses (R↓, x↔y, STO, LASTx, Σ+, ...), which did nothing
+    ABN_NOT_IN_EQN,         /* unit 073: a key Equation mode refuses (R↓, x↔y, STO, LASTx, Σ+, ...), which did nothing
                                silently: NOT IN EQN, a brief notice as RPN ONLY (stu-discover, abacus #8714) */
+    ABN_EXPR_FULL,          /* unit 082: the expression store full, every slot a live value's: MEMORY FULL (UG p.F-3) */
+    ABN_NOT_NUMBER,         /* unit 082: an expression or a name where a number is read: NOT A NUMBER */
 } abn_status;
 
-#define ABN_STATUS_LAST ABN_NOT_IN_EQN      /* the last status: loops over every status end here (056: screen_test's
+#define ABN_STATUS_LAST ABN_NOT_NUMBER      /* the last status: loops over every status end here (056: screen_test's
                                                ended at ABN_BAD_IMAGE and missed every one after it) */
 
 abn abn_zero(void);

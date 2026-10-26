@@ -898,6 +898,8 @@ static abn_status cmplx_pair(ab_calc *c, int arg)
     cplx z1, z2, r;
     abn_status st;
     if (arg < 0 || arg >= AB_CXP_N || c->base != 10) return ABN_DOMAIN;
+    if (ab_is_sym(&c->x) || ab_is_sym(&c->y) || (two && (ab_is_sym(&c->z) || ab_is_sym(&c->t))))
+        return ABN_NOT_NUMBER;                  /* 082 */
     if (c->x.kind != AB_REAL || c->y.kind != AB_REAL || (two && (c->z.kind != AB_REAL || c->t.kind != AB_REAL)))
         return ABN_DOMAIN;
     z1.re = c->z.re, z1.im = c->t.re;
@@ -1009,6 +1011,7 @@ static abn_status resolve(ab_calc *c, int code, bool for_read, slot *out)
            27 is i, 28-33 the statistics registers n, Sx, Sy, Sx2, Sy2, Sxy; 0 or 34 up INVALID (i).
            The 33s has one index: (J) is INVALID there. */
         const ab_val *ix = &c->var[26];
+        if (ab_is_sym(ix)) return ABN_NOT_NUMBER;          /* 082: an expression or a name as the index */
         if (code == AB_VAR_IND_J || ix->kind != AB_REAL || !int_in(&ix->re, -33, 33, &k) || k == 0) return ABN_DOMAIN;
         if (k < 0) k = -k;
         if (k <= 27) out->val = &c->var[k - 1];
@@ -1016,6 +1019,7 @@ static abn_status resolve(ab_calc *c, int code, bool for_read, slot *out)
         return ABN_OK;
     }
     const ab_val *idx = &c->var[(code == AB_VAR_IND_I ? 'I' : 'J') - 'A'];
+    if (ab_is_sym(idx)) return ABN_NOT_NUMBER;          /* 082 */
     if (idx->kind != AB_REAL || !int_in(&idx->re, -32, AB_IND_MAX, &k)) return ABN_DOMAIN;  /* INVALID (I) */
     if (k <= -27) {
         out->reg = &c->stat[-k - 27];
@@ -1078,7 +1082,7 @@ static abn_status store_val(ab_calc *c, const slot *sl, ab_val v)
         *sl->val = v;
         return ABN_OK;
     }
-    if (v.kind != AB_REAL) return ABN_DOMAIN;
+    if (v.kind != AB_REAL) return ab_is_sym(&v) ? ABN_NOT_NUMBER : ABN_DOMAIN;    /* (082: a register holds numbers) */
     write_slot(c, sl, v.re);
     return ABN_OK;
 }
@@ -1087,6 +1091,7 @@ static abn_status store_val(ab_calc *c, const slot *sl, ab_val v)
 static abn_status arith(ab_calc *c, ab_val *r, ab_op op, const ab_val *a, const ab_val *b)
 {
     abn_status st;
+    if (ab_is_sym(a) || ab_is_sym(b)) return ABN_NOT_NUMBER;   /* 082: no arithmetic on an expression before 084 */
     if (is_vec(a) || is_vec(b)) return vec_arith(r, plain_op(op), a, b);
     if (is_cx(a) || is_cx(b)) {
         cplx x = cx_of(a), y = cx_of(b), z;
@@ -1505,6 +1510,7 @@ static abn_status prog_test(ab_calc *c, int op, int arg, bool *t)
     }
     abn zero = abn_zero();
     bool vs0 = arg >= 6;
+    if (ab_is_sym(&c->x) || (!vs0 && ab_is_sym(&c->y))) return ABN_NOT_NUMBER;   /* 082 */
     if (c->x.kind != AB_REAL || (!vs0 && c->y.kind != AB_REAL)) return ABN_DOMAIN;
     int r = abn_cmp(&c->x.re, vs0 ? &zero : &c->y.re);
     switch (arg % 6) {
@@ -1562,6 +1568,7 @@ static abn_status ind_target(const ab_calc *c, int arg, int *tgt)
     if (!ab_mode35(c)) {
         /* XEQ (i), GTO (i), FN= (i): the label |i| names, 1-26 (33s p.13-21; unit 025) */
         const ab_val *ix = &c->var[26];
+        if (ab_is_sym(ix)) return ABN_NOT_NUMBER;          /* 082 */
         if (arg == AB_TGT_IND_J || ix->kind != AB_REAL || !int_in(&ix->re, -33, 33, &k) || k == 0) return ABN_DOMAIN;
         if (k < 0) k = -k;
         if (k > 26) return ABN_NONEXISTENT;
@@ -1569,6 +1576,7 @@ static abn_status ind_target(const ab_calc *c, int arg, int *tgt)
         return ABN_OK;
     }
     const ab_val *idx = &c->var[(arg == AB_TGT_IND_I ? 'I' : 'J') - 'A'];
+    if (ab_is_sym(idx)) return ABN_NOT_NUMBER;          /* 082 */
     if (idx->kind != AB_REAL || !int_in(&idx->re, -32, AB_IND_MAX, &k)) return ABN_DOMAIN;
     if (k < -26 || k > -1) return ABN_NONEXISTENT;
     *tgt = (-k - 1) * 1000 + 1;
@@ -2008,7 +2016,7 @@ static abn_status fn_value(const ab_calc *c, const ab_val *v, abn *f)
         return ABN_OK;
     }
     ev_nonreal = true;
-    return ABN_DOMAIN;
+    return ab_is_sym(v) ? ABN_NOT_NUMBER : ABN_DOMAIN;     /* 082: an expression stops SOLVE / integrate */
 }
 
 static int sgn(const abn *a)
@@ -2695,6 +2703,7 @@ static abn_status solve_op(ab_calc *c, int code)
     if (c->fn_eqn < 0 && (c->fn < 0 || c->labelpos[c->fn] < 0)) return ABN_SELECT_FN;
     if ((st = resolve(c, code, false, &sl)) != ABN_OK) return st;
     if (!sl.val) return ABN_DOMAIN;             /* not an unnamed or statistics register (p.14-23) */
+    if (ab_is_sym(sl.val) || ab_is_sym(&c->x)) return ABN_NOT_NUMBER;     /* 082: the unknown or the guess */
     if (sl.val->kind != AB_REAL || c->x.kind != AB_REAL) return ABN_DOMAIN;   /* BAD GUESS (p.F-1) */
     if (c->rdepth >= AB_RTN_DEPTH) return ABN_XEQ_OVERFLOW;
     susp_begin(c, AB_SOLVE, slot_id(c, &sl), code, *sl.val);
@@ -2889,6 +2898,7 @@ static abn_status integ_op(ab_calc *c, int code)
     if (c->fn_eqn < 0 && (c->fn < 0 || c->labelpos[c->fn] < 0)) return ABN_SELECT_FN;
     if ((st = resolve(c, code, false, &sl)) != ABN_OK) return st;
     if (!sl.val) return ABN_DOMAIN;
+    if (ab_is_sym(&c->x) || ab_is_sym(&c->y)) return ABN_NOT_NUMBER;   /* 082: a limit */
     if (c->x.kind != AB_REAL || c->y.kind != AB_REAL) return ABN_DOMAIN;
     if (c->rdepth >= AB_RTN_DEPTH) return ABN_XEQ_OVERFLOW;
     susp_begin(c, AB_INTEG, slot_id(c, &sl), code, *sl.val);
@@ -3639,6 +3649,7 @@ static abn_status lin_key(ab_calc *c, int n)
     abn coef[12], sol[3];
     abn_status st;
     for (int i = 0; i < n * (n + 1); i++) {
+        if (ab_is_sym(&c->var[i])) return ABN_NOT_NUMBER;     /* 082 */
         if (c->var[i].kind != AB_REAL) return ABN_DOMAIN;
         coef[i] = c->var[i].re;
     }
@@ -4424,6 +4435,7 @@ static abn_status alg_key(ab_calc *c, ab_op op, int arg)
         ab_val v;
         abn_status st;
         if ((st = alg_x_shown(c, &v)) != ABN_OK) return st;
+        if (ab_is_sym(&v)) return ABN_NOT_NUMBER;
         if (v.kind != AB_REAL) return ABN_DOMAIN;
         graph_set(c, op, &v.re);
         return ABN_OK;
@@ -4433,6 +4445,7 @@ static abn_status alg_key(ab_calc *c, ab_op op, int arg)
         ab_val v;
         abn_status st;
         if ((st = alg_x_shown(c, &v)) != ABN_OK) return st;
+        if (ab_is_sym(&v)) return ABN_NOT_NUMBER;
         if (v.kind != AB_REAL) return ABN_DOMAIN;
         if (op == AB_TSTART) {
             c->tbl_start = v.re;
@@ -4647,6 +4660,52 @@ done:
         c->err_status = st;
     }
     return st;
+}
+
+/* ---- unit 082: expressions as values ---- */
+
+bool ab_is_sym(const ab_val *v)
+{
+    return v->kind == AB_EXPR || v->kind == AB_NAME;
+}
+
+const char *ab_expr_text(const ab_calc *c, const ab_val *v)
+{
+    static const char NAMES[27][2] = {"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q",
+                                      "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "i"};
+    if (v->kind == AB_EXPR && v->len >= 0 && v->len < AB_EXPR_SLOTS) return c->exprs[v->len];
+    if (v->kind == AB_NAME && v->len >= 0 && v->len < 27) return NAMES[v->len];
+    return NULL;
+}
+
+static void mark1(const ab_val *v, bool used[AB_EXPR_SLOTS])
+{
+    if (v->kind == AB_EXPR && v->len >= 0 && v->len < AB_EXPR_SLOTS) used[v->len] = true;
+}
+
+/* every place a value lives (each ab_val in ab_calc, copies included: a copy names the same slot) */
+static void expr_mark(const ab_calc *c, bool used[AB_EXPR_SLOTS])
+{
+    const ab_val *one[] = {&c->x, &c->y, &c->z, &c->t, &c->lastx, &c->plit, &c->susp.x, &c->susp.y, &c->susp.z,
+                           &c->susp.t, &c->susp.lastx, &c->susp.var0, &c->ev_y, &c->ev_z, &c->ev_t, &c->err_x, &c->ans};
+    for (size_t i = 0; i < sizeof one / sizeof one[0]; i++) mark1(one[i], used);
+    for (int i = 0; i < 27; i++) mark1(&c->var[i], used);
+    for (int i = 0; i < AB_PROG_LITS; i++) mark1(&c->lit[i], used);
+    for (int i = 0; i < AB_HIST; i++) mark1(&c->hist_val[i], used);
+}
+
+abn_status ab_expr_new(ab_calc *c, const char *text, ab_val *out)
+{
+    bool used[AB_EXPR_SLOTS] = {false};
+    expr_mark(c, used);
+    for (int i = 0; i < AB_EXPR_SLOTS; i++)
+        if (!used[i]) {
+            snprintf(c->exprs[i], sizeof c->exprs[i], "%s", text);
+            memset(out, 0, sizeof *out);
+            out->kind = AB_EXPR, out->len = i;
+            return ABN_OK;
+        }
+    return ABN_EXPR_FULL;                       /* every slot a live value's: nothing changed (082 section 7) */
 }
 
 /* The list's entry after i (dir 1, SST) or before it (dir -1, BST), -1 being EQN LIST TOP: the list wraps through it,
@@ -5012,6 +5071,10 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
     }
     c->cpart = 0;
     c->vlen = 0;
+
+    /* Unit 082: an expression or a name where a number is read is NOT A NUMBER, nothing changed (before 084's
+       arithmetic; is_cx and is_vec compare the kind exactly, so the guards below would let one through as a real 0). */
+    if ((reads_x(op) && ab_is_sym(&c->x)) || (reads_y(op) && ab_is_sym(&c->y))) return ABN_NOT_NUMBER;
 
     /* Any other function given a complex number (UG p.9-3, p.F) or a vector (UG ch.10, unit 010
        rule 2) is INVALID DATA, nothing changed. */
@@ -5434,6 +5497,7 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
         c->lift = true;
         return ABN_OK;
     case AB_XMIN: case AB_XMAX: case AB_YMIN: case AB_YMAX:
+        if (ab_is_sym(&c->x)) return ABN_NOT_NUMBER;
         if (c->x.kind != AB_REAL) return ABN_DOMAIN;
         graph_set(c, op, &c->x.re);
         c->lift = true;
@@ -5448,6 +5512,7 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
         return ABN_OK;
     case AB_TSTART:
     case AB_TSTEP:
+        if (ab_is_sym(&c->x)) return ABN_NOT_NUMBER;
         if (c->x.kind != AB_REAL) return ABN_DOMAIN;
         if (op == AB_TSTART) {
             c->tbl_start = c->x.re;
@@ -5808,6 +5873,7 @@ static abn_status table_go(ab_calc *c)
         v = vars[i];
     }
     if (!c->tbl_start_set) {                    /* the variable's value when GO is pressed */
+        if (ab_is_sym(&c->var[v])) return ABN_NOT_NUMBER;
         if (c->var[v].kind != AB_REAL) return ABN_DOMAIN;
         c->tbl_start = c->var[v].re;
     }

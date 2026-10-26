@@ -208,7 +208,7 @@ static const char *const STATUS_NAMES[] = {"OK", "DIV_ZERO", "RANGE", "BAD_TEXT"
                                            "CAS_COPY", "TOO_DEEP", "CAS_NOT_POLY", "CAS_NOT_NUMERIC",
                                            "CAS_NOT_INTEGRABLE", "CAS_EXPR_ONLY", "CAS_IMPROPER", "CAS_UNDEFINED",
                                            "CAS_BOUND_LETTER", "CAS_BOUND_REAL", "CAS_UNDECIDED", "CAS_NO_CLOSED",
-                                           "CAS_BAD_BOUND", "CAS_WHERE", "NOT_IN_EQN"};
+                                           "CAS_BAD_BOUND", "CAS_WHERE", "NOT_IN_EQN", "EXPR_FULL", "NOT_NUMBER"};
 _Static_assert(sizeof STATUS_NAMES / sizeof STATUS_NAMES[0] == ABN_STATUS_LAST + 1, "a name for every status (056)");
 
 /* Applies one key token. Returns 0, or -1 for an unknown token. */
