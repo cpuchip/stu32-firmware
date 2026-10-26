@@ -298,3 +298,18 @@ internal RAM +0, IRAM +0, calc_task's frame +0, no internal-RAM symbol changed.
   - look080's first screen, `3XY+XY^2`, shows both cases on the glass: 3 to X and X to Y.
 - The unit's acceptance waits on Michael's look (card tb-exponent, v170: the gap's reach and exponents at scale 1). The
   stand-in stays on look080.
+
+## +C on its line (abacus #11101; Michael's first look on the phone, tally #11099)
+
+- **The fault:** draw_textbook centred +C on the last line's box. An exponent raises that box's top, so +C sat high:
+  tally measured ∫(5+6X)'s + of +C at rows 183-197 against the line's 186-200. The placement also assumed the last
+  line sat at the area's bottom, which a scrolled view doesn't.
+- **The fix:** +C goes on the last line's axis, the row the line's glyphs sit on. The line's top is found by walking the
+  lines drawn, so a scrolled view places it too.
+- **The oracle:** frame 34-tb-plus-c-power (5X+3X^2 +C) and two pixel checks: the 5 on the line's main row (the
+  check's own footing), and +C on that row beside the last glyph. Before the fix the +C check was red (9006/9007) and
+  the footing check green; after it, 9007/9007.
+- **What didn't move:** frame 30 (+C on a line with no exponent) is unchanged, since the axis and the old centring agree
+  there. 22's CRC 9A4A7D8C is unchanged too. make test rc 0.
+- **Not on the board:** the stand-in stays on look080 (aa738bb) for Michael's look, as abacus asked, so this fix wasn't
+  flashed. Neither look screen has a +C.

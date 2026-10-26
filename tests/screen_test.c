@@ -975,6 +975,22 @@ int main(int argc, char **argv)
                 expect(crc == TB_CRC_22, "080: 22-tb-stu3's frame CRC is the one the app checks");
             }
         }
+        {   /* abacus #11101 (Michael's first look, tally #11099): ∫'s +C on the line's own rows, not centred on a box that
+               holds an exponent: 5X+3X^2 +C, the + of +C on the 5's rows */
+            static tb_tree pt;
+            screen_ui_default(&ui);
+            ab_init(&c);
+            ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+            ab_eqn_add(&c, "5\xc3\x97X+3\xc3\x97X^2");
+            c.eqn_note[c.eqn_cur] = AB_NOTE_PLUSC;
+            frame("34-tb-plus-c-power", &c, &ui);
+            screen_render(&c, &ui, &tf);
+            int ps = tb_parse(&pt, "5\xc3\x97X+3\xc3\x97X^2") == 0 ? tb_fit(&pt, 392 - 36, 182) : 0;
+            int lh = pt.n[pt.root].h, row = 204 - lh + pt.n[pt.root].axis - 3 * ps;  /* the line's main row's top */
+            expect(ps > 0 && text_at(&tf, 4, row, ps, "5", 1), "080: 5X+3X^2's 5 on its row (the check's own footing)");
+            expect(ps > 0 && text_at(&tf, 4 + pt.n[pt.root].w + 3 * ps, row, ps, "+C", 1),
+                   "080: +C on the line's rows, beside its last glyph, not raised by the exponent (abacus #11101)");
+        }
         c.eqn_typing = true;        /* typing stays one line in STU too */
         snprintf(c.ebuf, sizeof c.ebuf, "3\xc3\x97X^2-4");
         c.ecur = (int)strlen(c.ebuf);

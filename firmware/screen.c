@@ -963,14 +963,20 @@ static void draw_textbook(ls027_frame *f, const ab_calc *c, const screen_ui *ui)
             top += 7 * sc + a.gap;
         }
     }
-    if (a.plus_c && first + n == a.n) {                    /* ∫'s +C after the answer's last line */
-        int lh = area_line_h(&a, a.n - 1), sc = a.s ? a.s : a.sc;
-        if (a.s && tb_screen.n[tb_screen.root].kind == TB_ROWS) {
-            int k = tb_screen.root;
-            while (tb_screen.n[k].b >= 0) k = tb_screen.n[k].b;
-            last_w = tb_screen.n[tb_screen.n[k].a].w;
+    if (a.plus_c && first + n == a.n) {    /* ∫'s +C after the answer's last line, on its main row: the line's axis, not
+                                              its box's middle, which an exponent raises (abacus #11101) */
+        int sc = a.s ? a.s : a.sc, y = first == 0 && n == a.n ? TB_BOT - h : a.top, axis = 3 * sc;
+        for (int i = first; i < a.n - 1; i++) y += area_line_h(&a, i) + a.gap;
+        if (a.s) {
+            const tb_node *l = &tb_screen.n[tb_screen.root];
+            if (l->kind == TB_ROWS) {
+                int k = tb_screen.root;
+                while (tb_screen.n[k].b >= 0) k = tb_screen.n[k].b;
+                l = &tb_screen.n[tb_screen.n[k].a];
+            }
+            last_w = l->w, axis = l->axis;
         }
-        screen_text(f, TB_X + last_w + 3 * sc, TB_BOT - lh + (lh - 7 * sc) / 2, sc, "+C", true);
+        screen_text(f, TB_X + last_w + 3 * sc, y + axis - 3 * sc, sc, "+C", true);
     }
     if (first > 0) screen_text(f, TB_X + TB_W - 10, a.top, 2, "\xe2\x96\xb2", true);
     if (first + n < a.n) screen_text(f, TB_X + TB_W - 10, TB_BOT - 14, 2, "\xe2\x96\xbc", true);
