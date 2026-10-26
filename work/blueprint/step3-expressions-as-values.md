@@ -1,4 +1,4 @@
-# Step 3: expressions as values (blueprint; the saved state first)
+# Unit 082 (step 3, part 1): expressions as values (blueprint; the saved state first)
 
 **From:**
 - abacus #11101 (point 4) and #11152, on Michael's ruled order of 15 Oct: fractions, the textbook display (080), expressions
@@ -6,7 +6,9 @@
 - What Michael asked for, from his first look on the phone: an HP 50g-like set. Equations dropped from EQN onto the
   stack, worked symbolically there, names on the stack, stored back. Folders and groups for EQN are new.
 - Michael's note on stu-next-when asks for care with forward compatibility and saved states.
-- **So this blueprint starts with the image.** No code until abacus checks it. The unit number is abacus's to give.
+- **So this blueprint starts with the image.** No code until abacus checks it. abacus OK'd it as **unit 082** (#11161):
+  values, the store, image 21, drop and store-back, and X drawn as 080 draws. 083 is the CAS on the stack, 084 arithmetic
+  and EVAL, 085 folders. Its three additions are sections 7, 8 and 9.
 
 ## What the state holds today (measured at 95f8778)
 
@@ -16,8 +18,10 @@
   programs' equation lines peqn[64][192].
 - **The image** ("ABSI" version:u16 0:u16 length:u32 { tag:u16 size:u32 payload } crc:u32) is at version 20, with 21
   sections (T_MODES .. T_CASCPLX). A value is written by wval: kind, len, a mask, and the nonzero parts.
-- **The fullest image the calculator can write today is 14,249 B** (`stackkeys full`: 66 equations, the longest 191 B,
-  all 26 letters, statistics). Each flash slot is 256 KB (abstate 0x80000, two slots); IMAGE_CAP is 256 KB.
+- **The fullest image the calculator can write today is 14,231 B from the core's ab_state_save** (`stackkeys full`: 66
+  equations, the longest 191 B, all 26 letters, statistics). The device saves 14,249 B, because dev_image_save appends
+  its own 18-byte "ABDS" settings record (radix, grouping, off time, volume, uses, 24-hour), with its own version and
+  CRC. Each flash slot is 256 KB (abstate 0x80000, two slots); IMAGE_CAP is 256 KB.
 - **What an older firmware does with a newer image:** it refuses it whole. ab_state_load refuses a version above
   AB_STATE_VERSION and a nonzero reserved field (state.c:1227), an unknown tag, and any field out of range. The device
   then does MEMORY CLEAR. **So a downgrade today loses everything:** flashing an older build, or opening the state in an
@@ -45,7 +49,8 @@
   never reach the image: load allocates slots fresh, in the order the values come.
 - **The sections:** T_STACK and T_VARS carry the new kinds. A new T_EQFOLDER carries the folders (section 3). Nothing
   else moves.
-- **Size:** at most 48 × 193 B more than today's fullest image, so 14,249 + 9,264 = 23,513 B, far under a 256 KB slot.
+- **Size:** at most 48 × 193 B more than today's fullest image, so 14,231 + 9,264 = 23,495 B (the device's save 18 B more),
+  far under a 256 KB slot.
 
 ## 3. EQN folders and groups
 
@@ -89,9 +94,8 @@ Three parts. The first two are recommended now; the third is his call.
 - **Round trip:** every kind in every place (stack, LASTx, letters), saved, loaded, saved again, byte for byte. The
   store refilled at load in the values' order.
 - **Older images:** every golden image in tests/ still loads and saves byte-identically as version 20 (A). There are
-  goldens for versions 1, 10 and 12 today (golden-v1, golden-v10-041, golden-v12-041d, golden-v12-041d-regx). The unit
-  adds a version-20 golden taken at today's head, plus `stackkeys full`'s image, so A's "byte for byte as today" has a
-  reference written before the change.
+  goldens for versions 1, 10 and 12 (golden-v1, golden-v10-041, golden-v12-041d, golden-v12-041d-regx), and now version
+  20's, written before any 082 code (section 9).
 - **A version-21 image:** refused by a build at today's head (it must be: that's today's rule). Read by a version-21
   build with an unknown section added, which is skipped (B).
 - **The store:** mark-and-sweep under pressure, all 48 slots live and then one more value, with the oldest dead one
@@ -106,3 +110,80 @@ Three parts. The first two are recommended now; the third is his call.
 - **Folders:** how many, nested or flat, and what "groups" means.
 - **The names:** should 'A' on the stack evaluate when an op needs a number (as the 50g's EVAL), or only when EVAL is
   pressed?
+
+## 7. A full store (abacus #11161, addition 1)
+
+- **The status:** ABN_EXPR_FULL, shown as **MEMORY FULL** on X's line, the 35s's own message for a full memory (UG p.F-3,
+  already ABN_MEMORY_FULL's text). Like every error, the key changes nothing. No text is dropped or overwritten, and the
+  stack, letters and list are as they were.
+- **When it can happen:** an op computes its result, then asks for a slot before it commits (transactional), so the
+  values it's about to replace are still live while it asks.
+  - The case: all 48 places hold distinct expressions, and an op needs a new one before it can let one go. For example,
+    a drop from EQN onto a full stack, before T is lost to the lift.
+  - So the 49th live expression is refused, not made room for by losing the one leaving. Making room would mean the op
+    committed before it knew it could.
+- **The image:** a message showing is in the image (STATUS_SINCE), so ABN_EXPR_FULL is new in version 21's table.
+- **The oracle:** the store fuzz fills all 48 places with distinct expressions, then asks for the 49th. It must give
+  ABN_EXPR_FULL with every text unchanged, byte for byte. Freeing one (CLx on a place) then lets the next succeed.
+
+## 8. An op that needs a number, given an expression or a name (abacus #11161, addition 2)
+
+**Before 084's arithmetic, no op reads an expression or a name as a number.** Measured at today's head:
+- The core already refuses complex and vector operands at its dispatch entry. reads_x and reads_y mark the ops that take
+  X and Y as numbers, and a complex or vector operand there gives INVALID DATA, changing nothing (calc.c, the guard
+  after the entry's bookkeeping).
+- **But is_cx compares the kind exactly,** so an AB_EXPR would pass that guard as neither complex nor vector. The real
+  path would then read its zeroed number parts as 0. That's the fault this section exists for.
+
+**So 082 adds one guard beside it:** an AB_EXPR or AB_NAME in an operand an op reads as a number gives
+**ABN_NOT_NUMBER, shown as "NOT A NUMBER"** (12 cells, X's line at scale 4), changing nothing.
+
+**The op classes, each with what it does given an expression on X, Y or both:**
+
+| class | ops (examples) | given an expression or a name |
+|---|---|---|
+| arithmetic on X and Y | + − × ÷ y^x x√y % %CHG nCr nPr IDIV RMDR AND… | NOT A NUMBER |
+| a function of X | SIN COS TAN LN e^x √x x² 1/x ABS +/− IP FP RND →DEG →HMS… | NOT A NUMBER |
+| statistics | Σ+ Σ− x̂ ŷ | NOT A NUMBER |
+| stack moves | ENTER x<>y R↓ R↑ LASTx CLx | moves the value (the handle), as for a number |
+| store and recall | STO RCL x<>var, VIEW | moves it into or out of a letter |
+| store and recall arithmetic | STO+ STO− STO× STO÷ RCL+ … | NOT A NUMBER (either side an expression) |
+| tests | x=y? x≠y? x<y? … x=0? … | NOT A NUMBER (084 decides whether x=y? compares texts) |
+| indirect | (I) and an index letter holding an expression | NOT A NUMBER |
+| the solver and ∫ | SOLVE or ∫ with an expression in a letter they read, or in X as a guess | NOT A NUMBER |
+| display settings | FIX SCI ENG ALL, the radix | no effect on it: X shows it as text, drawn as 080 draws |
+| base conversions | HEX OCT BIN and their arithmetic | NOT A NUMBER |
+| complex and vector entry | i, [ ] with an expression part | NOT A NUMBER |
+| EQN's drop and store-back | (new in 082) | drop: an expression from the list's text; store-back: X's expression into the list |
+
+**The audit:** every branch on a value's kind is checked for the new kinds. Measured at today's head: 7 tests of
+`!= AB_VECTOR`, 6 of `== AB_COMPLEX` and 21 of `!= AB_REAL` across core/ and firmware/. Each gets the new kinds handled,
+or a reason it can't see them. The screen's val_line would show an expression as 0 today; in 082 it shows its text.
+
+**The oracle:**
+- an app_test check per class above, with an expression on X, on Y, and on both;
+- a fuzz of random op sequences with expressions in random places. After every op, either the op is a move-class op, or
+  it returned NOT A NUMBER with the state unchanged (the image before and after compared). No numeric result may come
+  from an expression.
+
+## 9. The version-20 golden, written before any 082 code (abacus #11161, addition 3)
+
+- **tests/golden-v20-082.img:** 1,062 B, version 20, saved by the core at b819da0 (today's head, before 082). Its body's
+  CRC-32 (the image's trailer) is **455A56E3**. It holds:
+  - FIX 4 and RAD;
+  - a statistics point;
+  - A = 1i2, B = [1,2,3], C = 4;
+  - three equations, A^2+B (stamped 33), 2^3^2+X (stamped 35) and 3×X^2-4 (stamped STU, labelled QUOTIENT);
+  - CPLX on;
+  - X = 7, Y = 8, LASTx = 3.
+  The list also holds the two built-in solvers' entries, as every list does. It was built by a scratch program on the
+  core's API, then read back: STU, CPLX on, RAD, FIX 4, the stamps 33, 35 and STU, the label, A complex, B a vector of
+  three. It loads and saves again byte for byte at b819da0.
+- **tests/golden-v20-082-full.img:** 14,231 B, `stackkeys full`'s state (the core's image, cut from its partition image).
+  Body CRC **97018F1A**.
+- **What 082 checks against them:** each loads, and saves again byte for byte (memcmp with the file), so the writer
+  writes version 20 when nothing needs 21 (section 4, A).
+- **A note on the existing check:** golden-v1.txt's `%IMAGE=2144DF1C` doesn't pin the image. A CRC-32 over a message
+  followed by its own CRC is the constant residue 0x2144DF1C, so every valid image gives it: this golden's whole-file
+  CRC is 2144DF1C too. It checks that an image is valid, not which one it is. 082's byte-for-byte check doesn't lean
+  on it.
