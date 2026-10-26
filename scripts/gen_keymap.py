@@ -152,10 +152,11 @@ MENUS = [
     # from the core's state: the list's (NEW, ours: EQN LIST TOP) and typing's; REG > is one choice
     # of a register (UG p.B-7), then typing's bar again. On no key, like LOGIC and SUFFIX.
     ("EQN LIST", [o("\u25b2", "AB_BST"), o("\u25bc", "AB_SST"), o("EDIT", "AB_KRIGHT"), o("NEW", "AB_EQTOP"),
-                  ("CAS", "KM_MENU", "0", "CAS", 0), o("EXIT", "AB_EQN")]),    # CAS: STU's only (CAS 004)
+                  ("CAS", "KM_MENU", "0", "CAS", 0), ("\u25b8", "KM_MENU", "0", "EQN MORE", 0)]),   # CAS: STU's only (CAS 004)
     # unit 073 (stu-discover, abacus #8714): the sixth key is unit 020's EXIT again (EQN: off, the list kept), so the
-    # bar says how to leave; unit 046's "( )" (an equation begun with a parenthesis, as on the 35s's face key, p.1-2,
-    # p.6-6) moves to EQN LIST GOLD's sixth key, GOLD then F6
+    # bar says how to leave; in STU since 082 (Michael's s3-keys, abacus #11423) it is ▸ to EQN MORE, and C leaves (the
+    # app shows EQN LIST 35 in 33s and 35s mode, EXIT kept); unit 046's "( )" (an equation begun with a parenthesis,
+    # as on the 35s's face key, p.1-2, p.6-6) moves to EQN LIST GOLD's sixth key, GOLD then F6
     # unit 032 (abacus #4350, #4353 answers): TABLE on blue 8: the variable prompted, START and STEP from X,
     # GO; while a table is open the app's bar scrolls it
     ("TABLE", [p("VAR", "AB_TVAR", "KM_ARG_VAR"), o("START", "AB_TSTART"), o("STEP", "AB_TSTEP"), o("GO", "AB_TABLE"),
@@ -249,7 +250,7 @@ MENUS = [
     ("CAS3", [p("QUOT", "AB_CASQUOT", "KM_ARG_VAR"), p("GCD", "AB_CASGCD", "KM_ARG_VAR"),
               p("CANCL", "AB_CASCANCL", "KM_ARG_VAR"),
               o("CPLX", "AB_CASCPLX"),             # 076: SOLVE's complex roots on or off (decision 88), marked when on
-              NONE, ("\u25b8", "KM_MENU", "0", "CAS4", 0)]),                     # 082: on to CAS4
+              NONE, ("\u25b8", "KM_MENU", "0", "CAS", 0)]),                      # back to CAS (082's CAS4 gone)
     # unit 070 (abacus #8545): typing's bar while Σ's upper bound is typed, last in this list so no menu's index moves;
     # = has no meaning in a bound, so its key types ∞ there (the label shows it while it is live)
     ("EQN TYPE SUM", [o("\u25c0", "AB_KLEFT"), o("\u25b6", "AB_KRIGHT"), o("( )", "AB_KPAREN"), o("\u221e", "AB_KINF"),
@@ -257,11 +258,15 @@ MENUS = [
     # unit 072 (Michael via abacus #8570, #8600, #8679): APPS's GAMES key opens it: the GAMES folder's apps, paged as
     # APPS and CONST are (five a page, then more); C or back-arrow returns to APPS. Last, so no menu's index moves
     ("GAMES", [NONE, NONE, NONE, NONE, NONE, ("more", "KM_NONE", "0", 0, 0)], "KM_PAGED_GAMES"),
-    # unit 082 (abacus #11174; where keys go is Michael's card s3-keys): CAS4, after CAS3's ▸, last so no menu's index
-    # moves: →X drops the shown equation onto the stack as an expression, →EQN stores X's back into the list; the sixth
-    # key back to CAS
-    ("CAS4", [o("\u2192X", "AB_EQDROP"), o("\u2192EQN", "AB_EQSTORE"), NONE, NONE, NONE,
-              ("\u25b8", "KM_MENU", "0", "CAS", 0)]),
+    # unit 082 (Michael's s3-keys, abacus #11423: "a new stack menu on the more bar for eqn"): EQN LIST's ▸ in STU, last
+    # so no menu's index moves: →X drops the shown equation onto the stack as an expression, →EQN stores X's back into
+    # the list; the sixth key back to the list's bar. EQN LIST 35: the list's bar in 33s and 35s mode (no expressions
+    # there), EXIT where STU's ▸ is
+    ("EQN MORE", [o("\u2192X", "AB_EQDROP"), o("\u2192EQN", "AB_EQSTORE"), NONE, NONE, NONE,
+                  ("\u25b8", "KM_MENU", "0", "EQN LIST", 0)]),
+    ("EQN LIST 35", [o("\u25b2", "AB_BST"), o("\u25bc", "AB_SST"), o("EDIT", "AB_KRIGHT"), o("NEW", "AB_EQTOP"),
+                     ("CAS", "KM_MENU", "0", "CAS", 0), o("EXIT", "AB_EQN")]),   # (CAS unlabeled here, as before: HELP
+                                                                                 # on it says STU ONLY, unit 073)
 ]
 # Menu legends that act as plain ops until their menu is ruled (abacus #3867): the EQN menu's
 # first item will take this over.

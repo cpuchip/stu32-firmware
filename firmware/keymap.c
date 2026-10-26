@@ -82,7 +82,7 @@ static const km_menu MENUS[] = {
     {"STACK", {{KM_OP, AB_CLSTK, 0, 0, "CLSTK"}, {KM_OP, AB_LASTX, 0, 0, "LASTx"}, {KM_OP, AB_RUP, 0, 0, "R\xe2\x86\x91"}, {KM_OP, AB_XY, 0, 0, "x\xe2\x86\x94y"}, {KM_OP, AB_SHOW, 0, 0, "SHOW"}, {KM_NONE, 0, 0, 0, ""}}, 0},
     {"MODE", {{KM_OP, AB_MODEL, 33, 0, "33s"}, {KM_OP, AB_MODEL, 35, 0, "35s"}, {KM_OP, AB_MODEL, AB_MODEL_STU, 0, "STU"}, {KM_OP, AB_ENTRYM, 0, 0, "RPN"}, {KM_OP, AB_ENTRYM, 1, 0, "ALG"}, {KM_NONE, 0, 0, 0, ""}}, 0},
     {"POW", {{KM_OP, AB_IP, 0, 0, "IP"}, {KM_OP, AB_FP, 0, 0, "FP"}, {KM_OP, AB_INTG, 0, 0, "INTG"}, {KM_OP, AB_RND, 0, 0, "RND"}, {KM_OP, AB_SGN, 0, 0, "SGN"}, {KM_OP, AB_ABS, 0, 0, "ABS"}}, 0},
-    {"EQN LIST", {{KM_OP, AB_BST, 0, 0, "\xe2\x96\xb2"}, {KM_OP, AB_SST, 0, 0, "\xe2\x96\xbc"}, {KM_OP, AB_KRIGHT, 0, 0, "EDIT"}, {KM_OP, AB_EQTOP, 0, 0, "NEW"}, {KM_MENU, 0, 52, 0, "CAS"}, {KM_OP, AB_EQN, 0, 0, "EXIT"}}, 0},
+    {"EQN LIST", {{KM_OP, AB_BST, 0, 0, "\xe2\x96\xb2"}, {KM_OP, AB_SST, 0, 0, "\xe2\x96\xbc"}, {KM_OP, AB_KRIGHT, 0, 0, "EDIT"}, {KM_OP, AB_EQTOP, 0, 0, "NEW"}, {KM_MENU, 0, 52, 0, "CAS"}, {KM_MENU, 0, 59, 0, "\xe2\x96\xb8"}}, 0},
     {"TABLE", {{KM_PROMPT, AB_TVAR, 0, KM_ARG_VAR, "VAR"}, {KM_OP, AB_TSTART, 0, 0, "START"}, {KM_OP, AB_TSTEP, 0, 0, "STEP"}, {KM_OP, AB_TABLE, 0, 0, "GO"}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}}, 0},
     {"TABLE BAR", {{KM_OP, AB_TUP, 0, 0, "\xe2\x96\xb2"}, {KM_OP, AB_TDOWN, 0, 0, "\xe2\x96\xbc"}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}}, 0},
     {"GRAPH", {{KM_OP, AB_XMIN, 0, 0, "XMIN"}, {KM_OP, AB_XMAX, 0, 0, "XMAX"}, {KM_OP, AB_YMIN, 0, 0, "YMIN"}, {KM_OP, AB_YMAX, 0, 0, "YMAX"}, {KM_OP, AB_GAUTO, 0, 0, "AUTO"}, {KM_OP, AB_GRAPH, 0, 0, "GO"}}, 0},
@@ -112,10 +112,11 @@ static const km_menu MENUS[] = {
     {"CAS2", {{KM_PROMPT, AB_CASSOLVE, 0, KM_ARG_VAR, "SOLVE"}, {KM_PROMPT, AB_CASINT, 0, KM_ARG_VAR, "\xe2\x88\xab" "DX"}, {KM_PROMPT, AB_CASFACT, 0, KM_ARG_VAR, "FACTR"}, {KM_PROMPT, AB_CASDEF, 0, KM_ARG_VAR, "\xe2\x88\xab" "AB"}, {KM_PROMPT, AB_CASSUM, 0, KM_ARG_VAR, "\xce\xa3"}, {KM_MENU, 0, 56, 0, "\xe2\x96\xb8"}}, 0},
     {"CAS REPORT", {{KM_OP, AB_BST, 0, 0, "\xe2\x96\xb2"}, {KM_OP, AB_SST, 0, 0, "\xe2\x96\xbc"}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}}, 0},
     {"EQN LIST GOLD", {{KM_OP, AB_KREG, 0, 0, "REGX"}, {KM_OP, AB_KREG, 1, 0, "REGY"}, {KM_OP, AB_KREG, 2, 0, "REGZ"}, {KM_OP, AB_KREG, 3, 0, "REGT"}, {KM_NONE, 0, 0, 0, ""}, {KM_OP, AB_KPAREN, 0, 0, "( )"}}, 0},
-    {"CAS3", {{KM_PROMPT, AB_CASQUOT, 0, KM_ARG_VAR, "QUOT"}, {KM_PROMPT, AB_CASGCD, 0, KM_ARG_VAR, "GCD"}, {KM_PROMPT, AB_CASCANCL, 0, KM_ARG_VAR, "CANCL"}, {KM_OP, AB_CASCPLX, 0, 0, "CPLX"}, {KM_NONE, 0, 0, 0, ""}, {KM_MENU, 0, 59, 0, "\xe2\x96\xb8"}}, 0},
+    {"CAS3", {{KM_PROMPT, AB_CASQUOT, 0, KM_ARG_VAR, "QUOT"}, {KM_PROMPT, AB_CASGCD, 0, KM_ARG_VAR, "GCD"}, {KM_PROMPT, AB_CASCANCL, 0, KM_ARG_VAR, "CANCL"}, {KM_OP, AB_CASCPLX, 0, 0, "CPLX"}, {KM_NONE, 0, 0, 0, ""}, {KM_MENU, 0, 52, 0, "\xe2\x96\xb8"}}, 0},
     {"EQN TYPE SUM", {{KM_OP, AB_KLEFT, 0, 0, "\xe2\x97\x80"}, {KM_OP, AB_KRIGHT, 0, 0, "\xe2\x96\xb6"}, {KM_OP, AB_KPAREN, 0, 0, "( )"}, {KM_OP, AB_KINF, 0, 0, "\xe2\x88\x9e"}, {KM_OP, AB_KSPACE, 0, 0, "SPC"}, {KM_MENU, 0, 40, 0, "REG"}}, 0},
     {"GAMES", {{KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, "more"}}, KM_PAGED_GAMES},
-    {"CAS4", {{KM_OP, AB_EQDROP, 0, 0, "\xe2\x86\x92X"}, {KM_OP, AB_EQSTORE, 0, 0, "\xe2\x86\x92" "EQN"}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_MENU, 0, 52, 0, "\xe2\x96\xb8"}}, 0},
+    {"EQN MORE", {{KM_OP, AB_EQDROP, 0, 0, "\xe2\x86\x92X"}, {KM_OP, AB_EQSTORE, 0, 0, "\xe2\x86\x92" "EQN"}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_MENU, 0, 26, 0, "\xe2\x96\xb8"}}, 0},
+    {"EQN LIST 35", {{KM_OP, AB_BST, 0, 0, "\xe2\x96\xb2"}, {KM_OP, AB_SST, 0, 0, "\xe2\x96\xbc"}, {KM_OP, AB_KRIGHT, 0, 0, "EDIT"}, {KM_OP, AB_EQTOP, 0, 0, "NEW"}, {KM_MENU, 0, 52, 0, "CAS"}, {KM_OP, AB_EQN, 0, 0, "EXIT"}}, 0},
 };
 
 const km_menu *km_menu_at(int index)

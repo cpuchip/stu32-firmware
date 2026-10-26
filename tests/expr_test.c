@@ -762,8 +762,8 @@ static void drop_store(void)
     expect(ab_do(&ca, AB_EQSTORE) == ABN_OK && !strcmp(ca.eqn[ca.eqn_cur], "C"), "082: →EQN of the name C: the entry C");
     ca.x = real_int(5);
     memcpy(&cb, &ca, sizeof cb);
-    expect(ab_do(&ca, AB_EQSTORE) == ABN_NOT_NUMBER && ca.eqn_count == cb.eqn_count && ca.eqn_cur == cb.eqn_cur,
-           "082: →EQN with a number in X: NOT A NUMBER (abacus #11174), the list unchanged");
+    expect(ab_do(&ca, AB_EQSTORE) == ABN_DOMAIN && ca.eqn_count == cb.eqn_count && ca.eqn_cur == cb.eqn_cur,
+           "082: →EQN with a number in X: INVALID DATA (abacus #11224, with Michael's s3-keys), the list unchanged");
     /* nothing at TOP or on a built-in; a 35-stamped entry is another mode's text */
     ca.msg = false;
     ca.eqn_cur = -1;

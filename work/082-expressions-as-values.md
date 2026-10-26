@@ -414,3 +414,22 @@ and this record with VER 0.82.
   with a save and load after each key, built with ASan and UBSan; the last step of make test. 37 s on its own (binaries
   built), make test 79 s wall in all from a clean sanitizer build. Its control: with 9ba855d's calc.c it stops at
   prog_insert's negative-size memmove.
+
+### s3-keys built: (a), the list's MORE page (Michael via abacus #11423, #11424)
+- **Michael:** "for a stack menu I meant a new stack menu on the more bar for eqn", and "I like having the bare to x and
+  to eqn on more". That is (a) as prototyped (work/082-s3-keys), with only →X and →EQN on the page and no DEL. He is
+  satisfied that ← deletes the shown entry and EDIT then ← deletes characters, as today.
+- **Keys (gen_keymap.py, app.c):**
+  - In STU, EQN LIST's sixth key is ▸, opening EQN MORE: →X, →EQN, and ▸ back to the list's own bar. Going back closes
+    the menu, so GOLD's REG bank still shows. C leaves the list.
+  - In 33s and 35s mode the app shows EQN LIST 35: the same bar with EXIT. Its fifth key keeps the unlabeled CAS item, so
+    HELP on it still says STU ONLY (unit 073). help_test caught my first draft, which had dropped it.
+  - CAS4 is gone, and CAS3's ▸ goes back to CAS.
+- **→EQN with a number in X is INVALID DATA** (ABN_DOMAIN; abacus #11224), not NOT A NUMBER. The list is unchanged.
+- **Tests:**
+  - app_test: the STU bar's ▸, EQN MORE's keys, →X, →EQN, ▸ back with no menu open, INVALID DATA, C then C, and 33s and
+    35s keeping EXIT with no CAS label. 073's EXIT check now presses C in STU. 057's chain goes from CAS3 back to CAS.
+  - expr_test's →EQN check expects ABN_DOMAIN.
+- **The stand-in's expr082.txt:** the keys are now the list's ▸, →X, C (K5 K0 K42), where they were CAS ▸ ▸ ▸ →X EXIT.
+  Replayed through app.c from MEMORY CLEAR, the new keys give X='3×X^2-4', drawn=3X^2-4 and rows 21-205 B8D758BB, the
+  same as the old keys at the old head. The old keys on the new tree give 5C857302 (a control).

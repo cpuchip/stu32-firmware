@@ -3970,11 +3970,12 @@ static abn_status eqn_drop(ab_calc *c)
 }
 
 /* Unit 082: →EQN, X's expression (or a name, its letter) inserted into the list after the shown entry, which becomes
-   the shown one, stamped STU as typed; X kept. A number in X is NOT A NUMBER (abacus #11174), nothing changed. */
+   the shown one, stamped STU as typed; X kept. A number in X is INVALID DATA (abacus #11224, with Michael's s3-keys:
+   NOT A NUMBER read wrong on this key), nothing changed. */
 static abn_status eqn_store_x(ab_calc *c)
 {
     if (!c->stu) return ABN_STU_ONLY;
-    if (!ab_is_sym(&c->x)) return ABN_NOT_NUMBER;
+    if (!ab_is_sym(&c->x)) return ABN_DOMAIN;
     return eqn_insert(c, ab_expr_text(c, &c->x));
 }
 

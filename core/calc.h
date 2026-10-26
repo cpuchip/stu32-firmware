@@ -159,9 +159,9 @@ typedef enum {
        so SOLVE prints a quadratic factor's conjugate pair as (A±B×SQRT(r)×0i1)÷D where it said NO REAL ROOTS (casim
        ignores it in model 33, whose equations have no complex numbers); a setting in the image, not a program line */
     AB_CASCPLX,
-    /* unit 082 (CAS4's →X and →EQN, STU's Equation mode, nonprogrammable): the shown equation's text dropped onto the
-       stack as an expression (the stack lifted; Equation mode stays open); X's expression or name stored back into the
-       list after the shown entry, which becomes the shown one (X kept; a number there is NOT A NUMBER) */
+    /* unit 082 (EQN MORE's →X and →EQN, STU's Equation mode, nonprogrammable): the shown equation's text dropped onto
+       the stack as an expression (the stack lifted; Equation mode stays open); X's expression or name stored back into
+       the list after the shown entry, which becomes the shown one (X kept; a number there is INVALID DATA) */
     AB_EQDROP, AB_EQSTORE
 } ab_op;
 

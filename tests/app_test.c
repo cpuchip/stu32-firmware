@@ -1069,26 +1069,51 @@ int main(void)
             expect(ui.view[3] && !strcmp(ui.view[3], "B='C'"), "082: VAR: down, B holds the name C");
             press(&a, "C");
         }
-        {   /* unit 082: CAS4 from the keys (CAS, ▸ ▸ ▸): →X drops the shown equation, →EQN stores X's back */
+        {   /* unit 082 (Michael's s3-keys, abacus #11423): EQN LIST's ▸ in STU opens EQN MORE: →X drops the shown
+               equation, →EQN stores X's back (a number there INVALID DATA); C leaves; 33s and 35s keep EXIT */
             ab_init(&c);
             ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
             expect(ab_eqn_add(&c, "3\xc3\x97X^2-4") == ABN_OK && c.eqn_mode, "082: an equation shown");
             press(&a, "C");
             ab_do(&c, AB_EQN);
             app_ui(&a, &ui);
-            press(&a, "k:4 k:5 k:5 k:5");
+            expect(a.menu < 0 && ui.soft[4] && !strcmp(ui.soft[4], "CAS") && ui.soft[5] && !strcmp(ui.soft[5], "\xe2\x96\xb8") &&
+                       ui.soft_sub[5], "082: STU's list bar: CAS, then ▸ (a submenu) where EXIT was");
+            press(&a, "k:5");
             app_ui(&a, &ui);
-            expect(a.menu == menu_named_t("CAS4") && ui.soft[0] && !strcmp(ui.soft[0], "\xe2\x86\x92X") && ui.soft[1] &&
-                       !strcmp(ui.soft[1], "\xe2\x86\x92" "EQN"), "082: CAS, then ▸ three times: CAS4, →X and →EQN");
+            expect(a.menu == menu_named_t("EQN MORE") && ui.soft[0] && !strcmp(ui.soft[0], "\xe2\x86\x92X") && ui.soft[1] &&
+                       !strcmp(ui.soft[1], "\xe2\x86\x92" "EQN") && ui.soft[5] && !strcmp(ui.soft[5], "\xe2\x96\xb8"),
+                   "082: ▸: EQN MORE, →X and →EQN, ▸");
             int n0 = c.eqn_count;
             press(&a, "k:0");
             expect(c.x.kind == AB_EXPR && !strcmp(ab_expr_text(&c, &c.x), "3\xc3\x97X^2-4") && c.eqn_mode && a.menu < 0,
-                   "082: →X: X the expression, Equation mode kept, back to the list's bar (as the other CAS keys)");
-            press(&a, "k:4 k:5 k:5 k:5 k:1");
+                   "082: →X: X the expression, Equation mode kept, back to the list's bar");
+            press(&a, "k:5 k:1");
             expect(c.eqn_count == n0 + 1 && !strcmp(c.eqn[c.eqn_cur], "3\xc3\x97X^2-4"), "082: →EQN: X's expression a new entry, shown");
-            press(&a, "k:4 k:5 k:5 k:5 k:5");
-            expect(a.menu == menu_named_t("CAS"), "082: CAS4's ▸ back to CAS");
+            press(&a, "k:5 k:5");
+            app_ui(&a, &ui);
+            expect(a.menu < 0 && c.eqn_mode && ui.soft[0] && !strcmp(ui.soft[0], "\xe2\x96\xb2"),
+                   "082: EQN MORE's ▸ back to the list's bar");
+            ab_do(&c, AB_EQN);
+            c.x = c.y;                          /* (a number: Y was lifted from the stack's 0) */
+            c.x.kind = AB_REAL;
+            c.x.re = abn_zero();
+            ab_do(&c, AB_EQN);
+            int n1 = c.eqn_count;
+            press(&a, "k:5 k:1");
+            expect(c.msg && c.err_status == ABN_DOMAIN && c.eqn_count == n1, "082: →EQN with a number in X: INVALID DATA, the list unchanged");
             press(&a, "C C");
+            expect(!c.eqn_mode, "082: C clears the message, C again leaves the list");
+            for (int m = 0; m < 2; m++) {
+                ab_do_arg(&c, AB_MODEL, m ? 33 : 35);
+                ab_do(&c, AB_EQN);
+                app_ui(&a, &ui);
+                expect(c.eqn_mode && ui.soft[5] && !strcmp(ui.soft[5], "EXIT") && !ui.soft[4],
+                       m ? "082: 33s mode: the list's bar keeps EXIT, no CAS" : "082: 35s mode: the list's bar keeps EXIT, no CAS");
+                press(&a, "k:5");
+                expect(!c.eqn_mode, m ? "082: 33s mode: EXIT leaves the list" : "082: 35s mode: EXIT leaves the list");
+            }
+            ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
         }
         ab_init(&c);
         app_init(&a, &c, now);
@@ -4217,7 +4242,8 @@ int main(void)
                "044: a plot's frames compute the trace's readout once; a moved cursor's readout is its new column's");
     }
 
-    /* unit 073: the list's sixth key is EXIT (unit 020's): Equation mode left, the list kept, in each mode */
+    /* unit 073: the list's sixth key is EXIT (unit 020's): Equation mode left, the list kept, in each mode; in STU since
+       082 the sixth key is ▸ (EQN MORE) and C leaves the same way */
     {
         static const int MODEL[3] = {AB_MODEL_STU, 35, 33};
         int ok = 0;
@@ -4227,10 +4253,10 @@ int main(void)
             ab_do_arg(&c, AB_MODEL, MODEL[m]);
             ab_eqn_add(&c, "A+B");
             int n0 = c.eqn_count;
-            press(&a, "k:5");
+            press(&a, m ? "k:5" : "C");     /* (082, Michael's s3-keys: STU's F6 is ▸ to EQN MORE, C leaves) */
             ok += !c.eqn_mode && c.eqn_count == n0 && !c.eqn_typing;
         }
-        expect(ok == 3, "073: EXIT on the list's F6 leaves Equation mode, the list kept (STU, 35s, 33s)");
+        expect(ok == 3, "073: EXIT on the list's F6 (C in STU, 082) leaves Equation mode, the list kept (STU, 35s, 33s)");
     }
 
     /* unit 046 (abacus #4996): EQN LIST's sixth soft key is "( )", in EXIT's place: from EQN LIST TOP and from an
@@ -4500,9 +4526,9 @@ int main(void)
         expect(ui.soft[0] && !strcmp(ui.soft[0], "QUOT") && ui.soft[1] && !strcmp(ui.soft[1], "GCD") && ui.soft[2] &&
                    !strcmp(ui.soft[2], "CANCL") && ui.soft[5] && !strcmp(ui.soft[5], "\xe2\x96\xb8"),
                "057: CAS2's sixth key: CAS3, QUOT GCD CANCL, its sixth key back");
-        press(&a, "k:5 k:5");                   /* (082: CAS3's sixth key to CAS4, whose sixth key goes back) */
+        press(&a, "k:5");                       /* (082's CAS4 gone with Michael's s3-keys: CAS3's ▸ to CAS again) */
         app_ui(&a, &ui);
-        expect(ui.soft[0] && !strcmp(ui.soft[0], "D/DX"), "057: CAS3's sixth key, then CAS4's (082), back to CAS");
+        expect(ui.soft[0] && !strcmp(ui.soft[0], "D/DX"), "057: CAS3's sixth key back to CAS");
         press(&a, "k:5 k:5 k:0");
         app_ui(&a, &ui);
         expect(ui.prompt && !strcmp(ui.prompt, "QUOT _"), "057: QUOT prompts for the variable (CAS, CAS2, CAS3 again)");

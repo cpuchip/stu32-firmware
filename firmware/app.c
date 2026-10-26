@@ -500,7 +500,7 @@ static int eqn_bar(const app_state *a)
         return menu_named(a->c->cas_def && a->c->cas_def_sum && a->c->cas_def_step == 2 ? "EQN TYPE SUM" : "EQN TYPE");
     if (a->c->eqn_mode && !a->c->prgm) {         /* GOLD: the list's bank, the REG names (unit 046) */
         int m = a->shift == 1 ? menu_named("EQN LIST GOLD") : -1;
-        return m >= 0 ? m : menu_named("EQN LIST");
+        return m >= 0 ? m : menu_named(a->c->stu ? "EQN LIST" : "EQN LIST 35");     /* 082: STU's ▸, else EXIT */
     }
     return -1;
 }
@@ -1233,6 +1233,8 @@ static void do_action(app_state *a, const km_action *act)
             a->menu = act->arg;
             a->menu_page = 0;
             if (act->arg == menu_named("MEM")) mem_fill(a);    /* unit 041 C (B5) */
+            if (act->arg == menu_named("EQN LIST")) a->menu = -1;  /* 082: EQN MORE's ▸ back to the list's own bar
+                                                                       (eqn_bar's, so GOLD's bank still shows) */
         }
         break;
     case KM_CONFIRM:                            /* ALL is PGM in program entry, EQN in Equation

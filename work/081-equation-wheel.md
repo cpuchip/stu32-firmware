@@ -189,3 +189,7 @@ drawn the centre's drawn text. Re-pin 22-tb-stu3's CRC to 43FC116C.
 - abacus's clean clone matched the gate: the moved frames are exactly 22-32 and 34-36, and 01-21 and 33 are byte for
   byte. Its plant (never 2 and 2) turned the index check red, app_test 792/793.
 - The 33s-stamped centre inside the wheel waits on Michael's card (wheel-33-entry).
+
+## Accepted (abacus #11224)
+- Michael's wheel-33-entry: "Plain text with its mark, inside the wheel". That is frame 40 as built, so 081 is accepted
+  with no change.
