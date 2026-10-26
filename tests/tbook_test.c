@@ -180,6 +180,72 @@ static void corpus(const char *path)
     expect(deep > 0 && odd == 0, "only casim's stress nests are past TB_DEPTH (SIN(SIN(, X^(X^(, IP(IP()");
 }
 
+/* abacus #11119: typed shapes canon never prints, as a seeded family: sums, differences, products and quotients of
+   bracketed sums and differences, two or three deep, a unary minus inside a group and outside, each drawn, read back
+   and evaluated equal at the seeds */
+static unsigned rng = 80u;
+static unsigned pick(unsigned n)
+{
+    rng = rng * 1103515245u + 12345u;
+    return (rng >> 16) % n;
+}
+
+static void gen_expr(char *o, int *n, int size, int depth);
+
+static void gen_factor(char *o, int *n, int size, int depth)
+{
+    unsigned k = depth > 0 ? pick(3) : pick(2);
+    if (k == 0) *n += snprintf(o + *n, (size_t)(size - *n), "%c", 'A' + (int)pick(6));
+    else if (k == 1) *n += snprintf(o + *n, (size_t)(size - *n), "%u", 2 + pick(8));
+    else {
+        *n += snprintf(o + *n, (size_t)(size - *n), "(");
+        gen_expr(o, n, size, depth - 1);
+        *n += snprintf(o + *n, (size_t)(size - *n), ")");
+    }
+}
+
+static void gen_term(char *o, int *n, int size, int depth)
+{
+    gen_factor(o, n, size, depth);
+    for (unsigned k = pick(3); k > 0 && *n < size - 24; k--) {
+        *n += snprintf(o + *n, (size_t)(size - *n), "%s", pick(3) ? "\xc3\x97" : "\xc3\xb7");
+        gen_factor(o, n, size, depth);
+    }
+}
+
+static void gen_expr(char *o, int *n, int size, int depth)
+{
+    if (!pick(3)) *n += snprintf(o + *n, (size_t)(size - *n), "-");       /* a unary minus, outside or in a group */
+    gen_term(o, n, size, depth);
+    for (unsigned k = 1 + pick(2); k > 0 && *n < size - 24; k--) {
+        *n += snprintf(o + *n, (size_t)(size - *n), "%s", pick(2) ? "+" : "-");
+        gen_term(o, n, size, depth);
+    }
+}
+
+static void typed_family(void)
+{
+    char text[192], rb[512], what[300];
+    int n = 0, fails = 0, notdrawn = 0, bad_text = 0;
+    for (int i = 0; i < 400; i++) {
+        int len = 0;
+        gen_expr(text, &len, 150, 2 + (int)pick(2));
+        ab_val v;
+        if (value(text, 0, &v) == ABN_SYNTAX) {     /* the generator's own slip: it must type what STU reads */
+            if (++bad_text <= 3) printf("TYPED (STU refuses it): %s\n", text);
+            continue;
+        }
+        n++;
+        int r = readback(text, rb, sizeof rb);
+        if (r < 0) {
+            if (++notdrawn <= 3) printf("TYPED not drawn (err %d): %s\n", t.err, text);
+        } else if (!r && ++fails <= 10) printf("TYPED: %s\n  as %s\n", text, rb);
+    }
+    printf("tbook typed: %d equations, %d not drawn, %d differ, %d the generator typed wrongly\n", n, notdrawn, fails, bad_text);
+    snprintf(what, sizeof what, "the typed family reads back: %d of %d differ, %d not drawn", fails, n, notdrawn);
+    expect(n >= 350 && fails == 0 && notdrawn == 0 && bad_text == 0, what);
+}
+
 static void sweep(void)
 {
     static const char *const CTX[] = {"3", "(1+2)", "B", "X^2"};
@@ -225,6 +291,21 @@ int main(int argc, char **argv)
     drawn("-X^2\xc3\xb7" "4", "-X^2\xc3\xb7" "4");
     drawn("X^(2\xc3\x97N)", "X^(2N)");
     drawn("2^(N+1)-1", "2^(N+1)-1");
+    /* a sum inside a sum keeps its brackets after a sign (a typed equation can hold them; casim's canon doesn't):
+       A-(B+C) drawn A-B+C would show another value */
+    drawn("A-(B+C)", "A-(B+C)");
+    drawn("A-(B-C)", "A-(B-C)");
+    drawn("A+(-B-C)", "A+(-B-C)");
+    drawn("12\xc3\x97X^2+(12\xc3\x97Y+8)\xc3\x97X+(-43\xc3\x97Y-192)", "12X^2+(12Y+8)X+(-43Y-192)");
+    drawn("(A+B)+C", "A+B+C");                  /* the first term needs none */
+    {
+        static const char *const TYPED[] = {"A-(B+C)", "A-(B-C)", "A+(-B-C)", "A-(-B)", "A-(B+C)-(D-E)", "-(A+B)-C"};
+        char rb[128], what[160];
+        for (unsigned i = 0; i < sizeof TYPED / sizeof TYPED[0]; i++) {
+            snprintf(what, sizeof what, "the readback of the typed %s is its value", TYPED[i]);
+            expect(readback(TYPED[i], rb, sizeof rb) == 1, what);
+        }
+    }
     expect(tb_parse(&t, "\x01" "2*2 lin. solve") < 0, "a built-in solver's entry doesn't parse: it's drawn as text");
     expect(tb_parse(&t, "IDIV(A,B)") < 0, "a function of two arguments is drawn as text");
     expect(tb_parse(&t, "\xe2\x88\x9e") == 0 && tb_parse(&t, "-\xe2\x88\x9e") == 0, "\xe2\x88\x9e parses");
@@ -244,6 +325,7 @@ int main(int argc, char **argv)
         printf("tbook tall line: 7-deep continued fraction fit %d, height %d\n", s, s > 0 ? t.n[t.root].h : 0);
     }
     sweep();
+    typed_family();
     corpus(argc > 1 ? argv[1] : "build/casim/golden/corpus.txt");
     printf("tbook_test: %d/%d checks\n", checks - bad, checks);
     return bad ? 1 : 0;

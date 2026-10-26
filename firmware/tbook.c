@@ -279,6 +279,13 @@ static bool bracketed(const tb_tree *t, int parent, int c)
     return k == TB_SUM || k == TB_NEG;
 }
 
+/* Whether a sum's item it takes brackets: after a sign, a minus or a sum (A-(B+C), A+(-B-C)); the first item needs none */
+static bool item_br(const tb_tree *t, int it)
+{
+    int k = t->n[t->n[it].a].kind;
+    return t->n[it].op && (k == TB_NEG || k == TB_SUM);
+}
+
 /* The first and last mark a node shows: 'd' a digit, 'a' a letter, 'E' the letter E's start (a variable or a function
    word, typed after a number it's an exponent: 031 and abacus #10907), 'w' a function word, 'e' e^u, '(' a bracket,
    bar, radical or fraction, '-' a minus, '^' an exponent */
@@ -403,7 +410,7 @@ static int layout(tb_tree *t, int n, int s, int d)
         for (int it = x->a, prev = -1; it >= 0; prev = it, it = t->n[it].b) {
             int op = t->n[it].op, g = prev >= 0 && op == '-' && (beside_fraction(t, prev)) ? FRGAP(s) : OPGAP(s);
             if (op) row_add(&r, text_w(1, s), 7 * s, AXIS(s), g);
-            child_row(t, &r, t->n[it].a, s, d, op && t->n[t->n[it].a].kind == TB_NEG, op ? g : s);
+            child_row(t, &r, t->n[it].a, s, d, item_br(t, it), op ? g : s);
         }
         box(x, r.w, r.ax + r.below, r.ax);
         break;
@@ -497,7 +504,8 @@ int tb_fit(tb_tree *t, int maxw, int maxh)
         if (line < 0) return 0;
         for (int k = it, prev = -1; k >= 0; prev = k, k = t->n[k].b) {
             int op = t->n[k].op, g = !op ? 0 : op == '-' && prev >= 0 && beside_fraction(t, prev) ? FRGAP(2) : OPGAP(2);
-            int tw = layout(t, t->n[k].a, 2, 2) + (op ? text_w(1, 2) + 2 * g : 0);     /* the gaps the layout will use */
+            int tw = layout(t, t->n[k].a, 2, 2) + (op ? text_w(1, 2) + 2 * g : 0) + (item_br(t, k) ? 2 * (3 * 2 + 2) : 0);
+                                                    /* the gaps and brackets the layout will use */
             if (t->err) return 0;
             if (k != it && w + tw > maxw) break;
             w += tw, end = k;
@@ -593,7 +601,7 @@ static void draw(tb_tree *t, int n, ls027_frame *f, int x, int top)
                 glyph_row(f, op == '+' ? "+" : "-", x, top, ax, s, frac ? tb_looks.minus_up : 0);
                 x += text_w(1, s) + g;
             }
-            x = child_draw(t, t->n[it].a, f, x, top, ax, op && t->n[t->n[it].a].kind == TB_NEG);
+            x = child_draw(t, t->n[it].a, f, x, top, ax, item_br(t, it));
         }
         return;
     case TB_PROD:
@@ -766,7 +774,7 @@ static void text(const tb_tree *t, int n, bool rb, out_t *w)
     case TB_SUM:
         for (int it = x->a; it >= 0; it = t->n[it].b) {
             if (t->n[it].op) put(w, t->n[it].op == '+' ? "+" : "-", 1);
-            paren_text(t, t->n[it].a, rb, w, t->n[it].op && t->n[t->n[it].a].kind == TB_NEG);
+            paren_text(t, t->n[it].a, rb, w, item_br(t, it));
         }
         return;
     case TB_PROD:

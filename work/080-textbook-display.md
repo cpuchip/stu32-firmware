@@ -328,3 +328,26 @@ internal RAM +0, IRAM +0, calc_task's frame +0, no internal-RAM symbol changed.
     either way, as the guard it is.
   - With it: screen_test 9008/9008 and 36/36 frames, app_test 790/790, make test rc 0. 22's CRC 9A4A7D8C is unchanged.
 - Not flashed: the stand-in stays on look080 for Michael's look.
+
+## A sum inside a sum keeps its brackets after a sign (abacus #11116, #11119)
+
+- **The fault:** the n-ary rewrite kept only half the prototype's bracket rule for a sum's items, brackets for a minus
+  term after a sign. It dropped the other half: a sum after a sign. So a typed `A-(B+C)` drew as `A-B+C`, another value
+  on screen. `+(-43Y-192)` drew as `+-43Y-192`.
+- It was found by replaying the glass equation for card tb-exponent. Casim's canon never prints the shape, which is why
+  the corpus readback passed.
+- **The fix:** item_br. After a sign, a sum or a minus takes brackets, in the layout, the drawing, both texts and the
+  wrap's width estimate.
+- **The oracle:**
+  - drawn-text checks: `A-(B+C)`, `A-(B-C)`, `A+(-B-C)`, the glass polynomial, and `(A+B)+C` (the first term needs none);
+  - readback checks for six typed shapes;
+  - abacus's widening: a seeded family of 400 typed equations, sums, differences, products and quotients of bracketed
+    sums and differences, two or three deep, with a unary minus inside and outside. Each is drawn, read back and
+    evaluated equal at three seeds.
+- **Red, then green:** against the old rule, tbook_test is 31/39, and the family has 102 of 400 differing. With the fix:
+  39/39, the family 400 of 400, none undrawn.
+- All 36 frames and 22's CRC are unchanged; app_test 790/790; make test rc 0.
+- **The corpus census moves slightly,** since the brackets add width: 3,526 whole at 3, 732 at 2, 528 wrapped, 27 taller,
+  55 too wide, 16 past the depth.
+- **tb-exponent (#11114):** exponents stay at size 1 in a scale-2 answer, as built ("tiny but readable"), and so does
+  the 3X gap. The exp2 side-by-side branch (tb-exp2) is deleted, moot.
