@@ -505,3 +505,8 @@ and this record with VER 0.82.
   and it doesn't count; the 14:32Z run of the script unchanged is the one recorded).
 - **D68, `scripts/resources.py static 5e3f85c 04d992e`:** flash +6,656 B on the stand-in, +5,920 B on Rev A; internal
   RAM static, IRAM code and calc_task's frame +0 on both; no internal-RAM symbol changed. Claim #11493, peak 491.6 MiB.
+- **Accepted at 04d992e (abacus #11499, its replay "The final replay", 2026-10-26):** the clean run matched. 5e3f85c, 07fddad,
+  23f1790 and 9c1fa57, each reverted, went red on their own checks. 9848904 couldn't be reverted alone, because the
+  tests use names it adds, so ab_state_same always returning false stood in for it, and that was red too. abacus's plant
+  (the section skip without r->dropped) was also red. The edited-WHERE-row split is recorded as open for Michael. tally
+  builds 082's APK.
