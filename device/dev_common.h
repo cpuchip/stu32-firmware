@@ -169,7 +169,8 @@ static __attribute__((noinline, unused)) void dev_dump(const ab_calc *calc, app_
     char x[96], stop[32];
     ab_display d = {{AB_ALL, 0, 40, '.', false}, false, 4095, 0, 10, false, 0};
     int ind;
-    if (ab_format_display(&calc->x.re, &d, x, sizeof x, &ind) < 0) snprintf(x, sizeof x, "?");
+    if (ab_is_sym(&calc->x)) snprintf(x, sizeof x, "'%.92s'", ab_expr_text(calc, &calc->x));     /* 082: quoted */
+    else if (ab_format_display(&calc->x.re, &d, x, sizeof x, &ind) < 0) snprintf(x, sizeof x, "?");
     ab_stop_text(calc, stop);
     const char *m = ab_error_message(calc);
     printf("state: X=%s stop=%s lines=%d prgm=%d running=%d shift=%d prompt=%s msg=%s heap=%u stack-free=%u\n", x, stop,
@@ -195,7 +196,7 @@ static __attribute__((noinline, unused)) void dev_dump(const ab_calc *calc, app_
     printf("eqn: %s | note=%s | rep=%s | row=%s | drawn=%s\n", calc->eqn_mode && calc->eqn_cur >= 0 ? calc->eqn[calc->eqn_cur] : "-",
            ab_cas_note(calc) ? ab_cas_note(calc) : "-", ab_cas_report(calc) ? ab_cas_report(calc) : "-",
            ab_cas_row(calc, calc->cas_row, row, sizeof row) ? row : "-",
-           screen_drawn_text(calc, drawn, sizeof drawn) ? drawn : "-");                                /* 048, 079, 080 */
+           screen_drawn(calc, &ui, drawn, sizeof drawn) ? drawn : "-");               /* 048, 079, 080; 082: X's too */
     printf("ui: show=%d %s%s%s\n", ui.show_n, ui.show_n ? ui.show[0] : "-", ui.show_n > 1 ? "/" : "",
            ui.show_n > 1 ? ui.show[1] : "");                             /* unit 030: SHOW held */
 }

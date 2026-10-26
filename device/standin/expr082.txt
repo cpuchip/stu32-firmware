@@ -1,6 +1,6 @@
 # Unit 082 on the stand-in (work/082-expressions-as-values.md): an expression dropped onto the stack and drawn in 2D.
 # From MEMORY CLEAR in STU, 3×X^2-4 typed and stored (as wheel081.txt types it), then CAS ▸ ▸ ▸ (CAS4) →X and the bar's
-# EXIT: X holds the expression, drawn under Y (drawn=3X^2-4), and the frame's rows 21-205 have the host's CRC (the same
+# EXIT: X holds the expression (the state line's X='3×X^2-4'), drawn under Y (drawn=3X^2-4), and the frame's rows 21-205 have the host's CRC (the same
 # keys replayed through app.c: B8D758BB). Saved and restarted: the version-21 image loads from flash and the screen is
 # the same. Ends with a control that must FAIL.
 wait : heap internal 30
@@ -59,6 +59,7 @@ sleep 0.25
 send K5
 sleep 0.25
 send X
+expect state: X='3×X^2-4' 10
 expect drawn=3X^2-4 10
 send FRAMECRC
 expect framecrc: rows 21-205 B8D758BB 10
@@ -70,6 +71,7 @@ expect load:
 expect bytes ok 30
 wait READY 30
 send X
+expect state: X='3×X^2-4' 10
 expect drawn=3X^2-4 10
 send FRAMECRC
 expect framecrc: rows 21-205 B8D758BB 10

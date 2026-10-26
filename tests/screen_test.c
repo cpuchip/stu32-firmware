@@ -1074,6 +1074,12 @@ int main(int argc, char **argv)
             if (i == 1)
                 expect(pg.textbook_on && !strcmp(pg.y.text, "'SIN(A)+B'") && !strcmp(pg.z.text, "'A'"),
                        "082: Y's expression and Z's name as quoted text");
+            {
+                char dr[256];
+                bool on = screen_drawn(&c, &ui, dr, sizeof dr);
+                expect(on == pg.textbook_on && (!on || !strcmp(dr, pg.drawn)),
+                       "082: screen_drawn (the console's drawn=) agrees with the page's textbook_on and drawn");
+            }
             if (i == 3)
                 expect(!pg.textbook_on && !strcmp(pg.y.text, "'2'"),
                        "082: X too tall for the rows under Y: its text; an expression 2 in quotes, not the number");

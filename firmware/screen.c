@@ -1112,6 +1112,16 @@ static bool draw_xexpr(ls027_frame *f, const ab_calc *c)
     return true;
 }
 
+bool screen_drawn(const ab_calc *c, const screen_ui *ui, char *out, int size)
+{
+    int top;
+    compose(c, ui, &comp);
+    if (comp.textbook) return screen_drawn_text(c, out, size);
+    if (!comp.xexpr || !xexpr_fit(c, &top)) return false;
+    if (tb_text(&tb_screen, false, out, size) < 0) snprintf(out, (size_t)size, "%s", ab_expr_text(c, &c->x));
+    return true;
+}
+
 void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
 {
     composed *k = &comp;
