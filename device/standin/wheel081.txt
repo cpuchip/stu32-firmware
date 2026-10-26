@@ -1,0 +1,118 @@
+# Unit 081 on the stand-in (work/081-equation-wheel.md): the equation list as a wheel. From MEMORY CLEAR, X^2+1, 3×X^2-4
+# and SIN(X)+1 typed in STU and stored (each the entry of tests/stackkeys.c's `cas s`), then EQN LIST's ▲ (BST): the
+# centre is 3×X^2-4 (drawn=3X^2-4) with its neighbours, and the frame's rows 21-205 have the host's CRC (the same keys
+# replayed through app.c: 85B6EE37). Ends with a control that must FAIL.
+wait : heap internal 30
+sleep 3
+send WIPE
+expect wipe: both slots erased
+send RESTART
+expect load: no image: MEMORY CLEAR 30
+wait READY 30
+send X
+expect ver=0.81 5
+send K42
+sleep 0.25
+send K42
+sleep 0.25
+send K36
+sleep 0.25
+send K18
+sleep 0.25
+send K2
+sleep 0.25
+send K42
+sleep 0.25
+send K30
+sleep 0.25
+send K43
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K9
+sleep 0.25
+send K38
+sleep 0.25
+send K46
+sleep 0.25
+send K37
+sleep 0.25
+send K18
+sleep 0.25
+send K42
+sleep 0.25
+send K42
+sleep 0.25
+send K36
+sleep 0.25
+send K18
+sleep 0.25
+send K2
+sleep 0.25
+send K42
+sleep 0.25
+send K30
+sleep 0.25
+send K43
+sleep 0.25
+send K39
+sleep 0.25
+send K34
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K9
+sleep 0.25
+send K38
+sleep 0.25
+send K40
+sleep 0.25
+send K31
+sleep 0.25
+send K18
+sleep 0.25
+send K42
+sleep 0.25
+send K42
+sleep 0.25
+send K36
+sleep 0.25
+send K18
+sleep 0.25
+send K2
+sleep 0.25
+send K42
+sleep 0.25
+send K30
+sleep 0.25
+send K43
+sleep 0.25
+send K15
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K1
+sleep 0.25
+send K46
+sleep 0.25
+send K37
+sleep 0.25
+send K18
+sleep 0.25
+send K0
+sleep 1
+send X
+expect drawn=3X^2-4 10
+send FRAMECRC
+expect framecrc: rows 21-205 85B6EE37 10
+send X
+expect-min stack-free 8188 10
+send X
+# CONTROL: must FAIL
+expect framecrc: rows 21-205 00000000 3
