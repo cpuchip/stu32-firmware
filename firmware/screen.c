@@ -647,12 +647,20 @@ typedef struct {
 static composed comp;           /* compose's result, shared by screen_render and screen_lines (one at a time:
                                    about 8 KB, kept off the stack) */
 
-/* Unit 080: whether the equation shown is drawn as a textbook would set it: STU mode, an STU-stamped equation (another
-   mode's text groups differently), not one being typed (typing stays one line), not a built-in solver's entry */
+/* Unit 080: whether the list's entry shown takes the textbook area: STU mode, not while typing (typing stays one line),
+   and an STU-stamped equation (another mode's text groups differently), or EQN LIST TOP or a built-in solver's entry,
+   drawn as text on a clean screen (abacus #11109, Michael's ask) */
 static bool textbook_shown(const ab_calc *c)
 {
-    return c->stu && c->eqn_mode && !c->eqn_typing && !c->prgm && !c->tbl_on && !c->gr_on && c->eqn_cur >= 0 &&
-           c->eqn_model[c->eqn_cur] == AB_MODEL_STU && c->eqn[c->eqn_cur][0] != '\x01';
+    return c->stu && c->eqn_mode && !c->eqn_typing && !c->prgm && !c->tbl_on && !c->gr_on &&
+           (c->eqn_cur < 0 || c->eqn[c->eqn_cur][0] == '\x01' || c->eqn_model[c->eqn_cur] == AB_MODEL_STU);
+}
+
+/* The area's text: the equation, or EQN LIST TOP, or a built-in solver's LCD name; *math whether it's drawn in 2D */
+static const char *shown_text(const ab_calc *c, bool *math)
+{
+    *math = c->eqn_cur >= 0 && c->eqn[c->eqn_cur][0] != '\x01';
+    return c->eqn_cur < 0 ? "EQN LIST TOP" : c->eqn[c->eqn_cur] + !*math;
 }
 
 static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
@@ -887,13 +895,14 @@ typedef struct {
 static void area_fit(const ab_calc *c, tb_area *a)
 {
     const char *m = ab_cas_note(c);
+    bool math;
     memset(a, 0, sizeof *a);
-    a->text = c->eqn[c->eqn_cur];
+    a->text = shown_text(c, &math);
     a->label = m && m[0] != '+' ? m : NULL;
     a->plus_c = m && m[0] == '+';
     a->top = a->label ? TB_TOP + 7 * 2 + 4 : TB_TOP;
     int w = TB_W - (a->plus_c ? 3 * 6 * 2 : 0);            /* room for " +C" after the last line */
-    if (tb_parse(&tb_screen, a->text) == 0 && (a->s = tb_fit(&tb_screen, w, TB_BOT - a->top)) != 0) {
+    if (math && tb_parse(&tb_screen, a->text) == 0 && (a->s = tb_fit(&tb_screen, w, TB_BOT - a->top)) != 0) {
         a->n = tb_lines(&tb_screen), a->gap = 3 * a->s;
         return;
     }
@@ -924,8 +933,9 @@ static int area_holds(const tb_area *a, int first, int *h)
 bool screen_drawn_text(const ab_calc *c, char *out, int size)
 {
     if (!textbook_shown(c)) return false;
-    if (tb_parse(&tb_screen, c->eqn[c->eqn_cur]) != 0 || tb_text(&tb_screen, false, out, size) < 0)
-        snprintf(out, (size_t)size, "%s", c->eqn[c->eqn_cur]);
+    bool math;
+    const char *t = shown_text(c, &math);
+    if (!math || tb_parse(&tb_screen, t) != 0 || tb_text(&tb_screen, false, out, size) < 0) snprintf(out, (size_t)size, "%s", t);
     return true;
 }
 

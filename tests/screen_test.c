@@ -991,6 +991,19 @@ int main(int argc, char **argv)
             expect(ps > 0 && text_at(&tf, 4 + pt.n[pt.root].w + 3 * ps, row, ps, "+C", 1),
                    "080: +C on the line's rows, beside its last glyph, not raised by the exponent (abacus #11101)");
         }
+        /* abacus #11109 (Michael's ask): EQN LIST TOP and a built-in solver's entry, in STU, on a clean screen */
+        screen_ui_default(&ui);
+        ab_init(&c);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        ab_eqn_add(&c, "3\xc3\x97X^2-4");
+        c.eqn_cur = -1;
+        frame("35-tb-list-top", &c, &ui);
+        ab_init(&c);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        ab_eqn_add(&c, "3\xc3\x97X^2-4");
+        ab_do(&c, AB_SST);                          /* the list's next entry: the built-in 2*2 solver */
+        expect(c.eqn_cur >= 0 && c.eqn[c.eqn_cur][0] == '\x01', "080: SST from the typed equation shows a built-in solver");
+        frame("36-tb-builtin", &c, &ui);
         c.eqn_typing = true;        /* typing stays one line in STU too */
         snprintf(c.ebuf, sizeof c.ebuf, "3\xc3\x97X^2-4");
         c.ecur = (int)strlen(c.ebuf);

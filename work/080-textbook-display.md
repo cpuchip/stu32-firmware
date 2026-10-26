@@ -313,3 +313,18 @@ internal RAM +0, IRAM +0, calc_task's frame +0, no internal-RAM symbol changed.
   there. 22's CRC 9A4A7D8C is unchanged too. make test rc 0.
 - **Not on the board:** the stand-in stays on look080 (aa738bb) for Michael's look, as abacus asked, so this fix wasn't
   flashed. Neither look screen has a +C.
+
+## EQN LIST TOP and the built-in solvers on a clean screen (abacus #11109, Michael's ask)
+
+- **The change:** in STU, textbook_shown also takes EQN LIST TOP and a built-in solver's entry ("2*2 lin. solve"). Each
+  is drawn through the area's text path (shown_text: never parsed as math), with T, Z and Y gone and textbook_on set,
+  so the phone and the web draw them from the frame too.
+- The shown equation was indexed directly before, at an eqn_cur of -1 at the list's top. Now one helper reads it.
+- 33s and 35s are untouched: EQN LIST TOP keeps its stack there. So does an equation stamped 33 or 35 in STU mode, as
+  before.
+- **The oracle:** frames 35-tb-list-top and 36-tb-builtin, and two app_test checks (STU's top: textbook_on, X and drawn
+  "EQN LIST TOP", T empty; 33s's top: the stack, as before).
+  - Against the screen.c before it, both frames are red, and so is the STU check (789/790). The 33s check passes
+    either way, as the guard it is.
+  - With it: screen_test 9008/9008 and 36/36 frames, app_test 790/790, make test rc 0. 22's CRC 9A4A7D8C is unchanged.
+- Not flashed: the stand-in stays on look080 for Michael's look.

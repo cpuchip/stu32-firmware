@@ -4620,6 +4620,17 @@ int main(void)
         app_ui(&a, &ui);
         screen_lines(&c, &ui, &pg);
         expect(!pg.textbook_on, "080: a 33s-stamped equation in STU mode is its text, not 2D (STU's grammar would misgroup it)");
+        c.eqn_cur = -1;                             /* abacus #11109: EQN LIST TOP on a clean screen in STU */
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(pg.textbook_on && !strcmp(pg.x.text, "EQN LIST TOP") && !strcmp(pg.drawn, "EQN LIST TOP") && !pg.t.text[0],
+               "080: EQN LIST TOP in STU: the area, no stack (textbook_on, X and drawn its text, T empty)");
+        ab_do_arg(&c, AB_MODEL, 33);
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(!pg.textbook_on && !strcmp(pg.x.text, "EQN LIST TOP") && pg.t.text[0],
+               "080: EQN LIST TOP in 33s mode as before: the stack and its line");
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
     }
     printf("app_test: %d/%d checks\n", checks - bad, checks);
     return bad != 0;
