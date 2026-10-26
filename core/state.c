@@ -612,7 +612,8 @@ static int rexpr(rd *r, unsigned n)
     return k;
 }
 
-/* sym: the place may hold an expression or a name (082; not a program's literal, nor ANS: no op puts one there) */
+/* sym: the place may hold an expression or a name (082; not a program's literal: no op puts one there. ANS may: RPN
+   to ALG sets ANS to X) */
 static void rval(rd *r, ab_val *out, bool sym)
 {
     unsigned kind = r8(r), len = r8(r), mask = r8(r);
@@ -846,7 +847,7 @@ static void sec_alg(rd *r)
 {
     unsigned stu = r8(r), alg = r8(r), shown = r8(r);
     ab_val ans;
-    rval(r, &ans, false);
+    rval(r, &ans, true);
     need(r, flag_byte(stu) && flag_byte(alg) && flag_byte(shown) && (!stu || r->m35) && (!shown || alg));
     need(r, !alg || (stu && r->typing && !r->emode && !r->prgm && r->edit == -1));
     r->stu = stu;

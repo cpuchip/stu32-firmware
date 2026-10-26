@@ -8,15 +8,17 @@
  *    message's X, SOLVE's saved stack), saved (version 21), loaded, saved again: the same bytes, every text the same.
  *    tests/golden-v21-082.img is that image (--write-golden writes it), loaded and saved again byte for byte.
  * 3. The reader: a section after the last one this build knows is skipped by its size in a version-21 image and
- *    refused in a version-20 one; an expression in a version-20 image, a kind past AB_NAME (4C), and an expression in
- *    ANS (no op puts one there) are refused.
+ *    refused in a version-20 one; an expression in a version-20 image and a kind past AB_NAME (4C) are refused; an
+ *    expression in ANS (RPN to ALG sets ANS to X) loads.
  * 4. The store: all 48 places (X, Y, Z, T, LASTx, 27 letters, 16 history values) holding distinct expressions, the
  *    49th is ABN_EXPR_FULL with every text unchanged; freeing a place lets the next succeed in its slot. A fuzz of new,
  *    copy and clear over the 48 places checks every live text against a model after each step, and that the store is
  *    full exactly when 48 distinct expressions are live.
  * 5. The op sweep: every op (args 0 and the letter B), in STU's RPN, with an expression or a name on X, on Y, on both,
- *    or in B. An op either gives NOT A NUMBER with the stack and letters unchanged, or is one of the ops listed
- *    below that read no number from those places; any other result fails. */
+ *    or in B or I, args 0, 1, B and (I). An op either gives NOT A NUMBER with the stack and letters unchanged, or
+ *    leaves nothing computed from the expression read as a number (judged against the same op run with 0 and 7 in
+ *    its place); and whatever it left saves an image that loads.
+ * 6, 7. The classes the sweep can't reach from RPN's keys, and →X and →EQN. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -323,12 +325,13 @@ static void reader(void)
                k2 ? "082: NOT A NUMBER showing, nothing else new: version 21, and it loads showing"
                   : "082: MEMORY FULL showing, nothing else new: version 21, and it loads showing");
     }
-    /* ANS holding an expression: written, refused on load (no op puts one there) */
+    /* ANS holding an expression (RPN to ALG sets ANS to X: the op sweep found it), saved and loaded whole */
     build_v21(&ca);
     put_expr(&ca, &ca.ans, "A+1");
     m = ab_state_save(&ca, e, sizeof e);
     ab_init(&cb);
-    expect(ab_state_load(&cb, e, m) != ABN_OK, "082: an expression in ANS is refused");
+    expect(ab_state_load(&cb, e, m) == ABN_OK && cb.ans.kind == AB_EXPR && !strcmp(ab_expr_text(&cb, &cb.ans), "A+1"),
+           "082: an expression in ANS saves and loads (RPN to ALG puts X's there)");
 }
 
 /* ---- 4. the store ---- */
@@ -476,7 +479,8 @@ static void sweep_base(ab_calc *c, int s, const ab_val *v)
 static void sweep(void)
 {
     static const char *const SETUP[] = {"X", "Y", "X and Y", "B", "I"};
-    static const int ARGS[] = {0, AB_VAR_A + 1, AB_VAR_IND_I};
+    static const int ARGS[] = {0, 1, AB_VAR_A + 1, AB_VAR_IND_I};
+    int unloadable = 0;
     int odd = 0, refused = 0, runs = 0, passed = 0;
     for (int sym = 0; sym < 2; sym++)
         for (int s = 0; s < 5; s++) {
@@ -493,11 +497,20 @@ static void sweep(void)
             sweep_base(&bz, s, &z0);
             sweep_base(&bn, s, &n7);
             for (int op = 0; op <= AB_OP_LAST; op++)
-                for (int ai = 0; ai < 3; ai++) {
+                for (int ai = 0; ai < 4; ai++) {
                     int arg = ARGS[ai];
                     memcpy(&ca, &base, sizeof ca);
                     abn_status st = ab_do_arg(&ca, (ab_op)op, arg);
                     runs++;
+                    {   /* whatever the op left, its image loads (an expression somewhere the reader refuses is a lost state) */
+                        size_t m = ab_state_save(&ca, img1, sizeof img1);
+                        ab_init(&cb);
+                        if (m == 0 || m > sizeof img1 || ab_state_load(&cb, img1, m) != ABN_OK) {
+                            if (unloadable++ < 5)
+                                printf("FAIL: op %d arg %d (%s on %s): its image doesn't load\n", op, arg,
+                                       sym ? "a name" : "an expression", SETUP[s]);
+                        }
+                    }
                     if (st == ABN_NOT_NUMBER) {
                         refused++;
                         if (!same_state(&ca, &base)) {
@@ -539,6 +552,8 @@ static void sweep(void)
              runs, refused, passed - odd, odd);
     printf("expr_test: %s\n", what);
     expect(odd == 0, what);
+    snprintf(what, sizeof what, "082: the op sweep: every state an op left saves an image that loads (%d don't)", unloadable);
+    expect(unloadable == 0, what);
 }
 
 /* ---- 6. the classes the sweep can't reach from RPN's keys alone ---- */
@@ -694,6 +709,103 @@ static void drop_store(void)
     expect(ab_do(&ca, AB_EQDROP) == ABN_STU_ONLY && ab_do(&ca, AB_EQSTORE) == ABN_STU_ONLY, "082: →X and →EQN: STU only");
 }
 
+/* ---- 8. random op sequences with expressions and names in random places (section 8's fuzz) ---- */
+
+/* every value place an op can reach */
+static int all_places(ab_calc *c, ab_val **out)
+{
+    int n = places(c, out);
+    out[n++] = &c->ans;
+    return n;
+}
+
+static unsigned fz = 0x82u;
+static unsigned fzr(unsigned n)
+{
+    fz = fz * 1103515245u + 12345u;
+    return (fz >> 8) % n;
+}
+
+static void op_fuzz(void)
+{
+    static const char *const TEXTS[] = {"A+1", "3\xc3\x97X^2-4", "SIN(X)\xc3\xb7X", "(A+B)^2", "\xe2\x88\x9a(X)-2"};
+    int seqs = 400, len = 25, steps = 0, refused = 0, leaks = 0, unloadable = 0, changed = 0;
+    for (int q = 0; q < seqs; q++) {
+        ab_init(&ca);
+        ab_do_arg(&ca, AB_MODEL, AB_MODEL_STU);
+        ca.var[1] = real_int(3), ca.x = real_int(2), ca.y = real_int(5);
+        ab_val *p[64];
+        int n = all_places(&ca, p);
+        for (int k = 0; k < 4; k++) {           /* expressions and names in random places of the stack and letters */
+            ab_val v;
+            int at = (int)fzr(32);              /* (X..LASTx, the 27 letters) */
+            if (!fzr(3) || ab_expr_new(&ca, TEXTS[fzr(5)], &v) != ABN_OK) v = name_val((int)fzr(27));
+            *p[at] = v;
+        }
+        for (int i = 0; i < len; i++) {
+            int op = (int)fzr(AB_OP_LAST + 1), arg;
+            switch (fzr(4)) {
+            case 0: arg = 0; break;
+            case 1: arg = 1; break;
+            case 2: arg = AB_VAR_A + (int)fzr(26); break;
+            default: arg = AB_VAR_IND_I; break;
+            }
+            /* the same state with every expression or name a 0, and a 7 */
+            memcpy(&cz, &ca, sizeof cz);
+            memcpy(&cn, &ca, sizeof cn);
+            ab_val *pz[64], *pn[64], *pa[64];
+            all_places(&cz, pz);
+            all_places(&cn, pn);
+            n = all_places(&ca, pa);
+            bool any = false;
+            for (int k = 0; k < n; k++)
+                if (ab_is_sym(pa[k])) *pz[k] = real_int(0), *pn[k] = real_int(7), any = true;
+            memcpy(&base, &ca, sizeof base);
+            ca.budget = cz.budget = cn.budget = 2000;
+            abn_status st = ab_do_arg(&ca, (ab_op)op, arg);
+            if (ca.stop == AB_STOP_SLICE) ab_continue(&ca);
+            steps++;
+            if (st == ABN_NOT_NUMBER) {
+                refused++;
+                if (!same_state(&ca, &base) && changed++ < 3)
+                    printf("FAIL: fuzz %d step %d: op %d arg %d: NOT A NUMBER, but the stack or a letter changed\n", q, i, op, arg);
+            } else if (any) {
+                abn_status sz = ab_do_arg(&cz, (ab_op)op, arg), sn = ab_do_arg(&cn, (ab_op)op, arg);
+                if (cz.stop == AB_STOP_SLICE) ab_continue(&cz);
+                if (cn.stop == AB_STOP_SLICE) ab_continue(&cn);
+                ab_val *qa[40], *qz[40], *qn[40];
+                int nv = val_places(&ca, qa);
+                val_places(&cz, qz);
+                val_places(&cn, qn);
+                int leak = -1;
+                for (int k = 0; k < nv && leak < 0; k++)
+                    if (!ab_is_sym(qa[k]) && same_val(&ca, qa[k], &cz, qz[k]) && !same_val(&cz, qz[k], &cn, qn[k]) &&
+                        !same_val(&base, k < 5 ? (const ab_val *[]){&base.x, &base.y, &base.z, &base.t, &base.lastx}[k]
+                                               : &base.var[k - 5], &ca, qa[k]))
+                        leak = k;               /* (a number new at that place, not one it held before) */
+                bool wrong = st != ABN_OK && st != ABN_CLAMPED && st != sz && st != sn;
+                bool by_status = st == sz && sz != sn;
+                if (leak >= 0 || wrong || by_status) {
+                    if (leaks++ < 5)
+                        printf("FAIL: fuzz %d step %d: op %d arg %d: status %d (0: %d, 7: %d), place %d%s%s\n", q, i, op, arg,
+                               (int)st, (int)sz, (int)sn, leak, wrong ? ", an error only the expression gives" : "",
+                               by_status ? ", the status as 0's" : "");
+                }
+            }
+            size_t m = ab_state_save(&ca, img1, sizeof img1);
+            ab_init(&cb);
+            if (m == 0 || m > sizeof img1 || ab_state_load(&cb, img1, m) != ABN_OK) {
+                if (unloadable++ < 3) printf("FAIL: fuzz %d step %d: op %d arg %d: its image doesn't load\n", q, i, op, arg);
+            }
+        }
+    }
+    char what[200];
+    snprintf(what, sizeof what, "082: the op fuzz, %d sequences, %d steps: %d NOT A NUMBER, %d read a number, %d changed on a "
+             "refusal, %d images that don't load", seqs, steps, refused, leaks, changed, unloadable);
+    printf("expr_test: %s\n", what);
+    expect(leaks == 0 && changed == 0 && unloadable == 0, what);
+}
+
 int main(int argc, char **argv)
 {
     bool write_golden = argc > 1 && !strcmp(argv[1], "--write-golden");
@@ -705,6 +817,7 @@ int main(int argc, char **argv)
     sweep();
     classes();
     drop_store();
+    op_fuzz();
     printf("expr_test: %d/%d checks\n", checks - failures, checks);
     return failures != 0;
 }
