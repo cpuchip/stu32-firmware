@@ -359,8 +359,8 @@ static int live_slots(const ab_calc *c, ab_val **p, int n)
 
 static void store(void)
 {
-    ab_val *p[64];
-    char model[NP][AB_EQN_LEN], what[160];
+    ab_val *p[80];
+    char model[80][AB_EQN_LEN], what[160];
     ab_init(&ca);
     int n = store_places(&ca, p);
     expect(n == NP, "082: 48 places");
@@ -382,16 +382,19 @@ static void store(void)
     for (int i = 0; i < n; i++) same &= !strcmp(ab_expr_text(&ca, p[i]), model[i]);
     expect(same, "082: ... every other text unchanged");
 
-    /* the fuzz */
+    /* the fuzz, over every place expr_mark marks that can hold one (abacus #11230: ANS, the message's X, SOLVE's and
+       the evaluation's copies too, so a place the mark left out loses its text to the next new one and goes red) */
     ab_init(&ca);
-    n = store_places(&ca, p);
-    bool has[NP] = {false};
+    n = places(&ca, p);
+    p[n++] = &ca.ans;
+    for (int i = 0; i < AB_HIST; i++) p[n++] = &ca.hist_val[i];
+    bool has[80] = {false};
     unsigned seed = 82;
     int bad = 0, fulls = 0, steps = 200000;
     for (int s = 0; s < steps && bad < 5; s++) {
         seed = seed * 1103515245u + 12345u;
         int a = (int)(seed >> 8) % n, b = (int)(seed >> 16) % n, what_op = (int)(seed >> 24) % 10;
-        if (s % 997 < NP) a = s % 997, what_op = 0;   /* a burst of 48 news, place by place: the store fills */
+        if (s % 997 < n) a = s % 997, what_op = 0;    /* a burst of news over every place: the store fills */
         if (what_op < 5) {                      /* a new expression into place a */
             char t[AB_EQN_LEN];
             snprintf(t, sizeof t, "X+%d", s);
@@ -421,7 +424,8 @@ static void store(void)
                 break;
             }
     }
-    snprintf(what, sizeof what, "082: the store fuzz, %d steps (%d refused full), every text kept", steps, fulls);
+    snprintf(what, sizeof what, "082: the store fuzz, %d steps over %d places (%d refused full), every text kept", steps, n,
+             fulls);
     printf("expr_test: %s\n", what);
     expect(bad == 0 && fulls > 0, what);
 }
@@ -719,6 +723,17 @@ static int all_places(ab_calc *c, ab_val **out)
     return n;
 }
 
+/* which slots a value names, over every place an expression can be (the test's own list, not expr_mark's) */
+static void live_marks(ab_calc *c, bool live[AB_EXPR_SLOTS])
+{
+    ab_val *p[80];
+    int n = all_places(c, p);
+    for (int i = 0; i < AB_HIST; i++) p[n++] = &c->hist_val[i];
+    memset(live, 0, AB_EXPR_SLOTS);
+    for (int i = 0; i < n; i++)
+        if (p[i]->kind == AB_EXPR && p[i]->len >= 0 && p[i]->len < AB_EXPR_SLOTS) live[p[i]->len] = true;
+}
+
 static unsigned fz = 0x82u;
 static unsigned fzr(unsigned n)
 {
@@ -729,21 +744,24 @@ static unsigned fzr(unsigned n)
 static void op_fuzz(void)
 {
     static const char *const TEXTS[] = {"A+1", "3\xc3\x97X^2-4", "SIN(X)\xc3\xb7X", "(A+B)^2", "\xe2\x88\x9a(X)-2"};
-    int seqs = 400, len = 25, steps = 0, refused = 0, leaks = 0, unloadable = 0, changed = 0;
+    int seqs = 400, len = 25, steps = 0, refused = 0, leaks = 0, unloadable = 0, changed = 0, changed_text = 0;
     for (int q = 0; q < seqs; q++) {
         ab_init(&ca);
         ab_do_arg(&ca, AB_MODEL, AB_MODEL_STU);
         ca.var[1] = real_int(3), ca.x = real_int(2), ca.y = real_int(5);
+        ab_eqn_add(&ca, "X^2-1");               /* (an STU equation for →X; Equation mode on half the time) */
+        if (fzr(2)) ab_do(&ca, AB_EQN);
         ab_val *p[64];
         int n = all_places(&ca, p);
-        for (int k = 0; k < 4; k++) {           /* expressions and names in random places of the stack and letters */
+        for (int k = 0; k < 4; k++) {           /* expressions and names in random places, ANS and the copies included */
             ab_val v;
-            int at = (int)fzr(32);              /* (X..LASTx, the 27 letters) */
+            int at = (int)fzr((unsigned)n);
             if (!fzr(3) || ab_expr_new(&ca, TEXTS[fzr(5)], &v) != ABN_OK) v = name_val((int)fzr(27));
             *p[at] = v;
         }
         for (int i = 0; i < len; i++) {
             int op = (int)fzr(AB_OP_LAST + 1), arg;
+            if (!fzr(6)) op = fzr(3) ? AB_EQDROP : AB_EQN;   /* (new expressions: a slot taken while others are live) */
             switch (fzr(4)) {
             case 0: arg = 0; break;
             case 1: arg = 1; break;
@@ -761,6 +779,8 @@ static void op_fuzz(void)
             for (int k = 0; k < n; k++)
                 if (ab_is_sym(pa[k])) *pz[k] = real_int(0), *pn[k] = real_int(7), any = true;
             memcpy(&base, &ca, sizeof base);
+            bool live0[AB_EXPR_SLOTS];
+            live_marks(&base, live0);
             ca.budget = cz.budget = cn.budget = 2000;
             abn_status st = ab_do_arg(&ca, (ab_op)op, arg);
             if (ca.stop == AB_STOP_SLICE) ab_continue(&ca);
@@ -792,6 +812,14 @@ static void op_fuzz(void)
                                by_status ? ", the status as 0's" : "");
                 }
             }
+            {   /* an expression never changes: a slot live before the op and after it keeps its text (abacus #11230) */
+                bool live1[AB_EXPR_SLOTS];
+                live_marks(&ca, live1);
+                for (int k = 0; k < AB_EXPR_SLOTS; k++)
+                    if (live0[k] && live1[k] && strcmp(base.exprs[k], ca.exprs[k]) && changed_text++ < 3)
+                        printf("FAIL: fuzz %d step %d: op %d arg %d: slot %d's text changed under a live value\n", q, i, op,
+                               arg, k);
+            }
             size_t m = ab_state_save(&ca, img1, sizeof img1);
             ab_init(&cb);
             if (m == 0 || m > sizeof img1 || ab_state_load(&cb, img1, m) != ABN_OK) {
@@ -801,9 +829,10 @@ static void op_fuzz(void)
     }
     char what[200];
     snprintf(what, sizeof what, "082: the op fuzz, %d sequences, %d steps: %d NOT A NUMBER, %d read a number, %d changed on a "
-             "refusal, %d images that don't load", seqs, steps, refused, leaks, changed, unloadable);
+             "refusal, %d live texts changed, %d images that don't load", seqs, steps, refused, leaks, changed, changed_text,
+             unloadable);
     printf("expr_test: %s\n", what);
-    expect(leaks == 0 && changed == 0 && unloadable == 0, what);
+    expect(leaks == 0 && changed == 0 && changed_text == 0 && unloadable == 0, what);
 }
 
 int main(int argc, char **argv)

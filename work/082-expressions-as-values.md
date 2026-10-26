@@ -326,6 +326,19 @@ and this record with VER 0.82.
   and comp 8,276 -> 8,280 on both (a ninth bool in compose's state); 5b48ded packs the two 2D flags into one byte.
 - The claim (#11206, acked #11207, released #11208 at 07:04Z): peak 661.4 MiB.
 
+### abacus's replay (#11230) and its condition
+- The replay of fa91521 matched. Plant (1), a reader that names A..Z but not i, went red through load_fuzz's v21 seed.
+  **Plant (2), expr_mark without ANS, survived**: nothing made a new expression while ANS alone held one and then read
+  ANS's text. The store fuzz's places left out ANS and the copies, and the op fuzz judged number reads and image loads
+  only. The code marks ANS; the test didn't show it.
+- **Closed:** the store fuzz now runs over every place an expression can be (59: the stack, LASTx, the letters, the
+  message's X, SOLVE's and the evaluation's copies, ANS, the history). The op fuzz checks that a slot live before an op and
+  after it keeps its text, and its sequences now include an STU equation, seeds in every place, and frequent →X.
+- **Plant (2) red twice over:** the store fuzz ("step 43: place 42 lost its text", place 42 being ANS) and, on its own,
+  the op fuzz ("fuzz 9 step 1: op 234 arg 12: slot 2's text changed under a live value", →X overwriting ANS's text; 4
+  such steps). The same plant without the message's X, susp.var0, ev_t or the history goes red too. The 25 mutants stay
+  red; make test rc 0.
+
 ### For Michael (through abacus)
 - The screen's layout of X's expression under Y, and the quotes on the text lines (frames 42-45).
 - CAS4's place and the bar returning after →X (card s3-keys).
