@@ -59,6 +59,9 @@ target_compile_definitions(${COMPONENT_LIB} PRIVATE
     DECIMAL_CALL_BY_REFERENCE=0 DECIMAL_GLOBAL_ROUNDING=0 DECIMAL_GLOBAL_EXCEPTION_FLAGS=0)
 target_link_libraries(${COMPONENT_LIB} PRIVATE "${BID_LIB}")
 set_source_files_properties("${REPO}/core/arena.c" PROPERTIES COMPILE_OPTIONS "-include;${REPO}/device/pool_attr.h")
+# unit 080: the textbook display's pool (firmware/tbook.c, 3.6 KB) in PSRAM too; the calc task draws, never while it
+# writes flash
+set_source_files_properties("${FW}/tbook.c" PROPERTIES COMPILE_OPTIONS "-include;${REPO}/device/pool_attr.h")
 # The profile (unit 050, device/standin/prof.sh, its own build directory): the core's functions instrumented, the
 # stand-in's hooks counting them
 if(AB_PROF)

@@ -72,6 +72,7 @@ typedef struct {
     bool blank;                     /* the soft off (068): nothing drawn */
     bool hyp;                       /* unit 073: HYP's prefix armed: the band's HYP annunciator (35s UG p.1-13) */
     bool help;                      /* unit 075: HELP armed: HELP in the shift's place until a shift is pressed */
+    int tb_line;                    /* unit 080: a tall textbook answer's first line shown (the app's scroll), 0 the top */
 } screen_ui;
 
 void screen_ui_default(screen_ui *ui);
@@ -140,6 +141,11 @@ int screen_graph_readout(const ab_calc *c, const screen_ui *ui, char *out, int s
 typedef struct {
     screen_status status;
     bool graph_on;                  /* a graph shown (unit 033b): its text */
+    bool textbook_on;               /* unit 080: STU's shown equation drawn in 2D in rows 21-205 of screen_render's frame
+                                       (a host draws those rows from it, as for a graph); x keeps the equation's text,
+                                       T, Z and Y are empty */
+    char drawn[256];                /* unit 080: what the area draws, as text (tbook's tb_text): x only where drawn, e^u,
+                                       |u|, √u, a÷b; the equation's text when it's drawn as text */
     screen_graph_text graph;
     screen_line t, z, y, x;
     bool view;                      /* four message lines, not the stack: SYS's view, 048's report (tally #5455) */
@@ -148,6 +154,10 @@ typedef struct {
 } screen_page;
 
 void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out);
+/* Unit 080: whether a textbook answer drawn from line first has lines below the area (the app's SST scrolls to them) */
+bool screen_textbook_more(const ab_calc *c, int first);
+/* Unit 080: whether the shown equation is drawn in 2D, and then what's drawn as text into out (screen_page's drawn) */
+bool screen_drawn_text(const ab_calc *c, char *out, int size);
 
 /* The whole frame for c and ui. */
 void screen_render(const ab_calc *c, const screen_ui *ui, ls027_frame *f);

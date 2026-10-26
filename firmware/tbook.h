@@ -53,6 +53,8 @@ typedef struct {
 } tb_look;
 extern tb_look tb_looks;
 
+extern tb_tree tb_screen;        /* the screen's, rebuilt at each draw (PSRAM on the devices) */
+
 /* Parse "answer; cond; cond" into t. 0, or -1 with t->err why. The text must outlive t. */
 int tb_parse(tb_tree *t, const char *s);
 /* Lay the answer out by the card's rule (stu-textbook-size): scale 3 whole, else 2 whole, else wrapped at its

@@ -82,6 +82,9 @@ target_compile_definitions(${COMPONENT_LIB} PRIVATE
     DECIMAL_CALL_BY_REFERENCE=0 DECIMAL_GLOBAL_ROUNDING=0 DECIMAL_GLOBAL_EXCEPTION_FLAGS=0)
 target_link_libraries(${COMPONENT_LIB} PRIVATE "${BID_LIB}")
 set_source_files_properties("${REPO}/core/arena.c" PROPERTIES COMPILE_OPTIONS "-include;${REPO}/device/pool_attr.h")
+# unit 080: the textbook display's pool (firmware/tbook.c, 3.6 KB) in PSRAM too; the calc task draws, never while it
+# writes flash
+set_source_files_properties("${FW}/tbook.c" PROPERTIES COMPILE_OPTIONS "-include;${REPO}/device/pool_attr.h")
 if("$ENV{STU_WASM}" STREQUAL "1")
     target_compile_definitions(${COMPONENT_LIB} PRIVATE STU_WASM=1)
     set_source_files_properties("${FW}/wasm/wasm_app.c" PROPERTIES COMPILE_OPTIONS "-Werror=frame-larger-than=1024")

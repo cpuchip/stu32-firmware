@@ -4578,6 +4578,45 @@ int main(void)
         c2.cas_cplx = true;
         expect(ab_state_load(&c2, im, n) == ABN_OK && !c2.cas_cplx, "076: an image with CPLX off loads it off");
     }
+    {   /* unit 080: STU's shown equation in 2D (work/080-textbook-display.md): screen_lines says so and keeps the text
+           (tally #10916, primer #10920), gives what's drawn (tutor #10917); a tall answer scrolls on SST and BST,
+           then they step the list (the blueprint's proposal, Michael's card (a)) */
+        static screen_page pg;
+        static const char TALL[] = "3\xc3\x97LN(X+X^2+1)\xc3\xb7" "26+7\xc3\x97LN(-X+2\xc3\x97X^2+3)\xc3\xb7" "52+\xcf\x80\xc3\x97" "ATAN(X)\xc3\xb7" "180+\xcf\x80\xc3\x97" "ATAN(2\xc3\x97(X+1\xc3\xb7" "2)\xc3\xb7SQRT(3))\xc3\xb7" "468\xc3\xb7SQRT(3)-29\xc3\x97\xcf\x80\xc3\x97" "ATAN(4\xc3\x97(X-1\xc3\xb7" "4)\xc3\xb7SQRT(23))\xc3\xb7" "936\xc3\xb7SQRT(23)";
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        ab_eqn_add(&c, "3\xc3\x97X^2-4");
+        ab_eqn_add(&c, TALL);
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(pg.textbook_on && !strcmp(pg.x.text, TALL) && !pg.t.text[0] && !pg.z.text[0] && !pg.y.text[0],
+               "080: the tall answer shown: textbook_on, X its text, T, Z and Y empty");
+        int cur = c.eqn_cur;
+        press(&a, "BLUE R/S");
+        expect(c.eqn_cur == cur && a.tb_line == 1, "080: SST on a tall answer shows its next line, the list unmoved");
+        press(&a, "BLUE R/S");
+        expect(c.eqn_cur == cur && a.tb_line == 2, "080: and its next");
+        press(&a, "BLUE R/S");
+        expect(c.eqn_cur != cur && a.tb_line == 0, "080: at its end, SST steps the list, the next one from its top");
+        c.eqn_cur = cur;                            /* back on the tall one */
+        press(&a, "k:1 k:1 k:0");                  /* EQN LIST's bar: ▼ twice, then ▲ */
+        expect(a.tb_line == 1 && c.eqn_cur == cur, "080: the bar's ▼ scrolls as SST does; ▲ (BST) shows the line before");
+        ab_do_arg(&c, AB_MODEL, 33);
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(!pg.textbook_on && !strncmp(pg.x.text, TALL, strlen(TALL)), "080: in 33s mode, not in 2D: the text, as before");
+        if (pg.textbook_on || strncmp(pg.x.text, TALL, strlen(TALL))) printf("  (33s: eqn_cur %d, x %.60s)\n", c.eqn_cur, pg.x.text);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        c.eqn_cur = 0;
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(pg.textbook_on && !strcmp(pg.drawn, "3X^2-4") && !strcmp(pg.x.text, "3\xc3\x97X^2-4"),
+               "080: the drawn text beside X's: 3X^2-4");
+        int cur0 = c.eqn_cur;
+        press(&a, "BLUE R/S");
+        expect(c.eqn_cur != cur0 && a.tb_line == 0, "080: SST on an answer that fits steps the list at once");
+    }
     printf("app_test: %d/%d checks\n", checks - bad, checks);
     return bad != 0;
 }

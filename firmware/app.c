@@ -197,6 +197,14 @@ static void after_core(app_state *a, bool msg_before, uint32_t now_ms)
 static void do_op(app_state *a, int op, int arg)
 {
     ab_calc *c = a->c;
+    /* unit 080: on a textbook answer taller than the area, SST shows its next line until its end and BST its line
+       before; then they step the list as before (the blueprint's proposal; Michael's card (a)) */
+    if ((op == AB_SST && screen_textbook_more(c, a->tb_line)) || (op == AB_BST && a->tb_line > 0 && c->eqn_mode)) {
+        a->tb_line += op == AB_SST ? 1 : -1;
+        a->dirty = true;
+        return;
+    }
+    a->tb_line = 0;
     bool runs = !c->prgm && (op == AB_XEQ || op == AB_RS || op == AB_SST || op == AB_SOLVE || op == AB_INTEG);
     if (runs) {
         a->run_timed = true;                    /* DONE's clock (unit 027) */
@@ -1563,6 +1571,7 @@ void app_ui(const app_state *a, screen_ui *ui)
     ui->busy = a->running ? a->busy_op : 0;
     ui->prompt = a->prompt_op >= 0 ? a->prompt_text : NULL;
     ui->help = a->help;                         /* unit 075: HELP armed: its prompt (below) and the band's HELP */
+    ui->tb_line = a->tb_line;                   /* unit 080 */
     if (a->help) ui->prompt = "HELP_";
     if (!ui->prompt && cx_prefix(a, a->menu))
         ui->prompt = "CMPLX_";               /* 33s mode's prefix (unit 039; 33s p.G-6) */

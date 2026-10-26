@@ -190,10 +190,12 @@ static __attribute__((noinline, unused)) void dev_dump(const ab_calc *calc, app_
         printf("view: %s | %s | %s | %s\n", ui.view[0] ? ui.view[0] : "-", ui.view[1] ? ui.view[1] : "-",
                ui.view[2] ? ui.view[2] : "-", ui.view[3] ? ui.view[3] : "-");
     printf("app: %s\n", app_running(app) ? app->app->name : "-");          /* unit 037 */
-    char row[AB_EQN_LEN];                       /* unit 079: the report's row under the cursor, as the screen shows it */
-    printf("eqn: %s | note=%s | rep=%s | row=%s\n", calc->eqn_mode && calc->eqn_cur >= 0 ? calc->eqn[calc->eqn_cur] : "-",
+    char row[AB_EQN_LEN], drawn[256];           /* unit 079: the report's row under the cursor, as the screen shows it;
+                                                   unit 080: the shown equation's 2D form as text (tutor #10917) */
+    printf("eqn: %s | note=%s | rep=%s | row=%s | drawn=%s\n", calc->eqn_mode && calc->eqn_cur >= 0 ? calc->eqn[calc->eqn_cur] : "-",
            ab_cas_note(calc) ? ab_cas_note(calc) : "-", ab_cas_report(calc) ? ab_cas_report(calc) : "-",
-           ab_cas_row(calc, calc->cas_row, row, sizeof row) ? row : "-");                              /* 048, 079 */
+           ab_cas_row(calc, calc->cas_row, row, sizeof row) ? row : "-",
+           screen_drawn_text(calc, drawn, sizeof drawn) ? drawn : "-");                                /* 048, 079, 080 */
     printf("ui: show=%d %s%s%s\n", ui.show_n, ui.show_n ? ui.show[0] : "-", ui.show_n > 1 ? "/" : "",
            ui.show_n > 1 ? ui.show[1] : "");                             /* unit 030: SHOW held */
 }

@@ -146,6 +146,8 @@ typedef struct {
                                memory), so the tone means "first time low this discharge" (#4238) */
     int view;               /* APP_VIEW_*: SYS's view showing, any key leaves it */
     bool help;              /* unit 075: HELP pressed: the next key (a shift waits) is explained, not run */
+    int tb_line;            /* unit 080: a tall textbook answer's first line shown (SST and BST scroll it); 0 the top,
+                               and back to 0 at any other op (not in the image) */
     bool show;              /* unit 030: SHOW held: X's full mantissa in place of the stack */
     bool graphing;          /* unit 033: a graph's samples being computed, a slice at each tick */
     struct app_graph *graph;    /* its buffer (the device's, in PSRAM: app_graph_buffer); NULL: none drawn */

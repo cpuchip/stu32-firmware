@@ -1,5 +1,6 @@
 /* screen: layout v0 (see screen.h). */
 #include "screen.h"
+#include "tbook.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -639,11 +640,20 @@ typedef struct {
                                one part on Y and X, two on T and Z then Y and X */
     bool alg;               /* STU's ALG: the line in Y's place (left), its result in X's, the entry
                                before in T (left) and Z; no letters (unit 029) */
+    bool textbook;          /* unit 080: the shown STU equation drawn in 2D in the stack's place (X keeps its text) */
     int ind;
 } composed;
 
 static composed comp;           /* compose's result, shared by screen_render and screen_lines (one at a time:
                                    about 8 KB, kept off the stack) */
+
+/* Unit 080: whether the equation shown is drawn as a textbook would set it: STU mode, an STU-stamped equation (another
+   mode's text groups differently), not one being typed (typing stays one line), not a built-in solver's entry */
+static bool textbook_shown(const ab_calc *c)
+{
+    return c->stu && c->eqn_mode && !c->eqn_typing && !c->prgm && !c->tbl_on && !c->gr_on && c->eqn_cur >= 0 &&
+           c->eqn_model[c->eqn_cur] == AB_MODEL_STU && c->eqn[c->eqn_cur][0] != '\x01';
+}
 
 static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
 {
@@ -781,6 +791,7 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
         k->x_left = true;
         k->xk = SCREEN_EQN;
         eqn_shown = c->eqn_cur >= 0;
+        k->textbook = textbook_shown(c);
     } else if (c->eng_on && c->x.kind == AB_REAL && c->base == 10) {   /* unit 041 C (B4): ENG's view, until the next key */
         char buf[64];
         ab_display d = display_of(c, ui, FMT_WIDE);
@@ -857,13 +868,127 @@ static void page_line(screen_line *o, const line *l, screen_kind kind, bool left
     o->label = label;
 }
 
+/* ---- unit 080: the textbook area ---- */
+
+#define TB_TOP 22               /* the area: below the band's rule, above the soft keys, the width the stack lines had */
+#define TB_BOT 204
+#define TB_X 4
+#define TB_W 392
+
+/* The shown equation as the area lays it out: its tree (tb_screen) fitted at scale s, or the text's own lines when it
+   can't be (s 0): their count, each one's height and the gap between them, and where the lines start (below a label) */
+typedef struct {
+    const char *text, *label;
+    bool plus_c;
+    int s, sc, n, gap, top;     /* sc: the text's scale (s 0) */
+    int starts[24], lens[24];   /* the text's lines (s 0) */
+} tb_area;
+
+static void area_fit(const ab_calc *c, tb_area *a)
+{
+    const char *m = ab_cas_note(c);
+    memset(a, 0, sizeof *a);
+    a->text = c->eqn[c->eqn_cur];
+    a->label = m && m[0] != '+' ? m : NULL;
+    a->plus_c = m && m[0] == '+';
+    a->top = a->label ? TB_TOP + 7 * 2 + 4 : TB_TOP;
+    int w = TB_W - (a->plus_c ? 3 * 6 * 2 : 0);            /* room for " +C" after the last line */
+    if (tb_parse(&tb_screen, a->text) == 0 && (a->s = tb_fit(&tb_screen, w)) != 0) {
+        a->n = tb_lines(&tb_screen), a->gap = 3 * a->s;
+        return;
+    }
+    a->s = 0;                                               /* the text: at 3 when it fits a line, else at 2, wrapped */
+    a->sc = screen_cells(a->text) <= (w + 3) / 18 ? 3 : 2;
+    a->n = tb_text_lines(a->text, (w + a->sc) / (6 * a->sc), a->starts, a->lens, 24);
+    a->gap = 3 * a->sc;
+}
+
+static int area_line_h(const tb_area *a, int i)
+{
+    return a->s ? tb_line_h(&tb_screen, i) : 7 * a->sc;
+}
+
+/* From line first, how many lines the area holds; *h their height */
+static int area_holds(const tb_area *a, int first, int *h)
+{
+    int k = first, y = 0;
+    for (; k < a->n; k++) {
+        int lh = area_line_h(a, k) + (k > first ? a->gap : 0);
+        if (a->top + y + lh > TB_BOT) break;
+        y += lh;
+    }
+    *h = y;
+    return k - first;
+}
+
+bool screen_drawn_text(const ab_calc *c, char *out, int size)
+{
+    if (!textbook_shown(c)) return false;
+    if (tb_parse(&tb_screen, c->eqn[c->eqn_cur]) != 0 || tb_text(&tb_screen, false, out, size) < 0)
+        snprintf(out, (size_t)size, "%s", c->eqn[c->eqn_cur]);
+    return true;
+}
+
+bool screen_textbook_more(const ab_calc *c, int first)
+{
+    tb_area a;
+    int h;
+    if (!textbook_shown(c)) return false;
+    area_fit(c, &a);
+    return first + area_holds(&a, first, &h) < a.n;
+}
+
+/* The shown equation in 2D: whole, at the area's bottom as X sits; taller than the area, from line first (screen_ui's
+   tb_line, the app's scroll), with ▲ when lines are above and ▼ when lines are below */
+static void draw_textbook(ls027_frame *f, const ab_calc *c, const screen_ui *ui)
+{
+    static tb_area a;
+    int h, first = ui->tb_line;
+    area_fit(c, &a);
+    if (first >= a.n) first = a.n - 1;
+    if (first < 0) first = 0;
+    int n = area_holds(&a, first, &h), top = first == 0 && first + n == a.n ? TB_BOT - h : a.top, last_w = 0;
+    if (a.label) screen_text(f, TB_X, TB_TOP, 2, a.label, true);
+    if (a.s) {
+        tb_draw(&tb_screen, f, TB_X, top, TB_BOT, first);
+        const tb_node *r = &tb_screen.n[tb_screen.root];
+        last_w = r->kind == TB_ROWS ? 0 : r->w;
+    } else {
+        int sc = a.sc;
+        for (int i = first; i < first + n; i++) {
+            char b[AB_EQN_LEN];
+            snprintf(b, sizeof b, "%.*s", a.lens[i], a.text + a.starts[i]);
+            screen_text(f, TB_X, top, sc, b, true);
+            last_w = 6 * sc * screen_cells(b) - sc;
+            top += 7 * sc + a.gap;
+        }
+    }
+    if (a.plus_c && first + n == a.n) {                    /* ∫'s +C after the answer's last line */
+        int lh = area_line_h(&a, a.n - 1), sc = a.s ? a.s : a.sc;
+        if (a.s && tb_screen.n[tb_screen.root].kind == TB_ROWS) {
+            int k = tb_screen.root;
+            while (tb_screen.n[k].b >= 0) k = tb_screen.n[k].b;
+            last_w = tb_screen.n[tb_screen.n[k].a].w;
+        }
+        screen_text(f, TB_X + last_w + 3 * sc, TB_BOT - lh + (lh - 7 * sc) / 2, sc, "+C", true);
+    }
+    if (first > 0) screen_text(f, TB_X + TB_W - 10, a.top, 2, "\xe2\x96\xb2", true);
+    if (first + n < a.n) screen_text(f, TB_X + TB_W - 10, TB_BOT - 14, 2, "\xe2\x96\xbc", true);
+}
+
 void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
 {
     composed *k = &comp;
     screen_status *st = &out->status;
     compose(c, ui, k);
     memset(out, 0, sizeof *out);
-    if (k->table || k->show) {
+    if (k->textbook) {                          /* unit 080: the area is drawn in the frame; X keeps the equation's text,
+                                                   and the drawn text is beside it (tutor #10917) */
+        out->textbook_on = true;
+        page_line(&out->x, &k->x, k->xk, k->x_left, NULL);
+        if (k->yk == SCREEN_LABEL) page_line(&out->y, &k->y, SCREEN_LABEL, true, NULL);    /* its label's text, as before */
+        screen_drawn_text(c, out->drawn, sizeof out->drawn);
+    } else if (k->table || k->show) {
         page_line(&out->t, &k->t, SCREEN_VALUE, true, NULL);
         page_line(&out->z, &k->z, SCREEN_VALUE, true, NULL);
         page_line(&out->y, &k->y, SCREEN_VALUE, true, NULL);
@@ -941,6 +1066,11 @@ void screen_render(const ab_calc *c, const screen_ui *ui, ls027_frame *f)
     status_band(f, c, ui, k->ind);
     if (c->gr_on && ui->graph) {                /* a graph in place of the stack (unit 033) */
         draw_graph(f, c, ui);
+        return;
+    }
+    if (k->textbook) {                          /* unit 080: the shown STU equation in 2D, in the stack's place */
+        draw_textbook(f, c, ui);
+        soft_band(f, ui);
         return;
     }
     if (k->table) {                             /* a table: four rows at scale 2 (unit 032) */

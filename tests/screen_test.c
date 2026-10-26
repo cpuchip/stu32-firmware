@@ -14,6 +14,7 @@
 #include <string.h>
 
 #include "screen.h"
+#include "tbook.h"
 #include "state.h"
 
 static int bad, checks;
@@ -220,6 +221,8 @@ static void frame(const char *name, const ab_calc *c, const screen_ui *ui)
         printf("screen_test: frame %s differs from %s\n", name, ref);
     }
 }
+
+#define TB_CRC_22 0x7493EE74UL    /* unit 080: 22-tb-stu3, the frame looked at before it was kept (tally #10916) */
 
 int main(int argc, char **argv)
 {
@@ -533,10 +536,11 @@ int main(int argc, char **argv)
     expect(text_at(&f, 56, 87, 3, "BY", 1) && dark_in(&f, 20, 87, 18, 21) > 0, "QUOT: '÷ BY' on Y while g is typed");
     ab_do(&c, AB_ENTER);
     screen_render(&c, &ui, &f);
-    expect(text_at(&f, 20, 87, 3, "QUOTIENT", 1), "QUOT: its q shown with QUOTIENT on Y");
+    expect(text_at(&f, 4, 22, 2, "QUOTIENT", 1), "QUOT: its q shown with QUOTIENT above it");   /* unit 080: in STU, at the
+                                                   textbook area's top left, at 2 (screen_lines keeps it on Y) */
     ab_do(&c, AB_SST);
     screen_render(&c, &ui, &f);
-    expect(text_at(&f, 20, 87, 3, "REMAINDER", 1), "QUOT: r with REMAINDER on Y");
+    expect(text_at(&f, 4, 22, 2, "REMAINDER", 1), "QUOT: r with REMAINDER above it");
     {   /* tally #5786, abacus #5789: the page says a label is a label, and an error an error: two kinds */
         screen_page pg;
         screen_lines(&c, &ui, &pg);
@@ -933,6 +937,48 @@ int main(int argc, char **argv)
                "069 SYS VER: CASIM 4b91739 GAMES 60e775c whole at scale 2 in X's row");
     }
     frame("21-sys-ver", &c, &ui);
+
+    /* unit 080: STU's shown equation drawn as a textbook sets it (work/080-textbook-display.md), each frame looked at before
+       it was kept; a store that refuses the text (the stress nest nests too deep for the parser, unit 047) is put in the
+       list as a CAS answer would be */
+    {
+        static const struct { const char *name, *text; int note, line; } TB[] = {
+            {"22-tb-stu3", "3\xc3\x97" "X^2-4", 0, 0},
+            {"23-tb-fractions", "7\xc3\xb7" "(9\xc3\x97" "(3\xc3\x97" "X-2)^2)+55\xc3\xb7" "(9\xc3\x97" "(3\xc3\x97" "X-2)^3)", 0, 0},
+            {"24-tb-wrapped", "1\xc3\xb7" "2+K\xc3\x97" "X\xc3\xb7" "2+X^2\xc3\x97" "(K^2-1)\xc3\xb7" "4-X^3\xc3\x97" "(K-K^3\xc3\xb7" "3)\xc3\xb7" "4-X^4\xc3\x97" "(K^2-K^4\xc3\xb7" "6-1)\xc3\xb7" "8+X^5\xc3\x97" "(K-K^3\xc3\xb7" "3+K^5\xc3\xb7" "30)\xc3\xb7" "8+X^6\xc3\x97" "(K^2-K^4\xc3\xb7" "6+K^6\xc3\xb7" "90-1)\xc3\xb7" "16-X^7\xc3\x97" "(K-K^3\xc3\xb7" "3+K^5\xc3\xb7" "30-K^7\xc3\xb7" "630)\xc3\xb7" "16", 0, 0},
+            {"25-tb-tall", "3\xc3\x97" "LN(X+X^2+1)\xc3\xb7" "26+7\xc3\x97" "LN(-X+2\xc3\x97" "X^2+3)\xc3\xb7" "52+\xcf\x80" "\xc3\x97" "ATAN(X)\xc3\xb7" "180+\xcf\x80" "\xc3\x97" "ATAN(2\xc3\x97" "(X+1\xc3\xb7" "2)\xc3\xb7" "SQRT(3))\xc3\xb7" "468\xc3\xb7" "SQRT(3)-29\xc3\x97" "\xcf\x80" "\xc3\x97" "ATAN(4\xc3\x97" "(X-1\xc3\xb7" "4)\xc3\xb7" "SQRT(23))\xc3\xb7" "936\xc3\xb7" "SQRT(23)", 0, 0},
+            {"26-tb-tall-scrolled", "3\xc3\x97" "LN(X+X^2+1)\xc3\xb7" "26+7\xc3\x97" "LN(-X+2\xc3\x97" "X^2+3)\xc3\xb7" "52+\xcf\x80" "\xc3\x97" "ATAN(X)\xc3\xb7" "180+\xcf\x80" "\xc3\x97" "ATAN(2\xc3\x97" "(X+1\xc3\xb7" "2)\xc3\xb7" "SQRT(3))\xc3\xb7" "468\xc3\xb7" "SQRT(3)-29\xc3\x97" "\xcf\x80" "\xc3\x97" "ATAN(4\xc3\x97" "(X-1\xc3\xb7" "4)\xc3\xb7" "SQRT(23))\xc3\xb7" "936\xc3\xb7" "SQRT(23)", 0, 1},
+            {"27-tb-too-wide", "-0.0005\xc3\x97" "(\xcf\x80" "+1000\xc3\x97" "LOG(-4))\xc3\x97" "(SGN(X)-2000)\xc3\xb7" "EXP(7)", 0, 0},
+            {"28-tb-past-depth", "X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^X))))))))))))))))))))))))))))))))))))))))))", 0, 0},
+            {"29-tb-label", "(X+1)\xc3\x97" "(X^3-2\xc3\x97" "X-5)", AB_NOTE_MORE, 0},
+            {"30-tb-plus-c", "-COS(X)\xc3\x97" "X+SIN(X)", AB_NOTE_PLUSC, 0},
+            {"31-tb-minus-fractions", "EXP(X)\xc3\x97" "SIN(X)\xc3\xb7" "2-EXP(X)\xc3\x97" "COS(X)\xc3\xb7" "2", 0, 0},
+            {"32-tb-radical-bars", "LN(ABS(3\xc3\x97" "X-2))\xc3\xb7" "729+SQRT(X+1)", 0, 0},
+        };
+        static ls027_frame tf;
+        for (unsigned i = 0; i < sizeof TB / sizeof TB[0]; i++) {
+            screen_ui_default(&ui);
+            ab_init(&c);
+            ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+            if (ab_eqn_add(&c, TB[i].text) != ABN_OK) {
+                snprintf(c.eqn[0], sizeof c.eqn[0], "%s", TB[i].text);
+                c.eqn_model[0] = AB_MODEL_STU, c.eqn_count = 1, c.eqn_cur = 0, c.eqn_mode = true;
+            }
+            c.eqn_note[c.eqn_cur] = (uint8_t)TB[i].note;
+            ui.tb_line = TB[i].line;
+            frame(TB[i].name, &c, &ui);
+            if (i == 0) {           /* tally #10916: one textbook frame by its CRC, for the app's check */
+                screen_render(&c, &ui, &tf);
+                uint32_t crc = ab_crc32((const uint8_t *)tf.px, sizeof tf.px);
+                printf("screen_test: 22-tb-stu3 (STU, \"3\xc3\x97X^2-4\" shown, the default ui) frame CRC %08lX\n", (unsigned long)crc);
+                expect(crc == TB_CRC_22, "080: 22-tb-stu3's frame CRC is the one the app checks");
+            }
+        }
+        c.eqn_typing = true;        /* typing stays one line in STU too */
+        snprintf(c.ebuf, sizeof c.ebuf, "3\xc3\x97X^2-4");
+        c.ecur = (int)strlen(c.ebuf);
+        frame("33-tb-typing-stu", &c, &ui);
+    }
     expect(screen_missed == 0, "a frame drew a character the face lacks");
 
     /* abacus #3971: the screen as text, by screen_render's rules */

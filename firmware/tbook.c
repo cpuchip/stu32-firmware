@@ -6,10 +6,15 @@
 
 #include "screen.h"
 
-tb_look tb_looks = {0, 1};
+#ifndef AB_POOL_ATTR
+#define AB_POOL_ATTR            /* the devices put the pool in PSRAM (device/pool_attr.h) */
+#endif
+
+tb_tree tb_screen AB_POOL_ATTR;
+tb_look tb_looks = {0, 1};      /* the blueprint's proposals until the glass check: (a), and XY with a gap */
 #ifdef TB_MEASURE
 int tb_depth_seen;
-#endif      /* the blueprint's proposals until the glass check: (a), and XY with a gap */
+#endif
 
 /* ---- the text ---- */
 
@@ -444,9 +449,10 @@ static int layout(tb_tree *t, int n, int s, int d)
             box(x, a->w + 2 * (s + s), h, (a->h < 7 * s ? AXIS(s) : a->axis) + s);
             break;
         }
-        if (x->kind == TB_FN && !is_fn(t, n, "EXP")) {    /* NAME(arg), the brackets sized to it */
+        if (x->kind == TB_FN && !is_fn(t, n, "EXP")) {    /* NAME(arg), the brackets sized to it; LN |u|, the bars
+                                                             its brackets (the prototype's) */
             row_add(&r, text_w(cells_n(t->src + x->src, x->len), s), 7 * s, AXIS(s), 0);
-            child_row(t, &r, x->a, s, d, true, s);
+            child_row(t, &r, x->a, s, d, !is_fn(t, x->a, "ABS"), is_fn(t, x->a, "ABS") ? 2 * s : s);
             box(x, r.w, r.ax + r.below, r.ax);
             break;
         }
@@ -643,8 +649,9 @@ static void draw(tb_tree *t, int n, ls027_frame *f, int x, int top)
         return;
     }
     if (nd->kind == TB_FN && !is_fn(t, n, "EXP")) {
+        bool bars = is_fn(t, nd->a, "ABS");
         slice(f, t->src + nd->src, nd->len, x, top + ax - AXIS(s), s);
-        child_draw(t, nd->a, f, x + text_w(cells_n(t->src + nd->src, nd->len), s) + s, top, ax, true);
+        child_draw(t, nd->a, f, x + text_w(cells_n(t->src + nd->src, nd->len), s) + (bars ? 2 * s : s), top, ax, !bars);
         return;
     }
     /* a power, or e^u */
@@ -807,7 +814,7 @@ static void text(const tb_tree *t, int n, bool rb, out_t *w)
         paren_text(t, x->a, rb, w, !atomic(t, x->a));
     } else {
         put(w, t->src + x->src, x->len);
-        paren_text(t, x->a, rb, w, true);
+        paren_text(t, x->a, rb, w, rb || !is_fn(t, x->a, "ABS"));
     }
 }
 
