@@ -729,8 +729,9 @@ int vectors_run(const char *name, FILE *f)
             }
         }
 
-        if (getenv("AB_IMGCRC") && buf_save(&c, &himg, &himg_len, &himg_cap))   /* the final state's identity */
-            fprintf(stderr, "%s %08lX\n", id, (unsigned long)ab_crc32(himg, himg_len));
+        if (getenv("AB_IMGCRC") && buf_save(&c, &himg, &himg_len, &himg_cap) && himg_len > 4)   /* the final state's
+                                                   identity: its body's CRC (the whole image's is the residue) */
+            fprintf(stderr, "%s %08lX\n", id, (unsigned long)ab_crc32(himg, himg_len - 4));
         int want_error = 0;
         char *exps[64];
         int nexp = 0;
@@ -791,8 +792,10 @@ int vectors_run(const char *name, FILE *f)
                                 abn_cmp(&c.x.im, &saved_x.im) == 0;
                     snprintf(got, sizeof got, "%s", same ? eq + 1 : "different");
                 } else if (strcmp(ex, "%IMAGE") == 0) {
-                    /* the CRC-32 of the image SAVE made, in hex (unit 016) */
-                    snprintf(got, sizeof got, "%08lX", img_len ? (unsigned long)ab_crc32(img, img_len) : 0ul);
+                    /* the CRC-32 of the image SAVE made, in hex (unit 016): of its body, before its own CRC. Over the
+                       whole image it was CRC-32's residue, 2144DF1C for every valid image, which named none (abacus
+                       #11166) */
+                    snprintf(got, sizeof got, "%08lX", img_len > 4 ? (unsigned long)ab_crc32(img, img_len - 4) : 0ul);
                 } else if (strcmp(ex, "%IMGLEN") == 0) {
                     snprintf(got, sizeof got, "%lu", (unsigned long)img_len);
                 } else if (strcmp(ex, "%SAMEIMG") == 0) {
