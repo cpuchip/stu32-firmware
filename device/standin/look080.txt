@@ -1,0 +1,182 @@
+# Unit 080's look on the glass, for Michael (abacus #10950: "Show me once done so I can verify"): from MEMORY CLEAR, two
+# STU equations typed and stored from the keys (each the entry of tests/stackkeys.c's `cas s`): 3×X×Y+X×Y^2 (XY with a
+# 1 px gap) and EXP(X)×SIN(X)÷2-EXP(X)×COS(X)÷2 (the minus between two fractions, a full cell either side, on the bars'
+# row). Each screen's rows 21-205 are checked against the host's CRC (the same keys replayed through app.c). It ends with
+# the minus on the panel; EQN LIST's ▲ (the first soft key) shows the XY one, ▼ the minus again. A control must FAIL.
+wait : heap internal 30
+sleep 3
+send WIPE
+expect wipe: both slots erased
+send RESTART
+expect load: no image: MEMORY CLEAR 30
+wait READY 30
+send X
+expect ver=0.80 5
+send K42
+sleep 0.25
+send K42
+sleep 0.25
+send K36
+sleep 0.25
+send K18
+sleep 0.25
+send K2
+sleep 0.25
+send K42
+sleep 0.25
+send K30
+sleep 0.25
+send K43
+sleep 0.25
+send K39
+sleep 0.25
+send K34
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K34
+sleep 0.25
+send K13
+sleep 0.25
+send K37
+sleep 0.25
+send K46
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K34
+sleep 0.25
+send K13
+sleep 0.25
+send K37
+sleep 0.25
+send K9
+sleep 0.25
+send K38
+sleep 0.25
+send K18
+sleep 0.25
+sleep 1
+send X
+expect drawn=3XY+XY^2 10
+send FRAMECRC
+expect framecrc: rows 21-205 51AA78F5 10
+send K42
+sleep 0.25
+send K42
+sleep 0.25
+send K36
+sleep 0.25
+send K18
+sleep 0.25
+send K2
+sleep 0.25
+send K42
+sleep 0.25
+send K30
+sleep 0.25
+send K43
+sleep 0.25
+send K13
+sleep 0.25
+send K10
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K13
+sleep 0.25
+send K21
+sleep 0.25
+send K2
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K1
+sleep 0.25
+send K34
+sleep 0.25
+send K15
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K1
+sleep 0.25
+send K28
+sleep 0.25
+send K38
+sleep 0.25
+send K40
+sleep 0.25
+send K13
+sleep 0.25
+send K10
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K13
+sleep 0.25
+send K21
+sleep 0.25
+send K2
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K1
+sleep 0.25
+send K34
+sleep 0.25
+send K13
+sleep 0.25
+send K8
+sleep 0.25
+send K13
+sleep 0.25
+send K20
+sleep 0.25
+send K13
+sleep 0.25
+send K25
+sleep 0.25
+send K2
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K1
+sleep 0.25
+send K28
+sleep 0.25
+send K38
+sleep 0.25
+send K18
+sleep 0.25
+sleep 1
+send X
+expect drawn=(e^X SIN(X))÷2-(e^X COS(X))÷2 10
+send FRAMECRC
+expect framecrc: rows 21-205 94F84FBB 10
+send K0
+sleep 0.5
+send FRAMECRC
+expect framecrc: rows 21-205 51AA78F5 10
+send K1
+sleep 0.5
+send FRAMECRC
+expect framecrc: rows 21-205 94F84FBB 10
+# CONTROL: must FAIL
+expect framecrc: rows 21-205 00000000 3
