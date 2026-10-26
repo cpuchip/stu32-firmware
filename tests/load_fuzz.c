@@ -3,7 +3,8 @@
  *   build/load_fuzz [iterations] [seed]
  *
  * Seeds: the golden image (tests/golden-v1.img) and images of states built here (unit 029: one in
- * STU's ALG; unit 031: equations of each model). Each case damages
+ * STU's ALG; unit 031: equations of each model; unit 082: tests/golden-v21-082.img, expressions and names in the
+ * stack, the letters and the message's X). Each case damages
  * a seed (flipped bits, truncation, inserted or deleted bytes, or wholly random bytes), and half
  * the time repairs the length and checksum so the fields themselves are what is tested. A refused
  * image must leave the calculator exactly as it was (its image unchanged, byte for byte); an
@@ -46,8 +47,9 @@ static void random_key(ab_calc *c)
                                   AB_TABLE, AB_TVAR, AB_TSTART, AB_TSTEP, AB_TUP, AB_TDOWN,    /* (032) */
                                   AB_GRAPH, AB_XMIN, AB_XMAX, AB_YMIN, AB_YMAX, AB_GAUTO, AB_GLEFT, AB_GRIGHT,
                                   AB_CMPLX,                                                     /* (039) */
-                                  AB_GZOOM, AB_GMOVE, AB_GTRACE, AB_GMARK, AB_GFACT, AB_GFCN};  /* (040) */
-        op = L[below(26)];
+                                  AB_GZOOM, AB_GMOVE, AB_GTRACE, AB_GMARK, AB_GFACT, AB_GFCN,   /* (040) */
+                                  AB_EQDROP, AB_EQSTORE};                                       /* (082) */
+        op = L[below(sizeof L / sizeof L[0])];
         arg = op == AB_MODEL ? (int[]){33, 35, AB_MODEL_STU}[below(3)] : op == AB_ENTRYM ? (int)below(2) :
               op == AB_TVAR ? AB_VAR_A + (int)below(26) : op == AB_CMPLX ? (int)below(AB_CXP_N) :
               op == AB_GZOOM ? (int)below(AB_Z_N) : op == AB_GMOVE ? 1 + (int)below(19) :
@@ -152,8 +154,8 @@ int main(int argc, char **argv)
 {
     long iters = argc > 1 ? atol(argv[1]) : 20000;
     static ab_calc c;
-    uint8_t *seeds[7];
-    size_t seedn[7];
+    uint8_t *seeds[8];
+    size_t seedn[8];
     long refused = 0, accepted = 0, bad = 0;
     if (line_rule_sweep()) return 1;
     if (argc > 2) rng = (strtoull(argv[2], NULL, 0) * 0x9E3779B97F4A7C15ull) | 1;
@@ -209,9 +211,14 @@ int main(int argc, char **argv)
         return 2;
     }
     seeds[6] = save(&c, &seedn[6]);
+    seeds[7] = file("tests/golden-v21-082.img", &seedn[7]);     /* unit 082: version 21's kinds */
+    if (!seeds[7]) {
+        fprintf(stderr, "load_fuzz: tests/golden-v21-082.img not found\n");
+        return 2;
+    }
 
     for (long it = 0; it < iters; it++) {
-        int s = (int)below(7);
+        int s = (int)below(8);
         size_t n = seedn[s], cap = n + 64;
         uint8_t *m = malloc(cap), *before, *after;
         size_t nb, na;
@@ -279,7 +286,7 @@ int main(int argc, char **argv)
         free(before);
         free(after);
     }
-    for (int i = 0; i < 7; i++) free(seeds[i]);
+    for (int i = 0; i < 8; i++) free(seeds[i]);
     printf("load_fuzz: %ld cases, %ld refused, %ld accepted, %ld violations\n", iters, refused, accepted, bad);
     return bad ? 1 : 0;
 }

@@ -77,6 +77,11 @@ static uint8_t *image_of(int k, uint32_t *len)
     ab_do(&c, AB_PRGM);
     for (int i = 0; i < k * 5; i++) ab_do(&c, AB_SQRT);
     ab_do(&c, AB_PRGM);
+    if (k % 2) {                                /* unit 082: every other save a version-21 image, Y an expression */
+        ab_val v;
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        if (ab_expr_new(&c, k % 4 == 1 ? "X^2+1" : "(A+B)\xc3\xb7(A-B)", &v) == ABN_OK) c.y = v;
+    }
     *len = (uint32_t)ab_state_save(&c, NULL, 0);
     uint8_t *b = malloc(*len);
     ab_state_save(&c, b, *len);
@@ -141,6 +146,17 @@ static int settings_checks(void)
     back = def;
     CHECK(dev_image_load(&c2, &back, img, n) == ABN_OK && back.uses == (DEV_USE_CLICK | DEV_USE_DONE) && back.h24,
           "unit 027: two uses on and the 24-hour clock load back");
+    {   /* unit 082: the record after a version-21 core image (an expression in X), and both back */
+        ab_val v;
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        CHECK(ab_expr_new(&c, "3\xc3\x97X^2-4", &v) == ABN_OK, "082: an expression made");
+        c.x = v;
+        n = dev_image_save(&c, &set, img, sizeof img);
+        back = def;
+        CHECK(img[4] == 21 && dev_image_load(&c2, &back, img, n) == ABN_OK && back.h24 && c2.x.kind == AB_EXPR &&
+                  !strcmp(ab_expr_text(&c2, &c2.x), "3\xc3\x97X^2-4"),
+              "082: a version-21 image with the device's record: both load back, X's expression whole");
+    }
     for (int on = 0; on <= 1; on++) {
         size_t core = ab_state_save(&c, img, sizeof img);
         uint8_t *r = img + core;
