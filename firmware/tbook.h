@@ -58,9 +58,10 @@ extern tb_tree tb_screen;        /* the screen's, rebuilt at each draw (PSRAM on
 /* Parse "answer; cond; cond" into t. 0, or -1 with t->err why. The text must outlive t. */
 int tb_parse(tb_tree *t, const char *s);
 /* Lay the answer out by the card's rule (stu-textbook-size): scale 3 whole, else 2 whole, else wrapped at its
-   top-level + and − at 2, no line wider than maxw. Returns the scale, or 0 when it can't (t->err 3, or a term alone
-   wider than maxw). After it, t->n[t->root] is the answer's box (a ROWS chain when wrapped). */
-int tb_fit(tb_tree *t, int maxw);
+   top-level + and − at 2, no line wider than maxw nor taller than maxh (a line can't scroll inside itself). Returns the
+   scale, or 0 when it can't (t->err 3, or a term or a line too big). After it, t->n[t->root] is the answer's box (a
+   ROWS chain when wrapped, whose lines together may be taller than maxh: they scroll). */
+int tb_fit(tb_tree *t, int maxw, int maxh);
 /* The lines of the laid-out answer (1 unwrapped), and line i's height, for a scroll. */
 int tb_lines(const tb_tree *t);
 int tb_line_h(const tb_tree *t, int i);

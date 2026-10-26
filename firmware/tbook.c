@@ -481,12 +481,12 @@ static int layout(tb_tree *t, int n, int s, int d)
     return t->n[n].w;
 }
 
-int tb_fit(tb_tree *t, int maxw)
+int tb_fit(tb_tree *t, int maxw, int maxh)
 {
     for (int s = 3; s >= 2; s--) {
         int w = layout(t, t->root, s, 1);
         if (t->err) return 0;
-        if (w <= maxw) return s;
+        if (w <= maxw && t->n[t->root].h <= maxh) return s;
     }
     if (t->n[t->root].kind != TB_SUM) return 0;
     /* at 2, wrapped at the top-level + and −: each line a SUM of its own, a continuation starting with its sign */
@@ -510,7 +510,7 @@ int tb_fit(tb_tree *t, int maxw)
     }
     t->root = rows;
     for (int k = rows; k >= 0; k = t->n[k].b)
-        if (layout(t, t->n[k].a, 2, 2) > maxw || t->err) return 0;
+        if (layout(t, t->n[k].a, 2, 2) > maxw || t->n[t->n[k].a].h > maxh || t->err) return 0;
     layout(t, rows, 2, 1);
     return t->err ? 0 : 2;
 }

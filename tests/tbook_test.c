@@ -153,7 +153,7 @@ static void corpus(const char *path)
             }
             if (!r && ++fails <= 10) printf("READBACK: %s\n  as %s\n", texts[i], rb);
             tb_parse(&t, texts[i]);
-            int s = tb_fit(&t, 391);
+            int s = tb_fit(&t, 391, 182);
             if (t.count > maxnodes) maxnodes = t.count;
             if (!s) {
                 if (t.err == 3 && !nest(texts[i]) && ++odd <= 5) printf("DEEP, not a stress nest: %.80s\n", texts[i]);
@@ -233,9 +233,15 @@ int main(int argc, char **argv)
         static char ones[192];
         for (int i = 0; i < 191; i++) ones[i] = i % 2 ? '+' : '1';
         ones[191] = '\0';
-        int p = tb_parse(&t, ones), s = p == 0 ? tb_fit(&t, 391) : 0;
+        int p = tb_parse(&t, ones), s = p == 0 ? tb_fit(&t, 391, 182) : 0;
         printf("tbook pool: 1+1+...+1 (191 B): parse %d, fit %d, err %d, nodes %d of %d\n", p, s, t.err, t.count, TB_NODES);
         expect(t.count <= TB_NODES && (s > 0 || t.err == 2), "a text past the pool stops at TB_NODES (err 2), drawn as text");
+    }
+    {   /* a single line taller than the area can't scroll inside itself: 1÷(1+1÷(1+...X)) seven deep is 231 px at 3 */
+        static const char cf[] = "1\xc3\xb7(1+1\xc3\xb7(1+1\xc3\xb7(1+1\xc3\xb7(1+1\xc3\xb7(1+1\xc3\xb7(1+1\xc3\xb7(1+X)))))))";
+        int s = tb_parse(&t, cf) == 0 ? tb_fit(&t, 391, 182) : -1;
+        expect(s == 0 || (t.n[t.root].h <= 182), "a line taller than the area isn't drawn in 2D: it's the text (or fits smaller)");
+        printf("tbook tall line: 7-deep continued fraction fit %d, height %d\n", s, s > 0 ? t.n[t.root].h : 0);
     }
     sweep();
     corpus(argc > 1 ? argv[1] : "build/casim/golden/corpus.txt");

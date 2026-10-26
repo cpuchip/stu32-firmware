@@ -893,7 +893,7 @@ static void area_fit(const ab_calc *c, tb_area *a)
     a->plus_c = m && m[0] == '+';
     a->top = a->label ? TB_TOP + 7 * 2 + 4 : TB_TOP;
     int w = TB_W - (a->plus_c ? 3 * 6 * 2 : 0);            /* room for " +C" after the last line */
-    if (tb_parse(&tb_screen, a->text) == 0 && (a->s = tb_fit(&tb_screen, w)) != 0) {
+    if (tb_parse(&tb_screen, a->text) == 0 && (a->s = tb_fit(&tb_screen, w, TB_BOT - a->top)) != 0) {
         a->n = tb_lines(&tb_screen), a->gap = 3 * a->s;
         return;
     }
