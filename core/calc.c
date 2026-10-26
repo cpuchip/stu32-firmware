@@ -3300,6 +3300,18 @@ static void eqn_delete(ab_calc *c, int i)
     while (c->eqn_cur >= 0 && eqn_builtin(c, c->eqn_cur) && !ab_mode35(c)) c->eqn_cur--;   /* 33s: past them (041 A4) */
 }
 
+/* Michael's eqn-delete-rows (082, abacus #11472): an entry deleted takes the WHERE rows directly after it with it (a
+   sum's answer and its conditions), in one key and so one UNDO; a WHERE row deleted is that row alone. The list holds
+   no link from rows to their answer: the rows after an entry are its own. */
+static void eqn_delete_entry(ab_calc *c, int i)
+{
+    int n = 0;
+    if (c->eqn_note[i] != AB_NOTE_WHERE)
+        while (i + 1 + n < c->eqn_count && c->eqn_note[i + 1 + n] == AB_NOTE_WHERE) n++;
+    for (; n > 0; n--) eqn_delete(c, i + n);
+    eqn_delete(c, i);
+}
+
 /* Unit 070: the equation shown is a sum's condition (labeled WHERE), casim's text, not an equation: an op on it says
    A CONDITION (abacus #8545), never SYNTAX; editing it is allowed, and the edited text loses the label (057) */
 static bool eqn_where(const ab_calc *c)
@@ -3334,7 +3346,7 @@ static abn_status eqn_store_typed(ab_calc *c)
     c->eqn_edit = -1;                           /* meaningful only while typing: left set, a delete could leave it past
                                                    the list's end, and the image would not load (unit 041 A, fresh eyes) */
     if (c->ebuf[0] == '\0') {
-        if (edit >= 0) eqn_delete(c, edit);
+        if (edit >= 0) eqn_delete_entry(c, edit);   /* (with a sum's rows, as ← does: 082) */
         return ABN_OK;
     }
     if (edit >= 0) {
@@ -4233,7 +4245,7 @@ static abn_status eqn_key(ab_calc *c, ab_op op, int arg)
         return ABN_OK;
     case AB_KBKSP:
         if (c->eqn_typing) ed_backspace(c);
-        else if (c->eqn_cur >= 0 && !eqn_builtin(c, c->eqn_cur)) eqn_delete(c, c->eqn_cur);
+        else if (c->eqn_cur >= 0 && !eqn_builtin(c, c->eqn_cur)) eqn_delete_entry(c, c->eqn_cur);
         return ABN_OK;                              /* the built-ins cannot be cleared (p.6-8) */
     case AB_KLEFT:
     case AB_KRIGHT:

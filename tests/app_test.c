@@ -4319,6 +4319,70 @@ int main(void)
         printf("app_test: %s\n", what);
     }
 
+    /* Michael's eqn-delete-rows (082, abacus #11472): ← on a sum's answer deletes it and its WHERE rows together, and
+       one UNDO brings them all back; ← on a row deletes that row alone. Five rows (the list a sum with five conditions
+       leaves, the rows inserted in order and labeled as cas_rows does) with an entry before and after; then the real
+       Σ X^K through the keys, with its one row */
+    {
+        static uint8_t u0[1 << 18], u1[1 << 18], s0[1 << 18], s1[1 << 18];
+        static const char *const ROW[5] = {"X\xe2\x89\xa0" "1", "Y\xe2\x89\xa5" "0", "ABS(Y)\xe2\x89\xa4" "1", "Z<2", "W>3"};
+        ab_init(&c);
+        app_init(&a, &c, now);
+        app_undo_buffers(&a, u0, u1, sizeof u0);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        ab_eqn_add(&c, "X^K");
+        ab_eqn_add(&c, "-1\xc3\xb7(X-1)");
+        int ans = c.eqn_cur, added = 1;
+        for (int i = 0; i < 5; i++) {
+            added += ab_eqn_add(&c, ROW[i]) == ABN_OK;
+            c.eqn_note[c.eqn_cur] = AB_NOTE_WHERE;
+        }
+        ab_eqn_add(&c, "A+B");
+        c.eqn_cur = ans;
+        int n0 = c.eqn_count;
+        size_t l0 = ab_state_save(&c, s0, sizeof s0);
+        press(&a, "\xe2\x86\x90");
+        expect(added == 6 && c.eqn_count == n0 - 6 && c.eqn_cur == ans - 1 && !strcmp(c.eqn[c.eqn_cur], "X^K") &&
+                   !strcmp(c.eqn[ans], "A+B") && c.eqn_note[ans] == 0,
+               "082: \xe2\x86\x90 on a sum's answer deletes it and its 5 WHERE rows; X^K shown, A+B next");
+        press(&a, "BLUE \xe2\x86\x90");
+        size_t l1 = ab_state_save(&c, s1, sizeof s1);
+        expect(l1 == l0 && !memcmp(s0, s1, l0), "082: one UNDO brings back the answer and its 5 rows, the state exact");
+        c.eqn_cur = ans + 3;                            /* the third row */
+        press(&a, "\xe2\x86\x90");
+        bool kept = c.eqn_count == n0 - 1 && c.eqn_cur == ans + 2 && !strcmp(c.eqn[ans], "-1\xc3\xb7(X-1)");
+        for (int i = 0, r = 0; i < 5; i++)
+            if (i != 2) kept = kept && !strcmp(c.eqn[ans + 1 + r], ROW[i]) && c.eqn_note[ans + 1 + r++] == AB_NOTE_WHERE;
+        expect(kept && !strcmp(c.eqn[ans + 5], "A+B"),
+               "082: \xe2\x86\x90 on a WHERE row deletes that row alone; the answer and the other 4 rows kept, labeled");
+        /* an answer edited to nothing is deleted (p.6-8), its rows with it, as ← does */
+        press(&a, "BLUE \xe2\x86\x90");
+        c.eqn_cur = ans;
+        ab_do(&c, AB_KLEFT);                            /* its editor open, the cursor at the end (p.6-7) */
+        for (int i = 0; i < 12; i++) press(&a, "\xe2\x86\x90");
+        press(&a, "ENTER");
+        expect(c.eqn_count == n0 - 6 && !strcmp(c.eqn[ans], "A+B") && !c.eqn_typing,
+               "082: the answer edited to nothing and stored: deleted with its 5 rows");
+        /* the real path: Σ X^K from 0 to ∞ through the keys, its answer and ABS(X)<1, then ← and UNDO */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        app_undo_buffers(&a, u0, u1, sizeof u0);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        ab_do(&c, AB_RAD);
+        ab_eqn_add(&c, "X^K");
+        press(&a, "k:4 k:5 k:4 ltr:K \xe2\x86\x90 0 ENTER k:3 ENTER");
+        n0 = c.eqn_count;
+        l0 = ab_state_save(&c, s0, sizeof s0);
+        bool sum = c.eqn_cur >= 0 && c.eqn_cur + 1 < n0 && !strcmp(c.eqn[c.eqn_cur], "-1\xc3\xb7(X-1)") &&
+                   c.eqn_note[c.eqn_cur + 1] == AB_NOTE_WHERE;
+        press(&a, "\xe2\x86\x90");
+        expect(sum && c.eqn_count == n0 - 2 && !strcmp(c.eqn[c.eqn_cur], "X^K"),
+               "082: \xce\xa3 X^K through the keys, then \xe2\x86\x90: the answer and ABS(X)<1 deleted, X^K shown");
+        press(&a, "BLUE \xe2\x86\x90");
+        l1 = ab_state_save(&c, s1, sizeof s1);
+        expect(l1 == l0 && !memcmp(s0, s1, l0), "082: and one UNDO brings both back, the state exact");
+    }
+
     /* unit 073: the list's sixth key is EXIT (unit 020's): Equation mode left, the list kept, in each mode; in STU since
        082 the sixth key is ▸ (EQN MORE) and C leaves the same way */
     {

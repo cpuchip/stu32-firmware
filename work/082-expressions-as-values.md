@@ -458,3 +458,21 @@ and this record with VER 0.82.
 - **Cost:** a second walk of the state after each key. On the host, 115 us beside the save's 112 us for a 14,231 B
   image. Not yet timed on the device (082's gate, with D68).
 - **The orphaned WHERE rows** go to Michael as card eqn-delete-rows (abacus #11428). Not built until he answers.
+
+### eqn-delete-rows: a sum's answer deleted with its rows (Michael via abacus #11472)
+- **Michael:** "Delete the answer and its rows together, one UNDO".
+- **Built (calc.c eqn_delete_entry):** an entry deleted takes the WHERE rows directly after it, in the one key, and so in
+  one UNDO step. A WHERE row deleted goes alone. Both ways of deleting an entry do this: ← on it, and its text edited
+  to nothing and stored (p.6-8). The cas_rows rollback still deletes one row at a time. The image is unchanged.
+- **The oracle (app_test):**
+  - A sum's answer with 5 WHERE rows, an entry before it and one after. ← deletes all six, and one UNDO gives the state
+    back exactly (by memcmp of the image). ← on the third row deletes it alone; the answer and the other 4 rows keep
+    their labels. The answer edited to nothing also deletes the 5 rows.
+  - The real path: Σ X^K from 0 to ∞ through the keys, then ← (the answer and ABS(X)<1 both go), then UNDO (exact).
+  - At the head's calc.c, 3 of these checks fail (both ← cases and the emptied edit); the row-alone check passes, since
+    that behaviour is unchanged. Mutants: the ← path alone reverted fails 2; the edit path alone fails 1; a WHERE row
+    taking the rows after it fails the row-alone check.
+- **The list has no link from a row to its answer: the rows after an entry are taken as its own.** NEW starts at TOP,
+  so it never splits them. A CAS op on the answer does: D/DX X on -1÷(X-1) inserts 1÷(X-1)^2 between the answer and
+  ABS(X)<1, and ← on the derivative then takes the sum's row with it (measured). Open for a ruling: an insert
+  on an answer could land after its rows.
