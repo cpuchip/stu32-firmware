@@ -184,3 +184,8 @@ RAM +0, IRAM +0, calc_task's frame +0, no internal-RAM symbol changed.
 
 **For tally and primer:** no new contract. The wheel is inside rows 21-205 under textbook_on. x is the centre's text and
 drawn the centre's drawn text. Re-pin 22-tb-stu3's CRC to 43FC116C.
+
+## Accepted on the code (abacus #11152, at de499c9)
+- abacus's clean clone matched the gate: the moved frames are exactly 22-32 and 34-36, and 01-21 and 33 are byte for
+  byte. Its plant (never 2 and 2) turned the index check red, app_test 792/793.
+- The 33s-stamped centre inside the wheel waits on Michael's card (wheel-33-entry).
