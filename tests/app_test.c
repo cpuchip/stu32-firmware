@@ -4242,6 +4242,83 @@ int main(void)
                "044: a plot's frames compute the trace's readout once; a moved cursor's readout is its new column's");
     }
 
+    /* unit 082 (abacus #11428): a key that changes nothing keeps UNDO's mark. The measured case: two entries deleted
+       with ←, a third ← at TOP (nothing to delete), then UNDO brings back the second deletion's entry. Then a sweep:
+       after a change, each key (face, GOLD, BLUE) that leaves the core's image byte for byte as it was (memcmp, not
+       ab_state_same) is followed by UNDO, which must give the state before the change; in RPN and in the list, at its
+       TOP and on an entry, in STU, 35s and 33s. A menu, prompt or shift the key left is closed first (app state) */
+    {
+        static uint8_t u0[1 << 18], u1[1 << 18], s0[1 << 18], s1[1 << 18], s2[1 << 18];
+        ab_init(&c);
+        app_init(&a, &c, now);
+        app_undo_buffers(&a, u0, u1, sizeof u0);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        ab_eqn_add(&c, "A+B");
+        ab_eqn_add(&c, "X^2-4");
+        if (!c.eqn_mode) ab_do(&c, AB_EQN);
+        press(&a, "\xe2\x86\x90 \xe2\x86\x90");            /* X^2-4, then A+B: the list's TOP shown */
+        int n2 = c.eqn_count;
+        press(&a, "\xe2\x86\x90");                         /* at TOP: nothing deleted */
+        expect(c.eqn_count == n2 && c.eqn_cur < 0, "082: ← at EQN LIST TOP deletes nothing");
+        press(&a, "BLUE \xe2\x86\x90");
+        expect(c.eqn_count == n2 + 1 && c.eqn_cur >= 0 && !strcmp(c.eqn[c.eqn_cur], "A+B"),
+               "082: ← ← ← then UNDO: A+B back (the third ←, at TOP, took no mark)");
+        static const int MODEL[3] = {AB_MODEL_STU, 35, 33};
+        static const char *const WHERE[4] = {"RPN", "the list on an entry", "the list at TOP", "the list's last entry"};
+        int noops = 0, bad = 0, tried = 0;
+        int undo_key = face("\xe2\x86\x90");
+        for (int m = 0; m < 3; m++)
+            for (int w = 0; w < 4; w++)
+                for (int sh = 0; sh < 3; sh++)
+                    for (int k = 0; k < KB_KEYS; k++) {
+                        const km_action *f = km_lookup(k, KM_FACE);
+                        if (f->kind == KM_NONE || f->kind == KM_SHIFT || (sh == 2 && k == undo_key)) continue;
+                        const km_action *act = km_lookup(k, sh);
+                        if (act->kind == KM_OP && act->op == AB_CLALL) continue;
+                        ab_init(&c);
+                        app_init(&a, &c, now);
+                        app_undo_buffers(&a, u0, u1, sizeof u0);
+                        ab_do_arg(&c, AB_MODEL, MODEL[m]);
+                        ab_eqn_add(&c, "A+B");
+                        ab_eqn_add(&c, "X^2-4");
+                        ab_eqn_add(&c, "Y-1");
+                        if (w == 0 && c.eqn_mode) ab_do(&c, AB_EQN);
+                        if (w > 0 && !c.eqn_mode) ab_do(&c, AB_EQN);
+                        press(&a, "C");
+                        if (w > 0 && !c.eqn_mode) ab_do(&c, AB_EQN);
+                        if (w == 0) press(&a, "2 ENTER 3");
+                        if (w == 2) c.eqn_cur = 0;                      /* the first entry: its ← leaves TOP shown */
+                        if (w == 3) press(&a, "k:1 k:1 k:1 k:1");       /* down to the list's last entry */
+                        size_t n0 = ab_state_save(&c, s0, sizeof s0);
+                        if (w == 0) press(&a, "+");                     /* the change */
+                        else press(&a, "\xe2\x86\x90");
+                        size_t n1 = ab_state_save(&c, s1, sizeof s1);
+                        if (n1 == n0 && !memcmp(s0, s1, n0)) continue;  /* (no change to undo) */
+                        if (sh) tap(&a, shift_key(sh));
+                        tap(&a, k);
+                        tried++;
+                        if (a.app || a.off || c.stop == AB_STOP_SLICE || a.running) continue;
+                        size_t n2b = ab_state_save(&c, s2, sizeof s2);
+                        if (n2b != n1 || memcmp(s1, s2, n1)) continue;  /* it changed something: its own mark */
+                        noops++;
+                        a.shift = 0, a.prompt_op = -1, a.menu = -1, a.confirm_op = -1, a.cat = 0, a.help = false;
+                        a.show = false, a.view = 0, a.gto_dot = 0, a.tgt_label = -1, a.notice = NULL;
+                        press(&a, "BLUE \xe2\x86\x90");
+                        size_t n3 = ab_state_save(&c, s2, sizeof s2);
+                        if (n3 != n0 || memcmp(s0, s2, n0)) {
+                            if (bad++ < 8)
+                                printf("app_test: model %d, %s: %s%s (key %d) changed nothing, then UNDO did not give the "
+                                       "state before the change\n", MODEL[m], WHERE[w], sh == 1 ? "GOLD " : sh == 2 ? "BLUE " : "",
+                                       act->kind != KM_NONE ? act->legend : f->legend, k);
+                        }
+                    }
+        char what[200];
+        snprintf(what, sizeof what, "082: %d keys after a change, %d changed nothing, and after each UNDO gave the state "
+                 "before the change (%d did not)", tried, noops, bad);
+        expect(bad == 0 && noops > 100, what);
+        printf("app_test: %s\n", what);
+    }
+
     /* unit 073: the list's sixth key is EXIT (unit 020's): Equation mode left, the list kept, in each mode; in STU since
        082 the sixth key is ▸ (EQN MORE) and C leaves the same way */
     {

@@ -85,12 +85,31 @@ typedef struct {
     size_t cap, len;
     const ab_calc *c;       /* the expressions' texts (unit 082); NULL where no value can be one */
     unsigned ver;           /* the lowest version the content written so far needs (082: 20 without an expression) */
+    const uint8_t *ref;     /* ab_state_same: each byte compared with ref's (cap its length), nothing written */
+    bool differ;
 } wr;
+
+/* A byte at position at: written, or (ab_state_same) compared */
+static void wput(wr *w, size_t at, unsigned v)
+{
+    if (w->ref) {
+        if (at >= w->cap || w->ref[at] != (uint8_t)v) w->differ = true;
+    } else if (at < w->cap) {
+        w->buf[at] = (uint8_t)v;
+    }
+}
 
 static void w8(wr *w, unsigned v)
 {
-    if (w->len < w->cap) w->buf[w->len] = (uint8_t)v;
+    wput(w, w->len, v);
     w->len++;
+}
+
+/* A placeholder of n bytes patched later (a size, the version): not compared, its patch is */
+static void wheld(wr *w, uint32_t v, int n)
+{
+    for (int i = 0; i < n; i++, w->len++)
+        if (!w->ref && w->len < w->cap) w->buf[w->len] = (uint8_t)(v >> (8 * i));
 }
 static void w16(wr *w, unsigned v) { w8(w, v & 0xFF); w8(w, (v >> 8) & 0xFF); }
 static void w32(wr *w, uint32_t v) { w16(w, v & 0xFFFF); w16(w, v >> 16); }
@@ -185,15 +204,14 @@ static size_t sec_begin(wr *w, unsigned tag)
     size_t at;
     w16(w, tag);
     at = w->len;
-    w32(w, 0);
+    wheld(w, 0, 4);
     return at;
 }
 
 static void sec_end(wr *w, size_t at)
 {
     uint32_t n = (uint32_t)(w->len - at - 4);
-    for (int i = 0; i < 4; i++)
-        if (at + (size_t)i < w->cap) w->buf[at + (size_t)i] = (uint8_t)(n >> (8 * i));
+    for (int i = 0; i < 4; i++) wput(w, at + (size_t)i, n >> (8 * i));
 }
 
 static int op_code(ab_op op)
@@ -205,15 +223,31 @@ static int op_code(ab_op op)
 
 static int kind_code(int k) { return k == AB_SOLVE ? 1 : k == AB_INTEG ? 2 : 0; }
 
+static size_t state_write(wr *wp);
+
 size_t ab_state_save(const ab_calc *c, uint8_t *buf, size_t cap)
 {
-    wr w = {buf, cap, 0, c, 20};
-    size_t s;
+    wr w = {buf, cap, 0, c, 20, NULL, false};
     if (c->running) return 0;
+    return state_write(&w);
+}
+
+bool ab_state_same(const ab_calc *c, const uint8_t *img, size_t n)
+{
+    wr w = {NULL, n, 0, c, 20, img, false};
+    if (c->running || !img) return false;
+    return state_write(&w) == n && !w.differ;
+}
+
+static size_t state_write(wr *wp)
+{
+    wr w = *wp;
+    const ab_calc *c = w.c;
+    size_t s;
     wbytes(&w, "ABSI", 4);
-    w16(&w, AB_STATE_VERSION);
+    wheld(&w, AB_STATE_VERSION, 2);             /* the version, patched below (082) */
     w16(&w, 0);
-    w32(&w, 0);                                 /* the length, patched below */
+    wheld(&w, 0, 4);                            /* the length, patched below */
 
     s = sec_begin(&w, T_MODES);
     w8(&w, (unsigned)c->angle);
@@ -463,11 +497,14 @@ size_t ab_state_save(const ab_calc *c, uint8_t *buf, size_t cap)
     {
         size_t total = w.len + 4;
         for (int i = 0; i < 2; i++)                 /* the version the content needs (082), at most this build's */
-            if (4 + (size_t)i < w.cap) w.buf[4 + i] = (uint8_t)(w.ver >> (8 * i));
-        for (int i = 0; i < 4; i++)
-            if (8 + (size_t)i < w.cap) w.buf[8 + i] = (uint8_t)(total >> (8 * i));
-        if (total <= cap) w32(&w, ab_crc32(buf, w.len));
+            wput(&w, 4 + (size_t)i, w.ver >> (8 * i));
+        for (int i = 0; i < 4; i++) wput(&w, 8 + (size_t)i, total >> (8 * i));
+        if (w.ref) {                            /* the checksum of ref's bytes (ours, where they're the same), compared */
+            if (total == w.cap) w32(&w, ab_crc32(w.ref, w.len));
+            else w.differ = true, w.len += 4;
+        } else if (total <= w.cap) w32(&w, ab_crc32(w.buf, w.len));
         else w.len += 4;
+        wp->differ = w.differ;
         return total;
     }
 }
@@ -475,7 +512,7 @@ size_t ab_state_save(const ab_calc *c, uint8_t *buf, size_t cap)
 size_t ab_state_label_bytes(const ab_calc *c, int l)
 {
     if (l < 0 || l >= 26 || c->labelpos[l] < 0 || c->labelpos[l] >= c->prog_len) return 0;
-    wr w = {NULL, 0, 0, NULL, 20};              /* counts only (a literal is never an expression) */
+    wr w = {NULL, 0, 0, NULL, 20, NULL, false};              /* counts only (a literal is never an expression) */
     for (int i = c->labelpos[l]; i < c->prog_len && (i == c->labelpos[l] || c->prog[i].op != AB_LBL); i++) {
         int op = c->prog[i].op;
         w16(&w, (unsigned)op_code((ab_op)op));

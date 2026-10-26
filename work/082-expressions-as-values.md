@@ -433,3 +433,28 @@ and this record with VER 0.82.
 - **The stand-in's expr082.txt:** the keys are now the list's ▸, →X, C (K5 K0 K42), where they were CAS ▸ ▸ ▸ →X EXIT.
   Replayed through app.c from MEMORY CLEAR, the new keys give X='3×X^2-4', drawn=3X^2-4 and rows 21-205 B8D758BB, the
   same as the old keys at the old head. The old keys on the new tree give 5C857302 (a control).
+
+### UNDO: a key that changed nothing kept its mark (abacus #11428, a bug fixed)
+- **Found while measuring ← for Michael:** UNDO keeps one image, marked before every op. A key that changed nothing still
+  took it: ← ← ← from a sum's answer deleted the answer and X^K, and the third ← (at TOP) took the mark, so UNDO
+  restored nothing and X^K was gone for good. Unit 073 already took the mark back after a refused key (a brief notice).
+- **Fixed:** after any key, the mark goes back when the state saves as the mark just taken (app.c undo_keep and
+  undo_unchanged, beside 073's refusals, and after MEM's CLEAR). Equality is decided by the new ab_state_same(c, img, n),
+  the writer in a compare mode: each byte compared with img's as it would be written, with no buffer. A size or version
+  placeholder isn't compared, but its patch is, and so is the checksum. UNDO only ever restores that image, so "the
+  image is the same" is exactly "UNDO would do nothing". The device's two undo buffers are unchanged, with no new one.
+- **The oracle:**
+  - app_test: ← ← ← then UNDO brings back A+B.
+  - A sweep: in STU, 35s and 33s, in RPN and in the list (on an entry, at TOP, on the last entry), after a change, each
+    face, GOLD and BLUE key that leaves the core's image byte for byte as it was (memcmp, independent of
+    ab_state_same) is followed by UNDO, which must give the state from before the change. 1,464 keys, 741 changing
+    nothing, 0 failing.
+  - At the head's app.c the same tests fail: the ← ← ← case and 42 keys in the sweep (R/S, RTN and SST with nothing
+    to run, GOLD ',' and PSE, ← at TOP, ...). 073's own UNDO checks still pass.
+  - expr_test: on the states of golden-v1, -v20-082, -v21-082 and -v22-4c, ab_state_same is true for their own image
+    and false for every single-byte change of it (header, sizes, version and checksum included) and for a byte short.
+  - Mutants: ab_state_same always true (app_test 786/811, expr_test red), and content bytes not compared (801/811,
+    red). Every image the writer makes is byte for byte as before (the pinned goldens).
+- **Cost:** a second walk of the state after each key. On the host, 115 us beside the save's 112 us for a 14,231 B
+  image. Not yet timed on the device (082's gate, with D68).
+- **The orphaned WHERE rows** go to Michael as card eqn-delete-rows (abacus #11428). Not built until he answers.

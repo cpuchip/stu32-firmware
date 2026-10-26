@@ -131,6 +131,21 @@ static void undo_mark(app_state *a)
     a->undone = false;                          /* unit 073: the next UNDO undoes this change */
 }
 
+/* Unit 082: a key that changed nothing gives its mark back (abacus #11428: a ← at EQN LIST TOP took UNDO's one image,
+   so the deletion before it could no longer be undone): if the state saves as the mark just taken, the images swap
+   back (a mark that didn't fit swapped nothing), and UNDO still undoes, or redoes, what it did before. */
+static void undo_keep(app_state *a, size_t was, bool undone_was)
+{
+    if (a->undo_len) undo_swap(a, was);
+    else a->undo_len = was;
+    a->undone = undone_was;
+}
+
+static bool undo_unchanged(const app_state *a)
+{
+    return a->undo_len && ab_state_same(a->c, a->undo[0], a->undo_len);
+}
+
 /* UNDO: the state and the undo image change places, so a second UNDO puts it back. Unit 073 (stu-discover, abacus
    #8714): the screen says which, UNDO or REDO, as a brief notice. */
 static void undo(app_state *a)
@@ -241,18 +256,15 @@ static void do_op(app_state *a, int op, int arg)
     }
     if (op == AB_GZOOM && st == ABN_OK && c->gr_on) graph_start(a);    /* unit 040: a zoom redraws */
     if (!c->gr_on) a->graphing = a->gr_live = false;
-    if (st == ABN_RPN_ONLY || st == ABN_STU_ONLY || st == ABN_NO_EQN || st == ABN_NO_VAR || st == ABN_NOT_IN_EQN) {
+    bool refused = st == ABN_RPN_ONLY || st == ABN_STU_ONLY || st == ABN_NO_EQN || st == ABN_NO_VAR || st == ABN_NOT_IN_EQN;
+    if (refused) {
         /* brief notices, not messages: STU's line (unit 029), TABLE's refusals (unit 032), Equation mode's (073) */
         a->notice = ab_status_message(st);
         a->notice_ms = a->last_key_ms;
-        /* unit 073: a refusal changed nothing, so its UNDO mark is taken back (the images swap back; a mark that
-           didn't fit swapped nothing): UNDO then still undoes, or redoes, what it did before (fresh eyes) */
-        if (op != AB_VIEW && op != AB_ENGL && op != AB_ENGR) {
-            if (a->undo_len) undo_swap(a, undo_was);
-            else a->undo_len = undo_was;
-            a->undone = undone_was;
-        }
     }
+    /* unit 073: a refusal changed nothing, so its UNDO mark is taken back (fresh eyes); 082: so is any key that changed
+       nothing (undo_keep) */
+    if (op != AB_VIEW && op != AB_ENGL && op != AB_ENGR && (refused || undo_unchanged(a))) undo_keep(a, undo_was, undone_was);
     if (st == ABN_CLAMPED || c->ovf > 0) a->ovf_pending = true;
     if (op == AB_MODEL && st == ABN_OK && on_lbl && (was != 33) != (arg != 33) &&
         ab_label_indirect(c, c->prog[c->pc].arg)) {
@@ -973,9 +985,12 @@ void app_key(app_state *a, int key, uint32_t now_ms)
         }
         if (act->kind == KM_MENU && act->arg >= 0 && act->arg == menu_named("CLEAR")) {
             int i = cat_pos(a);
+            size_t was = a->undo_len;
+            bool undone_was = a->undone;
             undo_mark(a);
             if (a->cat == 1) ab_var_clear(a->c, a->cat_at);
             else ab_prog_delete_label(a->c, a->cat_at);
+            if (undo_unchanged(a)) undo_keep(a, was, undone_was);  /* 082: a clear that changed nothing (a 0 cleared) */
             a->dirty = true;
             cat_show(a, i < 0 ? 0 : i);         /* the item that followed it, or the first */
             return;

@@ -321,6 +321,34 @@ static void older(void)
     free(h);
 }
 
+/* ab_state_same (082, UNDO's mark taken back when a key changed nothing): each golden loaded is the same as the image
+   it saves, and no longer the same with any one byte of that image changed, or a byte short */
+static void same_image(void)
+{
+    static const char *const G[] = {"tests/golden-v1.img", "tests/golden-v20-082.img", "tests/golden-v21-082.img",
+                                    "tests/golden-v22-4c.img"};
+    char what[160];
+    for (int k = 0; k < 4; k++) {
+        size_t gn;
+        uint8_t *g = file(G[k], &gn);
+        if (!g) continue;
+        ab_init(&ca);
+        expect(ab_state_load(&ca, g, gn) == ABN_OK, "082: ab_state_same's golden loads");
+        size_t m = ab_state_save(&ca, img1, sizeof img1);
+        int caught = 0;
+        bool same0 = ab_state_same(&ca, img1, m);
+        for (size_t i = 0; i < m; i++) {
+            img1[i] ^= 0x01;
+            caught += !ab_state_same(&ca, img1, m);
+            img1[i] ^= 0x01;
+        }
+        snprintf(what, sizeof what, "082: ab_state_same on %s's state: its own image the same; each of %zu bytes changed "
+                 "not (%d caught); a byte short not", G[k], m, caught);
+        expect(same0 && caught == (int)m && !ab_state_same(&ca, img1, m - 1) && ab_state_same(&ca, img1, m), what);
+        free(g);
+    }
+}
+
 static void reader(void)
 {
     static uint8_t e[300000];
@@ -928,6 +956,7 @@ int main(int argc, char **argv)
     round_trip(write_golden);
     reader();
     older();
+    same_image();
     store();
     sweep();
     classes();

@@ -45,6 +45,9 @@
 /* Writes the image into buf when it fits in cap; returns its length either way (call with cap 0
    to size the buffer). 0 if the calculator is in the middle of a run (it never is between calls). */
 size_t ab_state_save(const ab_calc *c, uint8_t *buf, size_t cap);
+/* Whether c's image now is byte for byte img's n bytes (082: UNDO's mark taken back when a key changed nothing). No
+   buffer: each byte is compared as it would be written. False during a run. */
+bool ab_state_same(const ab_calc *c, const uint8_t *img, size_t n);
 /* Unit 041 C (B5): the bytes label l's program takes in the image (its LBL line and the lines after it to the next
    label), MEM's LN= (33s p.12-20; our bytes, not the 33s's); 0 if there is no such label. ab_state_save(c, NULL, 0)
    is the whole image's size. */
