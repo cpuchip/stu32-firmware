@@ -351,3 +351,7 @@ internal RAM +0, IRAM +0, calc_task's frame +0, no internal-RAM symbol changed.
   55 too wide, 16 past the depth.
 - **tb-exponent (#11114):** exponents stay at size 1 in a scale-2 answer, as built ("tiny but readable"), and so does
   the 3X gap. The exp2 side-by-side branch (tb-exp2) is deleted, moot.
+
+## Accepted (abacus #11128, at 1f05de9)
+- abacus's clean clone matched the gate. Each control reversing exactly one commit of the tail (+C, the clean top, the
+  brackets) went red where the gate said. 080 is closed; 081 builds on it.
