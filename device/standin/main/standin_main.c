@@ -1027,6 +1027,25 @@ static __attribute__((noinline)) void bench(void)
            (long long)(t1 - t0), c2->run_lines, (long long)(t2 - t1) / 200, (long long)(t3 - t2) / 200, (unsigned)n,
            (unsigned)heap_caps_get_total_size(MALLOC_CAP_SPIRAM), (unsigned)heap_caps_get_free_size(MALLOC_CAP_SPIRAM),
            (unsigned)sizeof *c2);
+    /* unit 082 (abacus #11428): UNDO's check after every key, ab_state_same, beside the save it follows: with the list
+       full (64 equations of 119 bytes, the image's largest part), then on this calculator's own state */
+    char eq[120];
+    eq[0] = 'A';
+    for (int i = 0; i < 59; i++) memcpy(eq + 1 + 2 * i, i % 2 ? "+A" : "+B", 2);     /* A+B+A+B...+B */
+    eq[119] = '\0';
+    for (int i = 0; i < AB_EQN_MAX; i++) ab_eqn_add(c2, eq);
+    for (int pass = 0; pass < 2; pass++) {
+        const ab_calc *s = pass ? calc : c2;
+        int same = 0;
+        int64_t u0 = esp_timer_get_time();
+        for (int i = 0; i < 50; i++) n = ab_state_save(s, image, IMAGE_CAP);
+        int64_t u1 = esp_timer_get_time();
+        for (int i = 0; i < 50 && n; i++) same += ab_state_same(s, image, n);
+        int64_t u2 = esp_timer_get_time();
+        printf("bench: %s: save %lld us, same %lld us (%u bytes) %s=%d of 50\n", pass ? "the calculator's state" :
+               "a full list", (long long)(u1 - u0) / 50, (long long)(u2 - u1) / 50, (unsigned)n,
+               pass ? "samelive" : "samefull", same);
+    }
     heap_caps_free(c2);
 }
 

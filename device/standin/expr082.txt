@@ -71,6 +71,10 @@ send FRAMECRC
 expect framecrc: rows 21-205 B8D758BB 10
 send X
 expect-min stack-free 8188 10
+# UNDO's check after every key (abacus #11428): ab_state_same's time beside the save's, a full list and this state
+send BENCH
+expect-range samefull 50 50 60
+expect-range samelive 50 50 10
 send X
 # CONTROL: must FAIL
 expect framecrc: rows 21-205 00000000 3
