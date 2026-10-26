@@ -1,4 +1,7 @@
-# Unit 082 (step 3, part 1): expressions as values (blueprint; the saved state first)
+# Unit 082 (step 3, part 1): expressions as values (the saved state first)
+
+The blueprint (sections 1 to 9, OK'd by abacus #11161 and #11166) is kept as it was checked, with corrections struck in
+place. What was built, and its evidence, follows it under **Built**.
 
 **From:**
 - abacus #11101 (point 4) and #11152, on Michael's ruled order of 15 Oct: fractions, the textbook display (080), expressions
@@ -157,7 +160,8 @@ Three parts. The first two are recommended now; the third is his call.
 | EQN's drop and store-back | (new in 082) | drop: an expression from the list's text; store-back: X's expression into the list |
 
 **The audit:** every branch on a value's kind is checked for the new kinds. Measured at today's head: 7 tests of
-`!= AB_VECTOR`, 6 of `== AB_COMPLEX` and 21 of `!= AB_REAL` across core/ and firmware/. Each gets the new kinds handled,
+~~`!= AB_VECTOR`~~ against AB_VECTOR (6 of them `==`, 1 `!=`: corrected at the build, re-measured at b029c45), 6 of
+`== AB_COMPLEX` and 21 of `!= AB_REAL` across core/ and firmware/. Each gets the new kinds handled,
 or a reason it can't see them. The screen's val_line would show an expression as 0 today; in 082 it shows its text.
 
 **The oracle:**
@@ -187,3 +191,127 @@ or a reason it can't see them. The screen's val_line would show an expression as
   followed by its own CRC is the constant residue 0x2144DF1C, so every valid image gives it: this golden's whole-file
   CRC is 2144DF1C too. It checks that an image is valid, not which one it is. 082's byte-for-byte check doesn't lean
   on it.
+
+## Built (soroban, 2026-10-26)
+
+Commits on stu32-firmware: 4054ce0 (the store and NOT A NUMBER), fe50c4c (image 21, expr_test), 4e54467 (the screen,
+→X and →EQN in the core, the VAR catalog), c3527b0 (load_fuzz, store_test), feab68d (ANS), 61668dc (CAS4's keys, alone),
+and this record with VER 0.82.
+
+### The values and the store (sections 1, 7)
+- `AB_EXPR` and `AB_NAME` follow AB_VECTOR in ab_kind; an expression's `len` is its slot, a name's its letter (0-26).
+- `exprs[48][192]` in ab_calc, after hist_val: so a load (which clears only what is before hist) keeps it, and every slot
+  a load doesn't refill is free by the sweep. `ab_expr_new` marks every ab_val in ab_calc (copies included), takes the
+  first free slot, else `ABN_EXPR_FULL` with nothing changed. An op asks before it commits (→X asks before the lift).
+- **ANS can hold an expression** (a correction to the build's first reader, which refused one there): RPN to ALG sets
+  ANS to X. The op sweep found it once it reloaded every state's image. A program's literal can't hold one (no op puts
+  one there), and the reader refuses one there.
+- Places an expression can be in: X, Y, Z, T, LASTx, the 27 letters, ANS, the message's X, SOLVE's saved stack and the
+  evaluation's Y, Z, T (copies of live handles). The history values hold numbers only. 48 slots still bound the
+  distinct ones: at most 33 distinct places can hold one at once.
+
+### NOT A NUMBER (section 8): the classes and where each is guarded
+| class | where | test |
+|---|---|---|
+| arithmetic, functions of X, statistics, base arithmetic | the dispatch guard beside the complex/vector one (reads_x, reads_y) | the sweep |
+| stack moves, STO, RCL, x<>var, VIEW | move the handle | the sweep (no number read) |
+| STO and RCL arithmetic | arith() | the sweep |
+| a register that holds numbers only (statistics) | store_val | the sweep |
+| tests (x=y? .. x=0?) | prog_test | the sweep |
+| indirect: (I), (J), the 33s's (i) | the four index checks | the sweep (I's setup), expr_test (33s (i)) |
+| SOLVE: the unknown, the guess; ∫: the limits; f an expression | solve_op, integ_op, fn_value | the sweep, expr_test |
+| an equation reading a letter, ANS or (I) | eqn.c's take_val | expr_test (B+1, ⒤+1, B alone) |
+| the 33s's CMPLX pairs | cmplx_pair | the sweep |
+| the built-in linear solvers | lin_key | expr_test (2x2, 35s mode) |
+| GRAPH's window, TABLE's start and step (RPN and ALG), TABLE's start from the variable | their setters | the sweep |
+| display settings | no effect: X shows it (below) | screen_test |
+| →X, →EQN | new (below) | expr_test, app_test |
+
+**The audit of the 34 kind branches** (re-measured at b029c45; one ring out, the `== AB_REAL` tests too):
+- **Changed:** cmplx_pair (901), the four index checks (1012, 1019, 1565, 1572), store_val (1081), prog_test (1508),
+  fn_value (2005), solve_op (2698), integ_op (2892), lin_key (3642), the ALG and RPN window and table setters (4427, 4436,
+  5437, 5451), TABLE's start (5811), the reader (state.c 572), msg.c's is_zero_val (69: real or complex only), app.c's
+  var_set and catalog line (297, 338-339), screen.c's value line (304-305, through val_line).
+- **Can't see the new kinds, with the reason:** is_cx and is_vec (132, 171): the guard runs before them; vec_arith (604):
+  arith refuses first; graph_f (1911), the graph sample (5886), eqn.c's vector elements (413) and RND's digits (438):
+  values from an evaluation, which can't produce one; eng_key (4562): X not real, ENG's view does nothing; SHOW's digits
+  (5658): neither real nor complex, nothing shown; msg.c (109-134): message text for errors an expression never reaches
+  (NOT A NUMBER comes first); list.c (116-118): a program's literal; the writer's default-value tests (state.c 246, 251):
+  an expression is never a default; r->xreal (759): not real, so no ENG view.
+
+### The image (sections 2, 4, 9)
+- The writer stamps the lowest version its content needs: 20 unless a value is an expression or a name or MEMORY FULL or
+  NOT A NUMBER is showing (STATUS_SINCE 21), then 21. An expression: kind 3, its text's length, mask 0, the text. A name:
+  kind 4, the letter, mask 0.
+- The reader takes kinds 3 and 4 from version 21, a text's slot the one an equal text met before took (the same value in
+  two places loads into one slot). It refuses a kind past 4 (4C, until Michael's card) and skips a section past
+  T_CASCPLX by its size from version 21 (a version-20 image with one is refused, as before).
+- **The goldens re-save as b029c45 saves them** (a scratch resave program built at both heads, then pinned in
+  expr_test by size and body CRC): golden-v1 1,264 B F0E2C760, golden-v10-041 814 B BCC1631F, golden-v12-041d 838 B
+  EDEC7390, golden-v12-041d-regx 743 B 6A64DB27, golden-v20-082 1,062 B 455A56E3, golden-v20-082-full 14,231 B 97018F1A;
+  the two version-20 goldens byte for byte their files (memcmp).
+- **tests/golden-v21-082.img:** 909 B, body CRC 036F56B7 (zlib agrees). X 3×X^2-4, Y the same value, Z the name B, B the
+  name i, i the name A, the letters' expressions, SOLVE's saved stack, NOT A NUMBER showing. The core at b029c45 refuses
+  it (BAD IMAGE). This build loads it and saves it again byte for byte.
+- **The fullest version-21 image measured:** 21,836 B (43 places each a distinct 191-byte expression on
+  golden-v20-082-full's state), loading again; the device's save 18 B more. Under section 2's bound of 23,495.
+- Not built, waiting on Michael: T_EQFOLDER (folders), 4C's alternative, the names' evaluation.
+
+### The screen (a proposal for Michael's look)
+- **X's expression in 2D,** tbook's fit, in the rows under Y's line (112-204): on X's own row when short, growing down
+  into the empty rows when not. When it doesn't fit there, X's line shows its text. T, Z and Y stay.
+- **T, Z, Y, and a too-tall X show an expression or a name as quoted text** ('3×X^2-4', 'A'), as the 50g writes one, so
+  an expression 2 can't read as the number 2. The VAR catalog the same, cut by cells and bytes with an ellipsis.
+- **For the phone and the web:** `textbook_on` also marks X's 2D drawing (rows 21-205 from the frame); then all four
+  lines keep their text, and `drawn` is X's drawn form.
+- Frames 42-47: a short X, a fraction X with Y's expression and Z's name, a wrapped X, a too-tall X (as text), NOT A
+  NUMBER, MEMORY FULL. The old 41 frames byte-identical; 22's CRC unchanged (43FC116C).
+
+### →X and →EQN, and CAS4 (abacus #11174; where keys go is Michael's card s3-keys)
+- `AB_EQDROP` (→X): the shown STU equation's text as an expression in X, the stack lifted, Equation mode open. Nothing at
+  EQN LIST TOP or on a built-in's entry (as ENTER and XEQ there); WHERE on a sum's condition; INVALID DATA on an entry
+  stamped 33 or 35 (another mode's grammar); MEMORY FULL with the store full, nothing changed.
+- `AB_EQSTORE` (→EQN): X's expression (or a name's letter) inserted after the shown entry, which becomes the shown one,
+  stamped STU; X kept. A number in X is NOT A NUMBER (abacus #11174).
+- Both nonprogrammable, STU only, the list's keys only (NO EQN outside Equation mode).
+- CAS4 after CAS3's ▸, last in the menu list so no index moves: →X, →EQN, its ▸ back to CAS. **After →X the bar
+  returns to the list's,** as after the other CAS keys; dropping several takes CAS ▸ ▸ ▸ each time. That and the page's
+  place are for the card.
+
+### The oracle's results (make test green at the head)
+- **tests/expr_test.c, 276 checks:** the goldens; the round trip of every kind in every place; the reader's rules (an
+  unknown section skipped in 21 and refused in 20, out of order refused, an expression in a version-20 image refused, a
+  kind past AB_NAME refused shaped as a name, a name past i, a control byte in a text); MEMORY FULL and NOT A NUMBER
+  showing alone give version 21; the store at 48 and the 49th; the store fuzz, 200,000 steps (807 refused full, every
+  text kept, full exactly when 48 distinct are live); the op sweep, 9,440 runs (every op, args 0, 1, B and (I), an
+  expression or a name on X, Y, both, B or I: 1,634 NOT A NUMBER with the stack and letters unchanged, 7,806 through
+  with nothing computed from the expression, judged against the same op run with 0 and 7 in its place, every state's
+  image loading); the targeted classes; →X and →EQN; the op fuzz, 400 sequences of 25 ops (235 NOT A NUMBER, nothing read
+  as a number, every image loading).
+- **load_fuzz** seeds golden-v21-082 and sends →X and →EQN: 20,000 cases and 100,000 (seed 7), 0 violations.
+  **store_test:** 5,431/5,431 power cuts leave a good image over saves alternating versions 20 and 21; a version-21 image
+  with the device's record loads back whole. **screen_test** 9,014 checks, 47/47 frames; **app_test** 801/801.
+- **25 mutants, each red** (scratch mut.py, run at the head): the dispatch guard, STO/RCL arithmetic, the program tests,
+  an equation's letter, the writer always 21, no dedupe, a store without marking, the unknown section refused, taken in
+  20, kinds past 4 taken, ANS refused, MEMORY FULL not raising the version, SOLVE's guess, the 35s's and the 33s's index,
+  the window and table setters, fn_value, the complex pairs, the integral's limits, number-only registers, the linear
+  solver, the quoted text lines, the catalog, X never in 2D. Four first survived, each a gap in the test, not the code,
+  closed before the claim (the v20 section on an image without expressions, a kind-5 shaped as a name, the status-only
+  version, SOLVE and (I) needing a function and the I setup).
+
+### What I got wrong on the way
+- **ANS:** the first reader refused an expression in ANS on the claim that no op puts one there. RPN to ALG does. The
+  sweep went red on it (8 states) once it reloaded images, before the fix.
+- The first app catalog cut counted cells but not bytes (28 cells of × are 84 bytes in a 39-byte line); rewritten
+  before any test, from its own comment.
+- Test-side slips, each caught by a red check: π's lift moved the name I meant for X; the store fuzz never filled the
+  store (copies keep the distinct count down; bursts fixed it); an extra EQN toggle left Equation mode; (I) in an
+  equation is ⒤, not "(I)"; the 35s's (I) names B by -2; a message showing swallowed the next key.
+
+### For Michael (through abacus)
+- The screen's layout of X's expression under Y, and the quotes on the text lines (frames 42-45).
+- CAS4's place and the bar returning after →X (card s3-keys).
+- →X on a 33- or 35-stamped entry is INVALID DATA rather than a conversion.
+- The word on →EQN with a number: "NOT A NUMBER" is ruled (#11174), but read on that key it says the opposite of what
+  happened; "NOT AN EXPRESSION" or INVALID DATA would read true. One line for abacus, not changed here.
+
