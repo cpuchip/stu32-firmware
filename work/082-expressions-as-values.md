@@ -308,6 +308,24 @@ and this record with VER 0.82.
   store (copies keep the distinct count down; bursts fixed it); an extra EQN toggle left Equation mode; (I) in an
   equation is ⒤, not "(I)"; the 35s's (I) names B by -2; a message showing swallowed the next key.
 
+### The gate (5b48ded)
+- **make test** rc 0 at 5b48ded: expr_test 276/276, app_test 801/801, screen_test 9,018/9,018 with 47/47 frames,
+  standin_test 349/349, help_test 307 entries, keymap_test 2,880/2,880, load_fuzz 20,000 cases 0 violations, store_test
+  5,431/5,431, check-version `0.82, unit 082`. The 25 mutants re-run at this head, each red.
+- **The stand-in (device/standin/expr082.txt)**, flashed with 5b48ded on ttyACM1: ver=0.82; after the keys (3×X^2-4 typed
+  in STU, CAS ▸ ▸ ▸ →X, EXIT) the state line's X='3×X^2-4', drawn=3X^2-4 and rows 21-205 B8D758BB, the host's (the same
+  keys through app.c). SAVE wrote 779 B; after RESTART the version-21 image loaded from flash ("load: 779 bytes ok")
+  and the same three held. stack-free at least 28,260. The control failed, as it must.
+- **The board found two things the host tests didn't** (the first run, at 3ac0794, matched the frame and the reload but
+  failed its console expectations): the console's state line printed X=0 for an expression (it formats X's number
+  parts whatever the kind; device/ was outside the kind audit), and its drawn= followed only the shown equation. Fixed
+  at fecc3bc: X= is the quoted text, drawn= comes from screen_drawn (compose's rules), and screen_test checks it agrees
+  with the page.
+- **D68, `scripts/resources.py static b029c45 5b48ded`:** flash +3,136 on the stand-in and +3,232 on Rev A; internal RAM
+  +0, IRAM +0, calc_task's frame +0, no internal-RAM symbol changed. At fecc3bc it read internal RAM +8 on the stand-in
+  and comp 8,276 -> 8,280 on both (a ninth bool in compose's state); 5b48ded packs the two 2D flags into one byte.
+- The claim (#11206, acked #11207, released #11208 at 07:04Z): peak 661.4 MiB.
+
 ### For Michael (through abacus)
 - The screen's layout of X's expression under Y, and the quotes on the text lines (frames 42-45).
 - CAS4's place and the bar returning after →X (card s3-keys).
