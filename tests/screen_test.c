@@ -1040,6 +1040,60 @@ int main(int argc, char **argv)
         c.ecur = (int)strlen(c.ebuf);
         frame("33-tb-typing-stu", &c, &ui);
     }
+    /* unit 082: X's expression in 2D under Y (a proposal for Michael's look); T, Z and Y's expressions and names as
+       quoted text; X's too tall for the rows under Y as text; NOT A NUMBER and MEMORY FULL */
+    {
+        static const struct { const char *name, *x, *y, *z; int t; } XE[] = {
+            {"42-xe-short", "3\xc3\x97X^2-4", NULL, NULL, 1},
+            {"43-xe-fraction", "(X+1)\xc3\xb7(X-1)", "SIN(A)+B", "", 0},
+            {"44-xe-wrapped", "12\xc3\x97X^5+(12\xc3\x97Y+8)\xc3\x97X^4+(-43\xc3\x97Y-192)\xc3\x97X^3+7\xc3\x97X^2-11\xc3\x97X+5", NULL,
+             NULL, 1},
+            {"45-xe-too-tall", "1\xc3\xb7(1+1\xc3\xb7(1+1\xc3\xb7(1+1\xc3\xb7(1+X))))", "2", NULL, 1},
+        };
+        static screen_page pg;
+        for (unsigned i = 0; i < sizeof XE / sizeof XE[0]; i++) {
+            ab_val v;
+            screen_ui_default(&ui);
+            ab_init(&c);
+            ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+            keys(&c, "1 ENTER 2 ENTER 3 ENTER 4");
+            c.entry.active = false;                 /* (X a value, as an op leaves it) */
+            if (!XE[i].t) c.t = c.z;
+            if (XE[i].z && !XE[i].z[0]) {           /* the name A */
+                memset(&c.z, 0, sizeof c.z);
+                c.z.kind = AB_NAME;
+            }
+            if (XE[i].y && ab_expr_new(&c, XE[i].y, &v) == ABN_OK) c.y = v;
+            if (ab_expr_new(&c, XE[i].x, &v) == ABN_OK) c.x = v;
+            frame(XE[i].name, &c, &ui);
+            screen_lines(&c, &ui, &pg);
+            if (i == 0)
+                expect(pg.textbook_on && !strcmp(pg.drawn, "3X^2-4") && !strcmp(pg.x.text, "'3\xc3\x97X^2-4'") &&
+                           !strcmp(pg.y.text, "3.0000"),
+                       "082: X's expression drawn (textbook_on, the drawn text), its line its quoted text, Y a number");
+            if (i == 1)
+                expect(pg.textbook_on && !strcmp(pg.y.text, "'SIN(A)+B'") && !strcmp(pg.z.text, "'A'"),
+                       "082: Y's expression and Z's name as quoted text");
+            if (i == 3)
+                expect(!pg.textbook_on && !strcmp(pg.y.text, "'2'"),
+                       "082: X too tall for the rows under Y: its text; an expression 2 in quotes, not the number");
+        }
+        ab_val v;
+        screen_ui_default(&ui);
+        ab_init(&c);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        keys(&c, "5 ENTER");
+        if (ab_expr_new(&c, "3\xc3\x97X^2-4", &v) == ABN_OK) c.x = v;
+        expect(ab_do(&c, AB_SIN) == ABN_NOT_NUMBER, "082: SIN of X's expression: NOT A NUMBER");
+        frame("46-xe-not-number", &c, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(pg.x.kind == SCREEN_MESSAGE && !strcmp(pg.x.text, "NOT A NUMBER") && !pg.textbook_on,
+               "082: the message on X's line, not the drawing");
+        c.err_status = ABN_EXPR_FULL;
+        frame("47-xe-memory-full", &c, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(pg.x.kind == SCREEN_MESSAGE && !strcmp(pg.x.text, "MEMORY FULL"), "082: MEMORY FULL on X's line");
+    }
     expect(screen_missed == 0, "a frame drew a character the face lacks");
 
     /* abacus #3971: the screen as text, by screen_render's rules */

@@ -703,6 +703,7 @@ bool ab_line_ok(ab_op op, int32_t arg)
     case AB_CASQUOT: case AB_CASGCD: case AB_CASCANCL:                                                /* (057) */
     case AB_CASSUM: case AB_KINF:                                                                     /* (070) */
     case AB_CASCPLX:                                                                                  /* (076) */
+    case AB_EQDROP: case AB_EQSTORE:                                                                  /* (082) */
     case AB_ENGL: case AB_ENGR:                                                                       /* (041 C) */
     case AB_FRACFMT: case AB_CLEQN:     /* nonprogrammable since 019 and 021 (load_fuzz's line sweep) */
         return false;

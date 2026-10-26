@@ -309,10 +309,17 @@ static int val_text(const ab_val *v, const ab_display *d, char *out, int size, i
     return ab_format_display(&v->re, d, out, size, ind);
 }
 
-/* the value as a line: the formatter's width first, the wide one when that holds nothing */
+/* the value as a line: the formatter's width first, the wide one when that holds nothing. Unit 082: an expression or a
+   name as its text in quotes, as the 50g writes one ('3×X^2-4', 'A'), so an expression 2 never reads as the number */
 static void val_line(const ab_val *v, const ab_calc *c, const screen_ui *ui, line *l, int *ind)
 {
-    char buf[160];
+    char buf[AB_EQN_LEN + 4];
+    if (ab_is_sym(v)) {
+        *ind = 0;
+        snprintf(buf, sizeof buf, "'%s'", ab_expr_text(c, v));
+        line_add(l, buf);
+        return;
+    }
     ab_display d = display_of(c, ui, FMT_WIDTH);
     if (val_text(v, &d, buf, sizeof buf, ind) < 0) {
         d = display_of(c, ui, FMT_WIDE);
@@ -641,6 +648,7 @@ typedef struct {
     bool alg;               /* STU's ALG: the line in Y's place (left), its result in X's, the entry
                                before in T (left) and Z; no letters (unit 029) */
     bool textbook;          /* unit 080: the shown STU equation drawn in 2D in the stack's place (X keeps its text) */
+    bool xexpr;             /* unit 082: X shows its value, an expression, in STU: drawn in 2D under Y when it fits */
     int ind;
 } composed;
 
@@ -812,6 +820,7 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
     } else {
         val_line(&c->x, c, ui, xl, &k->ind);
         k->x_letter = true;
+        k->xexpr = c->stu && c->x.kind == AB_EXPR;
     }
 
     /* the Y line: a prompt or a VIEW takes it */
@@ -1075,6 +1084,34 @@ static void draw_textbook(ls027_frame *f, const ab_calc *c, const screen_ui *ui)
     }
 }
 
+/* Unit 082: X's expression in 2D (080's layout, tb_fit), in the rows between Y's line and the area's bottom, its last
+   line on X's own row when it is short and growing down into the empty rows when it is not; 0 when it doesn't fit
+   there, and X's line shows it as text. *top its top, *s its scale. (A proposal for Michael's look.) */
+#define XE_TOP (BOT_Y + 4)
+#define LGAP_TB(s) (3 * (s))    /* tbook's gap between wrapped lines (LGAP) */
+static int xexpr_fit(const ab_calc *c, int *top)
+{
+    const char *t = ab_expr_text(c, &c->x);
+    int s, h = 0;
+    if (!t || tb_parse(&tb_screen, t) != 0 || (s = tb_fit(&tb_screen, NUM_R - NUM_X, TB_BOT - XE_TOP)) == 0) return 0;
+    for (int i = 0, n = tb_lines(&tb_screen); i < n; i++) h += tb_line_h(&tb_screen, i) + (i ? LGAP_TB(s) : 0);
+    if (h > TB_BOT - XE_TOP) return 0;
+    *top = BOT_X - h < XE_TOP ? XE_TOP : BOT_X - h;
+    return s;
+}
+
+static bool draw_xexpr(ls027_frame *f, const ab_calc *c)
+{
+    int top, s = xexpr_fit(c, &top);
+    if (!s) return false;
+    tb_draw(&tb_screen, f, NUM_X, top, TB_BOT, 0);
+    int k = tb_screen.root, axis;
+    if (tb_screen.n[k].kind == TB_ROWS) k = tb_screen.n[k].a;
+    axis = tb_screen.n[k].axis;
+    screen_text(f, 2, top + axis - 3 * 2, 2, "X", true);   /* X's letter on the first line's axis */
+    return true;
+}
+
 void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
 {
     composed *k = &comp;
@@ -1108,6 +1145,13 @@ void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
         page_line(&out->z, &k->z, SCREEN_VALUE, false, "Z");
         page_line(&out->y, &k->y, k->yk, k->prompt, k->prompt ? NULL : "Y");
         page_line(&out->x, &k->x, k->xk, k->x_left, k->x_letter ? "X" : NULL);
+        int top;
+        if (k->xexpr && xexpr_fit(c, &top)) {   /* 082: X's expression drawn in the frame (rows 21-205, as 080's area);
+                                                   the lines keep their text, the drawn form beside them */
+            out->textbook_on = true;
+            if (tb_text(&tb_screen, false, out->drawn, sizeof out->drawn) < 0)
+                snprintf(out->drawn, sizeof out->drawn, "%s", ab_expr_text(c, &c->x));
+        }
     }
     if (c->gr_on && ui->graph) {               /* a graph's text (unit 033b) */
         out->graph_on = true;
@@ -1211,6 +1255,10 @@ void screen_render(const ab_calc *c, const screen_ui *ui, ls027_frame *f)
     draw_line(f, BOT_Z, 2, &k->z, false);
     if (!k->prompt) draw_label(f, BOT_Y, "Y");
     draw_line(f, BOT_Y, k->prompt ? 3 : 2, &k->y, k->prompt);
+    if (k->xexpr && draw_xexpr(f, c)) {         /* 082: X's expression in 2D */
+        soft_band(f, ui);
+        return;
+    }
     if (k->x_letter) draw_label(f, BOT_X, "X");     /* only when the line is X */
     draw_line(f, BOT_X, 4, &k->x, k->x_left);
     soft_band(f, ui);

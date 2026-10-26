@@ -3204,6 +3204,7 @@ static abn_status program_key(ab_calc *c, ab_op op, int arg)
     case AB_CASQUOT: case AB_CASGCD: case AB_CASCANCL:                                          /* 057 */
     case AB_CASSUM:                                                                             /* 070 */
     case AB_CASCPLX:                        /* 076: a setting, as ENTRYM */
+    case AB_EQDROP: case AB_EQSTORE:        /* 082 */
         return ABN_NONPROGRAMMABLE;
     case AB_FDISP:
     case AB_CLALL:                          /* in program entry the menu offers CLPGM in its place
@@ -3937,6 +3938,34 @@ static abn_status cas_step(ab_calc *c, int op, int var, const char *repl, const 
 
 /* The CAS menu's keys: D/DX and COLCT in arg's variable, SIMP, EXPND; SUBST in arg's variable opens the editor for
    its replacement (ENTER substitutes, C or an empty one cancels). */
+/* Unit 082: →X, the shown equation's text as an expression in X, the stack lifted as for any value arriving (Equation
+   mode stays open, so several can be dropped). STU only; nothing at EQN LIST TOP or on a built-in solver's entry (as
+   ENTER and XEQ there), WHERE on a sum's condition (070); an entry stamped 33 or 35 reads by another mode's rules, so
+   it isn't STU's text: INVALID DATA. A full store is MEMORY FULL, nothing changed (the slot is asked for before the
+   lift, while T is still live: section 7). */
+static abn_status eqn_drop(ab_calc *c)
+{
+    ab_val v;
+    abn_status st;
+    if (!c->stu) return ABN_STU_ONLY;
+    if (c->eqn_cur < 0 || eqn_builtin(c, c->eqn_cur)) return ABN_OK;
+    if (eqn_where(c)) return ABN_CAS_WHERE;
+    if (c->eqn_model[c->eqn_cur] != AB_MODEL_STU) return ABN_DOMAIN;
+    if ((st = ab_expr_new(c, c->eqn[c->eqn_cur], &v)) != ABN_OK) return st;
+    place_val(c, v);
+    c->lift = true;
+    return ABN_OK;
+}
+
+/* Unit 082: →EQN, X's expression (or a name, its letter) inserted into the list after the shown entry, which becomes
+   the shown one, stamped STU as typed; X kept. A number in X is NOT A NUMBER (abacus #11174), nothing changed. */
+static abn_status eqn_store_x(ab_calc *c)
+{
+    if (!c->stu) return ABN_STU_ONLY;
+    if (!ab_is_sym(&c->x)) return ABN_NOT_NUMBER;
+    return eqn_insert(c, ab_expr_text(c, &c->x));
+}
+
 static abn_status cas_key(ab_calc *c, ab_op op, int arg)
 {
     if (!c->stu) return ABN_STU_ONLY;
@@ -4112,7 +4141,7 @@ static bool eqn_handles(ab_op op)
     case AB_EQN: case AB_CANCEL: case AB_ENTER: case AB_CASD: case AB_CASSIMP: case AB_CASEXP: case AB_CASCOL:
     case AB_CASSUB: case AB_CASSOLVE: case AB_CASINT: case AB_CASFACT: case AB_CASDEF: case AB_CASQUOT: case AB_CASGCD:
     case AB_CASCANCL: case AB_CASSUM: case AB_KINF: case AB_XEQ: case AB_SOLVE: case AB_INTEG: case AB_EQTOP:
-    case AB_SST: case AB_BST: case AB_KBKSP: case AB_KLEFT: case AB_KRIGHT:
+    case AB_SST: case AB_BST: case AB_KBKSP: case AB_KLEFT: case AB_KRIGHT: case AB_EQDROP: case AB_EQSTORE:
         return true;
     default:
         return false;
@@ -4169,6 +4198,10 @@ static abn_status eqn_key(ab_calc *c, ab_op op, int arg)
     case AB_KINF:                               /* unit 070: ∞, only as Σ's upper bound (the bar shows it there) */
         if (c->eqn_typing && c->cas_def && c->cas_def_sum && c->cas_def_step == 2) ed_insert(c, "\xe2\x88\x9e", 0);
         return ABN_OK;
+    case AB_EQDROP:
+    case AB_EQSTORE:
+        if (c->eqn_typing) return ABN_OK;           /* the list's keys, as the CAS ones */
+        return op == AB_EQDROP ? eqn_drop(c) : eqn_store_x(c);
     case AB_XEQ:
         if (arg != AB_TGT_EQN) return ABN_NOT_IN_EQN;  /* (a backstop: ab_eqn_refuses refused it first, 075) */
         if (c->eqn_typing && (st = eqn_store_typed(c)) != ABN_OK) return st;
@@ -5397,7 +5430,8 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
     case AB_CASD: case AB_CASSIMP: case AB_CASEXP: case AB_CASCOL: case AB_CASSUB:
     case AB_CASSOLVE: case AB_CASINT: case AB_CASFACT: case AB_CASDEF:
     case AB_CASQUOT: case AB_CASGCD: case AB_CASCANCL: case AB_CASSUM:
-        return c->stu ? ABN_NO_EQN : ABN_STU_ONLY;     /* CAS 004, 048, 056, 070: from Equation mode's list only */
+    case AB_EQDROP: case AB_EQSTORE:
+        return c->stu ? ABN_NO_EQN : ABN_STU_ONLY;     /* CAS 004, 048, 056, 070, 082: from Equation mode's list only */
     case AB_EQN:
         c->eqn_mode = true;                     /* neutral (UG p.B-5) */
         if (!ab_mode35(c) && eqn_builtin(c, c->eqn_cur)) c->eqn_cur = -1;     /* 33s mode: no built-ins (041 A4) */

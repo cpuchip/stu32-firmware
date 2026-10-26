@@ -624,6 +624,76 @@ static void classes(void)
     }
 }
 
+/* ---- 7. →X and →EQN (AB_EQDROP, AB_EQSTORE) ---- */
+
+static void drop_store(void)
+{
+    char what[160];
+    ab_init(&ca);
+    ab_do_arg(&ca, AB_MODEL, AB_MODEL_STU);
+    ab_do(&ca, AB_EQN);
+    ab_do(&ca, AB_EQN);                         /* (Equation mode off: the keys outside it) */
+    expect(ab_do(&ca, AB_EQDROP) == ABN_NO_EQN && ab_do(&ca, AB_EQSTORE) == ABN_NO_EQN,
+           "082: →X and →EQN outside Equation mode: the list's keys only (NO EQN notice)");
+    for (int i = 1; i <= 4; i++) ca.x = real_int(i), ab_do(&ca, AB_ENTER);
+    ca.x = real_int(4), ca.lift = true;
+    expect(ab_eqn_add(&ca, "3\xc3\x97X^2-4") == ABN_OK, "082: an equation typed");
+    int n0 = ca.eqn_count, cur = ca.eqn_cur;
+    memcpy(&cb, &ca, sizeof cb);
+    expect(ab_do(&ca, AB_EQDROP) == ABN_OK && ca.x.kind == AB_EXPR && !strcmp(ab_expr_text(&ca, &ca.x), "3\xc3\x97X^2-4") &&
+               same_val(&ca, &ca.y, &cb, &cb.x) && same_val(&ca, &ca.z, &cb, &cb.y) && same_val(&ca, &ca.t, &cb, &cb.z) &&
+               ca.eqn_mode && ca.eqn_count == n0 && ca.eqn_cur == cur,
+           "082: →X: the shown equation's text in X, the stack lifted, Equation mode and the list as they were");
+    expect(ab_do(&ca, AB_EQDROP) == ABN_OK && ca.x.kind == AB_EXPR && ca.y.kind == AB_EXPR && ca.x.len != ca.y.len,
+           "082: →X again: a second expression (its own slot)");
+    size_t m = ab_state_save(&ca, img1, sizeof img1);
+    ab_init(&cb);
+    expect(img1[4] == 21 && ab_state_load(&cb, img1, m) == ABN_OK && !strcmp(ab_expr_text(&cb, &cb.y), "3\xc3\x97X^2-4"),
+           "082: after →X the image is version 21 and loads with the expressions");
+    /* →EQN: X's expression after the shown entry, shown; X kept */
+    expect(ab_do(&ca, AB_EQSTORE) == ABN_OK && ca.eqn_count == n0 + 1 && ca.eqn_cur == cur + 1 &&
+               !strcmp(ca.eqn[ca.eqn_cur], "3\xc3\x97X^2-4") && ca.eqn_model[ca.eqn_cur] == AB_MODEL_STU && ca.x.kind == AB_EXPR,
+           "082: →EQN: X's expression inserted after the shown entry, now shown, stamped STU; X kept");
+    ca.x = name_val(2);
+    expect(ab_do(&ca, AB_EQSTORE) == ABN_OK && !strcmp(ca.eqn[ca.eqn_cur], "C"), "082: →EQN of the name C: the entry C");
+    ca.x = real_int(5);
+    memcpy(&cb, &ca, sizeof cb);
+    expect(ab_do(&ca, AB_EQSTORE) == ABN_NOT_NUMBER && ca.eqn_count == cb.eqn_count && ca.eqn_cur == cb.eqn_cur,
+           "082: →EQN with a number in X: NOT A NUMBER (abacus #11174), the list unchanged");
+    /* nothing at TOP or on a built-in; a 35-stamped entry is another mode's text */
+    ca.msg = false;
+    ca.eqn_cur = -1;
+    memcpy(&cb, &ca, sizeof cb);
+    expect(ab_do(&ca, AB_EQDROP) == ABN_OK && same_state(&ca, &cb), "082: →X at EQN LIST TOP: nothing");
+    ca.eqn_cur = 0;
+    while (ca.eqn_cur < ca.eqn_count && ca.eqn[ca.eqn_cur][0] != '\x01') ca.eqn_cur++;   /* (the built-ins follow what was typed at TOP) */
+    expect(ca.eqn_cur < ca.eqn_count && ab_do(&ca, AB_EQDROP) == ABN_OK && same_state(&ca, &cb),
+           "082: →X on a built-in solver's entry: nothing");
+    ca.eqn_cur = cur;
+    ca.eqn_model[cur] = 35;
+    expect(ab_do(&ca, AB_EQDROP) == ABN_DOMAIN && same_state(&ca, &cb), "082: →X on a 35-stamped entry: INVALID DATA");
+    ca.eqn_model[cur] = AB_MODEL_STU;
+    /* a full store: MEMORY FULL, nothing changed (the slot asked for before the lift) */
+    {
+        ab_val *p[64];
+        int np = store_places(&ca, p);
+        for (int i = 0; i < np; i++) {
+            char t[32];
+            snprintf(t, sizeof t, "E%02d", i);
+            put_expr(&ca, p[i], t);
+        }
+        ca.msg = false;
+        memcpy(&cb, &ca, sizeof cb);
+        abn_status st = ab_do(&ca, AB_EQDROP);
+        snprintf(what, sizeof what, "082: →X with all 48 places distinct expressions: MEMORY FULL, nothing changed (%d)", (int)st);
+        expect(st == ABN_EXPR_FULL && same_state(&ca, &cb) && !strcmp(ab_expr_text(&ca, &ca.t), "E03"), what);
+    }
+    /* 35s mode: STU only */
+    ca.msg = false;                             /* (MEMORY FULL showing: the next key would only clear it) */
+    ab_do_arg(&ca, AB_MODEL, 35);
+    expect(ab_do(&ca, AB_EQDROP) == ABN_STU_ONLY && ab_do(&ca, AB_EQSTORE) == ABN_STU_ONLY, "082: →X and →EQN: STU only");
+}
+
 int main(int argc, char **argv)
 {
     bool write_golden = argc > 1 && !strcmp(argv[1], "--write-golden");
@@ -634,6 +704,7 @@ int main(int argc, char **argv)
     store();
     sweep();
     classes();
+    drop_store();
     printf("expr_test: %d/%d checks\n", checks - failures, checks);
     return failures != 0;
 }

@@ -143,9 +143,10 @@ typedef struct {
     bool graph_on;                  /* a graph shown (unit 033b): its text */
     bool textbook_on;               /* unit 080: STU's shown equation drawn in 2D in rows 21-205 of screen_render's frame
                                        (a host draws those rows from it, as for a graph); x keeps the equation's text,
-                                       T, Z and Y are empty */
+                                       T, Z and Y are empty. Unit 082: also when X holds an expression drawn in 2D
+                                       under Y's line; then T, Z, Y and X all keep their text */
     char drawn[256];                /* unit 080: what the area draws, as text (tbook's tb_text): x only where drawn, e^u,
-                                       |u|, √u, a÷b; the equation's text when it's drawn as text */
+                                       |u|, √u, a÷b; the equation's text when it's drawn as text (082: X's expression's) */
     screen_graph_text graph;
     screen_line t, z, y, x;
     bool view;                      /* four message lines, not the stack: SYS's view, 048's report (tally #5455) */

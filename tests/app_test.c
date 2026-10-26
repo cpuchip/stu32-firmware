@@ -1047,6 +1047,28 @@ int main(void)
                "041 C: VAR: CLEAR zeroes D; C=3 shown");
         press(&a, "C");
         expect(a.cat == 0, "041 C: VAR: C cancels");
+        {   /* unit 082: a letter holding an expression or a name is listed, quoted, cut by cells (never inside ×) */
+            ab_val v;
+            ab_init(&c);
+            ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+            expect(ab_expr_new(&c, "12\xc3\x97X^5+(12\xc3\x97Y+8)\xc3\x97X^4+(-43\xc3\x97Y-192)\xc3\x97X^3", &v) == ABN_OK,
+                   "082: an expression made");
+            c.var[0] = v;
+            memset(&c.var[1], 0, sizeof c.var[1]);
+            c.var[1].kind = AB_NAME, c.var[1].len = 2;
+            press(&a, "BLUE 1 k:0");
+            app_ui(&a, &ui);
+            const char *l = ui.view[3];
+            int cells = 0;
+            for (const char *p = l ? l : ""; *p; p++) cells += ((unsigned char)*p & 0xC0) != 0x80;
+            expect(a.cat == 1 && l && !strncmp(l, "A='12\xc3\x97X^5+(12\xc3\x97Y+8)", 19) && strlen(l) <= 39 && cells <= 31 &&
+                       !strcmp(l + strlen(l) - 3, "\xe2\x80\xa6"),
+                   "082: VAR: A's expression listed, quoted, cut to the line by cells and bytes with an ellipsis");
+            press(&a, "k:1");
+            app_ui(&a, &ui);
+            expect(ui.view[3] && !strcmp(ui.view[3], "B='C'"), "082: VAR: down, B holds the name C");
+            press(&a, "C");
+        }
         ab_init(&c);
         app_init(&a, &c, now);
         a.sysinfo = fake_sysinfo;

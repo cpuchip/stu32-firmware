@@ -294,6 +294,7 @@ static int cx_pair_of(const km_action *act)
 static bool var_set(const ab_calc *c, int v)
 {
     const ab_val *x = &c->var[v];
+    if (ab_is_sym(x)) return true;              /* 082: an expression or a name (its number parts are zero) */
     return !abn_is_zero(&x->re) || (x->kind != AB_REAL && (!abn_is_zero(&x->im) || !abn_is_zero(&x->p3)));
 }
 
@@ -335,7 +336,21 @@ static void cat_fill(app_state *a)
         d.angle = (int)c->angle;
         char t[64];
         int ind = 0, n;
-        if (v->kind == AB_COMPLEX) n = ab_format_complex(&v->re, &v->im, &d, t, sizeof t);
+        if (ab_is_sym(v)) {                     /* 082: quoted, as the stack; when it's longer than the line (29 cells
+                                                   after the letter and =, 37 bytes), cut before a glyph and an ellipsis
+                                                   added, the whole within both */
+            char q[AB_EQN_LEN + 4];
+            int cells = 0, cut = -1, i = 0;
+            snprintf(q, sizeof q, "'%s'", ab_expr_text(c, v));
+            for (; q[i]; i++) {
+                unsigned b = (unsigned char)q[i];
+                if ((b & 0xC0) == 0x80) continue;
+                int gl = b < 0x80 ? 1 : b < 0xE0 ? 2 : b < 0xF0 ? 3 : 4;
+                if (cut < 0 && (cells + 1 > 28 || i + gl > 34)) cut = i;     /* (the ellipsis is a cell and 3 bytes) */
+                cells++;
+            }
+            n = cells > 29 || i > 37 ? snprintf(t, sizeof t, "%.*s\xe2\x80\xa6", cut, q) : snprintf(t, sizeof t, "%s", q);
+        } else if (v->kind == AB_COMPLEX) n = ab_format_complex(&v->re, &v->im, &d, t, sizeof t);
         else if (v->kind == AB_VECTOR) {
             abn el[3] = {v->re, v->im, v->p3};
             n = ab_format_vector(el, v->len, &d, t, sizeof t);
