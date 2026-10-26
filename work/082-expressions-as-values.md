@@ -384,3 +384,21 @@ and this record with VER 0.82.
   nothing dropped not flagged. M9 (the byte count's own check removed) survives: the image is still refused a few bytes
   later, when the section's end doesn't match. An equivalent mutant; the check stays as a guard.
 
+### A pre-existing bug the sanitized fuzz found: the program pointer past the end
+- **Found:** load_fuzz built with ASan and UBSan (by hand; make test has no sanitizer build) gave "negative-size-param"
+  in prog_insert. A control build at b2a36e7 (before 4C) fails the same way, so it predates this unit. Two probes
+  through the API, with no crafted image, then showed it reachable from keys:
+  - **A crash:** a run that a slice stops right after its last line (the slice check comes before the end check) leaves
+    pc at prog_len. C between slices stops it there. PRGM then 5 SIN moves memory by a count of -1 line (prog_insert),
+    and BKSP does the same in prog_delete. On x86 at -O2 glibc's memmove happened not to fault, and the program came out
+    wrong (S31's run gave X=2). Under ASan it aborts. On the device it is undefined.
+  - **A lost memory:** GTO a program's last line when it is a test that is false, then SST. The skip leaves pc at
+    prog_len + 1. The image is saved with that pc and its own reader refuses it (it allows at most prog_len), so the next
+    boot would MEMORY CLEAR. A stop by the slice, C, the budget or flag 5's overflow at that line does the same.
+- **Fixed (calc.c):** a run that stops past its last line is clamped to prog_len, "stopped at the end", which the image
+  already holds and from which R/S ends the run either way. PRGM, and any program-entry key (for an image loaded in
+  program entry), moves a pointer at the end to the last line, so keys record after it and BKSP deletes it.
+- **Vectors (work/016):** S27 (SST of a last-line test: the image loads, 3 lines), S28 (after the slice stop and C,
+  PRGM 5 SIN: 6 lines, A006), S29 (BKSP: 3 lines, A003), S30 (PRGM shows A004), S31 (the edited program runs: SIN 5
+  degrees, Y 2). Each part removed goes red: no clamp fails S27; no entry_pc fails S28 to S31 at -O2 without ASan; at
+  PRGM alone fails S30. load_fuzz under ASan and UBSan, 1.8 million cases over six seeds: no violation.

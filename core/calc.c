@@ -1654,7 +1654,18 @@ static abn_status prog_run(ab_calc *c, long limit)
     c->running++;
     abn_status st = prog_run_lines(c, limit, sst);
     c->running--;
+    /* a run stopped past its last line (a test there skipping: prog_len + 1) is stopped at the end, prog_len, as the
+       image holds it: R/S ends the run either way (082's fuzz under ASan: SST of a last-line test saved an image its
+       own reader refused) */
+    if (c->pc > c->prog_len) c->pc = c->prog_len;
     return st;
+}
+
+/* Program entry at a run's end (pc prog_len, the run stopped after its last line): the last line shown, so a key
+   records after it and BKSP deletes it (082's fuzz under ASan: both moved memory by a negative count). */
+static void entry_pc(ab_calc *c)
+{
+    if (c->pc >= c->prog_len) c->pc = c->prog_len - 1;     /* (AB_PC_TOP for an empty program) */
 }
 
 static abn_status prog_run_lines(ab_calc *c, long limit, bool sst)
@@ -3114,6 +3125,7 @@ static bool eqn_type(ab_calc *c, ab_op op, int arg);
 static abn_status program_key(ab_calc *c, ab_op op, int arg)
 {
     abn_status st;
+    entry_pc(c);                                /* (an image loaded in program entry at a run's end) */
     if (c->eqn_typing) {
         /* an equation line being typed (UG p.13-7): ENTER records it (C and EQN too, as in the
            list, p.6-4); the editor's keys act as in Equation mode; other keys do nothing (ours) */
@@ -5348,6 +5360,7 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
     /* ---- keystroke programs from the keyboard (unit 011) ---- */
     case AB_PRGM:
         c->prgm = true;                         /* neutral (UG p.B-5) */
+        entry_pc(c);
         return ABN_OK;
     case AB_XEQ: {
         /* XEQ label (nnn): runs from that line (UG p.13-10) with an empty return stack */
