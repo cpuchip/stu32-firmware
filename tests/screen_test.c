@@ -222,7 +222,7 @@ static void frame(const char *name, const ab_calc *c, const screen_ui *ui)
     }
 }
 
-#define TB_CRC_22 0x7493EE74UL    /* unit 080: 22-tb-stu3, the frame looked at before it was kept (tally #10916) */
+#define TB_CRC_22 0x9A4A7D8CUL    /* unit 080: 22-tb-stu3's rows 21-205, the frame looked at before it was kept (tally #10916) */
 
 int main(int argc, char **argv)
 {
@@ -969,8 +969,9 @@ int main(int argc, char **argv)
             frame(TB[i].name, &c, &ui);
             if (i == 0) {           /* tally #10916: one textbook frame by its CRC, for the app's check */
                 screen_render(&c, &ui, &tf);
-                uint32_t crc = ab_crc32((const uint8_t *)tf.px, sizeof tf.px);
-                printf("screen_test: 22-tb-stu3 (STU, \"3\xc3\x97X^2-4\" shown, the default ui) frame CRC %08lX\n", (unsigned long)crc);
+                /* the area's rows only, 21-205: what the app draws from the frame; the band's battery and clock differ */
+                uint32_t crc = ab_crc32((const uint8_t *)tf.px[21], (205 - 21 + 1) * LS027_ROW_BYTES);
+                printf("screen_test: 22-tb-stu3 (STU, \"3\xc3\x97X^2-4\" shown) rows 21-205 CRC %08lX\n", (unsigned long)crc);
                 expect(crc == TB_CRC_22, "080: 22-tb-stu3's frame CRC is the one the app checks");
             }
         }

@@ -1,3 +1,9 @@
+# The blueprint's censuses (2026-10-25), the prototype's parser (proto-textbook 8f98ea5) over casim's golden corpus at
+# 4625452: each OK, PARTIAL or DECIMAL_FORM answer of 191 B or less, op and text pairs, solve's roots split (5,858).
+# Labelled at abacus #10907. The unit's own tree is measured by tests/tbook_test.c (its census line in make test).
+
+## 1. STRUCTURAL depth (depth-census.c with STRUCT=1): chains of + - x counted once, the walk the unit uses.
+##    The 12-level cap reads against this one: no real answer past 10, none 11-31, the 21 stress nests 32-43.
 parsed 5853, failed 5
 max depth 43: expand: X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^X)))))))))
 max nodes 123: taylor: 1÷2+K×X÷2+X^2×(K^2-1)÷4-X^3×(K-K^3÷3)÷4-X^4×(K^2-K^4÷6-1)÷8+X^5×(K-K^3÷3+K^5÷30)÷8+X^6×(K^2-K^4÷6+K^6÷90-1)÷16-X^7×(K-K^3÷3+K^5÷30-K^7÷63
@@ -23,6 +29,9 @@ depth 41:     2  (cum  99.9%)
 depth 42:     2  (cum 100.0%)
 depth 43:     2  (cum 100.0%)
 
+
+## 2. BINARY depth (depth-census.c without STRUCT): the prototype's binary tree, every + - x a level.
+##    A flat 20-term polynomial reaches 21 here. Not what the cap reads against.
 parsed 5853, failed 5
 max depth 44: expand: IP(IP(IP(IP(IP(IP(IP(IP(IP(IP(IP(IP(IP(IP(IP(IP(IP(IP(IP(IP(IP(IP(IP(IP(IP(IP(IP(IP(IP(IP(IP(IP(IP(IP(IP(IP(IP(IP(IP(IP(2×X+X^2+1)))))))))
 max nodes 123: taylor: 1÷2+K×X÷2+X^2×(K^2-1)÷4-X^3×(K-K^3÷3)÷4-X^4×(K^2-K^4÷6-1)÷8+X^5×(K-K^3÷3+K^5÷30)÷8+X^6×(K^2-K^4÷6+K^6÷90-1)÷16-X^7×(K-K^3÷3+K^5÷30-K^7÷63
@@ -55,6 +64,8 @@ depth 42:     2  (cum  99.9%)
 depth 43:     1  (cum  99.9%)
 depth 44:     3  (cum 100.0%)
 
+
+## 3. The size rule (size-census.c): scale 3 whole, else 2, else wrapped at 2; heights against 180 px.
 answers 5853 (parse failed 5)
  scale 3 whole: 4455
  scale 2 whole: 783
@@ -63,3 +74,7 @@ answers 5853 (parse failed 5)
  a term alone wider than the line: 61 (e.g. -11×(X+4×X^2÷11+6÷11)÷124÷(X-30×X^2÷31+11×X^3÷31-X^4÷2+15×X^5÷31-4×X^6÷31-6÷31); X=3)
  tallest that fit the rule: 256 px
  most nodes after the rule (wrap included): 139
+
+
+## The unit's own tree (tests/tbook_test.c, 2026-10-26, casim 2a9c354, each distinct text once: 4,884): layout depth
+## no real answer past 12, casim's stress nests 33-44, so TB_DEPTH is 16; most nodes 166 (wrapped), so TB_NODES 200.

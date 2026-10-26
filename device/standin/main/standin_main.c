@@ -57,7 +57,7 @@
 #define GT911_ADDR 0x5D
 
 enum { EV_KEY = 0, EV_OP, EV_DUMP, EV_SAVE, EV_WIPE, EV_RESTART, EV_TOUCHED, EV_BENCH, EV_TIME, EV_POWBENCH,
-       EV_KEYUP, EV_TBLBENCH, EV_GRBENCH, EV_FRAMEBENCH,
+       EV_KEYUP, EV_TBLBENCH, EV_GRBENCH, EV_FRAMEBENCH, EV_FRAMECRC,
        EV_POLBENCH, EV_ZOOMBENCH, EV_CASBENCH, EV_DIFFBENCH, EV_FNBENCH, EV_HPBENCH, EV_PROGBENCH, EV_EQNBENCH, EV_OPBENCH };                          /* EV_KEYUP: a the key released (unit 030: SHOW, held) */
 static char time_text[16];             /* TIME's argument, for the calc task (unit 027) */
 
@@ -1113,6 +1113,7 @@ static void console_task(void *arg)
         else if (!strcmp(line, "TBLBENCH")) e.kind = EV_TBLBENCH;  /* unit 032 rule 7: a screenful's time */
         else if (!strcmp(line, "GRBENCH")) e.kind = EV_GRBENCH;    /* unit 033 rule 8: a full plot's time */
         else if (!strcmp(line, "FRAMEBENCH")) e.kind = EV_FRAMEBENCH;  /* unit 037 rule 6: full frames a second */
+        else if (!strcmp(line, "FRAMECRC")) e.kind = EV_FRAMECRC;      /* unit 080: the frame's area rows, as the host's */
         else if (!strcmp(line, "POLBENCH")) e.kind = EV_POLBENCH;  /* unit 034 rule 3: ->POL before and after */
         else if (!strcmp(line, "ZOOMBENCH")) e.kind = EV_ZOOMBENCH;  /* unit 040: a redraw after each zoom */
         else if (!strcmp(line, "CASBENCH")) e.kind = EV_CASBENCH;    /* CAS 004: each step's time, the stack */
@@ -1177,6 +1178,12 @@ static void calc_task(void *arg)
             int64_t t1 = esp_timer_get_time();
             printf("framebench: %s, 50 frames in %lld ms: %.1f frames a second\n", app_running(&app) ? app.app->name : "calculator",
                    (long long)(t1 - t0) / 1000, 50.0e6 / (double)(t1 - t0));
+        } else if (got && ev.kind == EV_FRAMECRC) {
+            /* unit 080: the CRC of the frame's rows 21-205, the textbook area (the app draws those from the frame), so the
+               host's screen_test and the app compare against the device's own (tally #10916) */
+            render(0);
+            printf("framecrc: rows 21-205 %08lX\n",
+                   (unsigned long)ab_crc32((const uint8_t *)fb[front].px[21], (205 - 21 + 1) * LS027_ROW_BYTES));
         } else if (got && ev.kind == EV_GRBENCH) {
             grbench();
         } else if (got && ev.kind == EV_TBLBENCH) {

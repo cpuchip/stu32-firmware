@@ -11,12 +11,13 @@ code.** The start is the throwaway prototype on branch proto-textbook (8f98ea5, 
 - Typing stays one line.
 - STU only: the 33s and 35s modes don't move.
 
-**Why this file is in work/blueprint/:** scripts/check-version.sh takes the last unit from work/NNN-*.md (and
-tests/NNN-*.txt). A record named work/080-*.md now would make it demand VER 0.80 before any 080 code exists, which is
-079's VER miss (#10800) run the other way. The unit's own commit moves this file to work/080-textbook-display.md and
-bumps AB_FW_VERSION to "0.80" together.
+**Where this file was:** it was written in work/blueprint/ (c98b931). scripts/check-version.sh takes the last unit
+from work/NNN-*.md (and tests/NNN-*.txt), so a record named work/080-*.md would have made it demand VER 0.80 before any
+080 code existed, which is 079's VER miss (#10800) run the other way. The unit's commit moved it here and bumped
+AB_FW_VERSION to "0.80" in the same commit. The blueprint below is as abacus approved it (#10907). Where the code
+measured differently, the gate section at the end says so.
 
-**The evidence** is in work/blueprint/080-evidence/:
+**The evidence** is in work/080-evidence/:
 - tbprobe.patch: the S3 probe, applied on 8d663c7 with the prototype's tb.c and tb.h;
 - tbprobe-run.txt: the probe's output;
 - depth-census.c and size-census.c: the host censuses, run against the prototype's parser;
