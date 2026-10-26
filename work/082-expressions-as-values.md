@@ -402,3 +402,7 @@ and this record with VER 0.82.
   PRGM 5 SIN: 6 lines, A006), S29 (BKSP: 3 lines, A003), S30 (PRGM shows A004), S31 (the edited program runs: SIN 5
   degrees, Y 2). Each part removed goes red: no clamp fails S27; no entry_pc fails S28 to S31 at -O2 without ASan; at
   PRGM alone fails S30. load_fuzz under ASan and UBSan, 1.8 million cases over six seeds: no violation.
+- **D68 (9ba855d to 5e3f85c, 4C and this fix):** flash +288 B on the stand-in (3,638,608 to 3,638,896) and on Rev A
+  (3,578,784 to 3,579,072); internal RAM static, IRAM code and calc_task's frame +0 on both; no internal-RAM symbol
+  changed. Not run on the board: the core's change is the reader and the run loop, with no new RAM. There is no console
+  command to put an arbitrary image in flash, so 4C's real path is the host's (expr_test, frame 48).
