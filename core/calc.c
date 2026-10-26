@@ -3269,7 +3269,8 @@ static int eqn_builtin(const ab_calc *c, int i)
 }
 
 /* Inserts text as a new equation after the one shown and shows it (UG p.6-4); never between the
- * two built-ins: after them (p.6-8). */
+ * two built-ins: after them (p.6-8). Since 082 never before a WHERE row either: after the shown entry's rows (a sum's
+ * answer and its conditions stay together, which eqn_delete_entry counts on; abacus #11488). */
 static abn_status eqn_insert(ab_calc *c, const char *text)
 {
     int at = c->eqn_cur + 1;
@@ -3277,6 +3278,8 @@ static abn_status eqn_insert(ab_calc *c, const char *text)
     if (c->eqn_count - 2 >= AB_EQN_MAX) return ABN_MEMORY_FULL;
     abn_status st = stored_text(c, text, t, typed_model(c));
     if (st != ABN_OK) return st;
+    if (c->eqn_cur >= 0)
+        while (at < c->eqn_count && c->eqn_note[at] == AB_NOTE_WHERE) at++;
     if (eqn_builtin(c, at - 1) == 2) at++;
     memmove(c->eqn[at + 1], c->eqn[at], (size_t)(c->eqn_count - at) * AB_EQN_LEN);
     memmove(&c->eqn_model[at + 1], &c->eqn_model[at], (size_t)(c->eqn_count - at));

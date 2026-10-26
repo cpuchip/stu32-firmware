@@ -474,5 +474,17 @@ and this record with VER 0.82.
     taking the rows after it fails the row-alone check.
 - **The list has no link from a row to its answer: the rows after an entry are taken as its own.** NEW starts at TOP,
   so it never splits them. A CAS op on the answer does: D/DX X on -1÷(X-1) inserts 1÷(X-1)^2 between the answer and
-  ABS(X)<1, and ← on the derivative then takes the sum's row with it (measured). Open for a ruling: an insert
-  on an answer could land after its rows.
+  ABS(X)<1, and ← on the derivative then takes the sum's row with it (measured).
+- **Fixed (abacus #11488): an insert lands after the shown entry's WHERE rows,** never between an answer and its rows
+  or among the rows (calc.c eqn_insert). NEW at TOP is unchanged, even when an 081 image left a WHERE row first.
+  - Oracle: Σ X^K, D/DX X, then ← on the derivative: ABS(X)<1 stays after -1÷(X-1).
+  - The sweep, through the keys, in the real Σ's list (-1÷(X-1), one row) and in a polynomial's (X^2-1, rows X≠1 and
+    X≠2, then A+B; FACTR, QUOT, GCD, ∫AB and Σ refuse -1÷(X-1)): D/DX, SIMP, EXPND, COLCT, SUBST, ∫DX, FACTR, ∫AB, Σ,
+    QUOT (its two rows), GCD, CANCL, →X then →EQN, a typed equation, NEW; and on a row, a typed equation and →EQN.
+    28 inserts, each inserting what it should, every sum's rows still after their answer. At 23f1790's calc.c, 24 fail;
+    the 4 that pass are NEW in both lists and the two cases on the real Σ's only row.
+  - Σ on an answer that has two rows: its answer after them, its ABS(X)<1 after its answer.
+  - Mutants: no TOP guard (NEW over an orphaned first row lands after it) fails 1; an if for the while fails 2 (13 of
+    the sweep's 28).
+- **Open, measured: an edited row loses WHERE (057, 070) and so splits its sum.** Rows X≠1 and X≠2, X≠1 edited to X≠3:
+  ← on the answer then deletes it alone, and X≠2 counts as X≠3's.

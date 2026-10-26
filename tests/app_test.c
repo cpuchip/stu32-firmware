@@ -4381,6 +4381,101 @@ int main(void)
         press(&a, "BLUE \xe2\x86\x90");
         l1 = ab_state_save(&c, s1, sizeof s1);
         expect(l1 == l0 && !memcmp(s0, s1, l0), "082: and one UNDO brings both back, the state exact");
+
+        /* abacus #11488: an insert on an answer lands after its WHERE rows, never between (the list has no link from a
+           row to its answer: the rows after an entry are its own). The oracle: Σ X^K, then D/DX X on the answer, then
+           ← on the derivative: ABS(X)<1 stays with the sum */
+        press(&a, "k:4 k:0 ltr:X");
+        int d = c.eqn_cur;
+        bool after = d >= 2 && !strcmp(c.eqn[d], "1\xc3\xb7(X-1)^2") && !strcmp(c.eqn[d - 2], "-1\xc3\xb7(X-1)") &&
+                     c.eqn_note[d - 1] == AB_NOTE_WHERE;
+        press(&a, "\xe2\x86\x90");
+        expect(after && c.eqn_count == n0 && !strcmp(c.eqn[c.eqn_cur], "ABS(X)<1") &&
+                   c.eqn_note[c.eqn_cur] == AB_NOTE_WHERE && !strcmp(c.eqn[c.eqn_cur - 1], "-1\xc3\xb7(X-1)"),
+               "082: \xce\xa3 X^K, D/DX X lands after ABS(X)<1; \xe2\x86\x90 on the derivative leaves the sum's row with it");
+        /* the sweep: every op that inserts into the list, on a sum's answer and on one of its rows, in the real Σ's
+           list (its answer -1÷(X-1), one row) and in a polynomial's (X^2-1, rows X≠1 and X≠2, then A+B: the ops that
+           refuse -1÷(X-1)); the sum's rows stay directly after its answer, and each op inserted what it should */
+        static const struct { const char *how, *keys; int base, must; } OP[] = {
+            {"D/DX X", "k:4 k:0 ltr:X", 3, 1}, {"SIMP", "k:4 k:1", 3, 1}, {"EXPND", "k:4 k:2", 3, 1},
+            {"COLCT X", "k:4 k:3 ltr:X", 3, 1}, {"SUBST X 2", "k:4 k:4 ltr:X 2 ENTER", 3, 1},
+            {"\xe2\x88\xab" "DX X", "k:4 k:5 k:1 ltr:X", 3, 1}, {"FACTR X", "k:4 k:5 k:2 ltr:X", 2, 1},
+            {"\xe2\x88\xab" "AB X 0 2", "k:4 k:5 k:3 ltr:X 0 ENTER 2 ENTER", 2, 1},
+            {"\xce\xa3 X 0 2", "k:4 k:5 k:4 ltr:X \xe2\x86\x90 0 ENTER 2 ENTER", 2, 1},
+            {"QUOT X 2", "k:4 k:5 k:5 k:0 ltr:X 2 ENTER", 2, 2}, {"GCD X 2", "k:4 k:5 k:5 k:1 ltr:X 2 ENTER", 2, 1},
+            {"CANCL X", "k:4 k:5 k:5 k:2 ltr:X", 1, 1}, {"\xe2\x86\x92X \xe2\x86\x92" "EQN", "k:5 k:0 k:5 k:1", 3, 1},
+            {"typed 2", "2 ENTER", 3, 1}, {"NEW 2", "k:3 2 ENTER", 3, 1},
+            {"on a row: typed 2", "k:1 2 ENTER", 3, 1},
+            {"on a row: \xe2\x86\x92" "EQN", "k:5 k:0 k:1 k:5 k:1", 3, 1}};
+        int swept = 0, wrong = 0;
+        for (unsigned v = 0; v < sizeof OP / sizeof OP[0]; v++)
+            for (int base = 0; base < 2; base++) {
+                if (!(OP[v].base & (1 << base))) continue;
+                ab_init(&c);
+                app_init(&a, &c, now);
+                ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+                ab_do(&c, AB_RAD);
+                const char *answer = base ? "X^2-1" : "-1\xc3\xb7(X-1)";
+                int rows = base ? 2 : 1;
+                if (base) {
+                    ab_eqn_add(&c, "X^2-1");
+                    ab_eqn_add(&c, "X\xe2\x89\xa0" "1");
+                    c.eqn_note[c.eqn_cur] = AB_NOTE_WHERE;
+                    ab_eqn_add(&c, "X\xe2\x89\xa0" "2");
+                    c.eqn_note[c.eqn_cur] = AB_NOTE_WHERE;
+                    ab_eqn_add(&c, "A+B");
+                    c.eqn_cur = 0;
+                } else {
+                    ab_eqn_add(&c, "X^K");
+                    press(&a, "k:4 k:5 k:4 ltr:K \xe2\x86\x90 0 ENTER k:3 ENTER");
+                }
+                int m0 = c.eqn_count;
+                press(&a, OP[v].keys);
+                int at = -1;
+                for (int i = 0; i < c.eqn_count; i++)
+                    if (!strcmp(c.eqn[i], answer) && c.eqn_note[i] == 0 && at < 0) at = i;
+                bool ok = c.eqn_count == m0 + OP[v].must && at >= 0 && at + rows < c.eqn_count;
+                for (int r = 1; ok && r <= rows; r++) ok = c.eqn_note[at + r] == AB_NOTE_WHERE;
+                swept++;
+                if (!ok && wrong++ < 8) {
+                    printf("app_test: insert sweep, %s on %s: +%d (want +%d), err %d:", OP[v].how, answer,
+                           c.eqn_count - m0, OP[v].must, c.err_status);
+                    for (int i = 0; i < c.eqn_count - 2; i++) printf(" [%s n%d]", c.eqn[i], c.eqn_note[i]);
+                    printf("\n");
+                }
+            }
+        /* a sum's rows inserted after an answer that has rows: the new answer after those rows, its own after it */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        ab_do(&c, AB_RAD);
+        ab_eqn_add(&c, "X^K");
+        ab_eqn_add(&c, "X\xe2\x89\xa0" "1");
+        c.eqn_note[c.eqn_cur] = AB_NOTE_WHERE;
+        ab_eqn_add(&c, "X\xe2\x89\xa0" "2");
+        c.eqn_note[c.eqn_cur] = AB_NOTE_WHERE;
+        ab_eqn_add(&c, "A+B");
+        c.eqn_cur = 0;
+        press(&a, "k:4 k:5 k:4 ltr:K \xe2\x86\x90 0 ENTER k:3 ENTER");
+        static const char *const SUMS[6] = {"X^K", "X\xe2\x89\xa0" "1", "X\xe2\x89\xa0" "2", "-1\xc3\xb7(X-1)", "ABS(X)<1", "A+B"};
+        static const int NOTE[6] = {0, AB_NOTE_WHERE, AB_NOTE_WHERE, 0, AB_NOTE_WHERE, 0};
+        bool two = c.eqn_count == 8 && c.eqn_cur == 3;
+        for (int i = 0; two && i < 6; i++) two = !strcmp(c.eqn[i], SUMS[i]) && c.eqn_note[i] == NOTE[i];
+        expect(two, "082: \xce\xa3 on an answer with 2 WHERE rows: its answer after them, ABS(X)<1 after its answer");
+        /* NEW still starts at TOP when the list's first entry is a WHERE row (an 081 image: ← there left a sum's rows) */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        ab_eqn_add(&c, "X\xe2\x89\xa0" "1");
+        c.eqn_note[c.eqn_cur] = AB_NOTE_WHERE;
+        press(&a, "k:3 2 ENTER");
+        expect(c.eqn_cur == 0 && !strcmp(c.eqn[0], "2") && c.eqn_note[1] == AB_NOTE_WHERE,
+               "082: NEW over an 081 list's orphaned row: the new entry at TOP, before it");
+        char what[160];
+        snprintf(what, sizeof what, "082: %d inserts into the list (CAS ops, \xe2\x86\x92" "EQN, typed, NEW, on an answer and on "
+                 "its row) leave every sum's rows after its answer (%d did not)", swept, wrong);
+        expect(wrong == 0 && swept >= 20, what);
+        printf("app_test: %s\n", what);
     }
 
     /* unit 073: the list's sixth key is EXIT (unit 020's): Equation mode left, the list kept, in each mode; in STU since
