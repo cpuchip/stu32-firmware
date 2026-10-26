@@ -341,7 +341,8 @@ static int sep(const tb_tree *t, int l, int r, int rn)
 #define EGAP(s) ((s) > 1 ? 2 : 1)     /* between a base and its exponent */
 #define LGAP(s) (3 * (s))       /* between wrapped lines */
 #define OPGAP(s) (2 * (s))      /* either side of + and − */
-#define FRGAP(s) (4 * (s))      /* either side of a minus beside a fraction: it doesn't read as an underscore */
+#define FRGAP(s) (6 * (s))      /* either side of a minus beside a fraction, a full cell: it doesn't read as an underscore
+                                   (Michael's look (a), abacus #10950) */
 
 static int expo_scale(int s) { return s > 1 ? s - 1 : 1; }
 
@@ -494,8 +495,9 @@ int tb_fit(tb_tree *t, int maxw, int maxh)
     while (it >= 0) {
         int line = node(t, TB_SUM, it, -1), w = 0, end = it;
         if (line < 0) return 0;
-        for (int k = it; k >= 0; k = t->n[k].b) {
-            int g = t->n[k].op ? OPGAP(2) : 0, tw = layout(t, t->n[k].a, 2, 2) + (t->n[k].op ? text_w(1, 2) + 2 * g : 0);
+        for (int k = it, prev = -1; k >= 0; prev = k, k = t->n[k].b) {
+            int op = t->n[k].op, g = !op ? 0 : op == '-' && prev >= 0 && beside_fraction(t, prev) ? FRGAP(2) : OPGAP(2);
+            int tw = layout(t, t->n[k].a, 2, 2) + (op ? text_w(1, 2) + 2 * g : 0);     /* the gaps the layout will use */
             if (t->err) return 0;
             if (k != it && w + tw > maxw) break;
             w += tw, end = k;
