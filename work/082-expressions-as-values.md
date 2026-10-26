@@ -488,3 +488,20 @@ and this record with VER 0.82.
     the sweep's 28).
 - **Open, measured: an edited row loses WHERE (057, 070) and so splits its sum.** Rows X≠1 and X≠2, X≠1 edited to X≠3:
   ← on the answer then deletes it alone, and X≠2 counts as X≠3's.
+
+### The final gate (04d992e: 4C, the pc fix, s3-keys (a), the UNDO fix, delete-rows, the insert fix)
+- **make test** rc 0 at 04d992e (85.6 s, sanitize included): expr_test 312/312, app_test 821/821, screen_test
+  9,020/9,020 with 48/48 frames, standin_test 349/349, help_test 307 entries, keymap_test 2,901/2,901, load_fuzz
+  20,000 and 200,000 (sanitized) cases with 0 violations, store_test 5,431/5,431, check-version `0.82, unit 082`.
+- **The stand-in (expr082.txt)**, flashed with 04d992e: from MEMORY CLEAR, the list's ▸ →X C gives X='3×X^2-4',
+  drawn=3X^2-4 and rows 21-205 B8D758BB (the host's); SAVE then RESTART loads the 779 B image from flash with the same
+  three; stack-free at least 28,260. The control failed, as it must.
+- **UNDO's check on the device (BENCH):** ab_state_same 2,987 us beside the save's 3,044 us for a full list (8,718 B),
+  717 us beside 738 us for this state (761 B); 50 of 50 true each time. So each key costs a second walk the size of
+  its save: about 0.7 ms on a typical state, 3 ms with the list full.
+- **The board's port moved:** esptool's hard reset re-enumerated the 1a86 board while the container held /dev/ttyACM1
+  open, and it came back as /dev/ttyACM3; the first console run lost the port. It ran again with FLASH=0 on the new
+  port (the 14:31Z rerun skipped the script's boot wait, so its WIPE was lost in the boot the port's opening caused,
+  and it doesn't count; the 14:32Z run of the script unchanged is the one recorded).
+- **D68, `scripts/resources.py static 5e3f85c 04d992e`:** flash +6,656 B on the stand-in, +5,920 B on Rev A; internal
+  RAM static, IRAM code and calc_task's frame +0 on both; no internal-RAM symbol changed. Claim #11493, peak 491.6 MiB.
