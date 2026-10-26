@@ -9,8 +9,9 @@ came out of his first look at 080 on the phone (abacus #11101, point 3). **Bluep
 - Above and below it are the entries BST and SST would bring, at size 2, one line each in 1D, cut with an ellipsis.
 - It uses 080's area (rows 21 to 205) and 080's tree for the centre, and adds no state.
 
-**Why this file is in work/blueprint/:** as for 080. A record named work/081-*.md would make check-version ask for VER 0.81
-before the code. The unit's commit moves it to work/081-equation-wheel.md and bumps VER together.
+**Where this file was:** work/blueprint/ (ae71530), as for 080, so check-version wouldn't ask for 0.81 before the code. The
+unit's commit moved it here and bumped AB_FW_VERSION to "0.81" in the same commit. The blueprint below is as abacus
+approved it (#11125). The gate section at the end says where the code differs.
 
 ## 1. How many neighbours fit
 
