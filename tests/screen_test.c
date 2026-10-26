@@ -52,6 +52,15 @@ static int text_at(const ls027_frame *f, int x, int y, int s, const char *t, int
     return 1;
 }
 
+/* unit 081: the row a label stands on, right-aligned in the textbook area (ending at x 396), at 2; 0 when it isn't */
+static int label_row(const ls027_frame *f, const char *t)
+{
+    int w = 12 * (int)strlen(t) - 2;
+    for (int y = 22; y < 204; y++)
+        if (text_at(f, 396 - w, y, 2, t, 1)) return y;
+    return 0;
+}
+
 /* the x where cp first stands on the line whose top is y, at scale s; -1 if nowhere */
 static int find_glyph(const ls027_frame *f, int y, int s, uint32_t cp)
 {
@@ -222,7 +231,8 @@ static void frame(const char *name, const ab_calc *c, const screen_ui *ui)
     }
 }
 
-#define TB_CRC_22 0x9A4A7D8CUL    /* unit 080: 22-tb-stu3's rows 21-205, the frame looked at before it was kept (tally #10916) */
+#define TB_CRC_22 0x43FC116CUL    /* unit 080: 22-tb-stu3's rows 21-205, the frame looked at before it was kept (tally #10916); 081: a wheel now,
+                                     re-pinned (080's was 9A4A7D8C) */
 
 int main(int argc, char **argv)
 {
@@ -536,11 +546,11 @@ int main(int argc, char **argv)
     expect(text_at(&f, 56, 87, 3, "BY", 1) && dark_in(&f, 20, 87, 18, 21) > 0, "QUOT: '÷ BY' on Y while g is typed");
     ab_do(&c, AB_ENTER);
     screen_render(&c, &ui, &f);
-    expect(text_at(&f, 4, 22, 2, "QUOTIENT", 1), "QUOT: its q shown with QUOTIENT above it");   /* unit 080: in STU, at the
-                                                   textbook area's top left, at 2 (screen_lines keeps it on Y) */
+    expect(label_row(&f, "QUOTIENT") > 0, "QUOT: its q shown with QUOTIENT above it");   /* unit 080: in STU, in the area at
+                                                   2 (screen_lines keeps it on Y); 081: right-aligned above the centre */
     ab_do(&c, AB_SST);
     screen_render(&c, &ui, &f);
-    expect(text_at(&f, 4, 22, 2, "REMAINDER", 1), "QUOT: r with REMAINDER above it");
+    expect(label_row(&f, "REMAINDER") > 0, "QUOT: r with REMAINDER above it");
     {   /* tally #5786, abacus #5789: the page says a label is a label, and an error an error: two kinds */
         screen_page pg;
         screen_lines(&c, &ui, &pg);
@@ -985,10 +995,11 @@ int main(int argc, char **argv)
             c.eqn_note[c.eqn_cur] = AB_NOTE_PLUSC;
             frame("34-tb-plus-c-power", &c, &ui);
             screen_render(&c, &ui, &tf);
-            int ps = tb_parse(&pt, "5\xc3\x97X+3\xc3\x97X^2") == 0 ? tb_fit(&pt, 392 - 36, 182) : 0;
-            int lh = pt.n[pt.root].h, row = 204 - lh + pt.n[pt.root].axis - 3 * ps;  /* the line's main row's top */
-            expect(ps > 0 && text_at(&tf, 4, row, ps, "5", 1), "080: 5X+3X^2's 5 on its row (the check's own footing)");
-            expect(ps > 0 && text_at(&tf, 4 + pt.n[pt.root].w + 3 * ps, row, ps, "+C", 1),
+            int ps = tb_parse(&pt, "5\xc3\x97X+3\xc3\x97X^2") == 0 ? tb_fit(&pt, 380 - 36, 182) : 0;
+            /* (081: the centre's block centred in rows 22-204, from x 16) */
+            int lh = pt.n[pt.root].h, row = 22 + (182 - lh) / 2 + pt.n[pt.root].axis - 3 * ps;   /* the line's main row */
+            expect(ps > 0 && text_at(&tf, 16, row, ps, "5", 1), "080: 5X+3X^2's 5 on its row (the check's own footing)");
+            expect(ps > 0 && text_at(&tf, 16 + pt.n[pt.root].w + 3 * ps, row, ps, "+C", 1),
                    "080: +C on the line's rows, beside its last glyph, not raised by the exponent (abacus #11101)");
         }
         /* abacus #11109 (Michael's ask): EQN LIST TOP and a built-in solver's entry, in STU, on a clean screen */
@@ -1004,6 +1015,26 @@ int main(int argc, char **argv)
         ab_do(&c, AB_SST);                          /* the list's next entry: the built-in 2*2 solver */
         expect(c.eqn_cur >= 0 && c.eqn[c.eqn_cur][0] == '\x01', "080: SST from the typed equation shows a built-in solver");
         frame("36-tb-builtin", &c, &ui);
+        /* unit 081: the list as a wheel (work/081-equation-wheel.md): five entries typed in STU, the centre the third; 37 has
+           distinct neighbours above and below (the reversed-order mutant's frame) */
+        {
+            static const struct { const char *name, *eq[5]; int cur, stamp; } WH[] = {
+        {"37-wh-size3", {"X^2+1", "2\xc3\x97X-5", "3\xc3\x97X^2-4", "SIN(X)+1", "X^3-8"}, 2, 0},
+        {"38-wh-size2", {"X^2+1", "2\xc3\x97X-5", "12\xc3\x97X^2+(12\xc3\x97Y+8)\xc3\x97X+(-43\xc3\x97Y-192)", "SIN(X)+1", "X^3-8"}, 2, 0},
+        {"39-wh-one-one", {"X^2+1", "2\xc3\x97X-5", "14\xc3\x97(X\xc3\xb7" "7)^(3\xc3\xb7" "2)\xc3\xb7" "3", "SIN(X)+1", "X^3-8"}, 2, 0},
+        {"40-wh-stamp35", {"X^2+1", "2\xc3\x97X-5", "2^3^2+X", "SIN(X)+1", "X^3-8"}, 2, 35},
+        {"41-wh-cut", {"X^2+1", "1\xc3\xb7" "2+K\xc3\x97X\xc3\xb7" "2+X^2\xc3\x97(K^2-1)\xc3\xb7" "4-X^3\xc3\x97(K-K^3\xc3\xb7" "3)\xc3\xb7" "4-X^4\xc3\x97(K^2-K^4\xc3\xb7" "6-1)\xc3\xb7" "8+X^5\xc3\x97(K-K^3\xc3\xb7" "3+K^5\xc3\xb7" "30)\xc3\xb7" "8+X^6\xc3\x97(K^2-K^4\xc3\xb7" "6+K^6\xc3\xb7" "90-1)\xc3\xb7" "16-X^7\xc3\x97(K-K^3\xc3\xb7" "3+K^5\xc3\xb7" "30-K^7\xc3\xb7" "630)\xc3\xb7" "16", "3\xc3\x97X^2-4", "SIN(X)+1", "X^3-8"}, 2, 0},
+            };
+            for (unsigned i = 0; i < sizeof WH / sizeof WH[0]; i++) {
+                screen_ui_default(&ui);
+                ab_init(&c);
+                ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+                for (int e = 0; e < 5; e++) ab_eqn_add(&c, WH[i].eq[e]);
+                c.eqn_cur = WH[i].cur;
+                if (WH[i].stamp) c.eqn_model[c.eqn_cur] = (uint8_t)WH[i].stamp;
+                frame(WH[i].name, &c, &ui);
+            }
+        }
         c.eqn_typing = true;        /* typing stays one line in STU too */
         snprintf(c.ebuf, sizeof c.ebuf, "3\xc3\x97X^2-4");
         c.ecur = (int)strlen(c.ebuf);

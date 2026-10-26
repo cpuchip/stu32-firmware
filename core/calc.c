@@ -4172,10 +4172,7 @@ static abn_status eqn_key(ab_calc *c, ab_op op, int arg)
     case AB_SST:                                    /* the list wraps through EQN LIST TOP (p.6-7) */
     case AB_BST:                                    /* in 33s mode without the built-ins (unit 041 A4, 33s p.6-7) */
         if (c->eqn_typing) return ABN_OK;
-        do {
-            if (op == AB_SST) c->eqn_cur = c->eqn_cur + 1 >= c->eqn_count ? -1 : c->eqn_cur + 1;
-            else c->eqn_cur = c->eqn_cur < 0 ? c->eqn_count - 1 : c->eqn_cur - 1;
-        } while (c->eqn_cur >= 0 && eqn_builtin(c, c->eqn_cur) && !ab_mode35(c));
+        c->eqn_cur = ab_eqn_step(c, c->eqn_cur, op == AB_SST ? 1 : -1);
         return ABN_OK;
     case AB_KBKSP:
         if (c->eqn_typing) ed_backspace(c);
@@ -4650,6 +4647,17 @@ done:
         c->err_status = st;
     }
     return st;
+}
+
+/* The list's entry after i (dir 1, SST) or before it (dir -1, BST), -1 being EQN LIST TOP: the list wraps through it,
+   and outside a 35s-style mode the built-ins are passed over (unit 041 A4). Unit 081's wheel shows the same steps. */
+int ab_eqn_step(const ab_calc *c, int i, int dir)
+{
+    do {
+        if (dir > 0) i = i + 1 >= c->eqn_count ? -1 : i + 1;
+        else i = i < 0 ? c->eqn_count - 1 : i - 1;
+    } while (i >= 0 && eqn_builtin(c, i) && !ab_mode35(c));
+    return i;
 }
 
 /* Unit 048: SOLVE's report. Its rows: the status (before ": "), then each root ("; " between them). */

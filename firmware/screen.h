@@ -158,6 +158,11 @@ void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out);
 bool screen_textbook_more(const ab_calc *c, int first);
 /* Unit 080: whether the shown equation is drawn in 2D, and then what's drawn as text into out (screen_page's drawn) */
 bool screen_drawn_text(const ab_calc *c, char *out, int size);
+/* Unit 081: the wheel's neighbours, the entries BST and SST would bring, nearest first: ent[0], ent[1] above, ent[2],
+   ent[3] below, -1 EQN LIST TOP, -2 none; returns how many fit either side (0-2). And an entry's line as a neighbour shows
+   it: its text (with another stamp's mark), cut to 30 cells and an ellipsis */
+int screen_wheel(const ab_calc *c, int ent[4]);
+void screen_wheel_text(const ab_calc *c, int i, char *out, int size);
 
 /* The whole frame for c and ui. */
 void screen_render(const ab_calc *c, const screen_ui *ui, ls027_frame *f);

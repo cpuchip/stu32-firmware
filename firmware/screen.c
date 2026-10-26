@@ -652,15 +652,17 @@ static composed comp;           /* compose's result, shared by screen_render and
    drawn as text on a clean screen (abacus #11109, Michael's ask) */
 static bool textbook_shown(const ab_calc *c)
 {
-    return c->stu && c->eqn_mode && !c->eqn_typing && !c->prgm && !c->tbl_on && !c->gr_on &&
-           (c->eqn_cur < 0 || c->eqn[c->eqn_cur][0] == '\x01' || c->eqn_model[c->eqn_cur] == AB_MODEL_STU);
+    return c->stu && c->eqn_mode && !c->eqn_typing && !c->prgm && !c->tbl_on && !c->gr_on;     /* 081: every entry, in
+                                                   the wheel; one stamped 33 or 35 as its text (shown_text) */
 }
 
-/* The area's text: the equation, or EQN LIST TOP, or a built-in solver's LCD name; *math whether it's drawn in 2D */
+/* The area's text: the equation, or EQN LIST TOP, or a built-in solver's LCD name; *math whether it's drawn in 2D (an
+   STU-stamped equation: another stamp's text groups differently) */
 static const char *shown_text(const ab_calc *c, bool *math)
 {
-    *math = c->eqn_cur >= 0 && c->eqn[c->eqn_cur][0] != '\x01';
-    return c->eqn_cur < 0 ? "EQN LIST TOP" : c->eqn[c->eqn_cur] + !*math;
+    *math = c->eqn_cur >= 0 && c->eqn[c->eqn_cur][0] != '\x01' && c->eqn_model[c->eqn_cur] == AB_MODEL_STU;
+    return c->eqn_cur < 0 ? "EQN LIST TOP" : c->eqn[c->eqn_cur] + (c->eqn[c->eqn_cur][0] == '\x01');   /* a built-in's
+                                                   leading byte; another stamp's text whole (081) */
 }
 
 static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
@@ -876,21 +878,41 @@ static void page_line(screen_line *o, const line *l, screen_kind kind, bool left
     o->label = label;
 }
 
-/* ---- unit 080: the textbook area ---- */
+/* ---- unit 080: the textbook area; unit 081: the list as a wheel in it ---- */
 
-#define TB_TOP 22               /* the area: below the band's rule, above the soft keys, the width the stack lines had */
+#define TB_TOP 22               /* the area: below the band's rule, above the soft keys */
 #define TB_BOT 204
-#define TB_X 4
-#define TB_W 392
+#define TB_X 16                 /* (081: the centre's ▶ before it) */
+#define TB_W 380
+#define WH_ROW 18               /* 081: a neighbour, a line at 2 (14 px) and a 4 px gap */
+#define WH_CELLS 30             /* 081: a neighbour's text, cut to 30 cells and an ellipsis (31 at 2, as 079 measured) */
 
-/* The shown equation as the area lays it out: its tree (tb_screen) fitted at scale s, or the text's own lines when it
-   can't be (s 0): their count, each one's height and the gap between them, and where the lines start (below a label) */
+/* The list's entry shown, as the area lays it out: its tree (tb_screen) fitted at scale s, or the text's own lines when
+   it can't be (s 0): their count, each one's height and the gap between them, where the lines start (below a label),
+   and (081) whether it's taller than the area (it scrolls, alone), else the neighbours on each side (k) and the top of
+   its block (label and lines), centred */
 typedef struct {
     const char *text, *label;
-    bool plus_c;
-    int s, sc, n, gap, top;     /* sc: the text's scale (s 0) */
+    bool plus_c, tall;
+    int s, sc, n, gap, top, k, ctop, h;     /* sc: the text's scale (s 0); h: the block's height */
     int starts[24], lens[24];   /* the text's lines (s 0) */
+    char buf[AB_EQN_LEN + 16];  /* an equation stamped 33 or 35, with its mark */
 } tb_area;
+
+static int area_line_h(const tb_area *a, int i)
+{
+    return a->s ? tb_line_h(&tb_screen, i) : 7 * a->sc;
+}
+
+/* line i's axis: the row its glyphs sit on, from its top */
+static int area_line_axis(const tb_area *a, int i)
+{
+    if (!a->s) return 3 * a->sc;
+    int k = tb_screen.root;
+    if (tb_screen.n[k].kind != TB_ROWS) return tb_screen.n[k].axis;
+    while (i-- > 0 && tb_screen.n[k].b >= 0) k = tb_screen.n[k].b;
+    return tb_screen.n[tb_screen.n[k].a].axis;
+}
 
 static void area_fit(const ab_calc *c, tb_area *a)
 {
@@ -898,23 +920,27 @@ static void area_fit(const ab_calc *c, tb_area *a)
     bool math;
     memset(a, 0, sizeof *a);
     a->text = shown_text(c, &math);
+    if (!math && c->eqn_cur >= 0 && c->eqn[c->eqn_cur][0] != '\x01') {     /* 081: another stamp, its text and mark */
+        snprintf(a->buf, sizeof a->buf, "%s%s", a->text, ab_eqn_mark(c, a->text, c->eqn_model[c->eqn_cur]));
+        a->text = a->buf;
+    }
     a->label = m && m[0] != '+' ? m : NULL;
     a->plus_c = m && m[0] == '+';
-    a->top = a->label ? TB_TOP + 7 * 2 + 4 : TB_TOP;
-    int w = TB_W - (a->plus_c ? 3 * 6 * 2 : 0);            /* room for " +C" after the last line */
-    if (math && tb_parse(&tb_screen, a->text) == 0 && (a->s = tb_fit(&tb_screen, w, TB_BOT - a->top)) != 0) {
+    int lab = a->label ? 7 * 2 + 4 : 0, w = TB_W - (a->plus_c ? 3 * 6 * 2 : 0);   /* room for " +C" after the last line */
+    if (math && tb_parse(&tb_screen, a->text) == 0 && (a->s = tb_fit(&tb_screen, w, TB_BOT - TB_TOP - lab)) != 0) {
         a->n = tb_lines(&tb_screen), a->gap = 3 * a->s;
-        return;
+    } else {                                                /* the text: at 3 when it fits a line, else at 2, wrapped */
+        a->s = 0;
+        a->sc = screen_cells(a->text) <= (w + 3) / 18 ? 3 : 2;
+        a->n = tb_text_lines(a->text, (w + a->sc) / (6 * a->sc), a->starts, a->lens, 24);
+        a->gap = 3 * a->sc;
     }
-    a->s = 0;                                               /* the text: at 3 when it fits a line, else at 2, wrapped */
-    a->sc = screen_cells(a->text) <= (w + 3) / 18 ? 3 : 2;
-    a->n = tb_text_lines(a->text, (w + a->sc) / (6 * a->sc), a->starts, a->lens, 24);
-    a->gap = 3 * a->sc;
-}
-
-static int area_line_h(const tb_area *a, int i)
-{
-    return a->s ? tb_line_h(&tb_screen, i) : 7 * a->sc;
+    a->h = lab;                 /* 081: the centre alone keeps its largest scale; then as many neighbours as leave it room */
+    for (int i = 0; i < a->n; i++) a->h += area_line_h(a, i) + (i ? a->gap : 0);
+    a->tall = a->h > TB_BOT - TB_TOP;
+    a->k = a->tall ? 0 : a->h + 4 * WH_ROW <= TB_BOT - TB_TOP ? 2 : a->h + 2 * WH_ROW <= TB_BOT - TB_TOP ? 1 : 0;
+    a->ctop = a->tall ? TB_TOP : TB_TOP + (TB_BOT - TB_TOP - a->h) / 2;
+    a->top = a->ctop + lab;
 }
 
 /* From line first, how many lines the area holds; *h their height */
@@ -948,17 +974,53 @@ bool screen_textbook_more(const ab_calc *c, int first)
     return first + area_holds(&a, first, &h) < a.n;
 }
 
-/* The shown equation in 2D: whole, at the area's bottom as X sits; taller than the area, from line first (screen_ui's
-   tb_line, the app's scroll), with ▲ when lines are above and ▼ when lines are below */
+int screen_wheel(const ab_calc *c, int ent[4])
+{
+    tb_area a;
+    int shown[5] = {c->eqn_cur}, ns = 1;
+    ent[0] = ent[1] = ent[2] = ent[3] = -2;
+    if (!textbook_shown(c)) return 0;
+    area_fit(c, &a);
+    /* the entries BST and SST would bring, nearest first, each once (a short list leaves slots empty) */
+    for (int j = 0, up = c->eqn_cur, down = c->eqn_cur; j < a.k; j++) {
+        int d = ab_eqn_step(c, down, 1), u = ab_eqn_step(c, up, -1), seen_d = 0, seen_u = 0;
+        for (int i = 0; i < ns; i++) seen_d |= shown[i] == d;
+        if (!seen_d) ent[2 + j] = shown[ns++] = down = d;
+        for (int i = 0; i < ns; i++) seen_u |= shown[i] == u;
+        if (!seen_u) ent[j] = shown[ns++] = up = u;
+        if (seen_d && seen_u) break;
+    }
+    return a.k;
+}
+
+void screen_wheel_text(const ab_calc *c, int i, char *out, int size)
+{
+    const char *t = i < 0 ? "EQN LIST TOP" : c->eqn[i] + (c->eqn[i][0] == '\x01');
+    char b[AB_EQN_LEN + 16];
+    snprintf(b, sizeof b, "%s%s", t, i >= 0 && c->eqn[i][0] != '\x01' ? ab_eqn_mark(c, t, c->eqn_model[i]) : "");
+    if (screen_cells(b) <= WH_CELLS + 1) {
+        snprintf(out, (size_t)size, "%s", b);
+        return;
+    }
+    const char *p = b;
+    for (int n = 0; n < WH_CELLS && *p; n++) next_cell(&p);
+    snprintf(out, (size_t)size, "%.*s\xe2\x80\xa6", (int)(p - b), b);
+}
+
+/* The entry shown in 2D: whole, its block centred, ▶ at its first line, and (081) up to two neighbours either side at 2;
+   taller than the area, alone, from line first (screen_ui's tb_line, the app's scroll), with ▲ when lines are above and ▼
+   when lines are below */
 static void draw_textbook(ls027_frame *f, const ab_calc *c, const screen_ui *ui)
 {
     tb_area a;                                  /* (on render's stack: internal RAM stays +0) */
-    int h, first = ui->tb_line;
+    int h, first, ent[4];
     area_fit(c, &a);
+    first = a.tall ? ui->tb_line : 0;
     if (first >= a.n) first = a.n - 1;
     if (first < 0) first = 0;
-    int n = area_holds(&a, first, &h), top = first == 0 && first + n == a.n ? TB_BOT - h : a.top, last_w = 0;
-    if (a.label) screen_text(f, TB_X, TB_TOP, 2, a.label, true);
+    int n = area_holds(&a, first, &h), top = a.top, last_w = 0;
+    if (a.label)                                /* right-aligned: it labels the centre, not a neighbour's line (081) */
+        screen_text(f, TB_X + TB_W - (6 * 2 * screen_cells(a.label) - 2), a.ctop, 2, a.label, true);
     if (a.s) {
         tb_draw(&tb_screen, f, TB_X, top, TB_BOT, first);
         const tb_node *r = &tb_screen.n[tb_screen.root];
@@ -966,16 +1028,17 @@ static void draw_textbook(ls027_frame *f, const ab_calc *c, const screen_ui *ui)
     } else {
         int sc = a.sc;
         for (int i = first; i < first + n; i++) {
-            char b[AB_EQN_LEN];
+            char b[AB_EQN_LEN + 16];
             snprintf(b, sizeof b, "%.*s", a.lens[i], a.text + a.starts[i]);
             screen_text(f, TB_X, top, sc, b, true);
             last_w = 6 * sc * screen_cells(b) - sc;
             top += 7 * sc + a.gap;
         }
     }
+    screen_text(f, 2, a.top + area_line_axis(&a, first) - 3 * 2, 2, "\xe2\x96\xb6", true);     /* 081: ▶ the centre */
     if (a.plus_c && first + n == a.n) {    /* ∫'s +C after the answer's last line, on its main row: the line's axis, not
                                               its box's middle, which an exponent raises (abacus #11101) */
-        int sc = a.s ? a.s : a.sc, y = first == 0 && n == a.n ? TB_BOT - h : a.top, axis = 3 * sc;
+        int sc = a.s ? a.s : a.sc, y = a.top, axis = 3 * sc;
         for (int i = first; i < a.n - 1; i++) y += area_line_h(&a, i) + a.gap;
         if (a.s) {
             const tb_node *l = &tb_screen.n[tb_screen.root];
@@ -988,8 +1051,28 @@ static void draw_textbook(ls027_frame *f, const ab_calc *c, const screen_ui *ui)
         }
         screen_text(f, TB_X + last_w + 3 * sc, y + axis - 3 * sc, sc, "+C", true);
     }
-    if (first > 0) screen_text(f, TB_X + TB_W - 10, a.top, 2, "\xe2\x96\xb2", true);
-    if (first + n < a.n) screen_text(f, TB_X + TB_W - 10, TB_BOT - 14, 2, "\xe2\x96\xbc", true);
+    if (a.tall) {
+        if (first > 0) screen_text(f, TB_X + TB_W - 10, a.top, 2, "\xe2\x96\xb2", true);
+        if (first + n < a.n) screen_text(f, TB_X + TB_W - 10, TB_BOT - 14, 2, "\xe2\x96\xbc", true);
+        return;
+    }
+    screen_wheel(c, ent);                       /* 081: the neighbours, nearest first; above ent[0..1], below ent[2..3] */
+    for (int x = TB_X; x < TB_X + TB_W; x += 2) {   /* a dotted rule in each gap: a centre drawn as text, wrapped, would
+                                                   read as its neighbours' lines without it */
+        if (ent[0] != -2) screen_fill(f, x, a.ctop - 2, 1, 1, true);
+        if (ent[2] != -2) screen_fill(f, x, a.ctop + a.h + 1, 1, 1, true);
+    }
+    for (int j = 0; j < 2; j++) {
+        char b[AB_EQN_LEN + 16];
+        if (ent[j] != -2) {
+            screen_wheel_text(c, ent[j], b, sizeof b);
+            screen_text(f, TB_X, a.ctop - (j + 1) * WH_ROW, 2, b, true);
+        }
+        if (ent[2 + j] != -2) {
+            screen_wheel_text(c, ent[2 + j], b, sizeof b);
+            screen_text(f, TB_X, a.ctop + a.h + 4 + j * WH_ROW, 2, b, true);
+        }
+    }
 }
 
 void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)

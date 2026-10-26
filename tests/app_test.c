@@ -4619,7 +4619,8 @@ int main(void)
         c.eqn_model[c.eqn_cur] = 33;                /* a 33s-stamped equation shown in STU mode groups another way */
         app_ui(&a, &ui);
         screen_lines(&c, &ui, &pg);
-        expect(!pg.textbook_on, "080: a 33s-stamped equation in STU mode is its text, not 2D (STU's grammar would misgroup it)");
+        expect(pg.textbook_on && !strcmp(pg.drawn, c.eqn[c.eqn_cur]),     /* 081: in the wheel, as its text */
+               "080/081: a 33s-stamped equation in STU mode is its text in the wheel, not 2D (STU's grammar would misgroup it)");
         c.eqn_cur = -1;                             /* abacus #11109: EQN LIST TOP on a clean screen in STU */
         app_ui(&a, &ui);
         screen_lines(&c, &ui, &pg);
@@ -4631,6 +4632,45 @@ int main(void)
         expect(!pg.textbook_on && !strcmp(pg.x.text, "EQN LIST TOP") && pg.t.text[0],
                "080: EQN LIST TOP in 33s mode as before: the stack and its line");
         ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+    }
+    {   /* unit 081 (abacus #11125): each neighbour the wheel shows is the entry SST or BST would bring (ab_eqn_step), its
+           line eqn[i]'s text cut to 30 cells and an ellipsis, across the list's wrap through EQN LIST TOP */
+        static char longer[AB_EQN_LEN];
+        static const char *const EQ[] = {"X^2+1", "2\xc3\x97X-5", "3\xc3\x97X^2-4", "SIN(X)+1", longer};
+        for (int i = 0; i < 40; i++) longer[i] = i % 2 ? '+' : 'X';
+        longer[39] = 'X';                           /* X+X+...+X, 40 cells: cut */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        for (int e = 0; e < 5; e++) ab_eqn_add(&c, EQ[e]);
+        int ok = 1, wraps = 0, cuts = 0;
+        for (int cur = -1; cur < c.eqn_count; cur++) {          /* every centre, TOP and the built-ins too */
+            int ent[4], k;
+            c.eqn_cur = cur;
+            k = screen_wheel(&c, ent);
+            int want[4] = {ab_eqn_step(&c, cur, -1), ab_eqn_step(&c, ab_eqn_step(&c, cur, -1), -1),
+                           ab_eqn_step(&c, cur, 1), ab_eqn_step(&c, ab_eqn_step(&c, cur, 1), 1)};
+            for (int at = 0; at < 4; at++) {                    /* above (nearest, next), below (nearest, next) */
+                if (at % 2 >= k) continue;                      /* beyond what fits */
+                if (ent[at] == -2) continue;                    /* a short list: an entry shown once */
+                if (ent[at] != want[at]) ok = 0;
+                if (want[at] == -1 || cur == -1) wraps++;
+                char got[256], exp[256];
+                screen_wheel_text(&c, ent[at], got, sizeof got);
+                const char *t = ent[at] < 0 ? "EQN LIST TOP" : c.eqn[ent[at]] + (c.eqn[ent[at]][0] == '\x01');
+                if ((int)strlen(t) > 31) snprintf(exp, sizeof exp, "%.30s\xe2\x80\xa6", t), cuts++;
+                else snprintf(exp, sizeof exp, "%s", t);
+                if (strcmp(got, exp)) ok = 0, printf("  (081: centre %d slot %d: %s, want %s)\n", cur, at, got, exp);
+            }
+        }
+        expect(ok && wraps > 0 && cuts > 0, "081: every neighbour is ab_eqn_step's entry, its line eqn[i]'s cut at 30 cells and "
+                                            "an ellipsis, across EQN LIST TOP");
+        c.eqn_cur = 2;                              /* five entries and two built-ins: 2 and 2 around 3X^2-4 */
+        int ent[4];
+        expect(screen_wheel(&c, ent) == 2 && ent[0] == 1 && ent[1] == 0 && ent[2] == 3 && ent[3] == 4,
+               "081: around entry 2: 1 and 0 above (nearest first), 3 and 4 below");
+        ab_do_arg(&c, AB_MODEL, 33);
+        expect(screen_wheel(&c, ent) == 0, "081: no wheel in 33s mode");
     }
     printf("app_test: %d/%d checks\n", checks - bad, checks);
     return bad != 0;

@@ -611,6 +611,7 @@ bool ab_view_key(ab_calc *c, int op);
 bool ab_view_linear(const ab_calc *c);  /* a linear solution's view is showing (its bar: up, down) */
 /* Unit 048: SOLVE's report while its view is open (casim's line), else NULL; its rows (0 the status, then each root)
    and the row under the cursor; the note beside the equation shown ("+C", "MAY FACTOR MORE"), else NULL. */
+int ab_eqn_step(const ab_calc *c, int i, int dir);    /* the list's next (1) or previous (-1) entry, -1 its TOP (081) */
 const char *ab_cas_report(const ab_calc *c);
 int ab_cas_rows(const ab_calc *c);
 bool ab_cas_row(const ab_calc *c, int i, char *out, int size);
