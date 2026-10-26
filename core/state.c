@@ -53,7 +53,7 @@ static const uint8_t STATUS_SINCE[] = {
     18,                         /* CAS 015: ABN_CAS_UNDECIDED */
     19, 19, 19,                 /* unit 070: ABN_CAS_NO_CLOSED .. ABN_CAS_WHERE */
     0,                          /* unit 073: ABN_NOT_IN_EQN, a brief notice */
-    21, 21,                     /* unit 082: ABN_EXPR_FULL, ABN_NOT_NUMBER */
+    21, 21, 21,                 /* unit 082: ABN_EXPR_FULL, ABN_NOT_NUMBER, ABN_OLDER_FW (4C) */
 };
 _Static_assert(sizeof STATUS_SINCE == ABN_STATUS_LAST + 1, "an image version for every status (STATUS_SINCE)");
 
@@ -511,6 +511,7 @@ typedef struct {
     uint32_t xoff[AB_EXPR_SLOTS];
     uint8_t xlen[AB_EXPR_SLOTS];
     int nx;
+    bool dropped;                   /* 4C: a newer image, or a section this build can't read skipped: OLDER FIRMWARE */
 } rd;
 
 static unsigned r8(rd *r)
@@ -620,7 +621,19 @@ static void rval(rd *r, ab_val *out, bool sym)
     ab_val v;
     memset(&v, 0, sizeof v);
     v.re = v.im = v.p3 = abn_zero();
-    if (!r->bad && (kind == AB_EXPR || kind == AB_NAME)) {     /* unknown kinds past these stay refused (4C) */
+    if (!r->bad && kind > AB_NAME && r->version > AB_STATE_VERSION) {
+        /* 4C (Michael's s3-old-firmware: "graceful degradation"): a newer firmware's kind, its own len and mask, then a
+           16-bit byte count and that many bytes. Loaded as 0, the rest kept, OLDER FIRMWARE showing. In an image of this
+           build's version or older no such kind exists, and it is refused. */
+        unsigned n = r16(r);
+        need(r, n <= r->len - r->pos);
+        if (r->bad) return;
+        r->pos += n;
+        r->dropped = true;
+        if (out) *out = v;
+        return;
+    }
+    if (!r->bad && (kind == AB_EXPR || kind == AB_NAME)) {
         need(r, sym && r->version >= 21 && mask == 0 && (kind == AB_EXPR || len <= 26));
         if (r->bad) return;
         v.kind = (ab_kind)kind;
@@ -1284,7 +1297,9 @@ static bool parse(rd *r)
     if (r->len < 16 || memcmp(r->p, "ABSI", 4) != 0) return false;
     r->pos = 4;
     r->version = r16(r);
-    if (r->version < 1 || r->version > AB_STATE_VERSION || r16(r) != 0) return false;  /* future: refused */
+    if (r->version < 1 || r16(r) != 0) return false;
+    r->dropped = r->version > AB_STATE_VERSION;     /* 4C: a newer version is read, what it adds dropped, and OLDER
+                                                       FIRMWARE shows even when nothing was (its meaning may differ) */
     total = r32(r);
     if (total != r->len) return false;
     if (ab_crc32(r->p, r->len - 4) != (uint32_t)(r->p[r->len - 4] | r->p[r->len - 3] << 8 |
@@ -1361,6 +1376,7 @@ static bool parse(rd *r)
         case T_SOLVE: sec_solve(r); break;
         default:
             r->pos = end;                       /* 082: a newer build's section (version 21 on), skipped by its size */
+            r->dropped = true;                  /* (4C: OLDER FIRMWARE shows) */
             break;
         }
         if (r->pos != end) return false;
@@ -1422,6 +1438,15 @@ abn_status ab_state_load(ab_calc *c, const uint8_t *buf, size_t len)
     r.len = len;
     r.c = c;
     parse(&r);
+    if (r.dropped) {
+        /* 4C: a newer firmware's image, part of it dropped: OLDER FIRMWARE replaces any message it had (no op, no X) */
+        c->msg = true;
+        c->err_status = ABN_OLDER_FW;
+        c->err_op = -1;
+        c->err_arg = 0;
+        memset(&c->err_x, 0, sizeof c->err_x);
+        c->err_x.re = c->err_x.im = c->err_x.p3 = abn_zero();
+    }
     if (!c->alg || c->hist_at >= c->hist_n) c->hist_at = -1;
     /* an image from before unit 031: its equations stamped left to right (35), as every mode read them */
     for (int i = 0; i < c->eqn_count; i++)

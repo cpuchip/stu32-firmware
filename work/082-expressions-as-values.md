@@ -346,3 +346,41 @@ and this record with VER 0.82.
 - The word on →EQN with a number: "NOT A NUMBER" is ruled (#11174), but read on that key it says the opposite of what
   happened; "NOT AN EXPRESSION" or INVALID DATA would read true. One line for abacus, not changed here.
 
+
+### Michael's step-3 answers (abacus #11334)
+- **s3-look:** "Looks right (as built)". The screen is accepted as built (frames 42-47).
+- **s3-old-firmware:** 4C as section 4 C proposed, "graceful degradation, and I appreciate it". Built below.
+- **s3-names:** a name stays symbolic until EVAL (as the 50g: "otherwise as you're trying to build up an equation it'll
+  collapse on you to a value"). NOT A NUMBER on a name stays until 084's arithmetic; EVAL is a deliberate key. No change.
+- **s3-folders:** 16 folders, one level (unit 085).
+- **s3-keys:** prototypes first, (a) EQN LIST's EXIT as a MORE key and (b) a stack submenu, as pictures for Michael.
+  INVALID DATA on →EQN with a number goes in with whichever he picks.
+
+### 4C: a newer firmware's image (Michael's s3-old-firmware)
+- **The rule (state.h):** an image of a version past this build's (22 on) is read. A section this build doesn't know is
+  skipped by its size (B, already built). A value kind it doesn't know is loaded as 0. The kind is written as a later
+  build must write one: its kind, len and mask (that kind's own), then a 16-bit byte count and that many bytes.
+  **OLDER FIRMWARE** (ABN_OLDER_FW, the message on X's line) shows after any newer image, whether or not anything was
+  dropped, since a newer version may also read a field differently. It replaces any message the image had (no op, no
+  X), and ab_state_load returns ABN_OK. The state is saved again as 21, the dropped parts gone.
+- **Still refused:** a kind past 4 in an image of version 21 or older (no build writes one), and anything else newer: a
+  status, an operation code, a field inside a known section. So a later build must add what it needs as a section or a
+  value kind, or an older firmware refuses its image (MEMORY CLEAR). That binds every later unit's image design.
+- **OLDER FIRMWARE in the image:** STATUS_SINCE 21, so a 21 image may show it. An image saved while it shows is refused
+  by builds before this commit (the board's 5b48ded among them): those builds are pre-release.
+- **Vector S19 changed:** "a version from the future: refused" is now "read, OLDER FIRMWARE showing" (@A=5
+  %STATUS=OLDER_FW). %STATUS is a new expectation: the message showing, by its status's name.
+- **The golden, made without this build's writer:** scripts/mk_golden_v22.py rewrites golden-v21-082.img's bytes. The
+  version becomes 22. Y (an expression), Z (the name B) and T (a number) become kinds 5, 9 and 200, with 7, 0 and 300
+  bytes (a count past 255; len and mask not 0). A section tag 40 of five bytes is added. tests/golden-v22-4c.img:
+  1,206 B, body CRC 20009FA1.
+- **The oracle (expr_test):** the golden loads, OLDER FIRMWARE showing, with Y, Z and T 0 and X, LASTx and B as before.
+  Its image saved again equals, byte for byte, golden-v21-082 loaded, with Y, Z and T set to 0 through the calculator
+  and OLDER FIRMWARE showing, then saved (874 B, 9CCA1E94). That is the rest of the state surviving. The resave is
+  version 21 and loads, still showing. Refused: the same kinds in a version-21 image, a byte count past the image's
+  end, a count one short. Frame 48 is the screen after the load. load_fuzz takes the golden as its ninth seed.
+- **Mutants:** 11 in the reader, 10 red: a newer version refused, the payload not skipped, no notice, the kind kept, an
+  unknown kind taken in 21, the message's op or X kept, a skip one short, the section's notice gone, a newer image with
+  nothing dropped not flagged. M9 (the byte count's own check removed) survives: the image is still refused a few bytes
+  later, when the section's end doesn't match. An equivalent mutant; the check stays as a guard.
+

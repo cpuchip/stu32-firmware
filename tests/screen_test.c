@@ -1099,6 +1099,18 @@ int main(int argc, char **argv)
         frame("47-xe-memory-full", &c, &ui);
         screen_lines(&c, &ui, &pg);
         expect(pg.x.kind == SCREEN_MESSAGE && !strcmp(pg.x.text, "MEMORY FULL"), "082: MEMORY FULL on X's line");
+        /* 4C (Michael's s3-old-firmware): a newer firmware's image (tests/golden-v22-4c.img: Y, Z and T kinds this build
+           doesn't know) loads with them 0 and OLDER FIRMWARE on X's line */
+        static uint8_t img[4096];
+        FILE *gf = fopen("tests/golden-v22-4c.img", "rb");
+        size_t gn = gf ? fread(img, 1, sizeof img, gf) : 0;
+        if (gf) fclose(gf);
+        screen_ui_default(&ui);
+        ab_init(&c);
+        expect(gn == 1206 && ab_state_load(&c, img, gn) == ABN_OK, "082 4C: tests/golden-v22-4c.img loads");
+        frame("48-older-firmware", &c, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(pg.x.kind == SCREEN_MESSAGE && !strcmp(pg.x.text, "OLDER FIRMWARE"), "082 4C: OLDER FIRMWARE on X's line");
     }
     expect(screen_missed == 0, "a frame drew a character the face lacks");
 

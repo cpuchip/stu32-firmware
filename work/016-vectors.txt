@@ -4,7 +4,7 @@
 # SLICE:n (the device's slice), CONT (its loop going on), INTERRUPT (C or R/S between calls),
 # INTR:n (an interrupt arriving after n lines or equation evaluations), BUDGET:n; expectations
 # %IMAGE (the image's CRC-32), %IMGLEN, %SAMEIMG (saving now gives SAVE's bytes); MARK keeps a
-# second image and %SAMEMARK compares with it.
+# second image and %SAMEMARK compares with it. %STATUS (082): the message showing, by its status's name, or none.
 # Unit 025 (work/025-indirect-i-and-program-modes.md): the default is now 33s mode, so these vectors,
 # written from the 35s guide's indirect model, start with MODE35 (the ERR ones added after review, which
 # passed in 33s mode only by failing early: M13): S01 S02 S03 S04 S05.
@@ -46,7 +46,7 @@ S15 | ours: LAST X survives | 9 SQRT SAVE MEMCLR LOAD LASTX | X=9
 S16 | ours: a complex-mode and fraction setting survive (xiy kept off: r theta a) | RTA 2 ENTER 3 /C SAVE MEMCLR LOAD SAVE | %SAMEIMG=same
 S17 | ours: a flipped bit fails the checksum: nothing changes | 5 STO:A SAVE 7 STO:A CORRUPT:30 LOAD | ERR %ERR=BAD_IMAGE @A=7
 S18 | ours: a truncated image: nothing changes | 5 STO:A SAVE 7 STO:A TRUNC:40 LOAD | ERR %ERR=BAD_IMAGE @A=7
-S19 | ours: a version from the future: refused | 5 STO:A SAVE 7 STO:A IMGVER:99 LOAD | ERR %ERR=BAD_IMAGE @A=7
+S19 | ours: a version from the future: read, OLDER FIRMWARE showing (082's 4C, Michael's s3-old-firmware; refused before) | 5 STO:A SAVE 7 STO:A IMGVER:99 LOAD | @A=5 %STATUS=OLDER_FW
 S20 | ours: a field out of range behind a correct checksum (angle 3): refused | 5 STO:A SAVE 7 STO:A SETBYTE:18:3 FIXCRC LOAD | ERR %ERR=BAD_IMAGE @A=7
 S21 | ours: an older version is read (the version-1 golden image) | 7 STO:A LOADFILE:tests/golden-v1.img | @C=4 @B=[1,2,3]
 S22 | ours: a load keeps the device's slice (not in the image) | PRGM CLPGM LBL:A 1 2 3 4 5 RTN PRGM SAVE SLICE:2 LOAD XEQ:A | %STOP=SLICE

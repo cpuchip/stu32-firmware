@@ -86,9 +86,11 @@ typedef enum {
                                silently: NOT IN EQN, a brief notice as RPN ONLY (stu-discover, abacus #8714) */
     ABN_EXPR_FULL,          /* unit 082: the expression store full, every slot a live value's: MEMORY FULL (UG p.F-3) */
     ABN_NOT_NUMBER,         /* unit 082: an expression or a name where a number is read: NOT A NUMBER */
+    ABN_OLDER_FW,           /* unit 082 (4C): a newer firmware's image loaded with what this build can't read dropped (a
+                               value kind loaded as 0, a section skipped): OLDER FIRMWARE (Michael's s3-old-firmware) */
 } abn_status;
 
-#define ABN_STATUS_LAST ABN_NOT_NUMBER      /* the last status: loops over every status end here (056: screen_test's
+#define ABN_STATUS_LAST ABN_OLDER_FW        /* the last status: loops over every status end here (056: screen_test's
                                                ended at ABN_BAD_IMAGE and missed every one after it) */
 
 abn abn_zero(void);

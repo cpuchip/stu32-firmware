@@ -208,7 +208,7 @@ static const char *const STATUS_NAMES[] = {"OK", "DIV_ZERO", "RANGE", "BAD_TEXT"
                                            "CAS_COPY", "TOO_DEEP", "CAS_NOT_POLY", "CAS_NOT_NUMERIC",
                                            "CAS_NOT_INTEGRABLE", "CAS_EXPR_ONLY", "CAS_IMPROPER", "CAS_UNDEFINED",
                                            "CAS_BOUND_LETTER", "CAS_BOUND_REAL", "CAS_UNDECIDED", "CAS_NO_CLOSED",
-                                           "CAS_BAD_BOUND", "CAS_WHERE", "NOT_IN_EQN", "EXPR_FULL", "NOT_NUMBER"};
+                                           "CAS_BAD_BOUND", "CAS_WHERE", "NOT_IN_EQN", "EXPR_FULL", "NOT_NUMBER", "OLDER_FW"};
 _Static_assert(sizeof STATUS_NAMES / sizeof STATUS_NAMES[0] == ABN_STATUS_LAST + 1, "a name for every status (056)");
 
 /* Applies one key token. Returns 0, or -1 for an unknown token. */
@@ -825,6 +825,10 @@ int vectors_run(const char *name, FILE *f)
                     for (char *q = got; *q; q++)
                         if (*q == ' ') *q = '_';
                         else if (*q == '\n') *q = '/';
+                } else if (strcmp(ex, "%STATUS") == 0) {
+                    /* the message showing, by its status's name; none (unit 082, 4C) */
+                    snprintf(got, sizeof got, "%s",
+                             c.msg && (unsigned)c.err_status <= ABN_STATUS_LAST ? STATUS_NAMES[c.err_status] : "none");
                 } else if (strcmp(ex, "%MSG") == 0) {
                     /* the equation line shown as a message (flag 10, unit 015); blanks written _ */
                     bool msg = c.stop == AB_STOP_MSG || (c.stop == AB_STOP_PSE && c.stop_var == -2);

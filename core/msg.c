@@ -62,6 +62,7 @@ const char *ab_status_message(abn_status st)
     case ABN_NOT_IN_EQN: return "NOT IN EQN";                   /* unit 073: Equation mode's refusal, as RPN ONLY */
     case ABN_EXPR_FULL: return "MEMORY FULL";                   /* unit 082: the expression store (UG p.F-3) */
     case ABN_NOT_NUMBER: return "NOT A NUMBER";                 /* unit 082: an expression or a name read as a number */
+    case ABN_OLDER_FW: return "OLDER FIRMWARE";                 /* unit 082 (4C): a newer image, part of it dropped */
     }
     return "";
 }

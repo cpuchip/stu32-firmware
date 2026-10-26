@@ -7,9 +7,11 @@
  * 2. A round trip: an expression or a name in every place a value may hold one (the stack, LASTx, the letters, the
  *    message's X, SOLVE's saved stack), saved (version 21), loaded, saved again: the same bytes, every text the same.
  *    tests/golden-v21-082.img is that image (--write-golden writes it), loaded and saved again byte for byte.
- * 3. The reader: a section after the last one this build knows is skipped by its size in a version-21 image and
- *    refused in a version-20 one; an expression in a version-20 image and a kind past AB_NAME (4C) are refused; an
- *    expression in ANS (RPN to ALG sets ANS to X) loads.
+ * 3. The reader: a section after the last one this build knows is skipped by its size in a version-21 image, with
+ *    OLDER FIRMWARE showing, and refused in a version-20 one; an expression in a version-20 image and a kind past
+ *    AB_NAME in a version-21 one are refused; an expression in ANS (RPN to ALG sets ANS to X) loads. 4C (Michael's
+ *    s3-old-firmware): tests/golden-v22-4c.img, a newer firmware's image (scripts/mk_golden_v22.py), loads with its
+ *    unknown kinds 0, its unknown section skipped and OLDER FIRMWARE showing, the rest byte for byte.
  * 4. The store: all 48 places (X, Y, Z, T, LASTx, 27 letters, 16 history values) holding distinct expressions, the
  *    49th is ABN_EXPR_FULL with every text unchanged; freeing a place lets the next succeed in its slot. A fuzz of new,
  *    copy and clear over the 48 places checks every live text against a model after each step, and that the store is
@@ -241,6 +243,84 @@ static long section(const uint8_t *p, size_t n, unsigned tag, uint32_t *size)
     return -1;
 }
 
+/* 4C: the message a newer image loads with, as ab_state_load sets it (no op, no X) */
+static void older_fw(ab_calc *c)
+{
+    c->msg = true;
+    c->err_status = ABN_OLDER_FW;
+    c->err_op = -1;
+    c->err_arg = 0;
+    memset(&c->err_x, 0, sizeof c->err_x);
+    c->err_x.re = c->err_x.im = c->err_x.p3 = abn_zero();
+}
+
+static bool real_zero(const ab_val *v)
+{
+    abn z = abn_zero();
+    return v->kind == AB_REAL && v->len == 0 && !memcmp(&v->re, &z, sizeof z) && !memcmp(&v->im, &z, sizeof z) &&
+           !memcmp(&v->p3, &z, sizeof z);
+}
+
+/* 4C (Michael's s3-old-firmware): tests/golden-v22-4c.img, a newer firmware's image made from golden-v21-082's bytes
+   by scripts/mk_golden_v22.py (version 22; Y, Z and T value kinds 5, 9 and 200 with 7, 0 and 300 bytes; a section
+   tag 40), loads with OLDER FIRMWARE showing and the rest of the state as golden-v21-082's with Y, Z and T 0 */
+static void older(void)
+{
+    static uint8_t e[4096];
+    char what[240];
+    size_t gn, hn;
+    uint8_t *g = file("tests/golden-v22-4c.img", &gn), *h = file("tests/golden-v21-082.img", &hn);
+    expect(g != NULL && h != NULL, "tests/golden-v22-4c.img and golden-v21-082.img found");
+    if (!g || !h) return;
+    snprintf(what, sizeof what, "4C: golden-v22-4c 1206 B, body CRC 20009FA1 (%zu B, %08X)", gn, body_crc(g, gn));
+    expect(gn == 1206 && body_crc(g, gn) == 0x20009FA1u, what);
+    ab_init(&cb);
+    expect(ab_state_load(&cb, g, gn) == ABN_OK, "4C: golden-v22-4c (version 22) loads");
+    expect(cb.msg && cb.err_status == ABN_OLDER_FW, "4C: OLDER FIRMWARE showing");
+    expect(real_zero(&cb.y) && real_zero(&cb.z) && real_zero(&cb.t), "4C: Y, Z and T (kinds 5, 9, 200) loaded as 0");
+    expect(cb.x.kind == AB_EXPR && !strcmp(ab_expr_text(&cb, &cb.x), "3\xc3\x97X^2-4") && cb.lastx.kind == AB_EXPR &&
+               !strcmp(ab_expr_text(&cb, &cb.lastx), "SIN(A)+B") && !strcmp(ab_expr_text(&cb, &cb.var[1]), "i"),
+           "4C: X, LASTx and B as golden-v21-082's");
+    size_t m2 = ab_state_save(&cb, img2, sizeof img2);
+    /* the oracle: golden-v21-082 loaded, Y, Z and T set to 0 through the calculator, OLDER FIRMWARE, saved */
+    ab_init(&ca);
+    expect(ab_state_load(&ca, h, hn) == ABN_OK, "4C: golden-v21-082 loads (the oracle's state)");
+    ca.y = ca.z = ca.t = (ab_val){0};
+    ca.y.re = ca.y.im = ca.y.p3 = abn_zero();
+    ca.z = ca.t = ca.y;
+    older_fw(&ca);
+    size_t m1 = ab_state_save(&ca, img1, sizeof img1);
+    snprintf(what, sizeof what, "4C: saved again (%zu B, %08X), byte for byte golden-v21-082 with Y, Z, T 0 and "
+             "OLDER FIRMWARE (%zu B, %08X): the rest survived", m2, body_crc(img2, m2), m1, body_crc(img1, m1));
+    expect(m1 == m2 && !memcmp(img1, img2, m1), what);
+    expect(img2[4] == 21, "4C: saved as this build's version, 21");
+    expect(ab_state_load(&ca, img2, m2) == ABN_OK && ca.msg && ca.err_status == ABN_OLDER_FW,
+           "4C: that image loads, OLDER FIRMWARE still showing");
+
+    /* refused: the same kinds in an image of this build's version (no build of 21 writes one) */
+    memcpy(e, g, gn);
+    e[4] = 21;
+    reseal(e, gn);
+    ab_init(&cb);
+    expect(ab_state_load(&cb, e, gn) == ABN_BAD_IMAGE, "4C: a kind past AB_NAME in a version-21 image is refused");
+    /* refused: a byte count past the image's end (T's 300 made 65535) */
+    uint32_t size;
+    long st = section(g, gn, 2, &size);
+    long tk = st + 11 + 5 + 7 + 5;                 /* past X (11 B), Y's kind 5 (5 + 7) and Z's kind 9 (5) */
+    expect(st > 0 && g[tk] == 200 && g[tk + 3] == 0x2C && g[tk + 4] == 0x01, "4C: T's kind 200 and its count 300 found");
+    memcpy(e, g, gn);
+    e[tk + 3] = e[tk + 4] = 0xFF;
+    reseal(e, gn);
+    expect(ab_state_load(&cb, e, gn) == ABN_BAD_IMAGE, "4C: a kind's byte count past the image's end is refused");
+    /* refused: a count that ends inside the section (299: the section's size no longer matches) */
+    memcpy(e, g, gn);
+    e[tk + 3] = 0x2B;
+    reseal(e, gn);
+    expect(ab_state_load(&cb, e, gn) == ABN_BAD_IMAGE, "4C: a kind's byte count one short is refused");
+    free(g);
+    free(h);
+}
+
 static void reader(void)
 {
     static uint8_t e[300000];
@@ -256,8 +336,13 @@ static void reader(void)
     reseal(e, k);
     ab_init(&cb);
     expect(ab_state_load(&cb, e, k) == ABN_OK, "082: an unknown section in a version-21 image is skipped");
+    expect(cb.msg && cb.err_status == ABN_OLDER_FW, "082: ... with OLDER FIRMWARE showing (4C)");
     size_t m2 = ab_state_save(&cb, img2, sizeof img2);
+    older_fw(&ca);
+    m = ab_state_save(&ca, img1, sizeof img1);
     expect(m2 == m && !memcmp(img1, img2, m), "082: ... and the rest loaded as without it");
+    build_v21(&ca);
+    m = ab_state_save(&ca, img1, sizeof img1);
     {   /* on an image with no expression (golden-v20-082): refused as version 20, skipped as 21 */
         size_t gn;
         uint8_t *g = file("tests/golden-v20-082.img", &gn);
@@ -842,6 +927,7 @@ int main(int argc, char **argv)
     goldens();
     round_trip(write_golden);
     reader();
+    older();
     store();
     sweep();
     classes();

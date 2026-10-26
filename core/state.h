@@ -23,7 +23,7 @@
 #include "calc.h"
 
 #define AB_STATE_VERSION 21     /* 21 (unit 082): a value may be an expression (its text) or a name (kinds 3, 4), the
-                                   messages MEMORY FULL (ABN_EXPR_FULL) and NOT A NUMBER may be the one showing, and a section
+                                   messages MEMORY FULL (ABN_EXPR_FULL), NOT A NUMBER and OLDER FIRMWARE may be the one showing, and a section
                                    this build doesn't know is skipped by its size; an image needing none of it is still
                                    written as 20, byte for byte (ab_state_save writes the lowest version its content needs);
                                    20 (unit 076): CAS3's CPLX, SOLVE's complex roots (T_CASCPLX, one byte); 19 (unit 070): no new field; a label may be WHERE (a sum's condition), and the messages
@@ -51,8 +51,14 @@ size_t ab_state_save(const ab_calc *c, uint8_t *buf, size_t cap);
 size_t ab_state_label_bytes(const ab_calc *c, int l);
 
 /* Replaces the state with the image's, keeping the device's settings. ABN_BAD_IMAGE, nothing
-   changed, for a wrong checksum, a truncated image, a version from the future or any field out
-   of range: every byte is checked before anything is written.
+   changed, for a wrong checksum, a truncated image or any field out of range: every byte is
+   checked before anything is written. An image from a newer version (unit 082, 4C: Michael's
+   s3-old-firmware) loads with what it adds dropped: a section this build doesn't know skipped by
+   its size, a value kind it doesn't know (a 16-bit byte count after its kind, len and mask) loaded
+   as 0, and OLDER FIRMWARE showing (ABN_OLDER_FW, ab_state_load still ABN_OK), whether or not
+   anything was dropped. Anything else
+   newer (a status, an operation code, a field inside a known section) is still refused, so a
+   later build adds what it needs as a section or a value kind.
 
    The device: at first boot (no image) and after a refused load, call ab_memory_clear and show
    MEMORY CLEAR (UG p.B-3), not ab_init. ab_init keeps unit 002's ALL display so the earlier

@@ -4,7 +4,8 @@
  *
  * Seeds: the golden image (tests/golden-v1.img) and images of states built here (unit 029: one in
  * STU's ALG; unit 031: equations of each model; unit 082: tests/golden-v21-082.img, expressions and names in the
- * stack, the letters and the message's X). Each case damages
+ * stack, the letters and the message's X; 4C: tests/golden-v22-4c.img, a newer firmware's image with value kinds and a
+ * section this build doesn't know). Each case damages
  * a seed (flipped bits, truncation, inserted or deleted bytes, or wholly random bytes), and half
  * the time repairs the length and checksum so the fields themselves are what is tested. A refused
  * image must leave the calculator exactly as it was (its image unchanged, byte for byte); an
@@ -154,8 +155,8 @@ int main(int argc, char **argv)
 {
     long iters = argc > 1 ? atol(argv[1]) : 20000;
     static ab_calc c;
-    uint8_t *seeds[8];
-    size_t seedn[8];
+    uint8_t *seeds[9];
+    size_t seedn[9];
     long refused = 0, accepted = 0, bad = 0;
     if (line_rule_sweep()) return 1;
     if (argc > 2) rng = (strtoull(argv[2], NULL, 0) * 0x9E3779B97F4A7C15ull) | 1;
@@ -216,9 +217,14 @@ int main(int argc, char **argv)
         fprintf(stderr, "load_fuzz: tests/golden-v21-082.img not found\n");
         return 2;
     }
+    seeds[8] = file("tests/golden-v22-4c.img", &seedn[8]);      /* 4C: a newer firmware's image */
+    if (!seeds[8]) {
+        fprintf(stderr, "load_fuzz: tests/golden-v22-4c.img not found\n");
+        return 2;
+    }
 
     for (long it = 0; it < iters; it++) {
-        int s = (int)below(8);
+        int s = (int)below(9);
         size_t n = seedn[s], cap = n + 64;
         uint8_t *m = malloc(cap), *before, *after;
         size_t nb, na;
@@ -286,7 +292,7 @@ int main(int argc, char **argv)
         free(before);
         free(after);
     }
-    for (int i = 0; i < 8; i++) free(seeds[i]);
+    for (int i = 0; i < 9; i++) free(seeds[i]);
     printf("load_fuzz: %ld cases, %ld refused, %ld accepted, %ld violations\n", iters, refused, accepted, bad);
     return bad ? 1 : 0;
 }
