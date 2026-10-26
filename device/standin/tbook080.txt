@@ -1,0 +1,58 @@
+# Unit 080 on the stand-in (work/080-textbook-display.md): STU's shown equation drawn in 2D. From MEMORY CLEAR,
+# 3×X^2-4 typed in STU's Equation mode and stored (the entry of tests/stackkeys.c's `cas s`: its first 17 keys, the
+# last ENTER storing it). The board line's drawn= is its 2D text, and the frame's rows 21-205, the textbook area, have the
+# host's CRC (tests/screen_test.c's 22-tb-stu3, 9A4A7D8C), which the app checks too (tally #10916). Ends with a control
+# that must FAIL.
+wait : heap internal 30
+sleep 3
+send WIPE
+expect wipe: both slots erased
+send RESTART
+expect load: no image: MEMORY CLEAR 30
+wait READY 30
+send X
+expect ver=0.80 5
+send K42
+sleep 0.25
+send K42
+sleep 0.25
+send K36
+sleep 0.25
+send K18
+sleep 0.25
+send K2
+sleep 0.25
+send K42
+sleep 0.25
+send K30
+sleep 0.25
+send K43
+sleep 0.25
+send K39
+sleep 0.25
+send K34
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K9
+sleep 0.25
+send K38
+sleep 0.25
+send K40
+sleep 0.25
+send K31
+sleep 0.25
+send K18
+sleep 0.25
+sleep 1
+send X
+expect eqn: 3×X^2-4 | note=- | rep=- | row=- | drawn=3X^2-4 10
+send FRAMECRC
+expect framecrc: rows 21-205 9A4A7D8C 10
+send X
+expect-min stack-free 8188 10
+send X
+# CONTROL: must FAIL
+expect framecrc: rows 21-205 00000000 3
