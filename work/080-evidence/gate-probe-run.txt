@@ -1,0 +1,9 @@
+tbprobe: control-none textbook_on=1 live=844 render=512 total=1356 of 32768 us=2 again_us=3 drawn=-
+tbprobe: control-4000 textbook_on=1 live=844 render=4032 total=4876 of 32768 us=88 again_us=2 drawn=-
+tbprobe: stu3 textbook_on=1 live=844 render=3248 total=4092 of 32768 us=18762 again_us=1624 drawn=3X^2-4
+tbprobe: taylor123 textbook_on=1 live=844 render=3248 total=4092 of 32768 us=19999 again_us=2798 drawn=1÷2+(KX)÷2+(X^2(K^2-1))÷4-(X^3(K-K^3÷3))÷4-(X^4(K^2-K^4÷6-1))÷8+(X^5(K-K^3÷3+K^5÷30))÷8+(X^6(K^2-K^4÷6+K^6÷90-1))÷16-(X^7(K-K^3÷3+K^5÷30-K^7÷630))÷16
+tbprobe: real-depth12 textbook_on=1 live=844 render=3584 total=4428 of 32768 us=19517 again_us=2184 drawn=-(180LN(-COS(-π÷4-1993)))÷π+(180LN(-COS(-1995)))÷π
+tbprobe: cf7-depth15 textbook_on=1 live=844 render=3248 total=4092 of 32768 us=19005 again_us=1801 drawn=1÷(1+1÷(1+1÷(1+1÷(1+1÷(1+1÷(1+1÷(1+X)))))))
+tbprobe: xpow44-text textbook_on=1 live=844 render=3248 total=4092 of 32768 us=19868 again_us=2654 drawn=X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^(X^X))))))))))))))))))))))))))))))))))))))))))
+framebench: calculator, 50 frames in 55 ms: 901.7 frames a second
+framebench: calculator, 50 frames in 85 ms: 583.3 frames a second

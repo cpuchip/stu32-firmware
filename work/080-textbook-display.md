@@ -177,3 +177,110 @@ stateless means those steps start from today's image, as Michael's note asks.
 ## Not in this unit
 
 The report rows, ALG's history, the worksheet, expressions as values, typing in 2D, and any 33s or 35s screen.
+
+## The gate (soroban, 2026-10-26; abacus OK'd the blueprint at c98b931, #10907, with four additions)
+
+**The commits, on d3354ac:** 1b6e0fc (firmware/tbook and tests/tbook_test), 5ebebe2 (the screen, the scroll, screen_page,
+the board line), c334e98 (the pool's limit, a 33s-stamped equation), 50df5c0 (VER 0.80, this record moved here, FRAMECRC),
+b82820e (a line taller than the area), ed7ecf1 (tbook080.txt), fbc5b35 (internal RAM +0), 71bd6f3 (Michael's look),
+aa738bb (look080.txt).
+
+**Where the code measured differently from the blueprint:**
+- **TB_DEPTH is 16, not 12.** The unit's own tree counts layout levels: no corpus answer is past 12, and casim's stress
+  nests start at 33. Nothing falls between 13 and 32.
+- **TB_NODES is 200, not 160.** Lists cost an ITEM node a term: 166 is the most an answer needs, wrapped.
+  `1+1+...+1` at 191 B reaches the pool and stops cleanly (err 2), drawn as text.
+- **The parse counts a bracketed exponent twice** (the exponent and its bracket), so 8 levels of `^(...)` are the most it
+  takes. That's honest about the parse's own stack, and no corpus answer reaches it.
+- **tb_fit takes the area's height** (b82820e). A seven-deep continued fraction fit the width at 3 but stood 231 px in
+  one line, which can't scroll, so the area would have drawn nothing. Now it draws at 2, 154 px.
+- **The minus beside a fraction has a full cell (6s) either side,** as Michael's look (a) says. My first code had 4s.
+  The wrap now measures with that gap too. Its estimate had used the plain gap, so some lines came out too wide and fell
+  to the text.
+
+**The four additions (abacus #10907):**
+- **The E rule:** after a number, × stays before an operand starting with E (`3·E`). Measured through eqn_eval:
+  `3E+1` is SYNTAX where `3×E+1` is 19, and `2EXP(1)` is SYNTAX. `i` isn't an STU variable.
+- **The synthetic sweep:** A-Z and 25 function words after 3, (1+2), B and X^2. All 204 pairs read back equal.
+- **e^u reads back as EXP(u),** with × before it after a number or a letter (rule F, and rule E's longest name).
+- **census-results.txt is labelled:** structural, binary, size, and the unit's own.
+
+**make test** rc 0, peak RSS 173,512 KB: app_test 788/788, standin_test 349/349, screen_test 9005/9005 with 33/33 frames,
+tbook_test 27/27, check-version `0.80, unit 080`.
+- **tbook_test's census** (casim 2a9c354, each of 4,884 distinct texts once): 3,528 whole at 3, 730 at 2, 529 wrapped,
+  27 taller than 180 px, 54 with a term too wide, 16 past TB_DEPTH (every one a stress nest), none past the pool, none
+  unparsed. The most nodes is 166.
+- **The readback:** all 4,884 corpus answers and all 204 sweep pairs evaluate equal to casim's text at three seeded
+  points.
+
+**The frames (screen_test):**
+- **New, each looked at and kept:** 22 (an STU equation at 3), 23 (fractions), 24 (wrapped), 25 and 26 (tall, then
+  scrolled), 27 (a term too wide, drawn as text), 28 (the 43-deep nest, as text), 29 (a label), 30 (+C), 31 (the minus
+  between fractions), 32 (a radical and LN|u|), 33 (STU typing, one line).
+- **The 21 frames before are byte-identical.** Two QUOT checks moved: in STU the label is at the area's top left, at 2.
+- **For the app (tally #10916):** 22-tb-stu3's rows 21-205 have CRC **9A4A7D8C**, pinned in screen_test.
+
+**The control: the screen change switched off at the head** (textbook_shown false).
+- screen_test: frames 22-32 and the CRC check are red (9002/9005, 22/33 frames). 33 passes either way: typing is one line.
+- app_test: 782/788, all six 080 checks red.
+- Restored, everything is green.
+
+**The mutants, at the final head aa738bb, each red:**
+
+| mutant | caught by |
+|---|---|
+| M1, the STU-only rule dropped | app_test 787/788 (33s mode) |
+| M2, typing drawn in 2D | frame 33 (8998/9005) |
+| M3, the cap removed | tbook_test 26/27: no answer is past the depth |
+| M4, scale 1 allowed | frame 27 |
+| M5, × dropped before a number | tbook_test 24/27 |
+| M6, a 33s-stamped equation parsed as STU | app_test 787/788 |
+| M7, the pool's overflow not handled | tbook_test 26/27 |
+| M8, the E rule dropped | tbook_test 25/27 |
+
+- **M1 doesn't move frame 14:** that equation is 33-stamped, so the stamp rule alone keeps it as text. The 33s-mode check
+  in app_test is M1's guard.
+- **M3 no longer moves frame 28:** since b82820e, the nest is too big at any scale and falls back to text either way.
+
+**Decision 68, `scripts/resources.py static d3354ac aa738bb`:** flash +12,928 on the stand-in and +13,024 on Rev A;
+internal RAM +0, IRAM +0, calc_task's frame +0, no internal-RAM symbol changed.
+- That's a little over the blueprint's 10-12 KB.
+- The first reading was internal RAM +232 (the area's struct static, tb_looks, an int in app_state). fbc5b35 brought it
+  to +0: the struct is on render's stack, tb_looks is PSRAM's zeroed BSS, and the scroll is a byte in app_state's padding.
+
+**The stack and the time on the S3** (a throwaway probe, work/080-evidence/gate-probe.patch, with interrupts live):
+- **The method:** each sample is put in the calc as the shown STU equation, the stack below the calc task's loop is
+  painted, and render() runs. That covers screen_render, the area and tbook.
+- **The controls:** 512 B with no work, and 4,032 B with 4,000 touched. Every sample reads textbook_on=1.
+- **The stack:** render() peaks at 3,248 B for `3×X^2-4`, the Taylor answer, the 15-deep continued fraction and the
+  43-deep nest drawn as text, and at 3,584 B for the deepest real answer (12). With 844 B live, that's 4,428 B of
+  32,768 at most.
+- **The time:** a frame's own time (a second render, the state unchanged) is 1.6 to 2.8 ms. FRAMEBENCH agrees: 1.1 ms
+  a frame for the stack screen, and 1.7 ms for `3×X^2-4` typed from the keys.
+- **The probe's first render after its paint takes about 19 ms for every sample.** Painting about 27 KB just before it
+  plausibly evicts the cache, so that time belongs to the probe, not the frame.
+- **A first run of the probe, after RESTART,** still had the stand-in's MEMORY CLEAR prompt up, which takes X ahead of
+  Equation mode. Its times weren't all of the textbook path. The run above clears it and prints textbook_on for each
+  sample.
+
+**The stand-in, at aa738bb** (read: `ver=0.80 core=aa738bb`):
+- **tbook080.txt:** every row met, with the control red. From the keys, `drawn=3X^2-4` and `framecrc: rows 21-205
+  9A4A7D8C`, the host's CRC. stack-free 29,044.
+- **look080.txt, for Michael:** 3×X×Y+X×Y^2 (`drawn=3XY+XY^2`, CRC 51AA78F5) and the minus between fractions (CRC
+  94F84FBB), each the host's. EQN LIST's ▲ and ▼ move between them. Every row met, with the control red. The board is
+  left showing the minus between fractions.
+- **On fbc5b35:** repin-rc7.txt 18 of 18 with the control red, and casrows.txt ALL MET.
+- Each key sequence was replayed through app.c on the host first, to the same CRC.
+- make clang-check: 68 files, 0 failing.
+- The port moved at some flashes (ACM1 to ACM3); each rerun with no flash passed.
+- Claim #10941, released (#10962), peak 658.4 MiB.
+
+**For the app and the web (their steps, after this unit):**
+- Add firmware/tbook.c to their builds.
+- When screen_page's textbook_on is set, draw rows 21-205 from screen_render's frame, as for a graph (tally's
+  stu_frame; primer paints the whole frame).
+- x keeps casim's text, Y a label's text, and `drawn` is what's drawn.
+- tally's AVD check is CRC 9A4A7D8C for 22-tb-stu3's state.
+
+**For tutor:** screen_page's `drawn` and the board's ` | drawn=` give the 2D form as text, e.g. `3X^2-4`,
+`(e^X SIN(X))÷2-(e^X COS(X))÷2`, `LN|3X-2|÷729+√(X+1)`. The 18 quotes in 10 lessons (#10917) check against it.
