@@ -1069,6 +1069,27 @@ int main(void)
             expect(ui.view[3] && !strcmp(ui.view[3], "B='C'"), "082: VAR: down, B holds the name C");
             press(&a, "C");
         }
+        {   /* unit 082: CAS4 from the keys (CAS, ▸ ▸ ▸): →X drops the shown equation, →EQN stores X's back */
+            ab_init(&c);
+            ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+            expect(ab_eqn_add(&c, "3\xc3\x97X^2-4") == ABN_OK && c.eqn_mode, "082: an equation shown");
+            press(&a, "C");
+            ab_do(&c, AB_EQN);
+            app_ui(&a, &ui);
+            press(&a, "k:4 k:5 k:5 k:5");
+            app_ui(&a, &ui);
+            expect(a.menu == menu_named_t("CAS4") && ui.soft[0] && !strcmp(ui.soft[0], "\xe2\x86\x92X") && ui.soft[1] &&
+                       !strcmp(ui.soft[1], "\xe2\x86\x92" "EQN"), "082: CAS, then ▸ three times: CAS4, →X and →EQN");
+            int n0 = c.eqn_count;
+            press(&a, "k:0");
+            expect(c.x.kind == AB_EXPR && !strcmp(ab_expr_text(&c, &c.x), "3\xc3\x97X^2-4") && c.eqn_mode && a.menu < 0,
+                   "082: →X: X the expression, Equation mode kept, back to the list's bar (as the other CAS keys)");
+            press(&a, "k:4 k:5 k:5 k:5 k:1");
+            expect(c.eqn_count == n0 + 1 && !strcmp(c.eqn[c.eqn_cur], "3\xc3\x97X^2-4"), "082: →EQN: X's expression a new entry, shown");
+            press(&a, "k:4 k:5 k:5 k:5 k:5");
+            expect(a.menu == menu_named_t("CAS"), "082: CAS4's ▸ back to CAS");
+            press(&a, "C C");
+        }
         ab_init(&c);
         app_init(&a, &c, now);
         a.sysinfo = fake_sysinfo;
@@ -4479,9 +4500,9 @@ int main(void)
         expect(ui.soft[0] && !strcmp(ui.soft[0], "QUOT") && ui.soft[1] && !strcmp(ui.soft[1], "GCD") && ui.soft[2] &&
                    !strcmp(ui.soft[2], "CANCL") && ui.soft[5] && !strcmp(ui.soft[5], "\xe2\x96\xb8"),
                "057: CAS2's sixth key: CAS3, QUOT GCD CANCL, its sixth key back");
-        press(&a, "k:5");
+        press(&a, "k:5 k:5");                   /* (082: CAS3's sixth key to CAS4, whose sixth key goes back) */
         app_ui(&a, &ui);
-        expect(ui.soft[0] && !strcmp(ui.soft[0], "D/DX"), "057: CAS3's sixth key back to CAS");
+        expect(ui.soft[0] && !strcmp(ui.soft[0], "D/DX"), "057: CAS3's sixth key, then CAS4's (082), back to CAS");
         press(&a, "k:5 k:5 k:0");
         app_ui(&a, &ui);
         expect(ui.prompt && !strcmp(ui.prompt, "QUOT _"), "057: QUOT prompts for the variable (CAS, CAS2, CAS3 again)");

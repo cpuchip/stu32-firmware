@@ -305,13 +305,15 @@ const help_entry help_table[] = {
     {HELP_OP, AB_CASCANCL, -1, "CANCL, then a letter: reduces a\ntop\303\267bottom. NOT AT rows: the\nvalues it removed."},
     {HELP_OP, AB_CASCPLX, -1, "On: SOLVE gives a quadratic's\ncomplex pair: 1-2\303\2270i1, 1+2\303\2270i1.\n33s equations stay real."},
     {HELP_OP, AB_KINF, -1, "Types \342\210\236 in \316\243's upper bound, TO.\n\342\210\236 alone: a sum to infinity."},
+    {HELP_OP, AB_EQDROP, -1, "The shown equation onto the\nstack as an expression, in X."},
+    {HELP_OP, AB_EQSTORE, -1, "X's expression or name into\nthe list, after the shown one."},
     {HELP_OP, AB_SUF, -1, "After digits: {} reads them in\nits base: b 2, o 8, d 10, h 16."},
     {HELP_MENU, 0, -1, "GAMES\037Games: five a page, C to APPS."},
     {HELP_MORE, 0, -1, "Shows the next five.\nFrom the last page: the first."},
     {HELP_GRAPHPAD, 0, -1, "Moves the graph's cursor: 8 up,\n2 down (TRACE off), 4 left, 6\nright, 5 home. GOLD: 10 pixels."},
     {HELP_CMPLXPAIR, 0, -1, "33s CMPLX: does it on complex\nnumbers held as stack pairs."},
 };
-const int help_table_n = 305;
+const int help_table_n = 307;
 
 /* the entries whose text must differ by mode (help.txt's MODE lines) */
 const int help_mode_list[] = {46, 53, 68, 97, 85, 94, 58, 61, 213, 205, 91, 47, 98, 15, 11, 24, -1};

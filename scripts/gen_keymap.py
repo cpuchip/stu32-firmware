@@ -249,7 +249,7 @@ MENUS = [
     ("CAS3", [p("QUOT", "AB_CASQUOT", "KM_ARG_VAR"), p("GCD", "AB_CASGCD", "KM_ARG_VAR"),
               p("CANCL", "AB_CASCANCL", "KM_ARG_VAR"),
               o("CPLX", "AB_CASCPLX"),             # 076: SOLVE's complex roots on or off (decision 88), marked when on
-              NONE, ("\u25b8", "KM_MENU", "0", "CAS", 0)]),
+              NONE, ("\u25b8", "KM_MENU", "0", "CAS4", 0)]),                     # 082: on to CAS4
     # unit 070 (abacus #8545): typing's bar while Σ's upper bound is typed, last in this list so no menu's index moves;
     # = has no meaning in a bound, so its key types ∞ there (the label shows it while it is live)
     ("EQN TYPE SUM", [o("\u25c0", "AB_KLEFT"), o("\u25b6", "AB_KRIGHT"), o("( )", "AB_KPAREN"), o("\u221e", "AB_KINF"),
@@ -257,6 +257,11 @@ MENUS = [
     # unit 072 (Michael via abacus #8570, #8600, #8679): APPS's GAMES key opens it: the GAMES folder's apps, paged as
     # APPS and CONST are (five a page, then more); C or back-arrow returns to APPS. Last, so no menu's index moves
     ("GAMES", [NONE, NONE, NONE, NONE, NONE, ("more", "KM_NONE", "0", 0, 0)], "KM_PAGED_GAMES"),
+    # unit 082 (abacus #11174; where keys go is Michael's card s3-keys): CAS4, after CAS3's ▸, last so no menu's index
+    # moves: →X drops the shown equation onto the stack as an expression, →EQN stores X's back into the list; the sixth
+    # key back to CAS
+    ("CAS4", [o("\u2192X", "AB_EQDROP"), o("\u2192EQN", "AB_EQSTORE"), NONE, NONE, NONE,
+              ("\u25b8", "KM_MENU", "0", "CAS", 0)]),
 ]
 # Menu legends that act as plain ops until their menu is ruled (abacus #3867): the EQN menu's
 # first item will take this over.

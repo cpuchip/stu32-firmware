@@ -1264,6 +1264,12 @@ complex pair: 1-2×0i1, 1+2×0i1.
 [AB_KINF]
 Types ∞ in Σ's upper bound, TO.
 ∞ alone: a sum to infinity.
+[AB_EQDROP]
+The shown equation onto the
+stack as an expression, in X.
+[AB_EQSTORE]
+X's expression or name into
+the list, after the shown one.
 
 [AB_SUF]
 After digits: {} reads them in
