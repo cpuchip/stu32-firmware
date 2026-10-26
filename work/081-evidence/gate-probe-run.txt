@@ -1,0 +1,8 @@
+tbprobe: control-none textbook_on=1 live=844 render=512 total=1356 of 32768 us=2 again_us=2
+tbprobe: control-4000 textbook_on=1 live=844 render=4032 total=4876 of 32768 us=88 again_us=3
+tbprobe: stu3 textbook_on=1 live=844 render=3248 total=4092 of 32768 us=19106 again_us=1964
+tbprobe: taylor123 textbook_on=1 live=844 render=3248 total=4092 of 32768 us=20052 again_us=2854
+tbprobe: real-depth12 textbook_on=1 live=844 render=3824 total=4668 of 32768 us=19899 again_us=2657
+tbprobe: cf7-depth15 textbook_on=1 live=844 render=3808 total=4652 of 32768 us=19168 again_us=2011
+tbprobe: xpow44-text textbook_on=1 live=844 render=4000 total=4844 of 32768 us=20221 again_us=20278
+framebench: calculator, 50 frames in 162 ms: 308.6 frames a second
