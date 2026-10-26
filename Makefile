@@ -299,6 +299,7 @@ test: all
 	./build/vectors build/veckey_fuzz.txt
 	./build/fmt_vectors work/002-vectors.txt
 	python3 tests/fmt_fuzz.py build/fmt_drive 20000
+	$(MAKE) sanitize                            # (abacus #11415: under ~3 minutes, so in make test; 37 s measured)
 
 # Needs mpmath (not part of `make test`): the unit 003/004 functions against mpmath at 150 digits,
 # random statistics data sets, fractions and base operations, against exact references.
@@ -400,6 +401,33 @@ build/device_host: tests/device/main/device_main.c $(DEVICE_RUNNERS) $(CORE) $(H
 	$(CC) $(CFLAGS) -DAB_DEVICE -Icore -Ifirmware -Itests -Itests/device/main -o $@ tests/device/main/device_main.c $(DEVICE_RUNNERS) $(CORE) build/device/bundle.o build/device/abn_test.o build/device/xnum_test.o $(ENGINE) $(LIBS)
 device-host: build/device_host
 	./build/device_host
+
+# Sanitizers (abacus #11415, after 082's ASan find in prog_insert): load_fuzz, expr_test, app_test and the key vectors
+# built with AddressSanitizer and UndefinedBehaviorSanitizer (the engine's objects as they are: Intel's library and
+# casim are not instrumented), and run; a report stops the run. make test runs it last (37 s on lepton, 2026-10-26;
+# its first red: 5e3f85c's program pointer, reverted, in prog_insert).
+SAN := -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer
+SAN_CFLAGS := -std=c11 -O1 -g -Wall -Wextra -Wpedantic -Werror -Wno-format-truncation -DAB_CASIM -Ibuild/casim $(SAN)
+# (-Wno-format-truncation: at -O1 with the sanitizers GCC reads app_test's bounded snprintf of its 61-byte nest as
+# possibly 199 bytes; the -O2 build has no such warning)
+.PHONY: sanitize
+build/san/load_fuzz: $(CORE) $(HDRS) $(ENGINE) tests/load_fuzz.c | build
+	@mkdir -p build/san
+	$(CC) $(SAN_CFLAGS) -Icore -o $@ $(CORE) tests/load_fuzz.c $(ENGINE) $(LIBS)
+build/san/expr_test: $(CORE) $(HDRS) $(ENGINE) tests/expr_test.c | build
+	@mkdir -p build/san
+	$(CC) $(SAN_CFLAGS) -Icore -o $@ $(CORE) tests/expr_test.c $(ENGINE) $(LIBS)
+build/san/app_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) $(APP) $(GAMES_O) build/games/games.h firmware/app.h firmware/keymap.h firmware/power.h firmware/screen.h firmware/version.h tests/app_test.c | build
+	@mkdir -p build/san
+	$(CC) $(SAN_CFLAGS) -Icore -Ifirmware -Ibuild/games -DVER_CASIM='"$(VER_CASIM)"' -DVER_GAMES='"$(VER_GAMES)"' -o $@ $(CORE) $(SCREEN) $(APP) $(GAMES_O) tests/app_test.c $(ENGINE) $(LIBS)
+build/san/vectors: $(CORE) $(HDRS) $(ENGINE) tests/vectors.c tests/norm.h firmware/store.c firmware/store.h | build
+	@mkdir -p build/san
+	$(CC) $(SAN_CFLAGS) -Icore -Ifirmware -o $@ $(CORE) firmware/store.c tests/vectors.c $(ENGINE) $(LIBS)
+sanitize: build/san/load_fuzz build/san/expr_test build/san/app_test build/san/vectors
+	./build/san/load_fuzz 200000 7
+	./build/san/expr_test
+	./build/san/app_test
+	for f in $(KEYV) work/016-vectors.txt work/017-vectors.txt; do AB_SAVELOAD=1 AB_STORE=1 ./build/san/vectors $$f || exit 1; done
 
 clean:
 	rm -rf build

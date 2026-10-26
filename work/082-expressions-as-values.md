@@ -406,3 +406,11 @@ and this record with VER 0.82.
   (3,578,784 to 3,579,072); internal RAM static, IRAM code and calc_task's frame +0 on both; no internal-RAM symbol
   changed. Not run on the board: the core's change is the reader and the run loop, with no new RAM. There is no console
   command to put an arbitrary image in flash, so 4C's real path is the host's (expr_test, frame 48).
+- **The shipped build has it (abacus #11415):** S27-S31 at 15a0436 (081 with Casimir 1.3.0) give 0 of 5 vectors, the
+  same failures as above. Through the app's own keys, on 15a0436: GOLD 9 then F1 (program entry), GOLD XEQ, A (LBL A),
+  BLUE 5 then F1 (x≠0?), GOLD 9 then F1 (out), GOLD 4, A (GTO A), BLUE R/S twice (SST, SST). The second SST leaves
+  pc 3 of 2 lines (the screen says TOP). dev_image_save then dev_image_load: REFUSED. At 9a08b6e: pc 2, the load OK.
+- **make sanitize (abacus #11415, item 3):** load_fuzz (200,000 cases), expr_test, app_test and every key-vector file
+  with a save and load after each key, built with ASan and UBSan; the last step of make test. 37 s on its own (binaries
+  built), make test 79 s wall in all from a clean sanitizer build. Its control: with 9ba855d's calc.c it stops at
+  prog_insert's negative-size memmove.
