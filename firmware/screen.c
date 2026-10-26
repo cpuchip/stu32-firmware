@@ -942,7 +942,7 @@ bool screen_textbook_more(const ab_calc *c, int first)
    tb_line, the app's scroll), with ▲ when lines are above and ▼ when lines are below */
 static void draw_textbook(ls027_frame *f, const ab_calc *c, const screen_ui *ui)
 {
-    static tb_area a;
+    tb_area a;                                  /* (on render's stack: internal RAM stays +0) */
     int h, first = ui->tb_line;
     area_fit(c, &a);
     if (first >= a.n) first = a.n - 1;

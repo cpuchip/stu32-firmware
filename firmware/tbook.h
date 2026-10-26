@@ -45,11 +45,12 @@ typedef struct {
     int err;                    /* nonzero: 1 it doesn't parse, 2 the pool is full, 3 it nests past TB_DEPTH */
 } tb_tree;
 
-/* The look the glass check decides (abacus's card (b)): a binary minus beside a fraction 1 px above the bars' row,
-   and a 1 px gap between two letters side by side. */
+/* The look the glass check decides (abacus's card (b)): a binary minus beside a fraction on the bars' row or 1 px
+   above it, and two letters side by side with a 1 px gap or touching. Zero is the blueprint's proposal for each, so the
+   struct is PSRAM's zeroed BSS on the devices (internal RAM +0). */
 typedef struct {
     uint8_t minus_up;           /* 0: on the bars' row; 1: one pixel above it */
-    uint8_t letter_gap;         /* 0: XY touching; 1: one pixel between them */
+    uint8_t letter_touch;       /* 0: XY with a 1 px gap; 1: touching */
 } tb_look;
 extern tb_look tb_looks;
 

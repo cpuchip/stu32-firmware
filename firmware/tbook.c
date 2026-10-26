@@ -11,7 +11,7 @@
 #endif
 
 tb_tree tb_screen AB_POOL_ATTR;
-tb_look tb_looks = {0, 1};      /* the blueprint's proposals until the glass check: (a), and XY with a gap */
+tb_look tb_looks AB_POOL_ATTR;  /* the blueprint's proposals until the glass check: (a), and XY with a gap */
 #ifdef TB_MEASURE
 int tb_depth_seen;
 #endif
@@ -375,7 +375,7 @@ static void child_row(tb_tree *t, rowbox *r, int c, int s, int d, bool br, int g
 
 static int sep_w(int k, int s)
 {
-    return k == SEP_DOT ? 2 * s + text_w(1, s) : k == SEP_WORD ? 3 * s : tb_looks.letter_gap;
+    return k == SEP_DOT ? 2 * s + text_w(1, s) : k == SEP_WORD ? 3 * s : !tb_looks.letter_touch;
 }
 
 static bool beside_fraction(const tb_tree *t, int it)
