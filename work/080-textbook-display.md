@@ -284,3 +284,17 @@ internal RAM +0, IRAM +0, calc_task's frame +0, no internal-RAM symbol changed.
 
 **For tutor:** screen_page's `drawn` and the board's ` | drawn=` give the 2D form as text, e.g. `3X^2-4`,
 `(e^X SIN(X))÷2-(e^X COS(X))÷2`, `LN|3X-2|÷729+√(X+1)`. The 18 quotes in 10 lessons (#10917) check against it.
+
+## Accepted on the code (abacus #10992, abacus 92e26d1), and the gap's reach
+
+- abacus replayed 85503e9 from a clean clone: VER 0.80, the 33 frames, CRC 9A4A7D8C, the 21 older frames byte-identical.
+  Its plant (the minus's gap off, letter_touch forced) turned 8 frames red, 22's CRC among them.
+- **The 1 px gap reaches every pair drawn side by side, not only two letters.** tbook.c's sep_w gives it to every
+  SEP_NONE pair: `3X`, `XY`, `(X+1)(X-1)`, `X(Y+1)`, `X^2Y`. Michael's card (tb-look) named "XY with a gap". The code
+  wasn't a choice made for 3X: the gap went on the side-by-side separator, and every pair takes it.
+  - **To match the card,** sep_w would give the gap only where both sides are letters ('a' or 'E'). That moves every
+    frame with a digit or a bracket beside a factor, 22's CRC among them, which the app's and the web's checks pin.
+    So it waits for Michael's word at the look (abacus puts it on the card), rather than a change after acceptance.
+  - look080's first screen, `3XY+XY^2`, shows both cases on the glass: 3 to X and X to Y.
+- The unit's acceptance waits on Michael's look (card tb-exponent, v170: the gap's reach and exponents at scale 1). The
+  stand-in stays on look080.

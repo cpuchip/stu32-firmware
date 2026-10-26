@@ -50,7 +50,8 @@ typedef struct {
    struct is PSRAM's zeroed BSS on the devices (internal RAM +0). */
 typedef struct {
     uint8_t minus_up;           /* 0: on the bars' row; 1: one pixel above it */
-    uint8_t letter_touch;       /* 0: XY with a 1 px gap; 1: touching */
+    uint8_t letter_touch;       /* 0: a 1 px gap between any two factors drawn side by side (3X, XY, (X+1)(X-1), X(Y+1));
+                                   1: touching. Michael's card named two letters (abacus #10992) */
 } tb_look;
 extern tb_look tb_looks;
 
