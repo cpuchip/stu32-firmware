@@ -40,8 +40,8 @@ S61 | 070 at casimir rc7 (CAS 025): a letter at a negative whole power marks its
 S62 | 070 at rc7: S61's first row, Y≠0, labeled WHERE | STU RAD EQ:(X÷Y)^K÷Y CASSUM:K 0 ENTER INF ENTER SST | %EQ=Y≠0 %NOTE=WHERE
 S63 | 070 at casimir rc7 (CAS 026, decision 90): a row on a function factor wherever a term from lo divides by it (casim's example) | STU RAD EQ:K×(SIN(Z)×Y)^K÷SIN(Z) CASSUM:K 0 ENTER INF ENTER | %EQ=-Y÷2÷(Y×SIN(Z)-Y^2×SIN(Z)^2÷2-1÷2) %EQN=4
 S64 | 070 at rc7: S63's first row, SIN(Z)≠0, labeled WHERE | STU RAD EQ:K×(SIN(Z)×Y)^K÷SIN(Z) CASSUM:K 0 ENTER INF ENTER SST | %EQ=SIN(Z)≠0 %NOTE=WHERE
-S65 | 070 at casimir 1.0.1 (CAS 027): S63's sum from 1, where the shift reads SIN(Z) as a letter: no row on it (1.0.0 divided by SIN(Z) under the row Z≠0, so it had no value at SIN(Z)'s other zeros, Z = π for one, where the sum is Y; casim's example) | STU RAD EQ:K×(SIN(Z)×Y)^K÷SIN(Z) CASSUM:K 1 ENTER INF ENTER | %EQ=-Y÷(Y×SIN(Z)-1)-Y^2×SIN(Z)÷2÷(Y×SIN(Z)-Y^2×SIN(Z)^2÷2-1÷2) %EQN=3
-S66 | 070 at 1.0.1: S65's one row, ABS(Y×SIN(Z))<1, labeled WHERE | STU RAD EQ:K×(SIN(Z)×Y)^K÷SIN(Z) CASSUM:K 1 ENTER INF ENTER SST | %EQ=ABS(Y×SIN(Z))<1 %NOTE=WHERE
+S65 | 070 at casimir 1.0.1 (CAS 027): S63's sum from 1, where the shift reads SIN(Z) as a letter: no row on it (1.0.0 divided by SIN(Z) under the row Z≠0, so it had no value at SIN(Z)'s other zeros, Z = π for one, where the sum is Y; casim's example); at 1.4.0 (CAS 035) the summand as typed divides by SIN(Z), so the same answer gains SIN(Z)≠0 before its row (casim's example, 027:13) | STU RAD EQ:K×(SIN(Z)×Y)^K÷SIN(Z) CASSUM:K 1 ENTER INF ENTER | %EQ=-Y÷(Y×SIN(Z)-1)-Y^2×SIN(Z)÷2÷(Y×SIN(Z)-Y^2×SIN(Z)^2÷2-1÷2) %EQN=4
+S66 | 070 at 1.0.1: S65's one row, ABS(Y×SIN(Z))<1, labeled WHERE until 1.3.0; at 1.4.0 (CAS 035) the first row is SIN(Z)≠0 | STU RAD EQ:K×(SIN(Z)×Y)^K÷SIN(Z) CASSUM:K 1 ENTER INF ENTER SST | %EQ=SIN(Z)≠0 %NOTE=WHERE
 S67 | 070 at casimir 1.1.1 (CAS 029): a quotient of powers in K read as one ratio, the answer (X÷Y)^K gives; 1.1.0 refused it, NO_CLOSED_FORM (casim's example) | STU RAD EQ:X^K÷Y^K CASSUM:K 1 ENTER RCL:N ENTER | %EQ=-X÷(X-Y)+(X÷Y)^(N+1)÷(X÷Y-1) %EQN=4
 S68 | 070 at 1.1.1: S67's first row, Y≠0, labeled WHERE | STU RAD EQ:X^K÷Y^K CASSUM:K 1 ENTER RCL:N ENTER SST | %EQ=Y≠0 %NOTE=WHERE
 S69 | 070 at 1.1.1: S67's second row, X÷Y≠1 | STU RAD EQ:X^K÷Y^K CASSUM:K 1 ENTER RCL:N ENTER SST SST | %EQ=X÷Y≠1 %NOTE=WHERE
@@ -52,6 +52,7 @@ S73 | 070 at 1.1.2: the third, Y÷SIN(Z)≠1 until 1.2.0; at 1.3.0 there is no t
 S74 | 070 at casimir 1.2.0 (CAS 031): the closed form's common factor cancelled: (K+1)×X^(K+1)×Y^K from -1 to ∞ is 0 at X = 0, as the sum is, with no row X≠0 (1.1.2 printed X^2×Y÷(X×Y-2×X^2×Y^2+X^3×Y^3), 0÷0 there, under X≠0; casim's example) | STU RAD EQ:(K+1)×X^(K+1)×Y^K CASSUM:K - 1 ENTER INF ENTER | %EQ=-X÷2÷(X×Y-X^2×Y^2÷2-1÷2) %EQN=4
 S75 | 070 at 1.2.0: S74's first row, Y≠0 | STU RAD EQ:(K+1)×X^(K+1)×Y^K CASSUM:K - 1 ENTER INF ENTER SST | %EQ=Y≠0 %NOTE=WHERE
 S76 | 070 at 1.2.0: the second, ABS(X×Y)<1 | STU RAD EQ:(K+1)×X^(K+1)×Y^K CASSUM:K - 1 ENTER INF ENTER SST SST | %EQ=ABS(X×Y)<1 %NOTE=WHERE
+S77 | 070 at 1.4.0: S65's second and last row, ABS(Y×SIN(Z))<1, S66's until 1.3.0 | STU RAD EQ:K×(SIN(Z)×Y)^K÷SIN(Z) CASSUM:K 1 ENTER INF ENTER SST SST | %EQ=ABS(Y×SIN(Z))<1 %NOTE=WHERE
 S23 | 070: past the arena: TOO COMPLEX | STU RAD EQ:K^12×X^K CASSUM:K 0 ENTER RCL:N ENTER | ERR %ERR=CAS_NO_ROOM %EQN=1
 S24 | 070: a bound not whole: BAD BOUND (provisional, #8545) | STU RAD EQ:K CASSUM:K 1.5 ENTER RCL:N ENTER | ERR %ERR=CAS_BAD_BOUND %ERRMSG=BAD_BOUND %EQN=1
 S25 | 070: -∞ as the upper goes to casim as typed: BAD BOUND | STU RAD EQ:K CASSUM:K 1 ENTER - INF ENTER | ERR %ERRMSG=BAD_BOUND %EQN=1
