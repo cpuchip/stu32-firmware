@@ -1,10 +1,10 @@
-# The repin to Casimir 1.2.0 (CASIM_PIN casimir 2a9c354, the v1.2.0 tag; its src is rc7's plus CAS 027 to CAS 031 and the version) with the CAS
+# The repin to Casimir 1.4.0 (CASIM_PIN casimir 6090b8c, the v1.4.0 tag; its src is rc7's plus CAS 027 to CAS 035 and the version) with the CAS
 # arena at 16,384 B
 # (decision 88, abacus #9747), on the stand-in with interrupts live: VER names the pin; from the keys (DEG, MEMORY CLEAR's
 # angle; SIN(Z) is a function of the letter Z, not of K, so the angle changes no text here):
 # 070's S60, NO_ROOM at 12,288 B, answers at 16,384; 070's S63 (CAS 026) answers and its first
 # row is SIN(Z)≠0, labeled WHERE (at 2ba7217 the first row was ABS(Y×SIN(Z))<1); then the calc task's stack low-water
-# mark is no lower than the deep paths' worst (8,188 B free). Each expected text is casim's CLI at e0ef88a, 16,384 B (rc7 differs only in CASIM_VERSION). 070's S67 and S68 (CAS 029) are casim's CLI at 751b23c, S70 and S72 (CAS 030) at 4625452, S74 and S75 (CAS 031) at 2a9c354.
+# mark is no lower than the deep paths' worst (8,188 B free). Each expected text is casim's CLI at e0ef88a, 16,384 B (rc7 differs only in CASIM_VERSION). 070's S67 and S68 (CAS 029) are casim's CLI at 751b23c, S70 (CAS 030) at 4625452, S74 and S75 (CAS 031) at 2a9c354, S71 (CAS 032) at 7efd2af, S65, S66 and S77 (CAS 035) at 6090b8c.
 # Keys from tests/stackkeys.c; SST is blue R/S (36 45). Ends with a control that must FAIL (the old pin). Unit 079: the eqn: line's row= is the report's row as the screen shows it.
 wait : heap internal 30
 sleep 3
@@ -14,7 +14,7 @@ send RESTART
 expect load: no image: MEMORY CLEAR 30
 wait READY 30
 send X
-expect pins: casim=2a9c354abfcb93f84bac8194e06077e192337f82 5
+expect pins: casim=6090b8c7c8d1ab39ef17fdd6c30daaa9e645bcc5 5
 # CAS 028 (Casimir 1.1.0) on the keys: STU, (X-2)×(X^2+1) typed and SOLVEd with CPLX off; the pair left out is counted
 # (076 C05; keys from stackkeys cas s, replayed through the app on the host to this report)
 send K42
@@ -596,7 +596,8 @@ send K45
 sleep 0.5
 send X
 expect eqn: Y≠0 | note=WHERE 10
-# 070's S70 and S72: CAS 030 (Casimir 1.1.2), (Y÷SIN(Z))^K from 1 to N keeps a row on SIN(Z), its second (none at 1.1.1)
+# 070's S70 and S71: CAS 030 (Casimir 1.1.2), (Y÷SIN(Z))^K from 1 to N keeps a row on SIN(Z) (none at 1.1.1); its second
+# until 1.2.0, its first from 1.3.0 (CAS 032 leaves Z≠0 out)
 send K42
 sleep 0.25
 send K42
@@ -661,10 +662,6 @@ send K18
 sleep 5
 send X
 expect eqn: -Y÷(Y-SIN(Z))+(Y÷SIN(Z))^(N+1)÷(Y÷SIN(Z)-1) | note=- 15
-send K36
-sleep 0.25
-send K45
-sleep 0.5
 send K36
 sleep 0.25
 send K45
@@ -762,8 +759,99 @@ send K45
 sleep 0.5
 send X
 expect eqn: Y≠0 | note=WHERE 10
+# 070's S65, S66 and S77: CAS 035 (Casimir 1.4.0), K×(SIN(Z)×Y)^K÷SIN(Z) from 1 to ∞ (S63's sum from 1) keeps its answer;
+# the summand as typed divides by SIN(Z), so SIN(Z)≠0 comes before ABS(Y×SIN(Z))<1 (that row alone at 1.0.1 to 1.3.0)
+# (keys from stackkeys cas S, replayed through the app on the host to this answer)
+send K42
+sleep 0.25
+send K42
+sleep 0.25
+send K36
+sleep 0.25
+send K18
+sleep 0.25
+send K2
+sleep 0.25
+send K42
+sleep 0.25
+send K30
+sleep 0.25
+send K43
+sleep 0.25
+send K13
+sleep 0.25
+send K16
+sleep 0.25
+send K34
+sleep 0.25
+send K2
+sleep 0.25
+send K15
+sleep 0.25
+send K13
+sleep 0.25
+send K38
+sleep 0.25
+send K1
+sleep 0.25
+send K34
+sleep 0.25
+send K13
+sleep 0.25
+send K37
+sleep 0.25
+send K1
+sleep 0.25
+send K9
+sleep 0.25
+send K13
+sleep 0.25
+send K16
+sleep 0.25
+send K28
+sleep 0.25
+send K15
+sleep 0.25
+send K13
+sleep 0.25
+send K38
+sleep 0.25
+send K1
+sleep 0.25
+send K18
+sleep 0.25
+send K4
+sleep 0.25
+send K5
+sleep 0.25
+send K4
+sleep 0.25
+send K16
+sleep 0.25
+send K37
+sleep 0.25
+send K18
+sleep 0.25
+send K3
+sleep 0.25
+send K18
+sleep 5
+send X
+expect eqn: -Y÷(Y×SIN(Z)-1)-Y^2×SIN(Z)÷2÷(Y×SIN(Z)-Y^2×SIN(Z)^2÷2-1÷2) | note=- 15
+send K36
+sleep 0.25
+send K45
+sleep 0.5
+send X
+expect eqn: SIN(Z)≠0 | note=WHERE 10
+send K36
+sleep 0.25
+send K45
+sleep 0.5
+send X
+expect eqn: ABS(Y×SIN(Z))<1 | note=WHERE 10
 send X
 expect-min stack-free 8188 10
 send X
-# CONTROL: must FAIL
-expect pins: casim=2ba7217 3
+# CONTROL: must FAIL (the old pin, 1.3.0)
+expect pins: casim=7efd2af 3
