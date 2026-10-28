@@ -242,3 +242,43 @@ internal RAM +0, IRAM +0, calc_task's frame +0, no internal-RAM symbol changed.
 - casrows.txt: ALL MET. make clang-check: 66 files, 0 failing.
 - The port moved at the flash (ACM3 to ACM1); the rerun with no flash passed.
 - abacus replayed dcfdac3 from a clean clone (#10883, abacus 421c486): make test rc 0, 070 75/75, 079 17/17, app_test 779/779, check-version "0.79, unit 079". Its control at 4625452 failed 070 only, 72/75, with S74 (EQN 5), S75 and S76 red, as predicted.
+
+## Casimir 1.4.0 (abacus #11601)
+
+- **The pin moves to 6090b8c,** the commit of v1.4.0 (tree 977d1d201e95): CAS 034 (accepted at 4c0523b) and CAS 035
+  (accepted at a6836d0), with the version text. a6836d0..6090b8c's src differs in casim.h's version only (1.4.0,
+  MINOR 4).
+- **Two vectors moved, S65 and S66, of the 11,917 make test runs.** Each vector's final state, its image body's CRC
+  (AB_IMGCRC), was taken at 7efd2af and at 6090b8c in two worktrees of 50ed073, every command of the test target run
+  on its own. They differ on 070 S65 and S66 alone; every other output is the same apart from tbook's count of
+  casim's corpus (4,884 answers to 4,865, casim's own file).
+
+| row | before (7efd2af) | after (6090b8c) |
+|---|---|---|
+| 070 S65, K×(SIN(Z)×Y)^K÷SIN(Z) from 1 to ∞ | the answer; ABS(Y×SIN(Z))<1 (EQN 3) | the same answer; SIN(Z)≠0; ABS(Y×SIN(Z))<1 (EQN 4) |
+| 070 S66, its first row | ABS(Y×SIN(Z))<1 | SIN(Z)≠0 |
+
+  - CAS 035 reads the summand as typed, and it divides by SIN(Z). casim's ed912b8 re-pins the same line (027:13) with
+    the row added. casim's CLI at 6090b8c, 16,384 B, prints it in DEG and RAD:
+    `-Y÷(Y×SIN(Z)-1)-Y^2×SIN(Z)÷2÷(Y×SIN(Z)-Y^2×SIN(Z)^2÷2-1÷2); SIN(Z)≠0; ABS(Y×SIN(Z))<1`.
+  - casim's docs/language.md at 6090b8c (its line 723) still gives 1.3.0's line, with no SIN(Z)≠0. That is casim's.
+- **S77 is new:** S65's second row, ABS(Y×SIN(Z))<1, S66's until 1.3.0. At 7efd2af, 070 is 73/76 with S65, S66 and
+  S77 red.
+- make test rc 0 at 52134a4: 147 vector runs, 11,918/11,918 vectors, 31,118/31,118 expectations; 070 76/76
+  (148/148); app_test 821/821 (sanitized too); expr_test 312/312; screen_test 9,020/9,020, 48/48 frames; tbook_test
+  39/39; load_fuzz 0 violations.
+- **abacus accepted 52134a4 (#11615, abacus e193fb5):** a clean clone's make test passes; its control at 7efd2af is
+  red on 070 S65, S66 and S77 only, as predicted.
+
+**Decision 68, `scripts/resources.py static 50ed073 52134a4`:** flash +12,048 on the stand-in and +12,112 on Rev A
+(casim's code, CAS 034 and 035); internal RAM +0, IRAM +0, calc_task's frame +0, no internal-RAM symbol changed.
+
+**The stand-in at d1904c9:** ver=0.82, core=d1904c9, pins casim=6090b8c7c8d1ab39ef17fdd6c30daaa9e645bcc5.
+- repin-rc7.txt had stood at 1.2.0 since b2a36e7 left it: from 1.3.0 S70's SIN(Z)≠0 is its first row, one SST, not
+  two, and the control named 2ba7217. d1904c9 fixes both (the control is now 7efd2af) and types S65's sum from the
+  keys (stackkeys cas S).
+- repin-rc7.txt: 21 of 21 met, with the control (its line 857) red. S65's answer, SIN(Z)≠0 and ABS(Y×SIN(Z))<1
+  (WHERE), all from the keys; stack-free 23,716 B (floor 8,188).
+- casrows.txt: ALL MET.
+- The port moved at the flash (ACM3 to ACM1), and the console lost it; the unchanged script's rerun with no flash is
+  the one recorded.
