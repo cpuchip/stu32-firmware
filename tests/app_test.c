@@ -1682,6 +1682,26 @@ int main(void)
         screen_lines(&c, &ui, &pg);
         expect(!c.eqn_mode && c.stop == AB_STOP_INPUT && !strcmp(pg.y.text, "A?") && pg.t.label && pg.z.label &&
                    strstr(pg.z.text, "8") && strstr(pg.t.text, "7"), "083: 33s mode: EVAL's A? on Y, T and Z shown again");
+        /* TABLE and GRAPH keep their own views with Equation mode on (abacus #12004): the text the console reads keeps
+           T Z Y and their letters, as at 082. A graph opened from the list; a table whose ENTER errs (1÷X at X=0: the
+           table stays open, its message on X's line, the stack's lines under it) */
+        for (int g = 0; g < 2; g++) {
+            ab_init(&c);
+            app_init(&a, &c, now);
+            ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+            press(&a, "7 ENTER 8 ENTER 9 ENTER");
+            ab_eqn_add(&c, "1\xc3\xb7X");
+            ab_do_arg(&c, g ? AB_GRAPH : AB_TABLE, 0);
+            if (!g) ab_do(&c, AB_ENTER);
+            app_ui(&a, &ui);
+            screen_lines(&c, &ui, &pg);
+            bool state = c.eqn_mode && (g ? c.gr_on : c.tbl_on && ab_error_message(&c) != NULL);
+            bool kept = !strcmp(pg.t.text, "7.0000") && !strcmp(pg.z.text, "8.0000") && !strcmp(pg.y.text, "9.0000") &&
+                        pg.t.label && !strcmp(pg.t.label, "T") && pg.z.label && !strcmp(pg.z.label, "Z") && pg.y.label &&
+                        !strcmp(pg.y.label, "Y");
+            expect(state && kept, g ? "083: GRAPH open with Equation mode on: T Z Y and their letters kept in the text"
+                                    : "083: TABLE's ENTER erring (DIVIDE BY 0), Equation mode on: T Z Y and their letters kept");
+        }
     }
 
     /* unit 020: in Equation mode the soft keys are the editor's bar (the list's, or typing's) */

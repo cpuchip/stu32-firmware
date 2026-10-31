@@ -259,3 +259,17 @@ No internal-RAM symbol changed on either board.
 - RAM is +0 as promised.
 
 **make test at 6d0aadb: rc 0** (20:26:14Z to 20:28:10Z), the same counts as section 8's first run.
+
+### abacus's acceptance run and its HOLD (#12004)
+- **Every other item met abacus's prediction**, including its own plants P1 (eqn_drop leaving before its refusals) and
+  P3 (Y not cleared).
+- **The HOLD:** P2, the rule without `&& !c->gr_on`, survived every test. Section 8 said TABLE and GRAPH keep their
+  text, but nothing checked it. I had dropped the exclusion in the code without a check that could fail. **A sentence in
+  the record is a claim, and a claim with no check has nothing behind it.**
+- **Closed:** app_test's 083 block gains two checks through the core's ops, both in STU with 7 8 9 on the stack and
+  1÷X shown:
+  - A graph opened with Equation mode on, and a table whose ENTER errs (1÷X at X=0: DIVIDE BY 0, the table still open,
+    the message on X's line).
+  - In both, screen_lines keeps T 7.0000, Z 8.0000 and Y 9.0000 with their letters.
+  - **Under each plant, its own check goes red and only that one** (drop `!c->gr_on`: the GRAPH check, 840/841; drop
+    `!c->tbl_on`: the TABLE check, 840/841). The restored code is 841/841.
