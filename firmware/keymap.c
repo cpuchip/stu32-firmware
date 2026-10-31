@@ -116,7 +116,7 @@ static const km_menu MENUS[] = {
     {"EQN TYPE SUM", {{KM_OP, AB_KLEFT, 0, 0, "\xe2\x97\x80"}, {KM_OP, AB_KRIGHT, 0, 0, "\xe2\x96\xb6"}, {KM_OP, AB_KPAREN, 0, 0, "( )"}, {KM_OP, AB_KINF, 0, 0, "\xe2\x88\x9e"}, {KM_OP, AB_KSPACE, 0, 0, "SPC"}, {KM_MENU, 0, 40, 0, "REG"}}, 0},
     {"GAMES", {{KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, "more"}}, KM_PAGED_GAMES},
     {"EQN MORE", {{KM_OP, AB_EQDROP, 0, 0, "\xe2\x86\x92X"}, {KM_OP, AB_EQSTORE, 0, 0, "\xe2\x86\x92" "EQN"}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_MENU, 0, 26, 0, "\xe2\x96\xb8"}}, 0},
-    {"EQN LIST 35", {{KM_OP, AB_BST, 0, 0, "\xe2\x96\xb2"}, {KM_OP, AB_SST, 0, 0, "\xe2\x96\xbc"}, {KM_OP, AB_KRIGHT, 0, 0, "EDIT"}, {KM_OP, AB_EQTOP, 0, 0, "NEW"}, {KM_MENU, 0, 52, 0, "CAS"}, {KM_OP, AB_EQN, 0, 0, "EXIT"}}, 0},
+    {"EQN LIST 35", {{KM_OP, AB_BST, 0, 0, "\xe2\x96\xb2"}, {KM_OP, AB_SST, 0, 0, "\xe2\x96\xbc"}, {KM_OP, AB_KRIGHT, 0, 0, "EDIT"}, {KM_OP, AB_EQTOP, 0, 0, "NEW"}, {KM_OP, AB_XEQ, AB_TGT_EQN, 0, "EVAL"}, {KM_OP, AB_EQN, 0, 0, "EXIT"}}, 0},
 };
 
 const km_menu *km_menu_at(int index)

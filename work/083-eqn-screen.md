@@ -1,7 +1,12 @@
-# Unit 083: Equation mode's own screen, →X leaves the list, EVAL in 33s and 35s (blueprint)
+# Unit 083: Equation mode's own screen, →X leaves the list, EVAL in 33s and 35s
 
 **From:** abacus #11974, on Michael's eqn-screen ruling (31 Oct, 19:56Z): option 1, with one note. EVAL is abacus's
-answer to that note, which Michael may veto. **Blueprint first, no code;** abacus reviews it before the build.
+answer to that note, which Michael may veto. **Blueprint first, no code;** abacus reviewed it (#11985) before the build.
+
+**Where this file was:** work/blueprint/ (81442f7), so check-version wouldn't ask for 0.83 before the code. The unit's
+commit moved it here and bumped AB_FW_VERSION to "0.83" in the same commit. Sections 1 to 6 are the blueprint as abacus
+approved it. Section 7 is the review's seven points, and section 8 the build and its gate, including where the code
+differs from the blueprint.
 
 The numbers below come from a throwaway prototype (719ee04, a local commit on 9df97a8, never pushed). It has the three
 changes and nothing else: no test edits, no docs. It was measured against 9df97a8 with the same tools as the 1.4.0
@@ -148,3 +153,82 @@ few bytes gets explained in the gate.
 - help.txt's →X line ("…in X; leaves the list").
 - 082's "Not yet" bullet on where →X leaves the list closes with a pointer here; nothing else in 082's record changes.
 - 082-soroban.txt's header.
+
+## 7. abacus's review (#11985): approved, with seven points folded in
+
+1. **The number is 083**, so VER tells which screen a build has. 082b couldn't.
+2. **EVAL keeps its name.** Both meanings are "evaluate what's shown": the equation in 33s's and 35s's list, X in 084's
+   STU. 084's spec names this one, and the two HELP pages say which is which. This one's page says "EVAL: the equation
+   shown, as XEQ".
+3. **The prompts opened while the list is open share its screen.** These are SOLVE's and ∫'s letter prompts (the app's
+   KM_PROMPT opens them before eqn_solve_key leaves the mode, calc.c:3626), RCL while typing, and REG's menu while
+   typing. They keep T, Z and Y hidden, and X's line is the prompt.
+   - Pinned through the keys in app_test's 083 block, in STU, 33s and 35s: the list, typing, SOLVE's letter, ∫'s letter,
+     and REG while typing (REG is not in 33s mode).
+   - The stand-in's 05-equation-bar covers RCL while typing.
+   - ENTER's, XEQ's and EVAL's variable prompts come after the mode is left, so the stack is back above A?. App_test pins
+     that in 33s.
+4. **REGX..REGT name values that are now hidden.** While an equation is typed, GOLD's bank and the REG menu offer
+   REGX..REGT, which read the stack registers when the equation runs, and those registers aren't in view. This follows
+   from Michael's ruling (option 1: the stack is hidden until Equation mode is left). The names still type, and they
+   read what the stack holds when the mode is left.
+5. **%EQNMODE** (1 open, 0 not) is in the runner. X1 and X10 carry it, and X8 too (=1: EQN opened the list again). It
+   was red then green as %XEXPR was (section 8).
+6. **The fuzz:** 082's plant (2) and its four siblings go red at 083's head (section 8). The fuzz didn't need an EQN
+   before →X.
+7. **The guides:** README.md, docs/ and help.txt have no line saying the stack shows in Equation mode (grepped for
+   "equation", "list", "stack", "Y" together). help.txt's [AB_EQN] says "Equation mode on or off: the list", which
+   still holds. Two help lines changed: →X's ("Leaves Equation mode."), and CAS's, which loses "33,35: STU ONLY".
+
+## 8. The build and its gate
+
+**Where the code differs from the blueprint:**
+- **TABLE and GRAPH excluded by name.** The rule reads `eqn_mode && !prgm && !alg && !tbl_on && !gr_on`.
+  - A graph can be open with Equation mode on. It draws over the stack, but screen_lines would have emptied T, Z and Y
+    in its text, which section 1 promised unchanged.
+  - A table shows its rows, but an error during it falls through to the stack lines.
+  - Both now keep their text as before, which is the same set of exclusions as textbook_shown and the status band's EQN.
+- **A bug the build found in HELP: an entry for a negative argument could never be found.** help_find took `arg >= 0`
+  as "this argument" and anything else as "any". AB_TGT_EQN is -5, so `[AB_XEQ:AB_TGT_EQN]` lost to XEQ's plain page,
+  and HELP on EVAL showed "XEQ letter: runs that program".
+  - help.h says -1 is "any", so help.c now tests `!= -1`.
+  - Both help_test ("entry 53 … is reached by no action") and app_test went red on it before the fix.
+  - No entry before this one had a negative argument, so no other page moves.
+- **help.txt's font has no ';'.** help_test refused the two new lines that had one, so they use '.'.
+- **app_test's REG case is skipped in 33s mode** (REG isn't there; its help says "33: Not in 33s mode.").
+
+**The gate (each red first, then green):**
+- **make test: rc 0**, 20:17:40Z to 20:19:40Z. check-version 0.83, expr_test 314/314, app_test 839/839 (16 checks new),
+  screen_test 9,020/9,020 and 48/48 frames, standin_test 349/349, help_test 770,850/770,850 (308 entries), DEVICE PASS
+  42/42, and the sanitizer.
+- **Red at 9df97a8:** HEAD's runner refuses 082-soroban.txt (`bad expectation '%EQNMODE'`). Before the runner change,
+  the same keys run through 9df97a8's firmware fail X10 (%XEXPR=X^2+1), X11 (%EQN=2), and the rewritten X7 and X8.
+- **Mutants (scratch worktree, each built and checked to have built, then restored):**
+
+  | mutant | red in |
+  |---|---|
+  | M1 →X keeps Equation mode | vectors, app_test, expr_test |
+  | M2 the stack shown in Equation mode | app_test, screen_test, standin_test |
+  | M3 values hidden, letters drawn | app_test, screen_test, standin_test |
+  | M4 Y hidden under a prompt too (∫X FROM, A?) | app_test, screen_test |
+  | M5 only 33s and 35s cleared, not STU's typing | app_test, screen_test |
+  | M6 the fifth key back to CAS | app_test, help_test |
+  | M7 EVAL as XEQ with no target | app_test, help_test |
+  | M8 help.c's old `arg >= 0` | app_test, help_test |
+  | M9 %EQNMODE inverted | vectors |
+
+- **082's plant (2) and its four siblings** (expr_mark without ANS, the message's X, susp.var0, ev_t, the history):
+  **all five red** in expr_test.
+  - **The op fuzz on its own still catches four of them** (fuzz 9 step 1, op 234, which is →X, for ANS, as at 082).
+  - **The history plant is caught by the store fuzz alone, and it was at 9df97a8 too** (measured: op fuzz green there,
+    store fuzz red). So 083 doesn't weaken the fuzz. The fuzz reopens the list as often as before, because its EQN
+    toggles.
+- **Primer's two values (abacus #11990), from the host replayer** (the same keys through app.c; both reproduce their
+  known values at 9df97a8 first):
+  - **ui-probe 8b** (der-02 in STU after the first D/DX block): **E6C27FD7, unchanged.** STU's list was already 080's
+    clean area.
+  - **expr082.txt:** as written, its keys now end with X=0 and A5BF1AD5. The last K42 (C) used to leave the list, and
+    now it clears X. **Without that K42, the frame is B8D758BB again**, the same as 082's after C. The script stays 082's
+    record (it expects ver=0.82); a replay at 083 drops the last key.
+
+D68_GATE

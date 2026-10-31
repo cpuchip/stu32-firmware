@@ -523,6 +523,6 @@ and this record with VER 0.82.
 ### Not yet
 - **A name as a value (AB_NAME) comes from no key.** expr_test loads one from an image; no vector reaches %XEXPR's
   letter branch until a key makes one (abacus #11893).
-- **Where →X leaves the list** (Equation mode open, so `EQDROP 3 ENTER` stores an equation "3") waits on Michael's
-  eqn-screen card; no vector pins it. Those in 082-soroban.txt that type or draw after →X press C first.
+- ~~**Where →X leaves the list**~~ (Equation mode open, so `EQDROP 3 ENTER` stored an equation "3"): Michael's
+  eqn-screen answered it, and unit 083 (work/083-eqn-screen.md) makes →X leave Equation mode. X10 and X11 pin it.
 - **An edited WHERE row loses its label and splits its sum** (above), open for Michael.

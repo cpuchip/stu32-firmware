@@ -18,7 +18,7 @@ const help_entry *help_find(int kind, int op, int arg, const char *menu)
             continue;
         }
         if (e->op != op) continue;
-        if (kind == HELP_OP && e->arg >= 0) {
+        if (kind == HELP_OP && e->arg != -1) {  /* (-1 is any, help.h; 083: a target can be below it, AB_TGT_EQN) */
             if (e->arg == arg) return e;       /* the op with this argument, first */
             continue;
         }

@@ -1086,9 +1086,10 @@ int main(void)
                    "082: ▸: EQN MORE, →X and →EQN, ▸");
             int n0 = c.eqn_count;
             press(&a, "k:0");
-            expect(c.x.kind == AB_EXPR && !strcmp(ab_expr_text(&c, &c.x), "3\xc3\x97X^2-4") && c.eqn_mode && a.menu < 0,
-                   "082: →X: X the expression, Equation mode kept, back to the list's bar");
-            press(&a, "k:5 k:1");
+            app_ui(&a, &ui);
+            expect(c.x.kind == AB_EXPR && !strcmp(ab_expr_text(&c, &c.x), "3\xc3\x97X^2-4") && !c.eqn_mode && a.menu < 0 &&
+                       !ui.soft[0], "082: →X: X the expression; 083: Equation mode left, the stack's keys (no bar)");
+            press(&a, "GOLD 0 k:5 k:1");        /* (083: EQN again for →EQN) */
             expect(c.eqn_count == n0 + 1 && !strcmp(c.eqn[c.eqn_cur], "3\xc3\x97X^2-4"), "082: →EQN: X's expression a new entry, shown");
             press(&a, "k:5 k:5");
             app_ui(&a, &ui);
@@ -1108,8 +1109,9 @@ int main(void)
                 ab_do_arg(&c, AB_MODEL, m ? 33 : 35);
                 ab_do(&c, AB_EQN);
                 app_ui(&a, &ui);
-                expect(c.eqn_mode && ui.soft[5] && !strcmp(ui.soft[5], "EXIT") && !ui.soft[4],
-                       m ? "082: 33s mode: the list's bar keeps EXIT, no CAS" : "082: 35s mode: the list's bar keeps EXIT, no CAS");
+                expect(c.eqn_mode && ui.soft[5] && !strcmp(ui.soft[5], "EXIT") && ui.soft[4] && !strcmp(ui.soft[4], "EVAL"),
+                       m ? "082: 33s mode: the list's bar keeps EXIT; 083: EVAL before it"
+                         : "082: 35s mode: the list's bar keeps EXIT; 083: EVAL before it");
                 press(&a, "k:5");
                 expect(!c.eqn_mode, m ? "082: 33s mode: EXIT leaves the list" : "082: 35s mode: EXIT leaves the list");
             }
@@ -1643,9 +1645,48 @@ int main(void)
     expect(ui.prompt && !strcmp(ui.prompt, "\xe2\x88\xab" "FN d _"), "integrate: \xe2\x88\xab" "FN d _");
     press(&a, "C");
 
+    /* unit 083 (Michael's eqn-screen, abacus #11974, #11985): Equation mode has its own screen in every mode, the list
+       and typing alike, and in what is opened there (SOLVE's letter, ∫'s, REG): T Z Y and their letters hidden until
+       the mode is left; the evaluation's prompt comes after it is left, the stack back */
+    {
+        static const int MODEL[3] = {AB_MODEL_STU, 33, 35};
+        static const char *const WHERE[5] = {"the list", "typing", "SOLVE's letter", "\xe2\x88\xab's letter", "typing, REG"};
+        static const char *const KEYS[5] = {"", "2", "GOLD 7", "GOLD 8", "2 k:5"};
+        static screen_page pg;
+        for (int m = 0; m < 3; m++)
+            for (int w = 0; w < 5; w++) {
+                char what[120];
+                ab_init(&c);
+                app_init(&a, &c, now);
+                ab_do_arg(&c, AB_MODEL, MODEL[m]);
+                press(&a, "7 ENTER 8 ENTER 9 ENTER");
+                ab_eqn_add(&c, "A\xc3\x97" "B");
+                if (m == 0) c.eqn_cur = -1;     /* (STU's list itself is 080's area: TOP, then the rest by the keys) */
+                press(&a, KEYS[w]);
+                app_ui(&a, &ui);
+                screen_lines(&c, &ui, &pg);
+                bool open = c.eqn_mode && (w != 1 || c.eqn_typing) && (w < 2 || w > 3 || ui.prompt) &&
+                            (w != 4 || a.menu == menu_named_t("REG") || MODEL[m] == 33);   /* (no REG in 33s mode) */
+                bool clean = !pg.t.text[0] && !pg.z.text[0] && !pg.y.text[0] && !pg.t.label && !pg.z.label && !pg.y.label;
+                snprintf(what, sizeof what, "083: %s mode, %s: T Z Y hidden, no letters", m ? (m == 1 ? "33s" : "35s") : "STU",
+                         WHERE[w]);
+                expect(open && clean && (m || w || pg.textbook_on), what);
+            }
+        ab_init(&c);                            /* the 33s list, then XEQ: A? on Y, the stack back above it */
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, 33);
+        press(&a, "7 ENTER 8 ENTER 9 ENTER");
+        ab_eqn_add(&c, "A\xc3\x97" "B");
+        press(&a, "k:4");
+        app_ui(&a, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(!c.eqn_mode && c.stop == AB_STOP_INPUT && !strcmp(pg.y.text, "A?") && pg.t.label && pg.z.label &&
+                   strstr(pg.z.text, "8") && strstr(pg.t.text, "7"), "083: 33s mode: EVAL's A? on Y, T and Z shown again");
+    }
+
     /* unit 020: in Equation mode the soft keys are the editor's bar (the list's, or typing's) */
     {
-        static const char *const LIST[6] = {"\xe2\x96\xb2", "\xe2\x96\xbc", "EDIT", "NEW", NULL, "EXIT"};   /* 073 */
+        static const char *const LIST[6] = {"\xe2\x96\xb2", "\xe2\x96\xbc", "EDIT", "NEW", "EVAL", "EXIT"};   /* 073, 083 */
         static const char *const TYPE[6] = {"\xe2\x97\x80", "\xe2\x96\xb6", "( )", "=", "SPC", "REG"};   /* REG boxed (#3958) */
         bool ok;
         ab_init(&c);
@@ -1654,7 +1695,7 @@ int main(void)
         app_ui(&a, &ui);
         ok = c.eqn_mode;
         for (int i = 0; i < 6; i++) ok = ok && (LIST[i] ? ui.soft[i] && !strcmp(ui.soft[i], LIST[i]) : !ui.soft[i] || !ui.soft[i][0]);
-        expect(ok, "EQN: the list's bar, \xe2\x96\xb2 \xe2\x96\xbc EDIT NEW - EXIT (073: EXIT back; ( ) on GOLD's F6)");
+        expect(ok, "EQN: the list's bar, \xe2\x96\xb2 \xe2\x96\xbc EDIT NEW EVAL EXIT (073: EXIT back; ( ) on GOLD's F6; 083: EVAL)");
         /* the guide's first equation, key by key (p.6-2; unit 014's M01-M04) */
         press(&a, "RCL ltr:V");
         app_ui(&a, &ui);
@@ -3168,16 +3209,22 @@ int main(void)
                        strstr(pg.x.text, "UNSUPPORTED IP") != NULL,
                    "CAS 004: a refusal: UNSUPPORTED IP, the list, the equation shown and the stack as they were");
         }
-        for (int m = 0; m < 2; m++) {           /* 33s and 35s: no CAS */
+        for (int m = 0; m < 2; m++) {           /* 33s and 35s: no CAS; 083: the key is EVAL (XEQ on the equation shown) */
             ab_init(&c);
             app_init(&a, &c, now);
             ab_do_arg(&c, AB_MODEL, m ? 35 : 33);
-            ab_eqn_add(&c, "X^2");
+            press(&a, "7 ENTER 8 ENTER 9 ENTER");
+            ab_eqn_add(&c, "A\xc3\x97" "B");
             app_ui(&a, &ui);
             int menu0 = a.menu;
             press(&a, "k:4");
-            expect(!ui.soft[4] && a.menu == menu0 && c.eqn_count == 3,
-                   m ? "CAS 004: 35s mode: no CAS (blank, does nothing)" : "CAS 004: 33s mode: no CAS (blank, does nothing)");
+            app_ui(&a, &ui);
+            expect(a.menu == menu0 && c.eqn_count == 3 && !c.eqn_mode && c.stop == AB_STOP_INPUT && c.stop_var == 0,
+                   m ? "CAS 004: 35s mode: no CAS; 083: EVAL asks A? (Equation mode left, as XEQ)"
+                     : "CAS 004: 33s mode: no CAS; 083: EVAL asks A? (Equation mode left, as XEQ)");
+            press(&a, "2 R/S 5 R/S");
+            expect(c.stop != AB_STOP_INPUT && x_of(&c) == 10 && !c.eqn_mode && c.eqn_count == 3,
+                   m ? "083: 35s mode: EVAL on A×B, A=2 B=5: X=10" : "083: 33s mode: EVAL on A×B, A=2 B=5: X=10");
         }
     }
 
@@ -3218,11 +3265,13 @@ int main(void)
             app_init(&a, &c, now);
             ab_do_arg(&c, AB_MODEL, M[m]);
             ab_eqn_add(&c, "X^2");              /* (listed and shown: Equation mode) */
-            press(&a, "k:4");
+            press(&a, "BLUE 9 k:4");            /* 083: the list's fifth key is EVAL, no CAS to refuse: HELP on it */
             app_ui(&a, &ui);
-            char w[64];
-            snprintf(w, sizeof w, "073: %ds mode: the list's CAS says STU ONLY: MODE, STU", M[m]);
-            expect(ui.notice && !strcmp(ui.notice, "STU ONLY: MODE, STU") && a.menu < 0, w);
+            char w[96];
+            snprintf(w, sizeof w, "073: %ds mode: 083: HELP on the list's EVAL: its own page, nothing run", M[m]);
+            expect(a.view == APP_VIEW_HELP && ui.view[1] && !strncmp(ui.view[1], "EVAL: the equation shown", 24) &&
+                       c.eqn_mode && c.stop != AB_STOP_INPUT, w);
+            press(&a, "C");
         }
         ab_init(&c);                            /* STU: the same keys open their menus */
         app_init(&a, &c, now);
@@ -4395,7 +4444,8 @@ int main(void)
                "082: \xce\xa3 X^K, D/DX X lands after ABS(X)<1; \xe2\x86\x90 on the derivative leaves the sum's row with it");
         /* the sweep: every op that inserts into the list, on a sum's answer and on one of its rows, in the real Σ's
            list (its answer -1÷(X-1), one row) and in a polynomial's (X^2-1, rows X≠1 and X≠2, then A+B: the ops that
-           refuse -1÷(X-1)); the sum's rows stay directly after its answer, and each op inserted what it should */
+           refuse -1÷(X-1)); the sum's rows stay directly after its answer, and each op inserted what it should (083: →X
+           leaves Equation mode, so GOLD 0, EQN, opens it again before →EQN) */
         static const struct { const char *how, *keys; int base, must; } OP[] = {
             {"D/DX X", "k:4 k:0 ltr:X", 3, 1}, {"SIMP", "k:4 k:1", 3, 1}, {"EXPND", "k:4 k:2", 3, 1},
             {"COLCT X", "k:4 k:3 ltr:X", 3, 1}, {"SUBST X 2", "k:4 k:4 ltr:X 2 ENTER", 3, 1},
@@ -4403,10 +4453,10 @@ int main(void)
             {"\xe2\x88\xab" "AB X 0 2", "k:4 k:5 k:3 ltr:X 0 ENTER 2 ENTER", 2, 1},
             {"\xce\xa3 X 0 2", "k:4 k:5 k:4 ltr:X \xe2\x86\x90 0 ENTER 2 ENTER", 2, 1},
             {"QUOT X 2", "k:4 k:5 k:5 k:0 ltr:X 2 ENTER", 2, 2}, {"GCD X 2", "k:4 k:5 k:5 k:1 ltr:X 2 ENTER", 2, 1},
-            {"CANCL X", "k:4 k:5 k:5 k:2 ltr:X", 1, 1}, {"\xe2\x86\x92X \xe2\x86\x92" "EQN", "k:5 k:0 k:5 k:1", 3, 1},
+            {"CANCL X", "k:4 k:5 k:5 k:2 ltr:X", 1, 1}, {"\xe2\x86\x92X \xe2\x86\x92" "EQN", "k:5 k:0 GOLD 0 k:5 k:1", 3, 1},
             {"typed 2", "2 ENTER", 3, 1}, {"NEW 2", "k:3 2 ENTER", 3, 1},
             {"on a row: typed 2", "k:1 2 ENTER", 3, 1},
-            {"on a row: \xe2\x86\x92" "EQN", "k:5 k:0 k:1 k:5 k:1", 3, 1}};
+            {"on a row: \xe2\x86\x92" "EQN", "k:5 k:0 GOLD 0 k:1 k:5 k:1", 3, 1}};
         int swept = 0, wrong = 0;
         for (unsigned v = 0; v < sizeof OP / sizeof OP[0]; v++)
             for (int base = 0; base < 2; base++) {
@@ -4934,8 +4984,8 @@ int main(void)
         ab_do_arg(&c, AB_MODEL, 33);
         app_ui(&a, &ui);
         screen_lines(&c, &ui, &pg);
-        expect(!pg.textbook_on && !strcmp(pg.x.text, "EQN LIST TOP") && pg.t.text[0],
-               "080: EQN LIST TOP in 33s mode as before: the stack and its line");
+        expect(!pg.textbook_on && !strcmp(pg.x.text, "EQN LIST TOP") && !pg.t.text[0] && !pg.t.label,
+               "080: EQN LIST TOP in 33s mode, its line; 083: no stack (T empty, no letter)");
         ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
     }
     {   /* unit 081 (abacus #11125): each neighbour the wheel shows is the entry SST or BST would bring (ab_eqn_step), its

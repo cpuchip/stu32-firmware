@@ -3965,8 +3965,10 @@ static abn_status cas_step(ab_calc *c, int op, int var, const char *repl, const 
 
 /* The CAS menu's keys: D/DX and COLCT in arg's variable, SIMP, EXPND; SUBST in arg's variable opens the editor for
    its replacement (ENTER substitutes, C or an empty one cancels). */
-/* Unit 082: →X, the shown equation's text as an expression in X, the stack lifted as for any value arriving (Equation
-   mode stays open, so several can be dropped). STU only; nothing at EQN LIST TOP or on a built-in solver's entry (as
+/* Unit 082: →X, the shown equation's text as an expression in X, the stack lifted as for any value arriving. Unit 083
+   (Michael's eqn-screen, abacus #11974): Equation mode is left, as after XEQ, so the expression is seen landing in X
+   and a key after it acts on the stack (082 left the list open: C left it and a second C cleared X; 3 ENTER stored an
+   equation "3"); a refusal below leaves before that line, nothing changed. STU only; nothing at EQN LIST TOP or on a built-in solver's entry (as
    ENTER and XEQ there), WHERE on a sum's condition (070); an entry stamped 33 or 35 reads by another mode's rules, so
    it isn't STU's text: INVALID DATA. A full store is MEMORY FULL, nothing changed (the slot is asked for before the
    lift, while T is still live: section 7). */
@@ -3981,6 +3983,7 @@ static abn_status eqn_drop(ab_calc *c)
     if ((st = ab_expr_new(c, c->eqn[c->eqn_cur], &v)) != ABN_OK) return st;
     place_val(c, v);
     c->lift = true;
+    c->eqn_mode = false;                        /* 083: the list left, the expression shown in X */
     return ABN_OK;
 }
 

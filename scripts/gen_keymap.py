@@ -261,12 +261,12 @@ MENUS = [
     # unit 082 (Michael's s3-keys, abacus #11423: "a new stack menu on the more bar for eqn"): EQN LIST's ▸ in STU, last
     # so no menu's index moves: →X drops the shown equation onto the stack as an expression, →EQN stores X's back into
     # the list; the sixth key back to the list's bar. EQN LIST 35: the list's bar in 33s and 35s mode (no expressions
-    # there), EXIT where STU's ▸ is
+    # there), EXIT where STU's ▸ is. Unit 083 (Michael's eqn-screen, abacus #11974): its fifth key, CAS before (unlabeled,
+    # STU ONLY), is EVAL, XEQ on the equation shown: each variable asked, the value in X, Equation mode left
     ("EQN MORE", [o("\u2192X", "AB_EQDROP"), o("\u2192EQN", "AB_EQSTORE"), NONE, NONE, NONE,
                   ("\u25b8", "KM_MENU", "0", "EQN LIST", 0)]),
     ("EQN LIST 35", [o("\u25b2", "AB_BST"), o("\u25bc", "AB_SST"), o("EDIT", "AB_KRIGHT"), o("NEW", "AB_EQTOP"),
-                     ("CAS", "KM_MENU", "0", "CAS", 0), o("EXIT", "AB_EQN")]),   # (CAS unlabeled here, as before: HELP
-                                                                                 # on it says STU ONLY, unit 073)
+                     o("EVAL", "AB_XEQ", "AB_TGT_EQN"), o("EXIT", "AB_EQN")]),
 ]
 # Menu legends that act as plain ops until their menu is ruled (abacus #3867): the EQN menu's
 # first item will take this over.

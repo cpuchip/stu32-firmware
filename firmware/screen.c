@@ -650,6 +650,7 @@ typedef struct {
     bool textbook : 1;      /* unit 080: the shown STU equation drawn in 2D in the stack's place (X keeps its text) */
     bool xexpr : 1;         /* unit 082: X shows its value, an expression, in STU: drawn in 2D under Y when it fits
                                (one byte with textbook: comp stays 8,276 B of internal RAM, D68 +0) */
+    bool eqn_screen : 1;    /* unit 083: Equation mode's own screen, T Z Y and their letters hidden (the same byte) */
     int ind;
 } composed;
 
@@ -859,6 +860,20 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
     }
     val_line(&c->z, c, ui, &k->z, &unused);
     val_line(&c->t, c, ui, &k->t, &unused);
+    if (c->eqn_mode && !c->prgm && !c->alg && !c->tbl_on && !c->gr_on) {   /* (TABLE and GRAPH: their views, as 080) */
+        /* unit 083 (Michael's eqn-screen, option 1): Equation mode has its own screen in every mode, list and typing
+           alike, and in a prompt or menu opened there (SOLVE's and ∫'s letter, RCL while typing, REG): the stack hidden
+           until the mode is left. Y keeps what is the equation's (a CAS label, a step's prompt); ENTER's, XEQ's and
+           EVAL's prompts come after the mode is left, the stack shown */
+        k->eqn_screen = true;
+        memset(&k->z, 0, sizeof k->z);
+        memset(&k->t, 0, sizeof k->t);
+        k->z.cursor = k->t.cursor = -1;
+        if (!k->prompt) {
+            memset(&k->y, 0, sizeof k->y);
+            k->y.cursor = -1;
+        }
+    }
     if (c->alg && !c->prgm) {
         /* STU's ALG (unit 029 proposal 3): the line, or the history entry shown, in Y's place; the
            entry before it in T and its value in Z (the newest's when a line is being typed) */
@@ -1152,9 +1167,9 @@ void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
         page_line(&out->y, &k->y, SCREEN_EQN, true, NULL);
         page_line(&out->x, &k->x, k->xk, k->x_left, NULL);
     } else {
-        page_line(&out->t, &k->t, SCREEN_VALUE, false, "T");
-        page_line(&out->z, &k->z, SCREEN_VALUE, false, "Z");
-        page_line(&out->y, &k->y, k->yk, k->prompt, k->prompt ? NULL : "Y");
+        page_line(&out->t, &k->t, SCREEN_VALUE, false, k->eqn_screen ? NULL : "T");    /* 083: no letters */
+        page_line(&out->z, &k->z, SCREEN_VALUE, false, k->eqn_screen ? NULL : "Z");
+        page_line(&out->y, &k->y, k->yk, k->prompt, k->prompt || k->eqn_screen ? NULL : "Y");
         page_line(&out->x, &k->x, k->xk, k->x_left, k->x_letter ? "X" : NULL);
         int top;
         if (k->xexpr && xexpr_fit(c, &top)) {   /* 082: X's expression drawn in the frame (rows 21-205, as 080's area);
@@ -1260,11 +1275,11 @@ void screen_render(const ab_calc *c, const screen_ui *ui, ls027_frame *f)
         soft_band(f, ui);
         return;
     }
-    draw_label(f, BOT_T, "T");
+    if (!k->eqn_screen) draw_label(f, BOT_T, "T");     /* 083: Equation mode's own screen, no letters */
     draw_line(f, BOT_T, 2, &k->t, false);
-    draw_label(f, BOT_Z, "Z");
+    if (!k->eqn_screen) draw_label(f, BOT_Z, "Z");
     draw_line(f, BOT_Z, 2, &k->z, false);
-    if (!k->prompt) draw_label(f, BOT_Y, "Y");
+    if (!k->prompt && !k->eqn_screen) draw_label(f, BOT_Y, "Y");
     draw_line(f, BOT_Y, k->prompt ? 3 : 2, &k->y, k->prompt);
     if (k->xexpr && draw_xexpr(f, c)) {         /* 082: X's expression in 2D */
         soft_band(f, ui);

@@ -6,7 +6,7 @@
 # The entries whose text must differ by mode: the hidden-key audit's mode cases (abacus #8740: H19 CMPLX, H21 and H54
 # XEQ/GTO, H26 the point, H28 3 and 0 in a letter prompt, H41 STU's features, H51 the key after an error, H53 E,
 # H55 equations, H56 CONST; H18 HYP is one text since unit 073; H52, a program's label mode, is help_page's)
-MODE: menu:CMPLX AB_XEQ AB_GTO AB_KPOINT AB_K3 AB_K0 menu:GRAPH menu:TABLE menu:CAS AB_ENTRYM:1 AB_CANCEL AB_KE AB_KCOMMA AB_PCT AB_POW menu:CONST
+MODE: menu:CMPLX AB_XEQ AB_GTO AB_KPOINT AB_K3 AB_K0 menu:GRAPH menu:TABLE AB_ENTRYM:1 AB_CANCEL AB_KE AB_KCOMMA AB_PCT AB_POW menu:CONST
 
 [dev:HELP]
 HELP, then a key: what it does.
@@ -268,6 +268,10 @@ Undoes the last change.
 Again: redoes it (says REDO).
 SETUP, RADIX are not undone.
 
+[AB_XEQ:AB_TGT_EQN]
+EVAL: the equation shown, as
+XEQ: asks each variable, the
+value in X. Leaves the list.
 [AB_XEQ]
 XEQ letter: runs that program.
 In Equation mode: evaluates it.
@@ -957,7 +961,6 @@ Goes to the list's TOP, so the
 next equation typed goes first.
 [menu:CAS]
 Algebra on the equation shown.
-33,35: STU ONLY: MODE, STU.
 [AB_TVAR]
 VAR, then a letter: the
 variable TABLE and GRAPH step.
@@ -1267,6 +1270,7 @@ Types ∞ in Σ's upper bound, TO.
 [AB_EQDROP]
 The shown equation onto the
 stack as an expression, in X.
+Leaves Equation mode.
 [AB_EQSTORE]
 X's expression or name into
 the list, after the shown one.

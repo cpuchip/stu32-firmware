@@ -58,6 +58,7 @@ const help_entry help_table[] = {
     {HELP_OP, AB_KBKSP, -1, "Erases the last key, or X to 0.\nShown equation or program line:\ndeletes it. Closes a menu."},
     {HELP_MENU, 0, -1, "CLEAR\037Clears X, stack, vars, \316\243, ALL.\n33: Clears X, vars, \316\243 or ALL."},
     {HELP_DEV, KM_DEV_UNDO, -1, "Undoes the last change.\nAgain: redoes it (says REDO).\nSETUP, RADIX are not undone."},
+    {HELP_OP, AB_XEQ, AB_TGT_EQN, "EVAL: the equation shown, as\nXEQ: asks each variable, the\nvalue in X. Leaves the list."},
     {HELP_OP, AB_XEQ, -1, "XEQ letter: runs that program.\nIn Equation mode: evaluates it.\n35,STU: XEQ letter ENTER: runs it.\n35,STU: Letter + 3 digits: from a line.\n35,STU: In Equation mode: evaluates it."},
     {HELP_OP, AB_LBL, -1, "In program entry, LBL letter\nstarts a program there.\nElsewhere: only ends a number."},
     {HELP_OP, AB_RTN, -1, "In a program: returns or stops.\nFrom the keys: the program\npointer goes to the top."},
@@ -218,7 +219,7 @@ const help_entry help_table[] = {
     {HELP_OP, AB_SGN, -1, "Sign of X: -1, 0 or 1."},
     {HELP_OP, AB_KRIGHT, -1, "EDIT: edits the equation shown,\ncursor at its start (not TOP or\na built-in). \342\226\266: cursor right."},
     {HELP_OP, AB_EQTOP, -1, "Goes to the list's TOP, so the\nnext equation typed goes first."},
-    {HELP_MENU, 0, -1, "CAS\037Algebra on the equation shown.\n33,35: STU ONLY: MODE, STU."},
+    {HELP_MENU, 0, -1, "CAS\037Algebra on the equation shown."},
     {HELP_OP, AB_TVAR, -1, "VAR, then a letter: the\nvariable TABLE and GRAPH step.\nThe start follows it again.\n35: Sets it, but the table runs\n35: in STU only: MODE, STU."},
     {HELP_OP, AB_TSTART, -1, "The table starts at X (else at\nthe variable's value at GO).\n35: Sets it, but the table runs\n35: in STU only: MODE, STU."},
     {HELP_OP, AB_TSTEP, -1, "The table steps by X.\n35: Sets it, but the table runs\n35: in STU only: MODE, STU."},
@@ -305,7 +306,7 @@ const help_entry help_table[] = {
     {HELP_OP, AB_CASCANCL, -1, "CANCL, then a letter: reduces a\ntop\303\267bottom. NOT AT rows: the\nvalues it removed."},
     {HELP_OP, AB_CASCPLX, -1, "On: SOLVE gives a quadratic's\ncomplex pair: 1-2\303\2270i1, 1+2\303\2270i1.\n33s equations stay real."},
     {HELP_OP, AB_KINF, -1, "Types \342\210\236 in \316\243's upper bound, TO.\n\342\210\236 alone: a sum to infinity."},
-    {HELP_OP, AB_EQDROP, -1, "The shown equation onto the\nstack as an expression, in X."},
+    {HELP_OP, AB_EQDROP, -1, "The shown equation onto the\nstack as an expression, in X.\nLeaves Equation mode."},
     {HELP_OP, AB_EQSTORE, -1, "X's expression or name into\nthe list, after the shown one."},
     {HELP_OP, AB_SUF, -1, "After digits: {} reads them in\nits base: b 2, o 8, d 10, h 16."},
     {HELP_MENU, 0, -1, "GAMES\037Games: five a page, C to APPS."},
@@ -313,7 +314,7 @@ const help_entry help_table[] = {
     {HELP_GRAPHPAD, 0, -1, "Moves the graph's cursor: 8 up,\n2 down (TRACE off), 4 left, 6\nright, 5 home. GOLD: 10 pixels."},
     {HELP_CMPLXPAIR, 0, -1, "33s CMPLX: does it on complex\nnumbers held as stack pairs."},
 };
-const int help_table_n = 307;
+const int help_table_n = 308;
 
 /* the entries whose text must differ by mode (help.txt's MODE lines) */
-const int help_mode_list[] = {46, 53, 68, 97, 85, 94, 58, 61, 213, 205, 91, 47, 98, 15, 11, 24, -1};
+const int help_mode_list[] = {46, 54, 69, 98, 86, 95, 59, 62, 206, 92, 47, 99, 15, 11, 24, -1};

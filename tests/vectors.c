@@ -893,6 +893,8 @@ int vectors_run(const char *name, FILE *f)
                     snprintf(got, sizeof got, "%.*s", AB_EQN_LEN - 1, c.ebuf);
                 } else if (strcmp(ex, "%ALG") == 0) {
                     snprintf(got, sizeof got, "%d", c.alg ? 1 : 0);
+                } else if (strcmp(ex, "%EQNMODE") == 0) {  /* Equation mode open, 1, or not, 0 (unit 083) */
+                    snprintf(got, sizeof got, "%d", c.eqn_mode ? 1 : 0);
                 } else if (strcmp(ex, "%STU") == 0) {
                     snprintf(got, sizeof got, "%d", c.stu ? 1 : 0);
                 } else if (strcmp(ex, "%HIST") == 0) {

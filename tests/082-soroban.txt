@@ -2,15 +2,18 @@
 # equation dropped onto the stack as an expression), EQSTORE its →EQN (X's expression stored after the shown entry).
 # %XEXPR and %YEXPR are X's and Y's expression as STU's text (none for a number); %XDRAWN is X as the screen draws it in
 # 2D, the console's drawn= (none when nothing is drawn; Y has no drawn form). Blanks are written _.
-# None of these expects where →X leaves the list (Equation mode open or not) until Michael answers eqn-screen: a vector
-# that types after EQDROP, or reads %XDRAWN, leaves Equation mode with C first.
+# Unit 083 (Michael's eqn-screen, abacus #11974): →X leaves Equation mode (%EQNMODE, 1 open, 0 not), so a key after it
+# acts on the stack: X3-X5 and X7 lost the C that left the list at 082 (it would now clear X: X10), and X8 opens the
+# list again before →EQN.
 # Names (AB_NAME, a letter as a value) come from no key yet, so none is here; expr_test loads one from an image.
-X1 | 082: →X drops the shown equation into X as an expression | STU EQ:X^2+1 EQDROP | %XEXPR=X^2+1 %YEXPR=none
+X1 | 082: →X drops the shown equation into X as an expression, and (083) leaves Equation mode | STU EQ:X^2+1 EQDROP | %XEXPR=X^2+1 %YEXPR=none %EQNMODE=0
 X2 | 082: a second →X lifts the first into Y | STU EQ:X^2+1 EQDROP EQ:A÷B EQDROP | %XEXPR=A÷B %YEXPR=X^2+1
-X3 | 082: X drawn as the board drew it at 04d992e (X='3×X^2-4', drawn=3X^2-4): the product's × left out | STU EQ:3×X^2-4 EQDROP C | %XEXPR=3×X^2-4 %XDRAWN=3X^2-4
-X4 | 082: ABS drawn as bars, a blank in the drawn text | STU EQ:ABS(Y×SIN(Z)) EQDROP C | %XEXPR=ABS(Y×SIN(Z)) %XDRAWN=|Y_SIN(Z)|
-X5 | 082: SQRT drawn as the root sign | STU EQ:SQRT(X÷2) EQDROP C | %XDRAWN=√(X÷2)
+X3 | 082: X drawn as the board drew it at 04d992e (X='3×X^2-4', drawn=3X^2-4): the product's × left out | STU EQ:3×X^2-4 EQDROP | %XEXPR=3×X^2-4 %XDRAWN=3X^2-4
+X4 | 082: ABS drawn as bars, a blank in the drawn text | STU EQ:ABS(Y×SIN(Z)) EQDROP | %XEXPR=ABS(Y×SIN(Z)) %XDRAWN=|Y_SIN(Z)|
+X5 | 082: SQRT drawn as the root sign | STU EQ:SQRT(X÷2) EQDROP | %XDRAWN=√(X÷2)
 X6 | 082: a number in X has no expression and nothing drawn | STU 5 | X=5 %XEXPR=none %YEXPR=none %XDRAWN=none
-X7 | 082: a number typed over an expression lifts it into Y | STU EQ:X^2+1 EQDROP C 3 | X=3 %XEXPR=none %YEXPR=X^2+1 %XDRAWN=none
-X8 | 082: →EQN stores X's expression after the shown entry, which becomes the shown one, and keeps X | STU EQ:SQRT(X÷2) EQDROP EQSTORE | %EQN=2 %EQ=SQRT(X÷2) %XEXPR=SQRT(X÷2)
+X7 | 082: a number typed over an expression lifts it into Y | STU EQ:X^2+1 EQDROP 3 | X=3 %XEXPR=none %YEXPR=X^2+1 %XDRAWN=none
+X8 | 082: →EQN stores X's expression after the shown entry, which becomes the shown one, and keeps X (083: EQN opens the list again, at the same entry) | STU EQ:SQRT(X÷2) EQDROP EQN EQSTORE | %EQN=2 %EQ=SQRT(X÷2) %XEXPR=SQRT(X÷2) %EQNMODE=1
 X9 | 082: →EQN with a number in X is INVALID DATA | STU 5 EQN EQSTORE | ERR %ERR=DOMAIN %EQN=0
+X10 | 083: →X, then C clears X, by the learner's choice (082 needed C to leave the list first) | STU EQ:X^2+1 EQDROP C | X=0 %XEXPR=none %EQNMODE=0
+X11 | 083: typing after →X types onto the stack: 3 ENTER stores no equation "3" (082: %EQN=2) | STU EQ:X^2+1 EQDROP 3 ENTER | X=3 Y=3 %YEXPR=none %EQN=1

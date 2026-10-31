@@ -774,15 +774,19 @@ static void drop_store(void)
     memcpy(&cb, &ca, sizeof cb);
     expect(ab_do(&ca, AB_EQDROP) == ABN_OK && ca.x.kind == AB_EXPR && !strcmp(ab_expr_text(&ca, &ca.x), "3\xc3\x97X^2-4") &&
                same_val(&ca, &ca.y, &cb, &cb.x) && same_val(&ca, &ca.z, &cb, &cb.y) && same_val(&ca, &ca.t, &cb, &cb.z) &&
-               ca.eqn_mode && ca.eqn_count == n0 && ca.eqn_cur == cur,
-           "082: →X: the shown equation's text in X, the stack lifted, Equation mode and the list as they were");
-    expect(ab_do(&ca, AB_EQDROP) == ABN_OK && ca.x.kind == AB_EXPR && ca.y.kind == AB_EXPR && ca.x.len != ca.y.len,
-           "082: →X again: a second expression (its own slot)");
+               !ca.eqn_mode && ca.eqn_count == n0 && ca.eqn_cur == cur,
+           "082: →X: the shown equation's text in X, the stack lifted, the list as it was; 083: Equation mode left");
+    expect(ab_do(&ca, AB_EQDROP) == ABN_NO_EQN && ca.x.kind == AB_EXPR && ca.y.kind == AB_REAL,
+           "083: →X again with the list left: NO EQN, nothing dropped");
+    expect(ab_do(&ca, AB_EQN) == ABN_OK && ca.eqn_mode && ca.eqn_cur == cur, "083: EQN opens the list again at the same entry");
+    expect(ab_do(&ca, AB_EQDROP) == ABN_OK && ca.x.kind == AB_EXPR && ca.y.kind == AB_EXPR && ca.x.len != ca.y.len &&
+               !ca.eqn_mode, "082: →X again: a second expression (its own slot)");
     size_t m = ab_state_save(&ca, img1, sizeof img1);
     ab_init(&cb);
     expect(img1[4] == 21 && ab_state_load(&cb, img1, m) == ABN_OK && !strcmp(ab_expr_text(&cb, &cb.y), "3\xc3\x97X^2-4"),
            "082: after →X the image is version 21 and loads with the expressions");
     /* →EQN: X's expression after the shown entry, shown; X kept */
+    ab_do(&ca, AB_EQN);
     expect(ab_do(&ca, AB_EQSTORE) == ABN_OK && ca.eqn_count == n0 + 1 && ca.eqn_cur == cur + 1 &&
                !strcmp(ca.eqn[ca.eqn_cur], "3\xc3\x97X^2-4") && ca.eqn_model[ca.eqn_cur] == AB_MODEL_STU && ca.x.kind == AB_EXPR,
            "082: →EQN: X's expression inserted after the shown entry, now shown, stamped STU; X kept");
