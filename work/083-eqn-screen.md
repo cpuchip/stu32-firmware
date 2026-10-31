@@ -165,6 +165,10 @@ few bytes gets explained in the gate.
    typing. They keep T, Z and Y hidden, and X's line is the prompt.
    - Pinned through the keys in app_test's 083 block, in STU, 33s and 35s: the list, typing, SOLVE's letter, ∫'s letter,
      and REG while typing (REG is not in 33s mode).
+   - **SOLVE's letter is a real lesson case** (abacus #11998, from tutor's census at stu32-tutor 72c1778 §4). In eq-01
+     Q05A, "SOLVE _" is open with EQN on, and Y showed 5.0000 at 082. At 083, Y is hidden there in all three modes,
+     because Equation mode is on and the prompt is on X's line. The app_test check above is that state (w=2). tutor
+     reports that no lesson quotes T/Z/Y in Equation mode, so only its pictures move.
    - The stand-in's 05-equation-bar covers RCL while typing.
    - ENTER's, XEQ's and EVAL's variable prompts come after the mode is left, so the stack is back above A?. App_test pins
      that in 33s.
@@ -231,4 +235,27 @@ few bytes gets explained in the gate.
     now it clears X. **Without that K42, the frame is B8D758BB again**, the same as 082's after C. The script stays 082's
     record (it expects ver=0.82); a replay at 083 drops the last key.
 
-D68_GATE
+**D68 at the head** (resources.py static 9df97a8 6d0aadb, 20:28-20:29Z; claim #11994, acked #11995):
+
+| resource | stand-in | Rev A |
+|---|---|---|
+| flash (the app's .bin) | 3,657,600 → 3,657,888, **+288** | 3,597,104 → 3,597,392, **+288** |
+| internal RAM static (DIRAM) | 211,847, +0 | 219,798, +0 |
+| IRAM code | 59,022, +0 | 78,086, +0 |
+| calc_task's frame, B | 144, +0 | 128, +0 |
+
+No internal-RAM symbol changed on either board.
+
+**Above the prototype's +144 and +128, as section 5 said would be explained:**
+- **What 083 adds beyond the prototype:**
+  - EVAL's help page (86 bytes of text and its entry).
+  - →X's new help line (22 bytes).
+  - The TABLE and GRAPH exclusions.
+  - help_find's `!= -1`.
+- **The measured split:** libmain.a is +201 on the stand-in and +205 on Rev A, against the prototype's +165 and +169, so
+  +36 there.
+- **Not attributed byte by byte:** the rest of the .bin's difference. The .bin grows by whole aligned segments, and
+  I haven't traced which section took the strings.
+- RAM is +0 as promised.
+
+**make test at 6d0aadb: rc 0** (20:26:14Z to 20:28:10Z), the same counts as section 8's first run.
