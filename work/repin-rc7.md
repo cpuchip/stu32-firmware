@@ -282,3 +282,69 @@ internal RAM +0, IRAM +0, calc_task's frame +0, no internal-RAM symbol changed.
 - casrows.txt: ALL MET.
 - The port moved at the flash (ACM3 to ACM1), and the console lost it; the unchanged script's rerun with no flash is
   the one recorded.
+
+## Casimir 1.5.0 (abacus #12059)
+
+- **The pin moves to cd7db86,** the commit of v1.5.0 (tag object f0bd9aa). It brings CAS 036 (accepted at ead17ba) and
+  CAS 037 (accepted at 8b6f1d7). 8b6f1d7..cd7db86's src differs in casim.h's version only (1.5.0, MINOR 5).
+- **No vector moved, of the 19,820 vectors in make test.** Each vector's final state, its image body's CRC (AB_IMGCRC), was
+  taken at 6090b8c and at cd7db86 in two worktrees of 0acbbdc, every command of the test target run on its own (182
+  vector runs). The CRCs are identical, the sanitizer set's included (2,769 of them).
+  - The sanitizer set's first pass in the new tree used the old tree's compile lines, so VER_CASIM read 6090b8c and
+    app_test's 069 VER check was red, 840/841. It was rebuilt from the new tree's own lines: 841/841, and the CRCs were
+    the same.
+  - **Every other output is the same,** with two exceptions:
+    - gen_games_test's GAMES_PINS_ID, from throwaway repos whose hashes depend on the clock.
+    - One timing line, the golden image's load and save in µs.
+  - **casim's golden corpus moved 3 lines** (Σ X^(-K) from 1 to N gains X≠0, on three of its budget rows). tbook's
+    reading of it is unchanged: 4,865 answers, every shape count the same.
+- **So 1.5.0 is pinned by six new vectors, S78 to S83.** Without them a control at the old pin would pass. Each is
+  casim's CLI at cd7db86, 16,384 B, against its line at 6090b8c:
+
+| row | 6090b8c (1.4.0) | cd7db86 (1.5.0) |
+|---|---|---|
+| S78-S80, Σ X^(-K) from 1 to N (CAS 036) | 1÷(X-1)+(1÷X)^(N+1)÷(1÷X-1); X≠1 | the same answer; X≠0; X≠1 |
+| S81-S82, Σ Y^K×Y^(-K) from 1 to N (CAS 037 (1)) | N | N; Y≠0 |
+| S83, Σ ((K+1)^2-1)÷((K+1)-1) from 0 to N (CAS 037 (2)) | 5×N÷2+N^2÷2+2 | UNDEFINED |
+
+  - At 6090b8c the six are red: 0/6 vectors, 3/12 expectations.
+  - Σ (Y×SQRT(Z))^K×SQRT(Z) from -1 (casim's language.md) gains Z≠0 too, and Z≥0 to N. It was left out: S78-S83
+    already cover each change by one line.
+- make test rc 0 at e838206: 182 vector runs, 19,826/19,826 vectors, 56,070/56,070 expectations. 070 is 82/82, app_test
+  841/841 (sanitized too), expr_test 314/314, screen_test 9,020/9,020 with 48/48 frames, standin_test 349/349,
+  tbook_test 39/39, DEVICE PASS 42/42. check-version reads 0.83, unit 083.
+- The census peaked at 1,209 MiB RSS (host, both trees in turn), with 0 MiB in /tmp and /dev/shm.
+
+**Decision 68, `scripts/resources.py static 0acbbdc e838206`** (22:49-22:51Z; containers peaked at 738.4 MiB of 4 GiB):
+
+| resource | stand-in | Rev A |
+|---|---|---|
+| flash (the app's .bin) | 3,657,888 → 3,660,800, **+2,912** | 3,597,392 → 3,600,160, **+2,768** |
+| internal RAM static (DIRAM) | 211,847, +0 | 219,798, +0 |
+| IRAM code | 59,022, +0 | 78,086, +0 |
+| calc_task's frame, B | 144, +0 | 128, +0 |
+
+- libmain.a is +2,892 on the stand-in and +2,800 on Rev A: casim's code, CAS 036 and 037.
+- Other ESP-IDF archives moved by 48 B or less each way (libbid.a +24, -4; Rev A's drivers). Their sources did not
+  change, and I haven't attributed those bytes.
+- No internal-RAM symbol changed on either board.
+
+**The stand-in: not run to the end. The board's console drops at every reset, the accepted 1.4.0 image's too.**
+- 68ac6db (repin-rc7.txt naming cd7db86, with S78 to S83's sums from the keys) built and flashed at 22:52-22:54Z: App
+  version 68ac6db, 3,660,800 B written.
+- **Every boot loses the port at the same line,** about 1.17 s after the reset, in ESP-IDF's startup before any of the
+  app's code runs:
+  - The last line is efuse_init's "Max chip rev: v0.99", then talk.py says "port lost".
+  - The CH34x's ttyACM moves (ACM1 ↔ ACM3), and every send after it fails with an I/O error.
+  - Seen on all four boots: the one after esptool's reset, and three no-flash opens (23:04Z, 23:16Z, and run.sh on the
+    moved port). Nothing else holds the port (fuser).
+  - A good boot (10-25's board120r) goes from that line on to "Chip rev: v0.1" and heap_init.
+- **The control is the image 1.4.0 passed with on 10-28, d1904c9, flashed 23:28-23:29Z.** It drops at the same line
+  ("Max chip rev", I (1169)), and the port moved to ACM1 at 23:29:45Z. So the image is not the cause. The board's USB
+  serial side needs hands (cable, hub or power), which is Michael's.
+- **What I couldn't do from here:**
+  - talk.py on the host with the by-id path, which would follow the moving port: claude is not in dialout.
+  - run.sh's container, which is given one device node.
+- The board is left on 68ac6db, flashed again 23:38-23:40Z. After that flash's reset, with no console open, the port
+  stayed on ACM1. That is an observation, not a cause. repin-rc7.txt waits for the board, unchanged: 32 waits
+  and expects, with the control at 6090b8c. None was met on any boot here (32 NOT MET; the control image's script, 25 of 25).
