@@ -38,7 +38,7 @@ O04 | ours: backspace removes the last key of a fraction | 2.3.8 BKSP 4 ENTER | 
 O05 | ours: no denominator yet: the number is the decimal so far | 12.3. ENTER | X=12.3
 O06 | ours: a leading 0 in the denominator is ignored (a denominator is never 0) | 2.3.0 ENTER | X=2.3
 O07 | ours: and the digits after it count | 2.3.04 ENTER | X=2.75
-O08 | ours: /c of a negative non-integer takes |IP| | 16.7 CHS /C 1 /C | X=16
+O08 | ours: /c of a negative non-integer takes ABS(IP) | 16.7 CHS /C 1 /C | X=16
 O09 | ours: RCL/C brings /c like a recalled number | 16 /C 1 ENTER 2 RCL/C | X=16 Y=2 Z=1
 O10 | ours: RND outside Fraction display is unchanged (ALL) | 2.77 RND | X=2.77
 O11 | ours: RND of an exact fraction stays exact | 16 /C 2.75 RND | X=2.75

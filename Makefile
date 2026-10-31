@@ -20,7 +20,7 @@ LIBS := -lm
 .PHONY: all test accuracy all-checks clang-check casim-config casim-build clean device-host
 # make accuracy needs a python with mpmath: make all-checks PYTHON=...
 PYTHON ?= python3
-KEYV := $(filter-out work/002-vectors.txt work/016-vectors.txt work/017-vectors.txt work/018-vectors.txt,$(filter-out %-fmt-vectors.txt,$(wildcard work/*-vectors.txt))) tests/021-soroban.txt tests/019-soroban.txt tests/003-soroban.txt tests/018-soroban.txt tests/029-soroban.txt tests/034-soroban.txt tests/harness-soroban.txt tests/046-soroban.txt tests/047-soroban.txt tests/050-soroban.txt tests/054-soroban.txt tests/fc-soroban.txt tests/067-soroban.txt
+KEYV := $(filter-out work/002-vectors.txt work/016-vectors.txt work/017-vectors.txt work/018-vectors.txt,$(filter-out %-fmt-vectors.txt,$(wildcard work/*-vectors.txt))) tests/021-soroban.txt tests/019-soroban.txt tests/003-soroban.txt tests/018-soroban.txt tests/029-soroban.txt tests/034-soroban.txt tests/harness-soroban.txt tests/046-soroban.txt tests/047-soroban.txt tests/050-soroban.txt tests/054-soroban.txt tests/fc-soroban.txt tests/067-soroban.txt tests/082-soroban.txt
 all: build/standin_test build/app_test build/keymap_test build/help_test build/power_test build/offscreen_test build/screen_test build/tbook_test build/keys_test build/ls027_test build/draw_test build/store_test build/load_fuzz build/expr_test build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test build/bi_drive build/hp_drive build/deep_test build/eqn_depth build/eqn_stack build/stackkeys build/namedrive
 
 # every build/ target is order-only on the directory: a fresh clone has none (abacus #3803)
@@ -122,8 +122,8 @@ build/expr_test: $(CORE) $(HDRS) $(ENGINE) tests/expr_test.c | build
 build/load_fuzz: $(CORE) $(HDRS) $(ENGINE) tests/load_fuzz.c | build
 	$(CC) $(CFLAGS) -Icore -o $@ $(CORE) tests/load_fuzz.c $(ENGINE) $(LIBS)
 
-build/vectors: $(CORE) $(HDRS) $(ENGINE) tests/vectors.c tests/norm.h firmware/store.c firmware/store.h | build
-	$(CC) $(CFLAGS) -Icore -Ifirmware -o $@ $(CORE) firmware/store.c tests/vectors.c $(ENGINE) $(LIBS)
+build/vectors: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) firmware/screen.h tests/vectors.c tests/norm.h firmware/store.c firmware/store.h | build
+	$(CC) $(CFLAGS) -Icore -Ifirmware -o $@ $(CORE) $(SCREEN) firmware/store.c tests/vectors.c $(ENGINE) $(LIBS)
 
 # unit 047: the parser's depth guard at the deepest site, on a guarded thread stack; the units the parser reaches
 # (tests/eqn_depth.py's rule); the stack a check parse uses, painted
@@ -254,6 +254,8 @@ test: all
 	./build/vectors tests/056-soroban.txt    # (no save/load pass: a bound being typed isn't in the image; D46-D47 test that)
 	./build/vectors tests/057-soroban.txt    # (no save/load pass: g being typed isn't in the image; L07-L09 and Q12 save and load)
 	./build/vectors tests/070-soroban.txt    # (no save/load pass: a bound being typed isn't in the image; S45-S51 save and load)
+	./build/vectors tests/082-soroban.txt
+	AB_SAVELOAD=1 AB_STORE=1 ./build/vectors tests/082-soroban.txt    # (tutor #11878: →X, →EQN, %XEXPR, %YEXPR, %XDRAWN)
 	./build/vectors tests/076-soroban.txt    # (no save/load pass: the report isn't in the image; app_test saves and loads CPLX)
 	./build/vectors tests/079-soroban.txt    # (no save/load pass: the report isn't in the image)
 	./build/vectors tests/073-soroban.txt    # (no save/load pass: E18 types a bound, which isn't in the image; E15, E16 save and load)
@@ -420,9 +422,9 @@ build/san/expr_test: $(CORE) $(HDRS) $(ENGINE) tests/expr_test.c | build
 build/san/app_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) $(APP) $(GAMES_O) build/games/games.h firmware/app.h firmware/keymap.h firmware/power.h firmware/screen.h firmware/version.h tests/app_test.c | build
 	@mkdir -p build/san
 	$(CC) $(SAN_CFLAGS) -Icore -Ifirmware -Ibuild/games -DVER_CASIM='"$(VER_CASIM)"' -DVER_GAMES='"$(VER_GAMES)"' -o $@ $(CORE) $(SCREEN) $(APP) $(GAMES_O) tests/app_test.c $(ENGINE) $(LIBS)
-build/san/vectors: $(CORE) $(HDRS) $(ENGINE) tests/vectors.c tests/norm.h firmware/store.c firmware/store.h | build
+build/san/vectors: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) firmware/screen.h tests/vectors.c tests/norm.h firmware/store.c firmware/store.h | build
 	@mkdir -p build/san
-	$(CC) $(SAN_CFLAGS) -Icore -Ifirmware -o $@ $(CORE) firmware/store.c tests/vectors.c $(ENGINE) $(LIBS)
+	$(CC) $(SAN_CFLAGS) -Icore -Ifirmware -o $@ $(CORE) $(SCREEN) firmware/store.c tests/vectors.c $(ENGINE) $(LIBS)
 sanitize: build/san/load_fuzz build/san/expr_test build/san/app_test build/san/vectors
 	./build/san/load_fuzz 200000 7
 	./build/san/expr_test

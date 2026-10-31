@@ -25,6 +25,9 @@
 #include "state.h"
 #include "store.h"
 #include "norm.h"
+#ifndef AB_DEVICE
+#include "screen.h"   /* %XDRAWN (082): the console's drawn=, from the screen's compose */
+#endif
 
 #define LINE_MAX_ 16384
 static const struct { const char *name; ab_op op; } NAMED[] = {
@@ -661,6 +664,7 @@ int vectors_run(const char *name, FILE *f)
         int nf = 0;
         for (char *p = s; nf < 4; nf++) {
             field[nf] = p;
+            if (nf == 3) { nf++; break; }   /* the expectations are the rest of the line: a drawn text may hold | (082) */
             char *bar = strchr(p, '|');
             if (!bar) { nf++; break; }
             *bar = '\0';
@@ -840,6 +844,25 @@ int vectors_run(const char *name, FILE *f)
                     /* a built-in linear solver as its LCD name, blanks written _ (unit 015) */
                     const char *e = c.eqn_cur >= 0 ? c.eqn[c.eqn_cur] : "TOP";
                     snprintf(got, sizeof got, "%s", e[0] == '\x01' ? e + 1 : e);
+                    for (char *q = got; *q; q++)
+                        if (*q == ' ') *q = '_';
+                } else if (strcmp(ex, "%XEXPR") == 0 || strcmp(ex, "%YEXPR") == 0) {
+                    /* unit 082 (tutor #11878): X's or Y's expression as STU's text, a name as its letter; none for a
+                       number; blanks written _ */
+                    const char *e = ab_expr_text(&c, ex[1] == 'X' ? &c.x : &c.y);
+                    snprintf(got, sizeof got, "%s", e ? e : "none");
+                    for (char *q = got; *q; q++)
+                        if (*q == ' ') *q = '_';
+                } else if (strcmp(ex, "%XDRAWN") == 0) {
+                    /* unit 082: X as the screen draws it in 2D, the console's drawn= (screen_drawn with the default
+                       ui); none when nothing is drawn. Y has no drawn form. The on-chip runner has no screen */
+#ifndef AB_DEVICE
+                    screen_ui ui;
+                    screen_ui_default(&ui);
+                    if (!screen_drawn(&c, &ui, got, sizeof got)) snprintf(got, sizeof got, "none");
+#else
+                    snprintf(got, sizeof got, "(no screen on the device runner)");
+#endif
                     for (char *q = got; *q; q++)
                         if (*q == ' ') *q = '_';
                 } else if (strcmp(ex, "%CASREP") == 0 || strcmp(ex, "%CASROW") == 0 || strcmp(ex, "%NOTE") == 0) {
