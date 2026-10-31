@@ -510,3 +510,19 @@ and this record with VER 0.82.
   tests use names it adds, so ab_state_same always returning false stood in for it, and that was red too. abacus's plant
   (the section skip without r->dropped) was also red. The edited-WHERE-row split is recorded as open for Michael. tally
   builds 082's APK.
+
+### Vectors carry expressions (tutor #11878, abacus #11890; 67db051)
+- tests/vectors.c reads %XEXPR and %YEXPR (X's and Y's expression as STU's text, none for a number) and %XDRAWN (X as
+  the screen draws it, the console's drawn=). EQDROP and EQSTORE were tokens already. tests/082-soroban.txt, X1-X9,
+  runs in make test plain and with save/load. The fourth field is now the rest of the line, which found work/007 O08
+  passing with no expectation since b6557c9; it now checks X=16.
+- `make device-host` (the on-chip test app on the host) had not linked since a58cb09: draw_test_main was in the chip's
+  CMakeLists and not in this Makefile's rule. Fixed, and now in make test (1.3 s), so it can't rot unseen (abacus
+  #11893). A planted wrong X in work/011 M01 makes it fail (DEVICE FAIL 40/42, rc 1).
+
+### Not yet
+- **A name as a value (AB_NAME) comes from no key.** expr_test loads one from an image; no vector reaches %XEXPR's
+  letter branch until a key makes one (abacus #11893).
+- **Where →X leaves the list** (Equation mode open, so `EQDROP 3 ENTER` stores an equation "3") waits on Michael's
+  eqn-screen card; no vector pins it. Those in 082-soroban.txt that type or draw after →X press C first.
+- **An edited WHERE row loses its label and splits its sum** (above), open for Michael.

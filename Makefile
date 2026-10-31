@@ -21,7 +21,7 @@ LIBS := -lm
 # make accuracy needs a python with mpmath: make all-checks PYTHON=...
 PYTHON ?= python3
 KEYV := $(filter-out work/002-vectors.txt work/016-vectors.txt work/017-vectors.txt work/018-vectors.txt,$(filter-out %-fmt-vectors.txt,$(wildcard work/*-vectors.txt))) tests/021-soroban.txt tests/019-soroban.txt tests/003-soroban.txt tests/018-soroban.txt tests/029-soroban.txt tests/034-soroban.txt tests/harness-soroban.txt tests/046-soroban.txt tests/047-soroban.txt tests/050-soroban.txt tests/054-soroban.txt tests/fc-soroban.txt tests/067-soroban.txt tests/082-soroban.txt
-all: build/standin_test build/app_test build/keymap_test build/help_test build/power_test build/offscreen_test build/screen_test build/tbook_test build/keys_test build/ls027_test build/draw_test build/store_test build/load_fuzz build/expr_test build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test build/bi_drive build/hp_drive build/deep_test build/eqn_depth build/eqn_stack build/stackkeys build/namedrive
+all: build/device_host build/standin_test build/app_test build/keymap_test build/help_test build/power_test build/offscreen_test build/screen_test build/tbook_test build/keys_test build/ls027_test build/draw_test build/store_test build/load_fuzz build/expr_test build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test build/bi_drive build/hp_drive build/deep_test build/eqn_depth build/eqn_stack build/stackkeys build/namedrive
 
 # every build/ target is order-only on the directory: a fresh clone has none (abacus #3803)
 build:
@@ -301,6 +301,7 @@ test: all
 	./build/vectors build/veckey_fuzz.txt
 	./build/fmt_vectors work/002-vectors.txt
 	python3 tests/fmt_fuzz.py build/fmt_drive 20000
+	./build/device_host    # the on-chip test app on the host (abacus #11893: it stopped linking at a58cb09, unseen outside make test)
 	$(MAKE) sanitize                            # (abacus #11415: under ~3 minutes, so in make test; 37 s measured)
 
 # Needs mpmath (not part of `make test`): the unit 003/004 functions against mpmath at 150 digits,
@@ -399,8 +400,12 @@ build/device/abn_test.o: tests/abn_test.c tests/norm.h tests/cases.h core/abn.h 
 build/device/xnum_test.o: tests/xnum_test.c $(HDRS) | build
 	@mkdir -p build/device
 	$(CC) $(CFLAGS) -DAB_DEVICE -Dmain=xnum_test_main -Icore -Itests -c -o $@ $<
-build/device_host: tests/device/main/device_main.c $(DEVICE_RUNNERS) $(CORE) $(HDRS) $(ENGINE) build/device/bundle.o build/device/abn_test.o build/device/xnum_test.o | build
-	$(CC) $(CFLAGS) -DAB_DEVICE -Icore -Ifirmware -Itests -Itests/device/main -o $@ tests/device/main/device_main.c $(DEVICE_RUNNERS) $(CORE) build/device/bundle.o build/device/abn_test.o build/device/xnum_test.o $(ENGINE) $(LIBS)
+# draw_test as the chip runs it (a58cb09 gave the chip's CMakeLists draw.c, font5x7.c and draw_test.c, not this rule)
+build/device/draw_test.o: tests/draw_test.c firmware/draw.h | build
+	@mkdir -p build/device
+	$(CC) $(CFLAGS) -DAB_DEVICE -Dmain=draw_test_main -Ifirmware -c -o $@ $<
+build/device_host: tests/device/main/device_main.c $(DEVICE_RUNNERS) $(CORE) $(HDRS) $(ENGINE) firmware/draw.c firmware/font5x7.c build/device/bundle.o build/device/abn_test.o build/device/xnum_test.o build/device/draw_test.o | build
+	$(CC) $(CFLAGS) -DAB_DEVICE -Icore -Ifirmware -Itests -Itests/device/main -o $@ tests/device/main/device_main.c $(DEVICE_RUNNERS) $(CORE) firmware/draw.c firmware/font5x7.c build/device/bundle.o build/device/abn_test.o build/device/xnum_test.o build/device/draw_test.o $(ENGINE) $(LIBS)
 device-host: build/device_host
 	./build/device_host
 
