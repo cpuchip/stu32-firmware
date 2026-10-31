@@ -53,6 +53,12 @@ S74 | 070 at casimir 1.2.0 (CAS 031): the closed form's common factor cancelled:
 S75 | 070 at 1.2.0: S74's first row, Y≠0 | STU RAD EQ:(K+1)×X^(K+1)×Y^K CASSUM:K - 1 ENTER INF ENTER SST | %EQ=Y≠0 %NOTE=WHERE
 S76 | 070 at 1.2.0: the second, ABS(X×Y)<1 | STU RAD EQ:(K+1)×X^(K+1)×Y^K CASSUM:K - 1 ENTER INF ENTER SST SST | %EQ=ABS(X×Y)<1 %NOTE=WHERE
 S77 | 070 at 1.4.0: S65's second and last row, ABS(Y×SIN(Z))<1, S66's until 1.3.0 | STU RAD EQ:K×(SIN(Z)×Y)^K÷SIN(Z) CASSUM:K 1 ENTER INF ENTER SST SST | %EQ=ABS(Y×SIN(Z))<1 %NOTE=WHERE
+S78 | 070 at casimir 1.5.0 (CAS 036): Σ X^(-K) from 1 to N, whose line divides by X: a row X≠0 before X≠1 (1.4.0 printed X≠1 alone; casim's golden corpus) | STU RAD EQ:X^(-K) CASSUM:K 1 ENTER RCL:N ENTER | %EQ=1÷(X-1)+(1÷X)^(N+1)÷(1÷X-1) %EQN=4
+S79 | 070 at 1.5.0: S78's first row, X≠0, labeled WHERE (X≠1 until 1.4.0) | STU RAD EQ:X^(-K) CASSUM:K 1 ENTER RCL:N ENTER SST | %EQ=X≠0 %NOTE=WHERE
+S80 | 070 at 1.5.0: the second and last, X≠1 | STU RAD EQ:X^(-K) CASSUM:K 1 ENTER RCL:N ENTER SST SST | %EQ=X≠1 %NOTE=WHERE
+S81 | 070 at casimir 1.5.0 (CAS 037): the closed form reads a power with K in its exponent as typed: Σ Y^K×Y^(-K) from 1 to N is N with a row Y≠0 (1.4.0 printed N alone, a value at Y = 0, where the sum has none; casim's language.md) | STU RAD EQ:Y^K×Y^(-K) CASSUM:K 1 ENTER RCL:N ENTER | %EQ=N %EQN=3
+S82 | 070 at 1.5.0: S81's row, Y≠0, labeled WHERE | STU RAD EQ:Y^K×Y^(-K) CASSUM:K 1 ENTER RCL:N ENTER SST | %EQ=Y≠0 %NOTE=WHERE
+S83 | 070 at 1.5.0 (CAS 037): a divisor in K alone that canon cancels, 0 at K = 0 in range: Σ ((K+1)^2-1)÷((K+1)-1) from 0 to N is UNDEFINED, as Σ 1÷(K-2) is (1.4.0 printed 5×N÷2+N^2÷2+2; casim's language.md) | STU RAD EQ:((K+1)^2-1)÷((K+1)-1) CASSUM:K 0 ENTER RCL:N ENTER | ERR %ERRMSG=UNDEFINED %EQN=1
 S23 | 070: past the arena: TOO COMPLEX | STU RAD EQ:K^12×X^K CASSUM:K 0 ENTER RCL:N ENTER | ERR %ERR=CAS_NO_ROOM %EQN=1
 S24 | 070: a bound not whole: BAD BOUND (provisional, #8545) | STU RAD EQ:K CASSUM:K 1.5 ENTER RCL:N ENTER | ERR %ERR=CAS_BAD_BOUND %ERRMSG=BAD_BOUND %EQN=1
 S25 | 070: -∞ as the upper goes to casim as typed: BAD BOUND | STU RAD EQ:K CASSUM:K 1 ENTER - INF ENTER | ERR %ERRMSG=BAD_BOUND %EQN=1
