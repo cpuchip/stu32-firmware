@@ -340,11 +340,27 @@ internal RAM +0, IRAM +0, calc_task's frame +0, no internal-RAM symbol changed.
     moved port). Nothing else holds the port (fuser).
   - A good boot (10-25's board120r) goes from that line on to "Chip rev: v0.1" and heap_init.
 - **The control is the image 1.4.0 passed with on 10-28, d1904c9, flashed 23:28-23:29Z.** It drops at the same line
-  ("Max chip rev", I (1169)), and the port moved to ACM1 at 23:29:45Z. So the image is not the cause. The board's USB
-  serial side needs hands (cable, hub or power), which is Michael's.
+  ("Max chip rev", I (1169)), and the port moved to ACM1 at 23:29:45Z. So the image is not the cause. ~~The board's USB
+  serial side needs hands (cable, hub or power), which is Michael's.~~ Wrong, as the run below showed: the port moves at
+  every reset, and what failed was following it. Nothing about the cable or power was measured.
 - **What I couldn't do from here:**
   - talk.py on the host with the by-id path, which would follow the moving port: claude is not in dialout.
   - run.sh's container, which is given one device node.
 - The board is left on 68ac6db, flashed again 23:38-23:40Z. After that flash's reset, with no console open, the port
   stayed on ACM1. That is an observation, not a cause. repin-rc7.txt waits for the board, unchanged: 32 waits
   and expects, with the control at 6090b8c. None was met on any boot here (32 NOT MET; the control image's script, 25 of 25).
+
+**The stand-in, run on 2026-11-01 (abacus #12163, after Michael added claude to dialout):** talk.py on the host, under
+`sg dialout`, given the by-id path. The port still dropped at boot (ACM1 to ACM3, 04:24:02Z), and talk.py followed it
+("port open again (/dev/ttyACM3)") and went on. So the old drop was the moving port, not the board.
+- **repin-rc7.txt against the 68ac6db image** already on the board (built 23:38Z, 3,660,800 B, sha256
+  42c2ba7314b9d25e9a2d5d455a7dbec008a845524945d5e2173a3eacfba30f86): 04:24-04:27Z, 28 PASS, and 1 NOT MET, which is the
+  control at 6090b8c (line 1088). From the keys: pins casim=cd7db86, Σ X^(-K)'s answer, X≠0 and X≠1, Σ Y^K×Y^(-K)'s N
+  and Y≠0, and S83's UNDEFINED. Stack-free 23,732 B at its lowest (floor 8,188). Log:
+  work/standin-logs/2026-11-01-repin-rc7-68ac6db.log.
+- **expr082.txt against 640d7be** (82b7c40's fix), built and flashed 04:27-04:29Z: App version 640d7be, 3,660,800 B,
+  sha256 70e04f78facac0682642b6a3fb5b373079c349bc1af1b25e3571b22a98c2c1e8. Run 04:29Z: 15 PASS, and 1 NOT MET, the
+  control (line 80). ver=0.83, X='3×X^2-4', drawn=3X^2-4, and framecrc B8D758BB, before and after SAVE and RESTART.
+  That's the host replay's value, so standin_replay agrees with the board. Log:
+  work/standin-logs/2026-11-01-expr082-640d7be.log.
+- The board is left on 640d7be.
