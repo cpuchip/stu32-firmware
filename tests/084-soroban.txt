@@ -14,6 +14,7 @@ Q05 | 084: stored and recalled | STU EQ:3×X^2-4 EQDROP 2 * STO:A CLX RCL:A | %X
 Q06 | 084: + | STU EQ:X^2 EQDROP 1 + | %XEXPR=X^2+1
 Q07 | 084: - with a sum on the right | STU 5 EQ:X+1 EQDROP - | %XEXPR=5-(X+1)
 Q08 | 084: / | STU EQ:X+1 EQDROP 2 / | %XEXPR=(X+1)÷2
+Q45 | 084: / with a product on the right: bracketed, as - is (abacus #12410: its plant P1, / not tight on the right, left the vectors green) | STU 6 EQ:2×X EQDROP / | %XEXPR=6÷(2×X)
 Q09 | 084: y^x | STU EQ:X+1 EQDROP 2 POW | %XEXPR=(X+1)^2
 Q10 | 084: two expressions | STU EQ:X^2 EQDROP EQ:SIN(X) EQDROP * | %XEXPR=X^2×SIN(X)
 Q11 | 084: a negative number on the right of + | STU EQ:X EQDROP 2 CHS + | %XEXPR=X+(-2)
