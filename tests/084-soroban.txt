@@ -61,3 +61,28 @@ Q40 | 084: 35s mode: NOT A NUMBER | STU EQ:X EQDROP MODE35 2 * | ERR %ERRMSG=NOT
 Q41 | 084: a program stamped STU builds the expression | STU PRGM CLPGM LBL:A 2 * RTN PRGM EQ:X+1 EQDROP XEQ:A | %XEXPR=(X+1)×2
 Q42 | 084: a program stamped 35 doesn't | MODE35 PRGM CLPGM LBL:A 2 * RTN PRGM STU EQ:X+1 EQDROP XEQ:A | ERR %ERRMSG=NOT_A_NUMBER
 Q43 | 084: an op 082 still refuses: %CHG | STU EQ:X EQDROP 2 PCTCHG | ERR %ERRMSG=NOT_A_NUMBER X=2 %YEXPR=X
+#
+# abacus's hidden set h084, written before it read these vectors past Q20 or the code; adopted as it passed at 6ee62e4
+# (abacus #12410, #12418; H01 is Q45, H11 has no row)
+H02 | h084: a negative number to the power X | STU 2 CHS EQ:X EQDROP POW | %XEXPR=(-2)^X
+H03 | h084: a power of a power | STU EQ:X^2 EQDROP 3 POW | %XEXPR=(X^2)^3
+H04 | h084: a number to an expression power | STU 2 EQ:X+1 EQDROP POW | %XEXPR=2^(X+1)
+H05 | h084: - with a difference on the right | STU 5 EQ:X-1 EQDROP - | %XEXPR=5-(X-1)
+H06 | h084: a quotient of two sums | STU EQ:X+1 EQDROP EQ:X-1 EQDROP / | %XEXPR=(X+1)÷(X-1)
+H07 | h084: × with a sum on the right | STU EQ:X EQDROP EQ:X+1 EQDROP * | %XEXPR=X×(X+1)
+H08 | h084: minus a negative number | STU EQ:X EQDROP 2 CHS - | %XEXPR=X-(-2)
+H09 | h084: a decimal power | STU EQ:X EQDROP 0.5 POW | %XEXPR=X^0.5
+H10 | h084: a product over a number | STU EQ:2×X EQDROP 3 / | %XEXPR=2×X÷3
+H12 | h084: +/- on a difference | STU EQ:X-1 EQDROP CHS | %XEXPR=-(X-1)
+H13 | h084: SIN on an equation | STU EQ:X=1 EQDROP SIN | %XEXPR=SIN(X)=SIN(1)
+H14 | h084: an equation minus a number | STU EQ:X=1 EQDROP 1 - | %XEXPR=X-1=1-1
+H15 | h084: a number over an equation | STU 2 EQ:X=1 EQDROP / | %XEXPR=2÷X=2÷1
+H16 | h084: two equations added | STU EQ:X=1 EQDROP EQ:Y=2 EQDROP + | %XEXPR=X+Y=1+2
+H17 | h084: a negative power | STU EQ:X EQDROP 2 CHS POW | %XEXPR=X^(-2)
+H18 | h084: 1/x of a product | STU EQ:2×X EQDROP INV | %XEXPR=1÷(2×X)
+H19 | h084: x² of a negated letter | STU EQ:-X EQDROP SQ | %XEXPR=(-X)^2
+H20 | h084: +/- of a negated letter | STU EQ:-X EQDROP CHS | %XEXPR=-(-X)
+H21 | h084: y^x with a negated letter as the power | STU 2 EQ:-X EQDROP POW | %XEXPR=2^(-X)
+H22 | h084: SQRT of a sum | STU EQ:X+1 EQDROP SQRT | %XEXPR=SQRT(X+1)
+H23 | h084: a letter E then a minus, times 3 | STU EQ:2×E-1 EQDROP 3 * | %XEXPR=(2×E-1)×3
+H24 | h084: 2E-1 is the number 0.2 (eqn.c), so no bracket | STU EQ:2E-1 EQDROP 3 * | %XEXPR=2E-1×3
