@@ -215,3 +215,79 @@ before the run, so a surprise is visible as one.
 | M12 | +/- not in the list (082's NOT A NUMBER) | 084 vectors (Q16, Q17) |
 | M13 | 10^x not in the list | 084 vectors (Q18) |
 | M14 | a sign after a number's E read as an operator | **survives**, I expect: no vector has a negative exponent in E form |
+
+### The mutants' results (17 run at 21:10-21:14Z, each planted line checked in the source and each build checked)
+
+Every prediction held. The 15 predicted reds were red in the places predicted, and M11 was also caught by the fuzz, which
+the prediction didn't name. The two predicted survivors survived and are closed:
+
+| # | result |
+|---|---|
+| M1 | red: 084 vectors (Q01 3×X^2-4×2), app_test, the fuzz (X+1^2=2×X^2 against 16 and 36) |
+| M2 | red: 084 vectors (Q07 5-X+1), the fuzz |
+| M3, M3b | red: 084 vectors (Q22, Q23, Q26; Q24, Q25, Q27), the fuzz |
+| M4 | red: 084 vectors (Q40), 082 vectors (X12) |
+| M4b | **survived, as predicted.** `!c->alg` can't be reached: in ALG, SIN types SIN() into the line (a probe through ab_do), so the dispatch never sees an expression. Removed at d2a3cad rather than left unpinned. |
+| M5, M5b | red: 084 vectors (Q04) |
+| M6 | red: 084 vectors (Q03), the fuzz (Y compared) |
+| M7 | red: 084 vectors (Q39) |
+| M8 | red: expr_test, "B×2" and "SIN(B)" |
+| M9 | red: 084 vectors (Q29, Q30) |
+| M10 | red: 084 vectors (Q31-Q33) |
+| M11 | red: 084 vectors (Q35 2÷3×X), and the fuzz (2626÷2685 for an inexact number) |
+| M12, M13 | red: 084 vectors (Q16, Q17; Q18) |
+| M14 | **survived, as predicted.** Q44 (X × 1E-300) now pins it: under M14 it's X×(1E-300), red (d2a3cad) |
+
+The run peaked at 330 MiB RSS.
+
+### What moved, measured
+
+- **Every existing vector's final state** (AB_IMGCRC over the 90 vector lines, 9,196 states, 896aabd against 97357b9):
+  identical apart from 082-soroban X12, whose keys this unit moved to 35s mode on purpose.
+- **expr_test:**
+  - the 8 SIN setups and the two image checks now use Σ+, which is still refused;
+  - golden-v21-082 stays byte for byte: build_v21 sets the message's op back to SIN, since the image records it (byte 44);
+  - the sweep and the op fuzz have the third class: 456 sweep runs and 75 fuzz steps built an expression, 0 read a number.
+- **screen_test:** frames 46 and 47 are set up with Σ+, and their PNGs are unchanged (48/48).
+- **app_test:** +5 checks for Michael's keys with UNDO and REDO (846).
+- **help:** →X's page says "Then 2 × makes (...)×2." (three lines, as help_test requires of a menu key).
+
+### Found on the way
+
+- **The first build had two bracket bugs the prototype didn't:** 5-X+1 for 5-(X+1), and X+-2 for X+(-2). The case
+  table caught them before the fuzz existed, because someone had thought to write those two cases. The fuzz is what
+  catches the cases nobody wrote: M1, M2 and M11 show it.
+- **A plant that doesn't compile runs the old binary and looks green.** My first three bracket plants failed -Werror
+  (an unused variable), and the stale expr_test passed. The runner now stops on a failed build and prints whether the
+  plant is in the source.
+- **An operand that doesn't parse builds a result that doesn't:** the op fuzz dropped a malformed equation with →X.
+  As typed keeps it malformed, and the sweep's third class accepts that only when an operand was already malformed.
+
+### The gate at d2a3cad
+
+- **make test rc 0:**
+  - check-version 0.84;
+  - 084-soroban 44/44 (50/50), with save and load too;
+  - expr_test 368/368, with the differential fuzz at 1,500 cases, 3,830 built, 12,564 places compared, 0 differ, 0 casim SYNTAX;
+  - app_test 846/846; screen_test 9,020 and 48/48 frames; help 770,850;
+  - standin_replay over 36 scripts (arith084 current); DEVICE PASS 42/42.
+- **Decision 68** (`resources.py static 896aabd d2a3cad`, 21:18-21:21Z; the container peaked at 729 MiB):
+
+| resource | stand-in | Rev A |
+|---|---|---|
+| flash (the app's .bin) | 3,660,816 → 3,664,288, **+3,472** | 3,600,176 → 3,603,632, **+3,456** |
+| internal RAM static (DIRAM) | 211,847, +0 | 219,798, +0 |
+| IRAM code | 59,022, +0 | 78,086, +0 |
+| calc_task's frame, B | 144, +0 | 128, +0 |
+
+  libmain is +3,359 and +3,373, against the prototype's +2,522 and +2,546: the number text (π, fractions), equations
+  on both sides, and the length checks. No internal-RAM symbol changed. sym_arith's buffers are 192 + 2×64 B, not
+  the prototype's 3.6 KB.
+- **The stand-in** (talk.py on the host under `sg dialout`, by-id path):
+  - d2a3cad built and flashed 21:21-21:27Z: App version d2a3cad, 3,664,288 B, sha256
+    eb87b81a503051fddd0758d572ba4b761d924e0b88d0c5c959dead016c10eaa1.
+  - arith084.txt: 13 PASS, and 1 NOT MET, the control (line 77).
+  - From the keys: ver=0.84, X='(3×X^2-4)×2', drawn=(3X^2-4)·2, framecrc 95014040, again after SAVE and RESTART. That
+    CRC is standin_replay's.
+  - Stack-free 28,260 B at its lowest (floor 8,188).
+  - Log: work/standin-logs/2026-11-01-arith084-d2a3cad.log.
