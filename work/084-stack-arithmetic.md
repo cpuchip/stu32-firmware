@@ -185,3 +185,33 @@ The prototype writes a number in ALL, unrounded, as `ab_format` prints it (measu
   entry open across →X, because `EQ:` adds the equation without the EQN key. The next digit then extends that entry
   over X. On the keys, opening EQN closes the entry (measured), so the device can't reach it. One line in vectors.c (EQ:
   ends an open entry) would remove the edge. Not changed here.
+
+## Built (soroban, 2026-11-01)
+
+Unit 084 at 97357b9, as the blueprint reads with Michael's four answers: as typed, all the keys, both sides of an
+equation, π and fractions written as such. +/- is -(…) in STU (abacus #12365); 082's guard on it stays for 35s mode.
+
+### PREDICT: the mutants, written before any of them ran
+
+Each mutant is one change to core/calc.c (or a test). The prediction is which check goes red. They were committed
+before the run, so a surprise is visible as one.
+
+| # | the mutant | predicted red |
+|---|---|---|
+| M1 | no brackets at all | 084 vectors (Q01's (3×X^2-4)×2 becomes 3×X^2-4×2), the differential fuzz, app_test (Michael's text) |
+| M2 | equal-precedence brackets on the left operand, not the right | 084 vectors (Q07 5-(X+1) becomes 5-X+1), the fuzz |
+| M3 | an equation: a two-argument op on the left side only | 084 vectors (Q22, Q23, Q26), the fuzz |
+| M3b | an equation: a function on the left side only | 084 vectors (Q24, Q25, Q27), the fuzz |
+| M4 | STU not checked (33s and 35s modes build too) | 084 vectors (Q40, Q42), 082 vectors (X12, 35s mode's +/-) |
+| M4b | ALG not checked | **survives**, I expect: in ALG the keys type into the line and don't reach the dispatch with an expression |
+| M5 | LASTx not set | 084 vectors (Q04) |
+| M5b | LASTx set to the result | 084 vectors (Q04) |
+| M6 | the stack not dropped | 084 vectors (Q03's Y=7), the fuzz (Y compared) |
+| M7 | no length check (the text cut at 191) | 084 vectors (Q39) |
+| M8 | a name written as its letter's value (the s3-names collapse, abacus #12192) | expr_test ("B×2") |
+| M9 | π not recognized | 084 vectors (Q29, Q30) |
+| M10 | fraction display ignored | 084 vectors (Q31-Q34) |
+| M11 | a fraction written when it doesn't round back to the number | 084 vectors (Q35, 0.6667) |
+| M12 | +/- not in the list (082's NOT A NUMBER) | 084 vectors (Q16, Q17) |
+| M13 | 10^x not in the list | 084 vectors (Q18) |
+| M14 | a sign after a number's E read as an operator | **survives**, I expect: no vector has a negative exponent in E form |
