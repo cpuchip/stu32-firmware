@@ -49,6 +49,7 @@ Q34 | 084: fraction display on: -2/3 | STU FDISP 2 CHS ENTER 3 / EQ:X EQDROP * |
 Q35 | 084: fraction display on: 0.6667 isn't 2/3, so unrounded | STU FDISP 0.6667 EQ:X EQDROP * | %XEXPR=0.6667×X
 Q36 | 084: fraction display off: 1/3 unrounded, 36 characters | STU 1 ENTER 3 / EQ:X EQDROP * | %XEXPR=0.3333333333333333333333333333333333×X
 Q37 | 084: 1E300 | STU EQ:X EQDROP 1 E 300 * | %XEXPR=X×1E300
+Q44 | 084: 1E-300: the sign after E is the exponent's, not an operator (mutant M14 survived without this) | STU EQ:X EQDROP 1 E 300 CHS * | %XEXPR=X×1E-300
 #
 # The 191-byte limit (abacus #12192: 1/3's 36 characters beside it)
 Q38 | 084: a 151-byte sum x 1/3 is 191 bytes, the most | STU EQ:X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X EQDROP 1 ENTER 3 / * | %XEXPR=(X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X)×0.3333333333333333333333333333333333

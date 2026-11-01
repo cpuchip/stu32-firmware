@@ -5319,9 +5319,10 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
     c->cpart = 0;
     c->vlen = 0;
 
-    /* Unit 084: in STU's RPN, + - x / y^x and the one-argument functions build an expression from an expression or a
-       name (sym_arith); a program stamped 33 or 35, 33s and 35s modes, and ALG's line keep NOT A NUMBER. */
-    if (sym_kind(op) >= 0 && !c->alg && ab_rec_model(c) == AB_MODEL_STU &&
+    /* Unit 084: in STU, + - x / y^x and the one-argument functions build an expression from an expression or a name
+       (sym_arith); 33s and 35s modes and a program stamped 33 or 35 keep NOT A NUMBER. (ALG's keys type into its line
+       and never reach here with an expression: measured, so no test of ALG here.) */
+    if (sym_kind(op) >= 0 && ab_rec_model(c) == AB_MODEL_STU &&
         (ab_is_sym(&c->x) || (sym_kind(op) < 5 && ab_is_sym(&c->y))))
         return sym_arith(c, op);
     /* Unit 082: an expression or a name where a number is read is NOT A NUMBER, nothing changed (is_cx and is_vec
