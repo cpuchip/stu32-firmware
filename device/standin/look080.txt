@@ -3,6 +3,7 @@
 # 1 px gap) and EXP(X)×SIN(X)÷2-EXP(X)×COS(X)÷2 (the minus between two fractions, a full cell either side, on the bars'
 # row). Each screen's rows 21-205 are checked against the host's CRC (the same keys replayed through app.c). It ends with
 # the minus on the panel; EQN LIST's ▲ (the first soft key) shows the XY one, ▼ the minus again. A control must FAIL.
+# retired at 081: the wheel (3044782) redrew the equation list; the replay matches 4 of 4 at aa738bb and 0 of 4 from 3044782 on (abacus #12095). It stays as 080's board evidence.
 wait : heap internal 30
 sleep 3
 send WIPE

@@ -2,6 +2,7 @@
 # and SIN(X)+1 typed in STU and stored (each the entry of tests/stackkeys.c's `cas s`), then EQN LIST's ▲ (BST): the
 # centre is 3×X^2-4 (drawn=3X^2-4) with its neighbours, and the frame's rows 21-205 have the host's CRC (the same keys
 # replayed through app.c: 85B6EE37). Ends with a control that must FAIL.
+# replay: current
 wait : heap internal 30
 sleep 3
 send WIPE

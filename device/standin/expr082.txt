@@ -4,6 +4,7 @@
 # keys replayed through app.c: B8D758BB). Unit 083: →X leaves Equation mode itself, so the C that followed it (082's keys)
 # is gone; after →X it clears X (tally #12086, abacus #12087). Saved and restarted: the version-21 image loads from flash and the screen is
 # the same. Ends with a control that must FAIL.
+# replay: current
 wait : heap internal 30
 sleep 3
 send WIPE

@@ -3,6 +3,7 @@
 # last ENTER storing it). The board line's drawn= is its 2D text, and the frame's rows 21-205, the textbook area, have the
 # host's CRC (tests/screen_test.c's 22-tb-stu3, 9A4A7D8C), which the app checks too (tally #10916). Ends with a control
 # that must FAIL.
+# retired at 081: the wheel (3044782) redrew the equation list; the replay matches 1 of 1 at aa738bb and 0 of 1 from 3044782 on (abacus #12095). It stays as 080's board evidence.
 wait : heap internal 30
 sleep 3
 send WIPE

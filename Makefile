@@ -21,7 +21,7 @@ LIBS := -lm
 # make accuracy needs a python with mpmath: make all-checks PYTHON=...
 PYTHON ?= python3
 KEYV := $(filter-out work/002-vectors.txt work/016-vectors.txt work/017-vectors.txt work/018-vectors.txt,$(filter-out %-fmt-vectors.txt,$(wildcard work/*-vectors.txt))) tests/021-soroban.txt tests/019-soroban.txt tests/003-soroban.txt tests/018-soroban.txt tests/029-soroban.txt tests/034-soroban.txt tests/harness-soroban.txt tests/046-soroban.txt tests/047-soroban.txt tests/050-soroban.txt tests/054-soroban.txt tests/fc-soroban.txt tests/067-soroban.txt tests/082-soroban.txt
-all: build/device_host build/standin_test build/app_test build/keymap_test build/help_test build/power_test build/offscreen_test build/screen_test build/tbook_test build/keys_test build/ls027_test build/draw_test build/store_test build/load_fuzz build/expr_test build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test build/bi_drive build/hp_drive build/deep_test build/eqn_depth build/eqn_stack build/stackkeys build/namedrive
+all: build/device_host build/standin_test build/app_test build/standin_replay build/keymap_test build/help_test build/power_test build/offscreen_test build/screen_test build/tbook_test build/keys_test build/ls027_test build/draw_test build/store_test build/load_fuzz build/expr_test build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test build/bi_drive build/hp_drive build/deep_test build/eqn_depth build/eqn_stack build/stackkeys build/namedrive
 
 # every build/ target is order-only on the directory: a fresh clone has none (abacus #3803)
 build:
@@ -78,6 +78,10 @@ VER_CASIM = $(shell cut -c1-7 CASIM_PIN)
 VER_GAMES = $(shell g=$$(sed 's/\#.*//' $(GAMES_SRC) 2>/dev/null | awk 'NF{print $$1, $$2, $$3}'); if [ -n "$$g" ]; then echo "$$g" | sha256sum | cut -c1-7; else echo none; fi)
 build/app_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) $(APP) $(GAMES_O) build/games/games.h firmware/app.h firmware/keymap.h firmware/power.h firmware/screen.h firmware/version.h tests/app_test.c | build
 	$(CC) $(CFLAGS) -Icore -Ifirmware -Ibuild/games -DVER_CASIM='"$(VER_CASIM)"' -DVER_GAMES='"$(VER_GAMES)"' -o $@ $(CORE) $(SCREEN) $(APP) $(GAMES_O) tests/app_test.c $(ENGINE) $(LIBS)
+# abacus #12095: the stand-in scripts' FRAMECRC lines replayed through app.c; each FRAMECRC script says "# replay: current"
+# or "# retired at <unit>: <why>" (tests/standin_replay.c)
+build/standin_replay: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) $(APP) $(GAMES_O) build/games/games.h firmware/app.h firmware/screen.h tests/standin_replay.c | build
+	$(CC) $(CFLAGS) -Icore -Ifirmware -Ibuild/games -o $@ $(CORE) $(SCREEN) $(APP) $(GAMES_O) tests/standin_replay.c $(ENGINE) $(LIBS)
 
 # unit 052: the key sequences to the deepest stacks, for scripts/resources.py's board measurements
 build/stackkeys: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) $(APP) $(GAMES_O) build/games/games.h firmware/app.h firmware/keymap.h firmware/store.c firmware/store.h tests/stackkeys.c | build
@@ -285,6 +289,7 @@ test: all
 	./build/offscreen_test
 	./build/keymap_test
 	./build/app_test
+	./build/standin_replay device/standin/*.txt
 	@mkdir -p build/standin
 	./build/standin_test tests/frames/standin.crc
 	python3 scripts/gen_keymap.py --check
