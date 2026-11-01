@@ -19,7 +19,9 @@
  * 5. The op sweep: every op (args 0 and the letter B), in STU's RPN, with an expression or a name on X, on Y, on both,
  *    or in B or I, args 0, 1, B and (I). An op either gives NOT A NUMBER with the stack and letters unchanged, or
  *    leaves nothing computed from the expression read as a number (judged against the same op run with 0 and 7 in
- *    its place); and whatever it left saves an image that loads.
+ *    its place); and whatever it left saves an image that loads. An op that returns OK changing nothing, where the same
+ *    op given 7 changes the stack or a letter, skipped the expression silently, and fails too (abacus #12192: +/-, ISG
+ *    and DSE did).
  * 6, 7. The classes the sweep can't reach from RPN's keys, and →X and →EQN. */
 #include <stdio.h>
 #include <stdlib.h>
@@ -652,12 +654,16 @@ static void sweep(void)
                     bool by_status = st == sz && sz != sn, by_yes = ca.yes == cz.yes && cz.yes != cn.yes;
                     /* an error only the expression gives (neither number does) is NOT A NUMBER's to give */
                     bool wrong = st != ABN_OK && st != ABN_CLAMPED && st != sz && st != sn;
-                    if (leak >= 0 || by_status || by_yes || wrong) {
+                    /* abacus #12192: OK with nothing changed, where the same op changes the stack or a letter given 7,
+                       is a key that skipped the expression silently (+/- did, at 640d7be): NOT A NUMBER's to say */
+                    bool silent = st == ABN_OK && same_state(&ca, &base) && sn == ABN_OK && !same_state(&cn, &bn);
+                    if (leak >= 0 || by_status || by_yes || wrong || silent) {
                         odd++;
-                        printf("FAIL: op %d arg %d (%s on %s): status %d (0: %d, 7: %d); place %d read as 0%s%s%s\n", op,
+                        printf("FAIL: op %d arg %d (%s on %s): status %d (0: %d, 7: %d); place %d read as 0%s%s%s%s\n", op,
                                arg, sym ? "a name" : "an expression", SETUP[s], (int)st, (int)sz, (int)sn, leak,
                                by_status ? ", the status as 0's" : "", by_yes ? ", YES/NO as 0's" : "",
-                               wrong ? ", an error only the expression gives, not NOT A NUMBER" : "");
+                               wrong ? ", an error only the expression gives, not NOT A NUMBER" : "",
+                               silent ? ", OK and nothing changed where 7 changes it" : "");
                     } else if (sweep_verbose) {
                         printf("op %d arg %d (%s on %s): passes, status %d\n", op, arg, sym ? "a name" : "an expression",
                                SETUP[s], (int)st);

@@ -1537,6 +1537,8 @@ static abn_status loop_op(ab_calc *c, int op, int code, bool *skip)
     abn_status st;
     if ((st = resolve(c, code, true, &sl)) != ABN_OK) return st;
     ab_val v = load_val(&sl);
+    if (ab_is_sym(&v)) return ABN_NOT_NUMBER;   /* 082: the counter an expression (its parts read as 0, and the skip
+                                                   from that 0: the sweep's silent class found it, abacus #12192) */
     abn *p = &v.re;
     bool neg = abn_is_negative(p);
     abn a = abn_abs(p), ip, frac, t, fff, f5, ii, cnt, nw, absn;
@@ -5216,7 +5218,9 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
         break;
     case AB_KCHS:
         /* Change sign of a completed X (UG p.1-15); of both parts of a complex one (UG p.9-3).
-           The guide lists no sign change for a vector: INVALID DATA (unit 010 rule 2). */
+           The guide lists no sign change for a vector: INVALID DATA (unit 010 rule 2). An expression or a name is NOT A
+           NUMBER (082 section 8; it isn't in reads_x, so it went through as OK, changing nothing: abacus #12192). */
+        if (ab_is_sym(&c->x)) return ABN_NOT_NUMBER;
         if (is_vec(&c->x)) return ABN_DOMAIN;
         c->x.re = abn_neg(&c->x.re);
         c->x.im = abn_neg(&c->x.im);
