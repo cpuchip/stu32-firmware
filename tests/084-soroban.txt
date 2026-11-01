@@ -1,0 +1,61 @@
+# Unit 084 (Michael's stack-arithmetic, abacus #12365; work/084-stack-arithmetic.md): in STU's RPN, + - x / y^x and the
+# one-argument functions given an expression build a new one, kept as typed. An equation gets the op on both sides; a
+# number is written unrounded, pi as the symbol, and with fraction display on as n/d when that fraction is the number.
+# Each %XEXPR is the text exactly as built (the lessons quote it). Run with save and load too.
+#
+# Michael's example, and the stack around it
+Q01 | 084: Michael's: the expression in Y, 2 in X, x | STU EQ:3×X^2-4 EQDROP 2 * | %XEXPR=(3×X^2-4)×2
+Q02 | 084: 2 in Y, the expression in X | STU 2 EQ:3×X^2-4 EQDROP * | %XEXPR=2×(3×X^2-4)
+Q03 | 084: the stack drops as for numbers: Y gets Z | STU 7 ENTER EQ:3×X^2-4 EQDROP 2 * | %XEXPR=(3×X^2-4)×2 Y=7
+Q04 | 084: LASTx gets X | STU EQ:3×X^2-4 EQDROP 2 * LASTX | X=2 %YEXPR=(3×X^2-4)×2
+Q05 | 084: stored and recalled | STU EQ:3×X^2-4 EQDROP 2 * STO:A CLX RCL:A | %XEXPR=(3×X^2-4)×2
+#
+# The two-argument keys, brackets only where the reading needs them
+Q06 | 084: + | STU EQ:X^2 EQDROP 1 + | %XEXPR=X^2+1
+Q07 | 084: - with a sum on the right | STU 5 EQ:X+1 EQDROP - | %XEXPR=5-(X+1)
+Q08 | 084: / | STU EQ:X+1 EQDROP 2 / | %XEXPR=(X+1)÷2
+Q09 | 084: y^x | STU EQ:X+1 EQDROP 2 POW | %XEXPR=(X+1)^2
+Q10 | 084: two expressions | STU EQ:X^2 EQDROP EQ:SIN(X) EQDROP * | %XEXPR=X^2×SIN(X)
+Q11 | 084: a negative number on the right of + | STU EQ:X EQDROP 2 CHS + | %XEXPR=X+(-2)
+Q12 | 084: X-X^2 is left as typed (no canon) | STU EQ:X^2 EQDROP EQ:X^2 EQDROP - | %XEXPR=X^2-X^2
+#
+# The one-argument keys
+Q13 | 084: SIN | STU EQ:X^2 EQDROP SIN | %XEXPR=SIN(X^2)
+Q14 | 084: x² | STU EQ:X+1 EQDROP SQ | %XEXPR=(X+1)^2
+Q15 | 084: 1/x | STU EQ:X+1 EQDROP INV | %XEXPR=1÷(X+1)
+Q16 | 084: +/- (082's NOT A NUMBER in 33s and 35s modes still) | STU EQ:X+1 EQDROP CHS | %XEXPR=-(X+1)
+Q17 | 084: +/- on X^2: STU reads -X^2 as -(X^2) | STU EQ:X^2 EQDROP CHS | %XEXPR=-X^2
+Q18 | 084: 10^x is ALOG | STU EQ:X EQDROP TENX | %XEXPR=ALOG(X)
+Q19 | 084: ABS | STU EQ:X-1 EQDROP ABS | %XEXPR=ABS(X-1)
+Q20 | 084: square root then x², kept as typed (canon would give X, dropping X>=0) | STU EQ:X EQDROP SQRT SQ | %XEXPR=SQRT(X)^2
+Q21 | 084: LN then e^x, kept as typed (canon would give X, dropping X>0) | STU EQ:X EQDROP LN EXP | %XEXPR=EXP(LN(X))
+#
+# An equation gets the op on both sides; a function on both sides can gain roots, as x 0 can (abacus #12192)
+Q22 | 084: an equation x 2 | STU EQ:2×X+5=11 EQDROP 2 * | %XEXPR=(2×X+5)×2=11×2
+Q23 | 084: an equation x 0 (every X a root now) | STU EQ:2×X+5=11 EQDROP 0 * | %XEXPR=(2×X+5)×0=11×0
+Q24 | 084: SIN of an equation (more roots) | STU EQ:2×X+5=11 EQDROP SIN | %XEXPR=SIN(2×X+5)=SIN(11)
+Q25 | 084: x² of an equation (X=-8 a root now) | STU EQ:2×X+5=11 EQDROP SQ | %XEXPR=(2×X+5)^2=11^2
+Q26 | 084: two equations, side by side | STU EQ:X+1=2 EQDROP EQ:X=3 EQDROP + | %XEXPR=X+1+X=2+3
+Q27 | 084: e^x of an equation | STU EQ:X=2 EQDROP EXP | %XEXPR=EXP(X)=EXP(2)
+#
+# A number written into the text (Michael: pi and fractions written as such)
+Q28 | 084: 0.1 | STU EQ:X EQDROP 0.1 * | %XEXPR=X×0.1
+Q29 | 084: pi from its key | STU PI EQ:X EQDROP * | %XEXPR=π×X
+Q30 | 084: -pi | STU PI CHS EQ:X EQDROP * | %XEXPR=(-π)×X
+Q31 | 084: fraction display on: 3/4 | STU FDISP 3 ENTER 4 / EQ:X EQDROP * | %XEXPR=3÷4×X
+Q32 | 084: fraction display on: 1/3 (the fraction rounds to the number) | STU FDISP 1 ENTER 3 / EQ:X EQDROP * | %XEXPR=1÷3×X
+Q33 | 084: fraction display on: 7/4, improper | STU FDISP 7 ENTER 4 / EQ:X EQDROP + | %XEXPR=7÷4+X
+Q34 | 084: fraction display on: -2/3 | STU FDISP 2 CHS ENTER 3 / EQ:X EQDROP * | %XEXPR=(-2÷3)×X
+Q35 | 084: fraction display on: 0.6667 isn't 2/3, so unrounded | STU FDISP 0.6667 EQ:X EQDROP * | %XEXPR=0.6667×X
+Q36 | 084: fraction display off: 1/3 unrounded, 36 characters | STU 1 ENTER 3 / EQ:X EQDROP * | %XEXPR=0.3333333333333333333333333333333333×X
+Q37 | 084: 1E300 | STU EQ:X EQDROP 1 E 300 * | %XEXPR=X×1E300
+#
+# The 191-byte limit (abacus #12192: 1/3's 36 characters beside it)
+Q38 | 084: a 151-byte sum x 1/3 is 191 bytes, the most | STU EQ:X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X EQDROP 1 ENTER 3 / * | %XEXPR=(X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X)×0.3333333333333333333333333333333333
+Q39 | 084: a 153-byte sum x 1/3 is past it: RESULT TOO LONG, nothing changed | STU EQ:X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X EQDROP 1 ENTER 3 / * | ERR %ERRMSG=RESULT_TOO_LONG %YEXPR=X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X+X
+#
+# Where it doesn't apply
+Q40 | 084: 35s mode: NOT A NUMBER | STU EQ:X EQDROP MODE35 2 * | ERR %ERRMSG=NOT_A_NUMBER %YEXPR=X
+Q41 | 084: a program stamped STU builds the expression | STU PRGM CLPGM LBL:A 2 * RTN PRGM EQ:X+1 EQDROP XEQ:A | %XEXPR=(X+1)×2
+Q42 | 084: a program stamped 35 doesn't | MODE35 PRGM CLPGM LBL:A 2 * RTN PRGM STU EQ:X+1 EQDROP XEQ:A | ERR %ERRMSG=NOT_A_NUMBER
+Q43 | 084: an op 082 still refuses: %CHG | STU EQ:X EQDROP 2 PCTCHG | ERR %ERRMSG=NOT_A_NUMBER X=2 %YEXPR=X

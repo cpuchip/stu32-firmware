@@ -11,7 +11,8 @@ place. What was built, and its evidence, follows it under **Built**.
 - Michael's note on stu-next-when asks for care with forward compatibility and saved states.
 - **So this blueprint starts with the image.** No code until abacus checks it. abacus OK'd it as **unit 082** (#11161):
   values, the store, image 21, drop and store-back, and X drawn as 080 draws. 083 is the CAS on the stack, 084 arithmetic
-  and EVAL, 085 folders. Its three additions are sections 7, 8 and 9.
+  and EVAL, 085 folders. Its three additions are sections 7, 8 and 9. (As they landed, abacus #12372: 083 Equation
+  mode's screen, 084 the arithmetic as typed, without EVAL; 085 the CAS on the stack; 086 folders.)
 
 ## What the state holds today (measured at 95f8778)
 
@@ -151,7 +152,7 @@ Three parts. The first two are recommended now; the third is his call.
 | stack moves | ENTER x<>y R↓ R↑ LASTx CLx | moves the value (the handle), as for a number |
 | store and recall | STO RCL x<>var, VIEW | moves it into or out of a letter |
 | store and recall arithmetic | STO+ STO− STO× STO÷ RCL+ … | NOT A NUMBER (either side an expression) |
-| tests | x=y? x≠y? x<y? … x=0? … | NOT A NUMBER (084 decides whether x=y? compares texts) |
+| tests | x=y? x≠y? x<y? … x=0? … | NOT A NUMBER (084 decides whether x=y? compares texts; it left them NOT A NUMBER) |
 | indirect | (I) and an index letter holding an expression | NOT A NUMBER |
 | the solver and ∫ | SOLVE or ∫ with an expression in a letter they read, or in X as a guess | NOT A NUMBER |
 | display settings | FIX SCI ENG ALL, the radix | no effect on it: X shows it as text, drawn as 080 draws |
@@ -352,7 +353,7 @@ and this record with VER 0.82.
 - **s3-old-firmware:** 4C as section 4 C proposed, "graceful degradation, and I appreciate it". Built below.
 - **s3-names:** a name stays symbolic until EVAL (as the 50g: "otherwise as you're trying to build up an equation it'll
   collapse on you to a value"). NOT A NUMBER on a name stays until 084's arithmetic; EVAL is a deliberate key. No change.
-- **s3-folders:** 16 folders, one level (unit 085).
+- **s3-folders:** 16 folders, one level (unit 085; 086 as the units landed, abacus #12372).
 - **s3-keys:** prototypes first, (a) EQN LIST's EXIT as a MORE key and (b) a stack submenu, as pictures for Michael.
   INVALID DATA on →EQN with a number goes in with whichever he picks.
 

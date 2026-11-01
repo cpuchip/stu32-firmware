@@ -1268,9 +1268,9 @@ complex pair: 1-2×0i1, 1+2×0i1.
 Types ∞ in Σ's upper bound, TO.
 ∞ alone: a sum to infinity.
 [AB_EQDROP]
-The shown equation onto the
-stack as an expression, in X.
-Leaves Equation mode.
+The shown equation into X, as
+an expression. Leaves the list.
+Then 2 × makes (...)×2.
 [AB_EQSTORE]
 X's expression or name into
 the list, after the shown one.

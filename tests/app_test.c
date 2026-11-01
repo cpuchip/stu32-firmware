@@ -588,6 +588,30 @@ int main(void)
     press(&a, "BLUE 2 k:0");
     expect(c.angle == AB_ANGLE_DEG, "DEG");
 
+    /* unit 084 (Michael's stack-arithmetic, abacus #12365): his keys, the equation dropped by ▸ →X, then 2 and x, build
+       (3×X^2-4)×2 in X; UNDO gives back the expression in Y and 2 in X, and a second UNDO the product again */
+    {
+        static uint8_t u0[1 << 18], u1[1 << 18];
+        ab_init(&c);
+        app_init(&a, &c, now);
+        app_undo_buffers(&a, u0, u1, sizeof u0);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        expect(ab_eqn_add(&c, "3\xc3\x97X^2-4") == ABN_OK && c.eqn_mode, "084: 3×X^2-4 shown in the list");
+        press(&a, "k:5 k:0 2");
+        uint32_t before = img_crc(&c);
+        expect(!c.eqn_mode && c.y.kind == AB_EXPR && !strcmp(ab_expr_text(&c, &c.y), "3\xc3\x97X^2-4") && x_of(&c) == 2,
+               "084: ▸ →X, then 2: the expression in Y, 2 in X");
+        press(&a, "\xc3\x97");
+        uint32_t after = img_crc(&c);
+        expect(c.x.kind == AB_EXPR && !strcmp(ab_expr_text(&c, &c.x), "(3\xc3\x97X^2-4)\xc3\x97" "2"),
+               "084: then x: (3×X^2-4)×2 in X (Michael's 2 then *)");
+        press(&a, "BLUE \xe2\x86\x90");
+        expect(img_crc(&c) == before && c.y.kind == AB_EXPR && !strcmp(ab_expr_text(&c, &c.y), "3\xc3\x97X^2-4") &&
+                   x_of(&c) == 2, "084: UNDO: the expression back in Y, 2 in X");
+        press(&a, "BLUE \xe2\x86\x90");
+        expect(img_crc(&c) == after && c.x.kind == AB_EXPR && !strcmp(ab_expr_text(&c, &c.x), "(3\xc3\x97X^2-4)\xc3\x97" "2"),
+               "084: UNDO again: the product again");
+    }
     /* unit 021: UNDO, one level (ours): the state before the last key that reached the core; a
        second UNDO puts it back. Compared as whole state images. */
     {

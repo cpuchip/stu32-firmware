@@ -1090,7 +1090,7 @@ int main(int argc, char **argv)
         ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
         keys(&c, "5 ENTER");
         if (ab_expr_new(&c, "3\xc3\x97X^2-4", &v) == ABN_OK) c.x = v;
-        expect(ab_do(&c, AB_SIN) == ABN_NOT_NUMBER, "082: SIN of X's expression: NOT A NUMBER");
+        expect(ab_do(&c, AB_SIGMAPLUS) == ABN_NOT_NUMBER, "082: Σ+ of X's expression: NOT A NUMBER (SIN until 084)");
         frame("46-xe-not-number", &c, &ui);
         screen_lines(&c, &ui, &pg);
         expect(pg.x.kind == SCREEN_MESSAGE && !strcmp(pg.x.text, "NOT A NUMBER") && !pg.textbook_on,

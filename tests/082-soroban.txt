@@ -17,7 +17,7 @@ X8 | 082: →EQN stores X's expression after the shown entry, which becomes the 
 X9 | 082: →EQN with a number in X is INVALID DATA | STU 5 EQN EQSTORE | ERR %ERR=DOMAIN %EQN=0
 X10 | 083: →X, then C clears X, by the learner's choice (082 needed C to leave the list first) | STU EQ:X^2+1 EQDROP C | X=0 %XEXPR=none %EQNMODE=0
 X11 | 083: typing after →X types onto the stack: 3 ENTER stores no equation "3" (082: %EQN=2) | STU EQ:X^2+1 EQDROP 3 ENTER | X=3 Y=3 %YEXPR=none %EQN=1
-X12 | 082 (abacus #12192): +/- with an expression in X is NOT A NUMBER, X kept (at 640d7be it returned OK and changed nothing) | STU EQ:X^2+1 EQDROP CHS | ERR %ERRMSG=NOT_A_NUMBER %XEXPR=X^2+1
+X12 | 082 (abacus #12192): +/- with an expression in X is NOT A NUMBER, X kept (at 640d7be it returned OK and changed nothing); 084 builds -(X^2+1) in STU (084-soroban Q16), so this is 35s mode's | STU EQ:X^2+1 EQDROP MODE35 CHS | ERR %ERRMSG=NOT_A_NUMBER %XEXPR=X^2+1
 X13 | 082 (abacus #12192): ISG on a letter holding an expression is NOT A NUMBER, nothing changed (at 640d7be its counter was read as 0; expr_test's sweep checks the letter) | STU EQ:X^2+1 EQDROP STO:B ISG:B | ERR %ERRMSG=NOT_A_NUMBER %XEXPR=X^2+1
 X14 | 082 (abacus #12192): DSE the same | STU EQ:X^2+1 EQDROP STO:B DSE:B | ERR %ERRMSG=NOT_A_NUMBER %XEXPR=X^2+1
 X15 | the harness (abacus #12192, #12225): a number typed, then EQ: and →X, then 2: the 7 was ended as the EQN key ends it, so the expression lifts to Y (before 3757581 the 2 extended 7's entry over X) | STU 7 EQ:3×X^2-4 EQDROP 2 | X=2 %YEXPR=3×X^2-4

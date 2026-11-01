@@ -1,10 +1,13 @@
-# Blueprint: arithmetic on an expression, on the stack (STU)
+# Unit 084: arithmetic on an expression, on the stack (STU)
 
 **From:** abacus #12145, relaying Michael's note on poly-05-lesson (04:10-04:12Z), verbatim: "Could we do symbolic
 manipulation on the stack like the hp 50g? 2 then * would take the eqn on y and multiply the whole thing by 2." Today
 2 × on an expression is NOT A NUMBER, 082's deliberate placeholder (work/082-expressions-as-values.md §8). This is
 082's step 3, item 3 ("arithmetic between expressions and numbers"), which 082 numbered 084 and 083 moved to 085. Its
-order against 084, the CAS on the stack, is abacus's and Michael's to set.
+order against 084, the CAS on the stack, is abacus's and Michael's to set. **Unit 084, VER 0.84 (abacus #12372):** units take
+numbers as they land, so the CAS on the stack is 085. Michael's answer (12:59:39Z, via abacus #12365): "Build it as
+recommended: as typed, all the keys, both sides of an equation, π and fractions written as such." The blueprint below
+is kept as reviewed; what was built follows it under **Built**.
 
 **How it was measured:** a throwaway prototype, a3802f9, local only and never pushed: one function in core/calc.c ahead
 of 082's NOT A NUMBER guard, on 640d7be. Every number below comes from it, from casim's CLI at cd7db86, or from the
@@ -76,7 +79,7 @@ The prototype keeps it **as typed**. casim's `simplify` and `expand` at cd7db86 
   - It reorders (`X×0.1` becomes `0.1×X`) and splits (`(X+1)÷2`).
   - In the last two rows it drops a domain without a row: `SQRT(X)^2` has no value at X = -1, and the simplified X does.
     Simplifying after every key would quietly change an expression's meaning at points.
-- **Option A, as typed (recommended):** each key adds exactly what was pressed. Simplifying is a deliberate key: 084's
+- **Option A, as typed (recommended):** each key adds exactly what was pressed. Simplifying is a deliberate key: 085's
   SIMP and EXPAND on X, or EVAL. This is the same reasoning as Michael's s3-names.
 - **Option B, canon after every op:** tidier text, at the cost above. Each op calls casim (≤ 544 B of arena measured
   here; time not measured on the device).

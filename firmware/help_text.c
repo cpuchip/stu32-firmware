@@ -306,7 +306,7 @@ const help_entry help_table[] = {
     {HELP_OP, AB_CASCANCL, -1, "CANCL, then a letter: reduces a\ntop\303\267bottom. NOT AT rows: the\nvalues it removed."},
     {HELP_OP, AB_CASCPLX, -1, "On: SOLVE gives a quadratic's\ncomplex pair: 1-2\303\2270i1, 1+2\303\2270i1.\n33s equations stay real."},
     {HELP_OP, AB_KINF, -1, "Types \342\210\236 in \316\243's upper bound, TO.\n\342\210\236 alone: a sum to infinity."},
-    {HELP_OP, AB_EQDROP, -1, "The shown equation onto the\nstack as an expression, in X.\nLeaves Equation mode."},
+    {HELP_OP, AB_EQDROP, -1, "The shown equation into X, as\nan expression. Leaves the list.\nThen 2 \303\227 makes (...)\303\2272."},
     {HELP_OP, AB_EQSTORE, -1, "X's expression or name into\nthe list, after the shown one."},
     {HELP_OP, AB_SUF, -1, "After digits: {} reads them in\nits base: b 2, o 8, d 10, h 16."},
     {HELP_MENU, 0, -1, "GAMES\037Games: five a page, C to APPS."},

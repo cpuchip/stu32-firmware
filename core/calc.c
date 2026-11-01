@@ -12,6 +12,7 @@
 #include "const.h"
 #include "stat.h"
 #include "frac.h"
+#include "fmt.h"
 #include "base.h"
 #include "arena.h"
 #include "cplx.h"
@@ -4551,6 +4552,186 @@ abn_status ab_do(ab_calc *c, ab_op op)
 }
 
 /* Operations that take x (and y) as numbers. */
+/* ---- unit 084: arithmetic on an expression, on the stack (work/084-stack-arithmetic.md) ----
+ * Michael's stack-arithmetic (abacus #12365): in STU's RPN, + - x / y^x and the one-argument functions given an
+ * expression or a name build a new expression from the operands' texts, kept as typed (no canon: casim's simplify drops
+ * domains, SQRT(X)^2 to X), the stack moving as for numbers and LASTx getting X. An equation gets the op on both sides.
+ * A number is written unrounded (ALL), pi as the symbol when X is pi to every digit, and with fraction display on as
+ * n/d when that fraction, rounded to 34 digits, is the number. A result past 191 bytes is RESULT TOO LONG and a full
+ * store MEMORY FULL, nothing changed. Brackets only where an operand's top operator binds looser than the op, or as
+ * tightly on the right of - / ^, or where it starts with a minus (STU reads -X^2 as -(X^2)). */
+
+typedef struct {
+    const char *s;
+    int n;
+} sym_span;
+
+/* The kind of op a symbolic operand takes: 0..4 + - x / y^x (two arguments), 5 a one-argument function, -1 none. */
+static int sym_kind(ab_op op)
+{
+    switch (op) {
+    case AB_ADD: return 0;
+    case AB_SUB: return 1;
+    case AB_MUL: return 2;
+    case AB_DIV: return 3;
+    case AB_POW: return 4;
+    case AB_KCHS: case AB_SQ: case AB_INV: case AB_SQRT: case AB_EXP: case AB_TENX: case AB_LN: case AB_LOG:
+    case AB_SIN: case AB_COS: case AB_TAN: case AB_ASIN: case AB_ACOS: case AB_ATAN:
+    case AB_SINH: case AB_COSH: case AB_TANH: case AB_ASINH: case AB_ACOSH: case AB_ATANH: case AB_ABS:
+        return 5;
+    default:
+        return -1;
+    }
+}
+
+/* The loosest operator at depth 0: 1 + -, 2 x /, 3 ^, 9 none (a number, a letter, a function's call); *lead a leading
+   minus. A sign after a number's E (1E-20) is the exponent's. */
+static int sym_top(sym_span t, bool *lead)
+{
+    int depth = 0, low = 9;
+    *lead = t.n > 0 && t.s[0] == '-';
+    for (int i = 0; i < t.n; i++) {
+        char ch = t.s[i];
+        int q = 9;
+        if (ch == '(') depth++;
+        else if (ch == ')') depth--;
+        else if (depth) continue;
+        else if ((ch == '+' || ch == '-') && i > 0 && t.s[i - 1] != '(' && t.s[i - 1] != '^' &&
+                 !(t.s[i - 1] == 'E' && i > 1 && ((t.s[i - 2] >= '0' && t.s[i - 2] <= '9') || t.s[i - 2] == '.')))
+            q = 1;
+        else if (i + 1 < t.n && (!strncmp(t.s + i, "\xc3\x97", 2) || !strncmp(t.s + i, "\xc3\xb7", 2))) q = 2;
+        else if (ch == '^') q = 3;
+        if (q < low) low = q;
+    }
+    return low;
+}
+
+/* out += s[0..n), false when the text would pass 191 bytes */
+static bool sym_put(char *out, int *len, const char *s, int n)
+{
+    if (*len + n > AB_EQN_LEN - 1) return false;
+    memcpy(out + *len, s, (size_t)n);
+    *len += n;
+    out[*len] = 0;
+    return true;
+}
+
+/* An operand, bracketed when it binds looser than need, as tightly where tight (the right of - / ^), or starts with a
+   minus where that would read wrongly (any operand of x / ^, any right-hand operand: X+(-2)). */
+static bool sym_operand(char *out, int *len, sym_span t, int need, bool right, bool tight)
+{
+    bool lead;
+    int top = sym_top(t, &lead);
+    bool wrap = top < need || (tight && top == need) || (lead && (need >= 2 || right));
+    return (!wrap || sym_put(out, len, "(", 1)) && sym_put(out, len, t.s, t.n) && (!wrap || sym_put(out, len, ")", 1));
+}
+
+/* A number as text: pi, a fraction with fraction display on, else unrounded (ALL). False for a complex or vector. */
+static bool sym_number(const ab_calc *c, const ab_val *v, char *buf, int size)
+{
+    if (v->kind != AB_REAL) return false;
+    abn pi = fn_pi(), npi = abn_neg(&pi);
+    if (!abn_cmp(&v->re, &pi) || !abn_cmp(&v->re, &npi)) {
+        snprintf(buf, (size_t)size, "%s\xcf\x80", abn_is_negative(&v->re) ? "-" : "");
+        return true;
+    }
+    if (c->fdisp) {
+        fr_result fr;
+        abn back;
+        if (fr_approx(&fr, &v->re, c->frac_c, frac_format_of(c)) == ABN_OK && fr.n != 0 && strlen(fr.ip) <= 9 &&
+            fr_value(&back, &fr) == ABN_OK && !abn_cmp(&back, &v->re)) {
+            unsigned long long num = 0;
+            for (const char *q = fr.ip; *q; q++) num = num * 10 + (unsigned)(*q - '0');
+            num = num * fr.d + fr.n;
+            snprintf(buf, (size_t)size, "%s%llu\xc3\xb7%lu", fr.neg ? "-" : "", num, (unsigned long)fr.d);
+            return true;
+        }
+    }
+    ab_fmt f = {AB_ALL, 0, size - 1 < 60 ? size - 1 : 60, '.', 0};
+    return ab_format(&v->re, &f, buf, size) > 0;
+}
+
+/* A value's text as a span: an expression's or a name's own text, or a number written into buf */
+static bool sym_text(const ab_calc *c, const ab_val *v, char *buf, int size, sym_span *t)
+{
+    const char *s = ab_expr_text(c, v);
+    if (!s) {
+        if (!sym_number(c, v, buf, size)) return false;
+        s = buf;
+    }
+    t->s = s;
+    t->n = (int)strlen(s);
+    return true;
+}
+
+/* An equation's two sides (its = at depth 0); false when it has none */
+static bool sym_sides(sym_span t, sym_span *l, sym_span *r)
+{
+    int depth = 0;
+    for (int i = 0; i < t.n; i++) {
+        if (t.s[i] == '(') depth++;
+        else if (t.s[i] == ')') depth--;
+        else if (t.s[i] == '=' && !depth) {
+            *l = (sym_span){t.s, i};
+            *r = (sym_span){t.s + i + 1, t.n - i - 1};
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool sym_two(char *out, int *len, sym_span a, int k, sym_span b)
+{
+    static const char *const OP[] = {"+", "-", "\xc3\x97", "\xc3\xb7", "^"};
+    static const int NEED[] = {1, 1, 2, 2, 3};
+    return sym_operand(out, len, a, NEED[k] + (k == 4), false, false) && sym_put(out, len, OP[k], (int)strlen(OP[k])) &&
+           sym_operand(out, len, b, NEED[k], true, k == 1 || k == 3 || k == 4);
+}
+
+static bool sym_one(char *out, int *len, sym_span a, ab_op op)
+{
+    switch (op) {
+    case AB_KCHS: return sym_put(out, len, "-", 1) && sym_operand(out, len, a, 2, true, false);
+    case AB_SQ: return sym_operand(out, len, a, 4, false, false) && sym_put(out, len, "^2", 2);
+    case AB_INV: return sym_put(out, len, "1\xc3\xb7", 3) && sym_operand(out, len, a, 2, true, true);
+    default: break;
+    }
+    const char *name = eqn_fname(op);          /* the editor's names: SIN, ALOG for 10^x, ABS */
+    return sym_put(out, len, name, (int)strlen(name)) && sym_put(out, len, "(", 1) && sym_put(out, len, a.s, a.n) &&
+           sym_put(out, len, ")", 1);
+}
+
+/* The op on symbolic operands (sym_kind(op) >= 0). NOT A NUMBER for a complex or vector beside an expression. */
+static abn_status sym_arith(ab_calc *c, ab_op op)
+{
+    char nx[64], ny[64], out[AB_EQN_LEN];
+    sym_span a, b, al, ar, bl, br;
+    int k = sym_kind(op), len = 0;
+    bool ok;
+    out[0] = 0;
+    if (!sym_text(c, &c->x, nx, sizeof nx, &b)) return ABN_NOT_NUMBER;
+    if (k < 5) {
+        if (!sym_text(c, &c->y, ny, sizeof ny, &a)) return ABN_NOT_NUMBER;
+        bool ea = sym_sides(a, &al, &ar), eb = sym_sides(b, &bl, &br);
+        if (!ea) al = ar = a;
+        if (!eb) bl = br = b;
+        ok = ea || eb ? sym_two(out, &len, al, k, bl) && sym_put(out, &len, "=", 1) && sym_two(out, &len, ar, k, br)
+                      : sym_two(out, &len, a, k, b);
+    } else {
+        ok = sym_sides(b, &bl, &br) ? sym_one(out, &len, bl, op) && sym_put(out, &len, "=", 1) && sym_one(out, &len, br, op)
+                                    : sym_one(out, &len, b, op);
+    }
+    if (!ok) return ABN_CAS_TOO_LONG;
+    ab_val r;
+    abn_status st = ab_expr_new(c, out, &r);
+    if (st != ABN_OK) return st;                /* MEMORY FULL: asked before the stack moves */
+    c->lastx = c->x;
+    c->x = r;
+    if (k < 5) stack_drop(c);
+    c->lift = true;
+    return ABN_OK;
+}
+
 static bool reads_x(ab_op op)
 {
     return (op >= AB_ADD && op <= AB_PCTCHG && op != AB_PI && op != AB_DEG && op != AB_RAD &&
@@ -5138,8 +5319,13 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
     c->cpart = 0;
     c->vlen = 0;
 
-    /* Unit 082: an expression or a name where a number is read is NOT A NUMBER, nothing changed (before 084's
-       arithmetic; is_cx and is_vec compare the kind exactly, so the guards below would let one through as a real 0). */
+    /* Unit 084: in STU's RPN, + - x / y^x and the one-argument functions build an expression from an expression or a
+       name (sym_arith); a program stamped 33 or 35, 33s and 35s modes, and ALG's line keep NOT A NUMBER. */
+    if (sym_kind(op) >= 0 && !c->alg && ab_rec_model(c) == AB_MODEL_STU &&
+        (ab_is_sym(&c->x) || (sym_kind(op) < 5 && ab_is_sym(&c->y))))
+        return sym_arith(c, op);
+    /* Unit 082: an expression or a name where a number is read is NOT A NUMBER, nothing changed (is_cx and is_vec
+       compare the kind exactly, so the guards below would let one through as a real 0). */
     if ((reads_x(op) && ab_is_sym(&c->x)) || (reads_y(op) && ab_is_sym(&c->y))) return ABN_NOT_NUMBER;
 
     /* Any other function given a complex number (UG p.9-3, p.F) or a vector (UG ch.10, unit 010
@@ -5219,7 +5405,8 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
     case AB_KCHS:
         /* Change sign of a completed X (UG p.1-15); of both parts of a complex one (UG p.9-3).
            The guide lists no sign change for a vector: INVALID DATA (unit 010 rule 2). An expression or a name is NOT A
-           NUMBER (082 section 8; it isn't in reads_x, so it went through as OK, changing nothing: abacus #12192). */
+           NUMBER (082 section 8; it isn't in reads_x, so it went through as OK, changing nothing: abacus #12192), except
+           in STU's RPN, where the dispatch made it -(...) before this (084). */
         if (ab_is_sym(&c->x)) return ABN_NOT_NUMBER;
         if (is_vec(&c->x)) return ABN_DOMAIN;
         c->x.re = abn_neg(&c->x.re);

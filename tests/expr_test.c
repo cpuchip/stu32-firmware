@@ -22,13 +22,16 @@
  *    its place); and whatever it left saves an image that loads. An op that returns OK changing nothing, where the same
  *    op given 7 changes the stack or a letter, skipped the expression silently, and fails too (abacus #12192: +/-, ISG
  *    and DSE did).
- * 6, 7. The classes the sweep can't reach from RPN's keys, and →X and →EQN. */
+ * 6, 7. The classes the sweep can't reach from RPN's keys, and →X and →EQN.
+ * 8, 9. Unit 084: the differential fuzz (built texts against the same ops on numbers), a full store, names, a complex. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "calc.h"
 #include "state.h"
+#include "eqn.h"
+#include "casim.h"
 
 static int checks, failures;
 
@@ -177,9 +180,11 @@ static void build_v21(ab_calc *c)
     /* SOLVE's saved stack: the places hold values while it runs; set here as an image may carry them */
     c->susp.y = c->y, c->susp.z = c->z, c->susp.var0 = name_val(25);
     c->ev_t = c->lastx;
-    /* a message showing with X an expression: NOT A NUMBER from SIN */
-    expect(ab_do(c, AB_SIN) == ABN_NOT_NUMBER, "082: SIN of an expression is NOT A NUMBER");
+    /* a message showing with X an expression: NOT A NUMBER from Σ+ (SIN until 084, which builds SIN(...)) */
+    expect(ab_do(c, AB_SIGMAPLUS) == ABN_NOT_NUMBER, "082: Σ+ of an expression is NOT A NUMBER");
     expect(c->msg && c->err_status == ABN_NOT_NUMBER, "082: NOT A NUMBER is the message showing");
+    c->err_op = AB_SIN;                         /* the image records the op behind the message: golden-v21-082 was written
+                                                   from SIN's (082), and stays byte for byte */
 }
 
 static void round_trip(bool write_golden)
@@ -547,6 +552,28 @@ static void store(void)
 
 /* ---- 5. the op sweep ---- */
 
+/* Unit 084's third class: an op that builds an expression from one (+ - x / y^x and the one-argument functions, in
+   STU's RPN) leaves X a new expression whose text parses as STU's. Its status is its own, not a number's read as 0. */
+static bool built_expr(ab_calc *before, ab_calc *after, int op, abn_status st)
+{
+    static const int BUILDS[] = {AB_ADD, AB_SUB, AB_MUL, AB_DIV, AB_POW, AB_KCHS, AB_SQ, AB_INV, AB_SQRT, AB_EXP, AB_TENX,
+                                 AB_LN, AB_LOG, AB_SIN, AB_COS, AB_TAN, AB_ASIN, AB_ACOS, AB_ATAN, AB_SINH, AB_COSH,
+                                 AB_TANH, AB_ASINH, AB_ACOSH, AB_ATANH, AB_ABS};
+    bool in = false;
+    for (size_t i = 0; i < sizeof BUILDS / sizeof BUILDS[0]; i++) in |= BUILDS[i] == op;
+    if (!in || st != ABN_OK || after->x.kind != AB_EXPR || same_val(before, &before->x, after, &after->x)) return false;
+    ab_val v;
+    int ep;
+    if (eqn_eval(after, ab_expr_text(after, &after->x), AB_MODEL_STU, false, true, &v, &ep) == ABN_OK) return true;
+    /* as typed: an operand that doesn't parse (an equation typed wrong, dropped by →X) makes a result that doesn't */
+    const ab_val *ops[] = {&before->x, &before->y};
+    for (int i = 0; i < 2; i++) {
+        const char *t = ab_expr_text(before, ops[i]);
+        if (t && eqn_eval(before, t, AB_MODEL_STU, false, true, &v, &ep) != ABN_OK) return true;
+    }
+    return false;
+}
+
 static bool same_state(const ab_calc *a, const ab_calc *b)
 {
     const ab_val *va[] = {&a->x, &a->y, &a->z, &a->t, &a->lastx}, *vb[] = {&b->x, &b->y, &b->z, &b->t, &b->lastx};
@@ -600,7 +627,7 @@ static void sweep(void)
     static const char *const SETUP[] = {"X", "Y", "X and Y", "B", "I"};
     static const int ARGS[] = {0, 1, AB_VAR_A + 1, AB_VAR_IND_I};
     int unloadable = 0;
-    int odd = 0, refused = 0, runs = 0, passed = 0;
+    int odd = 0, refused = 0, runs = 0, passed = 0, built = 0;
     for (int sym = 0; sym < 2; sym++)
         for (int s = 0; s < 5; s++) {
             ab_val e, z0 = real_int(0), n7 = real_int(7);
@@ -640,6 +667,10 @@ static void sweep(void)
                         continue;
                     }
                     passed++;
+                    if (built_expr(&base, &ca, op, st)) {
+                        built++;
+                        continue;
+                    }
                     memcpy(&cz, &bz, sizeof cz);
                     memcpy(&cn, &bn, sizeof cn);
                     abn_status sz = ab_do_arg(&cz, (ab_op)op, arg), sn = ab_do_arg(&cn, (ab_op)op, arg);
@@ -671,8 +702,8 @@ static void sweep(void)
                 }
         }
     char what[200];
-    snprintf(what, sizeof what, "082: the op sweep, %d runs: %d NOT A NUMBER, %d through without a number read, %d read one",
-             runs, refused, passed - odd, odd);
+    snprintf(what, sizeof what, "082: the op sweep, %d runs: %d NOT A NUMBER, %d built an expression (084), %d through "
+             "without a number read, %d read one", runs, refused, built, passed - built - odd, odd);
     printf("expr_test: %s\n", what);
     expect(odd == 0, what);
     snprintf(what, sizeof what, "082: the op sweep: every state an op left saves an image that loads (%d don't)", unloadable);
@@ -867,7 +898,7 @@ static unsigned fzr(unsigned n)
 static void op_fuzz(void)
 {
     static const char *const TEXTS[] = {"A+1", "3\xc3\x97X^2-4", "SIN(X)\xc3\xb7X", "(A+B)^2", "\xe2\x88\x9a(X)-2"};
-    int seqs = 400, len = 25, steps = 0, refused = 0, leaks = 0, unloadable = 0, changed = 0, changed_text = 0;
+    int seqs = 400, len = 25, steps = 0, refused = 0, leaks = 0, unloadable = 0, changed = 0, changed_text = 0, built = 0;
     for (int q = 0; q < seqs; q++) {
         ab_init(&ca);
         ab_do_arg(&ca, AB_MODEL, AB_MODEL_STU);
@@ -912,6 +943,8 @@ static void op_fuzz(void)
                 refused++;
                 if (!same_state(&ca, &base) && changed++ < 3)
                     printf("FAIL: fuzz %d step %d: op %d arg %d: NOT A NUMBER, but the stack or a letter changed\n", q, i, op, arg);
+            } else if (built_expr(&base, &ca, op, st)) {
+                built++;
             } else if (any) {
                 abn_status sz = ab_do_arg(&cz, (ab_op)op, arg), sn = ab_do_arg(&cn, (ab_op)op, arg);
                 if (cz.stop == AB_STOP_SLICE) ab_continue(&cz);
@@ -951,11 +984,213 @@ static void op_fuzz(void)
         }
     }
     char what[200];
-    snprintf(what, sizeof what, "082: the op fuzz, %d sequences, %d steps: %d NOT A NUMBER, %d read a number, %d changed on a "
-             "refusal, %d live texts changed, %d images that don't load", seqs, steps, refused, leaks, changed, changed_text,
-             unloadable);
+    snprintf(what, sizeof what, "082: the op fuzz, %d sequences, %d steps: %d NOT A NUMBER, %d built an expression (084), %d "
+             "read a number, %d changed on a refusal, %d live texts changed, %d images that don't load", seqs, steps, refused,
+             built, leaks, changed, changed_text, unloadable);
     printf("expr_test: %s\n", what);
     expect(leaks == 0 && changed == 0 && changed_text == 0 && unloadable == 0, what);
+}
+
+/* ---- 8. unit 084: the differential fuzz ----
+ * Random stacks of numbers (pi, fractions with fraction display on, negatives), expressions and equations, and random
+ * ops from 084's list. Each op runs on the symbolic stack and, in step, on two stacks of numbers: each piece's value at a
+ * random X (an equation's left side on one, its right on the other). After every op, X and Y on the symbolic stack,
+ * evaluated at the same X (an equation side by side), must be the numbers' values: a bracket missing or on the wrong
+ * side gives another number. Every text built must parse in casim too (casim_simplify: anything but SYNTAX). */
+static ab_calc dsym, dleft, dright, deval;
+static unsigned df = 0x84u;
+static unsigned dfr(unsigned n)
+{
+    df = df * 1103515245u + 12345u;
+    return (df >> 8) % n;
+}
+
+static void dpush(ab_calc *c, ab_val v)
+{
+    ab_do(c, AB_ENTER);
+    c->x = v;
+    c->lift = true;
+}
+
+static bool dvalue(const char *text, const abn *x0, abn *out)
+{
+    ab_val v;
+    int ep;
+    deval.var[23] = real_int(0);
+    deval.var[23].re = *x0;
+    if (eqn_eval(&deval, text, AB_MODEL_STU, false, false, &v, &ep) != ABN_OK || v.kind != AB_REAL) return false;
+    *out = v.re;
+    return true;
+}
+
+static bool dclose(const abn *a, const abn *b)
+{
+    abn d, m, tol, one = abn_from_int(1), eps;
+    if (abn_sub(&d, a, b) != ABN_OK) return false;
+    d = abn_abs(&d);
+    m = abn_abs(b);
+    if (abn_cmp(&m, &one) < 0) m = one;
+    int ep;
+    ab_val e;
+    eqn_eval(&deval, "1E-28", AB_MODEL_STU, false, false, &e, &ep);
+    eps = e.re;
+    if (abn_mul(&tol, &m, &eps) != ABN_OK) return false;
+    return abn_cmp(&d, &tol) <= 0;
+}
+
+/* X or Y on the symbolic stack against the two number stacks' */
+static int dcheck(const ab_val *s, const ab_val *l, const ab_val *r, const abn *x0, const char **why)
+{
+    if (s->kind == AB_REAL) {
+        *why = "a number";
+        return l->kind == AB_REAL && r->kind == AB_REAL && dclose(&s->re, &l->re) && dclose(&s->re, &r->re);
+    }
+    const char *t = ab_expr_text(&dsym, s);
+    char lt[AB_EQN_LEN], rt[AB_EQN_LEN];
+    int depth = 0, eq = -1;
+    for (int i = 0; t[i]; i++) {
+        if (t[i] == '(') depth++;
+        else if (t[i] == ')') depth--;
+        else if (t[i] == '=' && !depth) eq = i;
+    }
+    snprintf(lt, sizeof lt, "%.*s", eq < 0 ? (int)strlen(t) : eq, t);
+    snprintf(rt, sizeof rt, "%s", eq < 0 ? t : t + eq + 1);
+    abn vl, vr;
+    *why = t;
+    return l->kind == AB_REAL && r->kind == AB_REAL && dvalue(lt, x0, &vl) && dvalue(rt, x0, &vr) &&
+           dclose(&vl, &l->re) && dclose(&vr, &r->re);
+}
+
+static void diff_fuzz(void)
+{
+    static const char *const EXPRS[] = {"X", "X+1", "2\xc3\x97X", "-X", "X^2", "SIN(X)", "X-3", "1\xc3\xb7X", "X\xc3\xb7" "2",
+                                        "-X^2+1", "(X+1)^2", "2^X", "X^X", "\xcf\x80\xc3\x97X", "LN(X^2+1)"};
+    static const char *const EQS[][2] = {{"X+1", "2\xc3\x97X"}, {"X^2", "3"}, {"2\xc3\x97X+5", "11"}, {"SIN(X)", "X\xc3\xb7" "2"}};
+    static const char *const NUMS[] = {"2", "3", "0.5", "2.25", "-3", "7", "1\xc3\xb7" "3", "3\xc3\xb7" "4", "-2\xc3\xb7" "3", "1E-20"};
+    static const int OPS[] = {AB_ADD, AB_SUB, AB_MUL, AB_DIV, AB_POW, AB_ADD, AB_SUB, AB_MUL, AB_DIV, AB_KCHS, AB_SQ,
+                              AB_INV, AB_SQRT, AB_EXP, AB_TENX, AB_LN, AB_LOG, AB_SIN, AB_COS, AB_TAN, AB_ASIN, AB_ACOS,
+                              AB_ATAN, AB_SINH, AB_COSH, AB_TANH, AB_ASINH, AB_ACOSH, AB_ATANH, AB_ABS};
+    static const char *const X0S[] = {"0.7", "1.3", "2.5", "-0.4", "3", "0.25"};
+    static uint8_t arena[16384];
+    int cases = 1500, ops = 0, built = 0, compared = 0, bad = 0, syntax = 0, too_long = 0, pis = 0, fracs = 0;
+    ab_init(&deval);
+    ab_do_arg(&deval, AB_MODEL, AB_MODEL_STU);
+    for (int q = 0; q < cases; q++) {
+        ab_calc *all[3] = {&dsym, &dleft, &dright};
+        bool fd = dfr(3) == 0;
+        for (int k = 0; k < 3; k++) {
+            ab_init(all[k]);
+            ab_do_arg(all[k], AB_MODEL, AB_MODEL_STU);
+            if (fd) ab_do(all[k], AB_FDISP);
+        }
+        abn x0;
+        if (!dvalue(X0S[dfr(6)], &(abn){0}, &x0)) continue;
+        bool broke = false;
+        for (int step = 0; step < 6 && !broke; step++) {
+            if (step < 2 || dfr(2)) {           /* a piece pushed */
+                int kind = (int)dfr(4);
+                if (kind == 0) {                /* an expression */
+                    const char *t = EXPRS[dfr(sizeof EXPRS / sizeof EXPRS[0])];
+                    ab_val e;
+                    abn v;
+                    if (ab_expr_new(&dsym, t, &e) != ABN_OK || !dvalue(t, &x0, &v)) { broke = true; break; }
+                    dpush(&dsym, e);
+                    ab_val n = real_int(0);
+                    n.re = v;
+                    dpush(&dleft, n), dpush(&dright, n);
+                } else if (kind == 1) {         /* an equation */
+                    int i = (int)dfr(sizeof EQS / sizeof EQS[0]);
+                    char t[64];
+                    snprintf(t, sizeof t, "%s=%s", EQS[i][0], EQS[i][1]);
+                    ab_val e, nl = real_int(0), nr = real_int(0);
+                    if (ab_expr_new(&dsym, t, &e) != ABN_OK || !dvalue(EQS[i][0], &x0, &nl.re) || !dvalue(EQS[i][1], &x0, &nr.re)) {
+                        broke = true;
+                        break;
+                    }
+                    dpush(&dsym, e), dpush(&dleft, nl), dpush(&dright, nr);
+                } else if (kind == 2 && dfr(2)) { /* pi from its key */
+                    for (int k = 0; k < 3; k++) ab_do(all[k], AB_PI);
+                    pis++;
+                } else {                        /* a number */
+                    ab_val n = real_int(0);
+                    const char *t = NUMS[dfr(sizeof NUMS / sizeof NUMS[0])];
+                    if (!dvalue(t, &x0, &n.re)) { broke = true; break; }
+                    fracs += fd && strstr(t, "\xc3\xb7") != NULL;
+                    for (int k = 0; k < 3; k++) dpush(all[k], n);
+                }
+            }
+            int op = OPS[dfr(sizeof OPS / sizeof OPS[0])];
+            abn_status ss = ab_do(&dsym, (ab_op)op), sl = ab_do(&dleft, (ab_op)op), sr = ab_do(&dright, (ab_op)op);
+            ops++;
+            if (ss == ABN_CAS_TOO_LONG) { too_long++; break; }
+            if (sl != ABN_OK || sr != ABN_OK || ss != ABN_OK) break;   /* a domain the numbers can't take: the case ends */
+            bool sym = dsym.x.kind == AB_EXPR;
+            if (sym) {
+                built++;
+                char out[256];
+                if (casim_simplify(ab_expr_text(&dsym, &dsym.x), 0, out, sizeof out, arena, sizeof arena) == CASIM_SYNTAX) {
+                    if (syntax++ < 5) printf("FAIL: 084 diff %d: casim reads %s as SYNTAX\n", q, ab_expr_text(&dsym, &dsym.x));
+                }
+            }
+            const char *why = "";
+            const ab_val *sv[2] = {&dsym.x, &dsym.y}, *lv[2] = {&dleft.x, &dleft.y}, *rv[2] = {&dright.x, &dright.y};
+            for (int k = 0; k < 2; k++) {
+                compared++;
+                if (!dcheck(sv[k], lv[k], rv[k], &x0, &why)) {
+                    if (bad++ < 8) {
+                        char a[64], b[64];
+                        ab_fmt f = {AB_ALL, 0, 60, '.', 0};
+                        ab_format(&lv[k]->re, &f, a, sizeof a), ab_format(&rv[k]->re, &f, b, sizeof b);
+                        printf("FAIL: 084 diff %d step %d op %d: %s is %s, the numbers %s and %s\n", q, step, op, k ? "Y" : "X",
+                               why, a, b);
+                    }
+                }
+            }
+        }
+    }
+    char what[240];
+    snprintf(what, sizeof what, "084: the differential fuzz, %d cases, %d ops: %d built, %d places compared, %d differ, %d casim "
+             "SYNTAX, %d too long (pi pushed %d, fractions %d)", cases, ops, built, compared, bad, syntax, too_long, pis, fracs);
+    printf("expr_test: %s\n", what);
+    expect(bad == 0 && syntax == 0 && built > 1000, what);
+}
+
+/* ---- 9. unit 084: what the vectors can't reach ---- */
+static void stack084(void)
+{
+    /* a full store: MEMORY FULL, nothing changed (the slot is asked for before the stack moves) */
+    ab_val *p[80];
+    ab_init(&ca);
+    ab_do_arg(&ca, AB_MODEL, AB_MODEL_STU);
+    int n = store_places(&ca, p);
+    for (int i = 0; i < n; i++) {
+        char t[16];
+        snprintf(t, sizeof t, "E%02d+X", i);
+        put_expr(&ca, p[i], t);
+    }
+    memcpy(&base, &ca, sizeof base);
+    expect(ab_do(&ca, AB_MUL) == ABN_EXPR_FULL && same_state(&ca, &base),
+           "084: x with every slot live is MEMORY FULL, the stack and letters unchanged");
+    /* a name stays its letter (Michael's s3-names: it doesn't collapse to the letter's value before EVAL) */
+    ab_init(&ca);
+    ab_do_arg(&ca, AB_MODEL, AB_MODEL_STU);
+    ca.var[1] = real_int(5);
+    ca.y = name_val(1);
+    ca.x = real_int(2);
+    expect(ab_do(&ca, AB_MUL) == ABN_OK && ca.x.kind == AB_EXPR && !strcmp(ab_expr_text(&ca, &ca.x), "B\xc3\x97" "2"),
+           "084: the name B (B holding 5) x 2 is B×2, not 5×2 or 10");
+    ca.x = name_val(1);
+    expect(ab_do(&ca, AB_SIN) == ABN_OK && !strcmp(ab_expr_text(&ca, &ca.x), "SIN(B)"), "084: SIN of the name B is SIN(B)");
+    /* a complex number beside an expression: NOT A NUMBER, nothing changed */
+    ab_init(&ca);
+    ab_do_arg(&ca, AB_MODEL, AB_MODEL_STU);
+    put_expr(&ca, &ca.y, "X+1");
+    ca.x = real_int(2);
+    ca.x.kind = AB_COMPLEX;
+    ca.x.im = abn_from_int(1);
+    memcpy(&base, &ca, sizeof base);
+    expect(ab_do(&ca, AB_MUL) == ABN_NOT_NUMBER && same_state(&ca, &base),
+           "084: a complex number x an expression is NOT A NUMBER, nothing changed");
 }
 
 int main(int argc, char **argv)
@@ -972,6 +1207,8 @@ int main(int argc, char **argv)
     classes();
     drop_store();
     op_fuzz();
+    diff_fuzz();
+    stack084();
     printf("expr_test: %d/%d checks\n", checks - failures, checks);
     return failures != 0;
 }

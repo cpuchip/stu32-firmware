@@ -14,7 +14,8 @@ repin: a census of every vector's final state, then each other command of `make 
 unit's code is written fresh from this file, and the prototype is deleted.
 
 **The number.** 083, so VER says 0.83 and a build tells which screen it has. 082's record names the next units 083 (the
-CAS on the stack), 084 (arithmetic and EVAL) and 085 (folders). Each moves up by one, and 082's accepted text stays as it
+CAS on the stack), 084 (arithmetic and EVAL) and 085 (folders). (As they landed, abacus #12372: 084 the arithmetic,
+without EVAL; 085 the CAS on the stack; 086 folders.) Each moves up by one, and 082's accepted text stays as it
 is. The other choice is 082b: it keeps 083 for the CAS, but VER stays 0.82 (check-version reads the digits only).
 
 ## 1. Equation mode gets a clean screen in every mode
@@ -158,7 +159,8 @@ few bytes gets explained in the gate.
 
 1. **The number is 083**, so VER tells which screen a build has. 082b couldn't.
 2. **EVAL keeps its name.** Both meanings are "evaluate what's shown": the equation in 33s's and 35s's list, X in 084's
-   STU. 084's spec names this one, and the two HELP pages say which is which. This one's page says "EVAL: the equation
+   STU. 084's spec names this one, and the two HELP pages say which is which. (084 as built, the stack arithmetic, has
+   no EVAL; X's EVAL waits for its own card.) This one's page says "EVAL: the equation
    shown, as XEQ".
 3. **The prompts opened while the list is open share its screen.** These are SOLVE's and ∫'s letter prompts (the app's
    KM_PROMPT opens them before eqn_solve_key leaves the mode, calc.c:3626), RCL while typing, and REG's menu while

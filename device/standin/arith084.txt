@@ -1,0 +1,77 @@
+# Unit 084 on the stand-in (work/084-stack-arithmetic.md): Michael's stack-arithmetic. From MEMORY CLEAR in STU,
+# 3×X^2-4 typed and stored (expr082.txt's keys), the list's ▸ →X, then 2 and ×: X holds (3×X^2-4)×2 as typed (the
+# state line's X='(3×X^2-4)×2'), drawn under Y as (3X^2-4)·2, and the frame's rows 21-205 have the host's CRC
+# (standin_replay). Saved and restarted, the version-21 image loads with it. Ends with a control that must FAIL.
+# replay: current
+wait : heap internal 30
+sleep 3
+send WIPE
+expect wipe: both slots erased
+send RESTART
+expect load: no image: MEMORY CLEAR 30
+wait READY 30
+send X
+expect ver=0.84 5
+send K42
+sleep 0.25
+send K42
+sleep 0.25
+send K36
+sleep 0.25
+send K18
+sleep 0.25
+send K2
+sleep 0.25
+send K42
+sleep 0.25
+send K30
+sleep 0.25
+send K43
+sleep 0.25
+send K39
+sleep 0.25
+send K34
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K9
+sleep 0.25
+send K38
+sleep 0.25
+send K40
+sleep 0.25
+send K31
+sleep 0.25
+send K18
+sleep 0.25
+send K5
+sleep 0.25
+send K0
+sleep 0.25
+send K38
+sleep 0.25
+send K34
+sleep 0.25
+send X
+expect state: X='(3×X^2-4)×2' 10
+expect drawn=(3X^2-4)·2 10
+send FRAMECRC
+expect framecrc: rows 21-205 95014040 10
+# the state across a restart: the version-21 image saved to flash and loaded
+send SAVE
+expect save:
+send RESTART
+expect load:
+expect bytes ok 30
+wait READY 30
+send X
+expect state: X='(3×X^2-4)×2' 10
+expect drawn=(3X^2-4)·2 10
+send FRAMECRC
+expect framecrc: rows 21-205 95014040 10
+send X
+expect-min stack-free 8188 10
+# CONTROL: must FAIL
+expect framecrc: rows 21-205 00000000 3
