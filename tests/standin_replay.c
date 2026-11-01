@@ -8,7 +8,9 @@
  * The replay is the board's own sequence (device/standin/main/standin_main.c) through app.c: K<n> is app_key and U<n>
  * app_key_up, a quarter second apart (the scripts' sleep); SAVE keeps the calculator's image, WIPE drops it, and RESTART
  * boots again as the board does (ab_init, the image loaded if there is one, app_init, app_powered_on). FRAMECRC is the
- * CRC of rows 21-205 of the frame screen_render draws, as the board's. The control after a "# CONTROL" line must differ.
+ * CRC of rows 21-205 of the frame screen_render draws, as the board's; each `expect framecrc` reads the latest one. A
+ * current script matches at least one frame and has a control: a "# CONTROL" line, then a framecrc expect before the next
+ * send, which must differ. A retirement names its unit (digits) and a reason after the colon (abacus #12105).
  * X, BENCH and the waits and expects other than framecrc read the board and change nothing; a current script that sends
  * anything else can't be replayed and fails. `expect ver=` is ignored: the header carries the status. */
 #include <stdio.h>
@@ -69,16 +71,22 @@ static int replay(const char *path)
         return 1;
     }
     if (strcmp(status, "replay: current")) {
-        printf("standin_replay: %s: %s\n", path, status);
+        /* abacus #12105 G3: a retirement names its unit (digits) and says why after the colon */
+        const char *u = status + 11, *d = u;
+        while (*d >= '0' && *d <= '9') d++;
+        const char *why = d[0] == ':' ? d + 1 : NULL;
+        while (why && *why == ' ') why++;
+        int retired_ok = d > u && why && *why;
+        printf("standin_replay: %s: %s%s\n", path, retired_ok ? "" : "FAIL: a retirement needs a unit and a reason (# retired at <unit>: <why>): ", status);
         fclose(fp);
-        return 0;
+        return !retired_ok;
     }
 
     rewind(fp);
     now = 0;
     image_len = 0;
     boot();
-    int n = 0, ok = 0, bad = 0, control = 0, framed = 0;
+    int n = 0, ok = 0, bad = 0, control = 0, framed = 0, frames = 0, controls = 0;
     unsigned long got = 0;
     while (fgets(line, sizeof line, fp)) {
         n++;
@@ -99,7 +107,8 @@ static int replay(const char *path)
                         bad++;
                     }
                     control = 0;
-                } else if (want == got) ok++;
+                    controls++;
+                } else if (frames++, want == got) ok++;
                 else {
                     printf("standin_replay: %s:%d: FAIL: framecrc %08lX, the replay gives %08lX\n", path, n, want, got);
                     bad++;
@@ -108,6 +117,11 @@ static int replay(const char *path)
             continue;
         }
         const char *s = line + 5;
+        if (control) {                          /* abacus #12105 G2: a control is a framecrc expect before the next send */
+            printf("standin_replay: %s:%d: FAIL: # CONTROL with no framecrc expect before the next send\n", path, n);
+            bad++;
+            control = 0;
+        }
         if (strncmp(line, "send ", 5)) {
             printf("standin_replay: %s:%d: FAIL: can't replay \"%s\"\n", path, n, line);
             bad++;
@@ -133,7 +147,20 @@ static int replay(const char *path)
         }
     }
     fclose(fp);
-    printf("standin_replay: %s: current, %d of %d frames%s\n", path, ok, ok + bad, bad ? "" : " match");
+    if (control) {
+        printf("standin_replay: %s: FAIL: # CONTROL with no framecrc expect after it\n", path);
+        bad++;
+    }
+    if (!frames) {                              /* abacus #12105 G1: a current script matches at least one frame */
+        printf("standin_replay: %s: FAIL: current, with no framecrc expect to match\n", path);
+        bad++;
+    }
+    if (!controls) {                            /* G2: and ends with a control that must differ */
+        printf("standin_replay: %s: FAIL: current, with no framecrc control (# CONTROL, then its expect)\n", path);
+        bad++;
+    }
+    printf("standin_replay: %s: current, %d of %d frames match, %d control%s%s\n", path, ok, frames, controls,
+           controls == 1 ? "" : "s", bad ? ": FAILED" : "");
     return bad;
 }
 
