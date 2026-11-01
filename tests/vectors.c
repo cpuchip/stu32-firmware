@@ -462,6 +462,12 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
             return 0;
         }
         if (strncmp(tok, "EQ:", 3) == 0) {     /* an equation's text, added to the list (unit 014) */
+            /* a number still being typed ends as the EQN key ends it on the device (abacus #12192): without this, its
+               entry stayed open across EQDROP and the next digit typed over the expression in X */
+            if (c->entry.active && !c->prgm && !c->alg) {      /* (in program entry the number is a line of its own) */
+                if (c->eqn_mode) do1(c, AB_EQN, 0);
+                do1(c, AB_EQN, 0);
+            }
             abn_status st = ab_eqn_add(c, tok + 3);
             if (st != ABN_OK) {
                 (*errors)++;
