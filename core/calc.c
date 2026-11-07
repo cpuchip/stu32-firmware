@@ -6549,7 +6549,10 @@ int ab_graph_words(ab_calc *c, char *out, int size)
         }
     }
     /* 1, 2: the name and the window */
-    say_cat(&b, "Graph of ", c->eqn[c->gr_eq], ab_graph_form(c, c->gr_eq) < 0 ? ", left side minus right side" : "", ".");
+    char name[1024];                            /* unit 086 (#13551): the name in words, else as typed */
+    if (ab_eqn_words(c, c->eqn[c->gr_eq], c->eqn_model[c->gr_eq], name, sizeof name) < 0)
+        snprintf(name, sizeof name, "%s", c->eqn[c->gr_eq]);
+    say_cat(&b, "Graph of ", name, ab_graph_form(c, c->gr_eq) < 0 ? ", left side minus right side" : "", ".");
     say_num(&c->gr_xmax, &g.ux, s2, sizeof s2);
     say_num(&c->gr_xmin, &g.ux, s1, sizeof s1);
     say_cat(&b, " x from ", s1, " to ", s2);

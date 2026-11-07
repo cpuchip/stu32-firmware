@@ -24,6 +24,7 @@
 #include "calc.h"
 #include "state.h"
 #include "store.h"
+#include "eqn.h"
 #include "norm.h"
 #ifndef AB_DEVICE
 #include "screen.h"   /* %XDRAWN (082): the console's drawn=, from the screen's compose */
@@ -746,9 +747,11 @@ int vectors_run(const char *name, FILE *f)
         char *exps[64];
         int nexp = 0;
         char *say = strstr(expect, "%GSAY=");   /* unit 085: the spoken graph's text, the rest of the line (spaces in it) */
+        bool say_eq = false;
+        if (!say && (say = strstr(expect, "%EQSAY="))) say_eq = true;   /* unit 086: the equation shown, spoken */
         if (say) {
             *say = '\0';
-            say += 6;
+            say += say_eq ? 7 : 6;
             for (size_t n = strlen(say); n > 0 && (say[n - 1] == ' ' || say[n - 1] == '\t'); n--) say[n - 1] = '\0';
         }
         for (char *ex = strtok(expect, " \t"); ex; ex = strtok(NULL, " \t")) {
@@ -761,14 +764,22 @@ int vectors_run(const char *name, FILE *f)
             else printf("FAIL %s: %d operation(s) returned an error\n", id, op_errors);
         }
         if (say) {                              /* unit 085: first, so the expectations after it see the state after the call */
-            static char words[1024];
-            int n = ab_graph_words(&c, words, sizeof words);
+            static char words[8192];
+            int n;
+            if (!say_eq) {
+                n = ab_graph_words(&c, words, sizeof words);
+            } else {                            /* unit 086: -1 (no words) is the empty text */
+                words[0] = '\0';
+                n = c.eqn_cur >= 0 && c.eqn_cur < c.eqn_count ?
+                    ab_eqn_words(&c, c.eqn[c.eqn_cur], c.eqn_model[c.eqn_cur], words, sizeof words) : -1;
+                if (n < 0 && !words[0]) n = 0;
+            }
             checks++;
             if (n == (int)strlen(words) && strcmp(words, say) == 0) {
                 checks_ok++;
             } else {
                 vec_ok = 0;
-                printf("FAIL %s: expected %%GSAY=%s, got (%d) %s\n", id, say, n, words);
+                printf("FAIL %s: expected %%%s=%s, got (%d) %s\n", id, say_eq ? "EQSAY" : "GSAY", say, n, words);
             }
         }
         for (int k = 0; k < nexp; k++) {

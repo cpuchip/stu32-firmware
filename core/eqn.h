@@ -57,6 +57,10 @@ bool eqn_has_chain(ab_calc *c, const char *text, int model);
 /* Unit 047: whether the text, parsed as its model reads it, nests past the parser's bound (NESTED TOO DEEP): a store
    refuses it. The check's own parse is bounded too. */
 bool eqn_too_deep(ab_calc *c, const char *text, int model);
+/* Unit 086, the spoken equation (work/blueprint/spoken-equation.md, built at revision 3): the text in words, from this
+   parser's own reading of it in model (33, 35 or AB_MODEL_STU), for a screen reader. Pure. Returns the length, or -1
+   with "" when the text doesn't parse in that model (or the words don't fit size); the caller then shows the text. */
+int ab_eqn_words(ab_calc *c, const char *text, int model, char *out, int size);
 #ifndef ESP_PLATFORM
 /* The units an unbounded parse reaches (+8 a group, vector or argument list, +1 a step of STU's power chain): tests'
    only, for tests/eqn_depth.py's check; on a host, whose stack is large. */

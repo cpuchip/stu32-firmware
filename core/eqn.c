@@ -1,4 +1,6 @@
 /* eqn: equations parsed and evaluated (see eqn.h). */
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "eqn.h"
@@ -129,7 +131,36 @@ typedef struct {
     uint8_t imp[AB_EQN_LEN];    /* (offsets below AB_EQN_LEN, 192: a byte each, for the stack) */
     int depth, peak;        /* unit 047: the recursion's depth in units (descend), and the most it reached */
     int limit;              /* past it ABN_TOO_DEEP; 0 is EQN_DEPTH_MAX */
+    struct say_rec *rec;    /* unit 086: the parse's operations recorded in postfix (ab_eqn_words), NULL none */
 } parser;
+
+/* Unit 086: one operation of the parse, as ab_eqn_words rebuilds the tree from them (a number's text by its offset and
+   length, a variable's or an indirect's letter, a name's id, a binary operator's character) */
+enum { SN_NUM, SN_VAR, SN_NAME0, SN_ANS, SN_IND, SN_NEG, SN_FACT, SN_FN1, SN_FN2, SN_BIN, SN_VEC, SN_EQ };
+#define SAY_NODES (2 * AB_EQN_LEN)  /* a node a byte at most, and an implied product one more between two */
+typedef struct {
+    uint8_t kind, op, n;            /* n: its operands, the last n nodes before it */
+    int16_t id, at, len;
+    int16_t kid[3];
+} say_node;
+struct say_rec {
+    say_node nd[SAY_NODES];
+    int n;
+    bool over;
+};
+
+static void rec(parser *p, int kind, int id, int op, int at, int len, int n)
+{
+    if (!p->rec || p->st != ABN_OK) return;
+    if (p->rec->n >= SAY_NODES) {
+        p->rec->over = true;
+        return;
+    }
+    say_node *d = &p->rec->nd[p->rec->n++];
+    memset(d, 0, sizeof *d);
+    d->kind = (uint8_t)kind, d->op = (uint8_t)op, d->n = (uint8_t)n;
+    d->id = (int16_t)id, d->at = (int16_t)at, d->len = (int16_t)len;
+}
 
 /* Unit 047 (abacus #5153): the parse's recursion, bounded. A group "(", a vector "[" or a function's argument list
    costs 8 units (about 1,010 bytes of stack on the S3: parse_add down to parse_prim again), a step of STU's power
@@ -250,6 +281,7 @@ static void apply0(parser *p, int id, ab_val *v)
 
 static void binop(parser *p, const char *op, ab_val *a, const ab_val *b)
 {
+    rec(p, SN_BIN, 0, *op, 0, 0, 2);
     ab_val x = *b;
     ab_op o = *op == '+' ? AB_ADD : *op == '-' ? AB_SUB : *op == '*' ? AB_MUL : *op == '/' ? AB_DIV : AB_POW;
     kop(p, o, a, &x);
@@ -341,6 +373,7 @@ static __attribute__((noinline)) bool parse_number(parser *p, ab_val *v)
         }
         if (!p->check && p->st == ABN_OK && (st = ab_eqn_based(s, n - 1, base, &a)) == ABN_OK) *v = real_val(a);
         if (st != ABN_OK) fail(p, st);
+        rec(p, SN_NUM, 0, 0, p->i, n, 0);
         p->i += n;
         return true;
     }
@@ -377,9 +410,11 @@ static __attribute__((noinline)) bool parse_number(parser *p, ab_val *v)
         }
         p->i += n2;
         if (st != ABN_OK) fail(p, st);
+        rec(p, SN_NUM, 0, 0, (int)(s - p->s), p->i - (int)(s - p->s), 0);
         return true;
     }
     if (!p->check && p->st == ABN_OK) *v = real_val(a);
+    rec(p, SN_NUM, 0, 0, (int)(s - p->s), n, 0);
     return true;
 }
 
@@ -405,6 +440,7 @@ static __attribute__((noinline)) void parse_vector(parser *p, ab_val *v)
     ascend(p, 8);
     if (k == 3 && p->st != ABN_OK) return;
     if (p->st == ABN_OK && !at(p, "]")) fail(p, ABN_SYNTAX);
+    rec(p, SN_VEC, 0, 0, 0, 0, k);
     if (p->check || p->st != ABN_OK) return;
     memset(v, 0, sizeof *v);
     v->kind = AB_VECTOR;
@@ -433,6 +469,7 @@ static __attribute__((noinline)) void parse_rnd2(parser *p, ab_val *v)
         fail(p, ABN_SYNTAX);
         return;
     }
+    rec(p, SN_FN2, F_RND, 0, 0, 0, 2);
     if (p->check || p->st != ABN_OK) return;
     int n = -1;
     for (int k = 0; k <= AB_FMT_N_MAX && n < 0 && nv.kind == AB_REAL; k++) {
@@ -465,6 +502,7 @@ static __attribute__((noinline)) void parse_k2(parser *p, int id, ab_val *v)
         fail(p, ABN_SYNTAX);
         return;
     }
+    rec(p, SN_FN2, id, 0, 0, 0, 2);
     apply2(p, id, v, &b);
 }
 
@@ -540,6 +578,7 @@ static void parse_prim(parser *p, ab_val *v)
                 return;
             }
             if (f->kind == K0) {
+                rec(p, SN_NAME0, f->id, 0, 0, 0, 0);
                 apply0(p, f->id, v);
                 return;
             }
@@ -560,20 +599,24 @@ static void parse_prim(parser *p, ab_val *v)
                 fail(p, ABN_SYNTAX);
                 return;
             }
+            rec(p, SN_FN1, f->id, 0, 0, 0, 1);
             kop(p, OPS[f->id], NULL, v);
             return;
         }
     }
     if (p->c->alg_eval && at(p, "ANS")) {
         /* the expression line's last result (unit 029); a name on that line only */
+        rec(p, SN_ANS, 0, 0, 0, 0, 0);
         if (!p->check && p->st == ABN_OK) take_val(p, v, &p->c->ans);
         return;
     }
     if (at(p, IND_I) || at(p, IND_J)) {
+        rec(p, SN_IND, strncmp(s, IND_I, 3) == 0 ? 'I' : 'J', 0, 0, 0, 0);
         parse_ind(p, s, v);
         return;
     }
     if (*s >= 'A' && *s <= 'Z') {
+        rec(p, SN_VAR, *s, 0, 0, 0, 0);
         p->i++;
         if (!p->check && p->st == ABN_OK) take_val(p, v, &p->c->var[*s - 'A']);
         return;
@@ -581,6 +624,7 @@ static void parse_prim(parser *p, ab_val *v)
     if (*s == 'i' && p->m33) {
         /* typed in 33s mode: a lone i is the variable i; (i) is the indirect glyph above (33s p.13-23); by the
            equation's stamp, as the rest of its syntax (unit 041 A, fresh eyes; it was the mode in force) */
+        rec(p, SN_VAR, 'i', 0, 0, 0, 0);
         p->i++;
         if (!p->check && p->st == ABN_OK) take_val(p, v, &p->c->var[26]);
         return;
@@ -591,13 +635,17 @@ static void parse_prim(parser *p, ab_val *v)
 static void parse_post(parser *p, ab_val *v)
 {
     parse_prim(p, v);
-    while (p->st == ABN_OK && at(p, "!")) kop(p, AB_FACT, NULL, v);
+    while (p->st == ABN_OK && at(p, "!")) {
+        rec(p, SN_FACT, 0, 0, 0, 0, 1);
+        kop(p, AB_FACT, NULL, v);
+    }
 }
 
 /* Unary minus: the keyboard's CHS of a finished number (UG p.1-15, 9-3; INVALID DATA for a vector,
    unit 010). */
 static void negate(parser *p, ab_val *v)
 {
+    rec(p, SN_NEG, 0, 0, 0, 0, 1);
     kop(p, AB_KCHS, NULL, v);
 }
 
@@ -722,7 +770,8 @@ static void parse_all(parser *p, bool rhs_only, ab_val *out)
     parse_add(p, &l);
     if (p->st == ABN_OK && at(p, "=")) {
         parse_add(p, &r);
-        if (p->st == ABN_OK && !rhs_only) binop(p, "-", &l, &r);
+        rec(p, SN_EQ, 0, 0, 0, 0, 2);
+        if (p->st == ABN_OK && !rhs_only && !p->rec) binop(p, "-", &l, &r);   /* (recorded: the = itself) */
         else l = r;
     }
     if (p->st == ABN_OK && p->s[p->i] != '\0') fail(p, ABN_SYNTAX);
@@ -882,4 +931,316 @@ int eqn_name_before(const char *s, int pos)
             best = n + 1;
     }
     return best;
+}
+
+/* ---- unit 086: the spoken equation (work/blueprint/spoken-equation.md, revision 3; abacus #13546, #13551, #13555,
+   #13557). The parse records its own operations (rec), the record is rebuilt as a tree, and the tree is said in
+   order: groups ("the quantity ... end quantity") only where the grammar or a listener needs them (rules 2 and 3),
+   exponents that end themselves (rule 4), unary minus as "negative" ---- */
+typedef struct { int id; const char *pre, *mid, *post; } say_name;
+static const say_name SAY_NAMES[] = {
+    {F_LN, "the natural log of", 0, 0}, {F_LOG, "the log of", 0, 0}, {F_EXP, "the exponential of", 0, 0},
+    {F_ALOG, "the antilog of", 0, 0}, {F_SQ, "the square of", 0, 0}, {F_SQRT, "the square root of", 0, 0},
+    {F_INV, "the reciprocal of", 0, 0}, {F_IP, "the integer part of", 0, 0}, {F_FP, "the fractional part of", 0, 0},
+    {F_RND, "the rounding of", 0, 0}, {F_ABS, "the absolute value of", 0, 0}, {F_SGN, "the sign of", 0, 0},
+    {F_INTG, "the floor of", 0, 0}, {F_SIN, "the sine of", 0, 0}, {F_COS, "the cosine of", 0, 0},
+    {F_TAN, "the tangent of", 0, 0}, {F_ASIN, "the arcsine of", 0, 0}, {F_ACOS, "the arccosine of", 0, 0},
+    {F_ATAN, "the arctangent of", 0, 0}, {F_SINH, "the hyperbolic sine of", 0, 0},
+    {F_COSH, "the hyperbolic cosine of", 0, 0}, {F_TANH, "the hyperbolic tangent of", 0, 0},
+    {F_ASINH, "the inverse hyperbolic sine of", 0, 0}, {F_ACOSH, "the inverse hyperbolic cosine of", 0, 0},
+    {F_ATANH, "the inverse hyperbolic tangent of", 0, 0}, {F_TODEG, "the conversion to degrees of", 0, 0},
+    {F_TORAD, "the conversion to radians of", 0, 0}, {F_HMSINV, "the conversion from hours minutes seconds of", 0, 0},
+    {F_HMS, "the conversion to hours minutes seconds of", 0, 0}, {F_TOL, "the conversion to liters of", 0, 0},
+    {F_TOGAL, "the conversion to gallons of", 0, 0}, {F_TOMILE, "the conversion to miles of", 0, 0},
+    {F_TOKM, "the conversion to kilometers of", 0, 0}, {F_TOKG, "the conversion to kilograms of", 0, 0},
+    {F_TOLB, "the conversion to pounds of", 0, 0}, {F_TOC, "the conversion to Celsius of", 0, 0},
+    {F_TOF, "the conversion to Fahrenheit of", 0, 0}, {F_TOCM, "the conversion to centimeters of", 0, 0},
+    {F_TOIN, "the conversion to inches of", 0, 0}, {F_SEED, "the seeding with", 0, 0}, {F_ARG, "the argument of", 0, 0},
+    {F_XHAT, "x hat of", 0, 0}, {F_YHAT, "y hat of", 0, 0}, {F_NOT, "the logical not of", 0, 0},
+    {F_CUBE, "the cube of", 0, 0}, {F_CBRT, "the cube root of", 0, 0},
+    /* two arguments */
+    {F_IDIV, "the integer quotient of", "and", 0}, {F_RMDR, "the remainder of", "divided by", 0},
+    {F_PCTCHG, "the percent change from", "to", 0}, {F_XROOT, "the root of index", "of", 0},
+    {F_NCR, "the combinations of", "choose", 0}, {F_NPR, "the permutations of", "taken", "at a time"},
+    {F_AND, "the logical and of", "with", 0}, {F_XOR, "the logical exclusive or of", "with", 0},
+    {F_OR, "the logical or of", "with", 0}, {F_NAND, "the logical nand of", "with", 0},
+    {F_NOR, "the logical nor of", "with", 0}, {F_PCT, "the percentage of", "at", "percent"},
+    /* names without arguments */
+    {F_RAND, "a random number", 0, 0}, {F_PI, "pi", 0, 0}, {F_SX, "s x", 0, 0}, {F_SY, "s y", 0, 0},
+    {F_PSX, "sigma x", 0, 0}, {F_PSY, "sigma y", 0, 0}, {F_XBAR, "x bar", 0, 0}, {F_YBAR, "y bar", 0, 0},
+    {F_XWBAR, "x bar w", 0, 0}, {F_CORR, "the correlation r", 0, 0}, {F_SLOPE, "the slope m", 0, 0},
+    {F_YINT, "the intercept b", 0, 0}, {F_N, "the count n", 0, 0}, {F_SUMX, "the sum of x", 0, 0},
+    {F_SUMY, "the sum of y", 0, 0}, {F_SUMX2, "the sum of x squares", 0, 0}, {F_SUMY2, "the sum of y squares", 0, 0},
+    {F_SUMXY, "the sum of x y products", 0, 0}, {F_REGX, "register X", 0, 0}, {F_REGY, "register Y", 0, 0},
+    {F_REGZ, "register Z", 0, 0}, {F_REGT, "register T", 0, 0},
+};
+static const say_name *say_find(int id)
+{
+    for (size_t k = 0; k < sizeof SAY_NAMES / sizeof SAY_NAMES[0]; k++)
+        if (SAY_NAMES[k].id == id) return &SAY_NAMES[k];
+    return NULL;
+}
+typedef struct { char *o; int size, n; bool bad; const char *src; const say_node *nd; } say_out;
+static void say_w(say_out *w, const char *t)
+{
+    if (w->n && w->n < w->size - 1) w->o[w->n++] = ' ';
+    for (; *t; t++)
+        if (w->n < w->size - 1) w->o[w->n++] = *t;
+        else w->bad = true;
+    w->o[w->n] = '\0';
+}
+static void say_wn(say_out *w, const char *t, int len)
+{
+    char b[200];
+    snprintf(b, sizeof b, "%.*s", len, t);
+    say_w(w, b);
+}
+enum { PR_EQ, PR_ADD, PR_MUL, PR_NEG, PR_POW, PR_POST, PR_ATOM };
+static bool say_frac(const say_out *w, const say_node *d)
+{
+    int pts = 0;
+    for (int i = 0; i < d->len; i++) pts += w->src[d->at + i] == '.';
+    return d->kind == SN_NUM && pts == 2;
+}
+static int say_pr(const say_out *w, const say_node *d)
+{
+    (void)w;
+    switch (d->kind) {
+    case SN_EQ: return PR_EQ;
+    case SN_BIN: return d->op == '+' || d->op == '-' ? PR_ADD : d->op == '^' ? PR_POW : PR_MUL;
+    case SN_NEG: return PR_NEG;
+    case SN_FACT: return PR_POST;
+    case SN_NUM: return PR_ATOM;
+    default: return PR_ATOM;
+    }
+}
+/* what follows a node at its own level: nothing (a closer or the end), more words, or a postfix (squared, a power, !) */
+enum { CX_LAST, CX_MORE, CX_POST };
+static void say_say(say_out *w, int k, int cx);
+/* a group: "the quantity ... end quantity", its inside closed by its end */
+static void say_kid(say_out *w, int k, bool group, int cx)
+{
+    if (group) say_w(w, "the quantity");
+    say_say(w, k, group ? CX_LAST : cx);
+    if (group) say_w(w, "end quantity");
+}
+/* #13551 ask 3: an integer as an ordinal in words (to nine digits) */
+static void say_card(char *o, int size, long n);
+static const char *const ONES[] = {"zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+    "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"};
+static const char *const TENS[] = {"", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"};
+static void say_card(char *o, int size, long n)
+{
+    char a[160] = "", b[160] = "";
+    if (n >= 1000000) {
+        say_card(a, sizeof a, n / 1000000);
+        if (n % 1000000) say_card(b, sizeof b, n % 1000000);
+        snprintf(o, (size_t)size, "%s million%s%s", a, n % 1000000 ? " " : "", b);
+    } else if (n >= 1000) {
+        say_card(a, sizeof a, n / 1000);
+        if (n % 1000) say_card(b, sizeof b, n % 1000);
+        snprintf(o, (size_t)size, "%s thousand%s%s", a, n % 1000 ? " " : "", b);
+    } else if (n >= 100) {
+        if (n % 100) say_card(b, sizeof b, n % 100);
+        snprintf(o, (size_t)size, "%s hundred%s%s", ONES[n / 100], n % 100 ? " " : "", b);
+    } else if (n >= 20) {
+        snprintf(o, (size_t)size, "%s%s%s", TENS[n / 10], n % 10 ? "-" : "", n % 10 ? ONES[n % 10] : "");
+    } else {
+        snprintf(o, (size_t)size, "%s", ONES[n]);
+    }
+}
+static void say_ordinal(char *o, int size, long n)
+{
+    static const struct { const char *c, *o; } IRR[] = {{"one", "first"}, {"two", "second"}, {"three", "third"},
+        {"five", "fifth"}, {"eight", "eighth"}, {"nine", "ninth"}, {"twelve", "twelfth"}};
+    char c[200];
+    say_card(c, sizeof c, n);
+    size_t L = strlen(c), keep = L;
+    const char *end = "th";
+    for (size_t k = 0; k < sizeof IRR / sizeof IRR[0]; k++) {
+        size_t m = strlen(IRR[k].c);
+        if (L >= m && !strcmp(c + L - m, IRR[k].c) && (L == m || c[L - m - 1] == ' ' || c[L - m - 1] == '-')) {
+            keep = L - m, end = IRR[k].o;
+            break;
+        }
+    }
+    if (keep == L && L && c[L - 1] == 'y') keep = L - 1, end = "ieth";
+    size_t e = strlen(end);
+    if (keep + e + 1 > (size_t)size) {         /* (nine digits' words fit any caller's 200) */
+        o[0] = '\0';
+        return;
+    }
+    memcpy(o, c, keep);
+    memcpy(o + keep, end, e + 1);
+}
+static void say_num(say_out *w, const say_node *d)
+{
+    const char *t = w->src + d->at;
+    int n = d->len, b = t[n - 1];
+    if (n > 1 && (b == 'h' || b == 'b' || b == 'o' || b == 'd') && !memchr(t, '.', (size_t)n) && !memchr(t, 'i', (size_t)n)) {
+        say_w(w, b == 'h' ? "hex" : b == 'b' ? "binary" : b == 'o' ? "octal" : "decimal");
+        say_wn(w, t, n - 1);
+        return;
+    }
+    const char *ci = NULL;
+    for (int i = 0; i < n; i++)
+        if (t[i] == 'i' || (unsigned char)t[i] == 0xce) { ci = t + i; break; }
+    if (ci) {
+        say_w(w, "the complex");
+        say_wn(w, t, (int)(ci - t));
+        bool polar = *ci != 'i';
+        say_w(w, polar ? "at angle" : "i");
+        const char *r = ci + (polar ? 2 : 1);
+        if (*r == '-') say_w(w, "negative"), r++;
+        say_wn(w, r, (int)(t + n - r));
+        return;
+    }
+    if (say_frac(w, d)) {
+        const char *p1 = memchr(t, '.', (size_t)n), *p2 = memchr(p1 + 1, '.', (size_t)(t + n - p1 - 1));
+        say_w(w, "the fraction");
+        if (p1 > t) say_wn(w, t, (int)(p1 - t)), say_w(w, "and");
+        say_wn(w, p1 + 1, (int)(p2 - p1 - 1));
+        say_w(w, "over");
+        say_wn(w, p2 + 1, (int)(t + n - p2 - 1));
+        return;
+    }
+    const char *e = memchr(t, 'E', (size_t)n);
+    if (e) {
+        say_wn(w, t, (int)(e - t));
+        say_w(w, "E");
+        const char *r = e + 1;
+        if (*r == '-') say_w(w, "negative"), r++;
+        say_wn(w, r, (int)(t + n - r));
+        return;
+    }
+    say_wn(w, t, n);
+}
+/* #13551 ask 1: a lone letter or number (a variable, a name without arguments, a number that isn't a fraction or a
+   complex) */
+static bool say_lone(const say_out *w, const say_node *d)
+{
+    if (d->kind == SN_VAR || d->kind == SN_NAME0 || d->kind == SN_IND || d->kind == SN_ANS) return true;
+    if (d->kind != SN_NUM || say_frac(w, d)) return false;
+    for (int i = 0; i < d->len; i++)
+        if (w->src[d->at + i] == 'i' || (unsigned char)w->src[d->at + i] == 0xce) return false;
+    return true;
+}
+static bool say_neglone(const say_out *w, const say_node *d)
+{
+    return say_lone(w, d) || (d->kind == SN_NEG && say_lone(w, &w->nd[d->kid[0]]));
+}
+static void say_say(say_out *w, int k, int cx)
+{
+    const say_node *d = &w->nd[k];
+    const say_node *a = d->n > 0 ? &w->nd[d->kid[0]] : NULL, *b = d->n > 1 ? &w->nd[d->kid[1]] : NULL;
+    switch (d->kind) {
+    case SN_NUM: say_num(w, d); return;
+    case SN_VAR: { char v[2] = {(char)d->id, 0}; say_w(w, v); return; }
+    case SN_ANS: say_w(w, "the last answer"); return;
+    case SN_IND: say_w(w, d->id == 'I' ? "indirect I" : "indirect J"); return;
+    case SN_NAME0: { const say_name *f = say_find(d->id); if (f) say_w(w, f->pre); else w->bad = true; return; }
+    case SN_EQ: say_say(w, d->kid[0], CX_LAST); say_w(w, "equals"); say_say(w, d->kid[1], cx); return;
+    case SN_NEG: { bool g = say_pr(w, a) < PR_NEG; say_w(w, "negative"); say_kid(w, d->kid[0], g, cx); return; }
+    case SN_FACT: { bool g = say_pr(w, a) < PR_POST; say_kid(w, d->kid[0], g, CX_POST); say_w(w, "factorial"); return; }
+    case SN_FN1: case SN_FN2: {
+        bool rnd2 = d->kind == SN_FN2 && d->id == F_RND;
+        const say_name *f = rnd2 ? NULL : say_find(d->id);
+        if (!rnd2 && !f) { w->bad = true; return; }
+        /* revision 3 (#13555): an argument that isn't lone is said grouped, and its end quantity ends the call; a
+           call whose last word is a bare argument is closed when more follows it; a call ending in a group is closed
+           only before a postfix (squared, a power, !), which could otherwise land inside */
+        bool g1 = d->kind == SN_FN1 ? !say_lone(w, a) : !say_neglone(w, a);
+        bool g2 = d->kind == SN_FN2 && !say_neglone(w, b);
+        bool phrase = rnd2 || (f && f->post);           /* the call ends in its own words */
+        bool group_end = d->kind == SN_FN1 ? g1 : g2;
+        bool wrap = phrase ? false : group_end ? cx == CX_POST : cx != CX_LAST;
+        if (wrap) say_w(w, "the quantity");
+        say_w(w, rnd2 ? "the rounding of" : f->pre);
+        say_kid(w, d->kid[0], g1, CX_MORE);
+        if (d->kind == SN_FN2) {
+            say_w(w, rnd2 ? "to" : f->mid);
+            say_kid(w, d->kid[1], g2, CX_MORE);
+            if (rnd2) say_w(w, "digits");
+            else if (f->post) say_w(w, f->post);
+        }
+        if (wrap) say_w(w, "end quantity");
+        return;
+    }
+    case SN_VEC:
+        say_w(w, "the vector");
+        for (int i = 0; i < d->n; i++) { if (i) say_w(w, "and"); say_say(w, d->kid[i], i == d->n - 1 ? CX_LAST : CX_MORE); }
+        say_w(w, "end vector");
+        return;
+    case SN_BIN:
+        if (d->op == '+' || d->op == '-') {
+            say_say(w, d->kid[0], CX_MORE);
+            say_w(w, d->op == '+' ? "plus" : "minus");
+            say_kid(w, d->kid[1], say_pr(w, b) <= PR_ADD, cx);
+        } else if (d->op == '*' || d->op == '/') {
+            say_kid(w, d->kid[0], say_pr(w, a) < PR_MUL, CX_MORE);
+            say_w(w, d->op == '*' ? "times" : "divided by");
+            say_kid(w, d->kid[1], say_pr(w, b) < PR_NEG, cx);
+        } else {    /* ^: the base is an atom or a factorial, followed by its power's words */
+            say_kid(w, d->kid[0], say_pr(w, a) < PR_POST, CX_POST);
+            const say_node *e = b;
+            bool neg = e->kind == SN_NEG;
+            const say_node *ee = neg ? &w->nd[e->kid[0]] : e;
+            bool simple = say_pr(w, ee) == PR_ATOM && ee->kind != SN_FN1 && ee->kind != SN_FN2;
+            if (!neg && simple && ee->kind == SN_NUM && ee->len == 1 && w->src[ee->at] == '2') { say_w(w, "squared"); return; }
+            if (!neg && simple && ee->kind == SN_NUM && ee->len == 1 && w->src[ee->at] == '3') { say_w(w, "cubed"); return; }
+            if (!simple) {
+                say_w(w, "to the power");
+                say_kid(w, d->kid[1], true, CX_LAST);
+                return;
+            }
+            say_w(w, "to the");
+            bool digits = !neg && ee->kind == SN_NUM && ee->len <= 9;
+            for (int i = 0; digits && i < ee->len; i++) digits = w->src[ee->at + i] >= '0' && w->src[ee->at + i] <= '9';
+            if (digits) {
+                char o[200];
+                say_ordinal(o, sizeof o, atol(w->src + ee->at));
+                say_w(w, o);
+            } else {
+                say_say(w, d->kid[1], CX_MORE);
+            }
+            say_w(w, "power");
+        }
+        return;
+    }
+}
+
+int ab_eqn_words(ab_calc *c, const char *text, int model, char *out, int size)
+{
+    struct say_rec r;
+    parser p;
+    ab_val l;
+    if (size <= 0) return -1;
+    out[0] = '\0';
+    memset(&p, 0, sizeof p);
+    r.n = 0;
+    r.over = false;
+    p.c = c;
+    p.s = text;
+    p.check = true;
+    p.st = ABN_OK;
+    p.rtl = p.implied = model == AB_MODEL_STU;  /* read as the model reads it (unit 031 rule 3) */
+    p.m33 = model == 33;
+    p.rec = &r;
+    parse_all(&p, false, &l);
+    if (p.st != ABN_OK || r.over || r.n == 0) return -1;
+    int stk[SAY_NODES], sn = 0;                 /* the postfix record rebuilt as a tree */
+    for (int i = 0; i < r.n; i++) {
+        say_node *d = &r.nd[i];
+        if (d->n > sn || d->n > 3) return -1;
+        for (int j = d->n - 1; j >= 0; j--) d->kid[j] = (int16_t)stk[--sn];
+        stk[sn++] = i;
+    }
+    if (sn != 1) return -1;
+    say_out w = {out, size, 0, false, text, r.nd};
+    say_say(&w, stk[0], CX_LAST);
+    if (w.bad) {
+        out[0] = '\0';
+        return -1;
+    }
+    return w.n;
 }
