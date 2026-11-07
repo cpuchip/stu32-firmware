@@ -535,3 +535,26 @@ exactly what 033's wall at an AUTO pole looks like. The narrative now says `brea
 - M10 now includes S05 (already measured);
 - M3, M4, M8 and M14 keep their sets with "breaks" in the texts;
 - M9 and M18 overlap on no row.
+
+**What the rerun showed, and one more rule.**
+- M17, M18 and M19 went exactly as predicted.
+- The rerun's new rows added reds I hadn't listed for the old mutants: S44 under M3, S45 under M5, S43 under M10.
+  Each is a new row in the mutant's own class.
+- **M9 fell from 13 red rows to 1 (S25).** Dropping a repeat now swallows the "0" that M9 adds beside a meeting
+  already said 0.
+- That pointed at a case no row covered. When f(0) is exactly 0, the meeting at x = 0 can still be said ±ux if
+  its pair's nearer column is the far one. X×(X−0.09) on −17.92..17.99 (a step of 0.09) said "Meets the x axis
+  near 0.1" for its roots at 0 and 0.09.
+- **Rule 4 now reads:** when f(0) is exactly 0, a meeting whose columns cover ycol−1 or ycol is said 0. The value
+  is exact, so the column's rounding doesn't apply. That gives "near 0 and 0.1". The span insertion carries its
+  columns along.
+- S46 was red at d603223's code and is green now. No other row moved: 46/46.
+
+**Predicted before it ran:**
+
+| # | Mutant | Predicted red |
+|---|---|---|
+| M20 | the covering meeting said by its column, not 0 | exactly S46 |
+
+M9 stays in the table. It's now caught by S25 alone (predicted: exactly S25), and is nearly equivalent: the drop
+of a repeat covers it.
