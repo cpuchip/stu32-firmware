@@ -6411,6 +6411,428 @@ int ab_graph_form(const ab_calc *c, int e)
     return strchr(t, '=') ? -1 : 0;
 }
 
+/* ---- unit 085: the spoken graph (work/blueprint/spoken-graph.md, accepted by abacus #13489; touches #13501) ---- */
+
+/* Rule 2's unit for a span over n steps: the least power of ten at or above |span / n| (x: a root is known to a
+   column), or the greatest at or below it (y: a said y is a sample's own value, shown to a row). */
+static abn say_unit(const abn *lo, const abn *hi, int n, bool below)
+{
+    abn d, s, t, u = abn_from_int(1), ten = abn_from_int(10), k = abn_from_int(n);
+    if (abn_sub(&d, hi, lo) != ABN_OK || abn_div(&s, &d, &k) != ABN_OK) return u;
+    s = abn_abs(&s);
+    if (abn_is_zero(&s)) return u;
+    while (abn_cmp(&u, &s) < 0 && abn_mul(&t, &u, &ten) == ABN_OK) u = t;
+    while (abn_div(&t, &u, &ten) == ABN_OK && !abn_is_zero(&t) && abn_cmp(&t, &s) >= 0) u = t;
+    if (below && abn_cmp(&u, &s) > 0 && abn_div(&t, &u, &ten) == ABN_OK && !abn_is_zero(&t)) u = t;
+    return u;
+}
+
+/* Rule 2: v as said: v / u to an integer, half even, times u, each rounded once; written by ALL in 12 characters with
+   '.' (the words are English, whatever the display mode or the radix); -0 is 0. */
+static void say_num(const abn *v, const abn *u, char *out, int size)
+{
+    abn q, f, fr, h, hf, r, m = *v, half, one = abn_from_int(1), two = abn_from_int(2);
+    if (abn_div(&q, v, u) == ABN_OK && abn_floor(&f, &q) == ABN_OK) {
+        abn_sub(&fr, &q, &f);
+        abn_from_text(&half, "0.5");
+        int k = abn_cmp(&fr, &half);
+        r = f;
+        if (k > 0 || (k == 0 && abn_div(&h, &f, &two) == ABN_OK && abn_floor(&hf, &h) == ABN_OK && abn_cmp(&h, &hf) != 0))
+            abn_add(&r, &f, &one);
+        if (abn_mul(&m, &r, u) != ABN_OK) m = *v;
+    }
+    if (abn_is_zero(&m)) m = abn_zero();
+    ab_fmt fm = {AB_ALL, 0, 12, '.', 0};
+    if (ab_format(&m, &fm, out, size) < 0) {
+        fm.width = 40;
+        if (ab_format(&m, &fm, out, size) < 0) snprintf(out, (size_t)size, "?");
+    }
+}
+
+typedef struct {
+    char *p;
+    int size, n;
+} say_buf;
+
+static void say_cat(say_buf *b, const char *a, const char *x, const char *y, const char *z)
+{
+    const char *part[4] = {a, x, y, z};
+    for (int i = 0; i < 4; i++)
+        for (const char *q = part[i]; q && *q; q++)
+            if (b->n < b->size - 1) b->p[b->n++] = *q;
+    if (b->size > 0) b->p[b->n] = '\0';
+}
+
+/* the columns' bits (rule 1, with what rules 3 and 4 need of the values beside them) */
+enum { SG_OK = 1, SG_NEG = 2, SG_ZERO = 4, SG_GL = 8, SG_NR = 16 };
+enum { SG_GAP, SG_IN, SG_UP, SG_DOWN };
+/* rule 6's events, in rule 6's order at one column */
+enum { SE_LTOP, SE_LBOT, SE_PUP, SE_PDOWN, SE_JUMP, SE_GAP, SE_ETOP, SE_EBOT, SE_HIGH, SE_LOW, SE_N };
+#define SAY_NARRATE 4               /* rule 10: more events than this, a summary */
+
+typedef struct {
+    ab_calc *c;
+    abn ux, uy;
+    int16_t row[AB_GRAPH_W];
+    uint8_t fl[AB_GRAPH_W];
+} say_cols;
+
+static bool sg_ok(const say_cols *g, int i) { return i >= 0 && i < AB_GRAPH_W && (g->fl[i] & SG_OK); }
+static bool sg_zero(const say_cols *g, int i) { return sg_ok(g, i) && (g->fl[i] & SG_ZERO); }
+static int sg_state(const say_cols *g, int i)
+{
+    return !sg_ok(g, i) ? SG_GAP : g->row[i] < 0 ? SG_UP : g->row[i] >= AB_GRAPH_H ? SG_DOWN : SG_IN;
+}
+
+/* Rule 3: a jump between i-1 and i: a sign change with |y| growing toward it from both sides. */
+static bool sg_jump(const say_cols *g, int i)
+{
+    if (i < 2 || i > AB_GRAPH_W - 2) return false;
+    for (int k = i - 2; k <= i + 1; k++)
+        if (!sg_ok(g, k)) return false;
+    if (sg_zero(g, i - 1) || sg_zero(g, i) || !(g->fl[i - 1] & SG_NEG) == !(g->fl[i] & SG_NEG)) return false;
+    return (g->fl[i - 1] & SG_GL) && (g->fl[i] & SG_NR);
+}
+
+/* Rule 4: a sign change between i and i+1 that isn't a jump meets the axis, at the column with the smaller |y|. */
+static int sg_cross(const say_cols *g, int i)
+{
+    if (!sg_ok(g, i) || !sg_ok(g, i + 1) || sg_zero(g, i) || sg_zero(g, i + 1) ||
+        !(g->fl[i] & SG_NEG) == !(g->fl[i + 1] & SG_NEG) || sg_jump(g, i + 1))
+        return -1;
+    return (g->fl[i] & SG_NR) ? i + 1 : i;
+}
+
+static void sg_x(say_cols *g, int col, char *out)
+{
+    abn x;
+    if (graph_x(g->c, col, &x) != ABN_OK) x = abn_zero();
+    say_num(&x, &g->ux, out, 32);
+}
+
+typedef struct {
+    uint8_t kind;
+    int16_t at, to;                 /* the column (a gap: its first and last) */
+    char a[32], b[32];              /* x as said (a gap: its ends), and a turn's y */
+} say_event;
+
+int ab_graph_words(ab_calc *c, char *out, int size)
+{
+    if (size <= 0) return 0;
+    out[0] = '\0';
+    if (!c->gr_on || c->gr_eq < 0 || c->gr_eq >= c->eqn_count || c->gr_v < 0 || c->gr_v >= 26) return 0;
+    say_cols g;
+    say_buf b = {out, size, 0};
+    abn ymin, ymax, x, prev = abn_zero();
+    ab_val v;
+    char s1[32], s2[32];
+    g.c = c;
+    ab_graph_window(c, &ymin, &ymax);
+    g.ux = say_unit(&c->gr_xmin, &c->gr_xmax, AB_GRAPH_W - 1, false);
+    g.uy = say_unit(&ymin, &ymax, AB_GRAPH_H - 1, true);
+    /* the samples, as drawn (one pass: each value meets only its left neighbour) */
+    bool any = false;
+    for (int i = 0; i < AB_GRAPH_W; i++) {
+        bool ok = graph_sample(c, i, &x, &v, true, true) == ABN_OK;
+        g.fl[i] = 0;
+        g.row[i] = 0;
+        if (ok) {
+            g.fl[i] = SG_OK | (abn_is_zero(&v.re) ? SG_ZERO : 0) | (abn_is_negative(&v.re) ? SG_NEG : 0);
+            g.row[i] = (int16_t)ab_graph_row(&v.re, &ymin, &ymax);
+            any = true;
+            if (sg_ok(&g, i - 1)) {
+                abn a = abn_abs(&v.re), p = abn_abs(&prev);
+                if (abn_cmp(&a, &p) > 0) g.fl[i] |= SG_GL;
+                if (abn_cmp(&a, &p) < 0) g.fl[i - 1] |= SG_NR;
+            }
+            prev = v.re;
+        }
+    }
+    /* 1, 2: the name and the window */
+    say_cat(&b, "Graph of ", c->eqn[c->gr_eq], ab_graph_form(c, c->gr_eq) < 0 ? ", left side minus right side" : "", ".");
+    say_num(&c->gr_xmax, &g.ux, s2, sizeof s2);
+    say_num(&c->gr_xmin, &g.ux, s1, sizeof s1);
+    say_cat(&b, " x from ", s1, " to ", s2);
+    say_num(&ymin, &g.uy, s1, sizeof s1);
+    say_num(&ymax, &g.uy, s2, sizeof s2);
+    say_cat(&b, ", y from ", s1, " to ", s2);
+    say_cat(&b, ".", NULL, NULL, NULL);
+    if (!any) {
+        say_cat(&b, " No values in the window.", NULL, NULL, NULL);
+        return b.n;
+    }
+    /* rule 5's value at x = 0, correctly rounded (F(X)'s path), pure */
+    int xrow, ycol;
+    ab_graph_axes(c, &ymin, &ymax, &xrow, &ycol);
+    bool f0_ok = false;
+    abn f0 = abn_zero();
+    if (ycol >= 0) {
+        abn zero = abn_zero();
+        bool was = fn_set_fast(false);
+        f0_ok = eval_at(c, c->gr_eq, c->gr_v, &zero, &v, true) == ABN_OK && v.kind == AB_REAL;
+        fn_set_fast(was);
+        f0 = v.re;
+    }
+    /* one walk, left to right: rule 6's events and rule 4's meetings (a meeting's span: the columns it covers) */
+    static const char *const ZERO = "0";
+    int16_t mcol[AB_GRAPH_W + 1], mlo[AB_GRAPH_W + 1], mhi[AB_GRAPH_W + 1];
+    int nm = 0, zr = 0, zfirst = -1, zlast = -1;
+    say_event ev[SAY_NARRATE + 1];
+    int ne = 0, cnt[SE_N] = {0}, tfirst = -1;
+    char tfx[32] = "", tlx[32] = "", hy[32] = "", ly[32] = "";
+    bool hsame = true, lsame = true;
+#define SAY_EVENT(k, col, last, xa, yb)                                                                      \
+    do {                                                                                                     \
+        cnt[k]++;                                                                                            \
+        if (ne <= SAY_NARRATE) {                                                                             \
+            ev[ne].kind = (uint8_t)(k), ev[ne].at = (int16_t)(col), ev[ne].to = (int16_t)(last);             \
+            snprintf(ev[ne].a, sizeof ev[ne].a, "%s", xa);                                                   \
+            snprintf(ev[ne].b, sizeof ev[ne].b, "%s", yb);                                                   \
+        }                                                                                                    \
+        ne++;                                                                                                \
+    } while (0)
+    for (int i = 0; i < AB_GRAPH_W; i++) {
+        int st = sg_state(&g, i), ps = i > 0 ? sg_state(&g, i - 1) : st;
+        if (i > 0 && ps == SG_IN && (st == SG_UP || st == SG_DOWN)) {
+            sg_x(&g, i - 1, s1);
+            SAY_EVENT(st == SG_UP ? SE_LTOP : SE_LBOT, i - 1, i - 1, s1, "");
+        }
+        if (i > 0 && !sg_jump(&g, i) && ((ps == SG_DOWN && st == SG_UP) || (ps == SG_UP && st == SG_DOWN))) {
+            sg_x(&g, i, s1);
+            SAY_EVENT(st == SG_UP ? SE_PUP : SE_PDOWN, i, i, s1, "");
+        }
+        if (sg_jump(&g, i)) {
+            sg_x(&g, i, s1);
+            SAY_EVENT(SE_JUMP, i, i, s1, "");
+        }
+        if (st == SG_GAP && (i == 0 || ps != SG_GAP)) {
+            int j = i;
+            while (j + 1 < AB_GRAPH_W && !sg_ok(&g, j + 1)) j++;
+            sg_x(&g, i, s1);
+            sg_x(&g, j, s2);
+            SAY_EVENT(SE_GAP, i, j, s1, s2);
+        }
+        if (i > 0 && (ps == SG_UP || ps == SG_DOWN) && st == SG_IN) {
+            sg_x(&g, i, s1);
+            SAY_EVENT(ps == SG_UP ? SE_ETOP : SE_EBOT, i, i, s1, "");
+        }
+        /* rule 4's meetings found at i: a lone zero sample, a run of them, a sign change between i and i + 1 */
+        if (sg_zero(&g, i) && !sg_zero(&g, i - 1)) {
+            int j = i;
+            while (sg_zero(&g, j + 1)) j++;
+            if (j > i) {
+                if (zfirst < 0) zfirst = i;
+                zlast = j;
+                zr++;
+            } else if (nm < AB_GRAPH_W) {
+                mcol[nm] = mlo[nm] = mhi[nm] = (int16_t)i;
+                nm++;
+            }
+        }
+        int k = sg_cross(&g, i);
+        if (k >= 0 && nm < AB_GRAPH_W) {
+            mcol[nm] = (int16_t)k, mlo[nm] = (int16_t)i, mhi[nm] = (int16_t)(i + 1);
+            nm++;
+        }
+        /* rule 7: a segment starting at i, and whether it turns */
+        if (st == SG_IN && !(i > 0 && sg_state(&g, i - 1) == SG_IN && g.row[i - 1] == g.row[i] && !sg_jump(&g, i))) {
+            int j = i;
+            while (j + 1 < AB_GRAPH_W && sg_ok(&g, j + 1) && g.row[j + 1] == g.row[i] && !sg_jump(&g, j + 1)) j++;
+            if (i > 0 && j + 1 < AB_GRAPH_W && sg_ok(&g, i - 1) && sg_ok(&g, j + 1) && !sg_jump(&g, i) &&
+                !sg_jump(&g, j + 1)) {
+                int pr = g.row[i - 1], nr = g.row[j + 1], r = g.row[i];
+                int kind = pr > r && nr > r ? SE_HIGH : pr < r && nr < r ? SE_LOW : -1;
+                if (kind >= 0) {
+                    abn best = abn_zero();
+                    int at = i;
+                    for (int m = i; m <= j; m++) {      /* the extreme sample, the leftmost on a tie */
+                        abn mx;
+                        if (graph_sample(c, m, &mx, &v, true, true) != ABN_OK) continue;
+                        if (m == i || (kind == SE_HIGH ? abn_cmp(&v.re, &best) > 0 : abn_cmp(&v.re, &best) < 0))
+                            best = v.re, at = m;
+                    }
+                    sg_x(&g, at, s1);
+                    say_num(&best, &g.uy, s2, sizeof s2);
+                    SAY_EVENT(kind, at, at, s1, s2);
+                    if (tfirst < 0) tfirst = at, snprintf(tfx, sizeof tfx, "%s", s1);
+                    snprintf(tlx, sizeof tlx, "%s", s1);
+                    char *ref = kind == SE_HIGH ? hy : ly;
+                    bool *same = kind == SE_HIGH ? &hsame : &lsame;
+                    if (!ref[0]) snprintf(ref, 32, "%s", s2);
+                    else if (strcmp(ref, s2)) *same = false;
+                    /* #13501: a turn said at y 0 with no meeting beside its segment touches the axis there */
+                    bool met = false;
+                    for (int m = i - 1; m <= j + 1; m++) met = met || sg_zero(&g, m) || (m < j + 1 && sg_cross(&g, m) >= 0);
+                    if (!met && !strcmp(s2, ZERO) && nm < AB_GRAPH_W) {
+                        mcol[nm] = (int16_t)at, mlo[nm] = (int16_t)(i - 1), mhi[nm] = (int16_t)(j + 1);
+                        nm++;
+                    }
+                }
+            }
+        }
+        /* #13501: a sample beside a gap said at y 0, with no meeting beside it, meets the axis there */
+        if (sg_ok(&g, i) && !sg_zero(&g, i) && ((i > 0 && !sg_ok(&g, i - 1)) || (i + 1 < AB_GRAPH_W && !sg_ok(&g, i + 1)))) {
+            abn mx;
+            bool met = sg_zero(&g, i - 1) || sg_zero(&g, i + 1) || sg_cross(&g, i - 1) >= 0 || sg_cross(&g, i) >= 0;
+            for (int q = 0; q < nm && !met; q++) met = mlo[q] <= i + 1 && mhi[q] >= i - 1;
+            if (!met && graph_sample(c, i, &mx, &v, true, true) == ABN_OK) {
+                say_num(&v.re, &g.uy, s2, sizeof s2);
+                if (!strcmp(s2, ZERO) && nm < AB_GRAPH_W) {
+                    mcol[nm] = mlo[nm] = mhi[nm] = (int16_t)i;
+                    nm++;
+                }
+            }
+        }
+    }
+#undef SAY_EVENT
+    /* rule 4's zero at x = 0: f(0) exactly 0, with no meeting covering ycol - 1 or ycol */
+    int at0 = -1;
+    if (ycol >= 0 && f0_ok && abn_is_zero(&f0)) {
+        bool have = sg_zero(&g, ycol - 1) || sg_zero(&g, ycol);
+        for (int q = 0; q < nm && !have; q++) have = mlo[q] <= ycol && mhi[q] >= ycol - 1;
+        if (!have) {
+            at0 = 0;
+            while (at0 < nm && mcol[at0] < ycol) at0++;
+            for (int q = nm; q > at0; q--) mcol[q] = mcol[q - 1];
+            mcol[at0] = -2;                     /* (said "0") */
+            nm++;
+        }
+    }
+    /* 3: the axes */
+    char m[5][32];
+    int list = nm <= 4 ? nm : 2;
+    for (int q = 0; q < list; q++) {
+        int col = nm <= 4 ? mcol[q] : (q == 0 ? mcol[0] : mcol[nm - 1]);
+        if (col == -2) snprintf(m[q], sizeof m[q], "%s", ZERO);
+        else sg_x(&g, col, m[q]);
+    }
+    if (zr) {
+        sg_x(&g, zfirst, s1);
+        sg_x(&g, zlast, s2);
+        if (zr == 1) {
+            say_cat(&b, " Lies on the x axis from x near ", s1, " to ", s2);
+        } else {
+            char n[16];
+            snprintf(n, sizeof n, "%d", zr);
+            say_cat(&b, " Lies on the x axis in ", n, " stretches, from x near ", s1);
+            say_cat(&b, " to ", s2, NULL, NULL);
+        }
+    }
+    if (nm) {
+        say_cat(&b, zr ? "; meets it" : " Meets the x axis", NULL, NULL, NULL);
+        if (nm == 1) say_cat(&b, " near ", m[0], NULL, NULL);
+        else if (nm == 2) say_cat(&b, " near ", m[0], " and ", m[1]);
+        else if (nm == 3) say_cat(&b, " near ", m[0], ", ", m[1]), say_cat(&b, " and ", m[2], NULL, NULL);
+        else if (nm == 4) say_cat(&b, " near ", m[0], ", ", m[1]), say_cat(&b, ", ", m[2], " and ", m[3]);
+        else {
+            char n[16];
+            snprintf(n, sizeof n, " %d times", nm);
+            say_cat(&b, n, ", from x near ", m[0], " to "), say_cat(&b, m[1], NULL, NULL, NULL);
+        }
+    } else if (!zr) {
+        say_cat(&b, " Doesn't meet the x axis", NULL, NULL, NULL);
+    }
+    if (ycol >= 0) {
+        if (f0_ok) say_num(&f0, &g.uy, s1, sizeof s1), say_cat(&b, "; the y axis near ", s1, NULL, NULL);
+        else say_cat(&b, "; no value at x 0", NULL, NULL, NULL);
+    }
+    say_cat(&b, ".", NULL, NULL, NULL);
+    /* 4: the shape. Rule 10: past four events, a summary. */
+    if (ne > SAY_NARRATE) {
+        char n[16];
+        int nt = cnt[SE_HIGH] + cnt[SE_LOW];
+        if (nt == 1) {
+            say_cat(&b, " Turns once, near x ", tfx, NULL, NULL);
+        } else if (nt > 1) {
+            snprintf(n, sizeof n, "%d", nt);
+            say_cat(&b, " Turns ", n, " times, from x near ", tfx);
+            say_cat(&b, " to ", tlx, NULL, NULL);
+        }
+        if (nt) {
+            if (cnt[SE_HIGH] && hsame) say_cat(&b, ", highs near y ", hy, NULL, NULL);
+            if (cnt[SE_LOW] && lsame) say_cat(&b, ", lows near y ", ly, NULL, NULL);
+            say_cat(&b, ".", NULL, NULL, NULL);
+        }
+        static const char *const SUM[4][2] = {{" Leaves the window", ""}, {" Passes through it", ""},
+                                              {" Jumps", ""}, {" No values in", ""}};
+        int k4[4] = {cnt[SE_LTOP] + cnt[SE_LBOT], cnt[SE_PUP] + cnt[SE_PDOWN], cnt[SE_JUMP], cnt[SE_GAP]};
+        for (int q = 0; q < 4; q++) {
+            if (!k4[q]) continue;
+            if (q == 3) snprintf(n, sizeof n, k4[q] == 1 ? " one place." : " %d places.", k4[q]);
+            else snprintf(n, sizeof n, k4[q] == 1 ? " once." : " %d times.", k4[q]);
+            say_cat(&b, SUM[q][0], n, NULL, NULL);
+        }
+        return b.n;
+    }
+    /* rules 8 and 9: the narrative. Each event's columns: the stretch before it ends at lc, the one after starts at
+       rc; the direction it implies before (bd) and after (ad) it: 1 rises, -1 falls, 0 none. */
+    int lc[SAY_NARRATE], rc[SAY_NARRATE], bd[SAY_NARRATE], ad[SAY_NARRATE];
+    for (int e = 0; e < ne; e++) {
+        const say_event *x = &ev[e];
+        lc[e] = x->at - 1, rc[e] = x->at, bd[e] = ad[e] = 0;
+        switch (x->kind) {
+        case SE_HIGH: lc[e] = x->at, bd[e] = 1, ad[e] = -1; break;
+        case SE_LOW: lc[e] = x->at, bd[e] = -1, ad[e] = 1; break;
+        case SE_LTOP: lc[e] = x->at, rc[e] = x->at + 1, bd[e] = 1; break;
+        case SE_LBOT: lc[e] = x->at, rc[e] = x->at + 1, bd[e] = -1; break;
+        case SE_ETOP: ad[e] = -1; break;
+        case SE_EBOT: ad[e] = 1; break;
+        case SE_GAP: rc[e] = x->to + 1; break;
+        default: break;
+        }
+    }
+    int np = 0, from = 0;
+    char ph[2 * SAY_NARRATE + 1][96];
+    for (int e = 0; e <= ne; e++) {
+        int to = e < ne ? lc[e] : AB_GRAPH_W - 1, f = -1, l = -1;
+        for (int i = from; i <= to; i++)
+            if (sg_state(&g, i) == SG_IN) {
+                if (f < 0) f = i;
+                l = i;
+            }
+        int dv = f >= 0 && l > f ? (g.row[l] < g.row[f] ? 1 : g.row[l] > g.row[f] ? -1 : 2) : 0;
+        if (ne == 0 && f >= 0 && l == f) dv = 2;
+        bool implied = e > 0 && e < ne && (dv == 1 || dv == -1) && ad[e - 1] == dv && bd[e] == dv;
+        const char *d = !dv ? NULL : dv == 1 ? "rises" : dv == -1 ? "falls" : "is level";
+        const say_event *x = e < ne ? &ev[e] : NULL;
+        if (x && (x->kind == SE_HIGH || x->kind == SE_LOW) && d) {
+            snprintf(ph[np++], sizeof ph[0], "%s to a %s near x %s, y %s", d, x->kind == SE_HIGH ? "high" : "low", x->a, x->b);
+        } else {
+            if (d && !implied) snprintf(ph[np++], sizeof ph[0], "%s%s", d, ne == 0 ? " across the window" : "");
+            if (x) {
+                char *o = ph[np++];
+                int n = (int)sizeof ph[0];
+                switch (x->kind) {
+                case SE_HIGH: case SE_LOW: snprintf(o, n, "a %s near x %s, y %s", x->kind == SE_HIGH ? "high" : "low", x->a, x->b); break;
+                case SE_LTOP: snprintf(o, n, "leaves at the top near x %s", x->a); break;
+                case SE_LBOT: snprintf(o, n, "leaves at the bottom near x %s", x->a); break;
+                case SE_ETOP: snprintf(o, n, "enters at the top near x %s", x->a); break;
+                case SE_EBOT: snprintf(o, n, "enters at the bottom near x %s", x->a); break;
+                case SE_PUP: snprintf(o, n, "passes up through the window near x %s", x->a); break;
+                case SE_PDOWN: snprintf(o, n, "passes down through the window near x %s", x->a); break;
+                case SE_JUMP: snprintf(o, n, "jumps near x %s", x->a); break;
+                default:
+                    if (x->at == 0) snprintf(o, n, "no values from the left edge to x near %s", x->b);
+                    else if (x->to == AB_GRAPH_W - 1) snprintf(o, n, "no values from x near %s to the right edge", x->a);
+                    else snprintf(o, n, "no values from x near %s to %s", x->a, x->b);
+                    break;
+                }
+            }
+        }
+        if (x) from = rc[e];
+    }
+    if (np == 0) {
+        say_cat(&b, sg_state(&g, 0) == SG_UP ? " Above" : " Below", " the window throughout.", NULL, NULL);
+        return b.n;
+    }
+    for (int q = 0; q < np; q++) {
+        if (q == 0 && ph[0][0] >= 'a' && ph[0][0] <= 'z') ph[0][0] = (char)(ph[0][0] - 'a' + 'A');
+        say_cat(&b, q == 0 ? " " : q == np - 1 ? ", then " : ", ", ph[q], NULL, NULL);
+    }
+    say_cat(&b, ".", NULL, NULL, NULL);
+    return b.n;
+}
+
 /* ---- unit 040: the plot screen's cursor and zooms (50g guide p.12-47 to 12-49; the formulas pinned in
    work/040-vectors.txt's header) ---- */
 

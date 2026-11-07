@@ -566,6 +566,10 @@ bool ab_graph_column(ab_calc *c, int col, const abn *ymin, const abn *ymax, int 
 void ab_graph_axes(const ab_calc *c, const abn *ymin, const abn *ymax, int *xrow, int *ycol);
 /* Rule 1's form of equation e: 0 an expression, V + 1 for V=expr (V = 0..25), -1 L-R. */
 int ab_graph_form(const ab_calc *c, int e);
+/* Unit 085, the spoken graph (work/blueprint/spoken-graph.md, accepted by abacus #13489): the open graph in words for a
+   screen reader, from its 400 drawn samples, their rows and the value at x = 0: the name, the window, where it meets the
+   axes, and what it does left to right. Pure (rule 7); "" and 0 with no graph open. Returns the length. */
+int ab_graph_words(ab_calc *c, char *out, int size);
 
 /* Unit 025: the mode in force (33s or 35s): while a program line runs, the mode of the label that
    owns it; otherwise (the keyboard, lines before the first label) the calculator's. Every

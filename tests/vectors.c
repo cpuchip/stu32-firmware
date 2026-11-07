@@ -745,6 +745,12 @@ int vectors_run(const char *name, FILE *f)
         int want_error = 0;
         char *exps[64];
         int nexp = 0;
+        char *say = strstr(expect, "%GSAY=");   /* unit 085: the spoken graph's text, the rest of the line (spaces in it) */
+        if (say) {
+            *say = '\0';
+            say += 6;
+            for (size_t n = strlen(say); n > 0 && (say[n - 1] == ' ' || say[n - 1] == '\t'); n--) say[n - 1] = '\0';
+        }
         for (char *ex = strtok(expect, " \t"); ex; ex = strtok(NULL, " \t")) {
             if (strcmp(ex, "ERR") == 0) want_error = 1;
             else if (nexp < 64) exps[nexp++] = ex;
@@ -753,6 +759,17 @@ int vectors_run(const char *name, FILE *f)
         if (!vec_ok) {
             if (want_error) printf("FAIL %s: expected an error, none returned\n", id);
             else printf("FAIL %s: %d operation(s) returned an error\n", id, op_errors);
+        }
+        if (say) {                              /* unit 085: first, so the expectations after it see the state after the call */
+            static char words[1024];
+            int n = ab_graph_words(&c, words, sizeof words);
+            checks++;
+            if (n == (int)strlen(words) && strcmp(words, say) == 0) {
+                checks_ok++;
+            } else {
+                vec_ok = 0;
+                printf("FAIL %s: expected %%GSAY=%s, got (%d) %s\n", id, say, n, words);
+            }
         }
         for (int k = 0; k < nexp; k++) {
             char *ex = exps[k];
