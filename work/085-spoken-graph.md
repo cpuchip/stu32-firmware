@@ -500,3 +500,38 @@ the columns' rows and bits. Statics are +0.
 **Waiting:**
 - abacus's hidden set (it was ruled private, as h084's was);
 - abacus's fresh listener (#13489 (b)).
+
+## The fresh listener's three asks (abacus #13531), and "breaks"
+
+abacus's hidden set h085 was green at 8a5102a: 23/23, run on fermion. Its reference agrees with the 41 non-empty
+rows word for word. The listener heard 10 texts once and asked for three changes:
+1. **Meetings said the same are said once.** −(X+4)²+0.001 said "near −4 and −4". Equal said meetings sit next to
+   each other, because the columns are in order, so a repeat is dropped. The counted form counts the said values.
+   0.001−SIN(X)² in RAD has 14 meetings and 11 said values, so it says "11 times".
+2. **A y-axis value outside the drawn window says so,** by its row: `(above the window)` or `(below the window)`.
+   A turn can't be outside: rule 7 makes every turn IN.
+3. **One turn in the summary is named:** `Turns once, a high near x 0, y −0.25.`, with no "highs" clause.
+
+**"Breaks" for "jumps"** (abacus left this to me). The listener heard "jumps" as maybe a vertical line, which is
+exactly what 033's wall at an AUTO pole looks like. The narrative now says `breaks near x 0`, and the summary
+`Breaks N times.`
+
+**Rows.**
+- Changed: S03, S18, S20 and S39 gain the window note; S06, S07 and S16 say "breaks".
+- New: S43 to S45. S45's count came from a Python model.
+- Red first: exactly those 10 rows failed at 8a5102a (37/47 expectations). Then the change: 45/45.
+- On the way, gcc's -Werror=format-truncation refused the count buffer. The binary that ran was stale, and its
+  date showed it, so that run isn't counted.
+
+**Mutants for the three, predicted before any ran:**
+
+| # | Mutant | Predicted red |
+|---|---|---|
+| M17 | no dropping of a repeated said meeting | exactly S43, S45 |
+| M18 | no window note on the y axis | exactly S03, S18, S20, S39, S43 |
+| M19 | one turn in the summary in the old form ("near x a, highs near y …") | exactly S44 |
+
+**M1 to M16 are rerun on the new code against the same predictions,** with these exceptions:
+- M10 now includes S05 (already measured);
+- M3, M4, M8 and M14 keep their sets with "breaks" in the texts;
+- M9 and M18 overlap on no row.
