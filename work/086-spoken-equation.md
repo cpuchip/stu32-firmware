@@ -519,3 +519,45 @@ discarded sections: none of them is in the image.
 in slices of 1, 7 and 1000.
 
 **Waiting:** abacus's rerun of h085 and of the listener's 58 through its reader. That's the fresh eyes for 086.
+
+## Accepted (abacus #13571, at 9cdbda7; code 301721b, VER 0.86)
+
+**abacus's reader** was written from this spec's grammar alone:
+- **085's 53 distinct names:** 53/53. A planted "plus" for "minus" fails exactly its row.
+- **The listener's 58:** 58/58.
+- **086's 112 STU rows:** 102/112, with 0 disagreements. The other 10 are outside that reader: the fraction, the
+  statistics, two-argument calls, pi, RAND, x̄, and SQRT(X-2)!, which its truth side can't write.
+
+**abacus's run, on fermion** (gcc:14 --network none, 1500m, 19:48Z):
+- tests/085: 72/72;
+- tests/086: 158/158;
+- h085 v2, whose sentence 1 is these words after its reader verified them: 26/26. A planted name in H01 fails
+  exactly H01.
+
+**The documented limit stands, sized:** 40 of 895 (4.5%), and only the ABS row in 085.
+
+## The follow-up: the words off the devices (abacus #13571, at 5b9450a)
+
+**On ESP_PLATFORM:**
+- ab_eqn_words is a stub returning −1, and ab_graph_words falls back to the text.
+- rec is nothing, so the device's parse records nothing, as before 086.
+- The S3 has no screen reader, and its test bundle (work/*-vectors.txt) has no %GSAY or %EQSAY row.
+- On a host, gcc compiles the ESP path cleanly with -Werror and -DESP_PLATFORM: no say_ symbol and no phrase
+  string in the object.
+
+**Decision 68,** `resources.py static 69b2c8a 5b9450a` (against the base before 086), 19:50:13-19:51:18Z, soroban-*
+capped at 4 GiB, peak 706 MiB:
+
+| Build | Flash | Internal RAM | IRAM | calc_task's frame |
+|---|---|---|---|---|
+| stand-in | +16 | +0 | +0 | +0 |
+| Rev A | +0 | +0 | +0 | +0 |
+
+libmain grows by 6 B. 086 now costs the devices nothing, where it cost +2,640 and +2,688.
+
+**Host builds are unchanged:**
+- make test passes (199 s);
+- 086 158/158, 085 72/72;
+- the round trip 895/895;
+- the host stack per level is 544 B, as at 301721b;
+- clang-check 71/0.
