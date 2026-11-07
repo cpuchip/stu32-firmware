@@ -447,3 +447,75 @@ counts as a failure. The runner reports 086's red rows, 085's red rows, and whet
 | N10 | the fraction without its prefix | at least R10 | none | fails |
 | N11 | XROOT's arguments swapped | at least R15 | none | fails |
 | N12 | "equals" not closing a side (the call before it closed) | exactly R18 | none | passes |
+
+## The build's results (301721b, 2026-11-07 19:2x-19:4xZ)
+
+**Mutants N1 to N12** (predictions at 69b2c8a; the runner rebuilt vectors and eqn_say_test per plant):
+
+| # | 086 red | 085 red | RT | As predicted? |
+|---|---|---|---|---|
+| N1 | E11 R22 | H12 | fails (31) | yes |
+| N2 | F09 R23 | none | fails (33) | yes |
+| N3 | A03 E01 E15 E18 E19 F04 F14 K03 R04 | H05 H26 S19 S45 | passes | yes |
+| N4 | A01 A02 A04 A05 E11 E14 E20 E21 E23 E43 F13 K01 K02 M22 | H10 H11 H12 H21 S28 S36 S40 S41 | fails (128) | **no: R17 isn't red** |
+| N5 | A02 A04 A05 E11 E14 E43 K02 K04 | H12 H21 S28 | passes | **no: E20 and E23 aren't red** |
+| N5b | A01 K01 R06 | none | passes | **no: "exactly A01" missed K01 and R06** |
+| N6 | R13 | none | fails (51) | yes |
+| N7 | F15 M02 M16 M17 R14 | none | fails (14) | yes, at the second plant |
+| N8 | E06 E14 E41 E52 F13 M01 M02 M03 M18 M22 M26 M31 R04 R13 R14 R19 R20 R21 | H03 H21 S33 S39 S43 | fails (150) | yes |
+| N9 | E08 E38 F08 M17 O01-O19 | S22 S24 | fails (36) | yes |
+| N10 | R10 | none | passes | **no: I predicted the round trip fails** |
+| N11 | M26 R15 | none | fails (3) | yes |
+| N12 | R18 | none | passes | yes |
+
+**What the misses mean.** Each mutant was caught by the rows; four predictions were wrong.
+- **N4 and R17.** Said bare, COS(X) as LOG's argument is followed by more, so it closes itself ("the quantity the
+  cosine of X end quantity"). The words are the same as the grouped form, so the mutant is equivalent on that row.
+- **N5 and E20, E23.** A lone SQRT(…) has nothing after it, so a closed and an unclosed call say the same.
+- **N5b and K01, R06.** K01 is the same form as A01. R06 is a two-argument call ending in a group before a postfix,
+  the same rule. I counted one row of the class instead of the class.
+- **N10 and the round trip.** The corpus has no typed fraction, so only R10 sees it.
+- **N7's first plant** (`model == model`) didn't build under -Werror, which counts as a failure. Re-planted as
+  `model > 0`, it went as predicted.
+
+**The device (Decision 68,** `resources.py static 69b2c8a 301721b`, 19:39:54-19:42:04Z, soroban-* capped at 4 GiB,
+peak 718 MiB sampled each second):
+
+| Build | Flash (the .bin) | Internal RAM | IRAM | calc_task's frame |
+|---|---|---|---|---|
+| stand-in | +2,640 | +0 | +0 | +0 |
+| Rev A | +2,688 | +0 | +0 | +0 |
+
+**What the flash is.** The link maps say ab_eqn_words, say_say, SAY_NAMES and ab_graph_words are all in the
+discarded sections: none of them is in the image.
+- **The recorder's hooks in the parser,** about 0.7 KB, run on the device in every evaluation: rec, and the calls in
+  parse_post, binop, parse_number and the rest.
+- **The phrase strings, about 1.95 KB.** They share eqn.c's merged string section with strings the device uses, so
+  the linker keeps them, though their code is gone.
+- The map's per-section sums don't add to the .bin's delta exactly, because of the string merging; the .bin is the
+  number.
+- **The strings could go** by putting the words under `#ifndef ESP_PLATFORM` (as eqn_depth_peak is), with the
+  on-chip runner's %GSAY and %EQSAY guarded. That's offered, not done.
+
+**The parser's stack** (host, tests/eqn_stack_fuzz.py over 2,003 equations, built at the base and at 301721b):
+
+| | Base | 301721b |
+|---|---|---|
+| A level of "(" | 672 B | 544 B |
+| A level of SIN( | 672 B | 544 B |
+| A level of X^( | 622 B | 523 B |
+| Worst per unit | 118 B | 101 B |
+
+- **The most is 21,736 B** at 301721b (24,280 B at the base), with 0 over the bound.
+- **Why it fell:** binop is no longer inlined into parse_mul and parse_add, so its frame is live only during an
+  operation.
+- **This is a host proxy.** The S3's own per-level numbers (047's board measure) weren't rerun.
+- **The new frames:** ab_eqn_words is 8,112 B (its record, on the host's stack), and ab_graph_words 7,056 B (its
+  name buffer, 1 KB more). Neither runs on the device.
+
+**clang-check:** 71 files, 0 failing; tests/eqn_say_test.c is the 71st.
+
+**make test** passes (205 s, 402 MB peak). 086 passes 158/158 plain, with save and load, under the sanitizers, and
+in slices of 1, 7 and 1000.
+
+**Waiting:** abacus's rerun of h085 and of the listener's 58 through its reader. That's the fresh eyes for 086.
