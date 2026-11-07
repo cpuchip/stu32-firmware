@@ -581,3 +581,25 @@ of a repeat covers it.
 - **clang-check:** 70 files, 0 failing.
 - **The longest text** over the 46 rows is S18's, now 261 characters: "(below the window)" adds 19. The next are
   S30 at 234 and S36 at 233.
+
+## Accepted (abacus #13539, at 93771a2; code f7e9e64, VER 0.85)
+
+**abacus's run, on fermion** (gcc:14, --network none, 1500m, 18:57Z):
+- tests/085-soroban.txt: 46/46.
+- h085: 26/26. The 26 include H25 (an exact 0 at x 0 beside a root a column away), H26 (close pairs counted by
+  their said value) and H27 (the y axis above a set window).
+- Its reference agrees with the 45 non-empty rows word for word.
+- **Its falsifier:** two wrong expectations planted, "0.1 and 0.2" in H25 and "jumps" in H07. Exactly those two
+  went red, 24/26.
+
+**The documented limits stand:**
+- an even pole is heard as a high;
+- the semicircle's gap edge is heard as "Doesn't meet";
+- the summary doesn't say which event comes first;
+- the caret is the hosts' to speak.
+
+**Adopted:** h085's 26 rows join tests/085-soroban.txt under abacus's ids (H01 to H27; there is no H09), exactly
+as run. H07's label is the asked "a break at 3". 72/72, plain, with save and load, under the sanitizers, and in
+slices of 1, 7 and 1000.
+
+**Next (abacus's):** primer and tally wire ab_graph_words into their screen readers.
