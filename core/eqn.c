@@ -149,6 +149,10 @@ struct say_rec {
     bool over;
 };
 
+#ifdef ESP_PLATFORM
+/* (abacus #13571: the devices have no screen reader, so their parse records nothing and has no words) */
+#define rec(p, kind, id, op, at, len, n) ((void)0)
+#else
 static void rec(parser *p, int kind, int id, int op, int at, int len, int n)
 {
     if (!p->rec || p->st != ABN_OK) return;
@@ -161,6 +165,7 @@ static void rec(parser *p, int kind, int id, int op, int at, int len, int n)
     d->kind = (uint8_t)kind, d->op = (uint8_t)op, d->n = (uint8_t)n;
     d->id = (int16_t)id, d->at = (int16_t)at, d->len = (int16_t)len;
 }
+#endif
 
 /* Unit 047 (abacus #5153): the parse's recursion, bounded. A group "(", a vector "[" or a function's argument list
    costs 8 units (about 1,010 bytes of stack on the S3: parse_add down to parse_prim again), a step of STU's power
@@ -933,7 +938,16 @@ int eqn_name_before(const char *s, int pos)
     return best;
 }
 
-/* ---- unit 086: the spoken equation (work/blueprint/spoken-equation.md, revision 3; abacus #13546, #13551, #13555,
+#ifdef ESP_PLATFORM
+/* abacus #13571: on the devices, no words, so none of their strings in flash; ab_graph_words falls back to the text */
+int ab_eqn_words(ab_calc *c, const char *text, int model, char *out, int size)
+{
+    (void)c, (void)text, (void)model;
+    if (size > 0) out[0] = '\0';
+    return -1;
+}
+#else
+/* ---- unit 086: the spoken equation (work/086-spoken-equation.md, revision 3; abacus #13546, #13551, #13555,
    #13557). The parse records its own operations (rec), the record is rebuilt as a tree, and the tree is said in
    order: groups ("the quantity ... end quantity") only where the grammar or a listener needs them (rules 2 and 3),
    exponents that end themselves (rule 4), unary minus as "negative" ---- */
@@ -1244,3 +1258,4 @@ int ab_eqn_words(ab_calc *c, const char *text, int model, char *out, int size)
     }
     return w.n;
 }
+#endif
