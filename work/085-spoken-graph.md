@@ -427,3 +427,76 @@ counts as a failure, not a pass. The runner prints the red vectors of tests/085-
   values kept, which the build doesn't keep. S28 isn't its row.
 - **M13** sets the variable directly. eval_at restores the variable whether or not it is pure, so an impure
   evaluation can't show in X.
+
+## The build (c27e146 the code, a94807d a fix from unit 084), measured 2026-11-07 18:0x-18:28Z
+
+**What was built:**
+- core/calc.c's `ab_graph_words` follows rules 1 to 10 and #13501.
+- `%GSAY` is in tests/vectors.c.
+- tests/085-soroban.txt has 42 rows and runs in make test, plain and with save and load.
+- It is in KEYV, so it also runs under the sanitizers and in slices of 1, 7 and 1000.
+- VER is 0.85.
+
+**Red first:**
+- Against the stub that wrote "", 1 of the 37 rows then written passed: S37, the empty text.
+- With both touch rules planted out, S38, S39, S41 and S42 went red and S40 didn't move. The plant's build
+  succeeded.
+
+**Green:**
+- 42/42 rows, plain, with save and load, under the sanitizers, and in each slice mode.
+- make test exits 0 (141 s, 402 MB peak, on lepton).
+
+**The longest text** over the 42 rows is 242 characters, S18. The shortest non-empty one is 78.
+
+**Mutants** (the predictions are in the section above, committed first at ff0c9c9):
+- **15 of 16 held as predicted.** That includes every "exactly" set except M10.
+  - M1: 33 red.
+  - M2: 15.
+  - M3: S06 S07 S16.
+  - M4: S06.
+  - M5: S18 S27.
+  - M6: 19.
+  - M7: 29.
+  - M8: 13.
+  - M9: exactly its 13.
+  - M11: S19.
+  - M12: S25.
+  - M13: S31.
+  - M14: 41.
+  - M15: S38 S39 S42.
+  - M16: S41.
+- **M10 missed its prediction.** I predicted S18, S21 and S39. S05 went red too. In S05 the stretch from the low to
+  leaving at the top is implied twice: a low implies rising after it, and leaving at the top implies rising before
+  it. I didn't count that stretch. The rows caught the mutant; it was my prediction that missed a case.
+- **M15 and M16's first plants didn't build.** `nm < 0` made gcc see `mcol[-1]` under -Werror=array-bounds, and a
+  failed build counts as a failure. Re-planted to compare against a string that is never said, they went as
+  predicted.
+
+**The device (Decision 68,** `resources.py static b9bbce6 c27e146`, 18:24-18:27Z, in a soroban-* container capped at
+4 GiB, peaking at 918 MiB sampled every 5 s):
+
+| Build | Flash | Internal RAM | IRAM |
+|---|---|---|---|
+| stand-in | +64 | +0 | +0 |
+| Rev A | +80 | +0 | +0 |
+
+- calc_task's frame is unchanged.
+- libmain grows by 13 bytes and libesp_app_format by 64, which is the version string and the app header.
+  `ab_graph_words` isn't linked into the device image, because the app never calls it.
+
+**The host's stack:** ab_graph_words's frame is 5,904 B (x86-64, gcc -O2, -fstack-usage). It holds the 400 columns'
+rows and bits, the meeting spans (3 × 401 int16), and the phrase buffers. Its callees, graph_sample and the
+evaluator, sit on top of that. The blueprint's (b) said "four samples": the build keeps one sample at a time, plus
+the columns' rows and bits. Statics are +0.
+
+**clang-check:** 70 files, 0 failing, after a94807d.
+- Before it, the check failed at main on tests/expr_test.c:1066. That line has been there since unit 084's
+  97357b9.
+- clang -Wstring-concatenation refuses `"X\xc3\xb7" "2"` written as two literals side by side. They're split so
+  the 2 isn't read into the escape.
+- 084's record carries no clang-check result, so the check wasn't run at 084. It is now in parentheses, and
+  expr_test still passes 368/368.
+
+**Waiting:**
+- abacus's hidden set (it was ruled private, as h084's was);
+- abacus's fresh listener (#13489 (b)).
