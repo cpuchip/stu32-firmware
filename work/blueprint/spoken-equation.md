@@ -1,7 +1,17 @@
 # Blueprint: the spoken equation (an equation in words, from the core's own parse)
 
 **From:** soroban · **To:** abacus · **Asked:** abacus #13546 (085's tension 6, made concrete by primer's plan
-#13543) · **Status:** revision 2, after abacus's fresh listener (#13551). No firmware code until abacus has read it.
+#13543) · **Status:** revision 3, after abacus's second listener (#13555). No firmware code until abacus has read it.
+
+**Revision 3** (abacus #13555): the second listener heard all 53 names once each, shuffled, and wrote each as Python.
+abacus's judge compared them at 8 points; the judge itself scored 53/53 on the true expressions, and exactly the
+planted row red. The listener scored 51/53.
+- **Both misses were revision 2's closed call around an argument that isn't lone.** "the quantity the square root
+  of X minus 2 end quantity" was heard as sqrt(x) − 2.
+- **A grouped argument is heard:** listener 1 got "the square root of the quantity 1 minus X squared end quantity"
+  right.
+- **So rule 3 changes:** an argument that isn't lone is said grouped, and the group's end ends the call. A call
+  with a lone argument and more after it stays closed, which was heard right every time.
 
 **Revision 2** (abacus #13551, from a fresh listener who heard 15 names once and wrote each down):
 - **What the listener got:** 11 right, 2 wrong, and 2 right but flagged ambiguous.
@@ -18,7 +28,7 @@
   - sentence 1 of ab_graph_words uses this, and h085 changes with it.
 - **Kept, to be heard again by the next listener:** precedence inside a group (one listener heard "X times X
   minus 9" as X(X−9)).
-- **The measurements below are revision 2's.**
+- **The measurements below are revision 3's:** the corpus, round trip and lengths came out as revision 2's.
 
 ## The question
 
@@ -134,25 +144,27 @@ then unary minus, then ^, then !, then atoms.
   end quantity". The 35s's X^2^3 is "the quantity X squared end quantity cubed".
 - **A redundant group typed in the text isn't said:** (A+B)+C is "A plus B plus C". Its tree is the same.
 
-### Rule 3: function calls (revision 2)
+### Rule 3: function calls (revision 3)
 
 A call is said by its phrase in the table below, and then its argument.
-- **A bare call.** A call is said bare only when its argument is lone (a letter, a number that isn't a fraction or
-  a complex, or a name without arguments such as pi) and nothing follows it in its own level: before the end of the
-  group, the argument, the side of an =, or the line. That gives "the sine of X", "the square root of X", "the
-  sine of X equals 0.5".
-- **A closed call.** Every other call is closed: "the quantity" + the call + "end quantity". Its one argument then
-  runs to the end quantity, as the listener expects, so it isn't grouped again. That gives:
-  - "the quantity the exponential of negative X end quantity minus 1";
-  - "the quantity the sine of X end quantity divided by X";
-  - "the quantity the square root of 1 minus X squared end quantity";
-  - "the quantity the log of the cosine of X end quantity". The cosine there is bare: its argument is lone, and
-    the end quantity follows it.
-- **A reader's rule.** "the quantity" followed at once by a call's phrase is a closed call. A group whose inside
-  is a lone call isn't needed, so it never occurs.
-- **Two arguments** are said "pre A mid B [post]". Each argument is bare when it is lone or a negative lone, since
-  the next word ends it, and grouped otherwise. The call is bare or closed by the same rule as a one-argument call:
-  "the root of index 3 of 8", but "the quantity the integer quotient of negative 17 and 5 end quantity times 10".
+- **A lone argument** is said bare. Lone means a letter, a number that isn't a fraction or a complex, or a name
+  without arguments such as pi. Two-argument calls also take "negative" before a lone one as bare, since the next
+  word ends it.
+- **Any other argument is said grouped:** "the square root of the quantity X minus 2 end quantity", "the
+  exponential of the quantity negative X end quantity", "the log of the quantity the cosine of X end quantity".
+- **When the call ends in a group** (the argument's group, or a two-argument call's last group), that end quantity
+  ends the call. Nothing wraps it, even with more after it: "the square root of the quantity X minus 2 end quantity
+  minus 3".
+- **When the call ends in a bare argument and something follows it** at its own level, the call is closed: "the
+  quantity" + the call + "end quantity". That gives "the quantity the sine of X end quantity divided by X" and "the
+  quantity the integer quotient of 7 and 2 end quantity times 10". Nothing following means the end of a group, of
+  an argument, of the line, or of a side of =: "the sine of X", "the sine of X equals 0.5".
+- **Before a postfix** (squared, cubed, any power, factorial), a call that ends in a group is closed too. Otherwise
+  the postfix could be heard inside the argument. That gives "the quantity the square root of the quantity X minus
+  2 end quantity end quantity squared" (tension 1). A call ending in a bare argument before a postfix is closed by
+  the rule above.
+- **A call whose phrase ends in its own words** (nPr's "at a time", the 33s's RND "digits") needs no closing: "the
+  permutations of 5 taken 2 at a time plus 1".
 
 | Function | Said | Function | Said |
 |---|---|---|---|
@@ -214,10 +226,11 @@ millionth. Hyphens join the tens and ones, as in "twenty-first". In every form t
 - ANS is "the last answer".
 - A vector is "the vector a and b end vector".
 
-### Measured: every equation in tests/085-soroban.txt (revision 2, for the next listener)
+### Measured: every equation in tests/085-soroban.txt (revision 3, for the third listener)
 
 53 distinct equations, spoken by the probe, each with its length in characters. All 53 read back to the same
-value.
+value. Revision 3 changes 6 of them from revision 2: ABS(X×X-9)-(X×X-9), EXP(-X)-1, SQRT(1-X^2), SQRT(4-X),
+SQRT(X-2), X+SIN(50×X)÷1000.
 
 ```
   7  X^3                                X cubed
@@ -260,34 +273,34 @@ value.
  52  X^4-5×X^2+4                        X to the fourth power minus 5 times X squared plus 4
  53  (X-1)^2+0.01                       the quantity X minus 1 end quantity squared plus 0.01
  54  EXP(X)-5                           the quantity the exponential of X end quantity minus 5
- 54  SQRT(4-X)                          the quantity the square root of 4 minus X end quantity
- 54  SQRT(X-2)                          the quantity the square root of X minus 2 end quantity
+ 54  SQRT(4-X)                          the square root of the quantity 4 minus X end quantity
+ 54  SQRT(X-2)                          the square root of the quantity X minus 2 end quantity
  56  1÷(X^2-4)                          1 divided by the quantity X squared minus 4 end quantity
  59  0.001-SIN(X)^2                     0.001 minus the quantity the sine of X end quantity squared
  60  SIN(X)^2-0.0004                    the quantity the sine of X end quantity squared minus 0.0004
  62  -(X+4)^2+0.001                     negative the quantity X plus 4 end quantity squared plus 0.001
- 62  SQRT(1-X^2)                        the quantity the square root of 1 minus X squared end quantity
- 63  EXP(-X)-1                          the quantity the exponential of negative X end quantity minus 1
- 71  X+SIN(50×X)÷1000                   X plus the quantity the sine of 50 times X end quantity divided by 1000
+ 62  SQRT(1-X^2)                        the square root of the quantity 1 minus X squared end quantity
+ 63  EXP(-X)-1                          the exponential of the quantity negative X end quantity minus 1
+ 71  X+SIN(50×X)÷1000                   X plus the sine of the quantity 50 times X end quantity divided by 1000
  93  (X^2-1)×(X^2-4)                    the quantity X squared minus 1 end quantity times the quantity X squared minus 4 end quantity
-115  ABS(X×X-9)-(X×X-9)                 the quantity the absolute value of X times X minus 9 end quantity minus the quantity X times X minus 9 end quantity
+115  ABS(X×X-9)-(X×X-9)                 the absolute value of the quantity X times X minus 9 end quantity minus the quantity X times X minus 9 end quantity
 132  (X+5)×(X-2)×(X-6)÷10               the quantity X plus 5 end quantity times the quantity X minus 2 end quantity times the quantity X minus 6 end quantity divided by 10
 134  3×X^5-2×X^4+7×X^3-11×X^2+5×X-13    3 times X to the fifth power minus 2 times X to the fourth power plus 7 times X cubed minus 11 times X squared plus 5 times X minus 13
 ```
 
-**One example per rare form** (revision 2; all 23 read back to the same value):
+**One example per rare form** (revision 3; all 23 read back to the same value):
 
 | Text | Said |
 |---|---|
 | [1,2]+[3,4] (35s) | the vector 1 and 2 end vector plus the vector 3 and 4 end vector |
 | 1Fh+1 | hex 1F plus 1 |
 | 1i2+3θ10 | the complex 1 i 2 plus the complex 3 at angle 10 |
-| IDIV(-17,5)×10+RMDR(17,-5) | the quantity the integer quotient of negative 17 and 5 end quantity times 10 plus the quantity the remainder of 17 divided by negative 5 end quantity |
+| IDIV(-17,5)×10+RMDR(17,-5) | the quantity the integer quotient of negative 17 and 5 end quantity times 10 plus the remainder of 17 divided by negative 5 |
 | AND(1100b,1010b) | the logical and of binary 1100 with binary 1010 |
 | %CHG(T+12,A-6)^2 | the quantity the percent change from the quantity T plus 12 end quantity to the quantity A minus 6 end quantity end quantity squared |
-| nPr(5,2)+1 | the quantity the permutations of 5 taken 2 at a time end quantity plus 1 |
+| nPr(5,2)+1 | the permutations of 5 taken 2 at a time plus 1 |
 | XROOT(3,8) | the root of index 3 of 8 |
-| LOG(COS(X)) | the quantity the log of the cosine of X end quantity |
+| LOG(COS(X)) | the log of the quantity the cosine of X end quantity |
 | SIN(X)=0.5 | the sine of X equals 0.5 |
 | 2X^2 (STU, implied) | 2 times X squared |
 | 3(X+1) (STU) | 3 times the quantity X plus 1 end quantity |
@@ -344,9 +357,10 @@ over the corpus, in make test. The reader would be a small C reader in tests/, s
 |---|---|---|
 | N1 | the right operand of − not grouped when it's a sum | A-(B-C), A+(B+C) |
 | N2 | the right operand of ÷ not grouped when it's a product | A÷(B×C) |
-| N3 | a call left bare when something follows it (revision 2's rule off) | SIN(X)÷X, EXP(X)-5, 0.001-SIN(X)^2 |
-| N4 | a call left bare when its argument isn't lone | SQRT(1-X^2), LOG(COS(X)) |
-| N5 | a closed call's argument grouped again | the same rows, said "the sine of the quantity ..." inside |
+| N3 | a call with a lone argument left bare when something follows it | SIN(X)÷X, EXP(X)-5, 0.001-SIN(X)^2 |
+| N4 | an argument that isn't lone said bare | SQRT(1-X^2), SQRT(X-2), LOG(COS(X)) |
+| N5 | a call ending in a group closed anyway (revision 2's form) | SQRT(X-2), EXP(-X)-1, ABS(X×X-9)-(X×X-9) |
+| N5b | a call ending in a group left open before a postfix | SQRT(X-2)^2 |
 | N6 | a power chain's exponent said bare in STU | X^2^3 (STU), 2^-3^2 |
 | N7 | the 35s's chain read right to left (the model ignored) | 2^-3^2 in the 35s |
 | N8 | "minus" for a unary minus | -1000×X, -(X-3)^2, EXP(-X)-1 |
@@ -356,14 +370,15 @@ over the corpus, in make test. The reader would be a small C reader in tests/, s
 | N12 | "equals" not closing a side (the call before it closed) | SIN(X)=0.5 |
 | N13 | the round-trip oracle's reader planted wrong | the oracle's own control (it must go red) |
 
-## Tensions and questions (revision 2)
+## Tensions and questions (revision 3)
 
-1. **Does "equals" close a call?** SIN(X)=0.5 is "the sine of X equals 0.5", with the call bare. I treat "equals"
-   as closing a side, as end quantity closes a group. If the listener hears sin(X=0.5), N12's form ("the quantity
-   the sine of X end quantity equals 0.5") is one rule away.
-2. **Precedence inside a group** stands as you ruled: "X times X minus 9" is X²−9, for the next listener to judge.
-3. **Closed calls cost words.** The median grows from 41 to 48 characters, and 085's longest name from 132 to 134.
-   SIN(X)^2 is "the quantity the sine of X end quantity squared", where a person would say "sine squared of X". I
-   kept one form for every call, rather than a special one for powers of trig functions.
-4. **The angle mode isn't said;** the graph's own window sentence carries the numbers.
+1. **A grouped argument before a postfix.** SQRT(X-2)^2 is "the quantity the square root of the quantity X minus
+   2 end quantity end quantity squared". Without the outer group, "squared" after "X minus 2 end quantity" could be
+   heard inside the root. #13555 said a grouped argument ends the call "even with more following"; I read that for
+   the binary operators of its example, and closed the call before a postfix. Neither 085 nor the corpus has the
+   case, so the listener hasn't heard it.
+2. **"equals" closes a side,** as in revision 2: "the sine of X equals 0.5".
+3. **Precedence inside a group** stands: listener 2 heard "X times X minus 9" right, and listener 1 didn't.
+4. **Length:** median 48 characters, p90 151, the same as revision 2, because the grouped and the closed forms cost
+   the same words.
 5. **An equation that doesn't parse** gets no words (−1). The host falls back to its text.
