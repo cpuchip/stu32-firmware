@@ -1063,7 +1063,7 @@ static int dcheck(const ab_val *s, const ab_val *l, const ab_val *r, const abn *
 
 static void diff_fuzz(void)
 {
-    static const char *const EXPRS[] = {"X", "X+1", "2\xc3\x97X", "-X", "X^2", "SIN(X)", "X-3", "1\xc3\xb7X", "X\xc3\xb7" "2",
+    static const char *const EXPRS[] = {"X", "X+1", "2\xc3\x97X", "-X", "X^2", "SIN(X)", "X-3", "1\xc3\xb7X", ("X\xc3\xb7" "2"),
                                         "-X^2+1", "(X+1)^2", "2^X", "X^X", "\xcf\x80\xc3\x97X", "LN(X^2+1)"};
     static const char *const EQS[][2] = {{"X+1", "2\xc3\x97X"}, {"X^2", "3"}, {"2\xc3\x97X+5", "11"}, {"SIN(X)", "X\xc3\xb7" "2"}};
     static const char *const NUMS[] = {"2", "3", "0.5", "2.25", "-3", "7", "1\xc3\xb7" "3", "3\xc3\xb7" "4", "-2\xc3\xb7" "3", "1E-20"};
