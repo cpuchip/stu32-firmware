@@ -6579,7 +6579,8 @@ int ab_graph_words(ab_calc *c, char *out, int size)
     int nm = 0, zr = 0, zfirst = -1, zlast = -1;
     say_event ev[SAY_NARRATE + 1];
     int ne = 0, cnt[SE_N] = {0}, tfirst = -1;
-    char tfx[32] = "", tlx[32] = "", hy[32] = "", ly[32] = "";
+    char tfx[32] = "", tlx[32] = "", tfy[32] = "", hy[32] = "", ly[32] = "";
+    int tkind = SE_HIGH;
     bool hsame = true, lsame = true;
 #define SAY_EVENT(k, col, last, xa, yb)                                                                      \
     do {                                                                                                     \
@@ -6654,7 +6655,11 @@ int ab_graph_words(ab_calc *c, char *out, int size)
                     sg_x(&g, at, s1);
                     say_num(&best, &g.uy, s2, sizeof s2);
                     SAY_EVENT(kind, at, at, s1, s2);
-                    if (tfirst < 0) tfirst = at, snprintf(tfx, sizeof tfx, "%s", s1);
+                    if (tfirst < 0) {
+                        tfirst = at, tkind = kind;
+                        snprintf(tfx, sizeof tfx, "%s", s1);
+                        snprintf(tfy, sizeof tfy, "%s", s2);
+                    }
                     snprintf(tlx, sizeof tlx, "%s", s1);
                     char *ref = kind == SE_HIGH ? hy : ly;
                     bool *same = kind == SE_HIGH ? &hsame : &lsame;
@@ -6693,19 +6698,26 @@ int ab_graph_words(ab_calc *c, char *out, int size)
         if (!have) {
             at0 = 0;
             while (at0 < nm && mcol[at0] < ycol) at0++;
-            for (int q = nm; q > at0; q--) mcol[q] = mcol[q - 1];
-            mcol[at0] = -2;                     /* (said "0") */
+            for (int q = nm; q > at0; q--) mcol[q] = mcol[q - 1], mlo[q] = mlo[q - 1], mhi[q] = mhi[q - 1];
+            mcol[at0] = -2, mlo[at0] = mhi[at0] = (int16_t)ycol;  /* (said "0") */
             nm++;
         }
     }
-    /* 3: the axes */
-    char m[5][32];
-    int list = nm <= 4 ? nm : 2;
-    for (int q = 0; q < list; q++) {
-        int col = nm <= 4 ? mcol[q] : (q == 0 ? mcol[0] : mcol[nm - 1]);
-        if (col == -2) snprintf(m[q], sizeof m[q], "%s", ZERO);
-        else sg_x(&g, col, m[q]);
+    /* 3: the axes. #13531 1: meetings said the same (next to each other, as columns are) are said once, and counted
+       once. */
+    char m[5][32], cur[32], last[32] = "";
+    int ns = 0;
+    bool exact0 = ycol >= 0 && f0_ok && abn_is_zero(&f0);
+    for (int q = 0; q < nm; q++) {          /* f(0) exactly 0: a meeting covering x 0 is said 0 */
+        if (mcol[q] == -2 || (exact0 && mlo[q] <= ycol && mhi[q] >= ycol - 1)) snprintf(cur, sizeof cur, "%s", ZERO);
+        else sg_x(&g, mcol[q], cur);
+        if (ns && !strcmp(cur, last)) continue;
+        if (ns < 4) snprintf(m[ns], sizeof m[ns], "%s", cur);
+        snprintf(last, sizeof last, "%s", cur);
+        ns++;
     }
+    if (ns > 4) snprintf(m[1], sizeof m[1], "%s", last);
+    nm = ns;
     if (zr) {
         sg_x(&g, zfirst, s1);
         sg_x(&g, zlast, s2);
@@ -6725,7 +6737,7 @@ int ab_graph_words(ab_calc *c, char *out, int size)
         else if (nm == 3) say_cat(&b, " near ", m[0], ", ", m[1]), say_cat(&b, " and ", m[2], NULL, NULL);
         else if (nm == 4) say_cat(&b, " near ", m[0], ", ", m[1]), say_cat(&b, ", ", m[2], " and ", m[3]);
         else {
-            char n[16];
+            char n[24];
             snprintf(n, sizeof n, " %d times", nm);
             say_cat(&b, n, ", from x near ", m[0], " to "), say_cat(&b, m[1], NULL, NULL, NULL);
         }
@@ -6733,7 +6745,11 @@ int ab_graph_words(ab_calc *c, char *out, int size)
         say_cat(&b, " Doesn't meet the x axis", NULL, NULL, NULL);
     }
     if (ycol >= 0) {
-        if (f0_ok) say_num(&f0, &g.uy, s1, sizeof s1), say_cat(&b, "; the y axis near ", s1, NULL, NULL);
+        if (f0_ok) {                            /* #13531 2: said outside the drawn window, it says so */
+            int r0 = ab_graph_row(&f0, &ymin, &ymax);
+            say_num(&f0, &g.uy, s1, sizeof s1);
+            say_cat(&b, "; the y axis near ", s1, r0 < 0 ? " (above the window)" : r0 >= AB_GRAPH_H ? " (below the window)" : "", NULL);
+        }
         else say_cat(&b, "; no value at x 0", NULL, NULL, NULL);
     }
     say_cat(&b, ".", NULL, NULL, NULL);
@@ -6741,20 +6757,21 @@ int ab_graph_words(ab_calc *c, char *out, int size)
     if (ne > SAY_NARRATE) {
         char n[16];
         int nt = cnt[SE_HIGH] + cnt[SE_LOW];
-        if (nt == 1) {
-            say_cat(&b, " Turns once, near x ", tfx, NULL, NULL);
+        if (nt == 1) {                          /* #13531 3: the one turn named */
+            say_cat(&b, " Turns once, a ", tkind == SE_HIGH ? "high" : "low", " near x ", tfx);
+            say_cat(&b, ", y ", tfy, ".", NULL);
         } else if (nt > 1) {
             snprintf(n, sizeof n, "%d", nt);
             say_cat(&b, " Turns ", n, " times, from x near ", tfx);
             say_cat(&b, " to ", tlx, NULL, NULL);
         }
-        if (nt) {
+        if (nt > 1) {
             if (cnt[SE_HIGH] && hsame) say_cat(&b, ", highs near y ", hy, NULL, NULL);
             if (cnt[SE_LOW] && lsame) say_cat(&b, ", lows near y ", ly, NULL, NULL);
             say_cat(&b, ".", NULL, NULL, NULL);
         }
         static const char *const SUM[4][2] = {{" Leaves the window", ""}, {" Passes through it", ""},
-                                              {" Jumps", ""}, {" No values in", ""}};
+                                              {" Breaks", ""}, {" No values in", ""}};
         int k4[4] = {cnt[SE_LTOP] + cnt[SE_LBOT], cnt[SE_PUP] + cnt[SE_PDOWN], cnt[SE_JUMP], cnt[SE_GAP]};
         for (int q = 0; q < 4; q++) {
             if (!k4[q]) continue;
@@ -6810,7 +6827,7 @@ int ab_graph_words(ab_calc *c, char *out, int size)
                 case SE_EBOT: snprintf(o, n, "enters at the bottom near x %s", x->a); break;
                 case SE_PUP: snprintf(o, n, "passes up through the window near x %s", x->a); break;
                 case SE_PDOWN: snprintf(o, n, "passes down through the window near x %s", x->a); break;
-                case SE_JUMP: snprintf(o, n, "jumps near x %s", x->a); break;
+                case SE_JUMP: snprintf(o, n, "breaks near x %s", x->a); break;
                 default:
                     if (x->at == 0) snprintf(o, n, "no values from the left edge to x near %s", x->b);
                     else if (x->to == AB_GRAPH_W - 1) snprintf(o, n, "no values from x near %s to the right edge", x->a);
