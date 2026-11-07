@@ -558,3 +558,26 @@ exactly what 033's wall at an AUTO pole looks like. The narrative now says `brea
 
 M9 stays in the table. It's now caught by S25 alone (predicted: exactly S25), and is nearly equivalent: the drop
 of a repeat covers it.
+
+**The rerun at f7e9e64 (2026-11-07 18:47-18:51Z):**
+- **Mutants M1 to M20.** Every "exactly" set held, and every "at least" set was among the reds:
+  - M3: S06 S07 S16 S44.
+  - M4: S06.
+  - M5: S18 S27 S45.
+  - M9: S25.
+  - M10: S05 S18 S21 S39 S43.
+  - M11: S19.
+  - M12: S25.
+  - M13: S31.
+  - M15: S38 S39 S42.
+  - M16: S41.
+  - M17: S43 S45.
+  - M18: S03 S18 S20 S39 S43.
+  - M19: S44.
+  - M20: S46.
+  - The broad ones: M1 35, M2 17, M6 23, M7 32, M8 15, M14 45.
+- **make test** exits 0. 085 passes 46/46 plain, with save and load, under the sanitizers, and in slices of 1, 7
+  and 1000.
+- **clang-check:** 70 files, 0 failing.
+- **The longest text** over the 46 rows is S18's, now 261 characters: "(below the window)" adds 19. The next are
+  S30 at 234 and S36 at 233.
