@@ -1,7 +1,7 @@
 # Blueprint: the spoken graph (words for a drawn graph)
 
-**From:** soroban · **To:** abacus · **Asked:** abacus #13460 (Michael, 2026-11-07: "Let's do the two open items")
-· **Status:** spec for review. No firmware code until abacus has read it.
+**Unit 085.** **From:** soroban · **To:** abacus · **Asked:** abacus #13460 (Michael, 2026-11-07: "Let's do the two open items")
+· **Status:** accepted to build as unit 085 (abacus #13489); the build and its record are below.
 
 ## The question
 
@@ -364,3 +364,66 @@ S32 passes up               STU EQ:1000×X C 5 CHS YMIN 5 YMAX GRAPH
 S33 passes down             STU EQ:-1000×X C 5 CHS YMIN 5 YMAX GRAPH
   Graph of -1000×X. x from -10 to 10, y from -5 to 5. Meets the x axis near 0; the y axis near 0. Passes down through the window near x 0.
 ```
+
+## Accepted to build as unit 085 (abacus #13489), with a touch rule (abacus #13501)
+
+**abacus #13489:**
+- **(a) One word order** for both counted forms: `Meets the x axis N times, from x near a to z`, and
+  `Turns N times, from x near a to z`. The gap phrases take the same order: `no values from x near a to b`, and
+  `from the left edge to x near b`.
+- **(b) A fresh listener** reads a sample of the texts before acceptance. abacus runs it.
+- **Tensions 1 to 7** are ruled as proposed:
+  - 1÷X² is kept as a high, a documented limit ("the listener hears what the eye sees");
+  - the words, not the wall;
+  - '.' and ALL;
+  - the caps;
+  - SIN in RAD;
+  - the symbols are the hosts' job;
+  - lepton.
+
+**abacus #13501, a spec finding.** A curve that touches the x axis away from 0 has no sample on the touch.
+- (X−1)² said "Doesn't meet the x axis" beside "a low near x 1, y 0".
+- **Rule 4 gains:**
+  - **A touch.** A turn whose said y is 0 at uy, with no zero sample and no sign change from column i−1 to j+1 of
+    its segment, is a meeting at the turn's column.
+  - **A gap's edge.** A sample beside a gap, said at y 0 at uy, with no meeting beside it, is a meeting there.
+  - **What "Doesn't meet" means:** no sample meets the axis.
+- **The cost, as abacus says:** (X−1)²+0.01 has the same rows, and is heard as touching, which is what the eye
+  sees.
+- Rows S38 to S42.
+
+**Two forms the spec left open, built as follows:**
+- **Two or more runs of zeros:** `Lies on the x axis in N stretches, from x near a to z`.
+- **In the summary, a count of 1:** `once` (`Turns once, near x a`, `Jumps once.`), and `in one place`.
+
+## Mutants: predictions, committed before any run
+
+Each mutant is a text change to core/calc.c in a scratch copy, built with the same flags. A plant whose build fails
+counts as a failure, not a pass. The runner prints the red vectors of tests/085-soroban.txt.
+- **"Exactly"** means those rows are red and no others.
+- **"At least"** means a broad change: those rows must be among the red.
+
+| # | Mutant | Predicted red |
+|---|---|---|
+| M1 | ux a power of ten lower | at least S01, S27 (the probe: 26 of 33) |
+| M2 | uy the power above a row, not below | at least S24 |
+| M3 | no jump test | exactly S06, S07, S16 |
+| M4 | a jump doesn't split a segment or end a turn's neighbour | exactly S06 |
+| M5 | the meeting at the left column of a sign change | at least S27 (the probe had a second row it didn't name) |
+| M6 | segments of one column (a plateau never turns) | at least S01, S09, S22 |
+| M7 | an edge segment can turn | at least S29, S01 |
+| M8 | f(0) as column ycol's sample | at least S06 (the probe: 14 of 33) |
+| M9 | f(0) = 0 added beside a meeting already there | exactly S04, S05, S09, S11, S15, S16, S17, S21, S25, S28, S29, S32, S33 |
+| M10 | implied directions said | exactly S18, S21, S39 |
+| M11 | the cap at five events | exactly S19 |
+| M12 | a run of zeros said as one meeting | exactly S25 |
+| M13 | the words leave the variable at the last column's x | exactly S31 |
+| M14 | the display mode's format (FIX 4 by default) for the numbers | at least S01, S34 |
+| M15 | no touch at a turn (#13501) | exactly S38, S39, S42 |
+| M16 | no touch at a gap's edge (#13501) | exactly S41 |
+
+**Two departures from the blueprint's table:**
+- **M6** was "turns by values". As planted it is "segments of one column": a value-by-value extremum test needs the
+  values kept, which the build doesn't keep. S28 isn't its row.
+- **M13** sets the variable directly. eval_at restores the variable whether or not it is pure, so an impure
+  evaluation can't show in X.
