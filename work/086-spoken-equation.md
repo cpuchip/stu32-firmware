@@ -1,7 +1,7 @@
 # Blueprint: the spoken equation (an equation in words, from the core's own parse)
 
 **From:** soroban · **To:** abacus · **Asked:** abacus #13546 (085's tension 6, made concrete by primer's plan
-#13543) · **Status:** revision 3, after abacus's second listener (#13555). No firmware code until abacus has read it.
+#13543) · **Unit 086.** **Status:** built at revision 3 (abacus #13557: "BUILD 086 at revision 3"); the build and its record are below.
 
 **Revision 3** (abacus #13555): the second listener heard all 53 names once each, shuffled, and wrote each as Python.
 abacus's judge compared them at 8 points; the judge itself scored 53/53 on the true expressions, and exactly the
@@ -382,3 +382,68 @@ over the corpus, in make test. The reader would be a small C reader in tests/, s
 4. **Length:** median 48 characters, p90 151, the same as revision 2, because the grouped and the closed forms cost
    the same words.
 5. **An equation that doesn't parse** gets no words (−1). The host falls back to its text.
+
+## Built at revision 3 (abacus #13557)
+
+**abacus's third listener** heard the 53 plus five of abacus's own, shuffled, once each: 57/58. abacus's judge was
+self-tested on the set (the true expressions pass, and one planted change fails exactly its row).
+- **Every call scope was heard right,** including the postfix closure (tension 1), which is ruled yes.
+- **The one miss** is the same as listener 1's: "X times X minus 9" was heard as X(X−9). Across the three
+  listeners that's twice X(X−9) and once X·X−9. That's precedence in speech, not call scope.
+- **Ruled a documented limit, not a rule change.** Grouping every product inside a sum would cost every polynomial
+  its plainness, and "X squared minus 2 times X minus 3" was heard right by all three.
+
+**The limit, sized** (abacus #13557's ask). A product of two or more factors that aren't numbers (a negated number
+counts as a number) whose next spoken word is "plus" or "minus". Measured with the probe's tree over
+tests/086-corpus.txt:
+- **20 of the 895 spoken equations (2.2%)** have one in a chain of × (typed or implied), for example X×X−9,
+  A×B+C, D=V×T+0.5×G×T^2, X×Y+X+Y. STU's CBRT(X)−2 is one too: STU reads CBRT as C×B×R×T (041 D).
+- **21 more** have a ÷ in such a chain (G÷B−A^0.5, TAN(B÷A−D^2)). That's 40 in all (4.5%), one being in both.
+- **Of 085's 53,** only ABS(X×X−9)−(X×X−9) has one.
+
+**What was built:**
+- core/eqn.c records its own parse (rec, in check mode only) and says the tree: `ab_eqn_words`, declared in eqn.h.
+- ab_graph_words's sentence 1 speaks the name through ab_eqn_words, as ruled in #13551. It falls back to the text
+  when the text doesn't parse.
+- tests/086-soroban.txt: 158 rows with `%EQSAY`, all from the probe at revision 3. They are 085's 53, abacus's five
+  (A01-A05), the rare forms, call scope, ordinals, the extra forms, 36 of the 33s's, and two that get no words.
+  The 35s rows carry MODE35, which isn't the default model.
+- tests/085-soroban.txt: sentence 1 of every %GSAY row, h085's included (71 rows), is now ab_eqn_words's words.
+  They were taken from the probe's words, not the build's.
+- tests/eqn_say_test.c over tests/086-corpus.txt (959 equations): the round trip in C, with its own reader and its
+  own phrase tables from this spec. Its control, AB_SAY_PLANT=1 (each ordinal read one more), must fail, and make
+  test checks that it does.
+
+**Red first:**
+- Against a stub that returned −1, 2 of the 158 rows passed: Z01 and Z02, the two that get no words.
+- With sentence 1 moved to ab_eqn_words, 1 of 085's 72 passed: S37, the empty text. The probe's words then made
+  it 72/72.
+
+**Green:**
+- 086 158/158. 085 72/72, with and without save and load.
+- The round trip: 959 equations; 895 spoken and read back, each the same (1 RAND apart, 5 too deep to re-read);
+  64 refused by the parser too.
+- The plant: 36 failures.
+
+## Mutants: predictions, committed before any ran
+
+Each mutant is a text change to core/eqn.c in a scratch copy, built with the same flags; a plant whose build fails
+counts as a failure. The runner reports 086's red rows, 085's red rows, and whether the round trip (RT) fails.
+- **"Exactly"** means those rows and no others.
+- **"At least"** means those rows must be among the red.
+
+| # | Mutant | 086 | 085 | RT |
+|---|---|---|---|---|
+| N1 | the right operand of + or − not grouped when it's a sum | at least R22 E11 | at least the ABS rows (S..., H12) | fails |
+| N2 | the right operand of × or ÷ not grouped when it's a product or looser | at least R23 | — | fails |
+| N3 | a call with a lone argument left bare when more follows it | at least E19 E15 E01 | at least the SIN(X)÷X and EXP(X)-5 rows | passes (the reader's grammar reads a lone argument) |
+| N4 | an argument that isn't lone said bare | at least E20 E23 E14 R17 | at least the SQRT rows | fails |
+| N5 | a call ending in a group closed anyway (revision 2's form) | at least E23 E14 E11 E20 | at least the SQRT and ABS rows | passes |
+| N5b | a call ending in a group left open before a postfix | exactly A01 | none | passes |
+| N6 | STU's chain exponent said as an atom | at least R13 | none | fails |
+| N7 | every model read right to left with implied products (the model ignored) | at least R14 M02 | none | fails (35s texts the parser refuses become spoken) |
+| N8 | "minus" for a unary minus | at least E06 E52 E14 | at least the -(X-3)^2 rows | fails |
+| N9 | ordinals as digits ("4th") | at least E38 F08 | at least the X^4 and 3×X^5 rows | fails |
+| N10 | the fraction without its prefix | at least R10 | none | fails |
+| N11 | XROOT's arguments swapped | at least R15 | none | fails |
+| N12 | "equals" not closing a side (the call before it closed) | exactly R18 | none | passes |
