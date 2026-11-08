@@ -1,0 +1,50 @@
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+Preparing worktree (detached HEAD 0b60736)
+HEAD is now at 0b60736 Unit 089: the page's visible end without a walk when nothing is hidden (rows_last)
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+casim 175c160a1b3c778ab67f049fe14baac81d1e23e2
+
+### standin: 6e89b45 -> 0b60736
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,310,304 | 2,319,280 | +8,976 |
+| internal RAM static (DIRAM, of 341,760) | 207,239 | 207,239 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 59,022 | 59,022 | +0 |
+| calc_task's frame (under every deep path's stack), B | 144 | 144 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 754,383 -> 762,752 (+8,369)
+- libesp_app_format.a: 73,726 -> 74,274 (+548)
+- libbid.a: 1,435,826 -> 1,435,878 (+52)
+- libc.a: 85,320 -> 85,308 (-12)
+- libfreertos.a: 19,494 -> 19,490 (-4)
+- libesp_lcd.a: 9,201 -> 9,197 (-4)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 160,235 -> 160,235 (+0), none changed
+
+### reva: 6e89b45 -> 0b60736
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,245,952 | 2,251,680 | +5,728 |
+| internal RAM static (DIRAM, of 341,760) | 215,190 | 215,190 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 78,086 | 78,086 | +0 |
+| calc_task's frame (under every deep path's stack), B | 128 | 128 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 701,588 -> 707,358 (+5,770)
+- libesp_app_format.a: 73,270 -> 73,322 (+52)
+- libc.a: 83,965 -> 83,937 (-28)
+- libesp_mm.a: 3,424 -> 3,400 (-24)
+- libspi_flash.a: 14,551 -> 14,531 (-20)
+- libesp_driver_i2c.a: 10,152 -> 10,136 (-16)
+- libesp_driver_gpio.a: 7,813 -> 7,801 (-12)
+- libesp_psram.a: 3,452 -> 3,464 (+12)
+- libesp_hw_support.a: 40,221 -> 40,213 (-8)
+- libbid.a: 1,388,952 -> 1,388,944 (-8)
+- libhal.a: 20,456 -> 20,452 (-4)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 133,153 -> 133,153 (+0), none changed

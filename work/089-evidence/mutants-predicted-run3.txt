@@ -1,0 +1,6 @@
+Run 3, predicted before it, on the final tree (0b60736: the page dropped 8 KB at a time, and its visible end kept as
+rows_last). M5 now removes the call to cut_hidden (the line it removed is now that call). Every prediction is run 2's:
+M1 089 W03 only. M2 089 W01, W02, P01, S01, S03, X01, X02; rows_test; app_test's UNDO-then-×. M3 089 all but W07, G02,
+A01, A02's... no: all but W07, G02, A01, A03 and S02 (run 2's reading); rows_test; app_test's 089 checks. M4 089 L05 and
+G03 only. M5 app_test's two UNDO-then-× checks only. M6 089 S01, S03; rows_test; app_test; expr_test's two. M7 089 S03;
+rows_test's budget check. M8 089 A02-A05. M9 rows_test, PCT, one. M10 rows_test, π, four. M11 089 N03; rows_test's wrap.

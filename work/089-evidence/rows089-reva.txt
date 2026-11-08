@@ -1,0 +1,57 @@
+# Unit 089 on the stand-in (work/089-worksheet-rows.md): the worksheet's rows from the keys, kept through the flash. From
+# MEMORY CLEAR: STU, then 5 ENTER 3 + (keys from tests/stackkeys.c rows): three rows, X holding the sum's (3), Y none (its
+# 0 came down from Z). SAVE, then RESTART: the device's save held the page, so the boot's load gives the rows back.
+# (Rev A head-less: the same without ROWBENCH, which only the stand-in has.) ROWBENCH then measures the costs in a second calculator: a key with the page full, UNDO's per-key walk, the device's
+# save, and the worst page's write to the flash. It writes the calculator's own state again after it, so a RESTART still
+# finds the three rows. The stack's low-water mark, no lower than the deep paths' (8,188 B free), is read with each dump.
+# Ends with a control that must FAIL.
+wait : heap internal 30
+sleep 3
+send WIPE
+expect wipe: both slots erased
+send RESTART
+expect load: no image: MEMORY CLEAR 30
+expect ver=0.89 30
+wait READY 30
+send K42
+sleep 0.25
+send K42
+sleep 0.25
+send K36
+sleep 0.25
+send K18
+sleep 0.25
+send K2
+sleep 0.25
+send K42
+sleep 0.25
+send K32
+sleep 0.25
+send K18
+sleep 0.25
+send K39
+sleep 0.25
+send K46
+sleep 0.25
+send X
+expect-min stack-free 8188 10
+expect rows: 3 top=3 next=4 dropped=0 x=3 y=0 5
+send SAVE
+expect bytes, ok, 10
+send RESTART
+expect load: 30
+expect ver=0.89 30
+wait READY 30
+send X
+expect-min stack-free 8188 10
+expect rows: 3 top=3 next=4 dropped=0 x=3 y=0 5
+send RESTART
+expect load: 30
+expect ver=0.89 30
+wait READY 30
+send X
+expect-min stack-free 8188 10
+expect rows: 3 top=3 next=4 dropped=0 x=3 y=0 5
+# CONTROL: must FAIL
+send X
+expect rows: 4 top=4 3
