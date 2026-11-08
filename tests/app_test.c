@@ -1093,6 +1093,76 @@ int main(void)
             expect(ui.view[3] && !strcmp(ui.view[3], "B='C'"), "082: VAR: down, B holds the name C");
             press(&a, "C");
         }
+        {   /* unit 088 (decision 95, abacus #13803 answer 1 (a)): the bar that follows X. With an expression in X (STU,
+               outside Equation mode and program entry, no menu open, no number being typed) the soft keys are SIMP,
+               EXPND, SOLVE, →EQN, (none), ▸; an open menu is shown instead and its keys act; when X is a number again
+               the keys are blank and do nothing */
+            ab_init(&c);
+            app_init(&a, &c, now);
+            ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+            expect(ab_eqn_add(&c, "2\xc3\x97X+5=11") == ABN_OK, "088: 2×X+5=11 in the list");
+            press(&a, "C");
+            ab_do(&c, AB_EQN);
+            press(&a, "k:5 k:0");               /* ▸ (EQN MORE), →X */
+            app_ui(&a, &ui);
+            expect(c.x.kind == AB_EXPR && !c.eqn_mode && a.menu < 0 && ui.soft[0] && !strcmp(ui.soft[0], "SIMP") &&
+                       ui.soft[1] && !strcmp(ui.soft[1], "EXPND") && ui.soft[2] && !strcmp(ui.soft[2], "SOLVE") &&
+                       ui.soft[3] && !strcmp(ui.soft[3], "\xe2\x86\x92" "EQN") && (!ui.soft[4] || !ui.soft[4][0]) &&
+                       ui.soft[5] && !strcmp(ui.soft[5], "\xe2\x96\xb8"), "088: →X: the bar, SIMP EXPND SOLVE →EQN, ▸");
+            press(&a, "2");
+            app_ui(&a, &ui);
+            expect(c.entry.active && !ui.soft[0], "088: a number being typed: no bar");
+            press(&a, "\xc3\x97");
+            app_ui(&a, &ui);
+            expect(c.x.kind == AB_EXPR && !strcmp(ab_expr_text(&c, &c.x), "(2\xc3\x97X+5)\xc3\x97" "2=11\xc3\x97" "2") &&
+                       ui.soft[0] && !strcmp(ui.soft[0], "SIMP"), "088: 2 ×: the expression doubled (084), the bar again");
+            press(&a, "k:0");
+            app_ui(&a, &ui);
+            expect(c.x.kind == AB_EXPR && !strcmp(ab_expr_text(&c, &c.x), "4\xc3\x97X+10=22") && !c.msg &&
+                       ui.soft[0] && !strcmp(ui.soft[0], "SIMP"), "088: the bar's SIMP: 4×X+10=22, the bar still there");
+            press(&a, "BLUE 2");                /* the angle menu open: its keys, not the bar's */
+            app_ui(&a, &ui);
+            expect(a.menu >= 0 && ui.soft[1] && !strcmp(ui.soft[1], "RAD"), "088: an open menu is shown over the bar");
+            press(&a, "k:1");
+            expect(c.angle == AB_ANGLE_RAD && !strcmp(ab_expr_text(&c, &c.x), "4\xc3\x97X+10=22"),
+                   "088: the menu's second key acts (RAD), not the bar's EXPND");
+            app_ui(&a, &ui);
+            expect(a.menu < 0 && ui.soft[0] && !strcmp(ui.soft[0], "SIMP"), "088: the menu closed, the bar back");
+            int n0 = c.eqn_count;
+            press(&a, "k:3");
+            expect(c.eqn_count == n0 + 1 && !strcmp(c.eqn[c.eqn_cur], "4\xc3\x97X+10=22") && !c.eqn_mode &&
+                       c.x.kind == AB_EXPR, "088: the bar's →EQN: X's text a new entry, X kept, the stack still shown");
+            press(&a, "k:2 ltr:X");             /* SOLVE, its variable */
+            app_ui(&a, &ui);
+            expect(ab_cas_report(&c) && !strcmp(ab_cas_report(&c), "SOLVED: X=3") && ui.soft[0] &&
+                       !strcmp(ui.soft[0], "\xe2\x96\xb2"), "088: the bar's SOLVE: the report, its own bar (CAS REPORT)");
+            press(&a, "k:1 ENTER");
+            app_ui(&a, &ui);
+            expect(x_of(&c) == 3 && c.y.kind == AB_EXPR && !ab_cas_report(&c) && !ui.soft[0] && !ui.soft[2],
+                   "088: ENTER on the root: 3 in X, the expression in Y; a number in X: the keys blank");
+            press(&a, "k:0 k:2");
+            expect(x_of(&c) == 3 && !c.msg && a.menu < 0 && !ab_cas_report(&c), "088: blank keys do nothing, nothing left behind");
+            press(&a, "x\xe2\x86\x94y");               /* the expression back in X */
+            ab_do(&c, AB_EQN);
+            app_ui(&a, &ui);
+            expect(c.x.kind == AB_EXPR && ui.soft[0] && !strcmp(ui.soft[0], "\xe2\x96\xb2"),
+                   "088: Equation mode: the list's bar, not X's");
+            ab_do(&c, AB_EQN);
+            ab_do(&c, AB_PRGM);
+            app_ui(&a, &ui);
+            expect(c.prgm && (!ui.soft[0] || strcmp(ui.soft[0], "SIMP")), "088: program entry: no bar");
+            ab_do(&c, AB_PRGM);
+            ab_do_arg(&c, AB_ENTRYM, 1);
+            app_ui(&a, &ui);
+            expect(c.alg && (!ui.soft[0] || strcmp(ui.soft[0], "SIMP")), "088: ALG: no bar");
+            ab_do_arg(&c, AB_ENTRYM, 0);
+            app_ui(&a, &ui);
+            expect(ui.soft[0] && !strcmp(ui.soft[0], "SIMP"), "088: RPN again: the bar");
+            ab_do_arg(&c, AB_MODEL, 35);
+            app_ui(&a, &ui);
+            expect(!ui.soft[0], "088: 35s mode: no bar");
+            press(&a, "C");
+        }
         {   /* unit 082 (Michael's s3-keys, abacus #11423): EQN LIST's ▸ in STU opens EQN MORE: →X drops the shown
                equation, →EQN stores X's back (a number there INVALID DATA); C leaves; 33s and 35s keep EXIT */
             ab_init(&c);
@@ -1112,7 +1182,8 @@ int main(void)
             press(&a, "k:0");
             app_ui(&a, &ui);
             expect(c.x.kind == AB_EXPR && !strcmp(ab_expr_text(&c, &c.x), "3\xc3\x97X^2-4") && !c.eqn_mode && a.menu < 0 &&
-                       !ui.soft[0], "082: →X: X the expression; 083: Equation mode left, the stack's keys (no bar)");
+                       ui.soft[0] && !strcmp(ui.soft[0], "SIMP"),
+                   "082: →X: X the expression; 083: Equation mode left; 088: the bar that follows X (no bar before 088)");
             press(&a, "GOLD 0 k:5 k:1");        /* (083: EQN again for →EQN) */
             expect(c.eqn_count == n0 + 1 && !strcmp(c.eqn[c.eqn_cur], "3\xc3\x97X^2-4"), "082: →EQN: X's expression a new entry, shown");
             press(&a, "k:5 k:5");
@@ -2908,6 +2979,24 @@ int main(void)
         a.busy = NULL;
         press(&a, "C GOLD 7 ltr:X");            /* nothing left over: the next SOLVE finds the root */
         expect(!c.msg && fabs(x_of(&c) - 1.4142135623730951) < 1e-12, "040b: the next SOLVE runs whole");
+        /* unit 088: a SOLVE from the bar that follows X is marked as computing, so C reaches it (casim's walk can't
+           stop: the result is discarded on return, as on the list, unit 048) */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        ab_eqn_add(&c, "2\xc3\x97X+5=11");
+        press(&a, "C");
+        ab_do(&c, AB_EQN);
+        press(&a, "k:5 k:0");                   /* ▸, →X: the bar */
+        busy_app = &a;
+        a.busy = busy_interrupt;
+        press(&a, "k:2 ltr:X");                 /* the bar's SOLVE, C pressed while it runs */
+        expect(c.msg && c.err_status == ABN_INTERRUPTED && !ab_cas_report(&c) && !a.computing && c.x.kind == AB_EXPR,
+               "088: C interrupts a SOLVE from the stack's bar: INTERRUPTED, no report, X kept");
+        a.busy = NULL;
+        press(&a, "C k:2 ltr:X");
+        expect(!c.msg && ab_cas_report(&c) && !strcmp(ab_cas_report(&c), "SOLVED: X=3"), "088: the next SOLVE runs whole");
+        press(&a, "C");
     }
 
     /* unit 033: GRAPH: blue 7's menu; the frame drawn from the model: in the curve's columns (clear of the

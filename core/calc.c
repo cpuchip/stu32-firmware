@@ -3881,17 +3881,41 @@ static bool cas_has_letter(const char *s)
 
 #endif
 
+#ifdef AB_CASIM
+/* Unit 088 (abacus #13803, answer 2 (ii)): whether casim's answer is a decimal number alone (a sign, digits, a point, an
+   exponent; no operator, letter or π), which the stack takes as a number. 1÷2, 2×π and 10^40 stay exact expressions. */
+static bool cas_plain_number(const char *t)
+{
+    const char *p = t + (*t == '-');
+    int digits = 0;
+    while ((*p >= '0' && *p <= '9') || *p == '.') digits += *p++ != '.';
+    if (digits && *p == 'E') {
+        p += 1 + (p[1] == '-' || p[1] == '+');
+        if (*p < '0' || *p > '9') return false;
+        while (*p >= '0' && *p <= '9') p++;
+    }
+    return digits > 0 && !*p && strchr(t, '.') == strrchr(t, '.');
+}
+#endif
+
+/* A CAS step on the equation shown (Equation mode), or since unit 088 on X's expression (outside Equation mode, X an
+   expression or a name: SIMP, EXPND and SOLVE; ab_do's dispatch sends only those): the text is X's, read as STU's
+   (082 stamps a dropped expression STU), and SIMP's and EXPND's answer replaces X (LASTx the old X, the lift enabled,
+   as a one-argument function's: 084's class), a decimal number alone as a number; SOLVE's report opens as on the
+   list. A refusal leaves everything as it was. */
 static abn_status cas_step(ab_calc *c, int op, int var, const char *repl, const char *repl2)
 {
 #ifdef AB_CASIM
     char out[AB_EQN_LEN], t33[AB_EQN_LEN];
     casim_status cs;
     if (!c->stu) return ABN_STU_ONLY;
-    if (c->eqn_cur < 0 || eqn_builtin(c, c->eqn_cur)) return ABN_NO_EQN;
-    const char *text = c->eqn[c->eqn_cur];
-    if (eqn_too_deep(c, text, c->eqn_model[c->eqn_cur]))
+    bool onx = !c->eqn_mode && ab_is_sym(&c->x);   /* unit 088: the CAS on the stack */
+    if (!onx && (c->eqn_cur < 0 || eqn_builtin(c, c->eqn_cur))) return ABN_NO_EQN;
+    const char *text = onx ? ab_expr_text(c, &c->x) : c->eqn[c->eqn_cur];
+    int model = onx ? AB_MODEL_STU : c->eqn_model[c->eqn_cur];
+    if (eqn_too_deep(c, text, model))
         return ABN_TOO_DEEP;                    /* an older image's, quarantined: casim never walks it (unit 047) */
-    if (c->eqn_model[c->eqn_cur] == 33) {       /* 041 D: what the 33s refuses is refused; its spelling translated */
+    if (model == 33) {                          /* 041 D: what the 33s refuses is refused; its spelling translated */
         ab_val v;
         int pos;
         if (eqn_eval(c, text, 33, false, true, &v, &pos) == ABN_SYNTAX) return ABN_SYNTAX;
@@ -3900,7 +3924,7 @@ static abn_status cas_step(ab_calc *c, int op, int var, const char *repl, const 
         if (r == 2) return ABN_CAS_TOO_LONG;
         text = t33;
     }
-    casim_req rq = {(casim_op)op, text, c->eqn_model[c->eqn_cur], var, repl, AB_MODEL_STU,
+    casim_req rq = {(casim_op)op, text, model, var, repl, AB_MODEL_STU,
                     (int)c->angle | (c->cas_cplx ? CASIM_COMPLEX : 0), repl2};  /* repl2: ∫AB's upper bound (056); 076:
                                                    CPLX's bit on every op, as CAS 020 rule 2 allows */
     cs = casim_run(&rq, out, sizeof out, ab_cas_arena, sizeof ab_cas_arena);
@@ -3919,7 +3943,7 @@ static abn_status cas_step(ab_calc *c, int op, int var, const char *repl, const 
     if ((op == CASIM_PDIV || op == CASIM_CANCEL || op == CASIM_SUM) && cs == CASIM_OK)
         return cas_rows(c, op, out);            /* units 057, 070 */
     if (op == CASIM_SOLVE && cs == CASIM_OK) {  /* a report, not an equation: its view opens on the status row */
-        if (!c->cas_cplx && c->eqn_model[c->eqn_cur] != 33 && !strcmp(out, "NO REAL ROOTS"))
+        if (!c->cas_cplx && model != 33 && !strcmp(out, "NO REAL ROOTS"))
             snprintf(out, sizeof out, "NO REAL ROOTS. CAS3 CPLX ON");   /* 076: where to turn it on (stu-discover; a 33s
                                                    equation has no complex numbers, so not there) */
         snprintf(c->cas_rep, sizeof c->cas_rep, "%s", out);
@@ -3930,6 +3954,17 @@ static abn_status cas_step(ab_calc *c, int op, int var, const char *repl, const 
     case CASIM_PARTIAL:                         /* FACTOR's product, exact (read back) but a factor unproven: inserted,
                                                    MAY FACTOR MORE beside it (048 rule 4) */
     case CASIM_OK: {
+        if (onx) {                              /* unit 088: X replaced; a number alone as a number (answer 2 (ii)) */
+            ab_val v;
+            int pos;
+            abn_status s2 = cas_plain_number(out) ? eqn_eval(c, out, AB_MODEL_STU, false, false, &v, &pos)
+                                                  : ab_expr_new(c, out, &v);
+            if (s2 != ABN_OK) return s2;        /* (MEMORY FULL: nothing changed) */
+            c->lastx = c->x;
+            c->x = v;
+            c->lift = true;
+            return ABN_OK;
+        }
         abn_status st = eqn_insert(c, out);
         if (st == ABN_OK && (op == CASIM_INTEGRATE || cs == CASIM_PARTIAL))
             c->eqn_note[c->eqn_cur] = op == CASIM_INTEGRATE ? AB_NOTE_PLUSC : AB_NOTE_MORE;  /* ∫'s +C: beside, never
@@ -5691,10 +5726,20 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
         return ABN_OK;                          /* only in programs (UG p.G-9) */
     case AB_CANCEL:
         return cancel_key(c);
-    case AB_CASD: case AB_CASSIMP: case AB_CASEXP: case AB_CASCOL: case AB_CASSUB:
-    case AB_CASSOLVE: case AB_CASINT: case AB_CASFACT: case AB_CASDEF:
+    case AB_CASSIMP: case AB_CASEXP: case AB_CASSOLVE:     /* unit 088: on X's expression (or a name) */
+        if (!c->stu) return ABN_STU_ONLY;
+        if (!ab_is_sym(&c->x)) return ABN_NO_EQN;      /* a number in X: as before */
+        if (op == AB_CASSOLVE && (arg < 0 || arg > 25)) return ABN_DOMAIN;
+        return cas_step(c, op == AB_CASSIMP ? CASIM_SIMPLIFY : op == AB_CASEXP ? CASIM_EXPAND : CASIM_SOLVE,
+                        op == AB_CASSOLVE ? arg : 0, NULL, NULL);
+    case AB_EQSTORE:                            /* unit 088: →EQN from the stack's bar, X's text into the list; a number
+                                                   in X (no bar then) NO EQN, as before */
+        if (!c->stu) return ABN_STU_ONLY;
+        return ab_is_sym(&c->x) ? eqn_store_x(c) : ABN_NO_EQN;
+    case AB_CASD: case AB_CASCOL: case AB_CASSUB:
+    case AB_CASINT: case AB_CASFACT: case AB_CASDEF:
     case AB_CASQUOT: case AB_CASGCD: case AB_CASCANCL: case AB_CASSUM:
-    case AB_EQDROP: case AB_EQSTORE:
+    case AB_EQDROP:
         return c->stu ? ABN_NO_EQN : ABN_STU_ONLY;     /* CAS 004, 048, 056, 070, 082: from Equation mode's list only */
     case AB_EQN:
         c->eqn_mode = true;                     /* neutral (UG p.B-5) */

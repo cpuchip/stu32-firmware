@@ -267,6 +267,12 @@ MENUS = [
                   ("\u25b8", "KM_MENU", "0", "EQN LIST", 0)]),
     ("EQN LIST 35", [o("\u25b2", "AB_BST"), o("\u25bc", "AB_SST"), o("EDIT", "AB_KRIGHT"), o("NEW", "AB_EQTOP"),
                      o("EVAL", "AB_XEQ", "AB_TGT_EQN"), o("EXIT", "AB_EQN")]),
+    # unit 088 (decision 95, abacus #13803 answer 1 (a)): the bar that follows X. In STU, outside Equation mode and program
+    # entry, with no menu open and an expression or a name in X, the app shows it (app.c's eqn_bar): the CAS on X's
+    # expression (SIMP and EXPND replace X; SOLVE prompts for the variable and opens the report), →EQN stores X into
+    # the list, the sixth key to CAS. Last, so no menu's index moves
+    ("X EXPR", [o("SIMP", "AB_CASSIMP"), o("EXPND", "AB_CASEXP"), p("SOLVE", "AB_CASSOLVE", "KM_ARG_VAR"),
+                o("\u2192EQN", "AB_EQSTORE"), NONE, ("\u25b8", "KM_MENU", "0", "CAS", 0)]),
 ]
 # Menu legends that act as plain ops until their menu is ruled (abacus #3867): the EQN menu's
 # first item will take this over.

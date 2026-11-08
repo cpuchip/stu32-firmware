@@ -232,7 +232,8 @@ static void do_op(app_state *a, int op, int arg)
     /* 040b: a call that may take long (a SOLVE, an integral, a run's first slice, a graph tool) is marked, so that
        the device's key task delivers C into it (app_interrupt); nothing left over before or after */
     bool computing = runs || (op == AB_GFCN && c->gr_on) ||
-                     ((op == AB_CASSOLVE || op == AB_CASINT || op == AB_CASFACT) && c->eqn_mode && c->stu);
+                     ((op == AB_CASSOLVE || op == AB_CASINT || op == AB_CASFACT) && c->stu &&
+                      (c->eqn_mode || (op == AB_CASSOLVE && ab_is_sym(&c->x))));    /* 088: SOLVE on X too */
                                                 /* unit 048: casim's walk can't stop; a C during it discards the
                                                    result on return (abacus #5267) */
     if (computing) {
@@ -514,6 +515,10 @@ static int eqn_bar(const app_state *a)
         int m = a->shift == 1 ? menu_named("EQN LIST GOLD") : -1;
         return m >= 0 ? m : menu_named(a->c->stu ? "EQN LIST" : "EQN LIST 35");     /* 082: STU's ▸, else EXIT */
     }
+    if (a->c->stu && !a->c->prgm && ab_is_sym(&a->c->x))
+        return menu_named("X EXPR");            /* unit 088: the bar that follows X (an open menu is shown instead: the
+                                                   callers ask here only with none open); a number in X, none, and a
+                                                   number being typed is X's (mutant M7: an entry check never decided) */
     return -1;
 }
 

@@ -117,6 +117,7 @@ static const km_menu MENUS[] = {
     {"GAMES", {{KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, "more"}}, KM_PAGED_GAMES},
     {"EQN MORE", {{KM_OP, AB_EQDROP, 0, 0, "\xe2\x86\x92X"}, {KM_OP, AB_EQSTORE, 0, 0, "\xe2\x86\x92" "EQN"}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_MENU, 0, 26, 0, "\xe2\x96\xb8"}}, 0},
     {"EQN LIST 35", {{KM_OP, AB_BST, 0, 0, "\xe2\x96\xb2"}, {KM_OP, AB_SST, 0, 0, "\xe2\x96\xbc"}, {KM_OP, AB_KRIGHT, 0, 0, "EDIT"}, {KM_OP, AB_EQTOP, 0, 0, "NEW"}, {KM_OP, AB_XEQ, AB_TGT_EQN, 0, "EVAL"}, {KM_OP, AB_EQN, 0, 0, "EXIT"}}, 0},
+    {"X EXPR", {{KM_OP, AB_CASSIMP, 0, 0, "SIMP"}, {KM_OP, AB_CASEXP, 0, 0, "EXPND"}, {KM_PROMPT, AB_CASSOLVE, 0, KM_ARG_VAR, "SOLVE"}, {KM_OP, AB_EQSTORE, 0, 0, "\xe2\x86\x92" "EQN"}, {KM_NONE, 0, 0, 0, ""}, {KM_MENU, 0, 52, 0, "\xe2\x96\xb8"}}, 0},
 };
 
 const km_menu *km_menu_at(int index)

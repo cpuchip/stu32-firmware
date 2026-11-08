@@ -1,0 +1,47 @@
+# Unit 088 (decision 95 item 1, abacus #13803; work/088-cas-on-the-stack.md): the CAS on the stack. In STU, outside
+# Equation mode, with an expression in X: SIMP and EXPND replace X with casim's answer (LASTx the old X, nothing lifted
+# or dropped, the lift enabled); a decimal number alone becomes a number (answer 2 (ii)); SOLVE opens the report on X's
+# text, and ENTER on a root lifts as RCL does (the expression to Y, answer 3). Each answer is casim's at eedbf16 (the
+# list's same call). A number in X stays NO EQN; a refusal leaves everything as it was. The bar is app_test's.
+# The 084 lesson: 2×X+5=11 dropped, 2 ×, then the CAS on it
+A01 | SIMP on X: both sides, Y untouched | 7 STU EQ:2×X+5=11 EQDROP 2 * CASSIMP | %XEXPR=4×X+10=22 Y=7
+A02 | SIMP's LASTx is the old X | STU EQ:2×X+5=11 EQDROP 2 * CASSIMP LASTX | %XEXPR=(2×X+5)×2=11×2 %YEXPR=4×X+10=22
+A03 | EXPND on X | STU EQ:(X+3)^2 EQDROP CASEXP | %XEXPR=6×X+X^2+9
+A04 | EXPND on an equation | STU EQ:(X+1)×(X-1)=0 EQDROP CASEXP | %XEXPR=X^2-1=0
+A05 | SIMP leaves X's level: Z and T as they were | 1 ENTER 2 ENTER 3 STU EQ:3×X+2×X-X EQDROP CASSIMP | %XEXPR=4×X Y=3 Z=2 T=1
+A06 | after SIMP the lift is on: a digit lifts the answer | STU EQ:3×X+2×X EQDROP CASSIMP 3 | X=3 %YEXPR=5×X
+A08 | X's text, not the list's: SIMP after X-5=0 is shown and left | STU EQ:3×X+2×X EQDROP EQ:X-5=0 EQN CASSIMP | %XEXPR=5×X
+A07 | SIMP on SIMP's answer: unchanged text, still an expression | STU EQ:4×X EQDROP CASSIMP CASSIMP | %XEXPR=4×X
+# Answer 2 (ii): a decimal number alone is a number; anything else stays exact
+N01 | 2+3×4 → the number 14 | STU EQ:2+3×4 EQDROP CASSIMP | X=14 %XEXPR=none
+N02 | 2-5 → -3 | STU EQ:2-5 EQDROP CASSIMP | X=-3 %XEXPR=none
+N03 | X-X → 0 | STU EQ:X-X EQDROP CASSIMP | X=0 %XEXPR=none
+N04 | 1E-5 typed → casim's 0.00001, a number | STU EQ:1E-5 EQDROP CASSIMP | X=0.00001 %XEXPR=none
+N05 | 0.5-3 → -2.5 | STU EQ:0.5-3 EQDROP CASSIMP | X=-2.5 %XEXPR=none
+N06 | EXPND to a number: (X+1)^2-X^2-2×X → 1 | STU EQ:(X+1)^2-X^2-2×X EQDROP CASEXP | X=1 %XEXPR=none
+N07 | 1÷3+1÷6 → 1÷2 stays exact | STU EQ:1÷3+1÷6 EQDROP CASSIMP | %XEXPR=1÷2
+N08 | 2×π stays exact | STU EQ:π+π EQDROP CASSIMP | %XEXPR=2×π
+N09 | 10^40 stays an expression ((ii) is literal, abacus #13818) | STU EQ:10^40 EQDROP CASSIMP | %XEXPR=10^40
+N10 | the number's LASTx is the expression | STU EQ:2+3×4 EQDROP CASSIMP LASTX | %XEXPR=2+3×4 Y=14
+# SOLVE on X: the report, and ENTER (answer 3)
+S01 | SOLVE X: the report, X unchanged | 7 STU EQ:2×X+5=11 EQDROP CASSOLVE:X | %CASREP=SOLVED:_X=3 %XEXPR=2×X+5=11 Y=7
+S02 | ENTER on the root: 3 in X, the expression in Y, the old Y in Z | 7 STU EQ:2×X+5=11 EQDROP CASSOLVE:X SST ENTER | X=3 %YEXPR=2×X+5=11 Z=7 %CASREP=none
+S03 | two roots, the second to X | STU EQ:X^2-5×X+6 EQDROP CASSOLVE:X SST SST ENTER | X=3 %YEXPR=X^2-5×X+6
+S04 | SOLVE in another letter (CAS 038) | 5 STO:V 2 STO:I CLX STU EQ:V=I×R EQDROP CASSOLVE:R SST ENTER | X=2.5 %YEXPR=V=I×R
+S05 | the repin's rule on the stack: I≠0 fails at I=0 | 0 STO:I CLX STU EQ:V=I×R EQDROP CASSOLVE:R SST ENTER | ERR %ERR=CAS_CONDITION %CASROW=I≠0 %XEXPR=V=I×R
+S06 | C leaves the report, the expression still in X | STU EQ:2×X+5=11 EQDROP CASSOLVE:X C | %CASREP=none %XEXPR=2×X+5=11
+S08 | X's text, not the list's: X+1=0 dropped, the list then showing X-5=0 | STU EQ:X+1=0 EQDROP EQ:X-5=0 EQN CASSOLVE:X | %CASREP=SOLVED:_X=-1 %XEXPR=X+1=0
+S07 | a C during SOLVE: no report, X as it was | STU EQ:2×X+5=11 EQDROP INTR:1 CASSOLVE:X | ERR %ERR=INTERRUPTED %CASREP=none %XEXPR=2×X+5=11
+# Refusals leave everything as it was (their messages as on the list)
+R01 | SOLVE refused: degree 2 with a letter | STU EQ:A×X^2-1 EQDROP CASSOLVE:X | ERR %ERR=CAS_NOT_NUMERIC %ERRMSG=COEF_NOT_NUMERIC %XEXPR=A×X^2-1
+R02 | SIMP of a pole: UNDEFINED, X kept | STU RAD EQ:LN(0)+X EQDROP CASSIMP | ERR %ERR=CAS_UNDEFINED %ERRMSG=UNDEFINED %XEXPR=LN(0)+X
+R03 | SOLVE of what isn't a polynomial | STU EQ:SIN(X)-0.5 EQDROP CASSOLVE:X | ERR %ERR=CAS_NOT_POLY %XEXPR=SIN(X)-0.5
+R04 | a number in X: NO EQN, as before | STU 5 CASSIMP | ERR %ERR=NO_EQN X=5
+R05 | a number in X, SOLVE | STU 5 CASSOLVE:X | ERR %ERR=NO_EQN X=5
+R06 | 35s mode: STU ONLY | MODE35 5 CASSIMP | ERR %ERR=STU_ONLY
+R07 | the keys outside this unit stay NO EQN with an expression in X (D/DX) | STU EQ:X^2 EQDROP CASD:X | ERR %ERR=NO_EQN %XEXPR=X^2
+# →EQN from the stack (the bar's fourth key): X's text into the list, X kept, Equation mode not entered
+Q01 | →EQN from the stack | STU EQ:2×X+5=11 EQDROP 2 * EQSTORE | %XEXPR=(2×X+5)×2=11×2 %EQN=2
+Q02 | →EQN with a number in X outside the list: NO EQN, as before (the bar isn't shown then) | STU 5 EQSTORE | ERR %ERR=NO_EQN X=5
+# The list is unchanged: in Equation mode the keys act on the equation shown, whatever is in X
+L01 | Equation mode, an expression in X: SIMP acts on the list | STU EQ:4×X EQDROP EQ:3×X+2×X CASSIMP | %EQ=5×X %XEXPR=4×X

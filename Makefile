@@ -269,6 +269,7 @@ test: all
 	AB_SAVELOAD=1 AB_STORE=1 ./build/vectors tests/085-soroban.txt    # (unit 085: the spoken graph)
 	./build/vectors tests/086-soroban.txt
 	AB_SAVELOAD=1 AB_STORE=1 ./build/vectors tests/086-soroban.txt    # (unit 086: the spoken equation)
+	./build/vectors tests/088-soroban.txt    # (unit 088: the CAS on the stack; no save/load pass: SOLVE's report is not in the image)
 	./build/eqn_say_test tests/086-corpus.txt    # (unit 086: the round trip over every equation the vectors type)
 	if AB_SAY_PLANT=1 ./build/eqn_say_test tests/086-corpus.txt > /dev/null; then \
 	  echo "eqn_say_test: the planted reader passed: the round trip doesn't bite"; exit 1; fi

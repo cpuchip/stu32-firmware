@@ -1217,9 +1217,11 @@ after it. The original stays.
 [AB_CASSIMP]
 Simplifies the equation shown,
 the result is added after it.
+On the stack: X's, X replaced.
 [AB_CASEXP]
 Expands the equation shown,
 the result is added after it.
+On the stack: X's, X replaced.
 [AB_CASCOL]
 COLCT, then a letter: groups
 terms by its powers, the result
@@ -1230,8 +1232,8 @@ replaces it, ENTER. C cancels.
 The result is added.
 [AB_CASSOLVE]
 SOLVE, then a letter: its exact
-roots. ▲▼, ENTER: to X, C ends.
-Complex ones: CAS3 CPLX on.
+roots, of X's too. ENTER: to X.
+▲▼ steps, C ends. CPLX: CAS3.
 [AB_CASINT]
 ∫DX, then a letter: the anti-
 derivative, +C beside it.
@@ -1274,6 +1276,7 @@ Then 2 × makes (...)×2.
 [AB_EQSTORE]
 X's expression or name into
 the list, after the shown one.
+Also on the stack's X bar.
 
 [AB_SUF]
 After digits: {} reads them in

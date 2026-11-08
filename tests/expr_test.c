@@ -644,6 +644,18 @@ static void sweep_base(ab_calc *c, int s, const ab_val *v)
     if (s == 4) c->var[8] = *v;
 }
 
+/* Unit 088's class: SIMP, EXPND, SOLVE and →EQN with an expression or a name in X act on its text by design. Each
+   either did what the unit says (SIMP and EXPND: X changed, LASTx the old X; SOLVE: the report open, X as it was;
+   →EQN: one more entry, X as it was) or refused with the stack and letters as they were. */
+static bool cas_on_x(ab_calc *before, ab_calc *after, int op, abn_status st)
+{
+    if ((op != AB_CASSIMP && op != AB_CASEXP && op != AB_CASSOLVE && op != AB_EQSTORE) || !ab_is_sym(&before->x)) return false;
+    if (st != ABN_OK) return same_state(after, before);
+    if (op == AB_CASSOLVE) return ab_cas_report(after) && same_val(before, &before->x, after, &after->x);
+    if (op == AB_EQSTORE) return after->eqn_count == before->eqn_count + 1 && same_val(before, &before->x, after, &after->x);
+    return same_val(before, &before->x, after, &after->lastx);
+}
+
 /* Each op runs three times from the same state but for the setup's places: holding the expression (or name), 0, and
    7. An op given an expression either returns NOT A NUMBER with the stack and letters unchanged, or what it leaves
    must not depend on reading the expression as a number: where the expression's run leaves a number equal to the
@@ -655,7 +667,7 @@ static void sweep(void)
     static const char *const SETUP[] = {"X", "Y", "X and Y", "B", "I"};
     static const int ARGS[] = {0, 1, AB_VAR_A + 1, AB_VAR_IND_I};
     int unloadable = 0;
-    int odd = 0, refused = 0, runs = 0, passed = 0, built = 0;
+    int odd = 0, refused = 0, runs = 0, passed = 0, built = 0, cas_x = 0;
     for (int sym = 0; sym < 2; sym++)
         for (int s = 0; s < 5; s++) {
             ab_val e, z0 = real_int(0), n7 = real_int(7);
@@ -699,6 +711,10 @@ static void sweep(void)
                         built++;
                         continue;
                     }
+                    if (cas_on_x(&base, &ca, op, st)) {     /* unit 088 */
+                        cas_x++;
+                        continue;
+                    }
                     memcpy(&cz, &bz, sizeof cz);
                     memcpy(&cn, &bn, sizeof cn);
                     abn_status sz = ab_do_arg(&cz, (ab_op)op, arg), sn = ab_do_arg(&cn, (ab_op)op, arg);
@@ -730,8 +746,9 @@ static void sweep(void)
                 }
         }
     char what[200];
-    snprintf(what, sizeof what, "082: the op sweep, %d runs: %d NOT A NUMBER, %d built an expression (084), %d through "
-             "without a number read, %d read one", runs, refused, built, passed - built - odd, odd);
+    snprintf(what, sizeof what, "082: the op sweep, %d runs: %d NOT A NUMBER, %d built an expression (084), %d the CAS on "
+             "X's text (088), %d through without a number read, %d read one", runs, refused, built, cas_x,
+             passed - built - cas_x - odd, odd);
     printf("expr_test: %s\n", what);
     expect(odd == 0, what);
     snprintf(what, sizeof what, "082: the op sweep: every state an op left saves an image that loads (%d don't)", unloadable);
@@ -823,6 +840,44 @@ static void classes(void)
 
 /* ---- 7. →X and →EQN (AB_EQDROP, AB_EQSTORE) ---- */
 
+/* Unit 088: the CAS on the stack where tests/vectors can't reach. A name in X (no key makes one yet: 082) is X's text,
+   its letter, and SIMP leaves it an expression of that text, LASTx the name. With every slot of the store live,
+   SIMP's answer has nowhere to go: MEMORY FULL, nothing changed (the slot is asked for before X is touched). */
+static void cas_stack(void)
+{
+    char what[200];
+    ab_init(&ca);
+    ab_do_arg(&ca, AB_MODEL, AB_MODEL_STU);
+    ca.x = name_val(0);
+    abn_status st = ab_do(&ca, AB_CASSIMP);
+    expect(st == ABN_OK && ca.x.kind == AB_EXPR && !strcmp(ab_expr_text(&ca, &ca.x), "A") && ca.lastx.kind == AB_NAME &&
+               ca.lastx.len == 0, "088: SIMP on the name A: the expression A in X, LASTx the name");
+    ab_init(&ca);
+    ab_do_arg(&ca, AB_MODEL, AB_MODEL_STU);
+    ab_val *live[48];
+    int n = 0;
+    live[n++] = &ca.x, live[n++] = &ca.y, live[n++] = &ca.z, live[n++] = &ca.t, live[n++] = &ca.lastx;
+    for (int i = 0; i < 27; i++) live[n++] = &ca.var[i];
+    for (int i = 0; i < AB_HIST; i++) live[n++] = &ca.hist_val[i];
+    for (int i = 0; i < n; i++) {
+        char t[16];
+        snprintf(t, sizeof t, i ? "X+%d" : "3\xc3\x97X+2\xc3\x97X", i);
+        put_expr(&ca, live[i], t);
+    }
+    ab_val spare;
+    expect(n == AB_EXPR_SLOTS && ab_expr_new(&ca, "0", &spare) == ABN_EXPR_FULL, "088: every slot of the store live");
+    memcpy(&cb, &ca, sizeof cb);
+    st = ab_do(&ca, AB_CASSIMP);
+    snprintf(what, sizeof what, "088: SIMP with the store full: MEMORY FULL (status %d), nothing changed", (int)st);
+    expect(st == ABN_EXPR_FULL && same_state(&ca, &cb) && !strcmp(ab_expr_text(&ca, &ca.x), "3\xc3\x97X+2\xc3\x97X"), what);
+    ab_do(&ca, AB_CANCEL);                      /* C clears MEMORY FULL (a key with a message showing only clears it) */
+    bool msg = ca.msg;
+    st = ab_do_arg(&ca, AB_CASSOLVE, 'X' - 'A');   /* SOLVE needs no slot: its report isn't a value */
+    snprintf(what, sizeof what, "088: SOLVE with the store full: the report, it needs no slot (message before %d; status %d, "
+             "report %s)", (int)msg, (int)st, ab_cas_report(&ca) ? ab_cas_report(&ca) : "none");
+    expect(st == ABN_OK && ab_cas_report(&ca) && !strcmp(ab_cas_report(&ca), "SOLVED: X=0"), what);
+}
+
 static void drop_store(void)
 {
     char what[160];
@@ -831,7 +886,8 @@ static void drop_store(void)
     ab_do(&ca, AB_EQN);
     ab_do(&ca, AB_EQN);                         /* (Equation mode off: the keys outside it) */
     expect(ab_do(&ca, AB_EQDROP) == ABN_NO_EQN && ab_do(&ca, AB_EQSTORE) == ABN_NO_EQN,
-           "082: →X and →EQN outside Equation mode: the list's keys only (NO EQN notice)");
+           "082: →X and →EQN outside Equation mode, a number in X: the list's keys only (NO EQN notice); 088: →EQN acts "
+           "on an expression in X (tests/088-soroban.txt Q01)");
     for (int i = 1; i <= 4; i++) ca.x = real_int(i), ab_do(&ca, AB_ENTER);
     ca.x = real_int(4), ca.lift = true;
     expect(ab_eqn_add(&ca, "3\xc3\x97X^2-4") == ABN_OK, "082: an equation typed");
@@ -926,7 +982,7 @@ static unsigned fzr(unsigned n)
 static void op_fuzz(void)
 {
     static const char *const TEXTS[] = {"A+1", "3\xc3\x97X^2-4", "SIN(X)\xc3\xb7X", "(A+B)^2", "\xe2\x88\x9a(X)-2"};
-    int seqs = 400, len = 25, steps = 0, refused = 0, leaks = 0, unloadable = 0, changed = 0, changed_text = 0, built = 0;
+    int seqs = 400, len = 25, steps = 0, refused = 0, leaks = 0, unloadable = 0, changed = 0, changed_text = 0, built = 0, built088 = 0;
     for (int q = 0; q < seqs; q++) {
         ab_init(&ca);
         ab_do_arg(&ca, AB_MODEL, AB_MODEL_STU);
@@ -973,6 +1029,8 @@ static void op_fuzz(void)
                     printf("FAIL: fuzz %d step %d: op %d arg %d: NOT A NUMBER, but the stack or a letter changed\n", q, i, op, arg);
             } else if (built_expr(&base, &ca, op, st)) {
                 built++;
+            } else if (cas_on_x(&base, &ca, op, st)) {     /* unit 088 */
+                built088++;
             } else if (any) {
                 abn_status sz = ab_do_arg(&cz, (ab_op)op, arg), sn = ab_do_arg(&cn, (ab_op)op, arg);
                 if (cz.stop == AB_STOP_SLICE) ab_continue(&cz);
@@ -1011,10 +1069,10 @@ static void op_fuzz(void)
             }
         }
     }
-    char what[200];
+    char what[320];
     snprintf(what, sizeof what, "082: the op fuzz, %d sequences, %d steps: %d NOT A NUMBER, %d built an expression (084), %d "
-             "read a number, %d changed on a refusal, %d live texts changed, %d images that don't load", seqs, steps, refused,
-             built, leaks, changed, changed_text, unloadable);
+             "the CAS on X's text (088), %d read a number, %d changed on a refusal, %d live texts changed, %d images that "
+             "don't load", seqs, steps, refused, built, built088, leaks, changed, changed_text, unloadable);
     printf("expr_test: %s\n", what);
     expect(leaks == 0 && changed == 0 && changed_text == 0 && unloadable == 0, what);
 }
@@ -1235,6 +1293,7 @@ int main(int argc, char **argv)
     sweep();
     classes();
     drop_store();
+    cas_stack();
     op_fuzz();
     diff_fuzz();
     stack084();
