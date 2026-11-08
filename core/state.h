@@ -22,7 +22,8 @@
 
 #include "calc.h"
 
-#define AB_STATE_VERSION 22     /* 22 (the CAS 038 repin, abacus #13773): no new field; the message CONDITION FAILS
+#define AB_STATE_VERSION 23     /* 23 (unit 089): the rows values hold and the page's newest (T_ROWREF), and the device's save the page
+                                   itself (T_ROWS, ab_state_save_rows); an image with no row written as before; 22 (the CAS 038 repin, abacus #13773): no new field; the message CONDITION FAILS
                                    (ABN_CAS_CONDITION) may be the one showing; 21 (unit 082): a value may be an expression (its text) or a name (kinds 3, 4), the
                                    messages MEMORY FULL (ABN_EXPR_FULL), NOT A NUMBER and OLDER FIRMWARE may be the one showing, and a section
                                    this build doesn't know is skipped by its size; an image needing none of it is still
@@ -49,6 +50,14 @@ size_t ab_state_save(const ab_calc *c, uint8_t *buf, size_t cap);
 /* Whether c's image now is byte for byte img's n bytes (082: UNDO's mark taken back when a key changed nothing). No
    buffer: each byte is compared as it would be written. False during a run. */
 bool ab_state_same(const ab_calc *c, const uint8_t *img, size_t n);
+/* Unit 089: as ab_state_save, with the worksheet's page (T_ROWS) after the state: the newest rows within AB_ROWS_SAVE
+   bytes, and every row a value holds before them (abacus #13989 b). The device's SAVE and power-off write this; UNDO's
+   image (ab_state_save) never holds the page, only each value's row and the newest one (a few dozen bytes). */
+size_t ab_state_save_rows(const ab_calc *c, uint8_t *buf, size_t cap);
+/* Unit 089: a value's bytes as the image writes one (a row's value, rows.c), and back. The decode gives an expression's
+   or a name's text in text (NUL-terminated, tcap at least AB_EQN_LEN) and never touches the expression store */
+size_t ab_val_encode(const ab_calc *c, const ab_val *v, uint8_t *out, size_t cap);
+bool ab_val_decode(const uint8_t *p, size_t n, ab_val *out, char *text, size_t tcap);
 /* Unit 041 C (B5): the bytes label l's program takes in the image (its LBL line and the lines after it to the next
    label), MEM's LN= (33s p.12-20; our bytes, not the 33s's); 0 if there is no such label. ab_state_save(c, NULL, 0)
    is the whole image's size. */

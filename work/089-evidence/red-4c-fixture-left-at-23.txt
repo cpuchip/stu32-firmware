@@ -1,0 +1,12 @@
+FAIL: 4C: the image is newer than this build (version 23, AB_STATE_VERSION 23)
+FAIL: 4C: golden-v23-4c (version 23) loads
+FAIL: 4C: OLDER FIRMWARE showing
+FAIL: 4C: X, LASTx and B as golden-v21-082's
+FAIL: 4C: saved again (733 B, 2E56DCCB), byte for byte golden-v21-082 with Y, Z, T 0 and OLDER FIRMWARE (874 B, 9CCA1E94): the rest survived
+FAIL: 4C: saved as this build's version, 21
+FAIL: 4C: that image loads, OLDER FIRMWARE still showing
+FAIL: 082: ab_state_same's golden loads
+FAIL: 082: after →X the image is version 21 and loads with the expressions
+rc=1
+load_fuzz: seed 8 refused
+rc=1

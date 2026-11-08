@@ -31,7 +31,7 @@ static uint32_t get32(const uint8_t *p)
 
 size_t dev_image_save(const ab_calc *c, const dev_settings *s, uint8_t *buf, size_t cap)
 {
-    size_t n = ab_state_save(c, buf, cap);
+    size_t n = ab_state_save_rows(c, buf, cap);    /* unit 089: the device's save keeps the worksheet's page */
     if (n == 0) return 0;
     if (n + REC_LEN <= cap) {
         uint8_t *r = buf + n;

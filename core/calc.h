@@ -255,6 +255,9 @@ typedef enum { AB_REAL = 0, AB_COMPLEX, AB_VECTOR,
 
 typedef struct {
     ab_kind kind;
+    uint32_t row;           /* unit 089: the serial of the worksheet row whose value this is (core/rows.h), 0 none; every
+                               copy carries it, and the 33s and 35s never read it. (After kind, in what was padding: an
+                               ab_val stays 64 B, rows.c asserts it) */
     abn re, im;             /* parts 1 and 2: a real number is re, with im zero */
     abn p3;                 /* part 3: a 3-D vector's third element */
     int len;                /* a vector's element count, 1..3 (0 otherwise); 082: an expression's store slot, a name's
@@ -262,6 +265,26 @@ typedef struct {
 } ab_val;
 
 #define AB_EXPR_SLOTS 48            /* unit 082: the expression store: X, Y, Z, T, LASTx, 27 letters, 16 history values */
+
+/* Unit 089: the worksheet's rows (core/rows.c). The page in RAM, and what a save keeps of it */
+#define AB_ROWS_RAM 65536u          /* bytes of rows in RAM (PSRAM on the boards), the oldest dropped past it */
+#define AB_ROWS_SAVE 8192u          /* bytes of the newest rows a save keeps, past which the rows values hold are kept */
+#define AB_ROW_LINKS 3              /* the most rows one row links to */
+typedef struct {
+    bool on;                /* this key records rows (STU, the keyboard, no program entry) */
+    int route;              /* where ab_do_arg sent the key (rows.c) */
+    uint32_t pre[4];        /* X, Y, Z and T's rows before the key; X's becomes a typed number's own row (R3) */
+    uint32_t pre_lastx, pre_ans, pre_var[27];
+    ab_val lv0[4];          /* X, Y, Z and T before the key: a level whose value changed with its row unchanged loses it */
+    ab_val var0[27];        /* the letters before the key, the same for them (a run's letter equal to X gets X's row) */
+    uint32_t read[AB_ROW_LINKS];    /* an ALG line's reads (take_val), in order */
+    int nread;
+    bool more;              /* a fourth read or more */
+    bool run;               /* a program run or a solver is going on: its one row is made when it stops */
+    uint16_t run_op;
+    int32_t run_arg;
+    uint32_t run_x;         /* X's row when the run started */
+} ab_rowctx;
 
 typedef struct {
     ab_val x, y, z, t;
@@ -436,6 +459,7 @@ typedef struct {
     bool alg;               /* ALG entry (MODE's F5, STU only); in the state image */
     bool cas_cplx;          /* unit 076: CAS3's CPLX, SOLVE's complex roots (off at MEMORY CLEAR); in the state image */
     ab_val ans;             /* ANS: the last result, 0 to begin; in the state image */
+    uint32_t row_top;       /* unit 089: the newest row the page shows (rows newer are UNDO's hidden ones); in the image */
     bool alg_eval;          /* the line is being evaluated: the parser knows ANS (not in the image) */
     bool alg_shown;         /* the line shows its result: the next digit or function starts a new
                                line, an operator a new line after ANS */
@@ -451,6 +475,13 @@ typedef struct {
                                                free (ab_expr_new sweeps). In the image by content, never by slot */
     int hist_n;             /* entries kept, the newest at hist_n - 1 */
     int hist_at;            /* the entry shown by up and down, -1 none */
+    /* unit 089 (work/worksheet-1-rows.md): the worksheet's rows, in RAM (the tail, so UNDO's image loaded keeps them;
+       MEMORY CLEAR empties them). Records appended in serial order (rows.c); a save writes the newest within a budget */
+    uint8_t rows[AB_ROWS_RAM];
+    uint32_t rows_len;      /* bytes used */
+    uint32_t rows_next;     /* the next serial (0 read as 1): never reused, saved with the rows */
+    uint32_t rows_dropped;  /* rows the page has lost (the arena full, a save's budget, the serial's wrap) */
+    ab_rowctx rowctx;       /* one key's bookkeeping (rows.c) */
 } ab_calc;
 
 void ab_init(ab_calc *c);

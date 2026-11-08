@@ -6,6 +6,7 @@
 #include "eqn.h"
 #include "fmt.h"
 #include "state.h"
+#include "rows.h"
 
 /* The operation codes of version 1: the position in this table is the code. Frozen: a later
  * firmware keeps this table (adding codes only at its end), so an image's program means the same
@@ -64,7 +65,8 @@ static bool status_in_image(unsigned st, int version)
 }
 
 enum { T_MODES = 1, T_STACK, T_VARS, T_STAT, T_IND, T_PROG, T_EQNS, T_ENTRY, T_EDITOR, T_RUN, T_SOLVE, T_MODE25, T_ALG,
-       T_EQMODEL, T_TABLE, T_GRAPH, T_ZOOM, T_CAS, T_ENG, T_EQNOTE, T_CASCPLX };
+       T_EQMODEL, T_TABLE, T_GRAPH, T_ZOOM, T_CAS, T_ENG, T_EQNOTE, T_CASCPLX,
+       T_ROWREF, T_ROWS };     /* unit 089 (version 23): the rows values hold; the device's save, the page */
 
 #define BUILTIN2 "\x01" "2*2 lin. solve"
 #define BUILTIN3 "\x01" "3*3 lin. solve"
@@ -88,6 +90,7 @@ typedef struct {
     unsigned ver;           /* the lowest version the content written so far needs (082: 20 without an expression) */
     const uint8_t *ref;     /* ab_state_same: each byte compared with ref's (cap its length), nothing written */
     bool differ;
+    bool rows;              /* unit 089: the page too (ab_state_save_rows) */
 } wr;
 
 /* A byte at position at: written, or (ab_state_same) compared */
@@ -228,14 +231,28 @@ static size_t state_write(wr *wp);
 
 size_t ab_state_save(const ab_calc *c, uint8_t *buf, size_t cap)
 {
-    wr w = {buf, cap, 0, c, 20, NULL, false};
+    wr w = {buf, cap, 0, c, 20, NULL, false, false};
     if (c->running) return 0;
     return state_write(&w);
 }
 
+size_t ab_state_save_rows(const ab_calc *c, uint8_t *buf, size_t cap)
+{
+    wr w = {buf, cap, 0, c, 20, NULL, false, true};
+    if (c->running) return 0;
+    return state_write(&w);
+}
+
+size_t ab_val_encode(const ab_calc *c, const ab_val *v, uint8_t *out, size_t cap)
+{
+    wr w = {out, cap, 0, c, 20, NULL, false, false};
+    wval(&w, v);
+    return w.len;
+}
+
 bool ab_state_same(const ab_calc *c, const uint8_t *img, size_t n)
 {
-    wr w = {NULL, n, 0, c, 20, img, false};
+    wr w = {NULL, n, 0, c, 20, img, false, false};
     if (c->running || !img) return false;
     return state_write(&w) == n && !w.differ;
 }
@@ -495,6 +512,48 @@ static size_t state_write(wr *wp)
     w8(&w, c->cas_cplx);
     sec_end(&w, s);
 
+    {                                           /* version 23 (unit 089): only when a value holds a row */
+        uint32_t held[33];
+        int nh = ab_rows_held(c, held);
+        if (nh || c->row_top) {
+            s = sec_begin(&w, T_ROWREF);
+            w32(&w, c->row_top);
+            for (int i = 0; i < 33; i++) {
+                const ab_val *v = i < 6 ? (const ab_val *[]){&c->x, &c->y, &c->z, &c->t, &c->lastx, &c->ans}[i]
+                                        : &c->var[i - 6];
+                w32(&w, v->row);
+            }
+            sec_end(&w, s);
+            if (w.ver < 23) w.ver = 23;
+        }
+        if (w.rows && ab_rows_count(c) > 0) {   /* the page: the newest within the budget, and the held ones before */
+            uint32_t end = ab_rows_visible_len(c), cut = ab_rows_cut(c, AB_ROWS_SAVE), n = 0, left = 0;
+            for (uint32_t at = 0; at < end; at += (uint32_t)(c->rows[at] | c->rows[at + 1] << 8)) {
+                uint32_t sr = (uint32_t)c->rows[at + 2] | (uint32_t)c->rows[at + 3] << 8 |
+                              (uint32_t)c->rows[at + 4] << 16 | (uint32_t)c->rows[at + 5] << 24;
+                bool keep = at >= cut;
+                for (int i = 0; i < nh && !keep; i++) keep = held[i] == sr;
+                if (keep) n++;
+                else left++;
+            }
+            s = sec_begin(&w, T_ROWS);
+            w32(&w, c->rows_next);
+            w32(&w, c->rows_dropped + left);    /* what this save leaves out counts as dropped once it is loaded */
+            w32(&w, n);
+            for (uint32_t at = 0; at < end;) {
+                uint32_t len = (uint32_t)(c->rows[at] | c->rows[at + 1] << 8);
+                uint32_t sr = (uint32_t)c->rows[at + 2] | (uint32_t)c->rows[at + 3] << 8 |
+                              (uint32_t)c->rows[at + 4] << 16 | (uint32_t)c->rows[at + 5] << 24;
+                bool keep = at >= cut;
+                for (int i = 0; i < nh && !keep; i++) keep = held[i] == sr;
+                if (keep) wbytes(&w, (const char *)c->rows + at, len);
+                at += len;
+            }
+            sec_end(&w, s);
+            if (w.ver < 23) w.ver = 23;
+        }
+    }
+
     {
         size_t total = w.len + 4;
         for (int i = 0; i < 2; i++)                 /* the version the content needs (082), at most this build's */
@@ -513,7 +572,7 @@ static size_t state_write(wr *wp)
 size_t ab_state_label_bytes(const ab_calc *c, int l)
 {
     if (l < 0 || l >= 26 || c->labelpos[l] < 0 || c->labelpos[l] >= c->prog_len) return 0;
-    wr w = {NULL, 0, 0, NULL, 20, NULL, false};              /* counts only (a literal is never an expression) */
+    wr w = {NULL, 0, 0, NULL, 20, NULL, false, false};       /* counts only (a literal is never an expression) */
     for (int i = c->labelpos[l]; i < c->prog_len && (i == c->labelpos[l] || c->prog[i].op != AB_LBL); i++) {
         int op = c->prog[i].op;
         w16(&w, (unsigned)op_code((ab_op)op));
@@ -550,6 +609,7 @@ typedef struct {
     uint8_t xlen[AB_EXPR_SLOTS];
     int nx;
     bool dropped;                   /* 4C: a newer image, or a section this build can't read skipped: OLDER FIRMWARE */
+    bool had_rows;                  /* unit 089: the page was in it (the device's save) */
 } rd;
 
 static unsigned r8(rd *r)
@@ -687,6 +747,108 @@ static void rval(rd *r, ab_val *out, bool sym)
     if (mask & 2) rnum(r, &v.im);
     if (mask & 4) rnum(r, &v.p3);
     if (!r->bad && out) *out = v;
+}
+
+/* Unit 089: one value from a row's record, never through the store: an expression's or a name's text into text */
+static void rval_text(rd *r, ab_val *out, char *text, size_t tcap)
+{
+    unsigned kind = r8(r), len = r8(r), mask = r8(r);
+    ab_val v;
+    memset(&v, 0, sizeof v);
+    v.re = v.im = v.p3 = abn_zero();
+    if (text && tcap) text[0] = '\0';
+    if (!r->bad && kind == AB_EXPR) {
+        need(r, mask == 0 && len >= 1 && len < AB_EQN_LEN && len <= r->len - r->pos && (!text || len < tcap));
+        for (unsigned i = 0; i < len && !r->bad; i++) need(r, r->p[r->pos + i] >= 0x20);
+        if (r->bad) return;
+        if (text) {
+            memcpy(text, r->p + r->pos, len);
+            text[len] = '\0';
+        }
+        r->pos += len;
+        v.kind = AB_EXPR;
+        v.len = -1;                             /* (no slot: the text is the value) */
+    } else if (!r->bad && kind == AB_NAME) {
+        need(r, mask == 0 && len <= 26);
+        if (r->bad) return;
+        v.kind = AB_NAME;
+        v.len = (int)len;
+        if (text && tcap > 1) text[0] = len == 26 ? 'i' : (char)('A' + len), text[1] = '\0';
+    } else {
+        need(r, kind <= AB_VECTOR && mask <= 7 && (kind == AB_VECTOR ? len >= 1 && len <= 3 : len == 0));
+        if (r->bad) return;
+        v.kind = (ab_kind)kind;
+        v.len = (int)len;
+        if (mask & 1) rnum(r, &v.re);
+        if (mask & 2) rnum(r, &v.im);
+        if (mask & 4) rnum(r, &v.p3);
+    }
+    if (!r->bad && out) *out = v;
+}
+
+bool ab_val_decode(const uint8_t *p, size_t n, ab_val *out, char *text, size_t tcap)
+{
+    rd r;
+    memset(&r, 0, sizeof r);
+    r.p = p;
+    r.len = n;
+    r.version = AB_STATE_VERSION;
+    rval_text(&r, out, text, tcap);
+    return !r.bad && r.pos == n;
+}
+
+/* version 23 (unit 089): the newest row the page shows, and the rows X, Y, Z, T, LASTx, ANS and the 27 letters hold */
+static void sec_rowref(rd *r)
+{
+    ab_calc *c = r->c;
+    uint32_t top = r32(r);
+    for (int i = 0; i < 33 && !r->bad; i++) {
+        uint32_t s = r32(r);
+        need(r, s <= AB_ROW_SERIAL_LAST);
+        if (c && !r->bad) {
+            ab_val *v = i < 6 ? (ab_val *[]){&c->x, &c->y, &c->z, &c->t, &c->lastx, &c->ans}[i] : &c->var[i - 6];
+            v->row = s;
+        }
+    }
+    need(r, top <= AB_ROW_SERIAL_LAST);
+    if (c && !r->bad) c->row_top = top;
+}
+
+/* version 23 (unit 089): the page, the device's save: the next serial, the rows dropped, then each record, oldest first
+   (rows.h's layout, serials rising, links to older rows); replaces the page in RAM */
+static void sec_rows(rd *r, size_t end)
+{
+    ab_calc *c = r->c;
+    uint32_t next = r32(r), dropped = r32(r), n = r32(r), last = 0, total = 0;
+    need(r, next <= AB_ROW_SERIAL_LAST + 1);
+    for (uint32_t i = 0; i < n && !r->bad; i++) {
+        ab_row row;
+        size_t room = end > r->pos ? end - r->pos : 0;
+        bool ok = ab_rows_parse(r->p + r->pos, room, &row);
+        need(r, ok && row.serial > last && row.serial < next);        /* (rising, and below the next to be given) */
+        if (r->bad) return;
+        size_t len = (size_t)(r->p[r->pos] | r->p[r->pos + 1] << 8);
+        {
+            rd v;
+            memset(&v, 0, sizeof v);
+            v.p = row.val;
+            v.len = row.vlen;
+            v.version = AB_STATE_VERSION;
+            rval_text(&v, NULL, NULL, 0);
+            need(r, !v.bad && v.pos == row.vlen);
+        }
+        need(r, total + len <= AB_ROWS_RAM);
+        if (r->bad) return;
+        if (c) memcpy(c->rows + total, r->p + r->pos, len);
+        total += (uint32_t)len;
+        last = row.serial;
+        r->pos += len;
+    }
+    if (c && !r->bad) {
+        c->rows_len = total;
+        c->rows_next = next;
+        c->rows_dropped = dropped;
+    }
 }
 
 /* Text of at most max - 1 bytes: no NUL; no control byte but a built-in's leading \x01 when
@@ -1412,6 +1574,14 @@ static bool parse(rd *r)
             }
             break;
         case T_SOLVE: sec_solve(r); break;
+        case T_ROWREF:                          /* unit 089 */
+            if (r->version >= 23) sec_rowref(r);
+            else r->pos = end;
+            break;
+        case T_ROWS:
+            if (r->version >= 23) sec_rows(r, end), r->had_rows = true;
+            else r->pos = end;
+            break;
         default:
             r->pos = end;                       /* 082: a newer build's section (version 21 on), skipped by its size */
             r->dropped = true;                  /* (4C: OLDER FIRMWARE shows) */
@@ -1485,6 +1655,7 @@ abn_status ab_state_load(ab_calc *c, const uint8_t *buf, size_t len)
         memset(&c->err_x, 0, sizeof c->err_x);
         c->err_x.re = c->err_x.im = c->err_x.p3 = abn_zero();
     }
+    ab_rows_loaded(c);                          /* unit 089: a value's row that isn't on the page is no row */
     if (!c->alg || c->hist_at >= c->hist_n) c->hist_at = -1;
     /* an image from before unit 031: its equations stamped left to right (35), as every mode read them */
     for (int i = 0; i < c->eqn_count; i++)

@@ -26,6 +26,8 @@
 #include "store.h"
 #include "eqn.h"
 #include "norm.h"
+#include "rows.h"
+#include "opnames.h"
 #ifndef AB_DEVICE
 #include "screen.h"   /* %XDRAWN (082): the console's drawn=, from the screen's compose */
 #endif
@@ -320,6 +322,23 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
             if (!img_save(c)) (*errors)++;
             return 0;
         }
+        if (strcmp(tok, "SAVEROWS") == 0) {     /* unit 089: the device's save, the page with it (LOAD reads it back) */
+            size_t n = ab_state_save_rows(c, NULL, 0);
+            uint8_t *b = n ? realloc(img, n) : NULL;
+            if (!b) {
+                (*errors)++;
+                return 0;
+            }
+            img = b;
+            img_cap = n;
+            img_len = ab_state_save_rows(c, img, img_cap);
+            if (img_len != n) (*errors)++;
+            return 0;
+        }
+        if (strncmp(tok, "ROWNEXT:", 8) == 0) { /* unit 089 (tests): the next row's serial */
+            ab_rows_set_next(c, (uint32_t)strtoul(tok + 8, NULL, 0));
+            return 0;
+        }
         if (strcmp(tok, "MARK") == 0) {
             size_t n = ab_state_save(c, NULL, 0);
             free(mark);
@@ -601,6 +620,128 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
     return 0;
 }
 
+/* ---- unit 089: the rows' dump (work/worksheet-1-rows.md, the %ROW directives; abacus #13990) ---- */
+_Static_assert(AB_OPNAMES_N == AB_OP_LAST + 1, "tests/opnames.h is core/calc.h's (scripts/gen_opnames.py)");
+
+static void row_opname(const ab_row *r, char *out, size_t n)
+{
+    const char *nm = r->op == AB_ROW_OP_NUM ? "NUM" : r->op == AB_ROW_OP_ALG ? "ALG" :
+                     r->op < AB_OPNAMES_N ? AB_OPNAMES[r->op] : "?";
+    snprintf(out, n, "%s%s", nm, (r->flags & AB_ROWF_PART2) ? ".2" : "");
+}
+
+static void spaces_out(char *t)
+{
+    for (char *q = t; *q; q++)
+        if (*q == ' ') *q = '_';
+}
+
+/* VALUE: a number as the engine writes it, C:re,im, V:a,b,c, E:text, L:A */
+static bool row_value(const ab_row *r, ab_val *v, char *out, size_t n)
+{
+    char t[AB_EQN_LEN], a[ABN_TEXT_MAX], b[ABN_TEXT_MAX], d[ABN_TEXT_MAX];
+    if (!ab_val_decode(r->val, r->vlen, v, t, sizeof t)) {
+        snprintf(out, n, "?");
+        return false;
+    }
+    abn_to_text(&v->re, a, sizeof a);
+    abn_to_text(&v->im, b, sizeof b);
+    abn_to_text(&v->p3, d, sizeof d);
+    if (v->kind == AB_REAL) snprintf(out, n, "%s", a);
+    else if (v->kind == AB_COMPLEX) snprintf(out, n, "C:%s,%s", a, b);
+    else if (v->kind == AB_VECTOR) snprintf(out, n, v->len == 1 ? "V:%s" : v->len == 2 ? "V:%s,%s" : "V:%s,%s,%s", a, b, d);
+    else snprintf(out, n, "%s:%s", v->kind == AB_EXPR ? "E" : "L", t);
+    spaces_out(out);
+    return true;
+}
+
+static void row_links(const ab_row *r, char *out, size_t n)
+{
+    size_t k = 0;
+    out[0] = '\0';
+    if (!r->nlink) snprintf(out, n, "-");
+    for (int i = 0; i < r->nlink && k < n; i++)
+        k += (size_t)snprintf(out + k, n - k, "%s%lu", i ? "," : "", (unsigned long)r->link[i]);
+}
+
+/* one number of the expectation against one of the row's, by the normalizer: =, ~ (12 digits) or ^ (8 units) */
+static bool num_matches(const char *want_text, const abn *got, char cmp)
+{
+    char gt[ABN_TEXT_MAX];
+    norm w, g;
+    abn_to_text(got, gt, sizeof gt);
+    if (normalize(want_text, &w) != 0 || normalize(gt, &g) != 0) return false;
+    if (cmp == '~') round_norm(&w, 12), round_norm(&g, 12);
+    return cmp == '^' ? norm_within_units(&w, &g, 8) : norm_equal(&w, &g);
+}
+
+static bool value_matches(const ab_val *v, const char *got_text, const char *want, char cmp)
+{
+    char buf[AB_EQN_LEN + 8], *el[3];
+    int n = 0;
+    if (want[0] == 'E' || want[0] == 'L') return strcmp(want, got_text) == 0;
+    if (want[0] == 'C' || want[0] == 'V') {
+        if (want[1] != ':' || (want[0] == 'C') != (v->kind == AB_COMPLEX) || (want[0] == 'V') != (v->kind == AB_VECTOR))
+            return false;
+        snprintf(buf, sizeof buf, "%s", want + 2);
+        for (char *q = strtok(buf, ","); q && n < 3; q = strtok(NULL, ",")) el[n++] = q;
+        if (n != (want[0] == 'C' ? 2 : v->len)) return false;
+        for (int j = 0; j < n; j++)
+            if (!num_matches(el[j], j == 0 ? &v->re : j == 1 ? &v->im : &v->p3, cmp)) return false;
+        return true;
+    }
+    return v->kind == AB_REAL && num_matches(want, &v->re, cmp);
+}
+
+/* "%ROW-k=S:OP:LINKS:VALUE": got is the row's own, with the expected value's text where it matches by value */
+static void row_expect(const ab_calc *c, int k, const char *want, char *got, size_t n)
+{
+    ab_row r;
+    ab_val v;
+    char op[24], lk[48], val[AB_EQN_LEN + 16];
+    if (!ab_rows_get(c, k, &r)) {
+        snprintf(got, n, "none");
+        return;
+    }
+    row_opname(&r, op, sizeof op);
+    row_links(&r, lk, sizeof lk);
+    row_value(&r, &v, val, sizeof val);
+    const char *wv = want;
+    for (int i = 0; i < 3 && wv; i++) wv = strchr(wv, ':'), wv = wv ? wv + 1 : NULL;
+    if (wv && value_matches(&v, val, wv, '=')) snprintf(val, sizeof val, "%s", wv);
+    if (snprintf(got, n, "%lu:%s:%s:%s", (unsigned long)r.serial, op, lk, val) >= (int)n)
+        got[n - 1] = '\0';                     /* (a value past the buffer is cut: it then can't match) */
+}
+
+static void rows_print(const ab_calc *c)
+{
+    int n = ab_rows_count(c);
+    printf("  the page, %d row(s), newest last (dropped %lu):\n", n, (unsigned long)c->rows_dropped);
+    for (int k = n; k >= 1; k--) {
+        ab_row r;
+        ab_val v;
+        char op[24], lk[48], val[AB_EQN_LEN + 16];
+        if (!ab_rows_get(c, k, &r)) continue;
+        row_opname(&r, op, sizeof op);
+        row_links(&r, lk, sizeof lk);
+        row_value(&r, &v, val, sizeof val);
+        printf("    %lu:%s:%s:%s%s\n", (unsigned long)r.serial, op, lk, val, (r.flags & AB_ROWF_MORE) ? " (more read)" : "");
+    }
+}
+
+static const ab_val *lbl_val(const ab_calc *c, const char *l)
+{
+    if (!strcmp(l, "X")) return &c->x;
+    if (!strcmp(l, "Y")) return &c->y;
+    if (!strcmp(l, "Z")) return &c->z;
+    if (!strcmp(l, "T")) return &c->t;
+    if (!strcmp(l, "LASTX")) return &c->lastx;
+    if (!strcmp(l, "ANS")) return &c->ans;
+    if (l[0] >= 'A' && l[0] <= 'Z' && !l[1]) return &c->var[l[0] - 'A'];
+    if (!strcmp(l, "i")) return &c->var[26];
+    return NULL;
+}
+
 static const ab_val *reg(const ab_calc *c, char r)
 {
     switch (r) {
@@ -760,6 +901,7 @@ int vectors_run(const char *name, FILE *f)
             else if (nexp < 64) exps[nexp++] = ex;
         }
         int vec_ok = want_error ? (op_errors > 0) : (op_errors == 0);
+        bool rows_asked = false;                /* unit 089: a failing vector that read rows prints the page */
         if (!vec_ok) {
             if (want_error) printf("FAIL %s: expected an error, none returned\n", id);
             else printf("FAIL %s: %d operation(s) returned an error\n", id, op_errors);
@@ -785,11 +927,33 @@ int vectors_run(const char *name, FILE *f)
         }
         for (int k = 0; k < nexp; k++) {
             char *ex = exps[k];
+            if (ex[0] == '%' && strncmp(ex, "%ROWV-", 6) == 0) {
+                /* unit 089: %ROWV-k~VALUE or ^VALUE (or =), a row's value alone */
+                char *cmpp = strpbrk(ex + 6, "=~^");
+                ab_row r;
+                ab_val v;
+                char val[AB_EQN_LEN + 16];
+                rows_asked = true;
+                if (!cmpp) {
+                    fprintf(stderr, "%s:%d: %s: bad expectation '%s'\n", name, lineno, id, ex);
+                    return 2;
+                }
+                bool okr = ab_rows_get(&c, atoi(ex + 6), &r) && row_value(&r, &v, val, sizeof val) &&
+                           value_matches(&v, val, cmpp + 1, *cmpp);
+                checks++;
+                if (okr) {
+                    checks_ok++;
+                } else {
+                    vec_ok = 0;
+                    printf("FAIL %s: expected %s, got %s\n", id, ex, ab_rows_get(&c, atoi(ex + 6), &r) ? val : "none");
+                }
+                continue;
+            }
             if (ex[0] == '%') {
                 /* program state (unit 011): %PC=A005 or TOP; %GO:A004=A003 (that line's target);
                    %LINES=n; %YES=0|1 (the last test); %Fn=0|1 (flag n) */
                 char *eq = strchr(ex, '=');
-                char got[AB_EQN_LEN + 8] = "?";   /* the longest text compared: an equation */
+                char got[AB_EQN_LEN + 64] = "?";  /* the longest text compared: a row with an expression (089) */
                 if (!eq) {
                     fprintf(stderr, "%s:%d: %s: bad expectation '%s'\n", name, lineno, id, ex);
                     return 2;
@@ -1055,6 +1219,30 @@ int vectors_run(const char *name, FILE *f)
                     snprintf(got, sizeof got, "%u", (unsigned)c.beeps);
                 } else if (ex[1] == 'F' && isdigit((unsigned char)ex[2])) {
                     snprintf(got, sizeof got, "%d", ab_flag(&c, atoi(ex + 2)) ? 1 : 0);
+                } else if (strcmp(ex, "%ROWS") == 0) {     /* unit 089: the page's rows, UNDO's hidden ones not counted */
+                    rows_asked = true;
+                    snprintf(got, sizeof got, "%d", ab_rows_count(&c));
+                } else if (strncmp(ex, "%ROW-", 5) == 0) {
+                    rows_asked = true;
+                    row_expect(&c, atoi(ex + 5), eq + 1, got, sizeof got);
+                } else if (strncmp(ex, "%ROWTXT-", 8) == 0) {
+                    ab_row r;
+                    rows_asked = true;
+                    if (!ab_rows_get(&c, atoi(ex + 8), &r)) snprintf(got, sizeof got, "?");
+                    else if (!r.tlen) snprintf(got, sizeof got, "none");
+                    else snprintf(got, sizeof got, "%.*s", (int)r.tlen, r.text), spaces_out(got);
+                } else if (strncmp(ex, "%ROWFLAG-", 9) == 0) {
+                    ab_row r;
+                    rows_asked = true;
+                    snprintf(got, sizeof got, "%s", !ab_rows_get(&c, atoi(ex + 9), &r) ? "?" :
+                                                     (r.flags & AB_ROWF_MORE) ? "more" : "none");
+                } else if (strncmp(ex, "%LBL:", 5) == 0) {
+                    const ab_val *lv = lbl_val(&c, ex + 5);
+                    rows_asked = true;
+                    snprintf(got, sizeof got, lv ? "%lu" : "?", lv ? (unsigned long)lv->row : 0ul);
+                } else if (strcmp(ex, "%ROWDROP") == 0) {
+                    rows_asked = true;
+                    snprintf(got, sizeof got, "%lu", (unsigned long)c.rows_dropped);
                 } else {
                     fprintf(stderr, "%s:%d: %s: bad expectation '%s'\n", name, lineno, id, ex);
                     return 2;
@@ -1245,6 +1433,7 @@ int vectors_run(const char *name, FILE *f)
                 printf("FAIL %s: expected %s, got %s\n", id, orig, got_text);
             }
         }
+        if (!vec_ok && rows_asked) rows_print(&c);
         vectors++;
         if (vec_ok) vectors_ok++;
         if (getenv("AB_EVALS")) fprintf(stderr, "%s evals %ld\n", id, c.evals);   /* unit 013 report */

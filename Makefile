@@ -8,7 +8,7 @@ INTEL_SRC := third_party/intel-dfp/IntelRDFPMathLib20U5/LIBRARY/src
 INTEL_LIB := build/intel/libbid.a
 BID_FLAGS := -DDECIMAL_CALL_BY_REFERENCE=0 -DDECIMAL_GLOBAL_ROUNDING=0 \
              -DDECIMAL_GLOBAL_EXCEPTION_FLAGS=0
-CORE := core/calc.c core/fmt.c core/fn.c core/bigint.c core/const.c core/xnum.c core/stat.c core/frac.c core/base.c core/cplx.c core/hp.c core/sbig.c core/arena.c core/eqn.c core/lin.c core/state.c core/msg.c core/list.c
+CORE := core/calc.c core/fmt.c core/fn.c core/bigint.c core/const.c core/xnum.c core/stat.c core/frac.c core/base.c core/cplx.c core/hp.c core/sbig.c core/arena.c core/eqn.c core/lin.c core/state.c core/msg.c core/list.c core/rows.c
 HDRS := core/abn.h core/calc.h core/fmt.h core/fn.h core/bigint.h core/const.h core/xnum.h core/stat.h core/frac.h core/base.h core/cplx.h core/hp.h core/sbig.h core/bigint_impl.h core/xnum_impl.h core/arena.h core/eqn.h core/lin.h core/state.h
 # Casimir (casim's computer algebra, CAS 004), its src/ at CASIM_PIN (scripts/fetch-casim.sh): built with no frame
 # above 1 KB, as casim builds it; linked wherever the core is, and the core's CAS step built in (AB_CASIM)
@@ -21,7 +21,7 @@ LIBS := -lm
 # make accuracy needs a python with mpmath: make all-checks PYTHON=...
 PYTHON ?= python3
 KEYV := $(filter-out work/002-vectors.txt work/016-vectors.txt work/017-vectors.txt work/018-vectors.txt,$(filter-out %-fmt-vectors.txt,$(wildcard work/*-vectors.txt))) tests/021-soroban.txt tests/019-soroban.txt tests/003-soroban.txt tests/018-soroban.txt tests/029-soroban.txt tests/034-soroban.txt tests/harness-soroban.txt tests/046-soroban.txt tests/047-soroban.txt tests/050-soroban.txt tests/054-soroban.txt tests/fc-soroban.txt tests/067-soroban.txt tests/082-soroban.txt tests/084-soroban.txt tests/085-soroban.txt tests/086-soroban.txt
-all: build/device_host build/standin_test build/app_test build/standin_replay build/keymap_test build/help_test build/power_test build/offscreen_test build/screen_test build/tbook_test build/keys_test build/ls027_test build/draw_test build/store_test build/load_fuzz build/expr_test build/eqn_say_test build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test build/bi_drive build/hp_drive build/deep_test build/eqn_depth build/eqn_stack build/stackkeys build/namedrive
+all: build/device_host build/rows_test build/standin_test build/app_test build/standin_replay build/keymap_test build/help_test build/power_test build/offscreen_test build/screen_test build/tbook_test build/keys_test build/ls027_test build/draw_test build/store_test build/load_fuzz build/expr_test build/eqn_say_test build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test build/bi_drive build/hp_drive build/deep_test build/eqn_depth build/eqn_stack build/stackkeys build/namedrive
 
 # every build/ target is order-only on the directory: a fresh clone has none (abacus #3803)
 build:
@@ -122,6 +122,9 @@ build/store_test: $(CORE) $(HDRS) $(ENGINE) firmware/store.c firmware/store.h fi
 
 build/expr_test: $(CORE) $(HDRS) $(ENGINE) tests/expr_test.c | build
 	$(CC) $(CFLAGS) -Icore -o $@ $(CORE) tests/expr_test.c $(ENGINE) $(LIBS)
+# unit 089: the worksheet's rows: the census against rows.c's table, the invariant, and the format (tests/rows_test.c)
+build/rows_test: $(CORE) $(HDRS) $(ENGINE) tests/rows_test.c tests/opnames.h | build
+	$(CC) $(CFLAGS) -Icore -Itests -o $@ $(CORE) tests/rows_test.c $(ENGINE) $(LIBS)
 
 build/eqn_say_test: $(CORE) $(HDRS) $(ENGINE) tests/eqn_say_test.c | build
 	$(CC) $(CFLAGS) -Icore -o $@ $(CORE) tests/eqn_say_test.c $(ENGINE) $(LIBS)
@@ -129,8 +132,8 @@ build/eqn_say_test: $(CORE) $(HDRS) $(ENGINE) tests/eqn_say_test.c | build
 build/load_fuzz: $(CORE) $(HDRS) $(ENGINE) tests/load_fuzz.c | build
 	$(CC) $(CFLAGS) -Icore -o $@ $(CORE) tests/load_fuzz.c $(ENGINE) $(LIBS)
 
-build/vectors: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) firmware/screen.h tests/vectors.c tests/norm.h firmware/store.c firmware/store.h | build
-	$(CC) $(CFLAGS) -Icore -Ifirmware -o $@ $(CORE) $(SCREEN) firmware/store.c tests/vectors.c $(ENGINE) $(LIBS)
+build/vectors: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) firmware/screen.h tests/vectors.c tests/norm.h tests/opnames.h firmware/store.c firmware/store.h | build
+	$(CC) $(CFLAGS) -Icore -Ifirmware -Itests -o $@ $(CORE) $(SCREEN) firmware/store.c tests/vectors.c $(ENGINE) $(LIBS)
 
 # unit 047: the parser's depth guard at the deepest site, on a guarded thread stack; the units the parser reaches
 # (tests/eqn_depth.py's rule); the stack a check parse uses, painted
@@ -270,6 +273,9 @@ test: all
 	./build/vectors tests/086-soroban.txt
 	AB_SAVELOAD=1 AB_STORE=1 ./build/vectors tests/086-soroban.txt    # (unit 086: the spoken equation)
 	./build/vectors tests/088-soroban.txt    # (unit 088: the CAS on the stack; no save/load pass: SOLVE's report is not in the image)
+	./build/vectors tests/089-soroban.txt    # (unit 089: the worksheet's rows; no save/load pass: SAVE's image holds no page, so a
+	                                         # row past MEMCLR LOAD is gone by design, and SAVEROWS is tested in the file itself)
+	./build/rows_test
 	./build/eqn_say_test tests/086-corpus.txt    # (unit 086: the round trip over every equation the vectors type)
 	if AB_SAY_PLANT=1 ./build/eqn_say_test tests/086-corpus.txt > /dev/null; then \
 	  echo "eqn_say_test: the planted reader passed: the round trip doesn't bite"; exit 1; fi
@@ -291,6 +297,7 @@ test: all
 	./build/vectors tests/golden-v1.txt
 	./build/load_fuzz 20000
 	./build/expr_test
+	python3 scripts/gen_opnames.py --check
 	bash tests/gen_games_test.sh
 	./build/store_test
 	./build/ls027_test
@@ -448,9 +455,14 @@ build/san/app_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) $(APP) $(GAMES_O) build/
 build/san/vectors: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) firmware/screen.h tests/vectors.c tests/norm.h firmware/store.c firmware/store.h | build
 	@mkdir -p build/san
 	$(CC) $(SAN_CFLAGS) -Icore -Ifirmware -o $@ $(CORE) $(SCREEN) firmware/store.c tests/vectors.c $(ENGINE) $(LIBS)
-sanitize: build/san/load_fuzz build/san/expr_test build/san/app_test build/san/vectors
+build/san/rows_test: $(CORE) $(HDRS) $(ENGINE) tests/rows_test.c tests/opnames.h | build
+	@mkdir -p build/san
+	$(CC) $(SAN_CFLAGS) -Icore -Itests -o $@ $(CORE) tests/rows_test.c $(ENGINE) $(LIBS)
+sanitize: build/san/load_fuzz build/san/expr_test build/san/app_test build/san/vectors build/san/rows_test
 	./build/san/load_fuzz 200000 7
 	./build/san/expr_test
+	./build/san/rows_test                      # (unit 089)
+	./build/san/vectors tests/089-soroban.txt
 	./build/san/app_test
 	for f in $(KEYV) work/016-vectors.txt work/017-vectors.txt; do AB_SAVELOAD=1 AB_STORE=1 ./build/san/vectors $$f || exit 1; done
 

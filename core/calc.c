@@ -17,6 +17,7 @@
 #include "arena.h"
 #include "cplx.h"
 #include "hp.h"
+#include "rows.h"
 #include "state.h"
 #include "eqn.h"
 #ifdef AB_CASIM
@@ -41,9 +42,11 @@ static ab_val ab_real(abn v)
 #define EQN_LIN2 "\x01" "2*2 lin. solve"
 #define EQN_LIN3 "\x01" "3*3 lin. solve"
 
-/* the history is the struct's tail (calc.h): what is before it is the state */
-_Static_assert(sizeof(ab_calc) - (offsetof(ab_calc, hist_at) + sizeof(int)) < _Alignof(ab_calc),
-               "the history is ab_calc's tail");
+/* the history (and since unit 089 the worksheet's rows after it) is the struct's tail (calc.h): what is before it is
+   the state */
+_Static_assert(sizeof(ab_calc) - (offsetof(ab_calc, rowctx) + sizeof(ab_rowctx)) < _Alignof(ab_calc),
+               "the history and the rows are ab_calc's tail");
+_Static_assert(offsetof(ab_calc, rows) > offsetof(ab_calc, hist), "the rows are after the history");
 
 /* Every field to its default; the history too unless keep_hist. */
 static void init_fields(ab_calc *c, bool keep_hist)
@@ -522,6 +525,7 @@ static abn_status vector_key(ab_calc *c, ab_op op)
         if (c->vlen) return ABN_OK;
         if (c->cpart || c->base != 10) return ABN_DOMAIN;
         if (c->entry.active) {
+            ab_rows_num(c);                     /* unit 089 (R3) */
             c->entry.active = false;
             c->lift = true;
         }
@@ -1192,6 +1196,7 @@ static abn_status suffix(ab_calc *c, int base)
         val = base_from_word(c->entry.mant_neg ? -v : v);
     }
     c->x = ab_real(val);
+    ab_rows_num(c);                             /* unit 089 (R3) */
     c->entry.active = false;
     c->lift = true;
     return ABN_OK;
@@ -4370,6 +4375,7 @@ static abn_status alg_evaluate(ab_calc *c)
         c->alg_shown = false;
         return st;
     }
+    v.row = ab_rows_alg(c, c->ebuf, &v);           /* unit 089: the line's row, linked to what it read */
     c->ans = v;
     if (c->hist_n == AB_HIST) {                     /* the oldest goes */
         memmove(c->hist[0], c->hist[1], sizeof c->hist[0] * (AB_HIST - 1));
@@ -4866,6 +4872,7 @@ static abn_status eng_key(ab_calc *c, ab_op op)
         for (int i = 0; i < c->entry.len; i++) dots += c->entry.text[i] == '.';
         fraction = dots > 1;                    /* a keyed fraction shows no exponent: read as formatted */
         if (!fraction) shown_form(c->entry.text, c->entry.len, c->entry.exp_neg, &ref, &low);
+        ab_rows_num(c);                         /* unit 089 (R3) */
         c->entry.active = false;
         c->entry.back = 0;
         c->lift = true;
@@ -4896,7 +4903,18 @@ static abn_status eng_key(ab_calc *c, ab_op op)
 
 static bool casrep_key(ab_calc *c, ab_op op, abn_status *st);
 
+static abn_status do_arg(ab_calc *c, ab_op op, int arg);
+
+/* Unit 089: every key the keyboard sends, with the worksheet's rows around it (rows.c) */
 abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
+{
+    ab_rows_key_begin(c, op, arg);
+    abn_status st = do_arg(c, op, arg);
+    ab_rows_key_end(c, op, arg, st);
+    return st;
+}
+
+static abn_status do_arg(ab_calc *c, ab_op op, int arg)
 {
     abn_status st;
     ab_val x0 = c->x;
@@ -4925,14 +4943,16 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
     if (ab_view_key(c, op)) return ABN_OK;
     c->err_set = false;
     c->ovf = 0;
+    c->rowctx.route = AB_ROUTE_REPORT;          /* (unit 089: which keys reach the stack, for its rows) */
     if (c->cas_rep[0] && casrep_key(c, op, &st)) goto done;    /* unit 048: SOLVE's report open */
+    c->rowctx.route = AB_ROUTE_NONE;
     /* CLEAR ALL, CLR EQN and CLPGM act in Equation mode too (unit 021: never a silent no-op once the
        device has asked CLR ALL?, CLR EQN? or CLR PGMS?; CLPGM's question: abacus #8497) */
     if (c->prgm) st = program_key(c, op, arg);
-    else if (c->alg) st = alg_key(c, op, arg);      /* STU's expression line (unit 029) */
+    else if (c->alg) c->rowctx.route = AB_ROUTE_ALG, st = alg_key(c, op, arg);  /* STU's expression line (unit 029) */
     else if (eqn_routes(c, op))
-        st = eqn_key(c, op, arg);               /* (TABLE's GO and settings act in Equation mode: 032) */
-    else st = do_key(c, op, arg);
+        c->rowctx.route = AB_ROUTE_EQN, st = eqn_key(c, op, arg);   /* (TABLE's GO and settings act in Equation mode: 032) */
+    else c->rowctx.route = AB_ROUTE_DO, st = do_key(c, op, arg);
 done:
     if (st != ABN_OK && st != ABN_CLAMPED && st != ABN_RPN_ONLY && st != ABN_STU_ONLY && st != ABN_NO_EQN &&
         st != ABN_NO_VAR && st != ABN_NOT_IN_EQN) {     /* (the brief notices: not messages) */
@@ -5265,6 +5285,7 @@ abn_status ab_continue(ab_calc *c)
         err_note(c, AB_RS, 0, NULL);
         c->err_status = st;
     }
+    ab_rows_continue_end(c, st);                            /* unit 089: a run's one row, when it stops */
     return st;
 }
 
@@ -5387,6 +5408,7 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
             c->entry.back = c->entry.len;
             return ABN_SYNTAX;
         }
+        ab_rows_num(c);                         /* unit 089 (R3): the typed number's row, before the op reads it */
         c->entry.active = false;
         c->entry.back = 0;
         c->lift = true;

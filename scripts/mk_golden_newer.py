@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Unit 082 (4C): tests/golden-v23-4c.img, a newer firmware's image, from tests/golden-v21-082.img by bytes alone.
+"""Unit 082 (4C): tests/golden-v24-4c.img, a newer firmware's image, from tests/golden-v21-082.img by bytes alone.
 
 The version is the last argument: one past AB_STATE_VERSION, so the image stays newer than the firmware (22 at 082;
-23 since the CAS 038 repin made the firmware 22, abacus #13773; expr_test checks it is newer).
+23 since the CAS 038 repin made the firmware 22, abacus #13773; 24 since unit 089 made it 23, abacus #13989 e;
+expr_test checks it is newer).
 
 Not this build's writer: the image is golden-v21-082's with
-  - the version given (23);
+  - the version given (24);
   - Y, Z and T (T_STACK's second to fourth values: an expression, the name B, a number) each replaced by a value kind
     this build doesn't know, written as state.h says a later build writes one: its kind, len and mask, a 16-bit byte
     count, that many bytes (kind 5 with 7 bytes, kind 9 with none, kind 200 with 300);
@@ -13,7 +14,7 @@ Not this build's writer: the image is golden-v21-082's with
 expr_test loads it and checks the rest of the state survived: the image it saves again equals golden-v21-082's state
 with Y, Z and T set to 0 and OLDER FIRMWARE showing, saved by the build.
 
-  python3 scripts/mk_golden_newer.py tests/golden-v21-082.img tests/golden-v23-4c.img 23
+  python3 scripts/mk_golden_newer.py tests/golden-v21-082.img tests/golden-v24-4c.img 24
 """
 import struct
 import sys

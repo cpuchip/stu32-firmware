@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "eqn.h"
+#include "rows.h"
 #include "fn.h"
 #include "frac.h"
 #include "stat.h"
@@ -612,7 +613,7 @@ static void parse_prim(parser *p, ab_val *v)
     if (p->c->alg_eval && at(p, "ANS")) {
         /* the expression line's last result (unit 029); a name on that line only */
         rec(p, SN_ANS, 0, 0, 0, 0, 0);
-        if (!p->check && p->st == ABN_OK) take_val(p, v, &p->c->ans);
+        if (!p->check && p->st == ABN_OK) ab_rows_read(p->c, &p->c->ans), take_val(p, v, &p->c->ans);
         return;
     }
     if (at(p, IND_I) || at(p, IND_J)) {
@@ -623,7 +624,7 @@ static void parse_prim(parser *p, ab_val *v)
     if (*s >= 'A' && *s <= 'Z') {
         rec(p, SN_VAR, *s, 0, 0, 0, 0);
         p->i++;
-        if (!p->check && p->st == ABN_OK) take_val(p, v, &p->c->var[*s - 'A']);
+        if (!p->check && p->st == ABN_OK) ab_rows_read(p->c, &p->c->var[*s - 'A']), take_val(p, v, &p->c->var[*s - 'A']);
         return;
     }
     if (*s == 'i' && p->m33) {
@@ -631,7 +632,7 @@ static void parse_prim(parser *p, ab_val *v)
            equation's stamp, as the rest of its syntax (unit 041 A, fresh eyes; it was the mode in force) */
         rec(p, SN_VAR, 'i', 0, 0, 0, 0);
         p->i++;
-        if (!p->check && p->st == ABN_OK) take_val(p, v, &p->c->var[26]);
+        if (!p->check && p->st == ABN_OK) ab_rows_read(p->c, &p->c->var[26]), take_val(p, v, &p->c->var[26]);
         return;
     }
     fail(p, ABN_SYNTAX);

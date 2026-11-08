@@ -51,8 +51,8 @@ typedef struct {
    unit 027 rules 3 and 4) */
 void dev_settings_default(dev_settings *s);
 
-/* The core's image of c followed by the record of s, into buf when it fits in cap; returns the
-   whole length either way (0 when the core writes no image). */
+/* The core's image of c, with the worksheet's page (ab_state_save_rows, unit 089), followed by the record of s, into buf
+   when it fits in cap; returns the whole length either way (0 when the core writes no image). */
 size_t dev_image_save(const ab_calc *c, const dev_settings *s, uint8_t *buf, size_t cap);
 
 /* Loads the core's image into c (ab_state_load) and the record into s, or s's defaults when the

@@ -4,7 +4,7 @@
  *
  * Seeds: the golden image (tests/golden-v1.img) and images of states built here (unit 029: one in
  * STU's ALG; unit 031: equations of each model; unit 082: tests/golden-v21-082.img, expressions and names in the
- * stack, the letters and the message's X; 4C: tests/golden-v23-4c.img, a newer firmware's image with value kinds and a
+ * stack, the letters and the message's X; 4C: tests/golden-v24-4c.img, a newer firmware's image with value kinds and a
  * section this build doesn't know). Each case damages
  * a seed (flipped bits, truncation, inserted or deleted bytes, or wholly random bytes), and half
  * the time repairs the length and checksum so the fields themselves are what is tested. A refused
@@ -19,6 +19,7 @@
 #include "const.h"
 #include "fmt.h"
 #include "state.h"
+#include "rows.h"
 
 static unsigned long long rng = 0x9E3779B97F4A7C15ull;
 static unsigned long long next(void)
@@ -155,8 +156,8 @@ int main(int argc, char **argv)
 {
     long iters = argc > 1 ? atol(argv[1]) : 20000;
     static ab_calc c;
-    uint8_t *seeds[9];
-    size_t seedn[9];
+    uint8_t *seeds[10];
+    size_t seedn[10];
     long refused = 0, accepted = 0, bad = 0;
     if (line_rule_sweep()) return 1;
     if (argc > 2) rng = (strtoull(argv[2], NULL, 0) * 0x9E3779B97F4A7C15ull) | 1;
@@ -217,14 +218,29 @@ int main(int argc, char **argv)
         fprintf(stderr, "load_fuzz: tests/golden-v21-082.img not found\n");
         return 2;
     }
-    seeds[8] = file("tests/golden-v23-4c.img", &seedn[8]);      /* 4C: a newer firmware's image */
+    seeds[8] = file("tests/golden-v24-4c.img", &seedn[8]);      /* 4C: a newer firmware's image */
     if (!seeds[8]) {
-        fprintf(stderr, "load_fuzz: tests/golden-v23-4c.img not found\n");
+        fprintf(stderr, "load_fuzz: tests/golden-v24-4c.img not found\n");
+        return 2;
+    }
+    /* unit 089: the device's save of a page of rows (T_ROWREF, T_ROWS): numbers, an expression, ALG lines, links */
+    ab_init(&c);
+    ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+    ab_do(&c, AB_K5), ab_do(&c, AB_ENTER), ab_do(&c, AB_K3), ab_do(&c, AB_ADD), ab_do_arg(&c, AB_STO, 0);
+    ab_eqn_add(&c, "3\xc3\x97X^2-4");
+    ab_do(&c, AB_EQDROP);
+    ab_do(&c, AB_K2), ab_do(&c, AB_MUL), ab_do(&c, AB_K1), ab_do(&c, AB_TOPOL);
+    ab_do_arg(&c, AB_ENTRYM, 1);
+    ab_do_arg(&c, AB_RCL, 0), ab_do(&c, AB_ADD), ab_do(&c, AB_K1), ab_do(&c, AB_ENTER);
+    seedn[9] = ab_state_save_rows(&c, NULL, 0);
+    seeds[9] = malloc(seedn[9]);
+    if (!seeds[9] || ab_state_save_rows(&c, seeds[9], seedn[9]) != seedn[9] || ab_rows_count(&c) < 6) {
+        fprintf(stderr, "load_fuzz: the rows seed was not made (%d rows)\n", ab_rows_count(&c));
         return 2;
     }
 
     for (long it = 0; it < iters; it++) {
-        int s = (int)below(9);
+        int s = (int)below(10);
         size_t n = seedn[s], cap = n + 64;
         uint8_t *m = malloc(cap), *before, *after;
         size_t nb, na;
@@ -286,13 +302,31 @@ int main(int argc, char **argv)
                 bad++;
             }
             free(again);
+            {                                   /* unit 089: the device's save, its page with it, the same */
+                size_t r1 = ab_state_save_rows(&c, NULL, 0), r2;
+                uint8_t *p1 = malloc(r1 ? r1 : 1), *p2;
+                ab_state_save_rows(&c, p1, r1);
+                if (ab_state_load(&c, p1, r1) != ABN_OK) {
+                    fprintf(stderr, "load_fuzz: case %ld: an accepted image's own save with its page was refused\n", it);
+                    bad++;
+                }
+                r2 = ab_state_save_rows(&c, NULL, 0);
+                p2 = malloc(r2 ? r2 : 1);
+                ab_state_save_rows(&c, p2, r2);
+                if (r2 != r1 || memcmp(p1, p2, r1) != 0) {
+                    fprintf(stderr, "load_fuzz: case %ld: save with the page, load, save differ\n", it);
+                    bad++;
+                }
+                free(p1);
+                free(p2);
+            }
             for (int k = 0; k < 40; k++) random_key(&c);   /* whatever was accepted must run */
         }
         free(m);
         free(before);
         free(after);
     }
-    for (int i = 0; i < 9; i++) free(seeds[i]);
+    for (int i = 0; i < 10; i++) free(seeds[i]);
     printf("load_fuzz: %ld cases, %ld refused, %ld accepted, %ld violations\n", iters, refused, accepted, bad);
     return bad ? 1 : 0;
 }

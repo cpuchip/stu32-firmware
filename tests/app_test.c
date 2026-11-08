@@ -12,6 +12,7 @@
 #include "const.h"
 #include "state.h"
 #include "eqn.h"
+#include "rows.h"
 #include "version.h"
 #include "fn.h"
 
@@ -612,6 +613,31 @@ int main(void)
         expect(img_crc(&c) == after && c.x.kind == AB_EXPR && !strcmp(ab_expr_text(&c, &c.x), "(3\xc3\x97X^2-4)\xc3\x97" "2"),
                "084: UNDO again: the product again");
     }
+    /* unit 089 (abacus #13989 e, the blueprint's tests): UNDO hides the rows newer than the state it gives back, REDO
+       shows them again, and a new row after an UNDO takes the hidden ones' place with a serial never used */
+    {
+        static uint8_t u0[1 << 18], u1[1 << 18];
+        ab_row r;
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        app_undo_buffers(&a, u0, u1, sizeof u0);
+        press(&a, "5 ENTER 3 +");
+        expect(ab_rows_count(&c) == 3 && c.x.row == 3, "089: 5 ENTER 3 +: three rows, X holds the sum's");
+        press(&a, "BLUE \xe2\x86\x90");
+        expect(ab_rows_count(&c) == 1 && c.entry.active && c.y.row == 1 && x_of(&c) == 3,
+               "089: UNDO: the state before + (3 still being typed, so its row not made yet, R3): rows 2 and 3 hidden");
+        press(&a, "BLUE \xe2\x86\x90");
+        expect(ab_rows_count(&c) == 3 && c.x.row == 3 && ab_rows_get(&c, 1, &r) && r.op == AB_ADD,
+               "089: REDO: the sum's row shown again, the same row");
+        press(&a, "BLUE \xe2\x86\x90 \xc3\x97");
+        expect(ab_rows_count(&c) == 3 && ab_rows_get(&c, 1, &r) && r.serial == 5 && r.op == AB_MUL && r.nlink == 2 &&
+                   r.link[0] == 1 && r.link[1] == 4 && c.x.row == 5 && x_of(&c) == 15,
+               "089: UNDO then ×: the hidden rows gone; the 3's row again as 4 and the product as 5, linked 1 and 4");
+        expect(!ab_rows_find(&c, 2, &r) && !ab_rows_find(&c, 3, &r) && ab_rows_find(&c, 4, &r) && r.op == AB_ROW_OP_NUM,
+               "089: serials 2 and 3 are never given again");
+    }
+
     /* unit 021: UNDO, one level (ours): the state before the last key that reached the core; a
        second UNDO puts it back. Compared as whole state images. */
     {
