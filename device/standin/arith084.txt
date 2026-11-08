@@ -70,7 +70,7 @@ send X
 expect state: X='(3×X^2-4)×2' 10
 expect drawn=(3X^2-4)·2 10
 send FRAMECRC
-expect framecrc: rows 21-205 3ADEC98E 10
+expect framecrc: rows 21-205 2D5A9C56 10
 send X
 expect-min stack-free 8188 10
 # CONTROL: must FAIL

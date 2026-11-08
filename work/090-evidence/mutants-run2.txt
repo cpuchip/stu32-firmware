@@ -1,0 +1,4 @@
+M0 SURVIVED 
+M1 RED: 090:A02,D01,E01,E02,F01,N01,N02,P01,P02,P03,P04,S01 ## screen_test frames 42,43,44,45,46,47,49,50,51,52,53,56,57,58; checks 4: screen_test: 090: the chain: X alone, seven rows above it, the newest lowest || screen_test: 090: Z holds the first 2: drawn in Z, not above (levels ZYX, 5 lines, lowest  || screen_test: 090: the dropped line above the oldest row || screen_test: 090: RPN's rows in ALG, the line shown not again above
+M9 RED: 090:P05,P06 ## screen_test frames 01,02,03,04,05,06,07,08,09,10,11,12,13,16,17,19; checks 35: screen_test: X = 0 at scale 4, right aligned || screen_test: the X letter || screen_test: T, Z, Y = 0 at scale 2, right aligned || screen_test: the T, Z, Y letters || screen_test: no soft labels: the bottom empty
+restored: core/rows.c, core/calc.c, core/state.c, firmware/screen.c as the originals given (SCRATCH/orig090)

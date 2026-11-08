@@ -1,0 +1,32 @@
+Unit 090's planted faults, each predicted before any was run (src 378ae7e + tests/090-soroban.txt's B10 B11 A09 D04, added
+while writing these predictions: CHS is calc.c's one in-place write, so it is the shape the bare hooks guard, and no vector
+put the dropped line's "oldest row on screen" to a test). The runner (mutants-runner.py) builds vectors, rows_test,
+app_test, expr_test, screen_test and store_test with one fault, runs tests/090-soroban.txt, tests/089-soroban.txt,
+tests/029-soroban.txt, work/029-vectors.txt, rows_test, app_test, expr_test, screen_test against tests/frames and
+store_test, and names what went red. "only" means nothing else goes red.
+
+M1  a held row drawn twice (page_plan's skip of a level's row removed).
+    Predicted red: 090 P01 P02 P03 P04 E01 E02 F01 S01 A02 D01 N02; screen_test frames 49 50 51 52 53 56 57 58 and its
+    checks for 49, 50, 53, 56, 58. Not 54 or 55 (ALG typing and ▲: nothing held), not app_test's 4a (▲'s limit).
+M2  B, not B′: a top level hidden when it is 0 with no row, read from the value (abacus 3b's option).
+    Predicted red: 090 B06 B07 B11 (a program's 0, row 0); screen_test frame 48 (the 4C image's zeros). Only those.
+M3  the program line's hook removed (calc.c's ab_rows_bare_line call).
+    Predicted red: 090 B11 only. (B06 and B07 stay green: a literal and a computed value are whole values, made bare 0.)
+M4  the key's hook removed (ab_do_arg's ab_rows_bare_key call).
+    Predicted red: 090 B10 only.
+M5  T_BARE never written.
+    Predicted red: 090 B08; store_test's 082 check (Z, T bare after the load); rows_test's two version-24 checks. Not
+    app_test's CLx-then-UNDO (X was made before the CLx, so the UNDO image's X is made either way).
+M6  STO arithmetic linked X first, then A.
+    Predicted red: 090 S01 S02; 089 L03. Only those (S03 has one link).
+M7  ALG's ▲ reaches only the newest 16 ALG rows (029 rule 5 as it was).
+    Predicted red: 090 A04; app_test's 4a. Not work/029 H07 (its 16th back is inside the newest 16).
+M8  the dropped line drawn whenever there's room, the oldest row on the screen or not.
+    Predicted red: 090 D04 only.
+M9  the page on every model's home (STU's test left out).
+    Predicted red: 090 P05 P06; screen_test: most of frames 01-20 (the 33s and 35s homes, their levels bare and hidden).
+M10 STO arithmetic makes no row (the LETTER kind's table entry removed: a move again).
+    Predicted red: 090 S01 S02 S03; 089 L03; screen_test frame 58 and its check.
+M11 CLEAR ALL keeps the page (ab_clear_all's ab_rows_clear_all call removed).
+    Predicted red: 090 D02 (D03 stays green: the serial is 4 either way); tests/029 Z01 (%HIST 2); app_test's CLEAR ALL
+    page check, its UNDO-after-CLEAR-ALL rows check and the next rows' links (X's row 3 found, so links 3 and 4).

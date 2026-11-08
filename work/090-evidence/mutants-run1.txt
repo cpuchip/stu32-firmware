@@ -1,0 +1,12 @@
+M1 RED: BUILD FAILED (build/vectors,build/rows_test,build/app_test,build/expr_test,build/screen_test,build/store_test): cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -Icore -Ifirmware -Itests -o build/vectors core/calc.c core/fmt.c core/fn.c core/bigint.c core/const.c core/xnum.c core/stat.c core/frac.c core/base.c core/cplx.c core/hp.c core/sbig.c core/arena.c core/eqn.c core/lin.c core/s
+M2 RED: 090:B06,B07,B11 ## screen_test frames 48
+M3 RED: 090:B11
+M4 RED: 090:B10
+M5 RED: 090:B08 ## rows_test 2: FAIL: unit 090: a fresh STU's levels are bare: version 24 (T_BARE) || FAIL: a row: X and ENTER's copy hold row 1, Z and T still bare (version 24) ## store_test 2: store_test: 082: an expression's image (version 24 since unit 090: Z and T bare) with the device's r || store_test: settings 13/14 checks
+M6 RED: 090:S01,S02 ## 089:L03
+M7 RED: 090:A04 ## app_test 1: exit 1 with no failure printed
+M8 RED: 090:D04
+M9 RED: BUILD FAILED (build/rows_test,build/expr_test,build/store_test): cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -Icore -Ifirmware -Itests -o build/vectors core/calc.c core/fmt.c core/fn.c core/bigint.c core/const.c core/xnum.c core/stat.c core/frac.c core/base.c core/cplx.c core/hp.c core/sbig.c core/arena.c core/eqn.c core/lin.c core/s
+M10 RED: 090:S01,S02,S03 ## 089:L03 ## screen_test frames 58; checks 1: screen_test: 090: STO+ A's row on the page (lowest _|_)
+M11 RED: 090:D02 ## t029:Z01 ## app_test 3: app_test: 090: CLEAR ALL empties the page, its dropped count too || app_test: 090 (#14047, moved on purpose): UNDO after CLEAR ALL: the values back, every row 0 (the pa || app_test: 090: the next rows take serials never given (4, 5), the sum linked to the 7's alone (8's r
+restored: core/rows.c, core/calc.c, core/state.c, firmware/screen.c as the originals given (SCRATCH/orig090)

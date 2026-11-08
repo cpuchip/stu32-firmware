@@ -8,6 +8,7 @@
  *                             OP (s SOLVE, i ∫DX, f FACTR) in X
  *   stackkeys cas s TEXT V    SOLVE in the letter V (the CAS 038 repin: V=I×R for R)
  *   stackkeys rows            unit 089's rows from the keys: STU, 5 ENTER 3 + (three rows), then STO A
+ *   stackkeys page            unit 090's page from the keys: STU, 3 ENTER 4 × 5 + 2 ÷ (seven rows, X alone)
  *   stackkeys x TEXT          unit 088's flow: TEXT stored from EQN, then EQN MORE's →X, 2 ×, the bar's SIMP, its SOLVE
  *                             in X, ▼ to the first root and ENTER; each step's X (or report) printed as it is made
  *   stackkeys cas d TEXT LO HI   056's ∫AB the same way, in X, then the bounds LO and HI typed, each with ENTER
@@ -360,6 +361,17 @@ int main(int argc, char **argv)
         tap(face("+"));
         printf("rows: %d, x %lu (%s)\n", ab_rows_count(&c), (unsigned long)c.x.row, c.x.kind == AB_REAL ? "a number" : "?");
         print_keys(mark, "+");
+        return 0;
+    }
+    if (argc == 2 && !strcmp(argv[1], "page")) {  /* unit 090: the worksheet's page from the keys */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        stu();
+        int mark = nseq;
+        const char *k[] = {"3", "ENTER", "4", "\xc3\x97", "5", "+", "2", "\xc3\xb7"};
+        for (size_t i = 0; i < sizeof k / sizeof k[0]; i++) tap(face(k[i]));
+        printf("page: rows %d, x %lu, y bare %d\n", ab_rows_count(&c), (unsigned long)c.x.row, c.y.bare);
+        print_keys(mark, "\xc3\xb7");
         return 0;
     }
     if (argc == 3 && !strcmp(argv[1], "x")) {  /* unit 088: the CAS on the stack, from the bar that follows X */

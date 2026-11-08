@@ -1,0 +1,21 @@
+# Unit 090's ROWBENCH (device/dev_bench.h, both boards): in a second calculator in PSRAM, a frame's draw time with no page,
+# the page full (nothing held beyond the levels) and the worst (33 values each holding a 409 B row, the 8 KB budget of
+# unheld rows after them); each state's save to the flash (abacus #14041 6: the worst against power-off); UNDO's per-key
+# walk; a key with the page full. The calculator's own state is written again after each save. Ends with a control that
+# must FAIL.
+wait : heap internal 30
+sleep 3
+send X
+expect ver=0.90 10
+send ROWBENCH
+expect rowbench: no page: a frame 60
+expect rowbench: no page's save to the flash: 60
+expect rowbench: the full page: a frame 180
+expect rowbench: the full page's save to the flash: 60
+expect rowbench: the worst page: a frame 180
+expect rowbench: the worst page's save to the flash: 60
+expect rowbench: the worst page with no row held 30
+expect rowbench: the worst page: a key 60
+# CONTROL: must FAIL
+send X
+expect rowbench: never 3

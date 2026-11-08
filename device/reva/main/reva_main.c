@@ -204,7 +204,7 @@ static QueueHandle_t keys_q;           /* key n down: n; released: KEY_UP_BASE -
                                            -2 the time */
 #define KEY_UP_BASE (-100)
 enum { KEY_SAVE = -3, KEY_WIPE = -4, KEY_RESTART = -5, KEY_EQNBENCH = -10, KEY_OPBENCH = -11, KEY_PROGBENCH = -12,
-       };
+       KEY_ROWBENCH = -13 };       /* (unit 090: the worksheet's bench, shared with the stand-in) */
                                             /* the console's other commands, for the calc task (unit 053) */
 /* unit 023: light sleep between keys. usb_lock keeps the chip out of light sleep on USB power (the
    console stays usable, the power is free); tone_lock through a piezo tone (LEDC stops in light
@@ -782,8 +782,9 @@ static void console_task(void *arg)
             int k = line[0] == 'S' ? KEY_SAVE : line[0] == 'W' ? KEY_WIPE : KEY_RESTART;
             xQueueSend(keys_q, &k, 0);
 #ifdef AB_BENCH
-        } else if (!strcmp(line, "EQNBENCH") || !strcmp(line, "OPBENCH") || !strcmp(line, "PROGBENCH")) {
-            int k = line[0] == 'E' ? KEY_EQNBENCH : line[0] == 'O' ? KEY_OPBENCH : KEY_PROGBENCH;
+        } else if (!strcmp(line, "EQNBENCH") || !strcmp(line, "OPBENCH") || !strcmp(line, "PROGBENCH") ||
+                   !strcmp(line, "ROWBENCH")) {
+            int k = line[0] == 'E' ? KEY_EQNBENCH : line[0] == 'O' ? KEY_OPBENCH : line[0] == 'R' ? KEY_ROWBENCH : KEY_PROGBENCH;
             xQueueSend(keys_q, &k, 0);
 #endif
 #ifdef AB_OFFCLK
@@ -918,6 +919,8 @@ static void calc_task(void *arg)
             opbench();
         } else if (got && k == KEY_PROGBENCH) {
             progbench();
+        } else if (got && k == KEY_ROWBENCH) {
+            dev_rowbench(&flash, image, IMAGE_CAP, &app.set, save);
 #endif
         } else if (got) {                       /* -1: X, the stand-in's format, then Rev A's own facts */
             dev_dump(calc, &app);

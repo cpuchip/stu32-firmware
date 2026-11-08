@@ -132,7 +132,8 @@ static int replay(const char *path)
             now += 250;
             app_key_up(&app, atoi(s + 1), now);
         } else if (!strcmp(s, "SAVE")) {
-            image_len = ab_state_save(&calc, image, sizeof image);
+            image_len = ab_state_save_rows(&calc, image, sizeof image);   /* (unit 090: the board's save holds the page
+                                                   since 089, dev_image_save; the replay's didn't, and 090 draws it) */
         } else if (!strcmp(s, "WIPE")) {
             image_len = 0;
         } else if (!strcmp(s, "RESTART")) {
