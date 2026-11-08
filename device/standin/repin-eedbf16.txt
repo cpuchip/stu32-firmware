@@ -13,10 +13,10 @@ send WIPE
 expect wipe: both slots erased
 send RESTART
 expect load: no image: MEMORY CLEAR 30
+expect ver=0.87 30
 wait READY 30
 send X
 expect pins: casim=eedbf166ed6e6636a1aa045321bfebd836f2513f 5
-expect ver=0.87 5
 # V=I×R SOLVEd for R: the report, then SST to R=V÷I
 send K42
 sleep 0.25
@@ -466,6 +466,7 @@ send X
 expect row=X=(A+B)×(C+D+E)÷(A^2+B^2-C^2-D^2-E^2) 10
 send FRAMECRC
 expect framecrc: rows 21-205 42D43CA9 10
+send X
 expect-min stack-free 8188 10
 # CONTROL: must FAIL
 expect framecrc: rows 21-205 00000000 3

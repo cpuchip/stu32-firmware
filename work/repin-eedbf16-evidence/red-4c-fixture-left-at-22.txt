@@ -1,0 +1,8 @@
+FAIL: 4C: golden-v23-4c 1206 B, body CRC DB1E755E (1206 B, 20009FA1)
+FAIL: 4C: the image is newer than this build (version 22, AB_STATE_VERSION 22)
+FAIL: 4C: golden-v23-4c (version 23) loads
+FAIL: 4C: OLDER FIRMWARE showing
+FAIL: 4C: X, LASTx and B as golden-v21-082's
+FAIL: 4C: saved again (733 B, 2E56DCCB), byte for byte golden-v21-082 with Y, Z, T 0 and OLDER FIRMWARE (874 B, 9CCA1E94): the rest survived
+FAIL: 4C: saved as this build's version, 21
+FAIL: 4C: that image loads, OLDER FIRMWARE still showing

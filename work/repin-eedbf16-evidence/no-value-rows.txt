@@ -1,0 +1,12 @@
+# Does a row with no value at the stored values arise with CAS 038's rows? (abacus #13771)
+# A throwaway build of tests/vectors with a trace in casrep_key (each row's cas_cond_holds result, then the answer's
+# status), over casim's work/038-examples.txt at eedbf16: its 56 solves, 30 draws each, every letter but the variable
+# drawn from {-2,-1,0,0,1,1,2,3} (seed 38), then SOLVE, SST, ENTER.
+1680 runs:
+  510  no report: the 17 solves CAS 038 declines (1.5.0's refusal stands)
+  335  CONDITION FAILS (a row failed at the draw)
+  835  every row held; the answer then evaluated with no error in every one
+    0  runs with a row that had no value
+# The clause is reached only by a built case: X÷(B÷2+C÷2)=1+X at B=1, C=-1 (tests/048-soroban.txt C12): the row
+# 2÷(B+C)-1≠0 is ÷0 there (no value, -1, passed over), and the next row, B÷2+C÷2≠0, fails. With 038's rows a divisor
+# is its own row, so a row with no value came with a failing row in every case found.

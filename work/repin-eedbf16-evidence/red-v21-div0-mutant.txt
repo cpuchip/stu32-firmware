@@ -1,0 +1,4 @@
+FAIL: repin: golden-v21-087-div0 loads on version 22
+FAIL: repin: DIVIDE BY 0 still the message showing
+FAIL: repin: Z the expression 3×X^2-4
+FAIL: repin: saved again byte for byte (733 B, version 20)

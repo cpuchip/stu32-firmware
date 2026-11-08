@@ -1,0 +1,10 @@
+# Repin eedbf16, mutants on cas_cond_holds/casrep_key, predicted before running (tests/048-soroban.txt):
+M1 no row ever fails (return -1 for every condition): red C01 C03 C05 C06 C07 C08 C09 C10 C12 C13; green C02 C04 C11 L01-L07
+M2 ≠'s sense inverted (eq 1, lt/gt 0): red C01 C02 C03 C04 C05 C06 C07 C08 C09 C11 C12 C13; C10 (A>0) green; L rows green except L06 (its row A^2+...≠0 holds -> now fails) red
+M3 a row with no value counts as failing (-1 -> 0): red C12 only
+M4 the cursor isn't moved to the failing row: red C01 C03 C05 C06 C07 C08 C09 C10 C12 C13 (their %CASROW); the status still CAS_CONDITION
+# Results (each built and its binary's time checked against the clock, then calc.c restored; 85/85 after):
+M1 red: C01 C03 C05 C06 C07 C08 C09 C10 C12 C13   (as predicted)
+M2 red: C01 C02 C03 C04 C05 C06 C07 C08 C09 C11 C12 C13 L06   (as predicted, C10 green, L06 red)
+M3 red: C12   (as predicted)
+M4 red: C01 C03 C05 C06 C07 C08 C09 C10 C12 C13   (as predicted)
