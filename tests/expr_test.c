@@ -10,7 +10,7 @@
  * 3. The reader: a section after the last one this build knows is skipped by its size in a version-21 image, with
  *    OLDER FIRMWARE showing, and refused in a version-20 one; an expression in a version-20 image and a kind past
  *    AB_NAME in a version-21 one are refused; an expression in ANS (RPN to ALG sets ANS to X) loads. 4C (Michael's
- *    s3-old-firmware): tests/golden-v24-4c.img, a newer firmware's image (scripts/mk_golden_newer.py), loads with its
+ *    s3-old-firmware): tests/golden-v25-4c.img, a newer firmware's image (scripts/mk_golden_newer.py), loads with its
  *    unknown kinds 0, its unknown section skipped and OLDER FIRMWARE showing, the rest byte for byte.
  * 4. The store: all 48 places (X, Y, Z, T, LASTx, 27 letters, 16 history values) holding distinct expressions, the
  *    49th is ABN_EXPR_FULL with every text unchanged; freeing a place lets the next succeed in its slot. A fuzz of new,
@@ -268,8 +268,8 @@ static bool real_zero(const ab_val *v)
            !memcmp(&v->p3, &z, sizeof z);
 }
 
-/* 4C (Michael's s3-old-firmware): tests/golden-v24-4c.img, a newer firmware's image made from golden-v21-082's bytes
-   by scripts/mk_golden_newer.py (version 24 since unit 089 made this build 23, abacus #13989 e; 23 since the CAS 038
+/* 4C (Michael's s3-old-firmware): tests/golden-v25-4c.img, a newer firmware's image made from golden-v21-082's bytes
+   by scripts/mk_golden_newer.py (version 25 since unit 090 made this build 24; 24 since unit 089 made this build 23, abacus #13989 e; 23 since the CAS 038
    repin made it 22, abacus #13773; Y, Z and T value
    kinds 5, 9 and 200 with 7, 0 and 300 bytes; a section tag 40), loads with OLDER FIRMWARE showing and the rest of the state as golden-v21-082's with Y, Z and T 0 */
 static void older(void)
@@ -277,17 +277,17 @@ static void older(void)
     static uint8_t e[4096];
     char what[240];
     size_t gn, hn;
-    uint8_t *g = file("tests/golden-v24-4c.img", &gn), *h = file("tests/golden-v21-082.img", &hn);
-    expect(g != NULL && h != NULL, "tests/golden-v24-4c.img and golden-v21-082.img found");
+    uint8_t *g = file("tests/golden-v25-4c.img", &gn), *h = file("tests/golden-v21-082.img", &hn);
+    expect(g != NULL && h != NULL, "tests/golden-v25-4c.img and golden-v21-082.img found");
     if (!g || !h) return;
-    snprintf(what, sizeof what, "4C: golden-v24-4c 1206 B, body CRC E2E6A59C (%zu B, %08X)", gn, body_crc(g, gn));
-    expect(gn == 1206 && body_crc(g, gn) == 0xE2E6A59Cu, what);
+    snprintf(what, sizeof what, "4C: golden-v25-4c 1206 B, body CRC 19F84F63 (%zu B, %08X)", gn, body_crc(g, gn));
+    expect(gn == 1206 && body_crc(g, gn) == 0x19F84F63u, what);
     snprintf(what, sizeof what, "4C: the image is newer than this build (version %u, AB_STATE_VERSION %d)",
              (unsigned)(g[4] | g[5] << 8), AB_STATE_VERSION);
     expect((g[4] | g[5] << 8) > AB_STATE_VERSION, what);    /* the CAS 038 repin: a fixture left behind a version bump
                                                                would test nothing newer (it went red at 22, the record) */
     ab_init(&cb);
-    expect(ab_state_load(&cb, g, gn) == ABN_OK, "4C: golden-v24-4c (version 24) loads");
+    expect(ab_state_load(&cb, g, gn) == ABN_OK, "4C: golden-v25-4c (version 25) loads");
     expect(cb.msg && cb.err_status == ABN_OLDER_FW, "4C: OLDER FIRMWARE showing");
     expect(real_zero(&cb.y) && real_zero(&cb.z) && real_zero(&cb.t), "4C: Y, Z and T (kinds 5, 9, 200) loaded as 0");
     expect(cb.x.kind == AB_EXPR && !strcmp(ab_expr_text(&cb, &cb.x), "3\xc3\x97X^2-4") && cb.lastx.kind == AB_EXPR &&
@@ -362,7 +362,7 @@ static void v21_message(void)
 static void same_image(void)
 {
     static const char *const G[] = {"tests/golden-v1.img", "tests/golden-v20-082.img", "tests/golden-v21-082.img",
-                                    "tests/golden-v24-4c.img"};
+                                    "tests/golden-v25-4c.img"};
     char what[160];
     for (int k = 0; k < 4; k++) {
         size_t gn;
@@ -492,7 +492,9 @@ static int store_places(ab_calc *c, ab_val **out)
     int n = 0;
     out[n++] = &c->x, out[n++] = &c->y, out[n++] = &c->z, out[n++] = &c->t, out[n++] = &c->lastx;
     for (int i = 0; i < 27; i++) out[n++] = &c->var[i];
-    for (int i = 0; i < AB_HIST; i++) out[n++] = &c->hist_val[i];
+    /* (unit 090: the history's 16 places are rows now; 16 program literals, which expr_mark marks, stand in, so
+       the store still fills at 48) */
+    for (int i = 0; i < 16; i++) out[n++] = &c->lit[i];
     return n;
 }
 
@@ -536,7 +538,9 @@ static void store(void)
     ab_init(&ca);
     n = places(&ca, p);
     p[n++] = &ca.ans;
-    for (int i = 0; i < AB_HIST; i++) p[n++] = &ca.hist_val[i];
+    /* (unit 090: the history's 16 places are rows now; 16 program literals, which expr_mark marks, stand in, so
+       the store still fills at 48) */
+    for (int i = 0; i < 16; i++) p[n++] = &ca.lit[i];
     bool has[80] = {false};
     unsigned seed = 82;
     int bad = 0, fulls = 0, steps = 200000;
@@ -859,7 +863,9 @@ static void cas_stack(void)
     int n = 0;
     live[n++] = &ca.x, live[n++] = &ca.y, live[n++] = &ca.z, live[n++] = &ca.t, live[n++] = &ca.lastx;
     for (int i = 0; i < 27; i++) live[n++] = &ca.var[i];
-    for (int i = 0; i < AB_HIST; i++) live[n++] = &ca.hist_val[i];
+    /* (unit 090: the history's 16 places are rows now; 16 program literals, which expr_mark marks, stand in, so
+       the store still fills at 48) */
+    for (int i = 0; i < 16; i++) live[n++] = &ca.lit[i];
     for (int i = 0; i < n; i++) {
         char t[16];
         snprintf(t, sizeof t, i ? "X+%d" : "3\xc3\x97X+2\xc3\x97X", i);
@@ -974,7 +980,7 @@ static void live_marks(ab_calc *c, bool live[AB_EXPR_SLOTS])
 {
     ab_val *p[80];
     int n = all_places(c, p);
-    for (int i = 0; i < AB_HIST; i++) p[n++] = &c->hist_val[i];
+    for (int i = 0; i < 16; i++) p[n++] = &c->lit[i];    /* (unit 090: as the history's were) */
     memset(live, 0, AB_EXPR_SLOTS);
     for (int i = 0; i < n; i++)
         if (p[i]->kind == AB_EXPR && p[i]->len >= 0 && p[i]->len < AB_EXPR_SLOTS) live[p[i]->len] = true;

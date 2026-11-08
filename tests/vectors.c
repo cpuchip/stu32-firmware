@@ -403,6 +403,26 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
             if (n < img_len) img_len = n;
             return 0;
         }
+        if (strncmp(tok, "DROPSEC:", 8) == 0) {  /* unit 090: section n taken out (its length, the total, the CRC
+                                                   redone), so an image relabelled older holds only what that version
+                                                   knew (an STU image's T_BARE, 24, under IMGVER:16) */
+            unsigned want = (unsigned)atoi(tok + 8);
+            size_t at = 12;
+            while (img_len >= 16 && at + 6 <= img_len - 4) {
+                unsigned tag = (unsigned)(img[at] | img[at + 1] << 8);
+                size_t size = (size_t)img[at + 2] | (size_t)img[at + 3] << 8 | (size_t)img[at + 4] << 16 |
+                              (size_t)img[at + 5] << 24;
+                if (at + 6 + size > img_len - 4) break;
+                if (tag == want) {
+                    memmove(img + at, img + at + 6 + size, img_len - (at + 6 + size));
+                    img_len -= 6 + size;
+                    for (int i = 0; i < 4; i++) img[8 + i] = (uint8_t)(img_len >> (8 * i));
+                    break;
+                }
+                at += 6 + size;
+            }
+            goto fixcrc;
+        }
         if (strncmp(tok, "IMGVER:", 7) == 0) {   /* another version, CRC redone */
             unsigned v = (unsigned)atoi(tok + 7);
             if (img_len < 6) return 0;
@@ -1098,11 +1118,10 @@ int vectors_run(const char *name, FILE *f)
                     snprintf(got, sizeof got, "%d", c.eqn_mode ? 1 : 0);
                 } else if (strcmp(ex, "%STU") == 0) {
                     snprintf(got, sizeof got, "%d", c.stu ? 1 : 0);
-                } else if (strcmp(ex, "%HIST") == 0) {
-                    snprintf(got, sizeof got, "%d", c.hist_n);
-                } else if (strcmp(ex, "%HSEL") == 0) {     /* the history entry shown, - none */
-                    const char *h = c.hist_at >= 0 && c.hist_at < c.hist_n ? c.hist[c.hist_at] : "-";
-                    snprintf(got, sizeof got, "%.*s", AB_EQN_LEN - 1, h);
+                } else if (strcmp(ex, "%HIST") == 0) {     /* unit 090: the page's ALG rows */
+                    snprintf(got, sizeof got, "%d", ab_rows_alg_count(&c));
+                } else if (strcmp(ex, "%HSEL") == 0) {     /* the history entry shown (090: its row's text), - none */
+                    if (!c.hist_row || !ab_rows_text(&c, c.hist_row, got, sizeof got)) snprintf(got, sizeof got, "-");
                 } else if (strcmp(ex, "%DISP") == 0) {     /* the display setting: FIX4, SCI2, ENG3, ALL (unit 067) */
                     const char *m = c.disp_mode == AB_FIX ? "FIX" : c.disp_mode == AB_SCI ? "SCI" : c.disp_mode == AB_ENG ? "ENG"
                                     : c.disp_mode == AB_ALL ? "ALL" : "?";
@@ -1245,6 +1264,43 @@ int vectors_run(const char *name, FILE *f)
                 } else if (strcmp(ex, "%ROWDROP") == 0) {
                     rows_asked = true;
                     snprintf(got, sizeof got, "%lu", (unsigned long)c.rows_dropped);
+                } else if (strcmp(ex, "%PAGEN") == 0 || strncmp(ex, "%PAGE-", 6) == 0 || strcmp(ex, "%PAGETOP") == 0 ||
+                           strcmp(ex, "%LEVELS") == 0) {
+                    /* unit 090: the worksheet as screen_lines tells it (abacus #14043's grammar): %PAGEN lines above the
+                       levels, %PAGE-k=LEFT|VALUE (k = 1 the lowest; blanks _, an empty side _ alone), %LEVELS the levels
+                       drawn (none off STU's home, - in ALG), %PAGETOP the dropped line's count or - */
+                    rows_asked = true;
+#ifndef AB_DEVICE
+                    static screen_page pg;
+                    screen_ui ui;
+                    screen_ui_default(&ui);
+                    screen_lines(&c, &ui, &pg);
+                    if (ex[1] == 'L') {
+                        snprintf(got, sizeof got, "%s", pg.page_on ? pg.levels : "none");
+                    } else if (ex[5] == 'N') {
+                        snprintf(got, sizeof got, "%d", pg.page_on ? pg.page_n : 0);
+                    } else if (ex[5] == 'T') {
+                        if (pg.pagetop < 0) snprintf(got, sizeof got, "-");
+                        else snprintf(got, sizeof got, "%ld", pg.pagetop);
+                    } else {
+                        int k = atoi(ex + 6);
+                        if (!pg.page_on || k < 1 || k > pg.page_n) {
+                            snprintf(got, sizeof got, "?");
+                        } else {
+                            char l[AB_EQN_LEN + 2], v[AB_EQN_LEN + 6];
+                            snprintf(l, sizeof l, "%s", pg.page[k - 1].left[0] ? pg.page[k - 1].left : "_");
+                            snprintf(v, sizeof v, "%s", pg.page[k - 1].value[0] ? pg.page[k - 1].value : "_");
+                            spaces_out(l);
+                            spaces_out(v);
+                            size_t gl = strlen(l) < sizeof got - 2 ? strlen(l) : sizeof got - 2;
+                            memcpy(got, l, gl);
+                            got[gl] = '|';
+                            snprintf(got + gl + 1, sizeof got - gl - 1, "%.*s", (int)(sizeof got - gl - 2), v);
+                        }
+                    }
+#else
+                    snprintf(got, sizeof got, "(no screen on the device runner)");
+#endif
                 } else {
                     fprintf(stderr, "%s:%d: %s: bad expectation '%s'\n", name, lineno, id, ex);
                     return 2;

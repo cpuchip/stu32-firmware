@@ -276,6 +276,8 @@ test: all
 	./build/vectors tests/089-soroban.txt    # (unit 089: the worksheet's rows; no save/load pass: SAVE's image holds no page, so a
 	                                         # row past MEMCLR LOAD is gone by design, and SAVEROWS is tested in the file itself)
 	./build/vectors tests/n089-abacus.txt    # (abacus #14031: h089 as frozen with H11's name corrected, n089, sha256 dc4149a5...)
+	./build/vectors tests/090-soroban.txt    # (unit 090: the worksheet's page; no save/load pass: SAVE's image holds no page, and
+	                                         # ALG's history is the page's rows; SAVEROWS and SAVE are tested in the file itself)
 	./build/rows_test
 	./build/eqn_say_test tests/086-corpus.txt    # (unit 086: the round trip over every equation the vectors type)
 	if AB_SAY_PLANT=1 ./build/eqn_say_test tests/086-corpus.txt > /dev/null; then \
@@ -464,6 +466,7 @@ sanitize: build/san/load_fuzz build/san/expr_test build/san/app_test build/san/v
 	./build/san/expr_test
 	./build/san/rows_test                      # (unit 089)
 	./build/san/vectors tests/089-soroban.txt
+	./build/san/vectors tests/090-soroban.txt
 	./build/san/app_test
 	for f in $(KEYV) work/016-vectors.txt work/017-vectors.txt; do AB_SAVELOAD=1 AB_STORE=1 ./build/san/vectors $$f || exit 1; done
 

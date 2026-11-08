@@ -56,7 +56,7 @@ send X
 expect state: X='3×X^2-4' 10
 expect drawn=3X^2-4 10
 send FRAMECRC
-expect framecrc: rows 21-205 B8D758BB 10
+expect framecrc: rows 21-205 757F8EB9 10
 # the state across a restart: the version-21 image saved to flash and loaded
 send SAVE
 expect save:
@@ -68,7 +68,7 @@ send X
 expect state: X='3×X^2-4' 10
 expect drawn=3X^2-4 10
 send FRAMECRC
-expect framecrc: rows 21-205 B8D758BB 10
+expect framecrc: rows 21-205 757F8EB9 10
 send X
 expect-min stack-free 8188 10
 # UNDO's check after every key (abacus #11428): ab_state_same's time beside the save's, a full list and this state

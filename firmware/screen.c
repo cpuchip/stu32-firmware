@@ -1,6 +1,8 @@
 /* screen: layout v0 (see screen.h). */
 #include "screen.h"
 #include "tbook.h"
+#include "rows.h"
+#include "state.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -328,6 +330,58 @@ static void val_line(const ab_val *v, const ab_calc *c, const screen_ui *ui, lin
     line_add(l, buf);
 }
 
+/* ---- unit 090: the worksheet's page (work/worksheet-2-page.md) ---- */
+
+#define PG_XBOT 200             /* X's bottom on STU's home (the levels and the page above it, every PG_PITCH) */
+#define PG_PITCH 20             /* a line at 2 (14 px) and a gap of 6: at 18 the lines touched (the prototype) */
+#define PG_TOP 22               /* the area's top: below the band's rule */
+#define PG_CELLS ((NUM_R - NUM_X + 2) / 12)     /* a line's cells at 2: a row is one line when its two sides fit */
+
+static uint32_t rd32(const uint8_t *p) { return (uint32_t)p[0] | (uint32_t)p[1] << 8 | (uint32_t)p[2] << 16 | (uint32_t)p[3] << 24; }
+
+/* A decoded value (no slot: an expression's text in t) as the levels show one */
+static void peek_val_line(const ab_val *v, const char *t, const ab_calc *c, const screen_ui *ui, line *l, int *ind)
+{
+    char buf[AB_EQN_LEN + 4];
+    if (v->kind == AB_EXPR || v->kind == AB_NAME) {
+        *ind = 0;
+        snprintf(buf, sizeof buf, "'%s'", t);
+        line_add(l, buf);
+        return;
+    }
+    val_line(v, c, ui, l, ind);
+}
+
+/* The record at offset at: its left (a typed number's none, an ALG line's text, else the op's name as list.c's) and its
+   value, each as UTF-8 */
+static void pg_texts(const ab_calc *c, const screen_ui *ui, uint32_t at, char *left, int lsz, char *val, int vsz)
+{
+    ab_row r;
+    ab_val v;
+    char t[AB_EQN_LEN];
+    int ind;
+    left[0] = val[0] = '\0';
+    if (!ab_rows_parse(c->rows + at, c->rows_len - at, &r)) return;
+    if (r.op == AB_ROW_OP_ALG) snprintf(left, (size_t)lsz, "%.*s", (int)r.tlen, r.text);
+    else if (r.op != AB_ROW_OP_NUM) ab_op_text(c, (int)r.op, r.arg, left, lsz);
+    if (!ab_val_decode(r.val, r.vlen, &v, t, sizeof t)) return;
+    if (v.kind == AB_EXPR || v.kind == AB_NAME) {           /* as val_line writes one, without a slot */
+        snprintf(val, (size_t)vsz, "'%s'", t);
+        return;
+    }
+    ab_display d = display_of(c, ui, FMT_WIDTH);
+    if (val_text(&v, &d, val, vsz, &ind) < 0) {
+        d = display_of(c, ui, FMT_WIDE);
+        if (val_text(&v, &d, val, vsz, &ind) < 0) snprintf(val, (size_t)vsz, "?");
+    }
+}
+
+/* One line or two: whether its sides fit together */
+static bool pg_one_line(const char *left, const char *val)
+{
+    return !left[0] || screen_cells(left) + screen_cells(val) + 2 <= PG_CELLS;
+}
+
 /* One part of a number being typed, as the keys typed it: its sign, the digits with the device's
    radix mark (a second point makes a fraction: shown as a space and a slash, 1 2/3), E and the
    exponent's sign; the cursor where the next key goes when this part has it. */
@@ -651,7 +705,22 @@ typedef struct {
     bool xexpr : 1;         /* unit 082: X shows its value, an expression, in STU: drawn in 2D under Y when it fits
                                (one byte with textbook: comp stays 8,276 B of internal RAM, D68 +0) */
     bool eqn_screen : 1;    /* unit 083: Equation mode's own screen, T Z Y and their letters hidden (the same byte) */
+    bool page : 1;          /* unit 090: STU's home is the worksheet: the levels at the bottom, the page above them */
     int ind;
+    /* unit 090: the page's plan, from one walk of the rows (page_plan): the levels drawn (1-4 from X up; 0 in ALG, where
+       Y's place is the line), each one's bottom, X's expression's top when it's drawn in 2D, each level's own record
+       (its op beside its letter), and the page's lines from the lowest: a record's offset and which part of it */
+    int levels;
+    int lvl_bot[4];
+    int xe_top;
+    int pg_bot0;
+    uint32_t lvl_at[4];     /* (UINT32_MAX: none on the page) */
+    int pg_n;
+    struct {
+        uint32_t at;
+        uint8_t part;       /* 0 the row on one line, 1 its left above, 2 its value below, 3 the dropped line */
+    } pg[SCREEN_PAGE_MAX];
+    long pg_top;            /* the dropped count when its line is drawn, else -1 */
 } composed;
 
 static composed comp;           /* compose's result, shared by screen_render and screen_lines (one at a time:
@@ -673,6 +742,76 @@ static const char *shown_text(const ab_calc *c, bool *math)
     *math = c->eqn_cur >= 0 && c->eqn[c->eqn_cur][0] != '\x01' && c->eqn_model[c->eqn_cur] == AB_MODEL_STU;
     return c->eqn_cur < 0 ? "EQN LIST TOP" : c->eqn[c->eqn_cur] + (c->eqn[c->eqn_cur][0] == '\x01');   /* a built-in's
                                                    leading byte; another stamp's text whole (081) */
+}
+
+static int xexpr_fit(const ab_calc *c, int *top);
+
+/* Unit 090: the page's plan, from one walk of the page's records (a frame's cost: blueprint lean 8). The levels: X always,
+   the bare ones at the top hidden (B′, Michael's pick), Y kept when it shows a prompt or a label. The page: the newest
+   rows that fit above them, each once (a row a level holds is drawn in its level, and in ALG the entry shown is the line
+   and its result, with the rows before it above); then the dropped line, when the page's oldest row is on the screen */
+static void page_plan(const ab_calc *c, const screen_ui *ui, composed *k)
+{
+    uint32_t held[4] = {0}, limit = UINT32_MAX, ring[SCREEN_PAGE_MAX];
+    int nh = 0, bot, avail, rn = 0, rh = 0, matched = 0, used = 0, drawn = 0;
+    k->pg_n = 0;
+    for (int i = 0; i < 4; i++) k->lvl_at[i] = UINT32_MAX;
+    k->xe_top = 0;
+    if (k->alg) {
+        k->levels = 0;
+        k->lvl_bot[0] = PG_XBOT;
+        k->lvl_bot[1] = PG_XBOT - 28 - 6;
+        bot = k->lvl_bot[1] - PG_PITCH;
+        if (c->hist_row) limit = c->hist_row;
+        else if (c->alg_shown && c->ans.row) held[nh++] = c->ans.row;
+    } else {
+        const ab_val *lv[4] = {&c->x, &c->y, &c->z, &c->t};
+        int n = 4, xtop = PG_XBOT - 28, top;
+        while (n > (k->prompt ? 2 : 1) && lv[n - 1]->bare) n--;
+        k->levels = n;
+        if (k->xexpr && xexpr_fit(c, &top)) xtop = k->xe_top = top;
+        k->lvl_bot[0] = PG_XBOT;
+        for (int i = 1; i < 4; i++) k->lvl_bot[i] = i == 1 ? xtop - 6 : k->lvl_bot[i - 1] - PG_PITCH;
+        bot = n > 1 ? k->lvl_bot[n - 1] - PG_PITCH : xtop - 6;
+        for (int i = 0; i < n; i++) held[nh++] = lv[i]->row;
+    }
+    k->pg_bot0 = bot;
+    avail = bot - 14 >= PG_TOP ? (bot - 14 - PG_TOP) / PG_PITCH + 1 : 0;
+    if (avail > SCREEN_PAGE_MAX) avail = SCREEN_PAGE_MAX;
+    uint32_t end = ab_rows_visible_len(c);
+    for (uint32_t at = 0; at < end; at += (uint32_t)(c->rows[at] | c->rows[at + 1] << 8)) {
+        uint32_t sr = rd32(c->rows + at + 2);
+        bool h = false;
+        if (sr >= limit) break;
+        for (int j = 0; j < nh; j++)
+            if (held[j] == sr) h = true, k->lvl_at[j] = k->alg ? UINT32_MAX : at;
+        if (h) continue;
+        matched++;
+        if (avail) {
+            ring[rh] = at;
+            rh = (rh + 1) % avail;
+            if (rn < avail) rn++;
+        }
+    }
+    for (int i = 0; i < rn; i++) {
+        uint32_t at = ring[(rh - 1 - i + 2 * avail) % avail];
+        char l[AB_EQN_LEN], v[AB_EQN_LEN + 4];
+        pg_texts(c, ui, at, l, sizeof l, v, sizeof v);
+        bool one = pg_one_line(l, v);
+        if (used + (one ? 1 : 2) > avail) break;
+        if (one) {
+            k->pg[used].at = at, k->pg[used++].part = 0;
+        } else {
+            k->pg[used].at = at, k->pg[used++].part = 2;
+            k->pg[used].at = at, k->pg[used++].part = 1;
+        }
+        drawn++;
+    }
+    if (drawn == matched && c->rows_dropped && used < avail) {
+        k->pg[used].at = 0, k->pg[used++].part = 3;
+        k->pg_top = (long)c->rows_dropped;
+    }
+    k->pg_n = used;
 }
 
 static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
@@ -791,8 +930,11 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
             line_add(xl, t);
         }
         k->x_left = true;
-    } else if (c->alg) {                        /* the result: the entry shown's, else ANS */
-        val_line(c->hist_at >= 0 ? &c->hist_val[c->hist_at] : &c->ans, c, ui, xl, &k->ind);
+    } else if (c->alg) {                        /* the result: the entry shown's (unit 090: its row's), else ANS */
+        ab_val hv;
+        char ht[AB_EQN_LEN];
+        if (c->hist_row && ab_rows_peek(c, c->hist_row, &hv, ht, sizeof ht)) peek_val_line(&hv, ht, c, ui, xl, &k->ind);
+        else val_line(&c->ans, c, ui, xl, &k->ind);
     } else if (c->eqn_mode && c->eqn_typing) {
         eqn_line(c->ebuf, c->ecur, xl);
         k->x_left = true;
@@ -875,23 +1017,26 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
         }
     }
     if (c->alg && !c->prgm) {
-        /* STU's ALG (unit 029 proposal 3): the line, or the history entry shown, in Y's place; the
-           entry before it in T and its value in Z (the newest's when a line is being typed) */
-        int prev = c->hist_at >= 0 ? c->hist_at - 1 : c->alg_shown ? c->hist_n - 2 : c->hist_n - 1;
+        /* STU's ALG (unit 029 proposal 3): the line, or the history entry shown, in Y's place. Unit 090: the entries
+           before it are the page's rows above (T and Z showed the one before) */
         k->alg = true;
         memset(&k->y, 0, sizeof k->y);
         memset(&k->z, 0, sizeof k->z);
         memset(&k->t, 0, sizeof k->t);
         k->y.cursor = k->z.cursor = k->t.cursor = -1;
-        if (c->hist_at >= 0) eqn_line(c->hist[c->hist_at], -1, &k->y);
-        else eqn_line(c->ebuf, c->alg_shown ? -1 : c->ecur, &k->y);
+        if (c->hist_row) {
+            char ht[AB_EQN_LEN];
+            ab_rows_text(c, c->hist_row, ht, sizeof ht);
+            eqn_line(ht, -1, &k->y);
+        } else {
+            eqn_line(c->ebuf, c->alg_shown ? -1 : c->ecur, &k->y);
+        }
         k->yk = SCREEN_EQN;
         k->prompt = false;
-        if (prev >= 0) {
-            eqn_line(c->hist[prev], -1, &k->t);
-            val_line(&c->hist_val[prev], c, ui, &k->z, &unused);
-        }
     }
+    k->page = c->stu && !c->prgm && !c->tbl_on && !c->gr_on && !k->eqn_screen && !k->textbook;
+    k->pg_top = -1;
+    if (k->page) page_plan(c, ui, k);
 }
 
 static void page_line(screen_line *o, const line *l, screen_kind kind, bool left, const char *label)
@@ -1112,7 +1257,7 @@ static int xexpr_fit(const ab_calc *c, int *top)
     if (!t || tb_parse(&tb_screen, t) != 0 || (s = tb_fit(&tb_screen, NUM_R - NUM_X, TB_BOT - XE_TOP)) == 0) return 0;
     for (int i = 0, n = tb_lines(&tb_screen); i < n; i++) h += tb_line_h(&tb_screen, i) + (i ? LGAP_TB(s) : 0);
     if (h > TB_BOT - XE_TOP) return 0;
-    *top = BOT_X - h < XE_TOP ? XE_TOP : BOT_X - h;
+    *top = PG_XBOT - h;                         /* unit 090: on the page, X's bottom, the levels and the page above it */
     return s;
 }
 
@@ -1126,6 +1271,78 @@ static bool draw_xexpr(ls027_frame *f, const ab_calc *c)
     axis = tb_screen.n[k].axis;
     screen_text(f, 2, top + axis - 3 * 2, 2, "X", true);   /* X's letter on the first line's axis */
     return true;
+}
+
+/* ---- unit 090: drawing the page ---- */
+
+/* A level's op beside its letter (p2's "Y +", "X √x"), when its record is on the page, it's no typed number or ALG line,
+   and the value at the scale it's drawn at leaves room */
+static void level_op(ls027_frame *f, const ab_calc *c, uint32_t at, int bot, int max, int cells)
+{
+    ab_row r;
+    char t[32];
+    int s = max;
+    if (at == UINT32_MAX || !ab_rows_parse(c->rows + at, c->rows_len - at, &r)) return;
+    if (r.op == AB_ROW_OP_NUM || r.op == AB_ROW_OP_ALG || ab_op_text(c, (int)r.op, r.arg, t, sizeof t) <= 0) return;
+    while (s > 2 && span(cells, s) > NUM_R - NUM_X) s--;
+    if (NUM_X + 2 + span(screen_cells(t), 2) + 12 > NUM_R - span(cells, s)) return;
+    screen_text(f, NUM_X + 2, bot - 14, 2, t, true);
+}
+
+/* One of the page's lines into l: its text at the left or its value at the right, as part says */
+static void pg_line_text(const ab_calc *c, const screen_ui *ui, const composed *k, int i, char *left, int lsz, char *val,
+                         int vsz)
+{
+    left[0] = val[0] = '\0';
+    if (k->pg[i].part == 3) {
+        snprintf(left, (size_t)lsz, "%ld OLDER ROWS DROPPED", k->pg_top);
+        return;
+    }
+    pg_texts(c, ui, k->pg[i].at, left, lsz, val, vsz);
+    if (k->pg[i].part == 1) val[0] = '\0';
+    if (k->pg[i].part == 2) left[0] = '\0';
+}
+
+static void draw_page(ls027_frame *f, const ab_calc *c, const screen_ui *ui, composed *k)
+{
+    if (k->alg) {
+        draw_line(f, k->lvl_bot[1], 2, &k->y, true);
+        draw_line(f, PG_XBOT, 4, &k->x, k->x_left);
+    } else {
+        line *ll[4] = {&k->x, &k->y, &k->z, &k->t};
+        static const char *const lb[4] = {"X", "Y", "Z", "T"};
+        for (int i = k->levels - 1; i >= 1; i--) {
+            bool prompt = i == 1 && k->prompt;
+            if (!prompt) draw_label(f, k->lvl_bot[i], lb[i]);
+            draw_line(f, k->lvl_bot[i], 2, ll[i], prompt);
+            if (!prompt) level_op(f, c, k->lvl_at[i], k->lvl_bot[i], 2, ll[i]->n);
+        }
+        if (!k->xe_top || !draw_xexpr(f, c)) {
+            if (k->x_letter) draw_label(f, PG_XBOT, "X");
+            draw_line(f, PG_XBOT, 4, &k->x, k->x_left);
+            if (k->x_letter && k->xk == SCREEN_VALUE) level_op(f, c, k->lvl_at[0], PG_XBOT, 4, k->x.n);
+        }
+    }
+    if (k->pg_n > 0)                            /* the rule between the page and the levels */
+        for (int x = 0; x < W; x += 3) put(f, x, k->pg_bot0 + 2, true);
+    line *sl = &k->t;                           /* (T is drawn: its line's room draws the page's, one at a time) */
+    for (int i = 0; i < k->pg_n; i++) {
+        char left[AB_EQN_LEN], val[AB_EQN_LEN + 4];
+        int bot = k->pg_bot0 - i * PG_PITCH;
+        pg_line_text(c, ui, k, i, left, sizeof left, val, sizeof val);
+        if (left[0]) {
+            memset(sl, 0, sizeof *sl);
+            sl->cursor = -1;
+            line_add(sl, left);
+            draw_line(f, bot, 2, sl, true);
+        }
+        if (val[0]) {
+            memset(sl, 0, sizeof *sl);
+            sl->cursor = -1;
+            line_add(sl, val);
+            draw_line(f, bot, 2, sl, false);
+        }
+    }
 }
 
 bool screen_drawn(const ab_calc *c, const screen_ui *ui, char *out, int size)
@@ -1224,6 +1441,16 @@ void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
         out->soft_sub[i] = ui->soft_sub[i];
         out->soft_dim[i] = ui->soft_dim[i];
     }
+    out->pagetop = -1;                          /* unit 090: the worksheet */
+    if (k->page) {
+        out->page_on = true;
+        snprintf(out->levels, sizeof out->levels, "%s", k->alg ? "-" : "TZYX" + 4 - k->levels);
+        out->page_n = k->pg_n;
+        for (int i = 0; i < k->pg_n; i++)
+            pg_line_text(c, ui, k, i, out->page[i].left, sizeof out->page[i].left, out->page[i].value,
+                         sizeof out->page[i].value);
+        out->pagetop = k->pg_top;
+    }
 }
 
 void screen_render(const ab_calc *c, const screen_ui *ui, ls027_frame *f)
@@ -1264,6 +1491,11 @@ void screen_render(const ab_calc *c, const screen_ui *ui, ls027_frame *f)
         draw_line(f, BOT_Z, 2, &k->z, true);
         draw_line(f, BOT_Y, 2, &k->y, true);
         draw_line(f, BOT_X, 2, &k->x, true);
+        soft_band(f, ui);
+        return;
+    }
+    if (k->page) {                              /* unit 090: STU's home, the worksheet (RPN and ALG) */
+        draw_page(f, c, ui, k);
         soft_band(f, ui);
         return;
     }

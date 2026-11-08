@@ -637,6 +637,85 @@ int main(void)
         expect(!ab_rows_find(&c, 2, &r) && !ab_rows_find(&c, 3, &r) && ab_rows_find(&c, 4, &r) && r.op == AB_ROW_OP_NUM,
                "089: serials 2 and 3 are never given again");
     }
+    /* unit 090 (work/worksheet-2-page.md; abacus #14041 4a 4b, #14047): ALG's history is the page's ALG rows, so UNDO
+       hides an undone line from ▲ and REDO brings it back; the bare marks ride UNDO's image; UNDO after CLEAR ALL gives
+       back values whose rows the page no longer has, as row 0; and a long RPN run drops ALG's oldest lines */
+    {
+        static uint8_t u0[1 << 18], u1[1 << 18];
+        static screen_page pg;
+        screen_ui su;
+        char t[AB_EQN_LEN];
+        ab_row r;
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        app_undo_buffers(&a, u0, u1, sizeof u0);
+        ab_do_arg(&c, AB_ENTRYM, 1);
+        press(&a, "1 ENTER 2 ENTER");
+        expect(ab_rows_alg_count(&c) == 2, "090 4b: two ALG lines, two rows");
+        press(&a, "BLUE \xe2\x86\x90");
+        ab_do(&c, AB_HUP);
+        expect(ab_rows_alg_count(&c) == 1 && ab_rows_text(&c, c.hist_row, t, sizeof t) && !strcmp(t, "1"),
+               "090 4b (moved on purpose): UNDO hides the undone line from the history: \xe2\x96\xb2 shows the first");
+        ab_do(&c, AB_HDOWN);
+        press(&a, "BLUE \xe2\x86\x90");
+        ab_do(&c, AB_HUP);
+        expect(ab_rows_alg_count(&c) == 2 && ab_rows_text(&c, c.hist_row, t, sizeof t) && !strcmp(t, "2"),
+               "090 4b: REDO brings it back: \xe2\x96\xb2 shows the second");
+
+        ab_init(&c);                            /* the bare marks through UNDO */
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        app_undo_buffers(&a, u0, u1, sizeof u0);
+        press(&a, "5 ENTER 6 ENTER \xe2\x86\x90");
+        expect(c.x.bare && !c.y.bare && x_of(&c) == 0, "090 B\xe2\x80\xb2: \xe2\x86\x90 with no entry clears X: bare");
+        press(&a, "BLUE \xe2\x86\x90");
+        expect(!c.x.bare && x_of(&c) == 6, "090 B\xe2\x80\xb2: UNDO after CLx gives X back as it was, made (T_BARE in UNDO's image)");
+
+        ab_init(&c);                            /* UNDO after CLEAR ALL (abacus #14047) */
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        app_undo_buffers(&a, u0, u1, sizeof u0);
+        press(&a, "5 ENTER 3 +");
+        expect(c.x.row == 3 && ab_rows_count(&c) == 3, "090: three rows, X holds the sum's");
+        press(&a, "GOLD \xe2\x86\x90 k:4 k:0");
+        expect(ab_rows_count(&c) == 0 && c.rows_dropped == 0 && c.x.bare, "090: CLEAR ALL empties the page, its dropped count too");
+        press(&a, "BLUE \xe2\x86\x90");
+        bool none_far = true;
+        const ab_val *held[6] = {&c.x, &c.y, &c.z, &c.t, &c.lastx, &c.ans};
+        for (int i = 0; i < 33; i++) {
+            const ab_val *v = i < 6 ? held[i] : &c.var[i - 6];
+            none_far &= v->row == 0 || ab_rows_find(&c, v->row, NULL);
+        }
+        expect(x_of(&c) == 8 && c.x.row == 0 && ab_rows_count(&c) == 0 && none_far,
+               "090 (#14047, moved on purpose): UNDO after CLEAR ALL: the values back, every row 0 (the page has none)");
+        press(&a, "7 +");
+        expect(ab_rows_get(&c, 1, &r) && r.serial == 5 && r.nlink == 1 && r.link[0] == 4 && c.x.row == 5 && x_of(&c) == 15,
+               "090: the next rows take serials never given (4, 5), the sum linked to the 7's alone (8's row is 0)");
+
+        ab_init(&c);                            /* 4a: 029 rule 5 is every ALG row the page holds */
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        ab_do_arg(&c, AB_ENTRYM, 1);
+        for (int i = 0; i < 400; i++) ab_do(&c, AB_K1), ab_do(&c, AB_ENTER);
+        uint32_t first_alg = ab_rows_alg_prev(&c, 0);
+        int nalg = ab_rows_alg_count(&c);
+        ab_do_arg(&c, AB_ENTRYM, 0);
+        for (int i = 0; i < 4000 && c.rows_dropped == 0; i++) ab_do(&c, AB_K2), ab_do(&c, AB_ENTER);
+        int kept = ab_rows_alg_count(&c);
+        ab_do_arg(&c, AB_ENTRYM, 1);
+        ab_do(&c, AB_CANCEL);
+        for (int i = 0; i < 500; i++) ab_do(&c, AB_HUP);
+        bool oldest = ab_rows_get(&c, ab_rows_count(&c), &r) && r.serial == c.hist_row;
+        screen_ui_default(&su);
+        screen_lines(&c, &su, &pg);
+        char m[200];
+        snprintf(m, sizeof m, "090 4a: %d ALG lines, then RPN rows to the first drop (%lu rows dropped): %d kept, \xe2\x96\xb2 "
+                 "stops at the oldest kept, the page's first row, the dropped line above it (%ld)", nalg,
+                 (unsigned long)c.rows_dropped, kept, pg.pagetop);
+        expect(nalg == 400 && first_alg && c.rows_dropped > 0 && kept > 0 && kept < 400 && oldest &&
+                   pg.pagetop == (long)c.rows_dropped && pg.page_n == 1, m);
+        printf("app_test: %s\n", m);
+    }
 
     /* unit 021: UNDO, one level (ours): the state before the last key that reached the core; a
        second UNDO puts it back. Compared as whole state images. */
@@ -2293,7 +2372,7 @@ int main(void)
         app_ui(&a, &ui);
         expect(ui.notice && !strcmp(ui.notice, "RPN ONLY") && !c.msg, "029: R-down shows RPN ONLY briefly, not a message");
         press(&a, "k:4");                       /* up: the history */
-        expect(c.hist_at == 0, "029: the bar's up shows the last entry");
+        expect(c.hist_row && c.hist_row == ab_rows_alg_prev(&c, 0), "029: the bar's up shows the last entry");
         press(&a, "C BLUE ENTER k:3");          /* back to RPN */
         expect(!c.alg && x_of(&c) == 5, "029: ALG to RPN puts ANS in X");
         /* a label written in STU lists its stamp */
@@ -3818,10 +3897,11 @@ int main(void)
         app_ui(&a, &ui);
         expect(c.alg && ui.notice && !strcmp(ui.notice, "RPN ONLY") && !ui.prompt, "029: XEQ shows RPN ONLY, no prompt");
         press(&a, "1 ENTER 2 ENTER");
-        expect(c.hist_n == 2, "029: two lines in the history");
+        expect(ab_rows_alg_count(&c) == 2, "029: two lines in the history");
         press(&a, "BLUE \xe2\x86\x90");
-        expect(c.alg && c.hist_n == 2 && !strcmp(c.ebuf, "2") && !c.alg_shown,
-               "029: UNDO puts the line back before its ENTER; the history stays");
+        expect(c.alg && ab_rows_alg_count(&c) == 1 && !strcmp(c.ebuf, "2") && !c.alg_shown,
+               "029: UNDO puts the line back before its ENTER; unit 090: the undone line's row hidden from the history "
+               "(abacus #14041 4b, moved on purpose)");
         /* (review) the complex display form is a setting in ALG; a key with no place on the line is
            RPN ONLY, the line kept */
         ab_do_arg(&c, AB_RTA, 0);
@@ -3836,8 +3916,8 @@ int main(void)
             static uint8_t img[1 << 16];
             size_t n = ab_state_save(&c, img, sizeof img);
             memset(&z, 0, sizeof z);
-            expect(n > 0 && ab_state_load(&z, img, n) == ABN_OK && z.alg && z.hist_at == -1,
-                   "029: an ALG image into a zeroed calc: hist_at -1");
+            expect(n > 0 && ab_state_load(&z, img, n) == ABN_OK && z.alg && z.hist_row == 0,
+                   "029: an ALG image into a zeroed calc: no entry shown");
         }
     }
 

@@ -66,7 +66,8 @@ static bool status_in_image(unsigned st, int version)
 
 enum { T_MODES = 1, T_STACK, T_VARS, T_STAT, T_IND, T_PROG, T_EQNS, T_ENTRY, T_EDITOR, T_RUN, T_SOLVE, T_MODE25, T_ALG,
        T_EQMODEL, T_TABLE, T_GRAPH, T_ZOOM, T_CAS, T_ENG, T_EQNOTE, T_CASCPLX,
-       T_ROWREF, T_ROWS };     /* unit 089 (version 23): the rows values hold; the device's save, the page */
+       T_ROWREF, T_ROWS,       /* unit 089 (version 23): the rows values hold; the device's save, the page */
+       T_BARE };               /* unit 090 (version 24): which of X, Y, Z, T are bare (B′), in STU, when one is */
 
 #define BUILTIN2 "\x01" "2*2 lin. solve"
 #define BUILTIN3 "\x01" "3*3 lin. solve"
@@ -551,6 +552,17 @@ static size_t state_write(wr *wp)
             }
             sec_end(&w, s);
             if (w.ver < 23) w.ver = 23;
+        }
+    }
+
+    {                                           /* version 24 (unit 090): the bare marks, STU's only (a 33s or 35s image
+                                                   is as before); after T_STACK, whose values it marks */
+        unsigned m = (unsigned)c->x.bare | (unsigned)c->y.bare << 1 | (unsigned)c->z.bare << 2 | (unsigned)c->t.bare << 3;
+        if (c->stu && m) {
+            s = sec_begin(&w, T_BARE);
+            w8(&w, m);
+            sec_end(&w, s);
+            if (w.ver < 24) w.ver = 24;
         }
     }
 
@@ -1584,6 +1596,16 @@ static bool parse(rd *r)
             if (r->version >= 23) sec_rows(r, end), r->had_rows = true;
             else r->pos = end;
             break;
+        case T_BARE:                            /* unit 090 */
+            if (r->version >= 24) {
+                unsigned m = r8(r);
+                need(r, m < 16);
+                if (r->c && !r->bad)
+                    r->c->x.bare = m & 1, r->c->y.bare = m >> 1 & 1, r->c->z.bare = m >> 2 & 1, r->c->t.bare = m >> 3 & 1;
+            } else {
+                r->pos = end;
+            }
+            break;
         default:
             r->pos = end;                       /* 082: a newer build's section (version 21 on), skipped by its size */
             r->dropped = true;                  /* (4C: OLDER FIRMWARE shows) */
@@ -1658,7 +1680,7 @@ abn_status ab_state_load(ab_calc *c, const uint8_t *buf, size_t len)
         c->err_x.re = c->err_x.im = c->err_x.p3 = abn_zero();
     }
     ab_rows_loaded(c);                          /* unit 089: a value's row that isn't on the page is no row */
-    if (!c->alg || c->hist_at >= c->hist_n) c->hist_at = -1;
+    if (!c->alg || (c->hist_row && !ab_rows_find(c, c->hist_row, NULL))) c->hist_row = 0;    /* (090: UNDO hid it) */
     /* an image from before unit 031: its equations stamped left to right (35), as every mode read them */
     for (int i = 0; i < c->eqn_count; i++)
         if (!c->eqn_model[i]) c->eqn_model[i] = 35;

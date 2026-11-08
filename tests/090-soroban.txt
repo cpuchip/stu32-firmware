@@ -1,0 +1,41 @@
+# Unit 090 (work/worksheet-2-page.md, revision 1, abacus #14041 #14043 #14045 #14047; Michael picked B′, #14050): STU's home
+# is the worksheet. Read by abacus #14043's grammar from screen_lines: %PAGEN=n the page's lines above the levels (the dropped
+# line counts one, a two-line row two), %PAGE-k=LEFT|VALUE (k = 1 the lowest; LEFT the op's name as list.c's, an ALG row's
+# text, empty for a typed number; VALUE as a level formats it; blanks _, an empty side _ alone), %LEVELS the levels drawn
+# top to bottom (none off STU's home, - in ALG), %PAGETOP the dropped line's count or -. Each expectation below was worked
+# out by hand before the first run.
+P01 | the prototype's chain: X alone (Y, Z, T bare), the seven rows above it, the newest lowest | STU 3 ENTER 4 * 5 + 2 / SQRT | %LEVELS=X %PAGEN=7 %PAGE-1=÷|8.5000 %PAGE-2=_|2.0000 %PAGE-3=+|17.0000 %PAGE-4=_|5.0000 %PAGE-5=×|12.0000 %PAGE-6=_|4.0000 %PAGE-7=_|3.0000 %PAGETOP=-
+P02 | a row a level holds is drawn in its level, never again above: Z holds the first 2 | STU 2 ENTER 3 ENTER 4 * 1 + 7 SQRT | %LEVELS=ZYX %PAGEN=5 %PAGE-1=_|7.0000 %PAGE-2=_|1.0000 %PAGE-3=×|12.0000 %PAGE-4=_|4.0000 %PAGE-5=_|3.0000 %LBL:Z=1
+P03 | T's copy-down: Z and T hold one row, each its own line | STU 1 ENTER 2 ENTER 3 ENTER 4 + | %LEVELS=TZYX %PAGEN=2 %PAGE-1=_|4.0000 %PAGE-2=_|3.0000 %LBL:Z=1 %LBL:T=1
+P04 | typing: the number being typed is X's; Y holds the sum | STU 3 ENTER 4 * 5 + 2 | %LEVELS=YX %PAGEN=4 %PAGE-1=_|5.0000 %PAGE-4=_|3.0000
+P05 | the 33s mode: no page | MODE33 3 ENTER 4 + | %LEVELS=none %PAGEN=0 %ROWS=0
+P06 | the 35s mode: no page | 3 ENTER 4 + | %LEVELS=none %PAGEN=0
+B01 | B′: a computed 0 is made, so it's drawn | STU 3 ENTER 3 - ENTER | %LEVELS=YX
+B02 | B′: CLSTK clears all four; a number typed after it is X alone | STU 1 ENTER 2 ENTER 3 CLSTK 5 | %LEVELS=X
+B03 | B′: a bare level under one that isn't is drawn (R↓ took a bare Z to Z, 3 to T) | STU 1 ENTER 2 ENTER 3 RDN | %LEVELS=TZYX
+B04 | B′: CLx ENTER is two cleared zeros, both bare (the mark moves with the value) | STU 5 CLX ENTER | %LEVELS=X
+B05 | B′: 0 ENTER is two typed zeros, both made | STU 0 ENTER | %LEVELS=YX
+B06 | B′ from a program's 0 (fn-02 T02's shape): the line hook unbares what a line makes, whatever its value | STU CLSTK PRGM LBL:A 0 ENTER 5 RTN PRGM XEQ:A | %LEVELS=YX X=5 Y=0
+B07 | B′ from a program's computed 0 | STU CLSTK PRGM LBL:B 3 ENTER 3 - ENTER 7 RTN PRGM XEQ:B | %LEVELS=YX X=7 Y=0
+B08 | B′: the marks survive a save (T_BARE) | STU 5 CLX ENTER 7 SAVE MEMCLR LOAD | %LEVELS=X X=7
+B09 | B′: a fresh STU screen is X alone | STU | %LEVELS=X %PAGEN=0
+E01 | an expression in X: the page above its drawing, Y holding the sum | STU 2 ENTER 3 + EQ:X^2 EQDROP | %LEVELS=YX %PAGEN=2 %PAGE-1=_|3.0000 %PAGE-2=_|2.0000
+E02 | a message in X's place, the page kept above | STU 3 ENTER 4 * 0 / | ERR %LEVELS=YX %PAGEN=2 %PAGE-1=_|4.0000 %PAGE-2=_|3.0000
+F01 | FIX 2 redraws every row from its exact value | STU 3 ENTER 4 * 5 + 2 / SQRT FIX2 | %PAGE-1=÷|8.50 %PAGE-7=_|3.00
+S01 | STO+ A: a row A holds, on the page (no level holds it), linked A's old row, then X's | STU 4 STO:A 2 STO+:A | %PAGEN=1 %PAGE-1=STO+_A|6.0000 %ROW-1=3:STOADD:1,2:6 %LBL:@A=3 %LEVELS=YX
+S02 | STO÷ A: A ÷ x, A's old row first | STU 12 STO:A 4 STO/:A | %ROW-1=3:STODIV:1,2:3 @A=3
+S03 | STO+ A with A never stored: the row links X's alone | STU 2 STO+:A | %ROW-1=2:STOADD:1:2 %LBL:@A=2
+S04 | the 35s mode's STO+: no row | 4 STO:A 2 STO+:A | %ROWS=0 @A=6
+A01 | ALG's lines on the page, the line being typed and ANS below them | STU ALG 2 + 3 ENTER ANS * 4 ENTER SQRT ANS ENTER 7 | %LEVELS=- %PAGEN=3 %PAGE-1=SQRT(ANS)|4.4721 %PAGE-2=ANS×4|20.0000 %PAGE-3=2+3|5.0000
+A02 | ALG: the line just evaluated is the line shown, not again above | STU ALG 2 + 3 ENTER 7 ENTER | %PAGEN=1 %PAGE-1=2+3|5.0000
+A03 | ▲ twice: the line shown in Y's place, the rows before it above | STU ALG 1 ENTER 2 ENTER 3 ENTER HUP HUP | %HSEL=2 %PAGEN=1 %PAGE-1=1|1.0000
+A04 | 029 rule 5 as 090 has it: ▲ walks every ALG row the page holds, past 16, and stops at the oldest | STU ALG 1 ENTER 2 ENTER 3 ENTER 4 ENTER 5 ENTER 6 ENTER 7 ENTER 8 ENTER 9 ENTER 10 ENTER 11 ENTER 12 ENTER 13 ENTER 14 ENTER 15 ENTER 16 ENTER 17 ENTER 18 ENTER HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP | %HSEL=1 %HIST=18
+A05 | ▲ skips RPN's rows (no line to copy) | STU 5 ENTER 6 + ALG 2 ENTER HUP HUP | %HSEL=2 %HIST=1
+A06 | STO of a shown answer links that answer's row | STU ALG 2 + 3 ENTER 7 ENTER HUP HUP STO:A | @A=5 %LBL:@A=1
+A07 | ENTER on a shown line copies its text, as 029's | STU ALG 2 + 3 ENTER 7 ENTER HUP HUP ENTER | %LINE=2+3 %HSEL=-
+A08 | ALG's history survives the device's save (SAVEROWS), as stu-worksheet-keep asks | STU ALG 2 + 3 ENTER 7 ENTER SAVEROWS MEMCLR LOAD HUP HUP | %HIST=2 %HSEL=2+3
+D01 | the dropped line: the serial's wrap restarts the page, the four rows before it dropped | STU 1 ENTER 2 + ROWNEXT:4294967294 3 + | %ROWDROP=4 %PAGEN=1 %PAGE-1=4_OLDER_ROWS_DROPPED|_ %PAGETOP=4
+D02 | CLEAR ALL empties the page as MEMORY CLEAR does, the dropped count too (abacus #14047) | STU 1 ENTER 2 + CLALL | %ROWS=0 %ROWDROP=0 %PAGEN=0 %LEVELS=X
+D03 | ... and the serials go on, never given again | STU 1 ENTER 2 + CLALL 5 ENTER | %ROW-1=4:NUM:-:5
+N01 | a keyboard run's row: R/S's left reads R/S (its line STOP, abacus #14045) | STU PRGM LBL:A 2 RTN PRGM GTO:A RS | %PAGEN=0 %ROW-1=1:RS:-:2
+N02 | XEQ A's row reads XEQ A when no level holds it | STU PRGM LBL:A 2 RTN PRGM XEQ:A 5 + | %PAGE-1=_|5.0000 %PAGE-2=XEQ_A|2.0000

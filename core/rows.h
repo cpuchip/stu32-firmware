@@ -42,7 +42,9 @@ enum { AB_ROWK_NONE,    /* makes no value on the stack (a setting, a menu, a tes
        AB_ROWK_MOVE,    /* moves values, which keep their rows (ENTER, R↓, R↑, x↔y, x<>A, STO, →EQN) */
        AB_ROWK_CLEAR,   /* clears: the value is 0 with no row (CLx, CLSTK, CLEAR ALL, C; abacus #13988 lean 3) */
        AB_ROWK_OP,      /* makes a row for each level in makes */
-       AB_ROWK_RUN };   /* runs program lines or a solver: one row for X when it stops */
+       AB_ROWK_RUN,     /* runs program lines or a solver: one row for X when it stops */
+       AB_ROWK_LETTER }; /* unit 090: makes a value in the letter arg (STO+ − × ÷): a row the letter holds, linked to the
+                           letter's old row, then X's (abacus #14041 5: A is the left operand) */
 /* Test hook (tests/rows_test.c): a NUM row for v, its serial stamped in v; 0 if it can't be written */
 uint32_t ab_rows_test_stamp(ab_calc *c, ab_val *v);
 /* Bench hook (the stand-in's ROWBENCH): a NUM row for v with the text and links given, the largest a row can be */
@@ -79,5 +81,23 @@ uint32_t ab_rows_visible_len(const ab_calc *c);    /* bytes of the rows not hidd
 void ab_rows_loaded(ab_calc *c);
 void ab_rows_clear(ab_calc *c);                     /* the page emptied (MEMORY CLEAR does it by memset) */
 void ab_rows_set_next(ab_calc *c, uint32_t next);   /* tests: the next serial (the wrap, a link far back) */
+/* CLEAR ALL (unit 090, abacus #14047): the page emptied as MEMORY CLEAR empties it, the dropped count too; the serials go
+   on, never given again */
+void ab_rows_clear_all(ab_calc *c);
+
+/* Unit 090: ALG's history is the page's ALG rows (029 rule 5: every one the page holds) */
+uint32_t ab_rows_alg_prev(const ab_calc *c, uint32_t before);  /* the newest ALG row older than before (0: of all), 0 none */
+uint32_t ab_rows_alg_next(const ab_calc *c, uint32_t after);   /* the oldest ALG row newer than after, 0 none */
+int ab_rows_alg_count(const ab_calc *c);
+bool ab_rows_text(const ab_calc *c, uint32_t serial, char *out, size_t size);  /* a row's text, "" for none */
+/* A row's value decoded with no slot taken (an expression's text in text, its len -1), its serial in row */
+bool ab_rows_peek(const ab_calc *c, uint32_t serial, ab_val *out, char *text, size_t tcap);
+/* A row's value to use, its serial in row: an expression takes a slot of the store (ABN_EXPR_FULL when it can't) */
+abn_status ab_rows_value(ab_calc *c, uint32_t serial, ab_val *out);
+
+/* Unit 090 (B′): the bare mark (calc.h). The clears set it where they write their 0 (calc.c); these clear it from every
+   level an op makes, by the table, in every mode: a key at the stack (after ab_rows_key_end), a program line as it runs */
+void ab_rows_bare_key(ab_calc *c, ab_op op, int arg, abn_status st);
+void ab_rows_bare_line(ab_calc *c, ab_op op, int arg);
 
 #endif

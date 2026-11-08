@@ -82,6 +82,8 @@ void screen_ui_default(screen_ui *ui);
  * the device shows. A line is whole: fitting it to a width (screen_render's scale and its ellipsis
  * window around the cursor) is the host's. */
 #define SCREEN_TEXT_MAX 1024
+#define SCREEN_PAGE_MAX 8               /* unit 090: the page's lines above the levels, at most (7 fit; the dropped line
+                                           may make the 8th count) */
 
 typedef enum {
     SCREEN_VALUE = 0,       /* a register's value */
@@ -152,6 +154,20 @@ typedef struct {
     bool view;                      /* four message lines, not the stack: SYS's view, 048's report (tally #5455) */
     const char *soft[SCREEN_SOFT];  /* as screen_ui's */
     bool soft_on[SCREEN_SOFT], soft_sub[SCREEN_SOFT], soft_dim[SCREEN_SOFT];
+    /* Unit 090 (work/worksheet-2-page.md): STU's home is the worksheet. The lines above are the levels (as before, every
+       one's text kept); these are what's drawn of them and the page above them. levels: the levels drawn, top to bottom
+       ("TZYX", "ZYX", "YX", "X"; B′ hides the bare ones at the top), "" off the home and "-" in ALG (the line and its
+       result in Y's and X's places). page[0] the lowest of page_n lines above them: a row's op name or ALG text at the
+       left, its value as a level's (a row that doesn't fit one line is two: its left above its value); the dropped
+       line counts as one, its text at the left. pagetop: the dropped count when that line is drawn, else -1 */
+    bool page_on;
+    char levels[5];
+    int page_n;
+    struct {
+        char left[AB_EQN_LEN];
+        char value[AB_EQN_LEN + 4];     /* (an expression in quotes) */
+    } page[SCREEN_PAGE_MAX];
+    long pagetop;
 } screen_page;
 
 void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out);

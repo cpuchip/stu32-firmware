@@ -232,14 +232,32 @@ static void format(void)
     ab_do(&c, AB_ENTER);
     n = ab_state_save(&c, img, sizeof img);
     expect(n > 4 && img[4] == 20 && c.x.row == 0 && ab_rows_count(&c) == 0, "a 35s state makes no row, its image version 20");
+    ab_init(&c);                                /* unit 090: four levels the 35s made, none bare, then STU: as before */
+    for (int i = 1; i <= 4; i++) {
+        ab_do(&c, (ab_op)(AB_K0 + i));
+        if (i < 4) ab_do(&c, AB_ENTER);
+    }
+    ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+    n = ab_state_save(&c, img, sizeof img);
+    expect(n > 4 && img[4] == 20 && !c.x.bare && !c.t.bare, "STU with no row made and no level bare: version 20, as before 089");
     ab_init(&c);
     ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
     n = ab_state_save(&c, img, sizeof img);
-    expect(n > 4 && img[4] == 20, "STU with no row made: version 20, as before 089");
+    expect(n > 4 && img[4] == 24 && c.y.bare && c.t.bare, "unit 090: a fresh STU's levels are bare: version 24 (T_BARE)");
     ab_do(&c, AB_K5);
     ab_do(&c, AB_ENTER);
     n = ab_state_save(&c, img, sizeof img);
-    expect(n > 4 && img[4] == 23 && c.x.row == 1 && c.y.row == 1, "a row: version 23, X and ENTER's copy hold row 1");
+    expect(n > 4 && img[4] == 24 && c.x.row == 1 && c.y.row == 1 && !c.y.bare && c.z.bare,
+           "a row: X and ENTER's copy hold row 1, Z and T still bare (version 24)");
+    {                                           /* and with no level bare, a row alone is version 23, as 089's */
+        static ab_calc d;
+        ab_init(&d);
+        ab_do_arg(&d, AB_MODEL, AB_MODEL_STU);
+        ab_do(&d, AB_K5);
+        for (int i = 0; i < 3; i++) ab_do(&d, AB_ENTER);
+        n = ab_state_save(&d, img, sizeof img);
+        expect(n > 4 && img[4] == 23 && !d.t.bare, "no level bare, a row held: version 23, as 089's");
+    }
 
     /* the record's layout: 5 ENTER 3 + makes NUM 5, NUM 3, ADD:1,2 */
     ab_do(&c, AB_K3);

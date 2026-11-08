@@ -224,7 +224,6 @@ enum { AB_F_ROOT, AB_F_SLOPE, AB_F_EXTR, AB_F_AREA, AB_F_FX, AB_F_TANL, AB_F_N }
 #define AB_GRAPH_CROW 92            /* the cursor's home row, the plot's middle (184 / 2) */
 #define AB_EQN_MAX 64               /* equations in the list (ours, unit 014 rule 5) */
 #define AB_EQN_LEN 192              /* bytes of one equation's text (UTF-8, as the guide shows it) */
-#define AB_HIST 16                  /* the expression line's history, at least 16 (unit 029 rule 5) */
 #define AB_MODEL_STU 1              /* AB_MODEL's arg for STU (unit 029); a label stamped STU runs as 35 */
 #define AB_PEQN_MAX 64              /* equation lines in programs, a store of their own (ours, unit
                                        015 rule 4: they are not in the list, UG p.13-7) */
@@ -262,9 +261,15 @@ typedef struct {
     abn p3;                 /* part 3: a 3-D vector's third element */
     int len;                /* a vector's element count, 1..3 (0 otherwise); 082: an expression's store slot, a name's
                                letter */
+    uint8_t bare;           /* unit 090 (B′): a cleared level's 0, never made by an op: set where a clear writes it (CLx,
+                               CLSTK, CLEAR ALL, C, MEMORY CLEAR), cleared from each level an op makes (rows.c), carried
+                               by every copy; STU hides the bare levels at the stack's top. (In the tail's padding: 64 B
+                               still, rows.c asserts it) */
 } ab_val;
 
-#define AB_EXPR_SLOTS 48            /* unit 082: the expression store: X, Y, Z, T, LASTx, 27 letters, 16 history values */
+#define AB_EXPR_SLOTS 48            /* unit 082: the expression store: X, Y, Z, T, LASTx, 27 letters, 16 history values.
+                                       Unit 090: the history is rows now; 48 kept, so every image an older build wrote
+                                       still loads (state.c's rexpr, abacus #14045) */
 
 /* Unit 089: the worksheet's rows (core/rows.c). The page in RAM, and what a save keeps of it */
 #define AB_ROWS_RAM 65536u          /* bytes of rows in RAM (PSRAM on the boards), the oldest dropped past it */
@@ -468,14 +473,11 @@ typedef struct {
     int exec_at;            /* the program line being executed while running (unit 025: its label's
                                mode is in force), -1 none */
     abn_status err_status;  /* the status the message is for */
-    /* unit 029: the line's history, in RAM only: not in the state image (rule 5). The struct's tail,
-       so that an image loaded keeps it by clearing only what is before it (state.c) */
-    char hist[AB_HIST][AB_EQN_LEN];
-    ab_val hist_val[AB_HIST];
+    /* unit 029, 090: the line's history is the page's ALG rows; this is the one ▲ and ▼ show (its serial, 0 none), in RAM
+       only. The struct's tail starts here, so that an image loaded keeps it by clearing only what is before it (state.c) */
+    uint32_t hist_row;
     char exprs[AB_EXPR_SLOTS][AB_EQN_LEN];  /* unit 082: the expressions values hold, by slot; a slot no live value names is
                                                free (ab_expr_new sweeps). In the image by content, never by slot */
-    int hist_n;             /* entries kept, the newest at hist_n - 1 */
-    int hist_at;            /* the entry shown by up and down, -1 none */
     /* unit 089 (work/worksheet-1-rows.md): the worksheet's rows, in RAM (the tail, so UNDO's image loaded keeps them;
        MEMORY CLEAR empties them). Records appended in serial order (rows.c); a save writes the newest within a budget */
     uint8_t rows[AB_ROWS_RAM];
@@ -492,6 +494,8 @@ void ab_init(ab_calc *c);
    number in the display d gives (NULL: ALL in the current base). Returns its length in bytes, or
    -1 and "?" for no such line. */
 int ab_prog_line(const ab_calc *c, int i, const ab_display *d, char *out, int size);
+/* Unit 090: an op's name as a worksheet row shows it (list.c's names: R/S's row reads R/S, a keyboard XEQ A its letter) */
+int ab_op_text(const ab_calc *c, int op, int arg, char *out, int size);
 
 /* Performs one operation. On an arithmetic error (divide by zero, out of range) the four
    registers and LAST X are left as they were and the error is returned; a number being

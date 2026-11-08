@@ -1099,18 +1099,99 @@ int main(int argc, char **argv)
         frame("47-xe-memory-full", &c, &ui);
         screen_lines(&c, &ui, &pg);
         expect(pg.x.kind == SCREEN_MESSAGE && !strcmp(pg.x.text, "MEMORY FULL"), "082: MEMORY FULL on X's line");
-        /* 4C (Michael's s3-old-firmware): a newer firmware's image (tests/golden-v24-4c.img: Y, Z and T kinds this build
+        /* 4C (Michael's s3-old-firmware): a newer firmware's image (tests/golden-v25-4c.img: Y, Z and T kinds this build
            doesn't know) loads with them 0 and OLDER FIRMWARE on X's line */
         static uint8_t img[4096];
-        FILE *gf = fopen("tests/golden-v24-4c.img", "rb");
+        FILE *gf = fopen("tests/golden-v25-4c.img", "rb");
         size_t gn = gf ? fread(img, 1, sizeof img, gf) : 0;
         if (gf) fclose(gf);
         screen_ui_default(&ui);
         ab_init(&c);
-        expect(gn == 1206 && ab_state_load(&c, img, gn) == ABN_OK, "082 4C: tests/golden-v24-4c.img loads");
+        expect(gn == 1206 && ab_state_load(&c, img, gn) == ABN_OK, "082 4C: tests/golden-v25-4c.img loads");
         frame("48-older-firmware", &c, &ui);
         screen_lines(&c, &ui, &pg);
         expect(pg.x.kind == SCREEN_MESSAGE && !strcmp(pg.x.text, "OLDER FIRMWARE"), "082 4C: OLDER FIRMWARE on X's line");
+    }
+    /* unit 090 (work/worksheet-2-page.md): STU's home is the worksheet, the levels at the bottom (B′: the bare ones at the
+       top hidden) and the page above; frames reviewed by eye when first written (the prototype's seven cases and more) */
+    {
+        static screen_page pg;
+        screen_ui_default(&ui);
+#define STU0() (ab_init(&c), ab_do_arg(&c, AB_MODEL, AB_MODEL_STU))
+#define PAGE(i) (pg.page[(i)].left[0] ? pg.page[(i)].left : "_"), (pg.page[(i)].value[0] ? pg.page[(i)].value : "_")
+        char m[512];
+        STU0();
+        keys(&c, "3 ENTER 4 * 5 + 2 / SQRT");
+        frame("49-ws-chain", &c, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(pg.page_on && !strcmp(pg.levels, "X") && pg.page_n == 7 && !strcmp(pg.page[0].left, "\xc3\xb7") &&
+                   !strcmp(pg.page[0].value, "8.5000") && !pg.page[6].left[0] && !strcmp(pg.page[6].value, "3.0000"),
+               "090: the chain: X alone, seven rows above it, the newest lowest");
+        STU0();
+        keys(&c, "2 ENTER 3 ENTER 4 * 1 + 7 SQRT");
+        frame("50-ws-held-far-back", &c, &ui);
+        screen_lines(&c, &ui, &pg);
+        snprintf(m, sizeof m, "090: Z holds the first 2: drawn in Z, not above (levels %s, %d lines, lowest %s|%s)", pg.levels,
+                 pg.page_n, PAGE(0));
+        expect(!strcmp(pg.levels, "ZYX") && pg.page_n == 5 && !strcmp(pg.page[0].value, "7.0000") &&
+                   !strcmp(pg.page[4].value, "3.0000"), m);
+        STU0();
+        keys(&c, "1 ENTER 2 ENTER 3 ENTER 4 +");
+        frame("51-ws-t-copy-down", &c, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(!strcmp(pg.levels, "TZYX") && !strcmp(pg.t.text, "1.0000") && !strcmp(pg.z.text, "1.0000"),
+               "090: T's copy-down: Z and T each their own line, one row");
+        STU0();
+        keys(&c, "3 ENTER 4 * 5 + 2");
+        frame("52-ws-typing", &c, &ui);
+        STU0();
+        keys(&c, "6 ENTER 7 *");
+        c.rows_dropped = 230;
+        frame("53-ws-dropped", &c, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(pg.page_n == 3 && pg.pagetop == 230 && !strcmp(pg.page[2].left, "230 OLDER ROWS DROPPED"),
+               "090: the dropped line above the oldest row");
+        STU0();
+        ab_do_arg(&c, AB_ENTRYM, 1);
+        keys(&c, "2 + 3 ENTER");
+        ab_do(&c, AB_ANS);
+        keys(&c, "* 4 ENTER SQRT");
+        ab_do(&c, AB_ANS);
+        keys(&c, "ENTER 7");
+        frame("54-ws-alg", &c, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(!strcmp(pg.levels, "-") && pg.page_n == 3 && !strcmp(pg.page[2].left, "2+3"), "090: ALG's lines on the page");
+        ab_do(&c, AB_CANCEL);
+        ab_do(&c, AB_HUP);
+        ab_do(&c, AB_HUP);
+        frame("55-ws-alg-shown", &c, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(!strcmp(pg.y.text, "ANS\xc3\x97" "4") && pg.page_n == 1 && !strcmp(pg.page[0].left, "2+3"),
+               "090: ▲ twice: the line shown in Y's place, the rows before it above");
+        STU0();
+        keys(&c, "9 ENTER 16 +");
+        ab_do_arg(&c, AB_ENTRYM, 1);
+        ab_do(&c, AB_ANS);
+        keys(&c, "/ 5 ENTER");
+        frame("56-ws-mixed", &c, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(pg.page_n == 3 && !strcmp(pg.page[0].left, "+"), "090: RPN's rows in ALG, the line shown not again above");
+        STU0();
+        keys(&c, "3 ENTER 4 * 0 /");
+        frame("57-ws-error", &c, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(pg.x.kind == SCREEN_MESSAGE && pg.page_n >= 1, "090: a message in X's place, the page kept above");
+        STU0();
+        keys(&c, "4");
+        ab_do_arg(&c, AB_STO, 0);
+        keys(&c, "2");
+        ab_do_arg(&c, AB_STOADD, 0);
+        frame("58-ws-sto-add", &c, &ui);
+        screen_lines(&c, &ui, &pg);
+        snprintf(m, sizeof m, "090: STO+ A's row on the page (lowest %s|%s)", PAGE(0));
+        expect(!strcmp(pg.page[0].left, "STO+ A") && !strcmp(pg.page[0].value, "6.0000"), m);
+#undef STU0
+#undef PAGE
     }
     expect(screen_missed == 0, "a frame drew a character the face lacks");
 

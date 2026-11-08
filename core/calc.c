@@ -42,18 +42,18 @@ static ab_val ab_real(abn v)
 #define EQN_LIN2 "\x01" "2*2 lin. solve"
 #define EQN_LIN3 "\x01" "3*3 lin. solve"
 
-/* the history (and since unit 089 the worksheet's rows after it) is the struct's tail (calc.h): what is before it is
-   the state */
+/* the ALG row shown (unit 090; the history before it), the expression store and the worksheet's rows are the struct's tail
+   (calc.h): what is before it is the state */
 _Static_assert(sizeof(ab_calc) - (offsetof(ab_calc, rowctx) + sizeof(ab_rowctx)) < _Alignof(ab_calc),
                "the history and the rows are ab_calc's tail");
-_Static_assert(offsetof(ab_calc, rows) > offsetof(ab_calc, hist), "the rows are after the history");
+_Static_assert(offsetof(ab_calc, rows) > offsetof(ab_calc, hist_row), "the rows are in the tail");
 
 /* Every field to its default; the history too unless keep_hist. */
 static void init_fields(ab_calc *c, bool keep_hist)
 {
-    memset(c, 0, keep_hist ? offsetof(ab_calc, hist) : sizeof *c);
-    if (!keep_hist) c->hist_at = -1;
+    memset(c, 0, keep_hist ? offsetof(ab_calc, hist_row) : sizeof *c);
     c->x = c->y = c->z = c->t = c->lastx = ab_real(abn_zero());
+    c->x.bare = c->y.bare = c->z.bare = c->t.bare = 1;    /* unit 090 (B′): a cleared stack's levels */
     c->lift = true;             /* a cleared calculator has stack lift enabled (UG p.B-4) */
     c->ans = ab_real(abn_zero());   /* ANS 0 to begin (unit 029 rule 4) */
     c->tbl_var = c->tbl_v = c->tbl_eq = -1;     /* TABLE: the first variable, start from it, step 1 (032) */
@@ -255,6 +255,7 @@ static void entry_cancel(ab_calc *c)
     c->cpart = 0;
     if (c->prgm) return;
     c->x = ab_real(abn_zero());
+    c->x.bare = 1;                              /* unit 090 (B′): C's 0, as CLx's */
     c->lift = false;
 }
 
@@ -1891,6 +1892,7 @@ static abn_status prog_run_lines(ab_calc *c, long limit, bool sst)
             return st;
         }
         c->pc = skip ? next + 1 : next;
+        ab_rows_bare_line(c, (ab_op)op, arg);   /* unit 090 (B′): a level this line made isn't bare, whatever its value */
         if (op == AB_SOLVE || op == AB_INTEG) ovf0 = c->ovf;    /* its evaluations are not steps (rule 6) */
         if (c->ovf != ovf0 && ab_flag(c, 5) && !c->active) {
             /* flag 5 set: an overflow stops the run at the line after, OVERFLOW held until a key
@@ -4331,7 +4333,7 @@ static void alg_leave(ab_calc *c)
     c->ebuf[0] = '\0';
     c->ecur = 0;
     c->alg_shown = false;
-    c->hist_at = -1;
+    c->hist_row = 0;
     place_val(c, c->ans);
     c->lift = true;
 }
@@ -4342,7 +4344,7 @@ static void alg_new_line(ab_calc *c, bool with_ans)
     strcpy(c->ebuf, with_ans ? "ANS" : "");
     c->ecur = (int)strlen(c->ebuf);
     c->alg_shown = false;
-    c->hist_at = -1;
+    c->hist_row = 0;
 }
 
 /* = : the line by the equation engine (ANS a name here only), its variables read without prompts;
@@ -4376,17 +4378,10 @@ static abn_status alg_evaluate(ab_calc *c)
         return st;
     }
     v.row = ab_rows_alg(c, c->ebuf, &v);           /* unit 089: the line's row, linked to what it read */
-    c->ans = v;
-    if (c->hist_n == AB_HIST) {                     /* the oldest goes */
-        memmove(c->hist[0], c->hist[1], sizeof c->hist[0] * (AB_HIST - 1));
-        memmove(&c->hist_val[0], &c->hist_val[1], sizeof c->hist_val[0] * (AB_HIST - 1));
-        c->hist_n--;
-    }
-    snprintf(c->hist[c->hist_n], sizeof c->hist[0], "%s", c->ebuf);
-    c->hist_val[c->hist_n++] = v;
+    c->ans = v;                                     /* (unit 090: the row is the history's entry) */
     c->alg_shown = true;
     c->ecur = (int)strlen(c->ebuf);
-    c->hist_at = -1;
+    c->hist_row = 0;
     return ABN_OK;
 }
 
@@ -4404,10 +4399,7 @@ static void graph_set(ab_calc *c, ab_op op, const abn *a)
 static abn_status alg_x_shown(ab_calc *c, ab_val *v)
 {
     abn_status st;
-    if (c->hist_at >= 0) {
-        *v = c->hist_val[c->hist_at];
-        return ABN_OK;
-    }
+    if (c->hist_row) return ab_rows_value(c, c->hist_row, v);     /* (unit 090: the row's value, its serial) */
     if (!c->alg_shown && c->ebuf[0] && (st = alg_evaluate(c)) != ABN_OK) return st;
     *v = c->ans;
     return ABN_OK;
@@ -4486,35 +4478,38 @@ static abn_status alg_key(ab_calc *c, ab_op op, int arg)
     case AB_CANCEL:                                 /* C clears the line; the history stays */
         alg_new_line(c, false);
         return ABN_OK;
-    case AB_HUP:
-        if (c->hist_n == 0) return ABN_OK;
-        c->hist_at = c->hist_at < 0 ? c->hist_n - 1 : (c->hist_at > 0 ? c->hist_at - 1 : 0);
+    case AB_HUP: {                                  /* unit 090: the page's ALG rows, newest first, stopping at the
+                                                       oldest kept */
+        uint32_t s = ab_rows_alg_prev(c, c->hist_row);
+        if (s) c->hist_row = s;
         return ABN_OK;
+    }
     case AB_HDOWN:
-        if (c->hist_at < 0) return ABN_OK;
-        c->hist_at = c->hist_at + 1 < c->hist_n ? c->hist_at + 1 : -1;
+        if (!c->hist_row) return ABN_OK;
+        c->hist_row = ab_rows_alg_next(c, c->hist_row);
         return ABN_OK;
     case AB_ENTER:
-        if (c->hist_at >= 0) {                      /* an entry shown: its text to the line */
-            snprintf(c->ebuf, sizeof c->ebuf, "%s", c->hist[c->hist_at]);
+        if (c->hist_row) {                          /* an entry shown: its text to the line */
+            ab_rows_text(c, c->hist_row, c->ebuf, sizeof c->ebuf);
             c->ecur = (int)strlen(c->ebuf);
-            c->hist_at = -1;
+            c->hist_row = 0;
             c->alg_shown = false;
             return ABN_OK;
         }
         if (!c->ebuf[0]) {                          /* an empty line: the most recent history line again,
                                                        nothing with none (029b) */
-            if (c->hist_n == 0) return ABN_OK;
-            snprintf(c->ebuf, sizeof c->ebuf, "%s", c->hist[c->hist_n - 1]);
+            uint32_t s = ab_rows_alg_prev(c, 0);
+            if (!s) return ABN_OK;
+            ab_rows_text(c, s, c->ebuf, sizeof c->ebuf);
             c->ecur = (int)strlen(c->ebuf);
         }
         return alg_evaluate(c);
     case AB_KLEFT:
     case AB_KRIGHT:
-        if (c->hist_at >= 0) {                      /* editing a copy of the entry shown */
-            snprintf(c->ebuf, sizeof c->ebuf, "%s", c->hist[c->hist_at]);
+        if (c->hist_row) {                          /* editing a copy of the entry shown */
+            ab_rows_text(c, c->hist_row, c->ebuf, sizeof c->ebuf);
             c->ecur = op == AB_KLEFT ? (int)strlen(c->ebuf) : 0;
-            c->hist_at = -1;
+            c->hist_row = 0;
             c->alg_shown = false;
             return ABN_OK;
         }
@@ -4523,7 +4518,7 @@ static abn_status alg_key(ab_calc *c, ab_op op, int arg)
         return ABN_OK;
     case AB_KBKSP:
         c->alg_shown = false;
-        c->hist_at = -1;
+        c->hist_row = 0;
         ed_backspace(c);
         return ABN_OK;
     case AB_STO: {
@@ -4565,7 +4560,7 @@ static abn_status alg_key(ab_calc *c, ab_op op, int arg)
     }
     case AB_ANS:
     case AB_LASTX:                                  /* LASTx's key types ANS (proposal 1) */
-        if (c->alg_shown || c->hist_at >= 0) alg_new_line(c, false);
+        if (c->alg_shown || c->hist_row) alg_new_line(c, false);
         ed_insert(c, "ANS", 0);
         return ABN_OK;
     case AB_ADD: case AB_SUB: case AB_MUL: case AB_DIV: case AB_POW:
@@ -4582,7 +4577,7 @@ static abn_status alg_key(ab_calc *c, ab_op op, int arg)
     if (op == AB_KEQ || !eqn_typable(op, arg)) return ABN_RPN_ONLY;     /* (a backstop: ab_alg_refuses, 075) */
     if (c->alg_shown && op != AB_ADD && op != AB_SUB && op != AB_MUL && op != AB_DIV && op != AB_POW)
         alg_new_line(c, false);
-    if (c->hist_at >= 0) c->hist_at = -1;
+    c->hist_row = 0;
     eqn_type(c, op, arg);
     return ABN_OK;
 }
@@ -4911,6 +4906,7 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
     ab_rows_key_begin(c, op, arg);
     abn_status st = do_arg(c, op, arg);
     ab_rows_key_end(c, op, arg, st);
+    ab_rows_bare_key(c, op, arg, st);           /* unit 090 (B′), every mode */
     return st;
 }
 
@@ -4993,7 +4989,6 @@ static void expr_mark(const ab_calc *c, bool used[AB_EXPR_SLOTS])
     for (size_t i = 0; i < sizeof one / sizeof one[0]; i++) mark1(one[i], used);
     for (int i = 0; i < 27; i++) mark1(&c->var[i], used);
     for (int i = 0; i < AB_PROG_LITS; i++) mark1(&c->lit[i], used);
-    for (int i = 0; i < AB_HIST; i++) mark1(&c->hist_val[i], used);
 }
 
 abn_status ab_expr_new(ab_calc *c, const char *text, ab_val *out)
@@ -5304,6 +5299,7 @@ void ab_clear_all(ab_calc *c)
 {
     ab_val zero = ab_real(abn_zero());
     c->x = c->y = c->z = c->t = c->lastx = zero;
+    c->x.bare = c->y.bare = c->z.bare = c->t.bare = 1;         /* unit 090 (B′) */
     c->lift = true;
     for (int i = 0; i < 27; i++) c->var[i] = zero;  /* A..Z and i (unit 025) */
     for (int i = 0; i < AB_STAT_REGS; i++) c->stat[i] = abn_zero();
@@ -5341,8 +5337,7 @@ void ab_clear_all(ab_calc *c)
     c->eqn_typing = c->alg;
     c->alg_shown = false;
     c->ans = zero;
-    c->hist_n = 0;
-    c->hist_at = -1;
+    ab_rows_clear_all(c);                           /* unit 090: the page too, as MEMORY CLEAR (abacus #14047) */
 }
 
 /* MEMORY CLEAR (UG p.B-3, B-4's right column): everything at its default, DEG, DEC, FIX 4, /c 4095,
@@ -5449,11 +5444,13 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
         /* Clear X puts 0 in X and disables lift, so the next number replaces it
          * (UG p.2-7, p.B-5). */
         c->x = ab_real(abn_zero());
+        c->x.bare = 1;                          /* unit 090 (B′) */
         c->lift = false;
         return ABN_OK;
     case AB_CLSTK:
         /* Clear the stack: all four registers to 0, lift disabled (UG p.2-7, p.B-5). */
         c->x = c->y = c->z = c->t = ab_real(abn_zero());
+        c->x.bare = c->y.bare = c->z.bare = c->t.bare = 1;     /* unit 090 (B′) */
         c->lift = false;
         return ABN_OK;
     case AB_ENTER:
@@ -6065,6 +6062,7 @@ static void show_digits(const abn *a, char *out)
 int ab_show_text(const ab_calc *c, char out[2][AB_SHOW_LEN])
 {
     const ab_val *v = &c->x;
+    ab_val hv;                                  /* (unit 090: the ALG row shown, decoded) */
     out[0][0] = out[1][0] = '\0';
     /* nothing while a number is typed (the entry line shows it as typed), while a VIEW display or
        Equation mode shows something else, and in a base mode (the integer is shown whole): answers
@@ -6079,7 +6077,7 @@ int ab_show_text(const ab_calc *c, char out[2][AB_SHOW_LEN])
     } else if (c->eqn_mode) {
         return 0;
     } else if (c->alg) {                        /* STU's ALG: what X's place shows (as 029b's STO) */
-        v = c->hist_at >= 0 && c->hist_at < c->hist_n ? &c->hist_val[c->hist_at] : &c->ans;
+        v = c->hist_row && ab_rows_peek(c, c->hist_row, &hv, NULL, 0) ? &hv : &c->ans;
     }
     if (v->kind == AB_REAL) {
         show_digits(&v->re, out[0]);
@@ -6167,7 +6165,7 @@ static abn_status table_key(ab_calc *c, ab_op op)
             else strcpy(c->ebuf, "ANS");
             c->ecur = (int)strlen(c->ebuf);
             c->alg_shown = true;
-            c->hist_at = -1;
+            c->hist_row = 0;
             return ABN_OK;
         }
         place_val(c, y);
@@ -7438,7 +7436,7 @@ static abn_status graph_key(ab_calc *c, ab_op op, int arg)
             num_text(&y.re, c->ebuf, sizeof c->ebuf);
             c->ecur = (int)strlen(c->ebuf);
             c->alg_shown = true;
-            c->hist_at = -1;
+            c->hist_row = 0;
             return ABN_OK;
         }
         place_val(c, y);

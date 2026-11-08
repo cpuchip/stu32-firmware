@@ -88,6 +88,8 @@ static void target_text(int arg, char *out, size_t size)
     else snprintf(out, size, "----");           /* its line was deleted (ours) */
 }
 
+static int op_text(const ab_calc *c, int op, int arg, bool row, char *out, int size);
+
 int ab_prog_line(const ab_calc *c, int i, const ab_display *d, char *out, int size)
 {
     char a[AB_EQN_LEN];
@@ -129,6 +131,32 @@ int ab_prog_line(const ab_calc *c, int i, const ab_display *d, char *out, int si
         snprintf(out, (size_t)size, "%s%s", c->peqn[arg], ab_eqn_mark(c, c->peqn[arg], c->peqn_model[arg]));
         return (int)strlen(out);                /* (the mark: unit 031 rule 3) */
     }
+    return op_text(c, op, arg, false, out, size);
+}
+
+/* Unit 090: an op's name as a worksheet row shows it: the program line's (one table, so the two can't differ), with one
+   exception, R/S at the keyboard runs, so its row reads R/S where its line reads STOP (abacus #14045); and a keyboard
+   XEQ or GTO of a label alone (A000) its letter alone */
+int ab_op_text(const ab_calc *c, int op, int arg, char *out, int size)
+{
+    if (size <= 0) return -1;
+    out[0] = '\0';
+    line_m35 = c->stu || c->m35;
+    if (op == AB_RS) {
+        snprintf(out, (size_t)size, "R/S");
+        return (int)strlen(out);
+    }
+    if ((op == AB_XEQ || op == AB_GTO) && arg >= 0 && arg / 1000 < 26 && arg % 1000 == 0) {
+        snprintf(out, (size_t)size, "%s %c", NAMES[op], 'A' + arg / 1000);
+        return (int)strlen(out);
+    }
+    return op_text(c, op, arg, true, out, size);
+}
+
+static int op_text(const ab_calc *c, int op, int arg, bool row, char *out, int size)
+{
+    char a[AB_EQN_LEN];
+    (void)row;
     if (op == AB_TEST) {
         snprintf(out, (size_t)size, "%s", arg >= 0 && arg < 12 ? TESTS[arg] : "?");
         return (int)strlen(out);

@@ -32,9 +32,10 @@ H02 | rule 5: down steps forward again | STU ALG 1 ENTER 2 ENTER 3 ENTER HUP HUP
 H03 | rule 5: ENTER on an entry copies its text into the line; ENTER again evaluates it | STU ALG 1 + 1 ENTER 5 ENTER HUP HUP ENTER | %LINE=1+1 %HSEL=-
 H04 | rule 5: the copied line evaluates | STU ALG 1 + 1 ENTER 5 ENTER HUP HUP ENTER ENTER | N=2
 H05 | rule 5: < on an entry edits a copy | STU ALG 1 + 1 ENTER 5 ENTER HUP HUP < BKSP 3 ENTER | %LINE=1+3 N=4
-H06 | rule 5: at least the last 16 kept | STU ALG 1 ENTER 2 ENTER 3 ENTER 4 ENTER 5 ENTER 6 ENTER 7 ENTER 8 ENTER 9 ENTER 10 ENTER 11 ENTER 12 ENTER 13 ENTER 14 ENTER 15 ENTER 16 ENTER 17 ENTER 18 ENTER | %HIST=16
+H06 | rule 5, as unit 090 has it (abacus #14041 4a): every ALG row the page holds, so all 18 (was 16) | STU ALG 1 ENTER 2 ENTER 3 ENTER 4 ENTER 5 ENTER 6 ENTER 7 ENTER 8 ENTER 9 ENTER 10 ENTER 11 ENTER 12 ENTER 13 ENTER 14 ENTER 15 ENTER 16 ENTER 17 ENTER 18 ENTER | %HIST=18
 H07 | rule 5: the 16th back is 3 of 18 | STU ALG 1 ENTER 2 ENTER 3 ENTER 4 ENTER 5 ENTER 6 ENTER 7 ENTER 8 ENTER 9 ENTER 10 ENTER 11 ENTER 12 ENTER 13 ENTER 14 ENTER 15 ENTER 16 ENTER 17 ENTER 18 ENTER HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP | %HSEL=3
-H08 | rule 5: the history is RAM only: lost at a power cut, the line's settings kept | STU ALG 1 ENTER 2 ENTER SAVE MEMCLR LOAD | %HIST=0 %ALG=1 N=2
+H08 | rule 5: an image without the page (SAVE, as UNDO's) brings back no history, the line's settings kept (unit 090: the device's save keeps it, H09) | STU ALG 1 ENTER 2 ENTER SAVE MEMCLR LOAD | %HIST=0 %ALG=1 N=2
+H09 | unit 090: the history is the page's ALG rows, so the device's save keeps it through a power cut | STU ALG 1 ENTER 2 ENTER SAVEROWS MEMCLR LOAD | %HIST=2 %ALG=1 N=2
 R01 | rule 6: ALG to RPN puts ANS in X as a keyed number: lift enabled, the stack lifts | STU 9 ALG 4 ENTER RPN | X=4 Y=9 %ALG=0
 R02 | rule 6: lift disabled before the switch (ENTER): X replaced, Z not pushed | STU 9 ENTER ALG 4 ENTER RPN | X=4 Y=9 Z=0
 R03 | rule 6 (ours): RPN to ALG sets ANS to X | STU 7 ALG ANS + 1 ENTER | N=8

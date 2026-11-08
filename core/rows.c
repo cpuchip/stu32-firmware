@@ -1,17 +1,19 @@
 /* Unit 089: the worksheet's rows (rows.h; work/worksheet-1-rows.md, rulings abacus #13989, #13991). */
 #include <stddef.h>
+#include <stdio.h>
 #include <string.h>
 
 #include "rows.h"
 #include "state.h"
 
-/* The row field sits in what was padding after kind: an ab_val is no larger for it (on both boards) */
+/* The row field sits in what was padding after kind, and unit 090's bare mark in the padding after len: an ab_val is no
+   larger for them (on both boards) */
 typedef struct {
     ab_kind kind;
     abn re, im, p3;
     int len;
 } val_without_row;
-_Static_assert(sizeof(ab_val) == sizeof(val_without_row), "ab_val grew with its row field");
+_Static_assert(sizeof(ab_val) == sizeof(val_without_row), "ab_val grew with its row field or its bare mark");
 
 #define REC_HEAD 13u                /* length 2, serial 4, op 2, arg 4, flags 1 */
 
@@ -79,6 +81,9 @@ ab_rowop ab_rows_op(ab_op op, int arg)
     /* program lines and solvers from the keyboard: one row when they stop */
     case AB_XEQ: case AB_RS: case AB_SST: case AB_SOLVE: case AB_INTEG:
         o.makes = 1, o.kind = AB_ROWK_RUN;
+        break;
+    case AB_STOADD: case AB_STOSUB: case AB_STOMUL: case AB_STODIV:      /* (unit 090: was a move) */
+        o.src = AB_ROWSRC_VAR, o.kind = AB_ROWK_LETTER;
         break;
     case AB_ENTER: case AB_RDN: case AB_RUP: case AB_XY: case AB_XVAR: case AB_STO: case AB_EQSTORE:
         o.kind = AB_ROWK_MOVE;
@@ -224,6 +229,76 @@ void ab_rows_set_next(ab_calc *c, uint32_t next)
     c->rows_next = next;
 }
 
+void ab_rows_clear_all(ab_calc *c)
+{
+    c->rows_len = c->rows_last = 0;
+    c->row_top = 0;
+    c->rows_dropped = 0;
+    c->hist_row = 0;
+}
+
+/* ---- unit 090: ALG's history ---- */
+
+uint32_t ab_rows_alg_prev(const ab_calc *c, uint32_t before)
+{
+    uint32_t end = ab_rows_visible_len(c), found = 0;
+    for (uint32_t at = 0; at < end; at += g16(c->rows + at)) {
+        uint32_t s = g32(c->rows + at + 2);
+        if (before && s >= before) break;
+        if (g16(c->rows + at + 6) == AB_ROW_OP_ALG) found = s;
+    }
+    return found;
+}
+
+uint32_t ab_rows_alg_next(const ab_calc *c, uint32_t after)
+{
+    uint32_t end = ab_rows_visible_len(c);
+    for (uint32_t at = 0; at < end; at += g16(c->rows + at)) {
+        uint32_t s = g32(c->rows + at + 2);
+        if (s > after && g16(c->rows + at + 6) == AB_ROW_OP_ALG) return s;
+    }
+    return 0;
+}
+
+int ab_rows_alg_count(const ab_calc *c)
+{
+    int n = 0;
+    uint32_t end = ab_rows_visible_len(c);
+    for (uint32_t at = 0; at < end; at += g16(c->rows + at)) n += g16(c->rows + at + 6) == AB_ROW_OP_ALG;
+    return n;
+}
+
+bool ab_rows_text(const ab_calc *c, uint32_t serial, char *out, size_t size)
+{
+    ab_row r;
+    if (size) out[0] = '\0';
+    if (!ab_rows_find(c, serial, &r)) return false;
+    if (size) snprintf(out, size, "%.*s", (int)r.tlen, r.text);
+    return true;
+}
+
+bool ab_rows_peek(const ab_calc *c, uint32_t serial, ab_val *out, char *text, size_t tcap)
+{
+    ab_row r;
+    if (!ab_rows_find(c, serial, &r) || !ab_val_decode(r.val, r.vlen, out, text, tcap)) return false;
+    out->row = serial;
+    return true;
+}
+
+abn_status ab_rows_value(ab_calc *c, uint32_t serial, ab_val *out)
+{
+    char t[AB_EQN_LEN];
+    ab_val v;
+    if (!ab_rows_peek(c, serial, &v, t, sizeof t)) return ABN_DOMAIN;
+    if (v.kind == AB_EXPR) {
+        abn_status st = ab_expr_new(c, t, &v);
+        if (st != ABN_OK) return st;
+        v.row = serial;
+    }
+    *out = v;
+    return ABN_OK;
+}
+
 static uint32_t append(ab_calc *c, unsigned op, int32_t arg, unsigned flags, const uint32_t *link, int nlink,
                        const char *text, size_t tlen, const ab_val *v);
 
@@ -257,7 +332,7 @@ static void restart(ab_calc *c)
     c->row_top = 0;
     c->rows_next = 1;
     for (int i = 0; i < 33; i++) held_val(c, i)->row = 0;
-    for (int i = 0; i < AB_HIST; i++) c->hist_val[i].row = 0;
+    c->hist_row = 0;
     memset(c->rowctx.pre, 0, sizeof c->rowctx.pre);
     c->rowctx.pre_lastx = c->rowctx.pre_ans = 0;
     memset(c->rowctx.pre_var, 0, sizeof c->rowctx.pre_var);
@@ -369,6 +444,7 @@ void ab_rows_num(ab_calc *c)
 {
     ab_rowctx *r = &c->rowctx;
     uint32_t s;
+    c->x.bare = 0;                              /* (unit 090: a typed number is made, in every mode) */
     if (!r->on) return;
     bool real = !c->cpart && !c->vlen && c->entry.len > 0 && c->entry.len <= (int)sizeof c->entry.text;
     s = append(c, AB_ROW_OP_NUM, 0, 0, NULL, 0, real ? c->entry.text : NULL, real ? (size_t)c->entry.len : 0, &c->x);
@@ -434,6 +510,20 @@ static void make_op(ab_calc *c, ab_op op, int arg, const ab_rowop *o)
     }
 }
 
+/* STO+ − × ÷ A (unit 090): A's new value a row A holds, linked to A's old row, then X's (A is the left operand) */
+static void make_letter(ab_calc *c, ab_op op, int arg)
+{
+    ab_rowctx *r = &c->rowctx;
+    uint32_t cand[2], link[AB_ROW_LINKS];
+    bool more;
+    if (arg < 0 || arg >= 27) return;           /* ((I) and (J): a number register, not a letter) */
+    cand[0] = r->pre_var[arg];
+    cand[1] = r->pre[0];
+    int k = links(cand, 2, link, &more);
+    uint32_t s = append(c, op, arg, 0, link, k, NULL, 0, &c->var[arg]);
+    if (s) c->var[arg].row = s;
+}
+
 static void end_run(ab_calc *c)
 {
     ab_rowctx *r = &c->rowctx;
@@ -464,6 +554,8 @@ void ab_rows_key_end(ab_calc *c, ab_op op, int arg, abn_status st)
                 if (c->stop != AB_STOP_SLICE) end_run(c);
             } else if (o.kind == AB_ROWK_OP) {
                 make_op(c, op, arg, &o);
+            } else if (o.kind == AB_ROWK_LETTER) {
+                make_letter(c, op, arg);
             }
         } else if (r->route == AB_ROUTE_REPORT && op == AB_ENTER && !same_val(c, &c->x, &r->lv0[0])) {
             /* 048's report: ENTER placed a root over the equation, linked to it (088: Y keeps it) */
@@ -485,4 +577,26 @@ void ab_rows_continue_end(ab_calc *c, abn_status st)
     end_run(c);
     stale(c, true);
     c->rowctx.on = false;
+}
+
+/* ---- unit 090 (B′): the bare mark ---- */
+
+static void unbare(ab_calc *c, ab_op op, int arg)
+{
+    ab_rowop o = ab_rows_op(op, arg);
+    if (op == AB_LIT || op == AB_EQLINE) o.makes = 1, o.kind = AB_ROWK_OP;     /* (a program's number, its equation) */
+    if (o.kind != AB_ROWK_OP && o.kind != AB_ROWK_RUN) return;
+    for (int part = 0; part < 2; part++)
+        if (o.makes >> part & 1) level(c, part)->bare = 0;
+}
+
+void ab_rows_bare_key(ab_calc *c, ab_op op, int arg, abn_status st)
+{
+    if ((st == ABN_OK || st == ABN_CLAMPED) && c->rowctx.route == AB_ROUTE_DO && !(c->entry.active || c->cpart || c->vlen))
+        unbare(c, op, arg);
+}
+
+void ab_rows_bare_line(ab_calc *c, ab_op op, int arg)
+{
+    unbare(c, op, arg);
 }
