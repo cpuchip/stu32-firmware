@@ -1,0 +1,27 @@
+Run 1 (mutants-run1.txt, against mutants-predicted.txt), read honestly:
+- M1 and M7 didn't build: removing the lines left variables unused under -Werror, so they tested nothing. They are now
+  written to compile (M1: a duplicate is never found; M7: a held row is never kept).
+- M3: rows_test crashed (exit 139) and printed nothing it had buffered, and the runner read that as green. The runner
+  now counts a non-zero exit as red. The crash was the test's: the "longer record" check used r after a failed parse.
+  It is guarded now. Also missed: A01 and A03 stayed green, since ALG's digits don't pass through do_key's completion.
+- M2: S01 went red too, unpredicted (it checks ADD:1,2 after the load).
+- M4 SURVIVED: STO+ writes a fresh value (row 0), so L03 never needed stale(). No test reached stale(). Two vectors
+  now reach it: L05 (DSE changes A in place) and G03 (SOLVE's root in its letter). Writing G03 found a bug:
+  stale() gave the root's letter X's row only when the letter's row was unchanged, and the solver writes it fresh. So
+  the letter held 0, while this record's text said it held X's row. Fixed in rows.c: after a run, a changed letter
+  equal to X gets X's row, however it was written.
+- M5, M6, M8, M9, M10, M11: as predicted.
+
+Run 2, predicted before it, on the tree with those fixes (the 089 file now 35 vectors):
+M1  089 W03 only.
+M2  089 W01, W02, P01, S01, S03, X01, X02; rows_test (census links and ADD's format check); app_test UNDO-then-×.
+M3  089: every STU vector typing a number through do_key, so all but W07, G02, A01, A03; rows_test red (exit or FAIL);
+    app_test's 089 checks.
+M4  089 L05 and G03 only.
+M5  app_test's two UNDO-then-× checks only.
+M6  089 S01, S03; rows_test's reload checks; app_test's UNDO/REDO rows; expr_test's two.
+M7  089 S03; rows_test's budget check.
+M8  089 A02, A03, A04, A05.
+M9  rows_test's census, PCT, one failure.
+M10 rows_test's invariant, π, four.
+M11 089 N03; rows_test's wrap check.
