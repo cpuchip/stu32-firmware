@@ -1,0 +1,31 @@
+Unit 089's planted faults, each predicted before any was run (src 7a30b0f). The runner (mutants-runner.py) builds
+vectors, rows_test, app_test and expr_test with one fault, runs tests/089-soroban.txt, rows_test, app_test and
+expr_test, and names what went red. A prediction is the set of red tests; "only" means nothing else goes red.
+
+M1  R2 off: links() keeps a row read twice.
+    Predicted red: 089 W03 only (5 ENTER × links 1,1). The census's levels hold distinct rows, so it can't see it.
+M2  R1 reversed: the levels' rows are taken from X up, not from the deepest down.
+    Predicted red: 089 W01, W02, P01, X01, X02, S03; rows_test's census (the links of every op reading two or more
+    levels) and its format check of ADD's links; app_test's UNDO-then-× (links 1,4). expr_test green.
+M3  R3 off: do_key's completion makes no NUM row.
+    Predicted red: every 089 vector that types a number in STU (all but W07 and G02); rows_test's format checks
+    that type numbers; app_test's 089 checks. The census stamps its rows without typing: green. expr_test green
+    (→X's rows come from EQDROP).
+M4  stale() off: a value changed in place keeps its row.
+    Predicted red: 089 L03 only (STO+ A keeps A's row 1).
+M5  append keeps UNDO's hidden rows.
+    Predicted red: app_test's UNDO-then-× and its "serials 2 and 3 never given again" only.
+M6  T_ROWREF never written: a load gives every value row 0.
+    Predicted red: 089 S01 and S03 (the labels after LOAD); rows_test's version-23 check, the save's round trip of X's
+    row, the budget's A row and the links-far-back reload; app_test's UNDO and REDO rows checks; expr_test's
+    "after →X ... version 23" and the UNDO-case reload.
+M7  the save's budget ignores the held rows.
+    Predicted red: 089 S03; rows_test's budget check ("A's row 1 past it"). Only those.
+M8  ALG's reads not recorded.
+    Predicted red: 089 A02, A03, A04, A05 only.
+M9  the table says % reads X only.
+    Predicted red: rows_test's census, one failure (PCT, the table against the census) only. No 089 vector uses %.
+M10 the table leaves π out (makes nothing).
+    Predicted red: rows_test's invariant, four failures (π on each base) only.
+M11 the serial's end never restarts the page.
+    Predicted red: 089 N03; rows_test's wrap check. Only those.
