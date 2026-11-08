@@ -281,8 +281,13 @@ static __attribute__((noinline, unused)) void dev_rowbench(ab_flash *fl, uint8_t
             int64_t r1 = esp_timer_get_time();
             screen_page *pg = heap_caps_malloc(sizeof *pg, MALLOC_CAP_SPIRAM);     /* (8 KB: PSRAM, not internal) */
             if (pg) screen_lines(c2, &ui, pg);
-            printf("rowbench: %s: a frame %lld us (levels %s, %d page lines)\n", NAME[pass], (long long)(r1 - r0) / 20,
-                   pg && pg->page_on ? pg->levels : "none", pg ? pg->page_n : -1);
+            volatile int nw = 0;
+            int64_t w0 = esp_timer_get_time();
+            for (int i = 0; i < 20; i++) nw += ab_rows_count(c2);     /* one walk of the page, as page_plan's */
+            int64_t w1 = esp_timer_get_time();
+            printf("rowbench: %s: a frame %lld us (levels %s, %d page lines); a walk of the rows %lld us\n", NAME[pass],
+                   (long long)(r1 - r0) / 20, pg && pg->page_on ? pg->levels : "none", pg ? pg->page_n : -1,
+                   (long long)(w1 - w0) / 20);
             heap_caps_free(pg);
         }
         if (fl->ctx && m <= cap) {              /* unit 090: each state's save to the flash (abacus #14041 6) */
