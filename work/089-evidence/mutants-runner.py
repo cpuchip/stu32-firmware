@@ -14,7 +14,7 @@ M = {
                        "        for (int lv = 0; lv <= 3; lv++)"),
  'M3': ('core/calc.c', "        ab_rows_num(c);                         /* unit 089 (R3): the typed number's row, before the op reads it */\n", ""),
  'M4': ('core/rows.c', "    stale(c, run);\n    r->on = false;", "    (void)run;\n    r->on = false;"),
- 'M5': ('core/rows.c', "    cut_hidden(c);\n    if (c->rows_len + n > AB_ROWS_RAM) {", "    if (c->rows_len + n > AB_ROWS_RAM) {"),
+ 'M5': ('core/rows.c', "    if (end == c->rows_len) return;\n    while (at < end) last = at", "    if (end || !end) return;\n    while (at < end) last = at"),
  'M6': ('core/state.c', "        if (nh || c->row_top) {", "        if (0) {"),
  'M7': ('core/state.c', "for (int i = 0; i < nh && !keep; i++) keep = held[i] == sr;", "for (int i = 0; i < nh && !keep; i++) keep = keep && held[i] == sr;"),
  'M8': ('core/rows.c', "    if (!r->on || !c->alg_eval || !s) return;", "    if (r->on || !r->on) return;"),
@@ -67,4 +67,4 @@ for name in sys.argv[2:]:
     open(f, 'w').write(orig)
 for f in ('core/rows.c', 'core/calc.c', 'core/state.c'):
     assert open(f).read() == open(os.path.join(S, 'orig', os.path.basename(f))).read(), f
-print('restored: core/rows.c, core/calc.c, core/state.c as 7a30b0f')
+print('restored: core/rows.c, core/calc.c, core/state.c as the originals given (SCRATCH/orig)')
