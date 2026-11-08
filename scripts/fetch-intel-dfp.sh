@@ -25,11 +25,13 @@ TARGET="${TARGET:-}"
 # A cross build (abacus's recipe, #3719): the library's 32-bit configuration and its Linux
 # conventions, scripts/fenv-nearest.h included for the rounding-mode calls (it explains why),
 # each target's code model.
+# The S3's is built in sections (unit 087) so the linker's --gc-sections keeps only what is called: whole objects
+# brought in 1,175,494 B of conversion tables nothing calls (binary32/64/80 and bid32/64), and libbid's code halves.
 case "$TARGET" in
 "")      CROSS=(); TREE="$DEST"; OUT="$ROOT/build/intel"; CC="${CC:-cc}" ;;
 esp32s3) CC=xtensa-esp32s3-elf-gcc; TREE="$DEST/$TARGET"; OUT="$ROOT/build/intel-$TARGET"
          CROSS=(CC_NAME=gcc "AR_CMD=xtensa-esp32s3-elf-ar rv" CFLAGS_ARCH=-Dia32 CFLAGS_OS=-DLINUX
-                "CFLAGS_OPT=-O2 -mlongcalls" "CFLAGS_AUX=-include $ROOT/scripts/fenv-nearest.h") ;;
+                "CFLAGS_OPT=-O2 -mlongcalls -ffunction-sections -fdata-sections" "CFLAGS_AUX=-include $ROOT/scripts/fenv-nearest.h") ;;
 esp32c6) CC=riscv32-esp-elf-gcc; TREE="$DEST/$TARGET"; OUT="$ROOT/build/intel-$TARGET"
          CROSS=(CC_NAME=gcc "AR_CMD=riscv32-esp-elf-ar rv" CFLAGS_ARCH=-Dia32 CFLAGS_OS=-DLINUX
                 "CFLAGS_OPT=-O2 -march=rv32imac_zicsr_zifencei -mabi=ilp32" "CFLAGS_AUX=-include $ROOT/scripts/fenv-nearest.h") ;;
