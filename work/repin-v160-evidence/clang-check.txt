@@ -1,0 +1,2 @@
+clang-check: no build/wamr (scripts/fetch-wamr.sh), so firmware/wasm/wasm_app.c is not compiled
+clang-check: 71 files, 0 failing (the control refused)

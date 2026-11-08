@@ -1,0 +1,745 @@
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x1 (POWERON),boot:0x8 (SPI_FAST_FLASH_BOOT)
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x16d0
+load:0x403c8700,len:0x4
+load:0x403c8704,len:0xec8
+load:0x403cb700,len:0x3160
+entry 0x403c8950
+I (27) boot: ESP-IDF v5.4.2 2nd stage bootloader
+I (27) boot: compile time Oct 14 2026 14:41:40
+I (27) boot: Multicore bootloader
+I (27) boot: chip revision: v0.1
+I (30) boot: efuse block revision: v1.2
+I (33) qio_mode: Enabling default flash chip QIO
+I (38) boot.esp32s3: Boot SPI Speed : 80MHz
+I (42) boot.esp32s3: SPI Mode       : QIO
+I (45) boot.esp32s3: SPI Flash Size : 8MB
+I (49) boot: Enabling RNG early entropy source...
+I (54) boot: Partition Table:
+I (56) boot: ## Label            Usage          Type ST Offset   Length
+I (63) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (69) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (76) boot:  2 factory          factory app      00 00 00010000 00500000
+I (82) boot:  3 abstate          Unknown data     01 40 00510000 00080000
+I (89) boot:  4 abapps           Unknown data     01 41 00590000 00012000
+I (95) boot: End of partition table
+I (98) esp_image: segment 0: paddr=00010020 vaddr=3c0e0020 size=13dc38h (1301560) map
+I (299) esp_image: segment 1: paddr=0014dc60 vaddr=3fc92700 size=023b8h (  9144) load
+I (301) esp_image: segment 2: paddr=00150020 vaddr=42000020 size=dccb4h (904372) map
+I (437) esp_image: segment 3: paddr=0022ccdc vaddr=3fc94ab8 size=08cd8h ( 36056) load
+I (444) esp_image: segment 4: paddr=002359bc vaddr=40374000 size=0e690h ( 59024) load
+I (455) esp_image: segment 5: paddr=00244054 vaddr=600fe000 size=0001ch (    28) load
+I (463) boot: Loaded app from partition at offset 0x10000
+I (463) boot: Disabling RNG early entropy source...
+I (473) octal_psram: vendor id    : 0x0d (AP)
+I (473) octal_psram: dev id       : 0x02 (generation 3)
+I (474) octal_psram: density      : 0x03 (64 Mbit)
+I (476) octal_psram: good-die     : 0x01 (Pass)
+I (480) octal_psram: Latency      : 0x01 (Fixed)
+I (484) octal_psram: VCC          : 0x01 (3V)
+I (488) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (493) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (498) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (503) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (508) octal_psram: DriveStrength: 0x00 (1/1)
+I (513) MSPI Timing: PSRAM timing tuning index: 4
+I (516) esp_psram: Found 8MB PSRAM device
+I (520) esp_psram: Speed: 80MHz
+I (523) cpu_start: Multicore app
+I (933) esp_psram: SPI SRAM memory test OK
+I (944) cpu_start: Pro cpu start user code
+I (944) cpu_start: cpu freq: 240000000 Hz
+I (944) app_init: Application information:
+I (944) app_init: Project name:     abacus_standin
+I (948) app_init: App version:      5b2f2aa
+I (952) app_init: Compile time:     Nov  8 2026 14:47:03
+I (957) app_init: ELF file SHA256:  4977ee31c...
+I (962) app_init: ESP-IDF:          v5.4.2
+I (965) efuse_init: Min chip rev:     v0.0
+I (969) efuse_init: Max chip rev:     v0.99 
+I (973) efuse_init: Chip rev:         v0.1
+I (977) heap_init: Initializing. RAM available for dynamic allocation:
+I (983) heap_init: At 3FCBA9F8 len 0002ED18 (187 KiB): RAM
+I (988) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (994) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (999) heap_init: At 600FE01C len 00001FCC (7 KiB): RTCRAM
+I (1004) esp_psram: Adding pool of 8100K of PSRAM memory to heap allocator
+I (1011) spi_flash: detected chip: gd
+I (1014) spi_flash: flash io: qio
+I (1017) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (1024) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (1030) main_task: Started on CPU0
+I (1060) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (1060) main_task: Calling app_main()
+standin: largest internal block 139264; calc stack 32768, then 110592; keyboard image 96000, then 31744
+touch: GT911 id '911' (ESP_OK)
+load: no image: MEMORY CLEAR
+apps: saves loaded
+standin: heap internal 71899 (largest block 31744), PSRAM 7040056
+I (1290) main_task: Returned from app_main()
+boot: boots=1 reason=POWERON new=1 wake=none pins=0x0 ver=0.88 core=5b2f2aa id=8f83bcc1
+STANDIN READY
+tone: use 16 level 4
+wipe: both slots erased
+talk.py: PASS line 12: expect 'wipe: both slots erased'
+�x�ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037712e
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x16d0
+load:0x403c8700,len:0x4
+load:0x403c8704,len:0xec8
+load:0x403cb700,len:0x3160
+entry 0x403c8950
+I (31) boot: ESP-IDF v5.4.2 2nd stage bootloader
+I (31) boot: compile time Oct 14 2026 14:41:40
+I (31) boot: Multicore bootloader
+I (31) boot: chip revision: v0.1
+I (34) boot: efuse block revision: v1.2
+I (38) qio_mode: Enabling default flash chip QIO
+I (42) boot.esp32s3: Boot SPI Speed : 80MHz
+I (46) boot.esp32s3: SPI Mode       : QIO
+I (50) boot.esp32s3: SPI Flash Size : 8MB
+I (54) boot: Enabling RNG early entropy source...
+I (58) boot: Partition Table:
+I (61) boot: ## Label            Usage          Type ST Offset   Length
+I (67) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (73) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (80) boot:  2 factory          factory app      00 00 00010000 00500000
+I (87) boot:  3 abstate          Unknown data     01 40 00510000 00080000
+I (93) boot:  4 abapps           Unknown data     01 41 00590000 00012000
+I (100) boot: End of partition table
+I (103) esp_image: segment 0: paddr=00010020 vaddr=3c0e0020 size=13dc38h (1301560) map
+I (305) esp_image: segment 1: paddr=0014dc60 vaddr=3fc92700 size=023b8h (  9144) load
+I (307) esp_image: segment 2: paddr=00150020 vaddr=42000020 size=dccb4h (904372) map
+I (443) esp_image: segment 3: paddr=0022ccdc vaddr=3fc94ab8 size=08cd8h ( 36056) load
+I (450) esp_image: segment 4: paddr=002359bc vaddr=40374000 size=0e690h ( 59024) load
+I (461) esp_image: segment 5: paddr=00244054 vaddr=600fe000 size=0001ch (    28) load
+I (469) boot: Loaded app from partition at offset 0x10000
+I (469) boot: Disabling RNG early entropy source...
+I (480) octal_psram: vendor id    : 0x0d (AP)
+I (480) octal_psram: dev id       : 0x02 (generation 3)
+I (480) octal_psram: density      : 0x03 (64 Mbit)
+I (482) octal_psram: good-die     : 0x01 (Pass)
+I (486) octal_psram: Latency      : 0x01 (Fixed)
+I (491) octal_psram: VCC          : 0x01 (3V)
+I (495) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (500) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (504) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (509) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (514) octal_psram: DriveStrength: 0x00 (1/1)
+I (519) MSPI Timing: PSRAM timing tuning index: 4
+I (523) esp_psram: Found 8MB PSRAM device
+I (527) esp_psram: Speed: 80MHz
+I (529) cpu_start: Multicore app
+I (939) esp_psram: SPI SRAM memory test OK
+I (950) cpu_start: Pro cpu start user code
+I (950) cpu_start: cpu freq: 240000000 Hz
+I (950) app_init: Application information:
+I (950) app_init: Project name:     abacus_standin
+I (955) app_init: App version:      5b2f2aa
+I (958) app_init: Compile time:     Nov  8 2026 14:47:03
+I (964) app_init: ELF file SHA256:  4977ee31c...
+I (968) app_init: ESP-IDF:          v5.4.2
+I (972) efuse_init: Min chip rev:     v0.0
+I (975) efuse_init: Max chip rev:     v0.99 
+I (979) efuse_init: Chip rev:         v0.1
+I (983) heap_init: Initializing. RAM available for dynamic allocation:
+I (990) heap_init: At 3FCBA9F8 len 0002ED18 (187 KiB): RAM
+I (995) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (1000) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (1005) heap_init: At 600FE01C len 00001FCC (7 KiB): RTCRAM
+I (1011) esp_psram: Adding pool of 8100K of PSRAM memory to heap allocator
+I (1018) spi_flash: detected chip: gd
+I (1021) spi_flash: flash io: qio
+I (1024) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (1030) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (1037) main_task: Started on CPU0
+I (1067) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (1067) main_task: Calling app_main()
+standin: largest internal block 139264; calc stack 32768, then 110592; keyboard image 96000, then 31744
+touch: GT911 id '911' (ESP_OK)
+load: no image: MEMORY CLEAR
+apps: saves loaded
+standin: heap internal 71899 (largest block 31744), PSRAM 7040056
+I (1297) main_task: Returned from app_main()
+boot: boots=2 reason=SW new=1 wake=none pins=0x0 ver=0.88 core=5b2f2aa id=7ef35716
+STANDIN READY
+tone: use 16 level 4
+talk.py: PASS line 14: expect 'load: no image: MEMORY CLEAR'
+talk.py: PASS line 15: expect 'ver=0.88'
+state: X=0 stop=NONE lines=0 prgm=0 running=0 shift=0 prompt=- msg=- heap=67355 stack-free=29012
+boot: boots=2 reason=SW new=1 wake=none pins=0x0 ver=0.88 core=5b2f2aa id=7ef35716
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=175c160a1b3c778ab67f049fe14baac81d1e23e2 games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=- off=0
+app: -
+eqn: - | note=- | rep=- | row=- | drawn=-
+ui: show=0 -
+pixels: gold key 4208, blue key 4208 (gold FD20, blue 4D9F, key 4208)
+talk.py: PASS line 18: expect 'pins: casim=175c160a1b3c778ab67f049fe14baac81d1e23e2'
+key 42
+tone: use 1 level 4
+key 42
+tone: use 1 level 4
+key 36
+tone: use 1 level 4
+key 18
+tone: use 1 level 4
+key 2
+tone: use 1 level 4
+key 42
+tone: use 1 level 4
+key 30
+tone: use 1 level 4
+key 43
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 31
+tone: use 1 level 4
+key 3
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 14
+tone: use 1 level 4
+key 34
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 24
+tone: use 1 level 4
+key 18
+tone: use 1 level 4
+key 4
+tone: use 1 level 4
+key 5
+tone: use 1 level 4
+key 0
+tone: use 1 level 4
+key 24
+tone: use 1 level 4
+state: X=0 stop=NONE lines=0 prgm=0 running=0 shift=0 prompt=- msg=- heap=67355 stack-free=25716
+boot: boots=2 reason=SW new=0 wake=none pins=0x0 ver=0.88 core=5b2f2aa id=7ef35716
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=175c160a1b3c778ab67f049fe14baac81d1e23e2 games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=▲ off=0
+app: -
+eqn: V=I×R | note=- | rep=SOLVED: R=V÷I; I≠0 | row=SOLVED | drawn=-
+ui: show=0 -
+pixels: gold key 4208, blue key 4208 (gold FD20, blue 4D9F, key 4208)
+talk.py: PASS line 63: expect 'rep=SOLVED: R=V÷I; I≠0 | row=SOLVED'
+key 36
+tone: use 1 level 4
+key 45
+tone: use 1 level 4
+state: X=0 stop=NONE lines=0 prgm=0 running=0 shift=0 prompt=- msg=- heap=67355 stack-free=25716
+boot: boots=2 reason=SW new=0 wake=none pins=0x0 ver=0.88 core=5b2f2aa id=7ef35716
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=175c160a1b3c778ab67f049fe14baac81d1e23e2 games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=▲ off=0
+app: -
+eqn: V=I×R | note=- | rep=SOLVED: R=V÷I; I≠0 | row=R=V÷I | drawn=-
+ui: show=0 -
+pixels: gold key 4208, blue key 4208 (gold FD20, blue 4D9F, key 4208)
+talk.py: PASS line 69: expect 'row=R=V÷I'
+framecrc: rows 21-205 80608263
+talk.py: PASS line 71: expect 'framecrc: rows 21-205 80608263'
+key 18
+tone: use 2 level 4
+state: X=0 stop=NONE lines=0 prgm=0 running=0 shift=0 prompt=- msg=CONDITION FAILS heap=67355 stack-free=25716
+boot: boots=2 reason=SW new=0 wake=none pins=0x0 ver=0.88 core=5b2f2aa id=7ef35716
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=175c160a1b3c778ab67f049fe14baac81d1e23e2 games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=▲ off=0
+app: -
+eqn: V=I×R | note=- | rep=SOLVED: R=V÷I; I≠0 | row=I≠0 | drawn=-
+ui: show=0 -
+pixels: gold key 4208, blue key 4208 (gold FD20, blue 4D9F, key 4208)
+talk.py: PASS line 76: expect 'msg=CONDITION FAILS'
+talk.py: PASS line 77: expect 'row=I≠0'
+key 42
+tone: use 1 level 4
+state: X=0 stop=NONE lines=0 prgm=0 running=0 shift=0 prompt=- msg=- heap=67355 stack-free=25716
+boot: boots=2 reason=SW new=0 wake=none pins=0x0 ver=0.88 core=5b2f2aa id=7ef35716
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=175c160a1b3c778ab67f049fe14baac81d1e23e2 games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=▲ off=0
+app: -
+eqn: V=I×R | note=- | rep=SOLVED: R=V÷I; I≠0 | row=I≠0 | drawn=-
+ui: show=0 -
+pixels: gold key 4208, blue key 4208 (gold FD20, blue 4D9F, key 4208)
+talk.py: PASS line 81: expect 'row=I≠0'
+key 42
+tone: use 1 level 4
+key 42
+tone: use 1 level 4
+key 36
+tone: use 1 level 4
+key 18
+tone: use 1 level 4
+key 2
+tone: use 1 level 4
+key 42
+tone: use 1 level 4
+key 30
+tone: use 1 level 4
+key 43
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 21
+tone: use 1 level 4
+key 34
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 31
+tone: use 1 level 4
+key 3
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 19
+tone: use 1 level 4
+key 34
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 24
+tone: use 1 level 4
+key 34
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 26
+tone: use 1 level 4
+key 18
+tone: use 1 level 4
+key 4
+tone: use 1 level 4
+key 5
+tone: use 1 level 4
+key 0
+tone: use 1 level 4
+key 26
+tone: use 1 level 4
+state: X=0 stop=NONE lines=0 prgm=0 running=0 shift=0 prompt=- msg=- heap=67355 stack-free=25716
+boot: boots=2 reason=SW new=0 wake=none pins=0x0 ver=0.88 core=5b2f2aa id=7ef35716
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=175c160a1b3c778ab67f049fe14baac81d1e23e2 games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=▲ off=0
+app: -
+eqn: P×V=N×R×T | note=- | rep=SOLVED: T=P×V÷N÷R; N≠0; R≠0 | row=SOLVED | drawn=-
+ui: show=0 -
+pixels: gold key 4208, blue key 4208 (gold FD20, blue 4D9F, key 4208)
+talk.py: PASS line 138: expect 'rep=SOLVED: T=P×V÷N÷R; N≠0; R≠0 | row=SOLVED'
+key 36
+tone: use 1 level 4
+key 45
+tone: use 1 level 4
+key 36
+tone: use 1 level 4
+key 45
+tone: use 1 level 4
+key 36
+tone: use 1 level 4
+key 45
+tone: use 1 level 4
+state: X=0 stop=NONE lines=0 prgm=0 running=0 shift=0 prompt=- msg=- heap=67355 stack-free=25716
+boot: boots=2 reason=SW new=0 wake=none pins=0x0 ver=0.88 core=5b2f2aa id=7ef35716
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=175c160a1b3c778ab67f049fe14baac81d1e23e2 games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=▲ off=0
+app: -
+eqn: P×V=N×R×T | note=- | rep=SOLVED: T=P×V÷N÷R; N≠0; R≠0 | row=R≠0 | drawn=-
+ui: show=0 -
+pixels: gold key 4208, blue key 4208 (gold FD20, blue 4D9F, key 4208)
+talk.py: PASS line 152: expect 'row=R≠0'
+framecrc: rows 21-205 9922B897
+talk.py: PASS line 154: expect 'framecrc: rows 21-205 9922B897'
+key 42
+tone: use 1 level 4
+key 42
+tone: use 1 level 4
+key 36
+tone: use 1 level 4
+key 18
+tone: use 1 level 4
+key 2
+tone: use 1 level 4
+key 42
+tone: use 1 level 4
+key 30
+tone: use 1 level 4
+key 43
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 25
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 22
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 24
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 26
+tone: use 1 level 4
+key 2
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 6
+tone: use 1 level 4
+key 34
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 7
+tone: use 1 level 4
+key 1
+tone: use 1 level 4
+key 34
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 33
+tone: use 1 level 4
+key 3
+tone: use 1 level 4
+key 37
+tone: use 1 level 4
+key 18
+tone: use 1 level 4
+key 4
+tone: use 1 level 4
+key 5
+tone: use 1 level 4
+key 0
+tone: use 1 level 4
+key 33
+tone: use 1 level 4
+state: X=0 stop=NONE lines=0 prgm=0 running=0 shift=0 prompt=- msg=- heap=67355 stack-free=25716
+boot: boots=2 reason=SW new=0 wake=none pins=0x0 ver=0.88 core=5b2f2aa id=7ef35716
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=175c160a1b3c778ab67f049fe14baac81d1e23e2 games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=▲ off=0
+app: -
+eqn: SQRT(A×B)×X=1 | note=- | rep=SOLVED: X=1÷SQRT(A×B); A≠0; B≠0; A×B≥0 | row=SOLVED | drawn=-
+ui: show=0 -
+pixels: gold key 4208, blue key 4208 (gold FD20, blue 4D9F, key 4208)
+talk.py: PASS line 223: expect 'rep=SOLVED: X=1÷SQRT(A×B); A≠0; B≠0; A×B≥0 | row=SOLVED'
+key 36
+tone: use 1 level 4
+key 45
+tone: use 1 level 4
+key 36
+tone: use 1 level 4
+key 45
+tone: use 1 level 4
+key 36
+tone: use 1 level 4
+key 45
+tone: use 1 level 4
+key 36
+tone: use 1 level 4
+key 45
+tone: use 1 level 4
+state: X=0 stop=NONE lines=0 prgm=0 running=0 shift=0 prompt=- msg=- heap=67355 stack-free=25716
+boot: boots=2 reason=SW new=0 wake=none pins=0x0 ver=0.88 core=5b2f2aa id=7ef35716
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=175c160a1b3c778ab67f049fe14baac81d1e23e2 games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=▲ off=0
+app: -
+eqn: SQRT(A×B)×X=1 | note=- | rep=SOLVED: X=1÷SQRT(A×B); A≠0; B≠0; A×B≥0 | row=A×B≥0 | drawn=-
+ui: show=0 -
+pixels: gold key 4208, blue key 4208 (gold FD20, blue 4D9F, key 4208)
+talk.py: PASS line 241: expect 'row=A×B≥0'
+framecrc: rows 21-205 11D1A4C6
+talk.py: PASS line 243: expect 'framecrc: rows 21-205 11D1A4C6'
+key 42
+tone: use 1 level 4
+key 42
+tone: use 1 level 4
+key 36
+tone: use 1 level 4
+key 18
+tone: use 1 level 4
+key 2
+tone: use 1 level 4
+key 42
+tone: use 1 level 4
+key 30
+tone: use 1 level 4
+key 43
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 33
+tone: use 1 level 4
+key 34
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 25
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 22
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 24
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 26
+tone: use 1 level 4
+key 2
+tone: use 1 level 4
+key 40
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 7
+tone: use 1 level 4
+key 28
+tone: use 1 level 4
+key 38
+tone: use 1 level 4
+key 40
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 8
+tone: use 1 level 4
+key 28
+tone: use 1 level 4
+key 38
+tone: use 1 level 4
+key 1
+tone: use 1 level 4
+key 3
+tone: use 1 level 4
+key 37
+tone: use 1 level 4
+key 18
+tone: use 1 level 4
+key 4
+tone: use 1 level 4
+key 5
+tone: use 1 level 4
+key 0
+tone: use 1 level 4
+key 33
+tone: use 1 level 4
+state: X=0 stop=NONE lines=0 prgm=0 running=0 shift=0 prompt=- msg=- heap=67355 stack-free=25716
+boot: boots=2 reason=SW new=0 wake=none pins=0x0 ver=0.88 core=5b2f2aa id=7ef35716
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=175c160a1b3c778ab67f049fe14baac81d1e23e2 games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=▲ off=0
+app: -
+eqn: X×SQRT(-B÷2-C÷2)=1 | note=- | rep=SOLVED: X=1÷SQRT(-B÷2-C÷2); -B÷2-C÷2>0 | row=SOLVED | drawn=-
+ui: show=0 -
+pixels: gold key 4208, blue key 4208 (gold FD20, blue 4D9F, key 4208)
+talk.py: PASS line 322: expect 'rep=SOLVED: X=1÷SQRT(-B÷2-C÷2); -B÷2-C÷2>0 | row=SOLVED'
+key 36
+tone: use 1 level 4
+key 45
+tone: use 1 level 4
+key 36
+tone: use 1 level 4
+key 45
+tone: use 1 level 4
+state: X=0 stop=NONE lines=0 prgm=0 running=0 shift=0 prompt=- msg=- heap=67355 stack-free=25716
+boot: boots=2 reason=SW new=0 wake=none pins=0x0 ver=0.88 core=5b2f2aa id=7ef35716
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=175c160a1b3c778ab67f049fe14baac81d1e23e2 games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=▲ off=0
+app: -
+eqn: X×SQRT(-B÷2-C÷2)=1 | note=- | rep=SOLVED: X=1÷SQRT(-B÷2-C÷2); -B÷2-C÷2>0 | row=-B÷2-C÷2>0 | drawn=-
+ui: show=0 -
+pixels: gold key 4208, blue key 4208 (gold FD20, blue 4D9F, key 4208)
+talk.py: PASS line 332: expect 'row=-B÷2-C÷2>0'
+framecrc: rows 21-205 1F7002A7
+talk.py: PASS line 334: expect 'framecrc: rows 21-205 1F7002A7'
+key 42
+tone: use 1 level 4
+key 42
+tone: use 1 level 4
+key 36
+tone: use 1 level 4
+key 18
+tone: use 1 level 4
+key 2
+tone: use 1 level 4
+key 42
+tone: use 1 level 4
+key 30
+tone: use 1 level 4
+key 43
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 33
+tone: use 1 level 4
+key 34
+tone: use 1 level 4
+key 2
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 6
+tone: use 1 level 4
+key 9
+tone: use 1 level 4
+key 38
+tone: use 1 level 4
+key 46
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 7
+tone: use 1 level 4
+key 9
+tone: use 1 level 4
+key 38
+tone: use 1 level 4
+key 40
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 8
+tone: use 1 level 4
+key 9
+tone: use 1 level 4
+key 38
+tone: use 1 level 4
+key 40
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 9
+tone: use 1 level 4
+key 9
+tone: use 1 level 4
+key 38
+tone: use 1 level 4
+key 40
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 10
+tone: use 1 level 4
+key 9
+tone: use 1 level 4
+key 38
+tone: use 1 level 4
+key 1
+tone: use 1 level 4
+key 3
+tone: use 1 level 4
+key 2
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 6
+tone: use 1 level 4
+key 46
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 7
+tone: use 1 level 4
+key 1
+tone: use 1 level 4
+key 34
+tone: use 1 level 4
+key 2
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 8
+tone: use 1 level 4
+key 46
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 9
+tone: use 1 level 4
+key 46
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 10
+tone: use 1 level 4
+key 1
+tone: use 1 level 4
+key 18
+tone: use 1 level 4
+key 4
+tone: use 1 level 4
+key 5
+tone: use 1 level 4
+key 0
+tone: use 1 level 4
+key 33
+tone: use 1 level 4
+state: X=0 stop=NONE lines=0 prgm=0 running=0 shift=0 prompt=- msg=- heap=67355 stack-free=25716
+boot: boots=2 reason=SW new=0 wake=none pins=0x0 ver=0.88 core=5b2f2aa id=7ef35716
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=175c160a1b3c778ab67f049fe14baac81d1e23e2 games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=▲ off=0
+app: -
+eqn: X×(A^2+B^2-C^2-D^2-E^2)=(A+B)×(C+D+E) | note=- | rep=SOLVED: X=(A+B)×(C+D+E)÷(A^2+B^2-C^2-D^2-E^2); A^2+B^2-C^2-D^2-E^2≠0 | row=SOLVED | drawn=-
+ui: show=0 -
+pixels: gold key 4208, blue key 4208 (gold FD20, blue 4D9F, key 4208)
+talk.py: PASS line 459: expect 'rep=SOLVED: X=(A+B)×(C+D+E)÷(A^2+B^2-C^2-D^2-E^2); A^2+B^2-C^2-D^2-E^2≠0 | row=SOLVED'
+key 36
+tone: use 1 level 4
+key 45
+tone: use 1 level 4
+state: X=0 stop=NONE lines=0 prgm=0 running=0 shift=0 prompt=- msg=- heap=67355 stack-free=25716
+boot: boots=2 reason=SW new=0 wake=none pins=0x0 ver=0.88 core=5b2f2aa id=7ef35716
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=175c160a1b3c778ab67f049fe14baac81d1e23e2 games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=▲ off=0
+app: -
+eqn: X×(A^2+B^2-C^2-D^2-E^2)=(A+B)×(C+D+E) | note=- | rep=SOLVED: X=(A+B)×(C+D+E)÷(A^2+B^2-C^2-D^2-E^2); A^2+B^2-C^2-D^2-E^2≠0 | row=X=(A+B)×(C+D+E)÷(A^2+B^2-C^2-D^2-E^2) | drawn=-
+ui: show=0 -
+pixels: gold key 4208, blue key 4208 (gold FD20, blue 4D9F, key 4208)
+talk.py: PASS line 465: expect 'row=X=(A+B)×(C+D+E)÷(A^2+B^2-C^2-D^2-E^2)'
+framecrc: rows 21-205 42D43CA9
+talk.py: PASS line 467: expect 'framecrc: rows 21-205 42D43CA9'
+state: X=0 stop=NONE lines=0 prgm=0 running=0 shift=0 prompt=- msg=- heap=67355 stack-free=25716
+boot: boots=2 reason=SW new=0 wake=none pins=0x0 ver=0.88 core=5b2f2aa id=7ef35716
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=175c160a1b3c778ab67f049fe14baac81d1e23e2 games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=▲ off=0
+app: -
+eqn: X×(A^2+B^2-C^2-D^2-E^2)=(A+B)×(C+D+E) | note=- | rep=SOLVED: X=(A+B)×(C+D+E)÷(A^2+B^2-C^2-D^2-E^2); A^2+B^2-C^2-D^2-E^2≠0 | row=X=(A+B)×(C+D+E)÷(A^2+B^2-C^2-D^2-E^2) | drawn=-
+ui: show=0 -
+pixels: gold key 4208, blue key 4208 (gold FD20, blue 4D9F, key 4208)
+talk.py: PASS line 469: expect-min stack-free 8188 (got 25716)
+talk.py: FAIL line 471: expect 'framecrc: rows 21-205 00000000'
+state: X=0 stop=NONE lines=0 prgm=0 running=0 shift=0 prompt=- msg=- heap=67355 stack-free=25716
+boot: boots=2 reason=SW new=0 wake=none pins=0x0 ver=0.88 core=5b2f2aa id=7ef35716
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=175c160a1b3c778ab67f049fe14baac81d1e23e2 games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=▲ off=0
+app: -
+eqn: X×(A^2+B^2-C^2-D^2-E^2)=(A+B)×(C+D+E) | note=- | rep=SOLVED: X=(A+B)×(C+D+E)÷(A^2+B^2-C^2-D^2-E^2); A^2+B^2-C^2-D^2-E^2≠0 | row=X=(A+B)×(C+D+E)÷(A^2+B^2-C^2-D^2-E^2) | drawn=-
+ui: show=0 -
+pixels: gold key 4208, blue key 4208 (gold FD20, blue 4D9F, key 4208)
+talk.py: FAIL line 474: expect 'pins: casim=eedbf166ed6e6636a1aa045321bfebd836f2513f'

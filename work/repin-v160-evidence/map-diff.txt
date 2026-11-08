@@ -1,0 +1,24 @@
+## reva
+build/res/1d19d01/device/reva/build-res/abacus_reva.map: discarded ['casim_step', 'do_ssteps']; kept []
+build/res/5b2f2aa/device/reva/build-res/abacus_reva.map: discarded ['casim_step', 'do_ssteps', 'ls_steps']; kept []
+.debug_aranges esp-idf/main/libmain.a(casim.c.obj): 3816 -> 3824 (+8)
+.debug_frame esp-idf/main/libmain.a(casim.c.obj): 11392 -> 11416 (+24)
+.debug_info esp-idf/main/libmain.a(casim.c.obj): 553290 -> 557159 (+3869)
+.debug_line esp-idf/main/libmain.a(casim.c.obj): 718144 -> 723387 (+5243)
+.debug_loc esp-idf/main/libmain.a(casim.c.obj): 581597 -> 586178 (+4581)
+.debug_ranges esp-idf/main/libmain.a(casim.c.obj): 124032 -> 124832 (+800)
+.debug_str esp-idf/esp_app_format/libesp_app_format.a(esp_app_desc.c.obj): 264873 -> 264882 (+9)
+.debug_str esp-idf/main/libmain.a(casim.c.obj): 11132 -> 11141 (+9)
+.text.casim_run esp-idf/main/libmain.a(casim.c.obj): 1876 -> 1880 (+4)   <- loaded
+## standin
+build/res/1d19d01/device/standin/build-res/abacus_standin.map: discarded ['casim_step', 'do_ssteps']; kept []
+build/res/5b2f2aa/device/standin/build-res/abacus_standin.map: discarded ['casim_step', 'do_ssteps', 'ls_steps']; kept []
+.debug_aranges esp-idf/main/libmain.a(casim.c.obj): 3816 -> 3824 (+8)
+.debug_frame esp-idf/main/libmain.a(casim.c.obj): 11392 -> 11416 (+24)
+.debug_info esp-idf/main/libmain.a(casim.c.obj): 553290 -> 557159 (+3869)
+.debug_line esp-idf/main/libmain.a(casim.c.obj): 718144 -> 723387 (+5243)
+.debug_loc esp-idf/main/libmain.a(casim.c.obj): 581597 -> 586178 (+4581)
+.debug_ranges esp-idf/main/libmain.a(casim.c.obj): 124032 -> 124832 (+800)
+.debug_str esp-idf/esp_app_format/libesp_app_format.a(esp_app_desc.c.obj): 273853 -> 273862 (+9)
+.debug_str esp-idf/main/libmain.a(casim.c.obj): 11135 -> 11144 (+9)
+.text.casim_run esp-idf/main/libmain.a(casim.c.obj): 1876 -> 1880 (+4)   <- loaded
