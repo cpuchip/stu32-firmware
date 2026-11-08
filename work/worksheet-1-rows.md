@@ -154,6 +154,25 @@ two links, 17 with three), 1 for the text's length, and the value.
     result, linked to the levels it started from.
   - Without this rule, a loop in a program would fill the page.
 - **Two values from one op** (→POL, →REC, CMPLX): one row each, adjacent, each linked to the levels read.
+- **Ruled for 089 (abacus #13991), the rules h089 is judged on:**
+  - **R1, link order:** operand order, from the deepest level read to X. So y−x lists Y's row, then X's:
+    `5 ENTER 3 XY −` links 2,1. A letter an op reads (RCL×:A) comes after the stack levels.
+  - **R2:** a row used twice is linked once. `5 ENTER ×` is MUL:1, not 1,1.
+  - **R3:** any key that ends a number's entry makes its NUM row first: ENTER, an op, x↔y, R↓, STO. CHS and E typed
+    inside the entry are part of the number. `5 CHS ENTER` is one row, NUM −5. `5 ENTER CHS` is two: NUM 5, then
+    CHS:1.
+  - **R4:** LASTx and ANS make a row as RCL does, linked to the row of the value they bring back. `3 x² LASTX` is
+    LASTX:1.
+- **CMPLX (the 33s's stack pairs, z1 = Z + iT and z2 = X + iY; abacus #13991's gap):**
+  - **Rule: each part links only the levels it reads, in R1's order. Where a part reads four, the first three link
+    and the "more read" flag is set, as ALG's rule (c).** The census supports reading per part
+    (work/worksheet-evidence/census-cmplx.txt, each of the 12 operations, each part perturbed).
+  - ADD and SUB read two levels a part: the real part Z and X, the imaginary T and Y. So they link two each, with no
+    flag.
+  - CHS reads one a part: X for the real, Y for the imaginary.
+  - INV, LN, EXP, SIN, COS and TAN read X and Y for each part.
+  - MUL, DIV and POW read all four for each part, so they link T, Z and Y and set the flag. Leaving X out is that
+    rule's cost, and it falls only on these three. h089 doesn't test CMPLX.
 - **Clears** (CLx, CLSTK, CLALL): no row. The level loses its row (row 0) and shows as a bare live line.
 
 ## Questions, with my leans

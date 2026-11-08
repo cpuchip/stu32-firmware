@@ -1,0 +1,12 @@
+arg  0 ADD  st=0:  X(re) reads X.Z.  Y(im) reads .Y.T
+arg  1 SUB  st=0:  X(re) reads X.Z.  Y(im) reads .Y.T
+arg  2 MUL  st=0:  X(re) reads XYZT  Y(im) reads XYZT
+arg  3 DIV  st=0:  X(re) reads XYZT  Y(im) reads XYZT
+arg  4 POW  st=0:  X(re) reads XYZT  Y(im) reads XYZT
+arg  5 CHS  st=0:  X(re) reads X...  Y(im) reads .Y..
+arg  6 INV  st=0:  X(re) reads XY..  Y(im) reads XY..
+arg  7 LN   st=0:  X(re) reads XY..  Y(im) reads XY..
+arg  8 EXP  st=0:  X(re) reads XY..  Y(im) reads XY..
+arg  9 SIN  st=0:  X(re) reads XY..  Y(im) reads XY..
+arg 10 COS  st=0:  X(re) reads XY..  Y(im) reads XY..
+arg 11 TAN  st=0:  X(re) reads XY..  Y(im) reads XY..
