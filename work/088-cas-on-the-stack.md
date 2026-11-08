@@ -134,3 +134,116 @@ Today nothing on the stack reaches SIMP, EXPND or SOLVE. Options:
 4. **The stand-in** (a replayed script): `2×X+5=11` from the keys, →X, 2 ×, then the bar's SIMP and SOLVE, ENTER.
    Its frames are the host's (FRAMECRC), and the stack low-water stays above the deep paths'.
 5. **clang-check.**
+
+## Built (eba074f, the script a236b21 and its fix)
+
+**Ruled** (abacus #13803, all as leaned):
+- (a), the bar that follows X. It never covers an open menu, and the keys go blank again when X is a number.
+- (ii), a decimal number alone becomes a number.
+- Y keeps the expression after SOLVE's ENTER.
+- More ops later, each with its own unit.
+
+h088 was frozen first at abacus b9a875a (sha256 51258a69…, 26 vectors). No 088 source was written before its hash
+arrived (#13804, #13818).
+
+**The change:**
+- **core/calc.c:**
+  - cas_step reads X's text, as STU's, when Equation mode is off and X holds an expression or a name. The list path
+    is as it was.
+  - On SIMP and EXPND it replaces X: LASTx gets the old X, and the lift is enabled. A result that is a decimal number
+    alone (cas_plain_number) becomes a number, through eqn_eval; otherwise it is a new expression (ab_expr_new:
+    MEMORY FULL when the store has no slot, nothing changed).
+  - The dispatch sends SIMP, EXPND and SOLVE there when X holds an expression or a name, and →EQN stores it.
+  - A number in X stays NO EQN.
+- **firmware/app.c:**
+  - eqn_bar shows X EXPR in STU, outside program entry, when X holds an expression or a name. Callers ask eqn_bar
+    only when no menu is open, so an open menu always wins.
+  - SOLVE is marked as computing on the stack too, so C reaches it.
+- **scripts/gen_keymap.py:** the X EXPR bar (SIMP, EXPND, SOLVE with its variable, →EQN, none, ▸ CAS), last, so no
+  menu's index moves. firmware/keymap.c is regenerated.
+- **help/help.txt:**
+  - SIMP and EXPND: "On the stack: X's, X replaced."
+  - SOLVE: "roots, of X's too", keeping the entry's three lines.
+  - →EQN: "Also on the stack's X bar."
+- **VER 0.88.**
+
+**Expectations that moved, each on purpose:**
+- app_test's 082 check "→X: … the stack's keys (no bar)" now expects the bar.
+- expr_test's 082 check of →EQN outside Equation mode keeps NO EQN for a number in X. →EQN acts on an expression in X
+  (088 Q01).
+- expr_test's op sweep and op fuzz gain unit 088's class. SIMP, EXPND, SOLVE and →EQN with an expression or name in X
+  either did what this unit says or refused with nothing changed. The sweep counts 64 runs in this class and the fuzz
+  13, with 0 reading a number in either.
+
+**1. make test:** rc 0.
+- tests/088-soroban.txt: 36/36 vectors.
+  - A01-A08: SIMP and EXPND, LASTx, X's level, the lift, and X's text not the list's.
+  - N01-N10: answer 2, including -3, 0, 0.00001, -2.5, 14, and 1÷2, 2×π and 10^40 kept.
+  - S01-S08: SOLVE, ENTER's Y and Z, another letter, CONDITION FAILS, C, interrupted, X's text not the list's.
+  - R01-R07: refusals.
+  - Q01-Q02: →EQN.
+  - L01: the list unchanged.
+- app_test 865/865: the bar, a number being typed, an open menu over it, the bar's SIMP, →EQN and SOLVE, ENTER and the
+  keys blank, Equation mode, program entry, ALG, 35s, and C during the bar's SOLVE.
+- expr_test 427/427: a name in X, MEMORY FULL with all 48 slots live, and SOLVE with the store full.
+- help_test 771,024 checks, and the 38 replayed scripts.
+
+**2. Mutants** (evidence: mutants-*.txt; predictions written before the first run):
+
+| | mutant | predicted | result |
+|---|---|---|---|
+| M1 | the list's text on the stack | vectors broadly, app_test, expr_test | red: 17 vectors (A01-A06, A08, N01-N08, N10, S08), app_test, expr_test |
+| M2 | LASTx not set | A02, N10, expr_test | as predicted |
+| M3 | the stack lifted | A01, A05 (A02, N10 maybe) | A01, A05 |
+| M4 | the bar shown with a number | app_test | red, app_test |
+| M5 | (ii) takes π and ÷ through | N07-N09 | as predicted |
+| M6 | (ii) off | N01-N06, N10 | as predicted |
+| M7 | the bar while a number is typed | app_test's "being typed" | **survived** |
+| M8 | SOLVE on the stack not marked computing | survives, as no test exists | **survived**, so a check was added; then red |
+| M9 | →EQN on the stack refused | Q01, app_test | as predicted |
+
+**Three misses of mine, found by these runs:**
+- **The mutant runner was blind to app_test.** It grepped for FAIL, but app_test prints a failed check as
+  `app_test: <what>`. M4 and M7 "survived" on the first run, which contradicted my predictions. That led to the
+  runner, and it now reads app_test's own N/M count. The blind run is kept (mutants-run1-blind-to-app_test.txt).
+- **M7 survives for a real reason.** A number being typed is already X's entry, so the bar's `!entry.active` check
+  never decided anything. It is removed, as 084 removed an unreachable ALG check.
+- **M1's first run showed my SOLVE rows had X's text equal to the list's shown entry,** so they couldn't tell the two
+  apart. S08 and A08 are rows where they differ.
+
+**Two test bugs of mine:**
+- A05 first typed "1 2 3" as 123.
+- expr_test's store-full SOLVE first passed arg 0 (the letter A) and didn't clear the MEMORY FULL message first.
+
+**3. D68,** `scripts/resources.py static 99a62eb a236b21`:
+
+| | stand-in | Rev A head-less |
+|---|---|---|
+| flash | 2,309,088 -> 2,310,288 (+1,200) | 2,244,736 -> 2,245,952 (+1,216) |
+| DIRAM, IRAM code, calc_task's frame | +0 | +0 |
+
+libmain is +1,104 and libesp_app_format +100 (the version and commit strings' section).
+
+**4. make clang-check:** 71 files, 0 failing (the control refused).
+
+**5. The boards,** device/standin/cas088.txt (`stackkeys x '2×X+5=11'`):
+- **The stand-in:** 19 PASS, and the control frame fails.
+  - The keys: EQN, `2×X+5=11`, ▸, →X (soft1=SIMP), 2 × (084), the bar's SIMP (4×X+10=22), its SOLVE in X (soft1=▲,
+    SOLVED: X=3), ▼ ENTER (X=3, soft1=-).
+  - The four frames equal the host's replay: BDFD5455, 759DB830, 6288D7A8, 0FD1D5D2.
+  - The bar's own row is below FRAMECRC's rows, so soft1= is its check. The host's render is
+    frame-after-simp.png.
+  - Stack-free at least 25,300.
+- **Rev A head-less:** the same script without the frame lines, plus the old-pin control. 15 PASS. Stack-free at
+  least 25,316.
+- **Flash time:** the app writes in 42 s (stand-in) and 40 s (Rev A head-less).
+- **A miss of mine, twice:**
+  - First run: the script expected rep= before soft1=, but the dump prints the ui: line first. Both boards showed
+    soft1=▲.
+  - Second run: my sed fix didn't apply (the generator has a literal ▲), so that run repeated the old script.
+  - The third run is clean. The first two are board/try1-* (the second is not kept: the same failure).
+
+**Claims** (lepton, old shim, `soroban-*` 4 GiB, with the stand-in board):
+- 10:31:42-10:36:25Z for D68, clang-check and the first board run, peak 713 MiB.
+- 10:36:47-10:42:44Z for the reruns, peak 258 MiB.
+- Both released.

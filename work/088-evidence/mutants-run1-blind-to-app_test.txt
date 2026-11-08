@@ -1,0 +1,10 @@
+M1 RED: A01 A02 A03 A04 A05 A06 N01 N02 N03 N04 N05 N06 N07 N08 N10 expr_test 3 fail: FAIL: 088: SIMP on the name A: the expression A in X, LASTx the name || FAIL: 088: SIMP with the store full: MEMORY FULL (status 26), nothing changed || FAIL: 088: SOLVE with the store full: the report, it needs no slot (message before 0; stat
+M2 RED: A02 N10 expr_test 1 fail: FAIL: 088: SIMP on the name A: the expression A in X, LASTx the name
+M3 RED: A01 A05
+M4 SURVIVED 
+M5 RED: N07 N08 N09
+M6 RED: N01 N02 N03 N04 N05 N06 N10
+M7 SURVIVED 
+M8 RED: BUILD FAILED: cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -Icore -Ifirmware -Ibuild/games -DVER_CASIM='"eedbf16"' -DVER_GAMES='"8f8e9e8"' -o build/app_test core/calc.c core/fmt.c core/
+M9 RED: Q01
+restored True

@@ -1,0 +1,14 @@
+# Unit 088's mutants, predicted 10:14:31Z before any ran. Each is one change; the checks run are tests/088-soroban.txt,
+# app_test, expr_test (the sweep, the fuzz, cas_stack) and tests/048-soroban.txt (the list's report).
+M1 the list's text on the stack (onx false in cas_step): red 088 A01-A07, N01-N10, S01-S05, S07?, R01-R03, Q? no (Q is EQSTORE);
+   app_test's 088 block; expr_test cas_stack and the sweep/fuzz class. 048 green.
+M2 LASTx not set by the stack's SIMP/EXPND: red 088 A02, N10; expr_test cas_stack (LASTx the name) and the sweep (cas_on_x needs LASTx).
+M3 the stack lifted on SIMP/EXPND (Y, Z, T pushed): red 088 A01, A05; probably A02 and N10 (LASTx then sits over a lifted stack).
+M4 the bar shown with a number in X (app.c drops ab_is_sym): red app_test's 088 "a number in X: the keys blank" and every older
+   app_test check that a plain stack's soft keys are blank (the 082 block, 456/467/470/587...); 088 vectors green.
+M5 (ii)'s check takes any text without a letter (π and ÷ through): red 088 N07 (1÷2), N08 (2×π), N09 (10^40) only.
+M6 (ii) off (every answer an expression): red 088 N01-N06, N10; app_test's 088 block green (its answers aren't numbers).
+M7 the bar while a number is typed (app.c drops !entry.active): red app_test's 088 "a number being typed: no bar" only.
+M8 SOLVE on the stack not marked computing (app.c's 088 clause dropped): SURVIVES, I expect: no test delivers a C into a
+   stack SOLVE through the app. If it survives, a check is added before the commit.
+M9 →EQN from the stack refused (dispatch back to NO EQN): red 088 Q01; app_test's 088 "the bar's →EQN".

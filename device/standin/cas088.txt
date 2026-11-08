@@ -77,14 +77,14 @@ expect state: X='4×X+10=22' 10
 expect soft1=SIMP 10
 send FRAMECRC
 expect framecrc: rows 21-205 759DB830 10
-# the bar's SOLVE, in X: the report, its own bar
+# the bar's SOLVE, in X: the report, its own bar (the dump prints soft1= before rep=)
 send K2
 sleep 0.25
 send K33
 sleep 0.25
 send X
-expect rep=SOLVED: X=3 | row=SOLVED 10
 expect soft1=▲ 10
+expect rep=SOLVED: X=3 | row=SOLVED 10
 send FRAMECRC
 expect framecrc: rows 21-205 6288D7A8 10
 # ▼, ENTER: the root in X, the bar gone
