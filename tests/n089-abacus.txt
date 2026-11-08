@@ -1,0 +1,39 @@
+# abacus's hidden cases for unit 089 (the worksheet, part 1: the rows), written 2026-11-08 from soroban's blueprint at
+# stu32-firmware b80103c (work/worksheet-1-rows.md: a-e and the %ROWS dump) and abacus's rulings R1-R4 (#13991): links in
+# operand order from the deepest level read to X; a row used twice is linked once; any key that ends a number's entry
+# makes its NUM row first; LASTX and ANS make a row linked to the row they bring back. The expected rows come from
+# abacus's own model of each op's reads (HP 32SII/35s stack semantics, stack depth 4), not from soroban's census.
+#
+# Typed numbers, two-argument ops, operand order
+H01 | abacus: 5 ENTER 3 + makes three rows; + links both | STU 5 ENTER 3 + | %ROWS=3 %ROW-3=1:NUM:-:5 %ROW-2=2:NUM:-:3 %ROW-1=3:ADD:1,2:8 %LBL:X=3 %LBL:Y=0 %LBL:LASTX=2
+H02 | abacus: subtraction, the same shape | STU 5 ENTER 3 - | %ROWS=3 %ROW-1=3:SUB:1,2:2 %LBL:X=3
+H03 | abacus: operand order, X older than Y after XY (R1, R3) | STU 5 ENTER 3 XY - | %ROWS=3 %ROW-2=2:NUM:-:3 %ROW-1=3:SUB:2,1:-2 %LBL:X=3
+H04 | abacus: a row used twice is linked once (R2) | STU 5 ENTER * | %ROWS=2 %ROW-1=2:MUL:1:25 %LBL:X=2
+H05 | abacus: a chain: each result links to the row before | STU 2 ENTER 3 + 4 * | %ROWS=5 %ROW-3=3:ADD:1,2:5 %ROW-2=4:NUM:-:4 %ROW-1=5:MUL:3,4:20 %LBL:X=5 %LBL:Y=0
+H06 | abacus: two adds, the second links the first's result and the level below | STU 1 ENTER 2 ENTER 3 + + | %ROWS=5 %ROW-2=4:ADD:2,3:5 %ROW-1=5:ADD:1,4:6 %LBL:X=5
+H07 | abacus: T copies down: Z and T hold one row | STU 1 ENTER 2 ENTER 3 ENTER 4 + | %ROWS=5 %ROW-1=5:ADD:3,4:7 %LBL:X=5 %LBL:Y=2 %LBL:Z=1 %LBL:T=1
+# One-argument ops, and the number's entry (R3)
+H08 | abacus: x² on a typed number | STU 3 SQ | %ROWS=2 %ROW-2=1:NUM:-:3 %ROW-1=2:SQ:1:9 %LBL:X=2 %LBL:LASTX=1
+H09 | abacus: √x | STU 9 SQRT | %ROWS=2 %ROW-1=2:SQRT:1:3 %LBL:X=2
+H10 | abacus: CHS inside the entry is part of the number | STU 5 CHS ENTER | %ROWS=1 %ROW-1=1:NUM:-:-5 %LBL:X=1 %LBL:Y=1
+H11 | abacus: CHS after ENTER is an op with a row | STU 5 ENTER CHS | %ROWS=2 %ROW-1=2:KCHS:1:-5 %LBL:X=2 %LBL:Y=1
+H12 | abacus: E inside the entry is part of the number | STU 2 E 3 ENTER | %ROWS=1 %ROW-1=1:NUM:-:2000
+# % reads Y and keeps it
+H13 | abacus: % links Y and X, and Y keeps its row | STU 200 ENTER 10 PCT | %ROWS=3 %ROW-1=3:PCT:1,2:20 %LBL:X=3 %LBL:Y=1
+# Moves make no row
+H14 | abacus: ENTER twice makes one row, on three levels | STU 7 ENTER ENTER | %ROWS=1 %ROW-1=1:NUM:-:7 %LBL:X=1 %LBL:Y=1 %LBL:Z=1 %LBL:T=0
+H15 | abacus: RDN makes no row; the labels move with the values | STU 1 ENTER 2 ENTER 3 ENTER RDN | %ROWS=3 %LBL:X=3 %LBL:Y=2 %LBL:Z=1 %LBL:T=3
+H16 | abacus: XY ends the entry (its NUM row) and makes no row of its own | STU 4 ENTER 9 XY | %ROWS=2 %ROW-1=2:NUM:-:9 %LBL:X=1 %LBL:Y=2
+# Clears make no row and remove none
+H17 | abacus: CLX: no row, X bare, Y keeps its row | STU 5 ENTER CLX | %ROWS=1 %LBL:X=0 %LBL:Y=1
+H18 | abacus: CLSTK: no row, every level bare, the page kept | STU 1 ENTER 2 + CLSTK | %ROWS=3 %LBL:X=0 %LBL:Y=0 %LBL:Z=0 %LBL:T=0
+# Letters: STO carries the row, RCL links to it
+H19 | abacus: RCL links to the row STO stored | STU 6 STO:A CLX RCL:A | %ROWS=2 %ROW-1=2:RCL:1:6 %LBL:A=1 %LBL:X=2
+H20 | abacus: STO a computed row, RCL it later | STU 2 ENTER 3 + STO:C CLX RCL:C | %ROWS=4 %ROW-1=4:RCL:3:5 %LBL:C=3 %LBL:X=4
+H21 | abacus: STO makes no row and keeps X's; the lift after it | STU 6 STO:B 1 + | %ROWS=3 %ROW-1=3:ADD:1,2:7 %LBL:B=1 %LBL:X=3
+# LASTX (R4)
+H22 | abacus: LASTX makes a row linked to the row it brings back | STU 3 SQ LASTX | %ROWS=3 %ROW-1=3:LASTX:1:3 %LBL:X=3 %LBL:Y=2
+# The page only grows
+H23 | abacus: serials never reused across a clear | STU 1 ENTER 2 + CLSTK 4 ENTER 5 + | %ROWS=6 %ROW-3=4:NUM:-:4 %ROW-1=6:ADD:4,5:9
+# No rows outside STU
+H24 | abacus: 35s mode makes no rows | MODE35 5 ENTER 3 + | %ROWS=0

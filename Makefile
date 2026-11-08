@@ -275,6 +275,7 @@ test: all
 	./build/vectors tests/088-soroban.txt    # (unit 088: the CAS on the stack; no save/load pass: SOLVE's report is not in the image)
 	./build/vectors tests/089-soroban.txt    # (unit 089: the worksheet's rows; no save/load pass: SAVE's image holds no page, so a
 	                                         # row past MEMCLR LOAD is gone by design, and SAVEROWS is tested in the file itself)
+	./build/vectors tests/n089-abacus.txt    # (abacus #14031: h089 as frozen with H11's name corrected, n089, sha256 dc4149a5...)
 	./build/rows_test
 	./build/eqn_say_test tests/086-corpus.txt    # (unit 086: the round trip over every equation the vectors type)
 	if AB_SAY_PLANT=1 ./build/eqn_say_test tests/086-corpus.txt > /dev/null; then \
