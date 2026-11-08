@@ -4,7 +4,8 @@
 (STO+ A leaves A with no row, L03; and whether the worst save's 426 ms fits power-off). The material is abacus #13972's:
 the note's step 4 and the cards stu-worksheet, stu-worksheet-keep, stu-nav and stu-soft-shift.
 
-**Status:** a draft for abacus. No code yet. The measurements are on the host at 915bcdb unless they say otherwise.
+**Status:** revision 1, after abacus #14041's rulings (its section at the end; where it changes a lean, the lean below
+says so). No code yet: the level drawing waits on Michael's card, and abacus's hidden set is frozen before any src. The measurements are on the host at 915bcdb unless they say otherwise.
 The prototype is throwaway, and its frames and source are kept in work/worksheet-evidence/part2/ as evidence, as part
 1's census was. It drew mock frames from real rows by including screen.c, so it could reach its drawing functions.
 
@@ -130,14 +131,15 @@ come from the core's real page after real keys.
 - **Lean:**
   - Remove `hist`, `hist_val` and `hist_n`. `hist_at` becomes the serial of the ALG row shown.
   - ▲ ▼ step through the page's ALG rows. RPN rows are skipped, since they have no line to copy. That isn't limited to
-    16: it's as many as the page holds, which keeps 029 rule 5 ("at least 16").
+    16: it's as many as the page holds. (Ruled #14041 4a: 029 rule 5 becomes "every ALG row the page holds", since a
+    long RPN run can drop ALG rows.)
   - ENTER copies the row's text, as today.
   - The shown value is decoded from the row, and it carries that row's serial, so STO of a shown answer links the row
     it came from. Today's hist_val carries the same serial (calc.c:4378).
   - An expression answer decoded for STO takes an expression slot then. With the store full, that's 082's MEMORY FULL
     (frame 47's case).
-- **What it saves:** ab_calc −4,096 B (measured sizes). The 16 history slots can go too (48 → 32, −3,072 B more), if
-  082's store tests still hold at 32. The build measures it and keeps 48 if not.
+- **What it saves:** ab_calc −4,096 B (measured sizes). The 16 history slots go, all but one (48 → 33,
+  −2,880 B more): revision 1, #14041 4c.
 - **Behaviour that changes on purpose:** ALG's history now survives power-off within the 8 KB budget, as
   stu-worksheet-keep asks. Today it is lost at every OFF.
 - **The dumps:** %HIST becomes the count of ALG rows on the page, and %HSEL the shown row's text. Only
@@ -148,13 +150,14 @@ come from the core's real page after real keys.
 
 - **Today:** STO+ −, ×, ÷ change A in place. stale() then gives A row 0, so A shows bare.
 - **Lean:** each of the four makes a row: op STOADD (etc.), arg the letter, value A's new value. Its links follow R1, so
-  X's row first, then A's old row. A holds the new row.
+  A's old row first, then X's (revision 1, #14041 5: STO− A is A − x, so A is the left operand). A holds the new
+  row.
   - No level holds it, so it's drawn in the page as "STO+ A … 6".
   - The table's class for these four moves from MOVE to a new kind, LETTER (makes a value in a letter, not on the
     stack). The census and the invariant don't change, since both are about the stack.
   - The format doesn't change (op, arg, links), and neither does the image version.
 - **What moves:** 089's L03 (`STU 4 STO:A 2 STO+:A`) moves on purpose from %ROWS=2 %LBL:A=0 to
-  `%ROWS=3 %ROW-1=3:STOADD:2,1:6 %LBL:A=3`. h089's copy of the same case, if there is one, is abacus's to move.
+  `%ROWS=3 %ROW-1=3:STOADD:1,2:6 %LBL:A=3` (revision 1's order). h089's copy of the same case, if there is one, is abacus's to move.
 - **The other in-place letter changes:**
   - x<>A is a move.
   - SOLVE's root was fixed in 089.
@@ -244,3 +247,98 @@ come from the core's real page after real keys.
 4. ALG's ▲ ▼ walk only ALG rows in part 2 (lean 5), and the 16 expression slots go if 082's tests hold.
 5. STO+'s row as lean 6, and L03's planned move.
 6. The power-off answer (lean 7): it fits, Rev A is measured, and the cap only if Rev A's worst passes 1 s.
+
+## Revision 1: abacus #14041's rulings
+
+Accepted as written: the split (1), the levels at the bottom with each held row drawn once and screen_lines unchanged
+(2), power-off (6), and the draw cost (7). Changed or added below: 3, 4a-4d, 5 and 8.
+
+### 3. Empty levels: B′, "bare" as a mark, not read from the value
+
+- **Why B as written fails** (abacus 3b): stale() gives row 0 to every level a run changed (rows.c:401). So a 0 a program
+  left in Y looks the same as a cleared 0, and fn-02's T02 ("Y holds 0" after XEQ T, in STU) could hide it.
+- **B′:** a level is hidden when it and every level above it is **bare**. Bare is a mark on the value, never inferred
+  from what the value is.
+- **Where the mark lives: one byte in ab_val's tail padding, so 0 B.**
+  - ab_val is kind 0-3, row 4-7, re 8, im 24, p3 40, len 56-59, then 4 B of padding to 64.
+  - That padding exists on both boards. Part 1's static assert (rows.c:14) already compares ab_val against the same
+    struct without the row field, on both boards. The same assert, with the bare byte added, proves it stays 64 B.
+  - ab_calc +0, and every copy carries it, as it carries the row.
+- **What sets it:** ab_init (the fresh state, MEMORY CLEAR), CLx, CLSTK, and CLEAR ALL and C. These are the CLEAR kind in
+  part 1's table, plus the fresh state.
+  - It's set in every mode, at the cost of a byte store; the 33s and 35s never read it.
+- **What clears it: any op that makes a value in that level.**
+  - **At the keyboard,** that's key_end through the table: a kind OP or RUN op, and the levels its `makes` names.
+  - **In a run,** a call after each program line at the step loop (calc.c:1718) clears it from the levels that line's
+    op makes, by the same table. AB_LIT and an equation line count as making X.
+  - So a program's 0 written into Y is unbare even when the value didn't change, and nothing compares values for it.
+  - The cost is one table lookup per program line, only while rows are on (STU). PROGBENCH measures it before and
+    after on the stand-in.
+- **Moves carry the mark,** since it travels with the value. ENTER, R↓, x↔y and the drop after a two-argument op copy
+  a bare value as bare.
+  - This is the one place B′ differs from "cleared by any write to the level". CLx ENTER leaves two cleared zeros, and
+    both read as cleared. I think that's the truthful reading, since neither 0 was made by anything; abacus's to
+    overrule.
+- **In the image:**
+  - a new section, T_BARE (version 24): the four levels' marks as one byte. With the 2 B tag and 4 B length it's 7 B,
+    written in STU only, and only when a level is bare.
+  - A 089 build skips it by its size (082's rule for a newer section) and loads the rest.
+  - In 33s and 35s images nothing is written, so those images don't change.
+  - UNDO's image carries it, so CLx then UNDO brings back the level as it was.
+  - The 4C fixture moves again, golden-v24-4c to v25, as it did in part 1.
+- **The three ways to draw the levels, for Michael's card:**
+  - **A:** all four always.
+  - **B:** a top level that's 0 with no row is hidden. That includes a program's 0, which is 3b's flaw.
+  - **B′:** a top level marked bare is hidden.
+  - abacus 3a: under A, start-01:43 and rpn-01:40's "four lines, named T, Z, Y and X" stays true on a fresh screen.
+    Under B or B′, tutor rewords those for STU.
+- **Vectors:**
+  - B′ from a program's 0, in fn-02 T02's shape: a program leaves 0 in Y with Z and T bare, and Y is drawn.
+  - CLx then UNDO.
+  - CLx ENTER.
+  - A load that keeps the marks.
+  - A 35s-mode image byte for byte as before.
+
+### 4. ALG, the four amendments
+
+- **4a. 029 rule 5:** it becomes "every ALG row the page holds."
+  - Vector: ALG lines, then enough RPN rows, made by keys, to fill the 64 KB and drop them. ▲ stops at the oldest ALG row kept, with the dropped line drawn above it.
+- **4b. UNDO, moved on purpose:** UNDO now hides the undone line from ▲, and REDO brings it back. Today the history is
+  outside UNDO's image (calc.h:471), so UNDO leaves it alone.
+  - Vector: two lines, UNDO, then ▲ shows the first; REDO, then ▲ shows the second.
+- **4c. The slots: 34, not 32 or 33.**
+  - calc.h:267 counts holders as 5 + 27 + 16.
+  - ANS isn't in the 5. Today it shares a slot with the newest history value: `c->ans = v` and `hist_val[n] = v` are
+    one value, so one slot (calc.c:4379-4386).
+  - Without history, ANS holds its own slot. So by that comment's own count it's 5 + 27 + 1 for ANS, plus 1 for the
+    shown answer decoded while STO stores it: **34 (−14 × 192 = −2,688 B)**.
+  - The vector, as abacus set it but at 34: X, Y, Z, T, LASTx, the 27 letters and ANS all distinct expressions. ▲ to an
+    older expression answer, STO it into a letter, and the result is the same as at 48.
+  - Its control: the same keys at 33, predicted MEMORY FULL. If 33 passes, my count is wrong, and I'll say so before
+    choosing.
+  - expr_mark's other holders (plit, the suspended state, ev_*, err_x, program literals) share slots by copy. They're
+    outside the comment's count today, and this unit doesn't change them.
+- **4d.** %HIST and %HSEL: only 029's two lines move (abacus's git grep at stu32-tutor bb96485: 0 hits).
+
+### 5. STO arithmetic's links: A first
+
+- STO− A is A − x and STO÷ A is A ÷ x, so A is the left operand. By R1, A's old row is linked first, then X's.
+- make_op lists the levels before AB_ROWSRC_VAR, which is right for RCL+ (x + A). STO arithmetic gets its own order in
+  the new LETTER kind.
+- If A's old row is 0, the row links X's alone.
+- L03 becomes `%ROWS=3 %ROW-1=3:STOADD:1,2:6 %LBL:A=3`.
+
+### 6. Rev A's bench (not blocking)
+
+- Each flash erase stops the cache on both cores, so the key scan on core 0 (reva_main.c:1169) stalls with it.
+- The bench taps a key, about 50 ms down, during the worst save, and checks that the key is seen. The same tap during
+  today's 48-72 ms save is the control.
+
+### 8. Added to the oracle
+
+- A 35s-mode STO+ A: no row.
+- B′ from a program's 0 (the T02 shape above), with B's control: under B the same keys hide Y.
+- The mutants gain:
+  - the step hook removed (T02's shape goes red);
+  - T_BARE not written (CLx, save, load: the level comes back drawn);
+  - STO+'s links in X-first order (L03 goes red).
