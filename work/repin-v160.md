@@ -21,7 +21,12 @@ below.
 ## Results
 
 **1. make test** at 5b2f2aa (evidence: make-test.txt): rc 0, and nothing moved.
-- 199 vector files: 15,205/15,205 vectors, 35,108/35,108 expectations.
+- ~~199 vector files: 15,205/15,205 vectors, 35,108/35,108 expectations.~~ That total named no method, and abacus
+  couldn't reproduce it (#13975). What it counted: the 199 lines of the form `<file>: n/n vectors` (a prefix with no
+  space), repeats included, so the three fuzz lines (`eqn_fuzz 1 2000: ...`) were left out. Counting every line with
+  `n/n vectors` in make-test.txt, repeats included: **202 lines, 21,127/21,127 vectors, 57,127/57,127
+  expectations**, all passing. The expectations match abacus's 57,127. Their 192 lines and 20,785 vectors come from
+  a method I haven't reproduced from this file.
 - expr_test 427/427, app_test 865/865, help_test 771,024/771,024 (308 entries), keymap_test 2,917/2,917,
   screen_test 9,020/9,020 (48/48 frames), standin_test 349/349, tbook_test 39/39, draw_test 0 failures.
 - standin_replay: 38 scripts before repin-v160.txt (39 with it), every current frame matching, among them the
