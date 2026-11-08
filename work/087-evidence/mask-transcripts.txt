@@ -1,0 +1,12 @@
+standin smoke: 29/29 lines, 0 differing
+standin accept: 217/217 lines, 4 differing
+    -boot: boots=2 reason=SW new=0 wake=none pins=0x0 ver=V core=C id=I
+    -flash: io=QIO chip=8MB header=DIO/8MB
+    +boot: boots=2 reason=SW new=0 wake=none pins=0x0 ver=V core=C id=I
+    +flash: io=QIO chip=8MB header=DIO/8MB
+reva smoke: 28/28 lines, 2 differing
+    -state: X=L stop=L lines=L prgm=0 running=0 shift=0 prompt=- msg=- heap=H stack-free=28644
+    +state: X=L stop=L lines=L prgm=0 running=0 shift=0 prompt=- msg=- heap=H stack-free=28788
+reva accept: 191/191 lines, 2 differing
+    -state: X=5 stop=NONE lines=0 prgm=0 running=0 shift=0 prompt=- msg=- heap=H stack-free=28644
+    +state: X=5 stop=NONE lines=0 prgm=0 running=0 shift=0 prompt=- msg=- heap=H stack-free=28788

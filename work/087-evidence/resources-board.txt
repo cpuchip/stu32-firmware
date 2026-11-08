@@ -1,0 +1,100 @@
+07:08:09Z
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -ffp-contract=off -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/babal/games/babal/core -Ibuild/games/babal/games/babal/app -c build/games/babal/games/babal/core/chacha20.c -o build/games-o/babal/games/babal/core/chacha20.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -ffp-contract=off -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/babal/games/babal/core -Ibuild/games/babal/games/babal/app -c build/games/babal/games/babal/core/fake_input.c -o build/games-o/babal/games/babal/core/fake_input.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -ffp-contract=off -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/babal/games/babal/core -Ibuild/games/babal/games/babal/app -c build/games/babal/games/babal/core/input_jump.c -o build/games-o/babal/games/babal/core/input_jump.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -ffp-contract=off -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/babal/games/babal/core -Ibuild/games/babal/games/babal/app -c build/games/babal/games/babal/core/input_steer.c -o build/games-o/babal/games/babal/core/input_steer.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -ffp-contract=off -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/babal/games/babal/core -Ibuild/games/babal/games/babal/app -c build/games/babal/games/babal/core/level.c -o build/games-o/babal/games/babal/core/level.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -ffp-contract=off -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/babal/games/babal/core -Ibuild/games/babal/games/babal/app -c build/games/babal/games/babal/core/maths.c -o build/games-o/babal/games/babal/core/maths.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -ffp-contract=off -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/babal/games/babal/core -Ibuild/games/babal/games/babal/app -c build/games/babal/games/babal/core/player.c -o build/games-o/babal/games/babal/core/player.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -ffp-contract=off -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/babal/games/babal/core -Ibuild/games/babal/games/babal/app -c build/games/babal/games/babal/core/player_event.c -o build/games-o/babal/games/babal/core/player_event.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -ffp-contract=off -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/babal/games/babal/core -Ibuild/games/babal/games/babal/app -c build/games/babal/games/babal/core/points_counter.c -o build/games-o/babal/games/babal/core/points_counter.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -ffp-contract=off -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/babal/games/babal/core -Ibuild/games/babal/games/babal/app -c build/games/babal/games/babal/core/row.c -o build/games-o/babal/games/babal/core/row.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -ffp-contract=off -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/babal/games/babal/core -Ibuild/games/babal/games/babal/app -c build/games/babal/games/babal/core/row_generator.c -o build/games-o/babal/games/babal/core/row_generator.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -ffp-contract=off -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/babal/games/babal/core -Ibuild/games/babal/games/babal/app -c build/games/babal/games/babal/core/skill.c -o build/games-o/babal/games/babal/core/skill.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -ffp-contract=off -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/babal/games/babal/core -Ibuild/games/babal/games/babal/app -c build/games/babal/games/babal/core/slab.c -o build/games-o/babal/games/babal/core/slab.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -ffp-contract=off -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/babal/games/babal/core -Ibuild/games/babal/games/babal/app -c build/games/babal/games/babal/core/time_tracker.c -o build/games-o/babal/games/babal/core/time_tracker.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -ffp-contract=off -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/babal/games/babal/core -Ibuild/games/babal/games/babal/app -c build/games/babal/games/babal/core/timeval.c -o build/games-o/babal/games/babal/core/timeval.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -ffp-contract=off -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/babal/games/babal/core -Ibuild/games/babal/games/babal/app -c build/games/babal/games/babal/core/vec3.c -o build/games-o/babal/games/babal/core/vec3.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -ffp-contract=off -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/babal/games/babal/core -Ibuild/games/babal/games/babal/app -c build/games/babal/games/babal/app/babal_app.c -o build/games-o/babal/games/babal/app/babal_app.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -ffp-contract=off -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/babal/games/babal/core -Ibuild/games/babal/games/babal/app -c build/games/babal/games/babal/app/render.c -o build/games-o/babal/games/babal/app/render.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/aim/games/aim -c build/games/aim/games/aim/aim_logic.c -o build/games-o/aim/games/aim/aim_logic.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/aim/games/aim -c build/games/aim/games/aim/aim_app.c -o build/games-o/aim/games/aim/aim_app.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/land/games/land -c build/games/land/games/land/land_logic.c -o build/games-o/land/games/land/land_logic.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/land/games/land -c build/games/land/games/land/land_app.c -o build/games-o/land/games/land/land_app.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/snake/games/snake -c build/games/snake/games/snake/snake_logic.c -o build/games-o/snake/games/snake/snake_logic.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/snake/games/snake -c build/games/snake/games/snake/snake_app.c -o build/games-o/snake/games/snake/snake_app.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/mines/games/mines -c build/games/mines/games/mines/mines_logic.c -o build/games-o/mines/games/mines/mines_logic.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/mines/games/mines -c build/games/mines/games/mines/mines_app.c -o build/games-o/mines/games/mines/mines_app.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/salvo/games/salvo -c build/games/salvo/games/salvo/salvo_logic.c -o build/games-o/salvo/games/salvo/salvo_logic.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/salvo/games/salvo -c build/games/salvo/games/salvo/salvo_app.c -o build/games-o/salvo/games/salvo/salvo_app.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/rocks/games/3720 -Ibuild/games/rocks/games/kids -c build/games/rocks/games/3720/rocks_logic.c -o build/games-o/rocks/games/3720/rocks_logic.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/rocks/games/3720 -Ibuild/games/rocks/games/kids -c build/games/rocks/games/3720/rocks_app.c -o build/games-o/rocks/games/3720/rocks_app.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/moles/games/moles -Ibuild/games/moles/games/kids -c build/games/moles/games/moles/moles_logic.c -o build/games-o/moles/games/moles/moles_logic.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/moles/games/moles -Ibuild/games/moles/games/kids -c build/games/moles/games/moles/moles_app.c -o build/games-o/moles/games/moles/moles_app.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/catch/games/catch -Ibuild/games/catch/games/kids -c build/games/catch/games/catch/catch_logic.c -o build/games-o/catch/games/catch/catch_logic.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -Wframe-larger-than=1024 -Wno-missing-field-initializers -Ifirmware -Ibuild/games/catch/games/catch -Ibuild/games/catch/games/kids -c build/games/catch/games/catch/catch_app.c -o build/games-o/catch/games/catch/catch_app.o
+cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -Icore -Ifirmware -Ibuild/games -o build/stackkeys core/calc.c core/fmt.c core/fn.c core/bigint.c core/const.c core/xnum.c core/stat.c core/frac.c core/base.c core/cplx.c core/hp.c core/sbig.c core/arena.c core/eqn.c core/lin.c core/state.c core/msg.c core/list.c firmware/screen.c firmware/font5x7.c firmware/draw.c firmware/tbook.c firmware/app.c firmware/apps.c firmware/keymap.c firmware/keys.c firmware/power.c firmware/settings.c firmware/piezo.c firmware/help.c firmware/help_text.c build/games-o/babal/games/babal/core/chacha20.o build/games-o/babal/games/babal/core/fake_input.o build/games-o/babal/games/babal/core/input_jump.o build/games-o/babal/games/babal/core/input_steer.o build/games-o/babal/games/babal/core/level.o build/games-o/babal/games/babal/core/maths.o build/games-o/babal/games/babal/core/player.o build/games-o/babal/games/babal/core/player_event.o build/games-o/babal/games/babal/core/points_counter.o build/games-o/babal/games/babal/core/row.o build/games-o/babal/games/babal/core/row_generator.o build/games-o/babal/games/babal/core/skill.o build/games-o/babal/games/babal/core/slab.o build/games-o/babal/games/babal/core/time_tracker.o build/games-o/babal/games/babal/core/timeval.o build/games-o/babal/games/babal/core/vec3.o build/games-o/babal/games/babal/app/babal_app.o build/games-o/babal/games/babal/app/render.o build/games-o/aim/games/aim/aim_logic.o build/games-o/aim/games/aim/aim_app.o build/games-o/land/games/land/land_logic.o build/games-o/land/games/land/land_app.o build/games-o/snake/games/snake/snake_logic.o build/games-o/snake/games/snake/snake_app.o build/games-o/mines/games/mines/mines_logic.o build/games-o/mines/games/mines/mines_app.o build/games-o/salvo/games/salvo/salvo_logic.o build/games-o/salvo/games/salvo/salvo_app.o build/games-o/rocks/games/3720/rocks_logic.o build/games-o/rocks/games/3720/rocks_app.o build/games-o/moles/games/moles/moles_logic.o build/games-o/moles/games/moles/moles_app.o build/games-o/catch/games/catch/catch_logic.o build/games-o/catch/games/catch/catch_app.o firmware/store.c tests/stackkeys.c build/abn_intel.o build/casim.o build/intel/libbid.a -lm
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+
+### the stand-in, through its console: 86b3fbf -> 0a7de57
+
+| resource | before | after | change |
+|---|---|---|---|
+| internal heap free after boot, B | 62,747 | 67,355 | +4,608 |
+| largest internal block after boot, B | 31,744 | 31,744 | +0 |
+| calc task stack free, the 153-unit mix at 047's deepest site, factory, unmasked (script def1bd6e), B | 7,668 | 7,668 | +0 |
+| calc task stack free, 19 levels of SIN( there (RAD), factory, unmasked (script 6576960b), B | 8,388 | 8,388 | +0 |
+| calc task stack free, the 153-unit mix at 047's deepest site, one equation, unmasked (script 1bb6b6ff), B | 7,668 | 7,668 | +0 |
+| calc task stack free, 19 levels of SIN( there (RAD), one equation, unmasked (script 860dbee1), B | 8,388 | 8,388 | +0 |
+| calc task stack free, the 153-unit mix at 047's deepest site, full, unmasked (script 9c43bce9), B | 7,668 | 7,668 | +0 |
+| calc task stack free, 19 levels of SIN( there (RAD), full, unmasked (script 673815c4), B | 8,388 | 8,388 | +0 |
+| the worst unmasked reading, B | 7,668 | 7,668 | +0 |
+| SOLVE, µs (best) | 31,676 | 28,504 | -3,172 |
+| integral, µs (best) | 52,955 | 48,399 | -4,556 |
+| PROGBENCH SIN, ms (best) | 271 | 270 | -1 |
+| PROGBENCH LN, ms (best) | 382 | 377 | -5 |
+
+### Rev A head-less, through its console: 86b3fbf -> 0a7de57
+
+| resource | before | after | change |
+|---|---|---|---|
+| internal heap free after boot, B | 185,415 | 190,023 | +4,608 |
+| largest internal block after boot, B | 90,112 | 94,208 | +4,096 |
+| calc task stack free, the 153-unit mix at 047's deepest site, factory, unmasked (script cf966947), B | 7,692 | 7,660 | -32 |
+| calc task stack free, the 153-unit mix at 047's deepest site, factory, masked (script 3e6d9451, d4ceb6a5, 4486213c), B | 7,692 | 7,692 | +0 |
+| the deepest sp sampled, the 153-unit mix at 047's deepest site, factory (S at 480/337/613 cycles, R = S - M) | S 25252/25236/25236, R 176 (ROM) | S 25236/25236/25252, R 176 (ROM) | |
+| calc task stack free, 19 levels of SIN( there (RAD), factory, unmasked (script df9716fa), B | 8,268 | 8,412 | +144 |
+| calc task stack free, 19 levels of SIN( there (RAD), factory, masked (script b3d2370a, e4281dd7, 19b9f72f), B | 8,412 | 8,412 | +0 |
+| the deepest sp sampled, 19 levels of SIN( there, factory (S at 480/337/613 cycles, R = S - M) | S 24356/24356/24356, R 0 (__eval_neg_poly) | S 24356/24356/24356, R 0 (__eval_neg_poly) | |
+| calc task stack free, the 153-unit mix at 047's deepest site, one equation, unmasked (script 948f9159), B | 7,692 | 7,660 | -32 |
+| calc task stack free, the 153-unit mix at 047's deepest site, one equation, masked (script 8f35d135, edc85bc1, 07054476), B | 7,692 | 7,692 | +0 |
+| the deepest sp sampled, the 153-unit mix at 047's deepest site, one equation (S at 480/337/613 cycles, R = S - M) | S 25252/25236/25236, R 176 (ROM) | S 25236/25236/25252, R 176 (ROM) | |
+| calc task stack free, 19 levels of SIN( there (RAD), one equation, unmasked (script ec4863a7), B | 8,268 | 8,412 | +144 |
+| calc task stack free, 19 levels of SIN( there (RAD), one equation, masked (script 38b256a2, ed6e14f2, cb2dc6ca), B | 8,412 | 8,412 | +0 |
+| the deepest sp sampled, 19 levels of SIN( there, one equation (S at 480/337/613 cycles, R = S - M) | S 24356/24356/24356, R 0 (__eval_neg_poly) | S 24356/24356/24356, R 0 (__eval_neg_poly) | |
+| calc task stack free, the 153-unit mix at 047's deepest site, full, unmasked (script 73757d78), B | 7,660 | 7,692 | +32 |
+| calc task stack free, the 153-unit mix at 047's deepest site, full, masked (script 31eae949, 9c28bd94, 87a37e70), B | 7,692 | 7,692 | +0 |
+| the deepest sp sampled, the 153-unit mix at 047's deepest site, full (S at 480/337/613 cycles, R = S - M) | S 25236/25236/25236, R 160 (bid128_ext_fma) | S 25236/25236/25252, R 176 (ROM) | |
+| calc task stack free, 19 levels of SIN( there (RAD), full, unmasked (script 7617f1cb), B | 8,220 | 8,380 | +160 |
+| calc task stack free, 19 levels of SIN( there (RAD), full, masked (script dc5b1d72, 520fa8e7, 9a3efd92), B | 8,412 | 8,412 | +0 |
+| the deepest sp sampled, 19 levels of SIN( there, full (S at 480/337/613 cycles, R = S - M) | S 24356/24356/24356, R 0 (__eval_neg_poly) | S 24356/24356/24356, R 0 (__eval_neg_poly) | |
+| **the stack's figure: the worst row's masked free less max(R, 192) less 192 (casim docs/stack-gate.md), B** | 7,308 | 7,308 | +0 |
+| (the interim figure: the worst masked reading less 384, for comparison), B | 7,308 | 7,308 | +0 |
+| the interrupt's largest cost on a row (masked - unmasked), B | 192 | 32 | -160 |
+| the worst unmasked reading, B | 7,660 | 7,660 | +0 |
+| SOLVE, µs (best) | 17,738 | 17,348 | -390 |
+| integral, µs (best) | 30,729 | 29,003 | -1,726 |
+| PROGBENCH SIN, ms (best) | 202 | 205 | +3 |
+| PROGBENCH LN, ms (best) | 259 | 263 | +4 |
+
+(n/a where a commit lacks the bench: EQNBENCH from 24308a2, OPBENCH from 0594bae; Rev A head-less from 68683b5; for a stack state, where the state did not take, as a full image an older commit refuses; masked rows only where both commits have AB_MASK, Rev A head-less from 239adab)
+(unmasked, a reading moves by up to one interrupt frame with the timing, each exact script repeating; the masked reading is the path: abacus #6675)
+(the masked reading counts writes, not sp: S, the deepest sp, is sampled at level 5 in the AB_MASK image (fcfafdf) at three periods, and R = S - M is the room below the watermark. S is a lower bound, so each row takes max(R, 192): the figure is never less conservative than the interim "less 384", and a row whose R passes 192 tightens it (abacus #7138). Each unmasked reading must be within its row's bound. SPREAD: the three S readings differ by more than 32 B; M VARIES: the three masked readings differ)
+(M is the image's own: the sampler's code moved the masked mix by 8 B, 8,196 to 8,204, with the sampler off as well; M and S come from the same image, abacus #7138)
+rc=0
+08:59:14Z

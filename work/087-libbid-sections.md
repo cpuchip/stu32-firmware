@@ -132,10 +132,12 @@ and accept transcripts byte for byte, base against new").
     - accept's sliced program, which counts for `sleep 3` and is then stopped by R/S. It counted further on the new
       image: the stand-in reached 79,850 -> 81,400 at SLICE and 82,780 -> 84,351 at STOP (+1.9%), Rev A 89,700 ->
       89,800 and 93,350 -> 93,500 (+0.2%). That is a timing figure, not an answer.
-- **Stack-free:** identical at every reading on the stand-in. On Rev A, one reading differs: the first state after
-  the second boot is 28,644 at the base and 28,788 at the new build. Every later reading is equal (28,324, then
-  28,788). That 144 B is within the 384 B interrupt allowance the board gate uses (unit 069, 7e0951d). The deep
-  readings are in the board run below.
+- **Stack-free:** identical at every reading on the stand-in. On Rev A, two readings differ, both the first state
+  after a fresh boot: 28,644 at the base and 28,788 at the new build, in smoke and in accept's second boot.
+  - After accept's third boot, the same reading is 28,788 at both. So the base image gives both values for one kind
+    of reading: a timing, not a path.
+  - It is within the 384 B interrupt allowance the board gate uses (unit 069, 7e0951d).
+  - The deep readings are in the board run below. Evidence and mask: work/087-evidence/ (abacus #13762).
 - **A miss of my own, in the run itself:** the first stand-in passes gave device/standin/run.sh the by-id link, and
   it needs the resolved path, so neither flashed.
   - On the second try, the base flashed on ACM1, then the port re-enumerated to ACM3 and talk.py lost it. That

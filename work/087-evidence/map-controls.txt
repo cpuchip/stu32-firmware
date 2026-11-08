@@ -1,0 +1,6 @@
+86b3fbf reva     libbid sections    1  .text.__bid128_add 0  (.rodata.str1.4 )
+86b3fbf standin  libbid sections    1  .text.__bid128_add 0  (.rodata.str1.4 )
+0a7de57 reva     libbid sections  643  .text.__bid128_add 1  (.literal.__bid128_acos .literal.__bid128_acosh .literal.__bid128_add )
+0a7de57 standin  libbid sections  643  .text.__bid128_add 1  (.literal.__bid128_acos .literal.__bid128_acosh .literal.__bid128_add )
+86b3fbf flag stamp: CFLAGS_OPT=-O2 -mlongcalls 
+0a7de57 flag stamp: CFLAGS_OPT=-O2 -mlongcalls -ffunction-sections -fdata-sections 

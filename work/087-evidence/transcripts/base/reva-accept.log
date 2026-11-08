@@ -1,0 +1,397 @@
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x1 (POWERON),boot:0x8 (SPI_FAST_FLASH_BOOT)
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x16d0
+load:0x403c8700,len:0x4
+load:0x403c8704,len:0xec8
+load:0x403cb700,len:0x3160
+entry 0x403c8950
+I (27) boot: ESP-IDF v5.4.2 2nd stage bootloader
+I (27) boot: compile time Nov  8 2026 06:57:51
+I (27) boot: Multicore bootloader
+I (27) boot: chip revision: v0.1
+I (30) boot: efuse block revision: v1.2
+I (33) qio_mode: Enabling default flash chip QIO
+I (38) boot.esp32s3: Boot SPI Speed : 80MHz
+I (42) boot.esp32s3: SPI Mode       : QIO
+I (45) boot.esp32s3: SPI Flash Size : 8MB
+I (49) boot: Enabling RNG early entropy source...
+I (54) boot: Partition Table:
+I (56) boot: ## Label            Usage          Type ST Offset   Length
+I (63) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (69) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (76) boot:  2 factory          factory app      00 00 00010000 00700000
+I (82) boot:  3 abstate          Unknown data     01 40 00710000 00080000
+I (89) boot:  4 abapps           Unknown data     01 41 00790000 00012000
+I (95) boot: End of partition table
+I (98) esp_image: segment 0: paddr=00010020 vaddr=3c100020 size=256390h (2450320) map
+I (469) esp_image: segment 1: paddr=002663b8 vaddr=3fc98c00 size=09c60h ( 40032) load
+I (477) esp_image: segment 2: paddr=00270020 vaddr=42000020 size=f1068h (987240) map
+I (624) esp_image: segment 3: paddr=00361090 vaddr=3fca2860 size=02210h (  8720) load
+I (625) esp_image: segment 4: paddr=003632a8 vaddr=40378000 size=10bb4h ( 68532) load
+I (640) esp_image: segment 5: paddr=00373e64 vaddr=50001000 size=00004h (     4) load
+I (641) esp_image: segment 6: paddr=00373e70 vaddr=600fe000 size=0004ch (    76) load
+I (653) boot: Loaded app from partition at offset 0x10000
+I (653) boot: Disabling RNG early entropy source...
+I (666) octal_psram: ECC is enabled
+I (666) octal_psram: vendor id    : 0x0d (AP)
+I (666) octal_psram: dev id       : 0x02 (generation 3)
+I (667) octal_psram: density      : 0x03 (64 Mbit)
+I (671) octal_psram: good-die     : 0x01 (Pass)
+I (676) octal_psram: Latency      : 0x01 (Fixed)
+I (680) octal_psram: VCC          : 0x01 (3V)
+I (684) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (689) octal_psram: BurstType    : 0x00 ( Wrap)
+I (693) octal_psram: BurstLen     : 0x03 (1024 Byte)
+I (698) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (703) octal_psram: DriveStrength: 0x00 (1/1)
+I (708) MSPI Timing: PSRAM timing tuning index: 4
+I (712) esp_psram: Found 8MB PSRAM device
+I (716) esp_psram: Speed: 80MHz
+I (719) cpu_start: Multicore app
+I (1139) esp_psram: SPI SRAM memory test OK
+I (1151) cpu_start: Pro cpu start user code
+I (1151) cpu_start: cpu freq: 240000000 Hz
+I (1151) app_init: Application information:
+I (1151) app_init: Project name:     abacus_reva
+I (1155) app_init: App version:      1
+I (1159) app_init: Compile time:     Nov  8 2026 06:57:45
+I (1164) app_init: ELF file SHA256:  fb1a97609...
+I (1168) app_init: ESP-IDF:          v5.4.2
+I (1172) efuse_init: Min chip rev:     v0.0
+I (1176) efuse_init: Max chip rev:     v0.99 
+I (1180) efuse_init: Chip rev:         v0.1
+I (1184) heap_init: Initializing. RAM available for dynamic allocation:
+I (1191) heap_init: At 3FCBB2F8 len 0002E418 (185 KiB): RAM
+I (1196) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (1201) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (1206) heap_init: At 600FE04C len 00001F9C (7 KiB): RTCRAM
+I (1212) esp_psram: Adding pool of 7588K of PSRAM memory to heap allocator
+I (1219) spi_flash: detected chip: gd
+I (1222) spi_flash: flash io: qio
+I (1225) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (1231) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (1249) main_task: Started on CPU0
+I (1250) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (1250) main_task: Calling app_main()
+gauge: head-less
+load: 14771 bytes ok
+reva: heap internal 185415 (largest block 90112), PSRAM 6505092
+I (1300) main_task: Returned from app_main()
+boot: boots=1 reason=POWERON new=1 wake=none pins=0x0 ver=0.86 core=86b3fbf id=3d6828a4
+REVA READY
+tone: 4000 Hz 30 ms level 4
+wipe: both slots erased
+talk.py: PASS line 7: expect 'wipe: both slots erased'
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037e156
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x16d0
+load:0x403c8700,len:0x4
+load:0x403c8704,len:0xec8
+load:0x403cb700,len:0x3160
+entry 0x403c8950
+I (31) boot: ESP-IDF v5.4.2 2nd stage bootloader
+I (31) boot: compile time Nov  8 2026 06:57:51
+I (31) boot: Multicore bootloader
+I (31) boot: chip revision: v0.1
+I (34) boot: efuse block revision: v1.2
+I (38) qio_mode: Enabling default flash chip QIO
+I (42) boot.esp32s3: Boot SPI Speed : 80MHz
+I (46) boot.esp32s3: SPI Mode       : QIO
+I (50) boot.esp32s3: SPI Flash Size : 8MB
+I (54) boot: Enabling RNG early entropy source...
+I (58) boot: Partition Table:
+I (61) boot: ## Label            Usage          Type ST Offset   Length
+I (67) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (73) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (80) boot:  2 factory          factory app      00 00 00010000 00700000
+I (87) boot:  3 abstate          Unknown data     01 40 00710000 00080000
+I (93) boot:  4 abapps           Unknown data     01 41 00790000 00012000
+I (100) boot: End of partition table
+I (103) esp_image: segment 0: paddr=00010020 vaddr=3c100020 size=256390h (2450320) map
+I (476) esp_image: segment 1: paddr=002663b8 vaddr=3fc98c00 size=09c60h ( 40032) load
+I (483) esp_image: segment 2: paddr=00270020 vaddr=42000020 size=f1068h (987240) map
+I (631) esp_image: segment 3: paddr=00361090 vaddr=3fca2860 size=02210h (  8720) load
+I (633) esp_image: segment 4: paddr=003632a8 vaddr=40378000 size=10bb4h ( 68532) load
+I (648) esp_image: segment 5: paddr=00373e64 vaddr=50001000 size=00004h (     4) load
+I (648) esp_image: segment 6: paddr=00373e70 vaddr=600fe000 size=0004ch (    76) load
+I (660) boot: Loaded app from partition at offset 0x10000
+I (660) boot: Disabling RNG early entropy source...
+I (673) octal_psram: ECC is enabled
+I (673) octal_psram: vendor id    : 0x0d (AP)
+I (673) octal_psram: dev id       : 0x02 (generation 3)
+I (674) octal_psram: density      : 0x03 (64 Mbit)
+I (679) octal_psram: good-die     : 0x01 (Pass)
+I (683) octal_psram: Latency      : 0x01 (Fixed)
+I (687) octal_psram: VCC          : 0x01 (3V)
+I (691) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (696) octal_psram: BurstType    : 0x00 ( Wrap)
+I (701) octal_psram: BurstLen     : 0x03 (1024 Byte)
+I (705) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (711) octal_psram: DriveStrength: 0x00 (1/1)
+I (715) MSPI Timing: PSRAM timing tuning index: 4
+I (719) esp_psram: Found 8MB PSRAM device
+I (723) esp_psram: Speed: 80MHz
+I (726) cpu_start: Multicore app
+I (1147) esp_psram: SPI SRAM memory test OK
+I (1158) cpu_start: Pro cpu start user code
+I (1158) cpu_start: cpu freq: 240000000 Hz
+I (1158) app_init: Application information:
+I (1158) app_init: Project name:     abacus_reva
+I (1163) app_init: App version:      1
+I (1166) app_init: Compile time:     Nov  8 2026 06:57:45
+I (1171) app_init: ELF file SHA256:  fb1a97609...
+I (1176) app_init: ESP-IDF:          v5.4.2
+I (1180) efuse_init: Min chip rev:     v0.0
+I (1184) efuse_init: Max chip rev:     v0.99 
+I (1188) efuse_init: Chip rev:         v0.1
+I (1192) heap_init: Initializing. RAM available for dynamic allocation:
+I (1198) heap_init: At 3FCBB2F8 len 0002E418 (185 KiB): RAM
+I (1203) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (1208) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (1214) heap_init: At 600FE04C len 00001F9C (7 KiB): RTCRAM
+I (1219) esp_psram: Adding pool of 7588K of PSRAM memory to heap allocator
+I (1226) spi_flash: detected chip: gd
+I (1229) spi_flash: flash io: qio
+I (1232) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (1239) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (1257) main_task: Started on CPU0
+I (1258) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (1258) main_task: Calling app_main()
+gauge: head-less
+load: no image: MEMORY CLEAR
+reva: heap internal 185415 (largest block 90112), PSRAM 6505092
+I (1275) main_task: Returned from app_main()
+boot: boots=2 reason=SW new=1 wake=none pins=0x0 ver=0.86 core=86b3fbf id=e9edf124
+REVA READY
+tone: 4000 Hz 30 ms level 4
+talk.py: PASS line 9: expect 'load: no image: MEMORY CLEAR'
+tone: 4000 Hz 4 ms level 4
+tone: 4000 Hz 4 ms level 4
+tone: 4000 Hz 4 ms level 4
+tone: 4000 Hz 4 ms level 4
+state: X=5 stop=NONE lines=0 prgm=0 running=0 shift=0 prompt=- msg=- heap=185415 stack-free=28644
+boot: boots=2 reason=SW new=1 wake=none pins=0x0 ver=0.86 core=86b3fbf id=e9edf124
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=cd7db8667e47a3c233bb3be3d170798131fadcf1 games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=- off=0
+app: -
+eqn: - | note=- | rep=- | row=- | drawn=-
+ui: show=0 -
+reva: soc=-1 vbat=0 uV ulp-edges=3512950241 chg_n=0 pgood_n=0
+reva: set radix=. off=10 vol=4 h24=0
+talk.py: PASS line 17: expect 'X=5 stop'
+tone: 4000 Hz 4 ms level 4
+tone: 4000 Hz 4 ms level 4
+state: X=5 stop=NONE lines=0 prgm=0 running=0 shift=0 prompt=- msg=- heap=185415 stack-free=28324
+boot: boots=2 reason=SW new=0 wake=none pins=0x0 ver=0.86 core=86b3fbf id=e9edf124
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=cd7db8667e47a3c233bb3be3d170798131fadcf1 games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=- off=0
+app: -
+eqn: - | note=- | rep=- | row=- | drawn=-
+ui: show=0 -
+reva: soc=-1 vbat=0 uV ulp-edges=3512950241 chg_n=0 pgood_n=0
+reva: set radix=. off=10 vol=4 h24=0
+talk.py: PASS line 22: expect 'prompt=-'
+tone: 4000 Hz 4 ms level 4
+tone: 4000 Hz 4 ms level 4
+tone: 4000 Hz 4 ms level 4
+tone: 4000 Hz 4 ms level 4
+tone: 4000 Hz 4 ms level 4
+tone: 4000 Hz 4 ms level 4
+state: X=10 stop=NONE lines=0 prgm=0 running=0 shift=0 prompt=- msg=- heap=185415 stack-free=28324
+boot: boots=2 reason=SW new=0 wake=none pins=0x0 ver=0.86 core=86b3fbf id=e9edf124
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=cd7db8667e47a3c233bb3be3d170798131fadcf1 games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=- off=0
+app: -
+eqn: - | note=- | rep=- | row=- | drawn=-
+ui: show=0 -
+reva: soc=-1 vbat=0 uV ulp-edges=3512950241 chg_n=0 pgood_n=0
+reva: set radix=. off=10 vol=4 h24=0
+talk.py: PASS line 30: expect 'X=10 stop'
+tone: 4000 Hz 4 ms level 4
+tone: 4000 Hz 4 ms level 4
+tone: 4000 Hz 4 ms level 4
+state: X=10 stop=NONE lines=0 prgm=1 running=0 shift=0 prompt=- msg=- heap=185415 stack-free=28324
+boot: boots=2 reason=SW new=0 wake=none pins=0x0 ver=0.86 core=86b3fbf id=e9edf124
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=cd7db8667e47a3c233bb3be3d170798131fadcf1 games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=- off=0
+app: -
+eqn: - | note=- | rep=- | row=- | drawn=-
+ui: show=0 -
+reva: soc=-1 vbat=0 uV ulp-edges=3512950241 chg_n=0 pgood_n=0
+reva: set radix=. off=10 vol=4 h24=0
+talk.py: PASS line 37: expect 'prgm=1'
+tone: 4000 Hz 4 ms level 4
+tone: 4000 Hz 4 ms level 4
+tone: 4000 Hz 4 ms level 4
+tone: 4000 Hz 4 ms level 4
+tone: 4000 Hz 4 ms level 4
+tone: 4000 Hz 4 ms level 4
+tone: 4000 Hz 4 ms level 4
+tone: 4000 Hz 4 ms level 4
+tone: 4000 Hz 4 ms level 4
+tone: 4000 Hz 4 ms level 4
+tone: 4000 Hz 4 ms level 4
+state: X=10 stop=NONE lines=4 prgm=0 running=0 shift=0 prompt=- msg=- heap=185415 stack-free=28324
+boot: boots=2 reason=SW new=0 wake=none pins=0x0 ver=0.86 core=86b3fbf id=e9edf124
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=cd7db8667e47a3c233bb3be3d170798131fadcf1 games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=- off=0
+app: -
+eqn: - | note=- | rep=- | row=- | drawn=-
+ui: show=0 -
+reva: soc=-1 vbat=0 uV ulp-edges=3512950241 chg_n=0 pgood_n=0
+reva: set radix=. off=10 vol=4 h24=0
+talk.py: PASS line 50: expect 'prgm=0'
+state: X=10 stop=NONE lines=4 prgm=0 running=0 shift=0 prompt=- msg=- heap=185415 stack-free=28324
+boot: boots=2 reason=SW new=0 wake=none pins=0x0 ver=0.86 core=86b3fbf id=e9edf124
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=cd7db8667e47a3c233bb3be3d170798131fadcf1 games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=- off=0
+app: -
+eqn: - | note=- | rep=- | row=- | drawn=-
+ui: show=0 -
+reva: soc=-1 vbat=0 uV ulp-edges=3512950241 chg_n=0 pgood_n=0
+reva: set radix=. off=10 vol=4 h24=0
+talk.py: PASS line 52: expect 'lines=4'
+tone: 4000 Hz 4 ms level 4
+tone: 4000 Hz 4 ms level 4
+tone: 4000 Hz 4 ms level 4
+run: started
+talk.py: PASS line 57: expect 'run: started'
+state: X=89700 stop=SLICE lines=4 prgm=0 running=1 shift=0 prompt=- msg=- heap=185415 stack-free=28324
+boot: boots=2 reason=SW new=0 wake=none pins=0x0 ver=0.86 core=86b3fbf id=e9edf124
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=cd7db8667e47a3c233bb3be3d170798131fadcf1 games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=- off=0
+app: -
+eqn: - | note=- | rep=- | row=- | drawn=-
+ui: show=0 -
+reva: soc=-1 vbat=0 uV ulp-edges=3512950241 chg_n=0 pgood_n=0
+reva: set radix=. off=10 vol=4 h24=0
+talk.py: PASS line 60: expect 'running=1'
+tone: 4000 Hz 4 ms level 4
+run: stopped (STOP)
+talk.py: PASS line 62: expect 'run: stopped (STOP)'
+state: X=93350 stop=STOP lines=4 prgm=0 running=0 shift=0 prompt=- msg=- heap=185415 stack-free=28324
+boot: boots=2 reason=SW new=0 wake=none pins=0x0 ver=0.86 core=86b3fbf id=e9edf124
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=cd7db8667e47a3c233bb3be3d170798131fadcf1 games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=- off=0
+app: -
+eqn: - | note=- | rep=- | row=- | drawn=-
+ui: show=0 -
+reva: soc=-1 vbat=0 uV ulp-edges=3512950241 chg_n=0 pgood_n=0
+reva: set radix=. off=10 vol=4 h24=0
+talk.py: PASS line 64: expect 'running=0'
+save: 893 bytes, ok, 21 ms
+talk.py: PASS line 67: expect 'save:'
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037e156
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x16d0
+load:0x403c8700,len:0x4
+load:0x403c8704,len:0xec8
+load:0x403cb700,len:0x3160
+entry 0x403c8950
+I (31) boot: ESP-IDF v5.4.2 2nd stage bootloader
+I (31) boot: compile time Nov  8 2026 06:57:51
+I (31) boot: Multicore bootloader
+I (31) boot: chip revision: v0.1
+I (34) boot: efuse block revision: v1.2
+I (38) qio_mode: Enabling default flash chip QIO
+I (42) boot.esp32s3: Boot SPI Speed : 80MHz
+I (46) boot.esp32s3: SPI Mode       : QIO
+I (50) boot.esp32s3: SPI Flash Size : 8MB
+I (54) boot: Enabling RNG early entropy source...
+I (58) boot: Partition Table:
+I (61) boot: ## Label            Usage          Type ST Offset   Length
+I (67) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (73) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (80) boot:  2 factory          factory app      00 00 00010000 00700000
+I (87) boot:  3 abstate          Unknown data     01 40 00710000 00080000
+I (93) boot:  4 abapps           Unknown data     01 41 00790000 00012000
+I (100) boot: End of partition table
+I (103) esp_image: segment 0: paddr=00010020 vaddr=3c100020 size=256390h (2450320) map
+talk.py: PASS line 69: expect 'load:'
+I (476) esp_image: segment 1: paddr=002663b8 vaddr=3fc98c00 size=09c60h ( 40032) load
+I (483) esp_image: segment 2: paddr=00270020 vaddr=42000020 size=f1068h (987240) map
+I (631) esp_image: segment 3: paddr=00361090 vaddr=3fca2860 size=02210h (  8720) load
+I (633) esp_image: segment 4: paddr=003632a8 vaddr=40378000 size=10bb4h ( 68532) load
+I (648) esp_image: segment 5: paddr=00373e64 vaddr=50001000 size=00004h (     4) load
+I (648) esp_image: segment 6: paddr=00373e70 vaddr=600fe000 size=0004ch (    76) load
+I (660) boot: Loaded app from partition at offset 0x10000
+I (660) boot: Disabling RNG early entropy source...
+I (673) octal_psram: ECC is enabled
+I (673) octal_psram: vendor id    : 0x0d (AP)
+I (673) octal_psram: dev id       : 0x02 (generation 3)
+I (674) octal_psram: density      : 0x03 (64 Mbit)
+I (679) octal_psram: good-die     : 0x01 (Pass)
+I (683) octal_psram: Latency      : 0x01 (Fixed)
+I (687) octal_psram: VCC          : 0x01 (3V)
+I (691) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (696) octal_psram: BurstType    : 0x00 ( Wrap)
+I (701) octal_psram: BurstLen     : 0x03 (1024 Byte)
+I (705) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (711) octal_psram: DriveStrength: 0x00 (1/1)
+I (715) MSPI Timing: PSRAM timing tuning index: 4
+I (719) esp_psram: Found 8MB PSRAM device
+I (723) esp_psram: Speed: 80MHz
+I (726) cpu_start: Multicore app
+I (1147) esp_psram: SPI SRAM memory test OK
+I (1158) cpu_start: Pro cpu start user code
+I (1158) cpu_start: cpu freq: 240000000 Hz
+I (1158) app_init: Application information:
+I (1158) app_init: Project name:     abacus_reva
+I (1163) app_init: App version:      1
+I (1166) app_init: Compile time:     Nov  8 2026 06:57:45
+I (1171) app_init: ELF file SHA256:  fb1a97609...
+I (1176) app_init: ESP-IDF:          v5.4.2
+I (1180) efuse_init: Min chip rev:     v0.0
+I (1184) efuse_init: Max chip rev:     v0.99 
+I (1188) efuse_init: Chip rev:         v0.1
+I (1192) heap_init: Initializing. RAM available for dynamic allocation:
+I (1198) heap_init: At 3FCBB2F8 len 0002E418 (185 KiB): RAM
+I (1203) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (1208) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (1214) heap_init: At 600FE04C len 00001F9C (7 KiB): RTCRAM
+I (1219) esp_psram: Adding pool of 7588K of PSRAM memory to heap allocator
+I (1226) spi_flash: detected chip: gd
+I (1229) spi_flash: flash io: qio
+I (1232) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (1239) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (1257) main_task: Started on CPU0
+I (1258) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (1258) main_task: Calling app_main()
+gauge: head-less
+load: 893 bytes ok
+reva: heap internal 185415 (largest block 90112), PSRAM 6505092
+I (1277) main_task: Returned from app_main()
+boot: boots=3 reason=SW new=1 wake=none pins=0x0 ver=0.86 core=86b3fbf id=5225bbd0
+REVA READY
+tone: 4000 Hz 30 ms level 4
+talk.py: PASS line 70: expect 'bytes ok'
+state: X=93350 stop=STOP lines=4 prgm=0 running=0 shift=0 prompt=- msg=- heap=185415 stack-free=28788
+boot: boots=3 reason=SW new=1 wake=none pins=0x0 ver=0.86 core=86b3fbf id=5225bbd0
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=cd7db8667e47a3c233bb3be3d170798131fadcf1 games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=- off=0
+app: -
+eqn: - | note=- | rep=- | row=- | drawn=-
+ui: show=0 -
+reva: soc=-1 vbat=0 uV ulp-edges=3512950241 chg_n=0 pgood_n=0
+reva: set radix=. off=10 vol=4 h24=0
+talk.py: PASS line 73: expect 'lines=4'
