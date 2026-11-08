@@ -73,7 +73,9 @@ tree is 0b60736. Results below.
 
 - **The vectors, every one byte for byte:**
   - 202 lines, 21,127/21,127 vectors and 57,127/57,127 expectations at the 1.6.0 baseline (6e89b45).
-  - 203 lines, 21,160 and 57,225 now: exactly 089's file (+1 line, +33 vectors, +98 expectations).
+  - At 7a30b0f (the src as first built): 203 lines, 21,160 and 57,225, exactly 089's file then (+1 line, +33
+    vectors, +98 expectations). At the final tree, 0b60736: 204 lines, 21,197 and 57,341, the file at 35 vectors and
+    107 expectations, run plain and in sanitize (Results, 1).
   - The method: every line of make test's output with `n/n vectors`, repeats included.
 - **The frames:** screen_test 48/48 and standin_replay's 39 scripts, all as before.
 - **One check moved, the planned version move (e):** expr_test's "after →X the image is version 21".
@@ -169,6 +171,12 @@ The page is PSRAM (inside ab_calc). make clang-check: 73 files, 0 failing.
 
 ## For the next part
 
+- **Accepted** by abacus at 0b60736 (#14028, abacus 2929364): h089 23/24 as frozen, its one failure its own (CHS
+  for KCHS, H11), and 24/24 with that name changed.
+
 - **Part 2 (the page):** draws the rows, the labels (T's copy-down, lean 4), the dropped count at the top, and
   replaces ALG's 16-entry history with rows.
+- **From abacus's reading (#14028), for part 2's blueprint:** STO+ A leaves A with no row (L03), so a letter changed
+  by STO arithmetic shows bare. The worst save is 426 ms to the flash, so the blueprint should say whether that fits
+  power-off.
 - **The %LBL dump:** `%LBL:@L` names a letter. `%LBL:X` is the level, so the letters X to T need the @.
