@@ -10,7 +10,7 @@
  * 3. The reader: a section after the last one this build knows is skipped by its size in a version-21 image, with
  *    OLDER FIRMWARE showing, and refused in a version-20 one; an expression in a version-20 image and a kind past
  *    AB_NAME in a version-21 one are refused; an expression in ANS (RPN to ALG sets ANS to X) loads. 4C (Michael's
- *    s3-old-firmware): tests/golden-v22-4c.img, a newer firmware's image (scripts/mk_golden_v22.py), loads with its
+ *    s3-old-firmware): tests/golden-v23-4c.img, a newer firmware's image (scripts/mk_golden_newer.py), loads with its
  *    unknown kinds 0, its unknown section skipped and OLDER FIRMWARE showing, the rest byte for byte.
  * 4. The store: all 48 places (X, Y, Z, T, LASTx, 27 letters, 16 history values) holding distinct expressions, the
  *    49th is ABN_EXPR_FULL with every text unchanged; freeing a place lets the next succeed in its slot. A fuzz of new,
@@ -268,21 +268,25 @@ static bool real_zero(const ab_val *v)
            !memcmp(&v->p3, &z, sizeof z);
 }
 
-/* 4C (Michael's s3-old-firmware): tests/golden-v22-4c.img, a newer firmware's image made from golden-v21-082's bytes
-   by scripts/mk_golden_v22.py (version 22; Y, Z and T value kinds 5, 9 and 200 with 7, 0 and 300 bytes; a section
-   tag 40), loads with OLDER FIRMWARE showing and the rest of the state as golden-v21-082's with Y, Z and T 0 */
+/* 4C (Michael's s3-old-firmware): tests/golden-v23-4c.img, a newer firmware's image made from golden-v21-082's bytes
+   by scripts/mk_golden_newer.py (version 23 since the CAS 038 repin made this build 22, abacus #13773; Y, Z and T value
+   kinds 5, 9 and 200 with 7, 0 and 300 bytes; a section tag 40), loads with OLDER FIRMWARE showing and the rest of the state as golden-v21-082's with Y, Z and T 0 */
 static void older(void)
 {
     static uint8_t e[4096];
     char what[240];
     size_t gn, hn;
-    uint8_t *g = file("tests/golden-v22-4c.img", &gn), *h = file("tests/golden-v21-082.img", &hn);
-    expect(g != NULL && h != NULL, "tests/golden-v22-4c.img and golden-v21-082.img found");
+    uint8_t *g = file("tests/golden-v23-4c.img", &gn), *h = file("tests/golden-v21-082.img", &hn);
+    expect(g != NULL && h != NULL, "tests/golden-v23-4c.img and golden-v21-082.img found");
     if (!g || !h) return;
-    snprintf(what, sizeof what, "4C: golden-v22-4c 1206 B, body CRC 20009FA1 (%zu B, %08X)", gn, body_crc(g, gn));
-    expect(gn == 1206 && body_crc(g, gn) == 0x20009FA1u, what);
+    snprintf(what, sizeof what, "4C: golden-v23-4c 1206 B, body CRC DB1E755E (%zu B, %08X)", gn, body_crc(g, gn));
+    expect(gn == 1206 && body_crc(g, gn) == 0xDB1E755Eu, what);
+    snprintf(what, sizeof what, "4C: the image is newer than this build (version %u, AB_STATE_VERSION %d)",
+             (unsigned)(g[4] | g[5] << 8), AB_STATE_VERSION);
+    expect((g[4] | g[5] << 8) > AB_STATE_VERSION, what);    /* the CAS 038 repin: a fixture left behind a version bump
+                                                               would test nothing newer (it went red at 22, the record) */
     ab_init(&cb);
-    expect(ab_state_load(&cb, g, gn) == ABN_OK, "4C: golden-v22-4c (version 22) loads");
+    expect(ab_state_load(&cb, g, gn) == ABN_OK, "4C: golden-v23-4c (version 23) loads");
     expect(cb.msg && cb.err_status == ABN_OLDER_FW, "4C: OLDER FIRMWARE showing");
     expect(real_zero(&cb.y) && real_zero(&cb.z) && real_zero(&cb.t), "4C: Y, Z and T (kinds 5, 9, 200) loaded as 0");
     expect(cb.x.kind == AB_EXPR && !strcmp(ab_expr_text(&cb, &cb.x), "3\xc3\x97X^2-4") && cb.lastx.kind == AB_EXPR &&
@@ -304,12 +308,13 @@ static void older(void)
     expect(ab_state_load(&ca, img2, m2) == ABN_OK && ca.msg && ca.err_status == ABN_OLDER_FW,
            "4C: that image loads, OLDER FIRMWARE still showing");
 
-    /* refused: the same kinds in an image of this build's version (no build of 21 writes one) */
+    /* refused: the same kinds in an image of this build's version (no build of it writes one) */
     memcpy(e, g, gn);
-    e[4] = 21;
+    e[4] = AB_STATE_VERSION;
     reseal(e, gn);
     ab_init(&cb);
-    expect(ab_state_load(&cb, e, gn) == ABN_BAD_IMAGE, "4C: a kind past AB_NAME in a version-21 image is refused");
+    expect(ab_state_load(&cb, e, gn) == ABN_BAD_IMAGE, "4C: a kind past AB_NAME in an image of this build's version is "
+                                                       "refused");
     /* refused: a byte count past the image's end (T's 300 made 65535) */
     uint32_t size;
     long st = section(g, gn, 2, &size);
@@ -328,12 +333,35 @@ static void older(void)
     free(h);
 }
 
+/* The CAS 038 repin (abacus #13773): tests/golden-v21-087-div0.img, saved by 0a7de57's own core (VER 0.87, image
+   version 21: an expression in Z) with DIVIDE BY 0 the message showing (tests/golden-src/golden-v21-087-div0.c), loads
+   on this build of version 22 with the message still showing, and saves again byte for byte: the bump left 21 alone */
+static void v21_message(void)
+{
+    char what[200];
+    size_t gn;
+    uint8_t *g = file("tests/golden-v21-087-div0.img", &gn);
+    expect(g != NULL, "tests/golden-v21-087-div0.img found");
+    if (!g) return;
+    snprintf(what, sizeof what, "repin: golden-v21-087-div0 773 B, version 21, body CRC 47F3B041 (%zu B, %u, %08X)", gn,
+             (unsigned)(g[4] | g[5] << 8), body_crc(g, gn));
+    expect(gn == 773 && g[4] == 21 && g[5] == 0 && body_crc(g, gn) == 0x47F3B041u, what);
+    ab_init(&ca);
+    expect(ab_state_load(&ca, g, gn) == ABN_OK, "repin: golden-v21-087-div0 loads on version 22");
+    expect(ca.msg && ca.err_status == ABN_DIV_ZERO, "repin: DIVIDE BY 0 still the message showing");
+    expect(ca.z.kind == AB_EXPR && !strcmp(ab_expr_text(&ca, &ca.z), "3\xc3\x97X^2-4"), "repin: Z the expression 3×X^2-4");
+    size_t m = ab_state_save(&ca, img1, sizeof img1);
+    snprintf(what, sizeof what, "repin: saved again byte for byte (%zu B, version %u)", m, (unsigned)img1[4]);
+    expect(m == gn && !memcmp(img1, g, gn), what);
+    free(g);
+}
+
 /* ab_state_same (082, UNDO's mark taken back when a key changed nothing): each golden loaded is the same as the image
    it saves, and no longer the same with any one byte of that image changed, or a byte short */
 static void same_image(void)
 {
     static const char *const G[] = {"tests/golden-v1.img", "tests/golden-v20-082.img", "tests/golden-v21-082.img",
-                                    "tests/golden-v22-4c.img"};
+                                    "tests/golden-v23-4c.img"};
     char what[160];
     for (int k = 0; k < 4; k++) {
         size_t gn;
@@ -1201,6 +1229,7 @@ int main(int argc, char **argv)
     round_trip(write_golden);
     reader();
     older();
+    v21_message();
     same_image();
     store();
     sweep();

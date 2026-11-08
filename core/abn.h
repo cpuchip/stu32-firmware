@@ -88,9 +88,11 @@ typedef enum {
     ABN_NOT_NUMBER,         /* unit 082: an expression or a name where a number is read: NOT A NUMBER */
     ABN_OLDER_FW,           /* unit 082 (4C): a newer firmware's image loaded with what this build can't read dropped (a
                                value kind loaded as 0, a section skipped): OLDER FIRMWARE (Michael's s3-old-firmware) */
+    ABN_CAS_CONDITION,      /* the CAS 038 repin (abacus #13771): ENTER on SOLVE's answer where one of the report's rows
+                               fails at the stored values: CONDITION FAILS (abacus's word; a card to Michael) */
 } abn_status;
 
-#define ABN_STATUS_LAST ABN_OLDER_FW        /* the last status: loops over every status end here (056: screen_test's
+#define ABN_STATUS_LAST ABN_CAS_CONDITION        /* the last status: loops over every status end here (056: screen_test's
                                                ended at ABN_BAD_IMAGE and missed every one after it) */
 
 abn abn_zero(void);

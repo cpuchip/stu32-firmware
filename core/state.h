@@ -22,7 +22,8 @@
 
 #include "calc.h"
 
-#define AB_STATE_VERSION 21     /* 21 (unit 082): a value may be an expression (its text) or a name (kinds 3, 4), the
+#define AB_STATE_VERSION 22     /* 22 (the CAS 038 repin, abacus #13773): no new field; the message CONDITION FAILS
+                                   (ABN_CAS_CONDITION) may be the one showing; 21 (unit 082): a value may be an expression (its text) or a name (kinds 3, 4), the
                                    messages MEMORY FULL (ABN_EXPR_FULL), NOT A NUMBER and OLDER FIRMWARE may be the one showing, and a section
                                    this build doesn't know is skipped by its size; an image needing none of it is still
                                    written as 20, byte for byte (ab_state_save writes the lowest version its content needs);

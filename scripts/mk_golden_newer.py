@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-"""Unit 082 (4C): tests/golden-v22-4c.img, a newer firmware's image, from tests/golden-v21-082.img by bytes alone.
+"""Unit 082 (4C): tests/golden-v23-4c.img, a newer firmware's image, from tests/golden-v21-082.img by bytes alone.
+
+The version is the last argument: one past AB_STATE_VERSION, so the image stays newer than the firmware (22 at 082;
+23 since the CAS 038 repin made the firmware 22, abacus #13773; expr_test checks it is newer).
 
 Not this build's writer: the image is golden-v21-082's with
-  - the version 22;
+  - the version given (23);
   - Y, Z and T (T_STACK's second to fourth values: an expression, the name B, a number) each replaced by a value kind
     this build doesn't know, written as state.h says a later build writes one: its kind, len and mask, a 16-bit byte
     count, that many bytes (kind 5 with 7 bytes, kind 9 with none, kind 200 with 300);
@@ -10,7 +13,7 @@ Not this build's writer: the image is golden-v21-082's with
 expr_test loads it and checks the rest of the state survived: the image it saves again equals golden-v21-082's state
 with Y, Z and T set to 0 and OLDER FIRMWARE showing, saved by the build.
 
-  python3 scripts/mk_golden_v22.py tests/golden-v21-082.img tests/golden-v22-4c.img
+  python3 scripts/mk_golden_newer.py tests/golden-v21-082.img tests/golden-v23-4c.img 23
 """
 import struct
 import sys
@@ -23,7 +26,8 @@ def unknown(kind, ln, mask, payload):
     return bytes([kind, ln, mask]) + struct.pack('<H', len(payload)) + payload
 
 
-def main(src, dst):
+def main(src, dst, version):
+    version = int(version)
     b = open(src, 'rb').read()
     assert b[:4] == b'ABSI' and struct.unpack_from('<HHI', b, 4) == (21, 0, len(b))
     assert zlib.crc32(b[:-4]) == struct.unpack_from('<I', b, len(b) - 4)[0]
@@ -54,7 +58,7 @@ def main(src, dst):
         at += 6 + size
     out += struct.pack('<HI', 40, 5) + b'\x01\x02\x03\x04\x05'
     out += b'\0\0\0\0'
-    struct.pack_into('<H', out, 4, 22)
+    struct.pack_into('<H', out, 4, version)
     struct.pack_into('<I', out, 8, len(out))
     struct.pack_into('<I', out, len(out) - 4, zlib.crc32(bytes(out[:-4])))
     open(dst, 'wb').write(out)
@@ -62,4 +66,4 @@ def main(src, dst):
 
 
 if __name__ == '__main__':
-    main(*sys.argv[1:3])
+    main(*sys.argv[1:4])

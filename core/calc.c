@@ -5021,6 +5021,36 @@ int ab_cas_rows(const ab_calc *c)
     return n;
 }
 
+/* The CAS 038 repin (abacus #13771): whether the report's condition row holds at the stored values. The row is two
+   sides around ≠, ≥, ≤, > or < (CAS 038's rows are ≠, > and ≥), each read through the core's own evaluation (STU's
+   parse, the angle mode). 1 holds, 0 fails, -1 no value: a side that doesn't evaluate to a real number at the stored
+   values, which Casimir's own reading counts as not failing (abacus #9687 (2)), so the answer's evaluation decides;
+   -2 not a condition (no operator: an answer row, a note). */
+static int cas_cond_holds(ab_calc *c, const char *row)
+{
+    static const struct { const char *s; int len; int8_t lt, eq, gt; } OPS[] = {
+        {"\xe2\x89\xa0", 3, 1, 0, 1}, {"\xe2\x89\xa5", 3, 0, 1, 1}, {"\xe2\x89\xa4", 3, 1, 1, 0},
+        {">", 1, 0, 0, 1}, {"<", 1, 1, 0, 0}};
+    const char *at = NULL;
+    int k = -1;
+    for (int i = 0; i < 5; i++) {
+        const char *p = strstr(row, OPS[i].s);
+        if (p && (!at || p < at)) at = p, k = i;
+    }
+    if (!at || strchr(row, '=')) return -2;
+    char side[2][AB_EQN_LEN];
+    snprintf(side[0], sizeof side[0], "%.*s", (int)(at - row), row);
+    snprintf(side[1], sizeof side[1], "%s", at + OPS[k].len);
+    ab_val v[2];
+    for (int i = 0; i < 2; i++) {
+        int pos;
+        if (!side[i][0] || eqn_eval(c, side[i], AB_MODEL_STU, false, false, &v[i], &pos) != ABN_OK) return -1;
+        if (v[i].kind != AB_REAL) return -1;
+    }
+    int r = abn_cmp(&v[0].re, &v[1].re);
+    return r < 0 ? OPS[k].lt : r == 0 ? OPS[k].eq : OPS[k].gt;
+}
+
 /* A key while the report shows (048 rule 5, abacus #5267): down and up step among the rows, wrapping, as a linear
    solution's view (35s p.7-7); ENTER on a root puts its value in X, read through the core's own evaluation of the
    root's text (STU's parse, the angle mode; its (MULT k) is not part of it), the stack lifted as RCL's, and leaves;
@@ -5040,6 +5070,16 @@ static bool casrep_key(ab_calc *c, ab_op op, abn_status *st)
         if (c->cas_row == 0 || !ab_cas_row(c, c->cas_row, row, sizeof row) || (eq = strchr(row, '=')) == NULL)
             return true;
         if ((mult = strstr(eq, " (MULT")) != NULL) *mult = '\0';
+        for (int k = 1; k < n; k++) {           /* the CAS 038 repin (abacus #13771): the answer holds only where its
+                                                   rows hold, so a row that fails at the stored values places nothing:
+                                                   CONDITION FAILS, the cursor on that row (the view stays) */
+            char cond[AB_EQN_LEN];
+            if (ab_cas_row(c, k, cond, sizeof cond) && cas_cond_holds(c, cond) == 0) {
+                c->cas_row = (int8_t)k;
+                *st = ABN_CAS_CONDITION;
+                return true;
+            }
+        }
         if ((*st = eqn_eval(c, eq + 1, AB_MODEL_STU, false, false, &v, &pos)) != ABN_OK) return true;
         c->cas_rep[0] = '\0';
         place_val(c, v);

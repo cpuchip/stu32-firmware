@@ -49,6 +49,7 @@ const char *ab_status_message(abn_status st)
     case ABN_TOO_DEEP: return "NESTED TOO DEEP";                /* unit 047 (abacus #5153); no guide has one */
     case ABN_CAS_NOT_POLY: return "NOT A POLYNOMIAL";          /* unit 048: the texts approved in #5267 */
     case ABN_CAS_NOT_NUMERIC: return "COEF NOT NUMERIC";
+    case ABN_CAS_CONDITION: return "CONDITION FAILS";       /* the CAS 038 repin */
     case ABN_CAS_NOT_INTEGRABLE: return "CAN'T INTEGRATE";
     case ABN_CAS_EXPR_ONLY: return "EXPRESSION ONLY";
     case ABN_CAS_IMPROPER: return "IMPROPER INTEGRAL";         /* unit 056: the texts ruled in #5630 */

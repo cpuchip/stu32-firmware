@@ -6,6 +6,7 @@
  *                             n -(, c a chain of D powers, m 18 groups around a chain of D, s SIN(; then XEQ A
  *   stackkeys cas OP TEXT     048's CAS keys: TEXT typed in STU's Equation mode and stored, then CAS's second page,
  *                             OP (s SOLVE, i ∫DX, f FACTR) in X
+ *   stackkeys cas s TEXT V    SOLVE in the letter V (the CAS 038 repin: V=I×R for R)
  *   stackkeys cas d TEXT LO HI   056's ∫AB the same way, in X, then the bounds LO and HI typed, each with ENTER
  *   stackkeys cas S TEXT LO HI   070's Σ (CAS2's fifth key) the same way, in K; an HI of ∞ is the bar's ∞
  *   stackkeys cas q TEXT G       057's QUOT on CAS's third page, in X, then G typed with ENTER (g GCD the same;
@@ -337,13 +338,15 @@ int main(int argc, char **argv)
 {
     bool def = argc == 6 && !strcmp(argv[1], "cas") && (!strcmp(argv[2], "d") || !strcmp(argv[2], "S"));
     bool poly = argc == 5 && !strcmp(argv[1], "cas") && (!strcmp(argv[2], "q") || !strcmp(argv[2], "g"));
+    bool svar = argc == 5 && !strcmp(argv[1], "cas") && !strcmp(argv[2], "s") && argv[4][0] >= 'A' && argv[4][0] <= 'Z' &&
+                !argv[4][1];                    /* the CAS 038 repin: SOLVE in another letter */
     if (argc == 3 && !strcmp(argv[1], "full")) {
         ab_init(&c);
         app_init(&a, &c, now);
         return full(argv[2]);
     }
     bool cas3 = argc > 2 && !strcmp(argv[1], "cas") && strchr("qgc", argv[2][0]);
-    if ((argc != 4 && !def && !poly) || (strcmp(argv[1], "prog") && strcmp(argv[1], "cas"))) {
+    if ((argc != 4 && !def && !poly && !svar) || (strcmp(argv[1], "prog") && strcmp(argv[1], "cas"))) {
         fprintf(stderr, "usage: stackkeys prog D SHAPE | stackkeys cas OP TEXT | stackkeys cas d|S TEXT LO HI | "
                         "stackkeys full OUT\n");
         return 2;
@@ -410,7 +413,7 @@ int main(int argc, char **argv)
             tap(argv[2][0] == 'q' ? 0 : argv[2][0] == 'g' ? 1 : 2);
         } else
             tap(argv[2][0] == 's' ? 0 : argv[2][0] == 'i' ? 1 : argv[2][0] == 'f' ? 2 : argv[2][0] == 'S' ? 4 : 3);
-        tap(letter(argv[2][0] == 'S' ? 'K' : 'X'));
+        tap(letter(svar ? argv[4][0] : argv[2][0] == 'S' ? 'K' : 'X'));
         if (poly) {                             /* 057: g, ENTER */
             type_text(argv[4]);
             tap(face("ENTER"));

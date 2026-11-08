@@ -79,3 +79,29 @@ R10 | 048 report ENTER (V0005): a PARTIAL report's root | STU EQ:(X+3)×(X^3-2×
 R11 | 048 report: five rows (by hand: four rational roots), the cursor down to the last | STU EQ:(X-1)×(X-2)×(X-3)×(X-4) CASSOLVE:X SST SST SST SST | %CASREP=SOLVED:_X=1;_X=2;_X=3;_X=4 %CASROW=X=4
 S15 | 048: a C during SOLVE: no report | STU EQ:X^2-5×X+6=0 INTR:1 CASSOLVE:X | ERR %ERR=INTERRUPTED %CASREP=none
 I09 | 048: a C during ∫: nothing inserted, no +C | STU RAD EQ:3×X^2+2×X+1 INTR:1 CASINT:X | ERR %ERR=INTERRUPTED %EQN=1 %NOTE=none
+# The CAS 038 repin (casimir eedbf16, decision 96; work/repin-eedbf16.md): SOLVE on an equation linear in the variable
+# with letters as its coefficients answers with its rows, where 1.5.0 said COEF NOT NUMERIC. Each report is casim's at
+# eedbf16; each row's width in cells is in the work file (31 at scale 2; L06's answer is 37, drawn with an ellipsis).
+L01 | CAS 038: V=I×R for R | STU EQ:V=I×R CASSOLVE:R | %CASREP=SOLVED:_R=V÷I;_I≠0 %CASROW=SOLVED
+L02 | CAS 038: P×V=N×R×T for T, two rows | STU EQ:P×V=N×R×T CASSOLVE:T | %CASREP=SOLVED:_T=P×V÷N÷R;_N≠0;_R≠0
+L03 | CAS 038: three rows (abacus #13754's A≠0; B≠0; A×B≥0), the cursor down to the last | STU EQ:SQRT(A×B)×X=1 CASSOLVE:X SST SST SST SST | %CASREP=SOLVED:_X=1÷SQRT(A×B);_A≠0;_B≠0;_A×B≥0 %CASROW=A×B≥0
+L04 | CAS 038: abacus #13754's -B÷2-C÷2 as a row | STU EQ:X×SQRT(-B÷2-C÷2)=1 CASSOLVE:X SST SST | %CASROW=-B÷2-C÷2>0
+L05 | CAS 038: the longest measured row that fits, 31 cells | STU EQ:X×(A^2+B^2-C^2-D^2)=(A+B)×(C+D) CASSOLVE:X SST | %CASROW=X=(A+B)×(C+D)÷(A^2+B^2-C^2-D^2)
+L06 | CAS 038: an answer of 37 cells (drawn as 30 and an ellipsis); ENTER reads it whole (by hand: (1+2)×(1+1+1)÷(1+4-1-1-1)=4.5) | 1 STO:A 2 STO:B 1 STO:C 1 STO:D 1 STO:E CLX STU EQ:X×(A^2+B^2-C^2-D^2-E^2)=(A+B)×(C+D+E) CASSOLVE:X SST ENTER | X=4.5 %CASREP=none
+L07 | CAS 038 declines a reciprocal (U in a denominator): 1.5.0's refusal stands | STU EQ:1÷F=1÷U+1÷V CASSOLVE:U | ERR %ERR=CAS_NOT_NUMERIC %CASREP=none
+# ENTER on the answer (abacus #13771): the answer holds only where its rows hold. Each condition row is read at the
+# stored values first, and one that fails places nothing: CONDITION FAILS, the cursor on that row, the view open. A row
+# with no value there doesn't fail (Casimir's reading, abacus #9687 (2)); the answer's own evaluation decides.
+C01 | ENTER, X×A=X at A=1: A≠1 fails (every X solves there), nothing placed | 1 STO:A CLX STU EQ:X×A=X CASSOLVE:X SST ENTER | ERR %ERR=CAS_CONDITION %ERRMSG=CONDITION_FAILS %CASROW=A≠1 X=0
+C02 | ENTER, X×A=X at A=2: the row holds, 0 placed | 2 STO:A 7 STU EQ:X×A=X CASSOLVE:X SST ENTER | X=0 Y=7 %CASREP=none
+C03 | ENTER, V=I×R at I=0 (DIVIDE BY 0 before the repin's rule): I≠0 fails | 5 STO:V 0 STO:I CLX STU EQ:V=I×R CASSOLVE:R SST ENTER | ERR %ERR=CAS_CONDITION %CASROW=I≠0 X=0
+C04 | ENTER, V=I×R at V=5 I=2 | 5 STO:V 2 STO:I CLX STU EQ:V=I×R CASSOLVE:R SST ENTER | X=2.5
+C05 | ENTER, X×Y÷Y=3 at Y=0: the typed text's Y≠0 fails (3 placed before the rule, no solution there) | 0 STO:Y CLX STU EQ:X×Y÷Y=3 CASSOLVE:X SST ENTER | ERR %ERR=CAS_CONDITION %CASROW=Y≠0 X=0
+C06 | ENTER, A×X=A×B at A=0 B=7: A≠0 fails (7 placed before; every X solves) | 0 STO:A 7 STO:B CLX STU EQ:A×X=A×B CASSOLVE:X SST ENTER | ERR %ERR=CAS_CONDITION %CASROW=A≠0 X=0
+C07 | ENTER, (A^2-1)×X=A+1 at A=-1 (DIVIDE BY 0 before): A≠-1 fails | 1 CHS STO:A CLX STU EQ:(A^2-1)×X=A+1 CASSOLVE:X SST ENTER | ERR %ERR=CAS_CONDITION %CASROW=A≠-1 X=0
+C08 | ENTER, LN(A)×X=1 at A=1 (DIVIDE BY 0 before): A>0 holds, A≠1 fails | 1 STO:A CLX STU EQ:LN(A)×X=1 CASSOLVE:X SST ENTER | ERR %ERR=CAS_CONDITION %CASROW=A≠1 X=0
+C09 | ENTER, X÷A=B at A=0 B=3: A≠0 fails (0 placed before, X÷0 has no value) | 0 STO:A 3 STO:B CLX STU EQ:X÷A=B CASSOLVE:X SST ENTER | ERR %ERR=CAS_CONDITION %CASROW=A≠0 X=0
+C10 | ENTER, X×SQRT(A)=SQRT(A) at A=-1: A>0 fails (1 placed before, SQRT(-1) isn't real) | 1 CHS STO:A CLX STU EQ:X×SQRT(A)=SQRT(A) CASSOLVE:X SST ENTER | ERR %ERR=CAS_CONDITION %CASROW=A>0 X=0
+C11 | ENTER, SQRT(A×B)×X=1 at A=-2 B=-3: every row holds (A×B=6); by hand SQRT(6) rounded to 34 digits, then 1÷ it | 2 CHS STO:A 3 CHS STO:B CLX STU EQ:SQRT(A×B)×X=1 CASSOLVE:X SST ENTER | X=0.4082482904638630163662140124509820
+C12 | ENTER, a row with no value: 2÷(B+C)-1≠0 at B=1 C=-1 is ÷0, so it doesn't fail; the next, B÷2+C÷2≠0, does | 1 STO:B 1 CHS STO:C CLX STU EQ:X÷(B÷2+C÷2)=1+X CASSOLVE:X SST ENTER | ERR %ERR=CAS_CONDITION %CASROW=B÷2+C÷2≠0 X=0
+C13 | the view stays after CONDITION FAILS: C clears the message, SST steps from the failing row (to the status row) | 1 STO:A CLX STU EQ:X×A=X CASSOLVE:X SST ENTER C SST | ERR %CASROW=SOLVED
