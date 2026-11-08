@@ -17,6 +17,8 @@ B04 | B′: CLx ENTER is two cleared zeros, both bare (the mark moves with the v
 B05 | B′: 0 ENTER is two typed zeros, both made | STU 0 ENTER | %LEVELS=YX
 B06 | B′ from a program's 0 (fn-02 T02's shape): the line hook unbares what a line makes, whatever its value | STU CLSTK PRGM LBL:A 0 ENTER 5 RTN PRGM XEQ:A | %LEVELS=YX X=5 Y=0
 B07 | B′ from a program's computed 0 | STU CLSTK PRGM LBL:B 3 ENTER 3 - ENTER 7 RTN PRGM XEQ:B | %LEVELS=YX X=7 Y=0
+B10 | B′: CHS changes X in place (calc.c's one in-place write), so the key's hook is what makes it: CHS on a cleared 0, then ENTER, is two made zeros | STU CHS ENTER | %LEVELS=YX
+B11 | B′: the same in a program: the line's hook makes CHS's X, whatever its value (B06's literal is a whole value, made without it) | STU CLSTK PRGM LBL:C CHS ENTER 7 RTN PRGM XEQ:C | %LEVELS=YX X=7
 B08 | B′: the marks survive a save (T_BARE) | STU 5 CLX ENTER 7 SAVE MEMCLR LOAD | %LEVELS=X X=7
 B09 | B′: a fresh STU screen is X alone | STU | %LEVELS=X %PAGEN=0
 E01 | an expression in X: the page above its drawing, Y holding the sum | STU 2 ENTER 3 + EQ:X^2 EQDROP | %LEVELS=YX %PAGEN=2 %PAGE-1=_|3.0000 %PAGE-2=_|2.0000
@@ -33,8 +35,10 @@ A04 | 029 rule 5 as 090 has it: ▲ walks every ALG row the page holds, past 16,
 A05 | ▲ skips RPN's rows (no line to copy) | STU 5 ENTER 6 + ALG 2 ENTER HUP HUP | %HSEL=2 %HIST=1
 A06 | STO of a shown answer links that answer's row | STU ALG 2 + 3 ENTER 7 ENTER HUP HUP STO:A | @A=5 %LBL:@A=1
 A07 | ENTER on a shown line copies its text, as 029's | STU ALG 2 + 3 ENTER 7 ENTER HUP HUP ENTER | %LINE=2+3 %HSEL=-
+A09 | a row that doesn't fit one line is two: its text above its value | STU ALG 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12 ENTER 7 | %PAGEN=2 %PAGE-1=_|78.0000 %PAGE-2=1+2+3+4+5+6+7+8+9+10+11+12|_
 A08 | ALG's history survives the device's save (SAVEROWS), as stu-worksheet-keep asks | STU ALG 2 + 3 ENTER 7 ENTER SAVEROWS MEMCLR LOAD HUP HUP | %HIST=2 %HSEL=2+3
 D01 | the dropped line: the serial's wrap restarts the page, the four rows before it dropped | STU 1 ENTER 2 + ROWNEXT:4294967294 3 + | %ROWDROP=4 %PAGEN=1 %PAGE-1=4_OLDER_ROWS_DROPPED|_ %PAGETOP=4
+D04 | the dropped line only when the page's oldest row is on the screen: here the two-line row is the one line short, so it isn't | STU ROWNEXT:4294967294 1 ENTER 2 + ALG 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12 ENTER 1 ENTER 2 ENTER 3 ENTER 4 ENTER 5 ENTER 6 | %ROWDROP=1 %PAGEN=5 %PAGETOP=- %PAGE-1=5|5.0000 %PAGE-5=1|1.0000
 D02 | CLEAR ALL empties the page as MEMORY CLEAR does, the dropped count too (abacus #14047) | STU 1 ENTER 2 + CLALL | %ROWS=0 %ROWDROP=0 %PAGEN=0 %LEVELS=X
 D03 | ... and the serials go on, never given again | STU 1 ENTER 2 + CLALL 5 ENTER | %ROW-1=4:NUM:-:5
 N01 | a keyboard run's row: R/S's left reads R/S (its line STOP, abacus #14045) | STU PRGM LBL:A 2 RTN PRGM GTO:A RS | %PAGEN=0 %ROW-1=1:RS:-:2
