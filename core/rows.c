@@ -269,11 +269,14 @@ static uint32_t append(ab_calc *c, unsigned op, int32_t arg, unsigned flags, con
     }
     n = REC_HEAD + 4u * (size_t)nlink + 1 + tlen + vn;
     c->rows_len = ab_rows_visible_len(c);
-    while (c->rows_len && c->rows_len + n > AB_ROWS_RAM) {
-        uint32_t first = g16(c->rows);
-        memmove(c->rows, c->rows + first, c->rows_len - first);
-        c->rows_len -= first;
-        c->rows_dropped++;
+    if (c->rows_len + n > AB_ROWS_RAM) {
+        /* the page full: the oldest rows dropped AB_ROWS_DROP bytes at a time, so the page moves once for a few
+           hundred rows, not for each (the stand-in measured 5,551 us a key moving 64 KB of PSRAM for every row) */
+        uint32_t at = 0, k = 0;
+        while (at < c->rows_len && c->rows_len - at + n > AB_ROWS_RAM - AB_ROWS_DROP) at += g16(c->rows + at), k++;
+        memmove(c->rows, c->rows + at, c->rows_len - at);
+        c->rows_len -= at;
+        c->rows_dropped += k;
     }
     uint8_t *p = c->rows + c->rows_len;
     p16(p, (unsigned)n);

@@ -329,10 +329,21 @@ static void format(void)
     /* a page past the RAM's 64 KB drops its oldest, and counts them */
     ab_init(&c);
     ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
-    for (int i = 0; i < 1000; i++) ab_do(&c, AB_K1), ab_do(&c, AB_ADD);
-    snprintf(what, sizeof what, "2,000 rows past 64 KB: %d kept in %lu B, %lu dropped", ab_rows_count(&c),
-             (unsigned long)c.rows_len, (unsigned long)c.rows_dropped);
+    int batches = 0;
+    uint32_t smallest = AB_ROWS_RAM;
+    for (int i = 0; i < 1000; i++) {
+        uint32_t d = c.rows_dropped, len = c.rows_len;
+        ab_do(&c, AB_K1);
+        if (c.rows_dropped != d) batches++, smallest = len - c.rows_len < smallest ? len - c.rows_len + 37 : smallest;
+        d = c.rows_dropped, len = c.rows_len;
+        ab_do(&c, AB_ADD);
+        if (c.rows_dropped != d) batches++, smallest = len - c.rows_len < smallest ? len - c.rows_len + 44 : smallest;
+    }
+    snprintf(what, sizeof what, "2,000 rows past 64 KB: %d kept in %lu B, %lu dropped in %d batches, the least %lu B",
+             ab_rows_count(&c), (unsigned long)c.rows_len, (unsigned long)c.rows_dropped, batches, (unsigned long)smallest);
     expect(c.rows_len <= AB_ROWS_RAM && (uint32_t)ab_rows_count(&c) + c.rows_dropped == 2000 && c.rows_dropped > 0, what);
+    expect(batches >= 1 && batches <= 8 && smallest >= AB_ROWS_DROP - 64,
+           "the page full drops 8 KB at once (a few batches, not one move a row: the stand-in's 5,551 us a key)");
     printf("rows_test: %s\n", what);
 }
 

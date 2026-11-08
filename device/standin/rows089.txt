@@ -46,10 +46,13 @@ send X
 expect-min stack-free 8188 10
 expect rows: 3 top=3 next=4 dropped=0 x=3 y=0 5
 send ROWBENCH
-expect rowbench: no page: 60
-expect rowbench: the worst page: 180
+expect rowbench: no page: rows 60
+expect rowbench: no page: a key 60
+expect rowbench: the worst page: rows 180
 expect rowbench: the worst page's save to the flash: 60
 expect save: 30
+expect rowbench: the worst page with no row held 30
+expect rowbench: the worst page: a key 60
 send RESTART
 expect load: 30
 expect ver=0.89 30

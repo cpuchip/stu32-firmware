@@ -1,0 +1,3 @@
+FAIL: the page full drops 8 KB at once (a few batches, not one move a row: the stand-in's 5,551 us a key)
+rows_test: 2,000 rows past 64 KB: 1618 kept in 65529 B, 382 dropped in 191 batches, the least 44 B
+rows_test: 135/136 checks

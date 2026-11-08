@@ -269,6 +269,7 @@ typedef struct {
 /* Unit 089: the worksheet's rows (core/rows.c). The page in RAM, and what a save keeps of it */
 #define AB_ROWS_RAM 65536u          /* bytes of rows in RAM (PSRAM on the boards), the oldest dropped past it */
 #define AB_ROWS_SAVE 8192u          /* bytes of the newest rows a save keeps, past which the rows values hold are kept */
+#define AB_ROWS_DROP 8192u          /* the page full: the oldest dropped this many bytes at once (one move for a few hundred) */
 #define AB_ROW_LINKS 3              /* the most rows one row links to */
 typedef struct {
     bool on;                /* this key records rows (STU, the keyboard, no program entry) */
