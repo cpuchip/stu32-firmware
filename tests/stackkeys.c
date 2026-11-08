@@ -7,6 +7,8 @@
  *   stackkeys cas OP TEXT     048's CAS keys: TEXT typed in STU's Equation mode and stored, then CAS's second page,
  *                             OP (s SOLVE, i ∫DX, f FACTR) in X
  *   stackkeys cas s TEXT V    SOLVE in the letter V (the CAS 038 repin: V=I×R for R)
+ *   stackkeys x TEXT          unit 088's flow: TEXT stored from EQN, then EQN MORE's →X, 2 ×, the bar's SIMP, its SOLVE
+ *                             in X, ▼ to the first root and ENTER; each step's X (or report) printed as it is made
  *   stackkeys cas d TEXT LO HI   056's ∫AB the same way, in X, then the bounds LO and HI typed, each with ENTER
  *   stackkeys cas S TEXT LO HI   070's Σ (CAS2's fifth key) the same way, in K; an HI of ∞ is the bar's ∞
  *   stackkeys cas q TEXT G       057's QUOT on CAS's third page, in X, then G typed with ENTER (g GCD the same;
@@ -344,6 +346,34 @@ int main(int argc, char **argv)
         ab_init(&c);
         app_init(&a, &c, now);
         return full(argv[2]);
+    }
+    if (argc == 3 && !strcmp(argv[1], "x")) {  /* unit 088: the CAS on the stack, from the bar that follows X */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        stu();
+        gold("0");                              /* EQN */
+        type_text(argv[2]);
+        tap(face("ENTER"));
+        printf("stored: %s\n", c.eqn_cur >= 0 ? c.eqn[c.eqn_cur] : "-");
+        int mark = nseq;
+        tap(5);                                 /* ▸: EQN MORE */
+        tap(0);                                 /* →X */
+        printf("x: %s\n", ab_is_sym(&c.x) ? ab_expr_text(&c, &c.x) : "(a number)");
+        tap(face("2"));
+        tap(face("\xc3\x97"));
+        printf("x: %s\n", ab_is_sym(&c.x) ? ab_expr_text(&c, &c.x) : "(a number)");
+        tap(0);                                 /* the bar's SIMP */
+        printf("simp: %s\n", ab_is_sym(&c.x) ? ab_expr_text(&c, &c.x) : "(a number)");
+        tap(2);                                 /* the bar's SOLVE, in X */
+        tap(letter('X'));
+        printf("report: %s\n", ab_cas_report(&c) ? ab_cas_report(&c) : "-");
+        tap(1);                                 /* the report's ▼ */
+        tap(face("ENTER"));
+        char t[64];
+        abn_to_text(&c.x.re, t, sizeof t);
+        printf("enter: x %s, y %s\n", ab_is_sym(&c.x) ? "an expression" : t, ab_is_sym(&c.y) ? ab_expr_text(&c, &c.y) : "-");
+        print_keys(mark, "the last ENTER");
+        return 0;
     }
     bool cas3 = argc > 2 && !strcmp(argv[1], "cas") && strchr("qgc", argv[2][0]);
     if ((argc != 4 && !def && !poly && !svar) || (strcmp(argv[1], "prog") && strcmp(argv[1], "cas"))) {

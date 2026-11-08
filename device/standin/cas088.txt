@@ -1,0 +1,103 @@
+# Unit 088 on the stand-in (work/088-cas-on-the-stack.md): the CAS on the stack, from the bar that follows X, with
+# interrupts live. 2×X+5=11 typed into EQN and stored; EQN MORE's →X drops it (the console's soft1= is the bar's SIMP);
+# 2 × doubles both sides (084); the bar's SIMP gives 4×X+10=22; its SOLVE in X opens the report (soft1= the report's ▲);
+# ▼, ENTER: 3 in X, a number, so the bar is gone (soft1=-). The frames are the host's (standin_replay); the bar itself is
+# below FRAMECRC's rows, so soft1= is its check. Then the calc task's stack low-water mark, no lower than the deep paths'
+# (8,188 B free). Keys from tests/stackkeys.c (x TEXT). Ends with a control that must FAIL.
+# replay: current
+wait : heap internal 30
+sleep 3
+send WIPE
+expect wipe: both slots erased
+send RESTART
+expect load: no image: MEMORY CLEAR 30
+expect ver=0.88 30
+wait READY 30
+send K42
+sleep 0.25
+send K42
+sleep 0.25
+send K36
+sleep 0.25
+send K18
+sleep 0.25
+send K2
+sleep 0.25
+send K42
+sleep 0.25
+send K30
+sleep 0.25
+send K43
+sleep 0.25
+send K38
+sleep 0.25
+send K34
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K46
+sleep 0.25
+send K32
+sleep 0.25
+send K3
+sleep 0.25
+send K37
+sleep 0.25
+send K37
+sleep 0.25
+send K18
+sleep 0.25
+send X
+expect 2×X+5=11 10
+# ▸ (EQN MORE), →X: the expression in X, the bar
+send K5
+sleep 0.25
+send K0
+sleep 0.25
+send X
+expect state: X='2×X+5=11' 10
+expect soft1=SIMP 10
+send FRAMECRC
+expect framecrc: rows 21-205 BDFD5455 10
+# 2 ×: both sides doubled (084)
+send K38
+sleep 0.25
+send K34
+sleep 0.25
+send X
+expect state: X='(2×X+5)×2=11×2' 10
+expect soft1=SIMP 10
+# the bar's SIMP
+send K0
+sleep 0.25
+send X
+expect state: X='4×X+10=22' 10
+expect soft1=SIMP 10
+send FRAMECRC
+expect framecrc: rows 21-205 759DB830 10
+# the bar's SOLVE, in X: the report, its own bar
+send K2
+sleep 0.25
+send K33
+sleep 0.25
+send X
+expect rep=SOLVED: X=3 | row=SOLVED 10
+expect soft1=▲ 10
+send FRAMECRC
+expect framecrc: rows 21-205 6288D7A8 10
+# ▼, ENTER: the root in X, the bar gone
+send K1
+sleep 0.25
+send K18
+sleep 0.25
+send X
+expect state: X=3  10
+expect soft1=- 10
+send FRAMECRC
+expect framecrc: rows 21-205 0FD1D5D2 10
+send X
+expect-min stack-free 8188 10
+# CONTROL: must FAIL
+expect framecrc: rows 21-205 00000000 3
