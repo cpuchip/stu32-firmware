@@ -1,5 +1,6 @@
 # Unit 089 (work/worksheet-1-rows.md): the worksheet's rows, by the %ROW dump (abacus #13990): %ROWS=n, %ROW-k=S:OP:LINKS:VALUE
-# (k = 1 the newest), %ROWV-k~VALUE, %ROWTXT-k=, %ROWFLAG-k=, %LBL:L=S, %ROWDROP=n. The rulings: R1 (operand order, the
+# (k = 1 the newest), %ROWV-k~VALUE, %ROWTXT-k=, %ROWFLAG-k=, %LBL:L=S (L a level, LASTX,
+# ANS, or a letter; @L is the letter, so the letters X, Y, Z, T are @X..@T), %ROWDROP=n. The rulings: R1 (operand order, the
 # deepest level first, a letter after), R2 (a row once), R3 (a key that ends a number's entry makes its NUM row first;
 # CHS and E inside it are the number's), R4 (LASTx and RCL make a row linked to the value's), abacus #13991.
 # Each expectation below was worked out by hand before the first run.
@@ -26,6 +27,8 @@ A02 | ALG links the letter it reads (c) | STU 5 STO:A ALG RCL:A * 2 ENTER | %ROW
 A03 | ALG links ANS's row | STU ALG 2 + 3 ENTER ANS + 1 ENTER | %ROWS=2 %ROW-1=2:ALG:1:6 %ROWTXT-1=ANS+1
 A04 | ALG: four reads link the first three and set the flag | STU 1 STO:A 2 STO:B 3 STO:C 4 STO:D ALG RCL:A + RCL:B + RCL:C + RCL:D ENTER | %ROWS=5 %ROW-1=5:ALG:1,2,3:10 %ROWFLAG-1=more
 A05 | ALG: a letter read twice is linked once | STU 3 STO:A ALG RCL:A * RCL:A ENTER | %ROWS=2 %ROW-1=2:ALG:1:9 %ROWFLAG-1=none
+L05 | DSE changes A in place: its row, no longer its value's, is dropped | STU 10.00203 STO:A DSE:A | %LBL:@A=0 @A=7.00203 %ROWS=1
+G03 | SOLVE: one row, linked to X's guess; the root it stores in the letter holds that row | STU PRGM CLPGM LBL:Q RCL:X SQ RCL:X + 6 - RTN PRGM 0 STO:X 10 FN=:Q SOLVE:X | X=2 @X=2 %ROWS=3 %ROW-1=3:SOLVE:2:2 %LBL:X=3 %LBL:@X=3
 G01 | a program's run is one row, linked to X's when it started | STU PRGM LBL:A 2 * RTN PRGM 5 XEQ:A | %ROWS=2 %ROW-1=2:XEQ:1:10 %LBL:X=2
 G02 | R/S with no program: nothing ran, no row | STU RS | %ROWS=0
 X01 | CMPLX +: each part links its own levels, deepest first | STU 1 ENTER 2 ENTER 3 ENTER 4 CMPLX:+ | %ROWS=6 %ROW-2=5:CMPLX:2,4:6 %ROW-1=6:CMPLX.2:1,3:4

@@ -39,6 +39,7 @@
 #include "standin.h"
 #include "state.h"
 #include "store.h"
+#include "rows.h"
 #include "dev_common.h"
 #include "dev_bench.h"
 #include "arena.h"
@@ -58,7 +59,8 @@
 
 enum { EV_KEY = 0, EV_OP, EV_DUMP, EV_SAVE, EV_WIPE, EV_RESTART, EV_TOUCHED, EV_BENCH, EV_TIME, EV_POWBENCH,
        EV_KEYUP, EV_TBLBENCH, EV_GRBENCH, EV_FRAMEBENCH, EV_FRAMECRC,
-       EV_POLBENCH, EV_ZOOMBENCH, EV_CASBENCH, EV_DIFFBENCH, EV_FNBENCH, EV_HPBENCH, EV_PROGBENCH, EV_EQNBENCH, EV_OPBENCH };                          /* EV_KEYUP: a the key released (unit 030: SHOW, held) */
+       EV_POLBENCH, EV_ZOOMBENCH, EV_CASBENCH, EV_DIFFBENCH, EV_FNBENCH, EV_HPBENCH, EV_PROGBENCH, EV_EQNBENCH, EV_OPBENCH,
+       EV_ROWBENCH };                          /* EV_KEYUP: a the key released (unit 030: SHOW, held) */
 static char time_text[16];             /* TIME's argument, for the calc task (unit 027) */
 
 typedef struct {
@@ -1049,6 +1051,67 @@ static __attribute__((noinline)) void bench(void)
     heap_caps_free(c2);
 }
 
+/* ROWBENCH (unit 089, work/089-worksheet-rows.md): the worksheet's costs, in a second calculator in PSRAM, STU's RPN.
+   Two pages: none, and the worst (the 64 KB page full of (1 +) rows, and each of the 33 values a save keeps holding a
+   row of the largest kind: 191 B typed, three links, a 191-byte expression). For each: a key's time ((1 +), 100
+   times: with the page full each new row moves the oldest out), UNDO's per-key walk (ab_state_save and ab_state_same,
+   the image without the page), and the device's save (dev_image_save's bytes and time). The worst page's image is
+   then written to the flash through the store and timed, and the calculator's own state saved again over it. */
+static __attribute__((noinline)) void rowbench(void)
+{
+    ab_calc *c2 = heap_caps_calloc(1, sizeof *c2, MALLOC_CAP_SPIRAM);
+    if (!c2) {
+        printf("rowbench: no room for a second calculator\n");
+        return;
+    }
+    for (int pass = 0; pass < 2; pass++) {
+        ab_init(c2);
+        ab_do_arg(c2, AB_MODEL, AB_MODEL_STU);
+        if (pass) {
+            while (c2->rows_dropped == 0) ab_do(c2, AB_K1), ab_do(c2, AB_ADD);
+            char t[AB_EQN_LEN];
+            for (int i = 0; i < AB_EQN_LEN - 1; i++) t[i] = i % 2 ? '+' : (char)('A' + i / 2 % 26);
+            t[AB_EQN_LEN - 1] = '\0';
+            for (int i = 0; i < 33; i++) {
+                ab_val v;
+                uint32_t lk[3] = {c2->row_top, c2->row_top - 1, c2->row_top - 2};
+                if (ab_expr_new(c2, t, &v) != ABN_OK) break;
+                ab_val *at = i == 0 ? &c2->x : i == 1 ? &c2->y : i == 2 ? &c2->z : i == 3 ? &c2->t : i == 4 ? &c2->lastx
+                           : i == 5 ? &c2->ans : &c2->var[i - 6];
+                *at = v;
+                ab_rows_test_append(c2, at, t, strlen(t), lk, 3);
+            }
+        }
+        uint32_t held[33];
+        int nh = ab_rows_held(c2, held);
+        int64_t k0 = esp_timer_get_time();
+        for (int i = 0; i < 100; i++) ab_do(c2, AB_K1), ab_do(c2, AB_ADD);
+        int64_t k1 = esp_timer_get_time();
+        size_t n = 0, m = 0;
+        int same = 0;
+        for (int i = 0; i < 50; i++) n = ab_state_save(c2, image, IMAGE_CAP);
+        int64_t u1 = esp_timer_get_time();
+        for (int i = 0; i < 50 && n; i++) same += ab_state_same(c2, image, n);
+        int64_t u2 = esp_timer_get_time();
+        for (int i = 0; i < 10; i++) m = dev_image_save(c2, &app.set, image, IMAGE_CAP);
+        int64_t u3 = esp_timer_get_time();
+        printf("rowbench: %s: rows %d in %u B (dropped %u), held %d; a key (1 +) %lld us; UNDO's save %lld us and same "
+               "%lld us (%u B, same=%d of 50); the device's save %lld us (%u B)\n",
+               pass ? "the worst page" : "no page", ab_rows_count(c2), (unsigned)c2->rows_len,
+               (unsigned)c2->rows_dropped, nh, (long long)(k1 - k0) / 200, (long long)(u1 - k1) / 50,
+               (long long)(u2 - u1) / 50, (unsigned)n, same, (long long)(u3 - u2) / 10, (unsigned)m);
+        if (pass && flash.ctx && m <= IMAGE_CAP) {
+            int64_t f0 = esp_timer_get_time();
+            int rc = ab_store_save(&flash, image, (uint32_t)m);
+            int64_t f1 = esp_timer_get_time();
+            printf("rowbench: the worst page's save to the flash: %u B, %s, %lld ms\n", (unsigned)m, rc == 0 ? "ok" : "FAILED",
+                   (long long)(f1 - f0) / 1000);
+            save();                             /* the calculator's own state written again over it */
+        }
+    }
+    heap_caps_free(c2);
+}
+
 /* ---- the tasks ---- */
 
 /* A key from the touch panel or the console. C or R/S during a run interrupt it here and now
@@ -1139,6 +1202,7 @@ static void console_task(void *arg)
         else if (!strcmp(line, "PROGBENCH")) e.kind = EV_PROGBENCH;      /* unit 045: a program loop */
         else if (!strcmp(line, "EQNBENCH")) e.kind = EV_EQNBENCH;        /* unit 049: equations evaluated */
         else if (!strcmp(line, "OPBENCH")) e.kind = EV_OPBENCH;          /* after unit 050: a cube's stages */
+        else if (!strcmp(line, "ROWBENCH")) e.kind = EV_ROWBENCH;        /* unit 089: the worksheet's rows' costs */
         else if (!strcmp(line, "DIFFBENCH")) e.kind = EV_DIFFBENCH;  /* apps.h v1.2 item 1: the line diff's time */
         else if (!strcmp(line, "FNBENCH")) e.kind = EV_FNBENCH;      /* unit 044 rule 4: each function's time */
         else if (!strcmp(line, "HPBENCH")) e.kind = EV_HPBENCH;      /* the hp speed proposal: each primitive's time */
@@ -1221,6 +1285,8 @@ static void calc_task(void *arg)
             eqnbench();
         } else if (got && ev.kind == EV_OPBENCH) {
             opbench();
+        } else if (got && ev.kind == EV_ROWBENCH) {
+            rowbench();
         } else if (got && ev.kind == EV_DIFFBENCH) {
             diffbench();
         } else if (got && ev.kind == EV_FNBENCH) {

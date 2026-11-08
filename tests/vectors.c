@@ -731,6 +731,8 @@ static void rows_print(const ab_calc *c)
 
 static const ab_val *lbl_val(const ab_calc *c, const char *l)
 {
+    if (l[0] == '@' && ((l[1] >= 'A' && l[1] <= 'Z') || l[1] == 'i') && !l[2])     /* @L: the letter, as @A= reads it */
+        return &c->var[l[1] == 'i' ? 26 : l[1] - 'A'];
     if (!strcmp(l, "X")) return &c->x;
     if (!strcmp(l, "Y")) return &c->y;
     if (!strcmp(l, "Z")) return &c->z;

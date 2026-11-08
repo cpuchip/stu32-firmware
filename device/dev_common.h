@@ -22,6 +22,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "games.h"                              /* GAMES_PINS (unit 069) */
+#include "rows.h"                               /* unit 089: the dump's rows: line */
 #include "screen.h"
 #include "version.h"
 
@@ -191,6 +192,9 @@ static __attribute__((noinline, unused)) void dev_dump(const ab_calc *calc, app_
         printf("view: %s | %s | %s | %s\n", ui.view[0] ? ui.view[0] : "-", ui.view[1] ? ui.view[1] : "-",
                ui.view[2] ? ui.view[2] : "-", ui.view[3] ? ui.view[3] : "-");
     printf("app: %s\n", app_running(app) ? app->app->name : "-");          /* unit 037 */
+    printf("rows: %d top=%lu next=%lu dropped=%lu x=%lu y=%lu\n", ab_rows_count(calc), (unsigned long)calc->row_top,
+           (unsigned long)calc->rows_next, (unsigned long)calc->rows_dropped, (unsigned long)calc->x.row,
+           (unsigned long)calc->y.row);                                 /* unit 089: the page */
     char row[AB_EQN_LEN], drawn[256];           /* unit 079: the report's row under the cursor, as the screen shows it;
                                                    unit 080: the shown equation's 2D form as text (tutor #10917) */
     printf("eqn: %s | note=%s | rep=%s | row=%s | drawn=%s\n", calc->eqn_mode && calc->eqn_cur >= 0 ? calc->eqn[calc->eqn_cur] : "-",

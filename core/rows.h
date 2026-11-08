@@ -45,6 +45,8 @@ enum { AB_ROWK_NONE,    /* makes no value on the stack (a setting, a menu, a tes
        AB_ROWK_RUN };   /* runs program lines or a solver: one row for X when it stops */
 /* Test hook (tests/rows_test.c): a NUM row for v, its serial stamped in v; 0 if it can't be written */
 uint32_t ab_rows_test_stamp(ab_calc *c, ab_val *v);
+/* Bench hook (the stand-in's ROWBENCH): a NUM row for v with the text and links given, the largest a row can be */
+uint32_t ab_rows_test_append(ab_calc *c, ab_val *v, const char *text, size_t tlen, const uint32_t *link, int nlink);
 typedef struct {
     unsigned makes, reads;
     int src;

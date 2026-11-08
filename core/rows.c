@@ -221,6 +221,13 @@ uint32_t ab_rows_test_stamp(ab_calc *c, ab_val *v)
     return s;
 }
 
+uint32_t ab_rows_test_append(ab_calc *c, ab_val *v, const char *text, size_t tlen, const uint32_t *link, int nlink)
+{
+    uint32_t s = append(c, AB_ROW_OP_NUM, 0, 0, link, nlink > AB_ROW_LINKS ? AB_ROW_LINKS : nlink, text, tlen, v);
+    if (s) v->row = s;
+    return s;
+}
+
 void ab_rows_loaded(ab_calc *c)
 {
     for (int i = 0; i < 33; i++) {
@@ -382,8 +389,9 @@ static void stale(ab_calc *c, bool run)
     }
     for (int i = 0; i < 27; i++) {
         ab_val *v = &c->var[i];
-        if (v->row == r->pre_var[i] && !same_val(c, v, &r->var0[i]))
-            v->row = run && same_val(c, v, &c->x) ? c->x.row : 0;     /* SOLVE's root stored in its letter */
+        if (same_val(c, v, &r->var0[i])) continue;
+        if (run && same_val(c, v, &c->x)) v->row = c->x.row;   /* SOLVE's root stored in its letter, however written */
+        else if (v->row == r->pre_var[i]) v->row = 0;
     }
 }
 

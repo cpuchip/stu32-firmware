@@ -291,10 +291,11 @@ static void format(void)
         size_t len = c.rows_len;
         rec[len] = 0xAB, rec[len + 1] = 0xCD;       /* two bytes a later build appends */
         rec[0] = (uint8_t)(len + 2);
-        expect(ab_rows_parse(rec, len + 2, &r) && r.serial == 1 && r.vlen == 22 + 2, "a longer record parses");
+        bool parsed = len > 0 && ab_rows_parse(rec, len + 2, &r);
+        expect(parsed && r.serial == 1 && r.vlen == 22 + 2, "a longer record parses");
         ab_val v;
         char t[AB_EQN_LEN];
-        expect(!ab_val_decode(r.val, r.vlen, &v, t, sizeof t) && ab_val_decode(r.val, 22, &v, t, sizeof t),
+        expect(parsed && !ab_val_decode(r.val, r.vlen, &v, t, sizeof t) && ab_val_decode(r.val, 22, &v, t, sizeof t),
                "its value is read by its own length: the tail is past it");
     }
 
