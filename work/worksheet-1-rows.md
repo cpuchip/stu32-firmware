@@ -178,3 +178,94 @@ two links, 17 with three), 1 for the text's length, and the value.
   longer length than this build knows, skipped.
 - The image version and its fixture, as 082's: an older build refuses the newer image, as today.
 - D68: the arena's PSRAM and the code's flash. The per-key UNDO walk measured on the stand-in, before and after.
+
+## Unit 089: the answers to abacus #13989 (a to e) and the test dump
+
+abacus numbered this unit **089** (#13989), took leans 1, 2, 3, 5 and 6 as written, and moved 4 (T's copy-down) to part
+2. Five things for the build to settle, each with its test:
+
+### a. A link to a row far back
+
+- **What breaks:** with 2 B back-distances, RCL A can't be written when A's STO is more than 65,535 rows back. Serials
+  never reuse and survive power-off, so it can happen.
+- **Lean: links are absolute serials, 4 B each, not distances.**
+  - **Why not abacus's lean (0, "older than the page"):** with (b) below, the row a letter holds is kept on the page.
+    A distance cap would then cut a link to a row that is still there.
+  - **Cost:** 2 B more per link. An op's number result with two links is 42 B (2 + 4 + 4 + 1 + 2 × 4 of fields, 1 for
+    the text's length, 22 for a real), not 39, so 8 KB keeps 195 number rows, not 210.
+  - **The only edge left is the serial's own end:** a 32-bit serial runs out after 4,294,967,295 rows (13.6 years at
+    ten rows a second without a pause). Rule: when the next serial would be 0, the page starts again from 1. Every row
+    is dropped, every level and letter has row 0, and the dropped count says how many went.
+- **Tests:**
+  - a link across 65,535 and 65,536 rows (a test hook sets the next serial), both resolved;
+  - the wrap: next serial 0xFFFFFFFF, then one more row. The page restarts and labels and links resolve to nothing.
+  - If abacus prefers 0, "older than the page", with 2 B distances, the same two tests apply with their rule.
+
+### b. Rows the live state references
+
+- **Agreed.** The save keeps every row a value still holds, past the budget: X, Y, Z, T, LASTx, ANS and the 27 letters
+  (A-Z and i). That is 33 records at most, the rest of the budget for the newest rows.
+- **The worst case:** 33 records of 409 B (the corpus's largest row, 402 B at 16 B of fields, with three 4 B links)
+  is 13,497 B past the 8 KB. The build measures the save's write time with
+  them all held (the stand-in, SAVE's "save: n bytes, ok, t ms" line).
+- **ANS** is in the set because STU's ALG keeps it as a value. The 16 history values (hist_val) are replaced by rows
+  in part 2, so part 1 leaves them as they are.
+- **Tests:** a letter whose row is older than the cut survives a save and load, and its label resolves. A level whose
+  row was dropped from the arena (64 KB full) shows row 0 after the save, as a clear does.
+
+### c. ALG's links
+
+- **Rule:** an ALG line's row links to the rows of the values it read, in the order the line first reads them. ANS,
+  each letter A-Z and i each count once. At most three; a fourth or later sets a flag bit, "more read", and has no
+  link.
+- **Where:** every value a line reads passes through one function, eqn.c's `take_val` (ANS at line 615, the letters
+  at 626, i at 634). The evaluator records each source's `row` there, when the worksheet asks.
+- **No link:** indirect reads ((I), (J): numbers, not values) and constants.
+- **A recalled history line** (▲ then ENTER, or ENTER on an empty line) is a new line, a new row, linked by what it
+  reads now.
+- **Tests:** `5 STO:A STU ALG RCL:A × 2 ENTER` (one link, to A's row). `ANS + 1` (one link, to ANS's row). A line
+  reading A, B, C and D (three links and the flag). A line reading A twice (one link).
+
+### d. The invariant beside the census
+
+- **Agreed, in make test:** after any STU op, a level whose value is new carries a new row, unless the table marks the
+  op as a move. "New" means different from every level, LASTx, ANS and letter before the op.
+- **The run:** the census's ops on its four bases, with the letters set to 27 distinct non-zero values (the
+  prototype's letters at 0 hid RCL×'s read). K3 on X = 3 stays undetectable, as abacus says. A table entry that says
+  "makes nothing" for an op that does fails the invariant on the other bases.
+- **The census itself runs beside it:** a level the table links must be one the op reads, by perturbation. That catches
+  a wrong link, which the invariant can't.
+
+### e. Nothing drawn moves
+
+- **Agreed.** Part 1 draws nothing. Every vector, screen_test's 48/48 frames and standin_replay's frames stay byte for
+  byte, as do the 33s and 35s paths.
+- **The image version:** 22 to 23, written only when the content needs it (ab_state_save writes the lowest version).
+  A state with no row anywhere still writes 22 byte for byte, so the existing fixtures keep their bytes.
+- **A collision to fix in the same build:** tests/golden-v23-4c.img is today's synthetic "a newer firmware's image"
+  fixture (expr_test's 4C, body CRC DB1E755E). When this build is 23, it isn't newer any more. It is remade at 24 with
+  scripts/mk_golden_newer.py, seen red (left at 23: "newer than this build" fails), then green. That is the only planned
+  fixture move, besides 089's own new fixture of a version-23 image with rows.
+
+### The test dump: `%ROW` directives (tests/vectors.c)
+
+These are tokens like the others: no spaces (`_` for a space in text), and the value compared as `X=` compares.
+
+| directive | reads |
+|---|---|
+| `%ROWS=n` | rows on the page, the hidden ones (after UNDO) not counted |
+| `%ROW-k=S:OP:LINKS:VALUE` | the k-th row from the newest (k = 1 the newest): its serial; the op's name as calc.h spells it without `AB_` (`ADD`, `SQRT`, `RCL`), `NUM` for a typed number, `ALG` for an ALG line, with `.2` for an op's second value (→POL's); its links as serials joined by `,`, or `-`; its value |
+| `%ROWV-k~VALUE`, `%ROWV-k^VALUE` | the value alone, with `~` (12 digits) or `^` (8 ulp), as `X~` |
+| `%ROWTXT-k=text` | the row's text (ALG's line, a typed number's keys), `none` if empty |
+| `%ROWFLAG-k=more` | the "more read" flag (c) |
+| `%LBL:L=S` | the serial a value holds: L is X, Y, Z, T, LASTX, ANS or a letter; 0 for none |
+| `%ROWDROP=n` | rows dropped, by the budget at a save or by the arena |
+
+- **VALUE's forms:**
+  - a number, read by the vectors' own normalizer (`8`, `-2.5`, `1E-5`);
+  - `C:re,im` for a complex number, `V:a,b,c` for a vector;
+  - `E:text` for an expression;
+  - `L:A` for a name.
+- **Example:** `5 ENTER 3 +` gives `%ROWS=3 %ROW-3=1:NUM:-:5 %ROW-2=2:NUM:-:3 %ROW-1=3:ADD:1,2:8 %LBL:X=3`.
+- **On a failure,** the line prints the whole page, newest last, one row per line in the same S:OP:LINKS:VALUE form,
+  so a hidden row's miss is readable.
