@@ -157,3 +157,28 @@ All at 6081504 unless named (465bcb4 is 1095994 with clang's one-line fix; 60815
 - Offered from here: format each page row once a frame (about half of the full page's 4.8 ms on the stand-in).
 - Michael's note on the levels (#14050: "The HP 50g just has them always numbered. Maybe we should just drop x y z t in
   stu mode?") is abacus's councilling; nothing here depends on it beyond the letters' drawing (draw_page).
+
+## After the acceptance (abacus #14082, f3cb7de)
+
+- **h090 adopted** (8256dab): tests/h090-abacus.txt (5,364 B, sha256 3ad3f033...) and tests/h090-Bp-abacus.txt (1,599 B,
+  eb90e05f...), byte-identical to #14084 and #14085, in make test: 20/20 vectors and 80/80 expectations, 10/10 and 26/26.
+- **(1) Each page row formatted once a frame, and (2) the rule's room** (a66f409):
+  - The plan draws each line with the texts it formats to decide it (`pg_draw`, set by screen_render around compose),
+    cut as draw_line cuts a line with no cursor (`pg_draw_text`); draw_page draws only the rule. screen_lines still
+    formats for its own text.
+  - The page's lowest line is 2 px higher (PG_RULE) and the rule sits in the middle of the gap: 3 px above it, 4 below.
+  - Format-once alone is pixel-identical: with PG_RULE 0 and the rule back at +2, all 58 frames match the references
+    as they were. The gap moves frames 43, 45 and 49-58, and page090's, arith084's and cas088's CRCs (replayed).
+  - make test rc 0: 209 lines, 21,332 vectors, 57,782 expectations (every `n/n vectors` line, repeats included).
+  - The stand-in (a66f409): page090 9 PASS, 2CE8A469 before and after a restart (the host's); arith084 12 PASS and
+    cas088 18, each missing only its `ver=` and its control. Its first page090 run lost the port at the reset after the
+    flash (ACM3 to ACM1; fu-standin-page090-try1-port-lost.out); the run without a flash passed.
+  - The frame, before → after (ROWBENCH): the stand-in, full page 4,768 → 3,663 µs, worst 3,235 → 2,931 µs, no page
+    478 → 466; Rev A's main head-less, full 3,208 → 2,907 µs, worst 2,659 → 2,563 µs. That's 23% off the stand-in's full
+    page, not the half I offered: the second formatting was less of the frame than my arithmetic made it.
+  - Rev A's head-less saves this run: 246, 618 and 893 ms (no page, full, worst), against 25, 299 and 788 ms in the
+    first. The worst is still under lean 7's 1 s, by 11%: a save's time on this flash varies more than a frame's, and the
+    margin is thinner than one run showed.
+  - PROGBENCH (a66f409, the restore run): SIN 274 ms, LN 384 ms.
+  - Claims: lepton docker soroban-* 4 GiB and the stand-in board 23:45-23:56Z; peak 174 MiB (docker stats every 2 s,
+    106 samples, the restore's build not sampled). The board left on the stand-in's image at a66f409.
