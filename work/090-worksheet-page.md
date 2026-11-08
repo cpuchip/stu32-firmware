@@ -120,8 +120,8 @@ All at 6081504 unless named (465bcb4 is 1095994 with clang's one-line fix; 60815
   - The moved scripts, run unedited on 465bcb4: arith084 12 PASS, cas088 18, expr082 14; each misses only its `ver=`
     line (0.84, 0.88, 0.83) and its control, so their new CRCs, the after-restart ones included, are the board's.
   - rows089 (089's own) 18 PASS; misses only its three `ver=0.89` lines and its control.
-  - ROWBENCH (6081504's code, standin-rowbench090-walk.out; the first run, standin-rowbench090.out, agrees within a
-    few percent):
+  - ROWBENCH (6081504's code, standin-rowbench090-walk.out; the first run, standin-rowbench090.out, gave frames within
+    2% and saves of 43, 180 and 464 ms: a save's time varies more than a frame's):
 
     | | no page | the full page (1,416 rows, 57,348 B) | the worst (33 held 409 B rows) |
     |---|---|---|---|
