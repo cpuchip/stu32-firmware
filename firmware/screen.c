@@ -1444,7 +1444,7 @@ void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
     out->pagetop = -1;                          /* unit 090: the worksheet */
     if (k->page) {
         out->page_on = true;
-        snprintf(out->levels, sizeof out->levels, "%s", k->alg ? "-" : "TZYX" + 4 - k->levels);
+        snprintf(out->levels, sizeof out->levels, "%s", k->alg ? "-" : &"TZYX"[4 - k->levels]);
         out->page_n = k->pg_n;
         for (int i = 0; i < k->pg_n; i++)
             pg_line_text(c, ui, k, i, out->page[i].left, sizeof out->page[i].left, out->page[i].value,
