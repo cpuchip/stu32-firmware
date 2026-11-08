@@ -1,0 +1,42 @@
+casim 175c160a1b3c778ab67f049fe14baac81d1e23e2
+casim 175c160a1b3c778ab67f049fe14baac81d1e23e2
+
+### standin: 915bcdb -> 1095994
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,319,280 | 2,325,616 | +6,336 |
+| internal RAM static (DIRAM, of 341,760) | 207,239 | 207,359 | +120 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 59,022 | 59,022 | +0 |
+| calc_task's frame (under every deep path's stack), B | 144 | 144 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 762,752 -> 769,015 (+6,263)
+- libesp_app_format.a: 74,274 -> 74,378 (+104)
+- libbid.a: 1,435,878 -> 1,435,946 (+68)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 160,235 -> 160,351 (+116)
+- comp: 8276 -> 8392
+
+### reva: 915bcdb -> 1095994
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,251,680 | 2,255,728 | +4,048 |
+| internal RAM static (DIRAM, of 341,760) | 215,190 | 215,302 | +112 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 78,086 | 78,086 | +0 |
+| calc_task's frame (under every deep path's stack), B | 128 | 128 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 707,358 -> 711,455 (+4,097)
+- libesp_app_format.a: 73,322 -> 73,362 (+40)
+- libc.a: 83,937 -> 83,969 (+32)
+- libbid.a: 1,388,944 -> 1,388,928 (-16)
+- libesp_driver_i2c.a: 10,136 -> 10,128 (-8)
+- libesp_driver_spi.a: 9,717 -> 9,713 (-4)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 133,153 -> 133,269 (+116)
+- comp: 8276 -> 8392
+rc=0
