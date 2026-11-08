@@ -1,0 +1,41 @@
+# abacus's hidden cases for the worksheet, part 2 (the page), written 2026-11-08 from soroban's blueprint at
+# stu32-firmware ad31f3d (work/worksheet-2-page.md with Revision 1) and abacus's rulings (#14041). The expected lines
+# come from abacus's own model of the stack (HP 32SII/35s lift, depth 4), part 1's rows (R1-R4) and the blueprint's
+# layout, not from soroban's prototype. This file holds only what is the same under all three ways of drawing the
+# empty levels (A, B, B' on Michael's card worksheet-levels); h090-A.txt, h090-B.txt and h090-Bp.txt hold the rest,
+# and only the one Michael picks is run.
+#
+# The dump's grammar, ruled here so the build prints it (host only, from screen_lines):
+#   %PAGEN=n          the page's lines drawn above the levels: rows, the dropped line, a two-line row counted twice.
+#   %PAGE-k=LEFT|VALUE  k = 1 the lowest page line. LEFT is the op's program-line name (list.c's, "%s %s" with its
+#                     argument) or an ALG row's text; VALUE is the value as the level lines format it (FIX 4 by
+#                     default: 13.0000). Spaces inside either are written _, an empty field is written _ alone. A
+#                     two-line row is LEFT|_ above _|VALUE.
+#   %LEVELS=...       the levels drawn, top to bottom (TZYX, ZYX, YX, X).
+#   %PAGETOP=n|-      the dropped line's count when it is drawn, else -. It is drawn only when n > 0 and the page's
+#                     oldest row is on the screen.
+#   ▲ (HUP) keeps today's order: the first ▲ shows the newest ALG row, each next one older, stopping at the oldest.
+#
+# The levels full, so every option draws TZYX and 4 page lines fit
+P01 | abacus: held rows are drawn in their levels, not on the page; the rest newest lowest | STU 9 ENTER 8 ENTER 7 ENTER 6 + | %ROWS=5 %ROW-1=5:ADD:3,4:13 %LEVELS=TZYX %PAGEN=2 %PAGE-1=_|6.0000 %PAGE-2=_|7.0000 %PAGETOP=-
+P02 | abacus: an op's name at the left; T and Z hold one row, so it is on no page line | STU 9 ENTER 8 ENTER 7 ENTER 6 + 2 * | %LEVELS=TZYX %PAGEN=4 %PAGE-1=_|2.0000 %PAGE-2=+|13.0000 %PAGE-3=_|6.0000 %PAGE-4=_|7.0000
+P03 | abacus: six rows not held, four lines: the newest four | STU 9 ENTER 8 ENTER 7 ENTER 6 + 2 * 3 + | %LEVELS=TZYX %PAGEN=4 %PAGE-1=_|3.0000 %PAGE-2=×|26.0000 %PAGE-3=_|2.0000 %PAGE-4=+|13.0000
+P04 | abacus: a number being typed is X's and on no page line yet | STU 9 ENTER 8 ENTER 7 ENTER 6 + 5 | %LEVELS=TZYX %PAGEN=2 %PAGE-1=_|6.0000 %PAGE-2=_|7.0000
+P05 | abacus: FIX 2 redraws the page's values | STU 9 ENTER 8 ENTER 7 ENTER 6 + FIX2 | %PAGEN=2 %PAGE-1=_|6.00 %PAGE-2=_|7.00
+P06 | abacus: an error replaces X's line and the page stays | STU 9 ENTER 8 ENTER 7 ENTER 6 + 0 / | ERR %ERR=DIV_ZERO %LEVELS=TZYX %PAGEN=2 %PAGE-1=_|6.0000 %PAGE-2=_|7.0000
+P07 | abacus: the far-back Y of the blueprint's p2: the held rows (2, + 13, √x) on no page line | STU 2 ENTER 3 ENTER 4 * 1 + 7 SQRT | %PAGE-1=_|7.0000 %PAGE-2=_|1.0000 %PAGE-3=×|12.0000 %PAGE-4=_|4.0000
+# STO arithmetic makes a row (lean 6 as ruled: A's old row first, then X's; A's old row 0 links X's alone)
+P08 | abacus: STO+ on a fresh A links X's row alone, and no level holds it, so it is on the page | STU 9 ENTER 8 ENTER 7 ENTER 6 + STO+:A | %ROWS=6 %ROW-1=6:STOADD:5:13 %LBL:A=6 @A=13 %LEVELS=TZYX %PAGEN=3 %PAGE-1=STO+_A|13.0000 %PAGE-2=_|6.0000 %PAGE-3=_|7.0000
+P09 | abacus: L03 as ruled | STU 4 STO:A 2 STO+:A | %ROWS=3 %ROW-1=3:STOADD:1,2:6 %LBL:A=3 @A=6
+P10 | abacus: STO- is A - x: A's old row is the left operand | STU 10 STO:A 4 STO-:A | %ROWS=3 %ROW-1=3:STOSUB:1,2:6 %LBL:A=3 @A=6 %PAGEN=1 %PAGE-1=STO-_A|6.0000
+P11 | abacus: 35s mode: STO+ makes no row and no page is drawn | MODE35 4 STO:A 2 STO+:A | %ROWS=0 @A=6 %PAGEN=0 %PAGETOP=-
+P12 | abacus: 33s mode draws no page | MODE33 9 ENTER 8 + | %ROWS=0 %PAGEN=0 %PAGETOP=-
+# ALG: the history is the page's ALG rows
+P13 | abacus: the shown line's row is held by the line; the older line is on the page, its text at the left | STU ALG 2 + 3 ENTER 9 + 4 ENTER | %HIST=2 %PAGEN=1 %PAGE-1=2+3|5.0000
+P14 | abacus: a row too long for one line is two, the value under its text | STU ALG 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12 ENTER 1 ENTER | %PAGEN=2 %PAGE-1=_|78.0000 %PAGE-2=1+2+3+4+5+6+7+8+9+10+11+12|_
+P15 | abacus: ▲ steps through ALG rows only, past an RPN row | STU ALG 2 + 3 ENTER RPN 7 ENTER ALG 9 + 4 ENTER HUP HUP | %HIST=2 %HSEL=2+3
+P16 | abacus: past 16: eighteen lines, all reachable | STU ALG 1 ENTER 2 ENTER 3 ENTER 4 ENTER 5 ENTER 6 ENTER 7 ENTER 8 ENTER 9 ENTER 10 ENTER 11 ENTER 12 ENTER 13 ENTER 14 ENTER 15 ENTER 16 ENTER 17 ENTER 18 ENTER HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP | %HIST=18 %HSEL=2
+P17 | abacus: ▲ stops at the oldest | STU ALG 1 ENTER 2 ENTER 3 ENTER 4 ENTER 5 ENTER 6 ENTER 7 ENTER 8 ENTER 9 ENTER 10 ENTER 11 ENTER 12 ENTER 13 ENTER 14 ENTER 15 ENTER 16 ENTER 17 ENTER 18 ENTER HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP HUP | %HIST=18 %HSEL=1
+P18 | abacus: ENTER on a shown row copies its text to the line | STU ALG 2 + 3 ENTER 9 + 4 ENTER HUP HUP ENTER | %LINE=2+3 %HIST=2
+P19 | abacus: and ENTER again makes a new ALG row | STU ALG 2 + 3 ENTER 9 + 4 ENTER HUP HUP ENTER ENTER | %HIST=3 %ROWS=3 N=5
+P20 | abacus: STO of a shown answer stores its value with its row | STU ALG 2 + 3 ENTER 9 + 4 ENTER HUP HUP STO:A | @A=5 %LBL:A=1

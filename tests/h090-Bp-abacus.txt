@@ -1,0 +1,12 @@
+# abacus's hidden cases for the worksheet, part 2: the empty levels drawn as option B' on Michael's card
+# worksheet-levels (a top level marked bare hidden, the mark set by clears and the fresh state and cleared by any op that makes the level). Same date, sources and grammar as h090.txt. Only the file for the option Michael picks is run.
+V01Bp | abacus: a fresh screen | STU | %LEVELS=X %PAGEN=0
+V02Bp | abacus: a computed 0 in Y has a row and is made: drawn | STU 5 ENTER 5 - 7 | %LEVELS=YX %PAGEN=2
+V03Bp | abacus: CLx: X is always drawn, the cleared levels above it are not | STU 5 ENTER 3 + CLX | %LEVELS=X %PAGEN=3 %PAGE-1=+|8.0000
+V04Bp | abacus: a cleared Y under a full Z is drawn | STU 4 ENTER CLX ENTER 6 | %LEVELS=ZYX
+V05Bp | abacus: fn-02 T02 shape: a program leaves 0 in Y, Z and T cleared | STU PRGM LBL:A 0 ENTER 3 RTN PRGM XEQ:A | X=3 Y=0 %LEVELS=YX
+V06Bp | abacus: CLx ENTER: two cleared zeros, both read as cleared | STU 5 ENTER 3 + CLX ENTER | %LEVELS=X
+V07Bp | abacus: the marks survive a save and load (T_BARE) | STU PRGM LBL:A 0 ENTER 3 RTN PRGM XEQ:A SAVE MEMCLR LOAD | %LEVELS=YX
+V08Bp | abacus: a cleared stack saved and loaded stays cleared | STU 5 ENTER 3 + CLX SAVE MEMCLR LOAD | %LEVELS=X
+V09Bp | abacus: eleven rows, none held: the page fills what the levels leave | STU 1 ENTER 2 + 3 + 4 + 5 + 6 + CLX | %LEVELS=X %PAGEN=7 %PAGE-1=+|21.0000 %PAGE-2=_|6.0000 %PAGE-3=+|15.0000 %PAGE-4=_|5.0000 %PAGE-5=+|10.0000 %PAGE-6=_|4.0000 %PAGE-7=+|6.0000
+V10Bp | abacus: the blueprint p2: T cleared | STU 2 ENTER 3 ENTER 4 * 1 + 7 SQRT | %LEVELS=ZYX %PAGEN=5 %PAGE-5=_|3.0000
