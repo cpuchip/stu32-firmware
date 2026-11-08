@@ -140,12 +140,25 @@ bool ab_rows_parse(const uint8_t *p, size_t n, ab_row *out)
 uint32_t ab_rows_visible_len(const ab_calc *c)
 {
     uint32_t at = 0;
+    /* nothing hidden (the newest row is the page's top): the whole page, without walking it. Each append asks, and the
+       walk over 1,300 rows in PSRAM cost the stand-in about 0.9 ms a key with the page full */
+    if (c->rows_len == 0 || g32(c->rows + c->rows_last + 2) <= c->row_top) return c->rows_len;
     while (at < c->rows_len) {
         uint32_t len = g16(c->rows + at);
         if (g32(c->rows + at + 2) > c->row_top) break;
         at += len;
     }
     return at;
+}
+
+/* UNDO's hidden rows cut off the page's end (a new row takes their place) */
+static void cut_hidden(ab_calc *c)
+{
+    uint32_t end = ab_rows_visible_len(c), at = 0, last = 0;
+    if (end == c->rows_len) return;
+    while (at < end) last = at, at += g16(c->rows + at);
+    c->rows_len = end;
+    c->rows_last = last;
 }
 
 int ab_rows_count(const ab_calc *c)
@@ -268,7 +281,7 @@ static uint32_t append(ab_calc *c, unsigned op, int32_t arg, unsigned flags, con
         flags &= ~AB_ROWF_MORE;
     }
     n = REC_HEAD + 4u * (size_t)nlink + 1 + tlen + vn;
-    c->rows_len = ab_rows_visible_len(c);
+    cut_hidden(c);
     if (c->rows_len + n > AB_ROWS_RAM) {
         /* the page full: the oldest rows dropped AB_ROWS_DROP bytes at a time, so the page moves once for a few
            hundred rows, not for each (the stand-in measured 5,551 us a key moving 64 KB of PSRAM for every row) */
@@ -276,6 +289,7 @@ static uint32_t append(ab_calc *c, unsigned op, int32_t arg, unsigned flags, con
         while (at < c->rows_len && c->rows_len - at + n > AB_ROWS_RAM - AB_ROWS_DROP) at += g16(c->rows + at), k++;
         memmove(c->rows, c->rows + at, c->rows_len - at);
         c->rows_len -= at;
+        c->rows_last = c->rows_len ? c->rows_last - at : 0;
         c->rows_dropped += k;
     }
     uint8_t *p = c->rows + c->rows_len;
@@ -290,6 +304,7 @@ static uint32_t append(ab_calc *c, unsigned op, int32_t arg, unsigned flags, con
     if (tlen) memcpy(p + at, text, tlen);
     at += tlen;
     memcpy(p + at, vb, vn);
+    c->rows_last = c->rows_len;
     c->rows_len += (uint32_t)n;
     c->rows_next = s + 1;
     c->row_top = s;

@@ -819,7 +819,7 @@ static void sec_rowref(rd *r)
 static void sec_rows(rd *r, size_t end)
 {
     ab_calc *c = r->c;
-    uint32_t next = r32(r), dropped = r32(r), n = r32(r), last = 0, total = 0;
+    uint32_t next = r32(r), dropped = r32(r), n = r32(r), last = 0, total = 0, lastat = 0;
     need(r, next <= AB_ROW_SERIAL_LAST + 1);
     for (uint32_t i = 0; i < n && !r->bad; i++) {
         ab_row row;
@@ -840,12 +840,14 @@ static void sec_rows(rd *r, size_t end)
         need(r, total + len <= AB_ROWS_RAM);
         if (r->bad) return;
         if (c) memcpy(c->rows + total, r->p + r->pos, len);
+        lastat = total;
         total += (uint32_t)len;
         last = row.serial;
         r->pos += len;
     }
     if (c && !r->bad) {
         c->rows_len = total;
+        c->rows_last = lastat;
         c->rows_next = next;
         c->rows_dropped = dropped;
     }

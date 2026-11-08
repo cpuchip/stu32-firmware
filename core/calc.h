@@ -480,6 +480,7 @@ typedef struct {
        MEMORY CLEAR empties them). Records appended in serial order (rows.c); a save writes the newest within a budget */
     uint8_t rows[AB_ROWS_RAM];
     uint32_t rows_len;      /* bytes used */
+    uint32_t rows_last;     /* the newest record's offset (rows_len 0: none) */
     uint32_t rows_next;     /* the next serial (0 read as 1): never reused, saved with the rows */
     uint32_t rows_dropped;  /* rows the page has lost (the arena full, a save's budget, the serial's wrap) */
     ab_rowctx rowctx;       /* one key's bookkeeping (rows.c) */
