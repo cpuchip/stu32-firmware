@@ -336,6 +336,8 @@ static void val_line(const ab_val *v, const ab_calc *c, const screen_ui *ui, lin
 #define PG_PITCH 20             /* a line at 2 (14 px) and a gap of 6: at 18 the lines touched (the prototype) */
 #define PG_TOP 22               /* the area's top: below the band's rule */
 #define PG_CELLS ((NUM_R - NUM_X + 2) / 12)     /* a line's cells at 2: a row is one line when its two sides fit */
+#define PG_RULE 2               /* the page's lowest line this much higher than a level's pitch, the rule centred in the
+                                   gap (abacus #14082 (2): at 0 the rule sat on Y's letter) */
 
 static uint32_t rd32(const uint8_t *p) { return (uint32_t)p[0] | (uint32_t)p[1] << 8 | (uint32_t)p[2] << 16 | (uint32_t)p[3] << 24; }
 
@@ -746,6 +748,25 @@ static const char *shown_text(const ab_calc *c, bool *math)
 
 static int xexpr_fit(const ab_calc *c, int *top);
 
+/* Unit 090 (abacus #14082 (1)): screen_render's frame while compose runs, so the plan draws each page line with the texts
+   it formats to decide it (each row formatted once a frame; the frame was 4.8 ms with the page full on the stand-in,
+   most of it a row's formatting done twice). NULL for screen_lines and the rest. */
+static ls027_frame *pg_draw;
+
+/* A page line's text at scale 2 as draw_line draws one with no cursor: from the left or the right, a line longer than
+   the room cut at its end with an ellipsis and drawn from the left */
+static void pg_draw_text(ls027_frame *f, int bot, const char *s, bool left)
+{
+    uint32_t cp[PG_CELLS + 1];
+    int n = screen_decode(s, cp, PG_CELLS + 1);
+    if (n > PG_CELLS) {
+        n = PG_CELLS;
+        cp[n - 1] = 0x2026;
+        left = true;
+    }
+    draw_cps(f, left ? NUM_X : NUM_R - span(n, 2), bot - 14, 2, cp, n, true);
+}
+
 /* Unit 090: the page's plan, from one walk of the page's records (a frame's cost: blueprint lean 8). The levels: X always,
    the bare ones at the top hidden (B′, Michael's pick), Y kept when it shows a prompt or a label. The page: the newest
    rows that fit above them, each once (a row a level holds is drawn in its level, and in ALG the entry shown is the line
@@ -761,7 +782,7 @@ static void page_plan(const ab_calc *c, const screen_ui *ui, composed *k)
         k->levels = 0;
         k->lvl_bot[0] = PG_XBOT;
         k->lvl_bot[1] = PG_XBOT - 28 - 6;
-        bot = k->lvl_bot[1] - PG_PITCH;
+        bot = k->lvl_bot[1] - PG_PITCH - PG_RULE;
         if (c->hist_row) limit = c->hist_row;
         else if (c->alg_shown && c->ans.row) held[nh++] = c->ans.row;
     } else {
@@ -772,7 +793,7 @@ static void page_plan(const ab_calc *c, const screen_ui *ui, composed *k)
         if (k->xexpr && xexpr_fit(c, &top)) xtop = k->xe_top = top;
         k->lvl_bot[0] = PG_XBOT;
         for (int i = 1; i < 4; i++) k->lvl_bot[i] = i == 1 ? xtop - 6 : k->lvl_bot[i - 1] - PG_PITCH;
-        bot = n > 1 ? k->lvl_bot[n - 1] - PG_PITCH : xtop - 6;
+        bot = (n > 1 ? k->lvl_bot[n - 1] - PG_PITCH : xtop - 6) - PG_RULE;
         for (int i = 0; i < n; i++) held[nh++] = lv[i]->row;
     }
     k->pg_bot0 = bot;
@@ -799,17 +820,26 @@ static void page_plan(const ab_calc *c, const screen_ui *ui, composed *k)
         pg_texts(c, ui, at, l, sizeof l, v, sizeof v);
         bool one = pg_one_line(l, v);
         if (used + (one ? 1 : 2) > avail) break;
+        int b0 = bot - used * PG_PITCH;
         if (one) {
             k->pg[used].at = at, k->pg[used++].part = 0;
+            if (pg_draw && l[0]) pg_draw_text(pg_draw, b0, l, true);
+            if (pg_draw && v[0]) pg_draw_text(pg_draw, b0, v, false);
         } else {
             k->pg[used].at = at, k->pg[used++].part = 2;
             k->pg[used].at = at, k->pg[used++].part = 1;
+            if (pg_draw) pg_draw_text(pg_draw, b0, v, false), pg_draw_text(pg_draw, b0 - PG_PITCH, l, true);
         }
         drawn++;
     }
     if (drawn == matched && c->rows_dropped && used < avail) {
         k->pg[used].at = 0, k->pg[used++].part = 3;
         k->pg_top = (long)c->rows_dropped;
+        if (pg_draw) {
+            char t[48];
+            snprintf(t, sizeof t, "%ld OLDER ROWS DROPPED", k->pg_top);
+            pg_draw_text(pg_draw, bot - (used - 1) * PG_PITCH, t, true);
+        }
     }
     k->pg_n = used;
 }
@@ -1324,25 +1354,8 @@ static void draw_page(ls027_frame *f, const ab_calc *c, const screen_ui *ui, com
         }
     }
     if (k->pg_n > 0)                            /* the rule between the page and the levels */
-        for (int x = 0; x < W; x += 3) put(f, x, k->pg_bot0 + 2, true);
-    line *sl = &k->t;                           /* (T is drawn: its line's room draws the page's, one at a time) */
-    for (int i = 0; i < k->pg_n; i++) {
-        char left[AB_EQN_LEN], val[AB_EQN_LEN + 4];
-        int bot = k->pg_bot0 - i * PG_PITCH;
-        pg_line_text(c, ui, k, i, left, sizeof left, val, sizeof val);
-        if (left[0]) {
-            memset(sl, 0, sizeof *sl);
-            sl->cursor = -1;
-            line_add(sl, left);
-            draw_line(f, bot, 2, sl, true);
-        }
-        if (val[0]) {
-            memset(sl, 0, sizeof *sl);
-            sl->cursor = -1;
-            line_add(sl, val);
-            draw_line(f, bot, 2, sl, false);
-        }
-    }
+        for (int x = 0; x < W; x += 3) put(f, x, k->pg_bot0 + 3, true);
+    (void)ui;                                   /* (the page's lines were drawn by its plan: pg_draw) */
 }
 
 bool screen_drawn(const ab_calc *c, const screen_ui *ui, char *out, int size)
@@ -1458,7 +1471,9 @@ void screen_render(const ab_calc *c, const screen_ui *ui, ls027_frame *f)
     composed *k = &comp;
     screen_clear(f);
     if (ui->blank) return;                      /* 068: the soft off */
+    pg_draw = f;                                /* (unit 090: the page drawn as it's planned) */
     compose(c, ui, k);
+    pg_draw = NULL;
     status_band(f, c, ui, k->ind);
     if (c->gr_on && ui->graph) {                /* a graph in place of the stack (unit 033) */
         draw_graph(f, c, ui);

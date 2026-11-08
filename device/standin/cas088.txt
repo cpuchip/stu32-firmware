@@ -76,7 +76,7 @@ send X
 expect state: X='4×X+10=22' 10
 expect soft1=SIMP 10
 send FRAMECRC
-expect framecrc: rows 21-205 A2B69B89 10
+expect framecrc: rows 21-205 5CB15E5E 10
 # the bar's SOLVE, in X: the report, its own bar (the dump prints soft1= before rep=)
 send K2
 sleep 0.25
@@ -96,7 +96,7 @@ send X
 expect state: X=3  10
 expect soft1=- 10
 send FRAMECRC
-expect framecrc: rows 21-205 3A4959E9 10
+expect framecrc: rows 21-205 A98892E5 10
 send X
 expect-min stack-free 8188 10
 # CONTROL: must FAIL

@@ -43,13 +43,13 @@ send X
 expect-min stack-free 8188 10
 expect rows: 7 top=7 next=8 dropped=0 x=7 y=0 5
 send FRAMECRC
-expect framecrc: rows 21-205 C21C35FD 10
+expect framecrc: rows 21-205 2CE8A469 10
 send SAVE
 expect bytes, ok, 10
 send RESTART
 expect load: 30
 wait READY 30
 send FRAMECRC
-expect framecrc: rows 21-205 C21C35FD 10
+expect framecrc: rows 21-205 2CE8A469 10
 # CONTROL: must FAIL
 expect framecrc: rows 21-205 00000000 3
