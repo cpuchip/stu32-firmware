@@ -1,0 +1,16 @@
+diff --git a/core/abn_intel.c b/core/abn_intel.c
+index 9a89685..d54ce74 100644
+--- a/core/abn_intel.c
++++ b/core/abn_intel.c
+@@ -63,8 +63,11 @@ abn abn_neg(const abn *a)
+  * each means is the caller's. A zero result (of either sign, any exponent) becomes the one zero. */
+ static bool ovf_neg;        /* the sign of the last overflow (abn_overflow_negative) */
+ 
++bool abn_rounded;           /* PROTOTYPE (the mark): set by any accepted call the library rounded */
++
+ static abn_status accept(abn *out, BID_UINT128 r, _IDEC_flags fl)
+ {
++    if (fl & BID_INEXACT_EXCEPTION) abn_rounded = true;
+     if ((fl & BID_INVALID_EXCEPTION) || bid128_isNaN(r)) return ABN_DOMAIN;
+     if ((fl & BID_OVERFLOW_EXCEPTION) || bid128_isInf(r)) {
+         ovf_neg = bid128_isSigned(r);
