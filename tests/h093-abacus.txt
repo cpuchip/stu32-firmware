@@ -1,0 +1,44 @@
+# abacus's hidden cases for unit 093 (the worksheet, part 3: selecting a row), written 2026-11-09 from soroban's
+# blueprint at stu32-firmware a10885a (work/worksheet-3-select.md with Revision 1), abacus's rulings (#14132), and the
+# grammar and tokens in soroban's #14133 and #14135. The expected selections come from abacus's own model of the stack
+# and rows (as h090), on a B' build, not from soroban's prototype.
+#
+# Ruled here where #14133/#14135 leave it open:
+#   - A row COPY makes prints COPY as its %ROW op (the page's left already reads COPY).
+#   - "Newest" for 5 is the row SEL selects on the way in: the lowest page line, else X's row.
+#   - When the selection moves within the drawn window, the window doesn't move. Moving up past the top line scrolls it
+#     one line, with the selected row on the top line.
+#
+# Base A: 1 ENTER 2 ENTER 3 ENTER 4 SQ. Rows 1..4 typed, 5 = x² of 4. T,Z,Y,X hold 1,2,3,5; the page shows row 4 alone.
+T01 | abacus: SEL selects the lowest page line; a typed number links nothing; the number menu | STU 1 ENTER 2 ENTER 3 ENTER 4 SQ SEL | %SEL=4 %PAGEMARK-1=S %LEVELMARK-T=- %LEVELMARK-X=- %SOFT-1=COPY %SOFT-2=STO %SOFT-3=SHOW %SOFT-4=FRAC %SOFT-5=_ %SOFT-6=INFO
+T02 | abacus: 2 moves down from the page into the levels, T first | STU 1 ENTER 2 ENTER 3 ENTER 4 SQ SEL 2 | %SEL=1 %LEVELMARK-T=S %PAGEMARK-1=-
+T03 | abacus: down to X; what made X is marked on the page | STU 1 ENTER 2 ENTER 3 ENTER 4 SQ SEL 2 2 2 2 | %SEL=5 %LEVELMARK-X=S %PAGEMARK-1=L %LEVELMARK-Y=-
+T04 | abacus: INFO names the op and the value it read | STU 1 ENTER 2 ENTER 3 ENTER 4 SQ SEL 2 2 2 2 ROWINFO | %XLINE=x²_OF_4.0000
+T05 | abacus: INFO on a typed number | STU 1 ENTER 2 ENTER 3 ENTER 4 SQ SEL ROWINFO | %XLINE=TYPED
+T06 | abacus: 8 moves up from X to Y | STU 1 ENTER 2 ENTER 3 ENTER 4 SQ SEL 2 2 2 2 8 | %SEL=3 %LEVELMARK-Y=S
+T07 | abacus: 4 does nothing | STU 1 ENTER 2 ENTER 3 ENTER 4 SQ SEL 4 | %SEL=4 %ROWS=5
+T08 | abacus: 6 does nothing | STU 1 ENTER 2 ENTER 3 ENTER 4 SQ SEL 6 | %SEL=4 %ROWS=5
+T09 | abacus: 5 goes back to where SEL began | STU 1 ENTER 2 ENTER 3 ENTER 4 SQ SEL 2 2 5 | %SEL=4
+# Base B: 9 ENTER 8 ENTER 7 ENTER 6 + 2 * 3 +. Rows 1-4 typed, 5 = + 13 (3,4), 6 = 2, 7 = × 26 (5,6), 8 = 3,
+# 9 = + 29 (7,8). Levels X 9, Y 2, Z and T 1. The page holds 8,7,6,5,4,3; four lines show 8,7,6,5.
+T10 | abacus: SEL on a full window | STU 9 ENTER 8 ENTER 7 ENTER 6 + 2 * 3 + SEL | %SEL=8 %PAGEMARK-1=S
+T11 | abacus: up to the top line; its links are off the window, so no dots | STU 9 ENTER 8 ENTER 7 ENTER 6 + 2 * 3 + SEL 8 8 8 | %SEL=5 %PAGEMARK-4=S %PAGEMARK-1=- %PAGEMARK-2=- %PAGEMARK-3=-
+T12 | abacus: up past the top scrolls one line | STU 9 ENTER 8 ENTER 7 ENTER 6 + 2 * 3 + SEL 8 8 8 8 | %SEL=4 %PAGE-4=_|6.0000 %PAGEMARK-4=S %PAGE-1=×|26.0000
+T13 | abacus: and again, to the oldest row the page holds | STU 9 ENTER 8 ENTER 7 ENTER 6 + 2 * 3 + SEL 8 8 8 8 8 | %SEL=3 %PAGE-4=_|7.0000 %PAGE-1=_|2.0000
+T14 | abacus: no further than the oldest | STU 9 ENTER 8 ENTER 7 ENTER 6 + 2 * 3 + SEL 8 8 8 8 8 8 | %SEL=3 %PAGE-4=_|7.0000
+T15 | abacus: down inside the window, which stays; + 13's two inputs are dotted | STU 9 ENTER 8 ENTER 7 ENTER 6 + 2 * 3 + SEL 8 8 8 8 8 2 2 | %SEL=5 %PAGEMARK-2=S %PAGEMARK-3=L %PAGEMARK-4=L %PAGEMARK-1=-
+T16 | abacus: COPY: a row linked to the selected one, its value lifted into X, the screen back to the newest | STU 9 ENTER 8 ENTER 7 ENTER 6 + 2 * 3 + SEL 8 8 8 ROWCOPY | %ROWS=10 %ROW-1=10:COPY:5:13 X=13 Y=29 %SEL=- %PAGE-1=_|3.0000
+T17 | abacus: ENTER on a selected row is COPY | STU 9 ENTER 8 ENTER 7 ENTER 6 + 2 * 3 + SEL 8 8 8 ENTER | %ROWS=10 %ROW-1=10:COPY:5:13 X=13 Y=29 %SEL=-
+T18 | abacus: STO is a move: the letter holds the selected row, no row made | STU 9 ENTER 8 ENTER 7 ENTER 6 + 2 * 3 + SEL 8 8 8 ROWSTO:A | @A=13 %LBL:A=5 %ROWS=9 X=29 %SEL=-
+T19 | abacus: C leaves with nothing changed | STU 9 ENTER 8 ENTER 7 ENTER 6 + 2 * 3 + SEL 8 C | %SEL=- %ROWS=9 X=29
+T20 | abacus: ← leaves with nothing changed | STU 9 ENTER 8 ENTER 7 ENTER 6 + 2 * 3 + SEL 8 BKSP | %SEL=- %ROWS=9 X=29
+T21 | abacus: a digit leaves and starts an entry | STU 9 ENTER 8 ENTER 7 ENTER 6 + 2 * 3 + SEL 7 ENTER | %SEL=- %ROWS=10 X=7 Y=7
+T22 | abacus: another op leaves, then acts on the stack | STU 9 ENTER 8 ENTER 7 ENTER 6 + 2 * 3 + SEL + | %SEL=- %ROWS=10 X=37
+# Entering, and where there is nothing to select
+T23 | abacus: SEL while typing completes the number first | STU 9 ENTER 8 ENTER 7 ENTER 6 + 5 SEL | %ROWS=6 %SEL=4
+T24 | abacus: no rows, nothing selected | STU SEL | %SEL=-
+T25 | abacus: 35s mode: no selection | MODE35 1 ENTER 2 + SEL | %SEL=- %ROWS=0
+T26 | abacus: no selection, no row menu | STU 1 ENTER | %SEL=- %SOFT-1=_
+T27 | abacus: a row-menu token outside a selection does nothing | STU 1 ENTER ROWCOPY | %ROWS=1 X=1 %SEL=-
+T28 | abacus: B' hidden levels are skipped by 2 | STU 5 ENTER 3 + SEL 2 | %SEL=3 %LEVELMARK-X=S %LEVELMARK-Y=?
+T29 | abacus: FRAC is a view: no row, the selection kept | STU 0.5 ENTER 1 + SEL 8 ROWFRAC | %ROWS=3 %SEL=1

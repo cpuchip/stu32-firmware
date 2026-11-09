@@ -280,6 +280,7 @@ test: all
 	                                         # ALG's history is the page's rows; SAVEROWS and SAVE are tested in the file itself)
 	./build/vectors tests/h090-abacus.txt    # (abacus #14084: h090 as frozen, sha256 3ad3f033...)
 	./build/vectors tests/h090-Bp-abacus.txt # (abacus #14085: h090-Bp, Michael's B', as frozen, sha256 eb90e05f...)
+	./build/vectors tests/h093-abacus.txt    # (abacus #14169: h093 as frozen, sha256 ea0d1d08...)
 	./build/vectors tests/093-soroban.txt    # (unit 093: selecting a row; no save/load pass: the selection is RAM only)
 	./build/rows_test
 	./build/eqn_say_test tests/086-corpus.txt    # (unit 086: the round trip over every equation the vectors type)
