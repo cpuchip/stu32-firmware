@@ -1,0 +1,31 @@
+Unit 095's planted faults, each predicted before any was run (src e82416c). The runner (mutants-runner.py, 094's with
+this unit's faults) rebuilds vectors, app_test, screen_test and standin_replay with one fault, runs tests/095-soroban.txt,
+094 and 048 (the report's keys), app_test, screen_test against tests/frames and the stand-in scripts' replay, and names
+what went red. "only" means nothing else goes red. T0 is the control (no fault).
+
+T1  MEMORY CLEAR not clearing the steps (init_fields' ab_steps_clear removed).
+    Predicted SURVIVED: MEMORY CLEAR's init_fields zeroes the whole calculator (keep_hist false), the tail with it, and
+    CLEAR ALL's path clears the steps in ab_rows_clear_all as well. The call is defensive.
+T2  the view computing every page on opening, then showing STEP 1 (steps_open pages k = n-1 .. 0).
+    Predicted SURVIVED: the state it ends in is the same; only the time differs, which STEPBENCH measures (the opening
+    would cost the whole walk: 6.4 s for the four-factor integral on the stand-in), not a test.
+T3  template lines shown (flags 0, not CASIM_STEPS_ONE_LINE).
+    Predicted red: 095 P01-P08 (counts and pages: X^2×SIN(X) has 4 pages with its PRODUCT template first), S01 (the
+    quadratic's 5), S04 (V=I×R: 3 either way, so its last page ANSWER stays green: S04 green), I01 (∫X^2: 2 either way:
+    green); app_test's "STEP 1 of 3, POWER" check; screen_test frame 64 and its check, frame 65 (FORM's page moves:
+    the frame's content changes); the replay's steps095 frames (STEP 1 of the by-parts integral is a template).
+    steps_test green (it pages with its own flag).
+T4  a new CAS op not replacing the request (cas_step's step_op = 0 and step_ans cleared removed).
+    Predicted red: 095 R03 (SIMP after D/DX: the answer still in the list, D:X kept) and R04 (a refused ∫DX after D/DX:
+    D:X kept) only.
+T5  SOLVE's request outliving its report (step_live true for SOLVE whatever the report).
+    Predicted red: 095 S03 only (%STEPREQ after the report closed).
+T6  C from the view closing the report too (steps_key's C also clears cas_rep).
+    Predicted red: 095 S02 (%CASREP), app_test's "C leaves the steps for the report". Not S03 (its second C finds the
+    report already gone: %STEPREQ=- and %CASREP=none either way).
+T7  a page not interruptible (step_page's interrupt check removed).
+    Predicted red: 095 R11 only.
+T8  ▲ from STEP 1 not wrapping (BST stops at STEP 1).
+    Predicted red: 095 P05 and S04 (each presses ▲ from STEP 1 to reach the last) only.
+T9  STEPS on any entry shown (eqn_key's check of the answer's text removed).
+    Predicted red: 095 R08 only (BST shows the source equation; STEPS would open there).
