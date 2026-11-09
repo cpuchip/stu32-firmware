@@ -313,6 +313,7 @@ test: all
 	bash tests/gen_games_test.sh
 	./build/store_test
 	./build/store_sim tests/092-soroban-store.txt   # (unit 092: the ring, the counterexample, older firmware's slots)
+	./build/store_sim tests/h092-abacus.txt   # (abacus #14223: h092 as frozen, sha256 33238a8b..., from tests/h092gen.py)
 	./build/ls027_test
 	./build/draw_test
 	./build/keys_test
