@@ -1,0 +1,5 @@
+# abacus's hidden vectors for unit 097 (the normal distribution), 2026-11-09, beside herf-table.txt: what the table
+# cannot say. CAS in EQN refuses the new names (#14270), and they are STU-only (#14260; soroban did not argue otherwise).
+V01 | abacus: CAS D/DX of ERF refuses by name | STU EQ:ERF(X) CASD:X | ERR %ERR=CAS_UNSUPPORTED
+V02 | abacus: CAS ∫DX of NCDF refuses by name | STU EQ:NCDF(X) CASINT:X | ERR %ERR=CAS_UNSUPPORTED
+V03 | abacus: the 35s mode has no NCDF | MODE35 1 NCDF | ERR %ERR=STU_ONLY

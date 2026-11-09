@@ -49,6 +49,12 @@ U02 | a letter a program stores | STU PRGM CLPGM LBL:P 4 STO:B RTN PRGM XEQ:P CL
 U03 | SOLVE's root | STU PRGM CLPGM LBL:Q RCL:X SQ RCL:X + 6 - RTN PRGM 0 STO:X 10 FN=:Q SOLVE:X | X=2 %ROUNDED-X=R
 U04 | the letter SOLVE stores | STU PRGM CLPGM LBL:Q RCL:X SQ RCL:X + 6 - RTN PRGM 0 STO:X 10 FN=:Q SOLVE:X CLX RCL:X | %ROUNDED-X=R
 U05 | CAS's number in X (2+3×4 to 14) | STU EQ:2+3×4 EQDROP CASSIMP | X=14 %ROUNDED-X=R
+# Underflows flushed to 0 are rounded. These don't close R3 (settle's own note): with that note removed each still
+# reaches the library's flag on the way (measured after 097, abacus #14303); the note stays as the second guard
+U06 | 10^x of -7000 | STU 7000 CHS TENX | X=0 %ROUNDED-X=R
+U07 | 2^x of -30000 | STU 30000 CHS TWOX | X=0 %ROUNDED-X=R
+U08 | e^x of -20000 | STU 20000 CHS EXP | X=0 %ROUNDED-X=R
+U09 | x! of -3000.5 (the core's own underflow: Γ beyond the range) | STU 3000.5 CHS FACT | X=0 %ROUNDED-X=R
 # ALG's line and EQN's evaluation
 A01 | ALG 2+3 exact | STU ALG 2 + 3 ENTER | N=5 %ROWROUNDED-1=E
 A02 | ALG 1÷3 rounded | STU ALG 1 / 3 ENTER | %ROWROUNDED-1=R

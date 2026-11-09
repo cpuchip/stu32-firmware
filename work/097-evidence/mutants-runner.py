@@ -15,8 +15,8 @@ M = {
          "    if (upper) {\n        abn lo1, o1 = one();\n        abn_status s1 = nd_half_erfc(&lo1, -1);\n"
          "        if (s1 != ABN_OK) return s1;\n        return abn_sub(out, &o1, &lo1);\n    }\n    return nd_half_erfc(out, -1);")],
  'J2': [('core/fn.c', "    return nd_half_erfc(out, upper ? 1 : -1);", "    return nd_half_erfc(out, 1);")],
- 'J3': [('core/fn.c', "            if (centre) {\n                hp_set_int(&k, 2);",
-         "            if (!hp_from_abn(&step, &x)) return ABN_RANGE;\n            if (centre) {\n                hp_set_int(&k, 2);")],
+ 'J3': [('core/fn.c', "            if (centre) {\n                hp_set_int(k, 2);",       # (run 3: c2db894's pointers)
+         "            if (!hp_from_abn(step, &x)) return ABN_RANGE;\n            if (centre) {\n                hp_set_int(k, 2);")],
  'J4': [('core/fn.c', "    if (abn_cmp(p, &zero) <= 0 || abn_cmp(p, &onev) >= 0) return ABN_DOMAIN;", "    (void)zero;")],
  'J5': [('core/calc.c', "    if (op >= AB_ERF && op <= AB_NCDFINV && !c->stu) return ABN_STU_ONLY;", "")],
  'J6': [('core/calc.c', "    const char *nd = nd_name_in(text);", "    const char *nd = nd_name_in(\"\");")],     # (run 1: NULL left nd_name_in unused: -Werror)

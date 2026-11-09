@@ -29,6 +29,7 @@ I05 | Φ⁻¹ of 1 is refused | STU 1 NCDFINV | ERR %ERR=DOMAIN X=1
 I06 | Φ⁻¹ of 1.5 is refused | STU 1.5 NCDFINV | ERR %ERR=DOMAIN
 I07 | Φ⁻¹ of −0.1 is refused | STU 0.1 CHS NCDFINV | ERR %ERR=DOMAIN
 I08 | Φ(Φ⁻¹(0.975)) at FIX 4 | STU 0.975 NCDFINV NCDF | %XLINE=0.9750
+I09 | Newton's last step taken: Φ⁻¹ of this 34-digit p (typed without its 0: the entry counts it as a digit) is mpmath's correctly rounded value (0.32 units; without the last step, 6.3 units off, under the table's bar: closes J3) | STU .6033683090916377445012130920076743 NCDFINV | %XRAW=+2620753095226307294441878770472301E-34
 # As any one-number function: LASTx, the stack, lift
 F01 | LASTx keeps z | STU 1.96 NCDF LASTX | X=1.96 Y=0.9750021048517795658634157309591630
 F02 | Y untouched | STU 5 ENTER 1.96 NCDF | Y=5

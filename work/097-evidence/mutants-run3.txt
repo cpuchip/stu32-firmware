@@ -1,0 +1,3 @@
+J0 SURVIVED 
+J3 RED: 097:I09 ## 097 save/load:I09
+restored: core/calc.c, core/fn.c, core/state.c as the originals given (SCRATCH/orig097)

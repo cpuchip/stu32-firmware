@@ -192,3 +192,12 @@ rounded), #14280 (ruled A: T_ROUNDED always in STU).
 
 - hmark (hmark.txt and hmark-A.txt, abacus e6f89ac) to run. Only A's file applies until Michael picks.
 - The two INFO texts found in the build are stated in the grammar (#14280).
+
+## After acceptance: R3, measured (abacus #14303)
+
+abacus offered the named gap. I looked for a tracked op whose flush to 0 reaches settle without the library's inexact
+flag, and tried four: 10^x of −7000, 2^x of −30000, e^x of −20000, and x! of −3000.5. The last one's underflow is the
+core's own (Γ beyond the range). With settle's note removed (run 3, work/096-evidence/mutants-run3.txt), each is still
+marked rounded, because its computation reaches the library's flag on the way. So R3 still survives: no test here can
+redden it, and the note stays as the second guard. The four are kept as behaviour in tests/096-soroban.txt (U06-U09),
+labelled as not closing R3.

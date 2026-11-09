@@ -159,3 +159,17 @@ interface; herf-table and herf-v frozen at abacus fd7ade9), #14277 (tutor's two 
 
 - herf-table and herf-v (fd7ade9) to run: `python3 tests/fn_table.py build/fn_drive herf-table.txt` and
   `build/vectors herf-v.txt`.
+
+## After acceptance (abacus #14303)
+
+- **J3 closed.** I09 types a 34-digit p whose Φ⁻¹ the build gives correctly rounded (0.32 units from mpmath). Without
+  Newton's last step it's 6.3 units off: still under the table's bar, which is why J3 survived, but caught by I09's
+  exact digits. Run 3 (work/097-evidence/mutants-run3.txt) reddens I09 in both passes. J3's spelling was updated for
+  c2db894's pointers, the fault unchanged. The p is typed without its leading 0: the entry counts that 0 as one of its
+  34 digits, and my first I09 typed a 33-digit p by it.
+- **herf adopted** (abacus #14305, #14306):
+  - tests/herf-abacus-table.txt from abacus's tests/herfgen.py under mpmath 1.3.0: 180 lines, sha256
+    db47211a…eaab (= abacus's). Through fn_table 177/177 within 8; the worst Φ⁻¹ 1.34.
+  - tests/herf-abacus-v.txt: 510 B, sha256 8e9e9924…ee14, 3/3.
+  - Both are in make test.
+- **make test rc 0:** 227 lines, 21,892 vectors (every `n/n vectors` line), 58,887 expectations.
