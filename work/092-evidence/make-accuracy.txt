@@ -1,0 +1,540 @@
+/home/claude/scratch/soroban/pdfvenv/bin/python tests/fn_fuzz.py build/fn_drive
+ACOS   DEG  max  0.499 units   (at -0.2296017)
+ACOS   GRAD max  0.496 units   (at -0.91066026760855822708151663)
+ACOS   RAD  max  0.496 units   (at -0.4865081908327961723870203059050255)
+ACOSH  RAD  max  0.498 units   (at 6.504073821E2476)
+ASIN   DEG  max  0.499 units   (at 0.34990941299530287089680768986)
+ASIN   GRAD max  0.500 units   (at -1.9958383710179609E-5243)
+ASIN   RAD  max  0.499 units   (at 0.790402157)
+ASINH  RAD  max  0.499 units   (at -9.420692541919E9)
+ATAN   DEG  max  0.499 units   (at 1.5768412392752904072068531605E-3)
+ATAN   GRAD max  0.499 units   (at -2.0222844340116533645712593E-5582)
+ATAN   RAD  max  0.498 units   (at 6.4909987592E4)
+ATANH  RAD  max  0.500 units   (at -0.99999999999999999999992217)
+COS    DEG  max  0.497 units   (at 0.02)
+COS    GRAD max  0.500 units   (at -664.10841034)
+COS    RAD  max  0.500 units   (at -3.0E-8)
+COSH   RAD  max  0.495 units   (at 110.85738957994433206977191730402)
+EXP    RAD  max  0.498 units   (at 152.68826434193623065027623)
+EXPM1  RAD  max  0.499 units   (at -3.4392152504566997351)
+FACT   RAD  max  0.500 units   (at 2085.4)
+HMS    RAD  max  0.400 units   (at -953082.272959990817184916522819549)
+HMSINV RAD  max  0.444 units   (at 9371.552441696960249342001173953)
+IDIV   -    max  0.000 units   (at 319687244819 -300716)
+INV    RAD  max  0.500 units   (at 4.975643938E-115)
+LN     RAD  max  0.500 units   (at 0.999999999999999999999999999999999)
+LN1P   RAD  max  0.499 units   (at 4.0565E188)
+LOG    RAD  max  0.491 units   (at 1.3570771994049E250)
+LOG2   RAD  max  0.499 units   (at 1.5947014E291)
+NCR    -    max  0.499 units   (at 403655474082 13)
+NPR    -    max  0.499 units   (at 1567 634)
+PCT    -    max  0.500 units   (at 4.570061733E95 3.804083309652675715106795E93)
+PCTCHG -    max  2.685 units   (at -1.624725322902308866090948E-16 1.316346979291896479580259438E-5)
+POW    -    max  0.500 units   (at 3.60554260606491E-12 -24.32202588)
+RMDR   -    max  0.000 units   (at 940084925409 -724075)
+SIN    DEG  max  0.498 units   (at -69.958144275)
+SIN    GRAD max  0.500 units   (at 2.8266841630372194771E-4183)
+SIN    RAD  max  0.500 units   (at 771909.7353392605323598155555208475)
+SINH   RAD  max  0.495 units   (at 24.14816512)
+SQ     RAD  max  0.497 units   (at 4.410194433030387495E-145)
+SQRT   RAD  max  0.500 units   (at 2.552843002704924812996E-30)
+TAN    DEG  max  0.500 units   (at -6.357554374E-14)
+TAN    GRAD max  0.500 units   (at 250.999999999)
+TAN    RAD  max  0.499 units   (at 1383538.547385283439564483691482403)
+TANH   RAD  max  0.498 units   (at -2.306386678189)
+TENX   RAD  max  0.497 units   (at 47.63819297)
+TOC    RAD  max  0.482 units   (at -4.6238970669206664876327295133E-26)
+TOCM   RAD  max  0.480 units   (at -6.33931325946555634942569668055512E-14)
+TODEG  RAD  max  0.500 units   (at 9.1E249)
+TOF    RAD  max  0.460 units   (at 7.149942285052365065212143235839903E268)
+TOGAL  RAD  max  0.493 units   (at -4.6098377507380750017773607397E-19)
+TOIN   RAD  max  0.496 units   (at 2.0E-249)
+TOKG   RAD  max  0.480 units   (at -7.57969725751809786373769384227E39)
+TOKM   RAD  max  0.499 units   (at -3.7084252711507694755255215568468E-149)
+TOL    RAD  max  0.495 units   (at -4.95698308101156159821698565793E-158)
+TOLB   RAD  max  0.499 units   (at -8.654788665958824678270389086E123)
+TOMILE RAD  max  0.499 units   (at -7.480207461508131427940782E-3)
+TOPOL-r DEG  max  0.499 units   (at -5.13671E38 -1.9360576308661001654343181144213E30)
+TOPOL-r GRAD max  0.485 units   (at -9.209157552117E-47 -5.93870982362779453733736545473E-41)
+TOPOL-r RAD  max  0.490 units   (at -9.85953E7 4.760380428177939826639430975774E7)
+TOPOL-t DEG  max  0.497 units   (at 5.838042780977332757430531273712E-6 4.65673279092812175683491204836173E-21)
+TOPOL-t GRAD max  0.499 units   (at -3.1480645824E26 -7.4227419089429880205699E-7)
+TOPOL-t RAD  max  0.499 units   (at 1.50512460935601866118816E-15 -4.0855145237539883806832108348E-46)
+TORAD  RAD  max  0.499 units   (at -4.79879948655940158364E-89)
+TOREC-x DEG  max  0.500 units   (at 5.66E-33 -123.72934211224007938767)
+TOREC-x GRAD max  0.499 units   (at 2.6416673590987388431372551E-28 503.952882767)
+TOREC-x RAD  max  0.497 units   (at 7.3348671271E27 639.945943742)
+TOREC-y DEG  max  0.496 units   (at 5.678697E-22 -449.7864010364722275880922097712755)
+TOREC-y GRAD max  0.499 units   (at 6.9246220461579275351482465E-41 -634.8825653)
+TOREC-y RAD  max  0.499 units   (at 7.480614E16 59.16834313)
+TWOX   RAD  max  0.499 units   (at 261.022482426253721321529610577272)
+XROOT  -    max  0.499 units   (at 4.0320883825692074298174816249E-151 13.7683)
+fn_fuzz: 44400 checks, 0 over the bar or wrong in kind
+/home/claude/scratch/soroban/pdfvenv/bin/python tests/cx_fuzz.py build/cx_drive
+ADD                worst        0.5 units (bar 0.5)
+ADD wide           worst        0.5 units (bar 0.5)
+SUB                worst        0.5 units (bar 0.5)
+SUB wide           worst     0.4676 units (bar 0.5)
+MUL                worst        0.5 units (bar 0.5)
+MUL wide           worst        0.5 units (bar 0.5)
+DIV                worst     0.4978 units (bar 0.5)
+DIV wide           worst     0.4965 units (bar 0.5)
+INV                worst     0.4999 units (bar 0.5)
+ABS                worst     0.4989 units (bar 0.5)
+EXP                worst     0.4999 units (bar 0.500001)
+EXP small          worst     0.4991 units (bar 0.500001)
+LN                 worst      0.499 units (bar 0.500001)
+LN wide            worst     0.4992 units (bar 0.500001)
+LN near |z|=1      worst     0.4975 units (bar 0.500001)
+LN near 1          worst     0.4996 units (bar 0.500001)
+SIN                worst     0.4997 units (bar 0.500001)
+COS                worst     0.4999 units (bar 0.500001)
+SIN large re       worst     0.4999 units (bar 0.500001)
+TAN                worst     0.4991 units (bar 0.500001)
+TAN near pole      worst     0.4998 units (bar 0.500001)
+TAN large im       worst     0.4044 units (bar 0.500001)
+POW integer        worst     0.4988 units (bar 0.500001)
+POW big integer    worst     0.4968 units (bar 0.500001)
+POW real           worst     0.4996 units (bar 0.500001)
+POW complex        worst     0.4973 units (bar 0.500001)
+POW real base      worst     0.4999 units (bar 0.500001)
+POW huge w         worst     0.4958 units (bar 0.500001)
+/home/claude/scratch/soroban/pdfvenv/bin/python tests/range_fuzz.py build/fn_drive 1 30
+EXP             30 cases  ok
+TENX            30 cases  ok
+TWOX            30 cases  ok
+EXPM1           30 cases  ok
+SINH            30 cases  ok
+COSH            30 cases  ok
+TANH            30 cases  ok
+ASINH           30 cases  ok
+ATANH           30 cases  ok
+ACOSH           30 cases  ok
+LN              30 cases  ok
+LOG             30 cases  ok
+LN1P            30 cases  ok
+LOG2            30 cases  ok
+SQ              30 cases  ok
+SQRT            30 cases  ok
+INV             30 cases  ok
+HMS             30 cases  ok
+HMSINV          30 cases  ok
+TODEG           30 cases  ok
+TORAD           30 cases  ok
+FACT            30 cases  ok
+IP              30 cases  ok
+INTG            30 cases  ok
+TOKG            30 cases  ok
+TOLB            30 cases  ok
+TOC             30 cases  ok
+TOF             30 cases  ok
+TOCM            30 cases  ok
+TOIN            30 cases  ok
+TOL             30 cases  ok
+TOGAL           30 cases  ok
+TOKM            30 cases  ok
+TOMILE          30 cases  ok
+SIN DEG          7 cases  ok
+SIN RAD         10 cases  ok
+SIN GRAD        13 cases  ok
+COS GRAD        16 cases  ok
+COS DEG          5 cases  ok
+COS RAD          9 cases  ok
+TAN GRAD         5 cases  ok
+TAN DEG         15 cases  ok
+TAN RAD         10 cases  ok
+ASIN DEG        13 cases  ok
+ASIN RAD         5 cases  ok
+ASIN GRAD       12 cases  ok
+ACOS DEG        10 cases  ok
+ACOS GRAD        5 cases  ok
+ACOS RAD        15 cases  ok
+ATAN GRAD       16 cases  ok
+ATAN DEG         8 cases  ok
+ATAN RAD         6 cases  ok
+POW             30 cases  ok
+XROOT           30 cases  ok
+IDIV            30 cases  ok
+PCT             30 cases  ok
+PCTCHG          30 cases  ok
+/home/claude/scratch/soroban/pdfvenv/bin/python tests/pow_fuzz.py build/fn_drive 1 3400
+near 1             3400 cases  worst        0.5 units
+edge bases         3400 cases  worst        0.5 units
+integer / half     3400 cases  worst        0.5 units
+negative base      3400 cases  worst     0.4998 units
+random pairs       3400 cases  worst     0.4999 units
+integer to 64      3400 cases  worst     0.4995 units
+root               3238 cases  worst        0.5 units
+exact cases     19/19 exact
+/home/claude/scratch/soroban/pdfvenv/bin/python tests/pow_exact.py build/fn_drive 1 4000
+pow_exact build/fn_drive: 5000 cases, 5000 correctly rounded
+/home/claude/scratch/soroban/pdfvenv/bin/python tests/pow_exact.py build/fn_drive_p37 2 4000
+pow_exact build/fn_drive_p37: 5000 cases, 5000 correctly rounded
+/home/claude/scratch/soroban/pdfvenv/bin/python tests/fn_fuzz.py build/fn_drive_p37 300 44     # unit 044: the loop keeps every rounding sure
+ACOS   DEG  max  0.497 units   (at 0.3806467282418357633844)
+ACOS   GRAD max  0.496 units   (at -0.585118632450586373)
+ACOS   RAD  max  0.499 units   (at -0.795066677766158802498353)
+ACOSH  RAD  max  0.498 units   (at 7.7221416375462E1007)
+ASIN   DEG  max  0.499 units   (at 4.13526955861261458213818E-5429)
+ASIN   GRAD max  0.500 units   (at -8.914578869847210151889E-4725)
+ASIN   RAD  max  0.499 units   (at -0.9969397892176861120105968439)
+ASINH  RAD  max  0.499 units   (at -3.2553E4205)
+ATAN   DEG  max  0.499 units   (at 3.9268413613478641E-6064)
+ATAN   GRAD max  0.500 units   (at -7.72E-5162)
+ATAN   RAD  max  0.499 units   (at 9.007093956478913532315E-3)
+ATANH  RAD  max  0.498 units   (at 0.484916)
+COS    DEG  max  0.500 units   (at 597.322)
+COS    GRAD max  0.500 units   (at -560.71509166969)
+COS    RAD  max  0.500 units   (at 5.7E-7)
+COSH   RAD  max  0.499 units   (at -197.381004434)
+EXP    RAD  max  0.496 units   (at -233.0884902435104821805)
+EXPM1  RAD  max  0.498 units   (at 11.0025653)
+FACT   RAD  max  0.500 units   (at -42.99999999999999999999999999999)
+HMS    RAD  max  0.480 units   (at -669451.4378602227644421418517595157)
+HMSINV RAD  max  0.444 units   (at -9203.30218141300)
+IDIV   -    max  0.000 units   (at 680253589063 813076)
+INV    RAD  max  0.499 units   (at 8.526E274)
+LN     RAD  max  0.500 units   (at 0.999999999999999999999999999999999)
+LN1P   RAD  max  0.500 units   (at 9.31249E-28)
+LOG    RAD  max  0.497 units   (at 6.8789124263660338387538217830297E-153)
+LOG2   RAD  max  0.495 units   (at 4.268834147534888434627475817251252E128)
+NCR    -    max  0.498 units   (at 715 348)
+NPR    -    max  0.498 units   (at 776 287)
+PCT    -    max  0.500 units   (at -3.57E-12 8.7033868269089179614539375506865E-29)
+PCTCHG -    max  3.460 units   (at -1.43285029931544838E24 -7.635E-7)
+POW    -    max  0.499 units   (at -1.4328997037577519968 32)
+RMDR   -    max  0.000 units   (at 949545725847 168483)
+SIN    DEG  max  0.499 units   (at -9.3379418763678713189E-3210)
+SIN    GRAD max  0.499 units   (at 6.769873839111E-3637)
+SIN    RAD  max  0.500 units   (at -8.7E-15)
+SINH   RAD  max  0.499 units   (at -144.39252)
+SQ     RAD  max  0.498 units   (at 7.786789855476296207115E-132)
+SQRT   RAD  max  0.498 units   (at 8.60199297984106892034361635524E114)
+TAN    DEG  max  0.500 units   (at -297.3898536856304808395635)
+TAN    GRAD max  0.500 units   (at 250.999999999)
+TAN    RAD  max  0.499 units   (at 6.2E125)
+TANH   RAD  max  0.496 units   (at 21.687780373320570959)
+TENX   RAD  max  0.497 units   (at 134.257391119597424556)
+TOC    RAD  max  0.500 units   (at 1.575031992876342101795E-12)
+TOCM   RAD  max  0.500 units   (at 5.93290340253974424200578141608275E-235)
+TODEG  RAD  max  0.499 units   (at -8.1234381248134444053477E115)
+TOF    RAD  max  0.480 units   (at 6.287486959045356038622287542239064E265)
+TOGAL  RAD  max  0.498 units   (at -2.6648555330332E-157)
+TOIN   RAD  max  0.496 units   (at -2.0E-238)
+TOKG   RAD  max  0.494 units   (at -3.9448863418940598446482681538E-213)
+TOKM   RAD  max  0.464 units   (at 2.377773497771031085967763374356E-172)
+TOL    RAD  max  0.491 units   (at 7.555081560107904881107288019848E288)
+TOLB   RAD  max  0.500 units   (at 7.4127018179782244722276E-48)
+TOMILE RAD  max  0.499 units   (at 3.684606E-107)
+TOPOL-r DEG  max  0.500 units   (at 6.12379497361974189928446322E-19 3.5589698294181790760859E-4)
+TOPOL-r GRAD max  0.498 units   (at 2.2340190730826679E43 2.46E33)
+TOPOL-r RAD  max  0.496 units   (at 3.8761368689664448262E8 8.79393935007305826979E12)
+TOPOL-t DEG  max  0.500 units   (at -9.94505531785935E37 5.503578316E20)
+TOPOL-t GRAD max  0.500 units   (at 4.1281135257E31 -8.666314659E35)
+TOPOL-t RAD  max  0.500 units   (at 9.97013697238394536181971261612489E-18 -9.423560492148773337639511E-12)
+TORAD  RAD  max  0.495 units   (at -9.50503561771463523211E-293)
+TOREC-x DEG  max  0.499 units   (at 1.0147234799780302516580832161708E-33 283.2855592)
+TOREC-x GRAD max  0.500 units   (at 8.62034795801404207793439127272E-16 233.387498776696293845134277944)
+TOREC-x RAD  max  0.500 units   (at 8.40665310976E21 -200.0)
+TOREC-y DEG  max  0.498 units   (at 4.0E7 691.219232015827209636427141958848)
+TOREC-y GRAD max  0.497 units   (at 8.751798746255616934242E-27 239.68741575)
+TOREC-y RAD  max  0.500 units   (at 3.269495189586706151985140423E-14 255.41882873499814010643)
+TWOX   RAD  max  0.499 units   (at -97.79766353018213)
+XROOT  -    max  0.498 units   (at 5.479571035560257597E171 4)
+fn_fuzz: 44400 checks, 0 over the bar or wrong in kind
+/home/claude/scratch/soroban/pdfvenv/bin/python tests/fn_edge.py build/fn_drive 25 1            # unit 044 review: the range's edges, the status too
+fn_edge: 801 arguments, 0 wrong
+/home/claude/scratch/soroban/pdfvenv/bin/python tests/polar_fuzz.py build/fn_drive 1 1500 --rec
+same size          1500 cases    1500 correctly rounded
+near an axis       1500 cases    1500 correctly rounded
+near a diagonal    1500 cases    1500 correctly rounded
+range ends         1493 cases    1493 correctly rounded
+typed              1500 cases    1500 correctly rounded
+r just above        500 cases     500 correctly rounded
+theta tiny          150 cases     150 correctly rounded
+axes, diagonals      30 cases      30 correctly rounded
+near a midpoint    1800 cases    1800 correctly rounded
+->REC             10513 cases   10513 correctly rounded  (DEG 3410/3410, GRAD 3474/3474, RAD 3629/3629)
+->REC past 1E169    150 cases      62 correctly rounded  (reported: the engine's cosine and sine times r)
+/home/claude/scratch/soroban/pdfvenv/bin/python tests/cxkey_fuzz.py 1 5000 > build/cxkey_fuzz.txt
+./build/vectors build/cxkey_fuzz.txt
+build/cxkey_fuzz.txt: 4996/4996 vectors, 12498/12498 expectations
+/home/claude/scratch/soroban/pdfvenv/bin/python tests/solve_fuzz.py 1 1500 > build/solve_fuzz.txt
+./build/vectors build/solve_fuzz.txt
+build/solve_fuzz.txt: 3000/3000 vectors, 4528/4528 expectations
+/home/claude/scratch/soroban/pdfvenv/bin/python tests/stat_fuzz.py 1 1500 > build/stat_fuzz.txt
+./build/vectors build/stat_fuzz.txt
+build/stat_fuzz.txt: 13264/13264 vectors, 13264/13264 expectations
+/home/claude/scratch/soroban/pdfvenv/bin/python tests/frac_fuzz.py 1 3000 > build/frac_fuzz.txt
+./build/fmt_vectors build/frac_fuzz.txt
+build/frac_fuzz.txt: 2954/2954 vectors
+/home/claude/scratch/soroban/pdfvenv/bin/python tests/base_fuzz.py 1 5000 > build/base_fuzz.txt
+./build/vectors build/base_fuzz.txt
+build/base_fuzz.txt: 5000/5000 vectors, 5000/5000 expectations
+# unit 016: every key-vector file with a save and load after every key, and run in slices
+for f in work/001-vectors.txt work/003-vectors.txt work/004-vectors.txt work/005-vectors.txt work/006-vectors.txt work/007-vectors.txt work/008-vectors.txt work/009-vectors.txt work/010-vectors.txt work/011-vectors.txt work/012-vectors.txt work/013-vectors.txt work/014-vectors.txt work/015b-vectors.txt work/015-vectors.txt work/021-vectors.txt work/024b-vectors.txt work/024-vectors.txt work/025-vectors.txt work/026-vectors.txt work/027-vectors.txt work/028-vectors.txt work/029b-vectors.txt work/029-vectors.txt work/030b-vectors.txt work/030-vectors.txt work/031b-vectors.txt work/031-vectors.txt work/032b-vectors.txt work/032-vectors.txt work/033-vectors.txt work/035-vectors.txt work/039-vectors.txt work/040c-red-vectors.txt work/040d-vectors.txt work/040-vectors.txt work/041a-vectors.txt work/041b-vectors.txt work/041c-vectors.txt work/041d-vectors.txt work/042-sweep-vectors.txt work/044-vectors.txt work/cas004-s3-vectors.txt work/cas004-vectors.txt tests/021-soroban.txt tests/019-soroban.txt tests/003-soroban.txt tests/018-soroban.txt tests/029-soroban.txt tests/034-soroban.txt tests/harness-soroban.txt tests/046-soroban.txt tests/047-soroban.txt tests/050-soroban.txt tests/054-soroban.txt tests/fc-soroban.txt tests/067-soroban.txt tests/082-soroban.txt tests/084-soroban.txt tests/085-soroban.txt tests/086-soroban.txt work/016-vectors.txt work/017-vectors.txt; do AB_SAVELOAD=1 AB_STORE=1 ./build/vectors $f || exit 1; done
+work/001-vectors.txt: 49/49 vectors, 113/113 expectations
+work/003-vectors.txt: 127/127 vectors, 158/158 expectations
+work/004-vectors.txt: 139/139 vectors, 174/174 expectations
+work/005-vectors.txt: 41/41 vectors, 85/85 expectations
+work/006-vectors.txt: 56/56 vectors, 74/74 expectations
+work/007-vectors.txt: 42/42 vectors, 50/50 expectations
+work/008-vectors.txt: 49/49 vectors, 60/60 expectations
+work/009-vectors.txt: 58/58 vectors, 76/76 expectations
+work/010-vectors.txt: 60/60 vectors, 86/86 expectations
+work/011-vectors.txt: 108/108 vectors, 149/149 expectations
+work/012-vectors.txt: 52/52 vectors, 102/102 expectations
+work/013-vectors.txt: 50/50 vectors, 97/97 expectations
+work/014-vectors.txt: 68/68 vectors, 107/107 expectations
+work/015b-vectors.txt: 48/48 vectors, 52/52 expectations
+work/015-vectors.txt: 80/80 vectors, 154/154 expectations
+work/021-vectors.txt: 42/42 vectors, 50/50 expectations
+work/024b-vectors.txt: 7/7 vectors, 24/24 expectations
+work/024-vectors.txt: 8/8 vectors, 17/17 expectations
+work/025-vectors.txt: 42/42 vectors, 57/57 expectations
+work/026-vectors.txt: 61/61 vectors, 133/133 expectations
+work/027-vectors.txt: 5/5 vectors, 9/9 expectations
+work/028-vectors.txt: 13/13 vectors, 15/15 expectations
+work/029b-vectors.txt: 9/9 vectors, 26/26 expectations
+work/029-vectors.txt: 51/51 vectors, 87/87 expectations
+work/030b-vectors.txt: 4/4 vectors, 4/4 expectations
+work/030-vectors.txt: 23/23 vectors, 32/32 expectations
+work/031b-vectors.txt: 3/3 vectors, 3/3 expectations
+work/031-vectors.txt: 56/56 vectors, 82/82 expectations
+work/032b-vectors.txt: 9/9 vectors, 19/19 expectations
+work/032-vectors.txt: 28/28 vectors, 67/67 expectations
+work/033-vectors.txt: 26/26 vectors, 69/69 expectations
+work/035-vectors.txt: 16/16 vectors, 41/41 expectations
+work/039-vectors.txt: 32/32 vectors, 114/114 expectations
+work/040c-red-vectors.txt: 20/20 vectors, 24/24 expectations
+work/040d-vectors.txt: 18/18 vectors, 30/30 expectations
+work/040-vectors.txt: 54/54 vectors, 112/112 expectations
+work/041a-vectors.txt: 62/62 vectors, 75/75 expectations
+work/041b-vectors.txt: 6/6 vectors, 6/6 expectations
+work/041c-vectors.txt: 47/47 vectors, 61/61 expectations
+work/041d-vectors.txt: 48/48 vectors, 56/56 expectations
+work/042-sweep-vectors.txt: 401/401 vectors, 402/402 expectations
+work/044-vectors.txt: 5/5 vectors, 6/6 expectations
+work/cas004-s3-vectors.txt: 344/344 vectors, 346/346 expectations
+work/cas004-vectors.txt: 30/30 vectors, 51/51 expectations
+tests/021-soroban.txt: 26/26 vectors, 41/41 expectations
+tests/019-soroban.txt: 7/7 vectors, 12/12 expectations
+tests/003-soroban.txt: 13/13 vectors, 13/13 expectations
+tests/018-soroban.txt: 5/5 vectors, 7/7 expectations
+tests/029-soroban.txt: 9/9 vectors, 23/23 expectations
+tests/034-soroban.txt: 18/18 vectors, 28/28 expectations
+tests/harness-soroban.txt: 2/2 vectors, 4/4 expectations
+tests/046-soroban.txt: 3/3 vectors, 3/3 expectations
+tests/047-soroban.txt: 29/29 vectors, 29/29 expectations
+tests/050-soroban.txt: 6/6 vectors, 6/6 expectations
+tests/054-soroban.txt: 8/8 vectors, 8/8 expectations
+tests/fc-soroban.txt: 17/17 vectors, 17/17 expectations
+tests/067-soroban.txt: 6/6 vectors, 7/7 expectations
+tests/082-soroban.txt: 15/15 vectors, 39/39 expectations
+tests/084-soroban.txt: 67/67 vectors, 73/73 expectations
+tests/085-soroban.txt: 72/72 vectors, 74/74 expectations
+tests/086-soroban.txt: 158/158 vectors, 158/158 expectations
+work/016-vectors.txt: 69/69 vectors, 138/138 expectations
+work/017-vectors.txt: 44/44 vectors, 71/71 expectations
+for n in 1 7 1000; do for f in work/001-vectors.txt work/003-vectors.txt work/004-vectors.txt work/005-vectors.txt work/006-vectors.txt work/007-vectors.txt work/008-vectors.txt work/009-vectors.txt work/010-vectors.txt work/011-vectors.txt work/012-vectors.txt work/013-vectors.txt work/014-vectors.txt work/015b-vectors.txt work/015-vectors.txt work/021-vectors.txt work/024b-vectors.txt work/024-vectors.txt work/025-vectors.txt work/026-vectors.txt work/027-vectors.txt work/028-vectors.txt work/029b-vectors.txt work/029-vectors.txt work/030b-vectors.txt work/030-vectors.txt work/031b-vectors.txt work/031-vectors.txt work/032b-vectors.txt work/032-vectors.txt work/033-vectors.txt work/035-vectors.txt work/039-vectors.txt work/040c-red-vectors.txt work/040d-vectors.txt work/040-vectors.txt work/041a-vectors.txt work/041b-vectors.txt work/041c-vectors.txt work/041d-vectors.txt work/042-sweep-vectors.txt work/044-vectors.txt work/cas004-s3-vectors.txt work/cas004-vectors.txt tests/021-soroban.txt tests/019-soroban.txt tests/003-soroban.txt tests/018-soroban.txt tests/029-soroban.txt tests/034-soroban.txt tests/harness-soroban.txt tests/046-soroban.txt tests/047-soroban.txt tests/050-soroban.txt tests/054-soroban.txt tests/fc-soroban.txt tests/067-soroban.txt tests/082-soroban.txt tests/084-soroban.txt tests/085-soroban.txt tests/086-soroban.txt; do AB_SLICE=$n ./build/vectors $f || exit 1; done; done
+work/001-vectors.txt: 49/49 vectors, 113/113 expectations
+work/003-vectors.txt: 127/127 vectors, 158/158 expectations
+work/004-vectors.txt: 139/139 vectors, 174/174 expectations
+work/005-vectors.txt: 41/41 vectors, 85/85 expectations
+work/006-vectors.txt: 56/56 vectors, 74/74 expectations
+work/007-vectors.txt: 42/42 vectors, 50/50 expectations
+work/008-vectors.txt: 49/49 vectors, 60/60 expectations
+work/009-vectors.txt: 58/58 vectors, 76/76 expectations
+work/010-vectors.txt: 60/60 vectors, 86/86 expectations
+work/011-vectors.txt: 108/108 vectors, 149/149 expectations
+work/012-vectors.txt: 52/52 vectors, 102/102 expectations
+work/013-vectors.txt: 50/50 vectors, 97/97 expectations
+work/014-vectors.txt: 68/68 vectors, 107/107 expectations
+work/015b-vectors.txt: 48/48 vectors, 52/52 expectations
+work/015-vectors.txt: 80/80 vectors, 154/154 expectations
+work/021-vectors.txt: 42/42 vectors, 50/50 expectations
+work/024b-vectors.txt: 7/7 vectors, 24/24 expectations
+work/024-vectors.txt: 8/8 vectors, 17/17 expectations
+work/025-vectors.txt: 42/42 vectors, 57/57 expectations
+work/026-vectors.txt: 61/61 vectors, 133/133 expectations
+work/027-vectors.txt: 5/5 vectors, 9/9 expectations
+work/028-vectors.txt: 13/13 vectors, 15/15 expectations
+work/029b-vectors.txt: 9/9 vectors, 26/26 expectations
+work/029-vectors.txt: 51/51 vectors, 87/87 expectations
+work/030b-vectors.txt: 4/4 vectors, 4/4 expectations
+work/030-vectors.txt: 23/23 vectors, 32/32 expectations
+work/031b-vectors.txt: 3/3 vectors, 3/3 expectations
+work/031-vectors.txt: 56/56 vectors, 82/82 expectations
+work/032b-vectors.txt: 9/9 vectors, 19/19 expectations
+work/032-vectors.txt: 28/28 vectors, 67/67 expectations
+work/033-vectors.txt: 26/26 vectors, 69/69 expectations
+work/035-vectors.txt: 16/16 vectors, 41/41 expectations
+work/039-vectors.txt: 32/32 vectors, 114/114 expectations
+work/040c-red-vectors.txt: 20/20 vectors, 24/24 expectations
+work/040d-vectors.txt: 18/18 vectors, 30/30 expectations
+work/040-vectors.txt: 54/54 vectors, 112/112 expectations
+work/041a-vectors.txt: 62/62 vectors, 75/75 expectations
+work/041b-vectors.txt: 6/6 vectors, 6/6 expectations
+work/041c-vectors.txt: 47/47 vectors, 61/61 expectations
+work/041d-vectors.txt: 48/48 vectors, 56/56 expectations
+work/042-sweep-vectors.txt: 401/401 vectors, 402/402 expectations
+work/044-vectors.txt: 5/5 vectors, 6/6 expectations
+work/cas004-s3-vectors.txt: 344/344 vectors, 346/346 expectations
+work/cas004-vectors.txt: 30/30 vectors, 51/51 expectations
+tests/021-soroban.txt: 26/26 vectors, 41/41 expectations
+tests/019-soroban.txt: 7/7 vectors, 12/12 expectations
+tests/003-soroban.txt: 13/13 vectors, 13/13 expectations
+tests/018-soroban.txt: 5/5 vectors, 7/7 expectations
+tests/029-soroban.txt: 9/9 vectors, 23/23 expectations
+tests/034-soroban.txt: 18/18 vectors, 28/28 expectations
+tests/harness-soroban.txt: 2/2 vectors, 4/4 expectations
+tests/046-soroban.txt: 3/3 vectors, 3/3 expectations
+tests/047-soroban.txt: 29/29 vectors, 29/29 expectations
+tests/050-soroban.txt: 6/6 vectors, 6/6 expectations
+tests/054-soroban.txt: 8/8 vectors, 8/8 expectations
+tests/fc-soroban.txt: 17/17 vectors, 17/17 expectations
+tests/067-soroban.txt: 6/6 vectors, 7/7 expectations
+tests/082-soroban.txt: 15/15 vectors, 39/39 expectations
+tests/084-soroban.txt: 67/67 vectors, 73/73 expectations
+tests/085-soroban.txt: 72/72 vectors, 74/74 expectations
+tests/086-soroban.txt: 158/158 vectors, 158/158 expectations
+work/001-vectors.txt: 49/49 vectors, 113/113 expectations
+work/003-vectors.txt: 127/127 vectors, 158/158 expectations
+work/004-vectors.txt: 139/139 vectors, 174/174 expectations
+work/005-vectors.txt: 41/41 vectors, 85/85 expectations
+work/006-vectors.txt: 56/56 vectors, 74/74 expectations
+work/007-vectors.txt: 42/42 vectors, 50/50 expectations
+work/008-vectors.txt: 49/49 vectors, 60/60 expectations
+work/009-vectors.txt: 58/58 vectors, 76/76 expectations
+work/010-vectors.txt: 60/60 vectors, 86/86 expectations
+work/011-vectors.txt: 108/108 vectors, 149/149 expectations
+work/012-vectors.txt: 52/52 vectors, 102/102 expectations
+work/013-vectors.txt: 50/50 vectors, 97/97 expectations
+work/014-vectors.txt: 68/68 vectors, 107/107 expectations
+work/015b-vectors.txt: 48/48 vectors, 52/52 expectations
+work/015-vectors.txt: 80/80 vectors, 154/154 expectations
+work/021-vectors.txt: 42/42 vectors, 50/50 expectations
+work/024b-vectors.txt: 7/7 vectors, 24/24 expectations
+work/024-vectors.txt: 8/8 vectors, 17/17 expectations
+work/025-vectors.txt: 42/42 vectors, 57/57 expectations
+work/026-vectors.txt: 61/61 vectors, 133/133 expectations
+work/027-vectors.txt: 5/5 vectors, 9/9 expectations
+work/028-vectors.txt: 13/13 vectors, 15/15 expectations
+work/029b-vectors.txt: 9/9 vectors, 26/26 expectations
+work/029-vectors.txt: 51/51 vectors, 87/87 expectations
+work/030b-vectors.txt: 4/4 vectors, 4/4 expectations
+work/030-vectors.txt: 23/23 vectors, 32/32 expectations
+work/031b-vectors.txt: 3/3 vectors, 3/3 expectations
+work/031-vectors.txt: 56/56 vectors, 82/82 expectations
+work/032b-vectors.txt: 9/9 vectors, 19/19 expectations
+work/032-vectors.txt: 28/28 vectors, 67/67 expectations
+work/033-vectors.txt: 26/26 vectors, 69/69 expectations
+work/035-vectors.txt: 16/16 vectors, 41/41 expectations
+work/039-vectors.txt: 32/32 vectors, 114/114 expectations
+work/040c-red-vectors.txt: 20/20 vectors, 24/24 expectations
+work/040d-vectors.txt: 18/18 vectors, 30/30 expectations
+work/040-vectors.txt: 54/54 vectors, 112/112 expectations
+work/041a-vectors.txt: 62/62 vectors, 75/75 expectations
+work/041b-vectors.txt: 6/6 vectors, 6/6 expectations
+work/041c-vectors.txt: 47/47 vectors, 61/61 expectations
+work/041d-vectors.txt: 48/48 vectors, 56/56 expectations
+work/042-sweep-vectors.txt: 401/401 vectors, 402/402 expectations
+work/044-vectors.txt: 5/5 vectors, 6/6 expectations
+work/cas004-s3-vectors.txt: 344/344 vectors, 346/346 expectations
+work/cas004-vectors.txt: 30/30 vectors, 51/51 expectations
+tests/021-soroban.txt: 26/26 vectors, 41/41 expectations
+tests/019-soroban.txt: 7/7 vectors, 12/12 expectations
+tests/003-soroban.txt: 13/13 vectors, 13/13 expectations
+tests/018-soroban.txt: 5/5 vectors, 7/7 expectations
+tests/029-soroban.txt: 9/9 vectors, 23/23 expectations
+tests/034-soroban.txt: 18/18 vectors, 28/28 expectations
+tests/harness-soroban.txt: 2/2 vectors, 4/4 expectations
+tests/046-soroban.txt: 3/3 vectors, 3/3 expectations
+tests/047-soroban.txt: 29/29 vectors, 29/29 expectations
+tests/050-soroban.txt: 6/6 vectors, 6/6 expectations
+tests/054-soroban.txt: 8/8 vectors, 8/8 expectations
+tests/fc-soroban.txt: 17/17 vectors, 17/17 expectations
+tests/067-soroban.txt: 6/6 vectors, 7/7 expectations
+tests/082-soroban.txt: 15/15 vectors, 39/39 expectations
+tests/084-soroban.txt: 67/67 vectors, 73/73 expectations
+tests/085-soroban.txt: 72/72 vectors, 74/74 expectations
+tests/086-soroban.txt: 158/158 vectors, 158/158 expectations
+work/001-vectors.txt: 49/49 vectors, 113/113 expectations
+work/003-vectors.txt: 127/127 vectors, 158/158 expectations
+work/004-vectors.txt: 139/139 vectors, 174/174 expectations
+work/005-vectors.txt: 41/41 vectors, 85/85 expectations
+work/006-vectors.txt: 56/56 vectors, 74/74 expectations
+work/007-vectors.txt: 42/42 vectors, 50/50 expectations
+work/008-vectors.txt: 49/49 vectors, 60/60 expectations
+work/009-vectors.txt: 58/58 vectors, 76/76 expectations
+work/010-vectors.txt: 60/60 vectors, 86/86 expectations
+work/011-vectors.txt: 108/108 vectors, 149/149 expectations
+work/012-vectors.txt: 52/52 vectors, 102/102 expectations
+work/013-vectors.txt: 50/50 vectors, 97/97 expectations
+work/014-vectors.txt: 68/68 vectors, 107/107 expectations
+work/015b-vectors.txt: 48/48 vectors, 52/52 expectations
+work/015-vectors.txt: 80/80 vectors, 154/154 expectations
+work/021-vectors.txt: 42/42 vectors, 50/50 expectations
+work/024b-vectors.txt: 7/7 vectors, 24/24 expectations
+work/024-vectors.txt: 8/8 vectors, 17/17 expectations
+work/025-vectors.txt: 42/42 vectors, 57/57 expectations
+work/026-vectors.txt: 61/61 vectors, 133/133 expectations
+work/027-vectors.txt: 5/5 vectors, 9/9 expectations
+work/028-vectors.txt: 13/13 vectors, 15/15 expectations
+work/029b-vectors.txt: 9/9 vectors, 26/26 expectations
+work/029-vectors.txt: 51/51 vectors, 87/87 expectations
+work/030b-vectors.txt: 4/4 vectors, 4/4 expectations
+work/030-vectors.txt: 23/23 vectors, 32/32 expectations
+work/031b-vectors.txt: 3/3 vectors, 3/3 expectations
+work/031-vectors.txt: 56/56 vectors, 82/82 expectations
+work/032b-vectors.txt: 9/9 vectors, 19/19 expectations
+work/032-vectors.txt: 28/28 vectors, 67/67 expectations
+work/033-vectors.txt: 26/26 vectors, 69/69 expectations
+work/035-vectors.txt: 16/16 vectors, 41/41 expectations
+work/039-vectors.txt: 32/32 vectors, 114/114 expectations
+work/040c-red-vectors.txt: 20/20 vectors, 24/24 expectations
+work/040d-vectors.txt: 18/18 vectors, 30/30 expectations
+work/040-vectors.txt: 54/54 vectors, 112/112 expectations
+work/041a-vectors.txt: 62/62 vectors, 75/75 expectations
+work/041b-vectors.txt: 6/6 vectors, 6/6 expectations
+work/041c-vectors.txt: 47/47 vectors, 61/61 expectations
+work/041d-vectors.txt: 48/48 vectors, 56/56 expectations
+work/042-sweep-vectors.txt: 401/401 vectors, 402/402 expectations
+work/044-vectors.txt: 5/5 vectors, 6/6 expectations
+work/cas004-s3-vectors.txt: 344/344 vectors, 346/346 expectations
+work/cas004-vectors.txt: 30/30 vectors, 51/51 expectations
+tests/021-soroban.txt: 26/26 vectors, 41/41 expectations
+tests/019-soroban.txt: 7/7 vectors, 12/12 expectations
+tests/003-soroban.txt: 13/13 vectors, 13/13 expectations
+tests/018-soroban.txt: 5/5 vectors, 7/7 expectations
+tests/029-soroban.txt: 9/9 vectors, 23/23 expectations
+tests/034-soroban.txt: 18/18 vectors, 28/28 expectations
+tests/harness-soroban.txt: 2/2 vectors, 4/4 expectations
+tests/046-soroban.txt: 3/3 vectors, 3/3 expectations
+tests/047-soroban.txt: 29/29 vectors, 29/29 expectations
+tests/050-soroban.txt: 6/6 vectors, 6/6 expectations
+tests/054-soroban.txt: 8/8 vectors, 8/8 expectations
+tests/fc-soroban.txt: 17/17 vectors, 17/17 expectations
+tests/067-soroban.txt: 6/6 vectors, 7/7 expectations
+tests/082-soroban.txt: 15/15 vectors, 39/39 expectations
+tests/084-soroban.txt: 67/67 vectors, 73/73 expectations
+tests/085-soroban.txt: 72/72 vectors, 74/74 expectations
+tests/086-soroban.txt: 158/158 vectors, 158/158 expectations
+for n in 1 7 1000; do AB_SLICE=$n ./build/vectors tests/048-soroban.txt || exit 1; done    # (048: slices only)
+tests/048-soroban.txt: 85/85 vectors, 185/185 expectations
+tests/048-soroban.txt: 85/85 vectors, 185/185 expectations
+tests/048-soroban.txt: 85/85 vectors, 185/185 expectations
+for n in 1 7 1000; do AB_SLICE=$n ./build/vectors tests/056-soroban.txt || exit 1; done    # (056: slices only)
+tests/056-soroban.txt: 43/43 vectors, 80/80 expectations
+tests/056-soroban.txt: 43/43 vectors, 80/80 expectations
+tests/056-soroban.txt: 43/43 vectors, 80/80 expectations
+for n in 1 7 1000; do AB_SLICE=$n ./build/vectors tests/057-soroban.txt || exit 1; done    # (057: slices only)
+tests/057-soroban.txt: 37/37 vectors, 82/82 expectations
+tests/057-soroban.txt: 37/37 vectors, 82/82 expectations
+tests/057-soroban.txt: 37/37 vectors, 82/82 expectations
+for n in 1 7 1000; do AB_SLICE=$n ./build/vectors tests/070-soroban.txt || exit 1; done    # (070: slices only)
+tests/070-soroban.txt: 82/82 vectors, 160/160 expectations
+tests/070-soroban.txt: 82/82 vectors, 160/160 expectations
+tests/070-soroban.txt: 82/82 vectors, 160/160 expectations
+./build/load_fuzz 100000 7
+load_fuzz: 100000 cases, 99043 refused, 957 accepted, 0 violations
