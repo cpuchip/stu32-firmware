@@ -1,0 +1,3 @@
+Q0 SURVIVED 
+Q6 RED: store_test: the two-slot fixtures under the ring: 6035/6035 cuts leave the newest 
+restored: firmware/store.c as the original given (SCRATCH/orig092)
