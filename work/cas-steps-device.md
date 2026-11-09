@@ -90,8 +90,8 @@ first run's output is kept, named so).
    it's also the fourth key: ▲ ▼ EVAL STEPS. That's one place to find it from the list, and the report's own bar.
 3. **The view** (SYS's view, as the report):
    - The status line: `STEP k OF n` and the rule's name.
-   - The step's text, wrapped over the rows. 129 cells (one-line's longest measured) is 5 rows of 31; a longer one scrolls with the page,
-     as the report's rows do.
+   - The step's text, wrapped over the rows. 129 cells (one-line's longest measured) is 5 rows of 31; a longer one
+     scrolls with the page,     as the report's rows do.
    - Its depth: a leading `·` for each level.
    - ▲ ▼ page, wrapping as the report does. C and ← leave. Any other key leaves and acts.
    - It opens on the last page (the answer), since a student usually asks how that answer came.
