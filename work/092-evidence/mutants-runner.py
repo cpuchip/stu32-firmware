@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Unit 092's planted faults (mutants-predicted.txt): each applied alone to firmware/store.c, store_test and store_sim
+"""Unit 092's planted faults (mutants-predicted.txt; Q4's text and Q7, Q8 for run 3, the store at 8e259ef): each applied alone to firmware/store.c, store_test and store_sim
 deleted and rebuilt (a stale binary is never a pass), every run read (a non-zero exit with nothing printed is red), the
 file restored.
 
@@ -16,7 +16,7 @@ HDR_LAST = '''    if (ring_io(f, true, at, AB_STORE_HEADER, (void *)image, len) 
     put32(h + 8, len);
     put32(h + 12, ab_crc32(image, len));
     put32(h + 16, ab_crc32(h, 16));
-    return f->write(f->ctx, at * f->sector, h, sizeof h);      /* the header last: it commits the save */'''
+    if (f->write(f->ctx, at * f->sector, h, sizeof h) != 0) return -1;     /* the header last: it commits the save */'''
 HDR_FIRST = '''    memset(h, 0xFF, sizeof h);
     memcpy(h, "ABST", 4);
     put32(h + 4, seq);
@@ -24,7 +24,7 @@ HDR_FIRST = '''    memset(h, 0xFF, sizeof h);
     put32(h + 12, ab_crc32(image, len));
     put32(h + 16, ab_crc32(h, 16));
     if (f->write(f->ctx, at * f->sector, h, sizeof h) != 0) return -1;
-    return ring_io(f, true, at, AB_STORE_HEADER, (void *)image, len);'''
+    if (ring_io(f, true, at, AB_STORE_HEADER, (void *)image, len) != 0) return -1;'''
 M = {
  'Q0': ("/* store: the state image in a ring", "/* store: the state image in a ring"),
  'Q1': ("    uint32_t at = nw.good ? (nw.at + span(f, nw.len)) % n : 0, k = span(f, len);",
@@ -36,6 +36,9 @@ M = {
  'Q4': (HDR_LAST, HDR_FIRST),
  'Q5': ("    if (len == 0 || len > f->slot_size - AB_STORE_HEADER) return -1;",
         "    if (len == 0 || len > 2 * f->slot_size - AB_STORE_HEADER) return -1;"),
+ 'Q7': ("    if (!header_at(f, f->ring->at, &h) || h.seq != f->ring->seq || h.len != f->ring->len || h.crc != f->ring->crc) {",
+        "    h.seq = f->ring->seq, h.len = f->ring->len, h.crc = f->ring->crc, h.at = f->ring->at;\n    if (0) {"),
+ 'Q8': ("    if (f->ring) f->ring->valid = false;        /* (until this save is whole) */\n", ""),
  'Q6': ("        if (payload_good(f, &best)) {", "        if (payload_good(f, &best) || 1) {"),   # (run 1's "if (1)" didn't compile: payload_good unused)
 }
 SECTIONS = [('A', 6, 23), ('B', 24, 36), ('C', 37, 79), ('D', 80, 96), ('E', 97, 109), ('F', 110, 123), ('G', 124, 137)]

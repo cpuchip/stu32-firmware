@@ -1,0 +1,168 @@
+Checking "python3" ...
+Python 3.12.3
+"python3" has been detected
+Activating ESP-IDF 5.4
+Setting IDF_PATH to '/opt/esp/idf'.
+* Checking python version ... 3.12.3
+* Checking python dependencies ... OK
+* Deactivating the current ESP-IDF environment (if any) ... OK
+* Establishing a new ESP-IDF environment ... OK
+* Identifying shell ... bash
+* Detecting outdated tools in system ... OK - no outdated tools found
+warning:  Failed to get username with error: 'getpwuid(): uid not found: 1001'. Using default temporary directory /tmp/esp_idf_activate.
+* Shell completion ... Autocompletion code generated
+
+Done! You can now compile ESP-IDF projects.
+Go to the project directory and run:
+
+  idf.py build
+Activating ESP-IDF 5.4
+Setting IDF_PATH to '/opt/esp/idf'.
+* Checking python version ... 3.12.3
+* Checking python dependencies ... OK
+* Deactivating the current ESP-IDF environment (if any) ... OK
+* Establishing a new ESP-IDF environment ... OK
+* Identifying shell ... bash
+* Detecting outdated tools in system ... OK - no outdated tools found
+warning:  Failed to get username with error: 'getpwuid(): uid not found: 1001'. Using default temporary directory /tmp/esp_idf_activate.
+* Shell completion ... Autocompletion code generated
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x1 (POWERON),boot:0x8 (SPI_FAST_FLASH_BOOT)
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x16d0
+load:0x403c8700,len:0x4
+load:0x403c8704,len:0xec8
+load:0x403cb700,len:0x3160
+entry 0x403c8950
+I (27) boot: ESP-IDF v5.4.2 2nd stage bootloader
+I (27) boot: compile time Nov  9 2026 00:31:31
+I (27) boot: Multicore bootloader
+I (27) boot: chip revision: v0.1
+I (30) boot: efuse block revision: v1.2
+I (33) qio_mode: Enabling default flash chip QIO
+I (38) boot.esp32s3: Boot SPI Speed : 80MHz
+I (42) boot.esp32s3: SPI Mode       : QIO
+I (45) boot.esp32s3: SPI Flash Size : 8MB
+I (49) boot: Enabling RNG early entropy source...
+I (54) boot: Partition Table:
+I (56) boot: ## Label            Usage          Type ST Offset   Length
+I (63) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (69) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (76) boot:  2 factory          factory app      00 00 00010000 00700000
+I (82) boot:  3 abstate          Unknown data     01 40 00710000 00080000
+I (89) boot:  4 abapps           Unknown data     01 41 00790000 00012000
+I (95) boot: End of partition table
+I (98) esp_image: segment 0: paddr=00010020 vaddr=3c0d0020 size=137d70h (1277296) map
+I (295) esp_image: segment 1: paddr=00147d98 vaddr=3fc98c00 size=08280h ( 33408) load
+I (302) esp_image: segment 2: paddr=00150020 vaddr=42000020 size=cba64h (834148) map
+I (426) esp_image: segment 3: paddr=0021ba8c vaddr=3fca0e80 size=029f0h ( 10736) load
+I (428) esp_image: segment 4: paddr=0021e484 vaddr=40378000 size=10be8h ( 68584) load
+I (443) esp_image: segment 5: paddr=0022f074 vaddr=50001000 size=00004h (     4) load
+I (443) esp_image: segment 6: paddr=0022f080 vaddr=600fe000 size=0004ch (    76) load
+I (454) boot: Loaded app from partition at offset 0x10000
+I (455) boot: Disabling RNG early entropy source...
+I (468) octal_psram: ECC is enabled
+I (468) octal_psram: vendor id    : 0x0d (AP)
+I (468) octal_psram: dev id       : 0x02 (generation 3)
+I (469) octal_psram: density      : 0x03 (64 Mbit)
+I (474) octal_psram: good-die     : 0x01 (Pass)
+I (478) octal_psram: Latency      : 0x01 (Fixed)
+I (482) octal_psram: VCC          : 0x01 (3V)
+I (486) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (491) octal_psram: BurstType    : 0x00 ( Wrap)
+I (496) octal_psram: BurstLen     : 0x03 (1024 Byte)
+I (500) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (505) octal_psram: DriveStrength: 0x00 (1/1)
+I (510) MSPI Timing: PSRAM timing tuning index: 4
+I (514) esp_psram: Found 8MB PSRAM device
+I (518) esp_psram: Speed: 80MHz
+I (521) cpu_start: Multicore app
+I (942) esp_psram: SPI SRAM memory test OK
+I (953) cpu_start: Pro cpu start user code
+I (953) cpu_start: cpu freq: 240000000 Hz
+I (953) app_init: Application information:
+I (953) app_init: Project name:     abacus_reva
+I (957) app_init: App version:      8e259ef
+I (961) app_init: Compile time:     Nov  9 2026 03:34:10
+I (966) app_init: ELF file SHA256:  25de6446d...
+I (971) app_init: ESP-IDF:          v5.4.2
+I (974) efuse_init: Min chip rev:     v0.0
+I (978) efuse_init: Max chip rev:     v0.99 
+I (982) efuse_init: Chip rev:         v0.1
+I (986) heap_init: Initializing. RAM available for dynamic allocation:
+I (992) heap_init: At 3FCBA2B0 len 0002F460 (189 KiB): RAM
+I (997) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (1003) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (1008) heap_init: At 600FE04C len 00001F9C (7 KiB): RTCRAM
+I (1013) esp_psram: Adding pool of 7588K of PSRAM memory to heap allocator
+I (1020) spi_flash: detected chip: gd
+I (1023) spi_flash: flash io: qio
+I (1026) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (1033) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (1051) main_task: Started on CPU0
+I (1052) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (1052) main_task: Calling app_main()
+gauge: head-less
+load: 751 bytes ok
+reva: heap internal 189583 (largest block 94208), PSRAM 6437508
+I (1081) main_task: Returned from app_main()
+boot: boots=1 reason=POWERON new=1 wake=none pins=0x0 ver=0.95 core=8e259ef id=31a25a9c
+REVA READY
+tone: 4000 Hz 30 ms level 4
+state: X=0 stop=NONE lines=0 prgm=0 running=0 shift=0 prompt=- msg=- heap=189583 stack-free=27324
+boot: boots=1 reason=POWERON new=1 wake=none pins=0x0 ver=0.95 core=8e259ef id=31a25a9c
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=175c160a1b3c778ab67f049fe14baac81d1e23e2 games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=- off=0
+app: -
+rows: 0 top=0 next=0 dropped=0 x=0 y=0
+eqn: - | note=- | rep=- | row=- | drawn=-
+ui: show=0 -
+reva: soc=-1 vbat=0 uV ulp-edges=3512950177 chg_n=0 pgood_n=0
+reva: set radix=. off=10 vol=4 h24=0
+savebench: flash JEDEC id 0xC84017, 8388608 B
+talk.py: PASS line 12: expect 'savebench: flash JEDEC id'
+savebench: no page: 758 B, 20 saves (0 failed), 14 of 20 sectors already blank before their erase; the slowest save's 0 of 1
+savebench: no page: the save min 18 median 20 max 162 ms
+savebench: no page: its erase min 13 median 14 max 157 ms
+savebench: no page: its writes min 3 median 4 max 5 ms
+savebench: no page: its reads min 0 median 0 max 0 ms
+save: 751 bytes, ok, 17 ms
+talk.py: PASS line 13: expect 'savebench: no page: the save'
+savebench: the full page: 9138 B, 20 saves (0 failed), 53 of 60 sectors already blank before their erase; the slowest save's 0 of 3
+savebench: the full page: the save min 91 median 93 max 577 ms
+savebench: the full page: its erase min 48 median 51 max 525 ms
+savebench: the full page: its writes min 36 median 36 max 50 ms
+savebench: the full page: its reads min 0 median 0 max 0 ms
+save: 751 bytes, ok, 22 ms
+talk.py: PASS line 14: expect 'savebench: the full page: the save'
+savebench: the worst page: 27683 B, 20 saves (0 failed), 45 of 140 sectors already blank before their erase; the slowest save's 3 of 7
+savebench: the worst page: the save min 248 median 318 max 750 ms
+savebench: the worst page: its erase min 123 median 201 max 608 ms
+savebench: the worst page: its writes min 110 median 111 max 135 ms
+savebench: the worst page: its reads min 0 median 0 max 0 ms
+save: 751 bytes, ok, 40 ms
+talk.py: PASS line 15: expect 'savebench: the worst page: the save'
+savebench: no page (PM lock held): 758 B, 20 saves (0 failed), 0 of 20 sectors already blank before their erase; the slowest save's 0 of 1
+savebench: no page (PM lock held): the save min 30 median 32 max 34 ms
+savebench: no page (PM lock held): its erase min 26 median 28 max 30 ms
+savebench: no page (PM lock held): its writes min 3 median 4 max 4 ms
+savebench: no page (PM lock held): its reads min 0 median 0 max 0 ms
+save: 751 bytes, ok, 35 ms
+savebench: the full page (PM lock held): 9138 B, 20 saves (0 failed), 0 of 60 sectors already blank before their erase; the slowest save's 0 of 3
+savebench: the full page (PM lock held): the save min 117 median 124 max 448 ms
+savebench: the full page (PM lock held): its erase min 79 median 85 max 395 ms
+savebench: the full page (PM lock held): its writes min 36 median 37 max 50 ms
+savebench: the full page (PM lock held): its reads min 0 median 0 max 0 ms
+save: 751 bytes, ok, 31 ms
+savebench: the worst page (PM lock held): 27683 B, 20 saves (0 failed), 0 of 140 sectors already blank before their erase; the slowest save's 0 of 7
+savebench: the worst page (PM lock held): the save min 309 median 322 max 878 ms
+savebench: the worst page (PM lock held): its erase min 193 median 206 max 729 ms
+savebench: the worst page (PM lock held): its writes min 110 median 110 max 142 ms
+savebench: the worst page (PM lock held): its reads min 0 median 0 max 0 ms
+save: 751 bytes, ok, 34 ms
+savebench: done
+talk.py: PASS line 16: expect 'savebench: done'
+talk.py: ALL MET
