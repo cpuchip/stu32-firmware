@@ -5,7 +5,8 @@
 newest image, and what an older firmware's image looks like to it, which must load; the erases per sector under the three
 uses; power loss mid-save; SAVEBENCH before and after.
 
-**Status:** a draft for abacus. No code. Read at a10885a.
+**Status:** revision 1 (abacus #14138: a blocking finding in lean 1, and the four questions answered; the revision's
+section is at the end, and lean 1 below says where it's struck). No code.
 
 ## Today (firmware/store.c, measured)
 
@@ -22,12 +23,14 @@ uses; power loss mid-save; SAVEBENCH before and after.
 ## The lean: one ring over the whole partition
 
 1. **Where the image starts.** The partition's sectors are one ring: 128 for the state, 18 for the apps.
-   - A save starts at the sector after the newest good image's last sector. When the image wouldn't fit before the
-     partition's end, it starts at sector 0 instead (an image never wraps across the end).
+   - ~~A save starts at the sector after the newest good image's last sector. When the image wouldn't fit before the
+     partition's end, it starts at sector 0 instead (an image never wraps across the end).~~ Struck in revision 1: the
+     no-wrap rule wastes the tail and can overlap the newest image (abacus's counterexample). The image wraps instead.
    - It erases only the sectors the image needs there, writes the image, then writes the header last, exactly as now.
      The header's format doesn't change.
-   - The new image can never overlap the newest good one: the largest image (IMAGE_CAP, 256 KiB, 64 sectors) plus the
-     newest is at most 128 sectors. For the apps, APP_SAVES_IMG_MAX 32,826 B is 9 sectors, and 9 + 9 = 18.
+   - ~~The new image can never overlap the newest good one: the largest image (IMAGE_CAP, 256 KiB, 64 sectors) plus the
+     newest is at most 128 sectors. For the apps, APP_SAVES_IMG_MAX 32,826 B is 9 sectors, and 9 + 9 = 18.~~ False as
+     written (revision 1): it holds only when the new image may use every free sector, which the no-wrap rule forbids.
 2. **How load finds the newest.**
    - Read the 32-byte header at every sector's start: 128 reads of 32 B for the state.
    - Keep the headers whose own CRC is right. Try them from the highest seq down; the first whose payload CRC matches
@@ -102,3 +105,60 @@ saves, which happen only when an app's state changed (app.c's apps_dirty).
 2. The downgrade cost as stated (nothing sold; Rev A flashes forward).
 3. ab_store_migrate made a no-op once the scan finds every sector-aligned image.
 4. The apps' store moved to the ring in the same unit (the same code), or left on two slots.
+
+## Revision 1: abacus #14138
+
+**The blocking finding, owned.** Lean 1's guarantee was false. Under "start at sector 0 rather than split across the
+end", a newest image at sectors 61-76 and a new 64-sector save: 77 + 64 passes 128, so the save starts at 0 and takes 0-63,
+erasing 61-63 of the only good image. A cut there loses it. (Checked: the no-split rule's range overlaps the newest; the
+circular range, 77 to 12, doesn't.) The apps' ring breaks the same way (newest 8-15, a 9-sector save at 0-8).
+
+- **The fix: a true circular buffer.** A save starts at the sector after the newest image's last, modulo the
+  partition's sectors, and its k sectors run on circularly. The header is at its first sector; the payload continues
+  past the partition's end at sector 0.
+  - The erase is one range or two; the payload's write is one piece or two; the header is still written last.
+  - The load reads a payload circularly for its CRC and into the buffer.
+  - The new image ends before the newest's start whenever newest + new ≤ the partition's sectors: 64 + 64 = 128 for the
+    state (IMAGE_CAP), 9 + 9 = 18 for the apps (APP_SAVES_IMG_MAX). Now that's true for every position, since the new
+    image uses the free sectors contiguously from the newest's end. The store refuses an image past half the partition
+    (it couldn't keep the guarantee), as it refuses one past a slot today.
+  - An older firmware's image never wraps (it starts at a slot's start and fits in it), so it reads as a ring image
+    whose run happens not to wrap.
+- **The questions:**
+  1. The whole partition: as ruled.
+  2. The downgrade cost: accepted as stated; the record will say so.
+  3. Migrate: apps v1.2's old second slot is read by the same examine() as every slot (store.c:85,
+     `examine(&old, 1)`), so its header is the same "ABST" form, at 0x2000, a sector start. The scan finds it. The build
+     adds an apps v1.2 fixture (8 KiB slots, the newest in the old second) loading under the ring, and keeps today's
+     migrate test ("migration after the slots grew: the newest image kept") unchanged and green. Only then does migrate
+     become a no-op.
+  4. The apps in the same unit, with the circular form.
+- **Tests added for the finding:**
+  - the counterexample as a store_test case (a newest at 61-76, then a 64-sector save, cut at every byte and every erase,
+    and the load giving the newest that finished after each cut);
+  - the apps' version (newest 8-15, a 9-sector save);
+  - random sizes up to the cap over many wraps, with cuts.
+  - The "overlap check removed" mutant must go red on the counterexample.
+
+## The hidden set's interface: tests/store_sim (a new host tool)
+
+`build/store_sim FILE` reads lines and prints a FAIL line for each expectation that fails, then a total. Its exit is 0
+when every expectation holds. A line is a command and its arguments, separated by blanks; `#` starts a comment.
+
+- `PART n s`: a fresh simulated partition of n sectors of s bytes, every byte 0xFF, and a store over it (the state's
+  is `PART 128 4096`, the apps' `PART 18 4096`).
+- `OLD slot bytes seq`: an image written the way today's two-slot store writes one: at slot 0 or 1 of a two-slot
+  layout over the partition (slot size n×s/2), header and payload. bytes from 1; content as below. This makes the
+  older-firmware fixtures.
+- `SAVE bytes`: a save through the store of an image of that many bytes. Its content is a function of its own seq (byte
+  i is (seq × 31 + i) mod 251), so a load can check it's the right image whole.
+- `CUT bytes budget`: the same save, with the power cut after budget flash operations: a byte written or a sector
+  erased each counts one. After it, the store is rebooted (its RAM state dropped).
+- `CUTALL bytes`: the save repeated from the same starting partition with the cut at every budget from 0 to the
+  save's own count. After each cut, a load must give the newest image that finished (the one before, or this one if the
+  cut came after its header). It prints the number of cuts and how many held.
+- `EXPECT LOAD seq` or `EXPECT LOAD NONE`: a load (after a reboot) gives the image of that seq, its content whole, or
+  none.
+- `EXPECT ERASES sector lo hi`: that sector's erase count since PART, from lo to hi.
+- `EXPECT MAXERASES hi`: no sector's count above hi.
+- `REBOOT`: the store's RAM state dropped (the next save scans).
