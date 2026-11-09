@@ -47,7 +47,7 @@ result but fmod's passes through it).
 3. **The core's own shortcuts**, which return a constant or x itself without a rounding call:
    - fn_tanh at |x| ≥ 100 gives ±1: 15 cases, 100, 123.456, 132, 150, 180...
    - COS of 1E-35 gives 1 (once).
-   - Reading fn.c finds more of the same shape: 10^x of a tiny x gives 1, ln(1+x) of a tiny x gives x. There are 8
+   - Reading fn.c finds more of the same shape: 10^x of a tiny x gives 1, ln(1+x) of a tiny x gives x. There are 7
      uses of `tiny()` and the saturations beside them.
 
 So **the flag alone gives false exacts, and the three classes close them.**
@@ -78,8 +78,9 @@ The random run has 11, all XROOT.
 2. **What counts as exact, beyond the flag** (to cut false rounded; each a check that can only prove exactness):
    - **XROOT, and POW whose exponent is the reciprocal of a whole number up to 99:** the result r is exact when rⁿ
      equals the base exactly (abn_mul_exact chain, n multiplications at most). 8 XROOT 3 = 2: 2³ = 8 exactly.
-   - **DEG inverse trig:** a result that's a whole number of degrees is checked by the exact sine and cosine of that
-     angle (the table the forward trig already uses for exact angles: 30°'s ½ and the like). asin ½ = 30 exactly.
+   - **DEG inverse trig:** the core already has an exact-angle path: fn.c:1212, "the exact angles exact (ASIN 0.5 = 30,
+     ATAN 1 = 45, ...)". The forward functions are exact at 0 and 30° (fn.c:1041). The census's false rounded there come
+     from library calls made before that path decides. The path marks its result exact.
    - **Not attempted:** a general "is this decimal the true value" test. It would be a second implementation of each
      function.
 3. **Where it shows:** STU's home, X's line: `≈` before a rounded value, and nothing before an exact one.
