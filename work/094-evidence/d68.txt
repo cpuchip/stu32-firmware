@@ -1,0 +1,40 @@
+Preparing worktree (detached HEAD 3ee180d)
+HEAD is now at 3ee180d h093 adopted (abacus #14169): tests/h093-abacus.txt byte-identical (5,033 B, sha256 ea0d1d08...8631), in make test: 29/29 vectors, 91/91 expectations
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+casim 175c160a1b3c778ab67f049fe14baac81d1e23e2
+Preparing worktree (detached HEAD 30dac26)
+HEAD is now at 30dac26 Unit 094 on the stand-in: report094.txt (ENTER copies V÷I; the host's frame E0837082, replayed); repin-eedbf16.txt and repin-v160.txt press EVAL (soft key 3) where they pressed ENTER for CONDITION FAILS (their console expects, which the replay doesn't read: the blueprint's census missed them)
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+casim 175c160a1b3c778ab67f049fe14baac81d1e23e2
+
+### standin: 3ee180d -> 30dac26
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,336,672 | 2,337,072 | +400 |
+| internal RAM static (DIRAM, of 341,760) | 207,683 | 207,683 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 59,074 | 59,074 | +0 |
+| calc_task's frame (under every deep path's stack), B | 144 | 144 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 779,276 -> 779,570 (+294)
+- libesp_app_format.a: 75,214 -> 75,302 (+88)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 160,623 -> 160,623 (+0), none changed
+
+### reva: 3ee180d -> 30dac26
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,264,384 | 2,264,784 | +400 |
+| internal RAM static (DIRAM, of 341,760) | 215,318 | 215,318 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 78,086 | 78,086 | +0 |
+| calc_task's frame (under every deep path's stack), B | 128 | 128 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 719,687 -> 719,985 (+298)
+- libesp_app_format.a: 73,842 -> 73,930 (+88)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 133,285 -> 133,285 (+0), none changed
