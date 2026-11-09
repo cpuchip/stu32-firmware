@@ -90,7 +90,8 @@ saves, which happen only when an app's state changed (app.c's apps_dirty).
 - **Fixtures:** a state partition written by today's store (two slots), checked in, loading under the ring.
 - **SAVEBENCH before and after,** on the stand-in, for both images: the 20-save distribution of the three states.
   Expected: each save's erase as before (its sectors are fresh, or the two worn ones one save in 128), and the save
-  shorter by today's examine (its reads, 2-33 ms in 090's SAVEBENCH).
+  shorter by today's examine (its reads: medians 0, 10 and 33 ms for the three states in 090's SAVEBENCH at
+  ca1d330).
 - **Mutants,** predicted first: the start not moving; the image wrapping across the end; the load taking the first
   header found, not the newest; the header written before the payload; the overlap check removed.
 
