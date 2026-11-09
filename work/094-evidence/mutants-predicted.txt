@@ -1,0 +1,27 @@
+Unit 094's planted faults, each predicted before any was run (src edc8c58). The runner (mutants-runner.py, 093's with
+this unit's faults) rebuilds vectors, app_test, help_test and standin_replay with one fault, runs tests/094-soroban.txt,
+048, 088, 076, 079 and h093, app_test, help_test and the stand-in's replay, and names what went red. "only" means nothing
+else goes red. P0 is the control (no fault).
+
+P1  EVAL as a copy (casrep_key's copy taken for EVAL too).
+    Predicted red: 048 C01, C03-C13, L06, R02 (14: the conditions now copies; C04's 2.5 and C11's value now
+    expressions); 088 S04, S05; 076 C03; 094 V02, K05, K06; app_test's "EVAL (soft key 3)" check. Green: 048 C02 (0
+    either way), 094 K02 (2 either way), V01 (the status row).
+P2  ENTER evaluating (the copy never taken).
+    Predicted red: 094 E01, E02, E03, E04 (values, not expressions), E07, E08 (CONDITION FAILS), K04; app_test's
+    "ENTER on R=V÷I" check. Green: E05, E06, K01, K03 (plain numbers either way), the nine vectors that keep ENTER.
+P3  ENTER reading the rows (the condition loop run before the copy).
+    Predicted red: 094 E07, E08 only.
+P4  the copy always an expression (088's plain-number rule dropped).
+    Predicted red: 048 R01, R03, R09, R10; 088 S02, S03; 076 C22; 079 W03, W11; 094 E05, E06, E07, E08, K01, K03;
+    app_test's 088 "ENTER on the root: 3 in X" and "blank keys do nothing", and 048's "ENTER on X=3"; the replay's
+    cas088.txt frame after ENTER (X drawn as an expression). Not predicted either way: app_test's two later 088 checks.
+P5  the link back to Y after the lift (089's bug restored in rows.c).
+    Predicted red: 094 K01, K02 only (the stack path's Y is the expression's row, so K03-K05 stay green).
+P6  EVAL's rows check removed (the loop runs no rows).
+    Predicted red: 048 C01, C03, C05-C10, C12, C13 (038's M1 set exactly, now under EVAL); 088 S05; 094 K06.
+P7  EVAL not on the report's bar (keymap.c's CAS REPORT item 3 emptied).
+    Predicted red: app_test's bar check and its "EVAL (soft key 3)" check; help_test (EVAL's entry no state shows:
+    314 of 315). No vector (the core's op is untouched).
+P8  EVAL programmable (taken off program_key's nonprogrammable list).
+    Predicted red: 094 V06 only.
