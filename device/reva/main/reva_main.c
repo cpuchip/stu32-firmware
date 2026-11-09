@@ -204,7 +204,7 @@ static QueueHandle_t keys_q;           /* key n down: n; released: KEY_UP_BASE -
                                            -2 the time */
 #define KEY_UP_BASE (-100)
 enum { KEY_SAVE = -3, KEY_WIPE = -4, KEY_RESTART = -5, KEY_EQNBENCH = -10, KEY_OPBENCH = -11, KEY_PROGBENCH = -12,
-       KEY_ROWBENCH = -13, KEY_SAVEBENCH = -14 };       /* (unit 090: the worksheet's bench, shared with the stand-in) */
+       KEY_ROWBENCH = -13, KEY_SAVEBENCH = -14, KEY_STEPBENCH = -15 };   /* (095: STEPS' page times) */       /* (unit 090: the worksheet's bench, shared with the stand-in) */
                                             /* the console's other commands, for the calc task (unit 053) */
 /* unit 023: light sleep between keys. usb_lock keeps the chip out of light sleep on USB power (the
    console stays usable, the power is free); tone_lock through a piezo tone (LEDC stops in light
@@ -784,9 +784,9 @@ static void console_task(void *arg)
             xQueueSend(keys_q, &k, 0);
 #ifdef AB_BENCH
         } else if (!strcmp(line, "EQNBENCH") || !strcmp(line, "OPBENCH") || !strcmp(line, "PROGBENCH") ||
-                   !strcmp(line, "ROWBENCH") || !strcmp(line, "SAVEBENCH")) {
+                   !strcmp(line, "ROWBENCH") || !strcmp(line, "SAVEBENCH") || !strcmp(line, "STEPBENCH")) {
             int k = line[0] == 'E' ? KEY_EQNBENCH : line[0] == 'O' ? KEY_OPBENCH : line[0] == 'R' ? KEY_ROWBENCH
-                    : line[0] == 'S' ? KEY_SAVEBENCH : KEY_PROGBENCH;
+                    : line[1] == 'A' ? KEY_SAVEBENCH : line[0] == 'S' ? KEY_STEPBENCH : KEY_PROGBENCH;
             xQueueSend(keys_q, &k, 0);
 #endif
 #ifdef AB_OFFCLK
@@ -925,6 +925,8 @@ static void calc_task(void *arg)
             dev_rowbench(&flash, image, IMAGE_CAP, &app.set, save);
         } else if (got && k == KEY_SAVEBENCH) {
             dev_savebench(&flash, image, IMAGE_CAP, &app.set, save);
+        } else if (got && k == KEY_STEPBENCH) {
+            dev_stepbench();
 #endif
         } else if (got) {                       /* -1: X, the stand-in's format, then Rev A's own facts */
             dev_dump(calc, &app);

@@ -236,7 +236,8 @@ static void do_op(app_state *a, int op, int arg)
        the device's key task delivers C into it (app_interrupt); nothing left over before or after */
     bool computing = runs || (op == AB_GFCN && c->gr_on) ||
                      ((op == AB_CASSOLVE || op == AB_CASINT || op == AB_CASFACT) && c->stu &&
-                      (c->eqn_mode || (op == AB_CASSOLVE && ab_is_sym(&c->x))));    /* 088: SOLVE on X too */
+                      (c->eqn_mode || (op == AB_CASSOLVE && ab_is_sym(&c->x)))) ||   /* 088: SOLVE on X too */
+                     op == AB_CASSTEPS || (ab_steps_open(c) && op == AB_BST);   /* 095: a page of steps (SST: runs) */
                                                 /* unit 048: casim's walk can't stop; a C during it discards the
                                                    result on return (abacus #5267) */
     if (computing) {
@@ -510,6 +511,7 @@ static int eqn_bar(const app_state *a)
         return m >= 0 ? m : menu_named(PAGE[a->gpage % 3]);
     }
     if (ab_view_linear(a->c)) return menu_named("LIN VIEW");         /* x= y= (z=): unit 035 */
+    if (ab_steps_open(a->c)) return menu_named("CAS STEPS");        /* unit 095: the steps view, over the report */
     if (ab_cas_report(a->c)) return menu_named("CAS REPORT");       /* SOLVE's exact roots: unit 048 */
     if (a->c->stu && !a->c->prgm && !a->c->alg && a->c->sel_row && ab_sel_menu(a->c))
         return menu_named(ab_sel_menu(a->c));   /* unit 093: the selected row's menu */

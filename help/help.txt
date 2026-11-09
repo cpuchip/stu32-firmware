@@ -1281,6 +1281,10 @@ Also on the stack's X bar.
 On SOLVE's report: the answer's
 value at the stored letters,
 its rows checked first.
+[AB_CASSTEPS]
+How the last D/DX, ∫DX or SOLVE
+answer was reached, a step a
+page. ▲▼ pages, C leaves.
 [AB_COPY]
 The selected row's value into
 X, as a new row linked to it.

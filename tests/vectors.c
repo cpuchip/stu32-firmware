@@ -27,6 +27,9 @@
 #include "eqn.h"
 #include "norm.h"
 #include "rows.h"
+#ifdef AB_CASIM
+#include "casim.h"          /* (unit 095: %STEPRULE, the rule's name) */
+#endif
 #include "opnames.h"
 #ifndef AB_DEVICE
 #include "screen.h"   /* %XDRAWN (082): the console's drawn=, from the screen's compose */
@@ -75,6 +78,7 @@ static const struct { const char *name; ab_op op; } NAMED[] = {
     {"SEL", AB_SEL}, {"ROWCOPY", AB_COPY}, {"ROWSHOW", AB_ROWSHOW}, {"ROWFRAC", AB_ROWFRAC}, {"ROWINFO", AB_ROWINFO},
     {"ROWEDIT", AB_ROWEDIT},                                    /* unit 093 */
     {"CASEVAL", AB_CASEVAL},                                    /* unit 094: EVAL on SOLVE's report (abacus #14168) */
+    {"CASSTEPS", AB_CASSTEPS},                                  /* unit 095: STEPS (abacus #14239) */
     {"TABLE", AB_TABLE}, {"TSTART", AB_TSTART}, {"TSTEP", AB_TSTEP}, {"TUP", AB_TUP}, {"TDOWN", AB_TDOWN},   /* 032 */
     {"GRAPH", AB_GRAPH}, {"XMIN", AB_XMIN}, {"XMAX", AB_XMAX}, {"YMIN", AB_YMIN}, {"YMAX", AB_YMAX},       /* 033 */
     {"AUTO", AB_GAUTO}, {"GLEFT", AB_GLEFT}, {"GRIGHT", AB_GRIGHT},
@@ -1099,6 +1103,23 @@ int vectors_run(const char *name, FILE *f)
                     if (ex[1] == 'N') snprintf(got, sizeof got, "%s", n ? n : "none");
                     else if (ex[4] == 'R' && ex[5] == 'E') snprintf(got, sizeof got, "%s", r ? r : "none");
                     else snprintf(got, sizeof got, "%s", ab_cas_row(&c, c.cas_row, row, sizeof row) ? row : "none");
+                    for (char *q = got; *q; q++)
+                        if (*q == ' ') *q = '_';
+                } else if (strncmp(ex, "%STEP", 5) == 0 && (!strcmp(ex + 5, "REQ") || !strcmp(ex + 5, "N") ||
+                           !strcmp(ex + 5, "K") || !ex[5] || !strcmp(ex + 5, "RULE") || !strcmp(ex + 5, "DEPTH"))) {
+                    /* unit 095 (#14239, #14240): the steps' request (op:letter or -); the view's count, page (from 1),
+                       its text ("RULE: text", casim's one line), rule and depth, - when the view isn't open; blanks _ */
+                    const char *w = ex + 5;
+                    if (!strcmp(w, "REQ")) ab_steps_req(&c, got, sizeof got);
+                    else if (!ab_steps_open(&c)) snprintf(got, sizeof got, "-");
+                    else if (!strcmp(w, "N")) snprintf(got, sizeof got, "%d", c.step_n);
+                    else if (!strcmp(w, "K")) snprintf(got, sizeof got, "%d", c.step_k + 1);
+                    else if (!strcmp(w, "DEPTH")) snprintf(got, sizeof got, "%d", c.step_depth);
+                    else if (!strcmp(w, "RULE")) {
+#ifdef AB_CASIM
+                        snprintf(got, sizeof got, "%s", casim_rule_name(c.step_rule)[0] ? casim_rule_name(c.step_rule) : "_");
+#endif
+                    } else snprintf(got, sizeof got, "%.250s", c.step_page);
                     for (char *q = got; *q; q++)
                         if (*q == ' ') *q = '_';
                 } else if (strcmp(ex, "%XRAW") == 0) {

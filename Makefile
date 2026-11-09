@@ -21,7 +21,7 @@ LIBS := -lm
 # make accuracy needs a python with mpmath: make all-checks PYTHON=...
 PYTHON ?= python3
 KEYV := $(filter-out work/002-vectors.txt work/016-vectors.txt work/017-vectors.txt work/018-vectors.txt,$(filter-out %-fmt-vectors.txt,$(wildcard work/*-vectors.txt))) tests/021-soroban.txt tests/019-soroban.txt tests/003-soroban.txt tests/018-soroban.txt tests/029-soroban.txt tests/034-soroban.txt tests/harness-soroban.txt tests/046-soroban.txt tests/047-soroban.txt tests/050-soroban.txt tests/054-soroban.txt tests/fc-soroban.txt tests/067-soroban.txt tests/082-soroban.txt tests/084-soroban.txt tests/085-soroban.txt tests/086-soroban.txt
-all: build/device_host build/rows_test build/standin_test build/app_test build/standin_replay build/keymap_test build/help_test build/power_test build/offscreen_test build/screen_test build/tbook_test build/keys_test build/ls027_test build/draw_test build/store_test build/store_sim build/load_fuzz build/expr_test build/eqn_say_test build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test build/bi_drive build/hp_drive build/deep_test build/eqn_depth build/eqn_stack build/stackkeys build/namedrive
+all: build/device_host build/rows_test build/standin_test build/app_test build/standin_replay build/keymap_test build/help_test build/power_test build/offscreen_test build/screen_test build/tbook_test build/keys_test build/ls027_test build/draw_test build/store_test build/store_sim build/steps_test build/load_fuzz build/expr_test build/eqn_say_test build/vectors build/fmt_vectors build/fmt_drive build/fn_drive build/cx_drive build/xnum_test build/abn_test build/diff_test build/bi_drive build/hp_drive build/deep_test build/eqn_depth build/eqn_stack build/stackkeys build/namedrive
 
 # every build/ target is order-only on the directory: a fresh clone has none (abacus #3803)
 build:
@@ -119,6 +119,9 @@ build/ls027_test: firmware/ls027.c firmware/ls027.h tests/ls027_test.c | build
 
 build/store_test: $(CORE) $(HDRS) $(ENGINE) firmware/store.c firmware/store.h firmware/settings.c firmware/settings.h firmware/piezo.c tests/store_test.c | build
 	$(CC) $(CFLAGS) -Icore -Ifirmware -o $@ $(CORE) firmware/store.c firmware/settings.c firmware/piezo.c tests/store_test.c $(ENGINE) $(LIBS)
+# unit 095: the steps census (work/cas-steps-device.md): every corpus case paged as the firmware pages it
+build/steps_test: $(ENGINE) core/arena.h tests/steps_test.c tests/steps-corpus.txt | build
+	$(CC) $(CFLAGS) -Icore -o $@ tests/steps_test.c $(ENGINE) $(LIBS)
 # unit 092: the store over a simulated flash, driven by a script (work/092-store-wear.md's interface, the hidden set's)
 build/store_sim: $(CORE) $(HDRS) $(ENGINE) firmware/store.c firmware/store.h tests/store_sim.c | build
 	$(CC) $(CFLAGS) -Icore -Ifirmware -o $@ $(CORE) firmware/store.c tests/store_sim.c $(ENGINE) $(LIBS)
@@ -287,6 +290,7 @@ test: all
 	./build/vectors tests/n094-abacus.txt    # (abacus #14186: n094, h094 with E08's op name corrected, sha256 527c391b...)
 	./build/vectors tests/093-soroban.txt    # (unit 093: selecting a row; no save/load pass: the selection is RAM only)
 	./build/vectors tests/094-soroban.txt    # (unit 094: the report's ENTER and EVAL; no save/load pass: the report isn't in the image)
+	./build/vectors tests/095-soroban.txt    # (unit 095: STEPS; no save/load pass: the steps are RAM only)
 	./build/rows_test
 	./build/eqn_say_test tests/086-corpus.txt    # (unit 086: the round trip over every equation the vectors type)
 	if AB_SAY_PLANT=1 ./build/eqn_say_test tests/086-corpus.txt > /dev/null; then \
@@ -313,6 +317,7 @@ test: all
 	bash tests/gen_games_test.sh
 	./build/store_test
 	./build/store_sim tests/092-soroban-store.txt   # (unit 092: the ring, the counterexample, older firmware's slots)
+	./build/steps_test tests/steps-corpus.txt   # (unit 095: the census, kept)
 	./build/store_sim tests/h092-abacus.txt   # (abacus #14223: h092 as frozen, sha256 33238a8b..., from tests/h092gen.py)
 	./build/ls027_test
 	./build/draw_test
@@ -483,6 +488,7 @@ sanitize: build/san/load_fuzz build/san/expr_test build/san/app_test build/san/v
 	./build/san/vectors tests/090-soroban.txt
 	./build/san/vectors tests/093-soroban.txt
 	./build/san/vectors tests/094-soroban.txt
+	./build/san/vectors tests/095-soroban.txt
 	./build/san/store_sim tests/092-soroban-store.txt   # (unit 092)
 	./build/san/app_test
 	for f in $(KEYV) work/016-vectors.txt work/017-vectors.txt; do AB_SAVELOAD=1 AB_STORE=1 ./build/san/vectors $$f || exit 1; done

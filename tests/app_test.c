@@ -5026,8 +5026,22 @@ int main(void)
         app_ui(&a, &ui);
         expect(ab_cas_report(&c) && ui.soft[0] && !strcmp(ui.soft[0], "\xe2\x96\xb2") && ui.soft[1] &&
                    !strcmp(ui.soft[1], "\xe2\x96\xbc") && ui.soft[2] && !strcmp(ui.soft[2], "EVAL") &&
-                   (!ui.soft[3] || !ui.soft[3][0]),
-               "094: the report's bar: \xe2\x96\xb2 \xe2\x96\xbc EVAL");
+                   ui.soft[3] && !strcmp(ui.soft[3], "STEPS") && (!ui.soft[4] || !ui.soft[4][0]),
+               "094, 095: the report's bar: \xe2\x96\xb2 \xe2\x96\xbc EVAL STEPS");
+        /* unit 095: STEPS (the fourth key) opens the steps view over the report, on STEP 1, its own bar; down pages; C
+           returns to the report */
+        press(&a, "k:3");
+        app_ui(&a, &ui);
+        expect(ab_steps_open(&c) && c.step_k == 0 && c.step_n > 1 && ab_cas_report(&c) && ui.soft[0] &&
+                   !strcmp(ui.soft[0], "\xe2\x96\xb2") && ui.soft[1] && !strcmp(ui.soft[1], "\xe2\x96\xbc") &&
+                   (!ui.soft[2] || !ui.soft[2][0]),
+               "095: STEPS on the report: the view on STEP 1 over it, its bar \xe2\x96\xb2 \xe2\x96\xbc");
+        press(&a, "k:1");
+        expect(ab_steps_open(&c) && c.step_k == 1, "095: \xe2\x96\xbc pages to STEP 2");
+        press(&a, "C");
+        app_ui(&a, &ui);
+        expect(!ab_steps_open(&c) && ab_cas_report(&c) && ui.soft[2] && !strcmp(ui.soft[2], "EVAL"),
+               "095: C leaves the steps for the report");
         press(&a, "k:1 k:2");                   /* down to R=V÷I, then EVAL */
         expect(!ab_cas_report(&c) && c.x.kind == AB_REAL && x_of(&c) == 2.5,
                "094: EVAL (soft key 3) on R=V\xc3\xb7I: 2.5 in X, the report gone");
@@ -5106,6 +5120,25 @@ int main(void)
             expect(c.cas_def && c.cas_def_step == 2 && ui.soft[3] && !strcmp(ui.soft[3], "="),
                    "070: \xe2\x88\xab" "AB's upper bound keeps = on the bar");
         }
+        /* unit 095: STEPS on CAS3's fifth key, for the D/DX answer shown: the view on STEP 1 of 3 (POWER, SIN, PRODUCT in
+           RAD), its bar; C back to the list, the answer still shown and its steps still there */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        ab_do(&c, AB_RAD);
+        ab_eqn_add(&c, "X^2\xc3\x97" "SIN(X)");
+        press(&a, "k:4 k:0 ltr:X");
+        expect(c.step_op != 0 && !strcmp(c.eqn[c.eqn_cur], c.step_ans), "095: D/DX kept its steps, its answer shown");
+        press(&a, "k:4 k:5 k:5");
+        app_ui(&a, &ui);
+        expect(ui.soft[4] && !strcmp(ui.soft[4], "STEPS"), "095: CAS3's fifth key is STEPS");
+        press(&a, "k:4");
+        app_ui(&a, &ui);
+        expect(ab_steps_open(&c) && c.step_k == 0 && c.step_n == 3 && !strncmp(c.step_page, "POWER: ", 7) && ui.soft[0] &&
+                   !strcmp(ui.soft[0], "\xe2\x96\xb2"),
+               "095: STEPS on the D/DX answer: STEP 1 of 3, POWER, the view's bar");
+        press(&a, "C");
+        expect(!ab_steps_open(&c) && c.eqn_mode && c.step_op != 0, "095: C leaves; the answer's steps are kept");
         /* unit 057: CAS2's sixth key goes on to CAS3 (QUOT, GCD, CANCL); QUOT through the keys: the variable, g, ENTER:
            q and r inserted, q shown, labeled QUOTIENT */
         ab_init(&c);

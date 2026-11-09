@@ -1,0 +1,203 @@
+# Unit 095 on the stand-in (work/cas-steps-device.md, revision 1): STEPS through the keys. From MEMORY CLEAR in STU:
+# EXP(X)×SIN(X) typed into EQN and stored, ∫DX in X (CAS, ▸, ∫DX, X; keys from tests/stackkeys.c, cas i TEXT), then STEPS
+# on CAS3's fifth key (CAS, ▸, ▸, STEPS): the view on STEP 1, its bar (soft1= ▲), its frame; ▼ to STEP 2 and its
+# frame; C back to the list. Then 1÷((X-1)×(X-2)×(X-3)×(X-4)), ∫DX, STEPS, and C sent straight after ▼, during the
+# page (about 384 ms on this S3): the page discarded, the view left, INTERRUPTED (abacus #14234: C during a page; the
+# console's lines only, as the host replays a key only after the one before it ends). Then the calc task's
+# stack low-water mark, no lower than the deep paths' (8,188 B free), and a control that must FAIL.
+# replay: current
+wait : heap internal 30
+sleep 3
+send WIPE
+expect wipe: both slots erased
+send RESTART
+expect load: no image: MEMORY CLEAR 30
+expect ver=0.96 30
+wait READY 30
+send K42
+sleep 0.25
+send K42
+sleep 0.25
+send K36
+sleep 0.25
+send K18
+sleep 0.25
+send K2
+sleep 0.25
+send K42
+sleep 0.25
+send K30
+sleep 0.25
+send K43
+sleep 0.25
+send K13
+sleep 0.25
+send K10
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K13
+sleep 0.25
+send K21
+sleep 0.25
+send K2
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K1
+sleep 0.25
+send K34
+sleep 0.25
+send K15
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K1
+sleep 0.25
+send K18
+sleep 0.25
+send K4
+sleep 0.25
+send K5
+sleep 0.25
+send K1
+sleep 0.25
+send K33
+sleep 0.25
+sleep 1
+send K4
+sleep 0.25
+send K5
+sleep 0.25
+send K5
+sleep 0.25
+send K4
+sleep 0.25
+sleep 1
+send X
+expect soft1=▲ 10
+send FRAMECRC
+expect framecrc: rows 21-205 1468449E 10
+send K1
+sleep 0.25
+sleep 1
+send FRAMECRC
+expect framecrc: rows 21-205 9ACB255E 10
+send K42
+sleep 0.25
+# the heavy integral: C during a page
+send K42
+sleep 0.25
+send K42
+sleep 0.25
+send K36
+sleep 0.25
+send K18
+sleep 0.25
+send K2
+sleep 0.25
+send K42
+sleep 0.25
+send K30
+sleep 0.25
+send K43
+sleep 0.25
+send K37
+sleep 0.25
+send K28
+sleep 0.25
+send K2
+sleep 0.25
+send K2
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K40
+sleep 0.25
+send K37
+sleep 0.25
+send K1
+sleep 0.25
+send K34
+sleep 0.25
+send K2
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K40
+sleep 0.25
+send K38
+sleep 0.25
+send K1
+sleep 0.25
+send K34
+sleep 0.25
+send K2
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K40
+sleep 0.25
+send K39
+sleep 0.25
+send K1
+sleep 0.25
+send K34
+sleep 0.25
+send K2
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K40
+sleep 0.25
+send K31
+sleep 0.25
+send K1
+sleep 0.25
+send K1
+sleep 0.25
+send K18
+sleep 0.25
+send K4
+sleep 0.25
+send K5
+sleep 0.25
+send K1
+sleep 0.25
+send K33
+sleep 0.25
+sleep 3
+send K4
+sleep 0.25
+send K5
+sleep 0.25
+send K5
+sleep 0.25
+send K4
+sleep 0.25
+sleep 3
+send X
+expect soft1=▲ 10
+send K1
+send K42
+sleep 2
+send X
+expect msg=INTERRUPTED 10
+send X
+expect-min stack-free 8188 10
+# CONTROL: must FAIL
+expect framecrc: rows 21-205 00000000 3

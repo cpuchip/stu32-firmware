@@ -110,9 +110,9 @@ static const km_menu MENUS[] = {
     {"APPS", {{KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, "more"}}, KM_PAGED_APPS},
     {"CAS", {{KM_PROMPT, AB_CASD, 0, KM_ARG_VAR, "D/DX"}, {KM_OP, AB_CASSIMP, 0, 0, "SIMP"}, {KM_OP, AB_CASEXP, 0, 0, "EXPND"}, {KM_PROMPT, AB_CASCOL, 0, KM_ARG_VAR, "COLCT"}, {KM_PROMPT, AB_CASSUB, 0, KM_ARG_VAR, "SUBST"}, {KM_MENU, 0, 53, 0, "\xe2\x96\xb8"}}, 0},
     {"CAS2", {{KM_PROMPT, AB_CASSOLVE, 0, KM_ARG_VAR, "SOLVE"}, {KM_PROMPT, AB_CASINT, 0, KM_ARG_VAR, "\xe2\x88\xab" "DX"}, {KM_PROMPT, AB_CASFACT, 0, KM_ARG_VAR, "FACTR"}, {KM_PROMPT, AB_CASDEF, 0, KM_ARG_VAR, "\xe2\x88\xab" "AB"}, {KM_PROMPT, AB_CASSUM, 0, KM_ARG_VAR, "\xce\xa3"}, {KM_MENU, 0, 56, 0, "\xe2\x96\xb8"}}, 0},
-    {"CAS REPORT", {{KM_OP, AB_BST, 0, 0, "\xe2\x96\xb2"}, {KM_OP, AB_SST, 0, 0, "\xe2\x96\xbc"}, {KM_OP, AB_CASEVAL, 0, 0, "EVAL"}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}}, 0},
+    {"CAS REPORT", {{KM_OP, AB_BST, 0, 0, "\xe2\x96\xb2"}, {KM_OP, AB_SST, 0, 0, "\xe2\x96\xbc"}, {KM_OP, AB_CASEVAL, 0, 0, "EVAL"}, {KM_OP, AB_CASSTEPS, 0, 0, "STEPS"}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}}, 0},
     {"EQN LIST GOLD", {{KM_OP, AB_KREG, 0, 0, "REGX"}, {KM_OP, AB_KREG, 1, 0, "REGY"}, {KM_OP, AB_KREG, 2, 0, "REGZ"}, {KM_OP, AB_KREG, 3, 0, "REGT"}, {KM_NONE, 0, 0, 0, ""}, {KM_OP, AB_KPAREN, 0, 0, "( )"}}, 0},
-    {"CAS3", {{KM_PROMPT, AB_CASQUOT, 0, KM_ARG_VAR, "QUOT"}, {KM_PROMPT, AB_CASGCD, 0, KM_ARG_VAR, "GCD"}, {KM_PROMPT, AB_CASCANCL, 0, KM_ARG_VAR, "CANCL"}, {KM_OP, AB_CASCPLX, 0, 0, "CPLX"}, {KM_NONE, 0, 0, 0, ""}, {KM_MENU, 0, 52, 0, "\xe2\x96\xb8"}}, 0},
+    {"CAS3", {{KM_PROMPT, AB_CASQUOT, 0, KM_ARG_VAR, "QUOT"}, {KM_PROMPT, AB_CASGCD, 0, KM_ARG_VAR, "GCD"}, {KM_PROMPT, AB_CASCANCL, 0, KM_ARG_VAR, "CANCL"}, {KM_OP, AB_CASCPLX, 0, 0, "CPLX"}, {KM_OP, AB_CASSTEPS, 0, 0, "STEPS"}, {KM_MENU, 0, 52, 0, "\xe2\x96\xb8"}}, 0},
     {"EQN TYPE SUM", {{KM_OP, AB_KLEFT, 0, 0, "\xe2\x97\x80"}, {KM_OP, AB_KRIGHT, 0, 0, "\xe2\x96\xb6"}, {KM_OP, AB_KPAREN, 0, 0, "( )"}, {KM_OP, AB_KINF, 0, 0, "\xe2\x88\x9e"}, {KM_OP, AB_KSPACE, 0, 0, "SPC"}, {KM_MENU, 0, 40, 0, "REG"}}, 0},
     {"GAMES", {{KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, "more"}}, KM_PAGED_GAMES},
     {"EQN MORE", {{KM_OP, AB_EQDROP, 0, 0, "\xe2\x86\x92X"}, {KM_OP, AB_EQSTORE, 0, 0, "\xe2\x86\x92" "EQN"}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_MENU, 0, 26, 0, "\xe2\x96\xb8"}}, 0},
@@ -121,6 +121,7 @@ static const km_menu MENUS[] = {
     {"ROW NUM", {{KM_OP, AB_COPY, 0, 0, "COPY"}, {KM_PROMPT, AB_ROWSTO, 0, KM_ARG_VAR, "STO"}, {KM_OP, AB_ROWSHOW, 0, 0, "SHOW"}, {KM_OP, AB_ROWFRAC, 0, 0, "FRAC"}, {KM_NONE, 0, 0, 0, ""}, {KM_OP, AB_ROWINFO, 0, 0, "INFO"}}, 0},
     {"ROW EXPR", {{KM_OP, AB_COPY, 0, 0, "COPY"}, {KM_PROMPT, AB_ROWSTO, 0, KM_ARG_VAR, "STO"}, {KM_OP, AB_CASSIMP, 0, 0, "SIMP"}, {KM_OP, AB_CASEXP, 0, 0, "EXPND"}, {KM_PROMPT, AB_CASSOLVE, 0, KM_ARG_VAR, "SOLVE"}, {KM_MENU, 0, 52, 0, "\xe2\x96\xb8"}}, 0},
     {"ROW ALG", {{KM_OP, AB_ROWEDIT, 0, 0, "EDIT"}, {KM_PROMPT, AB_ROWSTO, 0, KM_ARG_VAR, "STO"}, {KM_OP, AB_ROWSHOW, 0, 0, "SHOW"}, {KM_OP, AB_ROWFRAC, 0, 0, "FRAC"}, {KM_NONE, 0, 0, 0, ""}, {KM_OP, AB_ROWINFO, 0, 0, "INFO"}}, 0},
+    {"CAS STEPS", {{KM_OP, AB_BST, 0, 0, "\xe2\x96\xb2"}, {KM_OP, AB_SST, 0, 0, "\xe2\x96\xbc"}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}, {KM_NONE, 0, 0, 0, ""}}, 0},
 };
 
 const km_menu *km_menu_at(int index)

@@ -240,7 +240,8 @@ MENUS = [
               p("\u03a3", "AB_CASSUM", "KM_ARG_VAR"),                                                 # 070: Σ
               ("\u25b8", "KM_MENU", "0", "CAS3", 0)]),                                             # 057: on to CAS3
     # unit 048: SOLVE's report open: up and down step among its rows (ENTER copies a root, C leaves)
-    ("CAS REPORT", [o("\u25b2", "AB_BST"), o("\u25bc", "AB_SST"), o("EVAL", "AB_CASEVAL"), NONE, NONE, NONE]),   # 094
+    ("CAS REPORT", [o("\u25b2", "AB_BST"), o("\u25bc", "AB_SST"), o("EVAL", "AB_CASEVAL"), o("STEPS", "AB_CASSTEPS"),
+                    NONE, NONE]),   # 094; 095: STEPS, SOLVE's
     # unit 046 (abacus #4996): EQN LIST's GOLD bank (eqn_bar takes it with GOLD), the REG names as a first character;
     # in 33s mode dimmed and doing nothing (041 A11)
     ("EQN LIST GOLD", [o("REGX", "AB_KREG", 0), o("REGY", "AB_KREG", 1), o("REGZ", "AB_KREG", 2), o("REGT", "AB_KREG", 3),
@@ -250,7 +251,8 @@ MENUS = [
     ("CAS3", [p("QUOT", "AB_CASQUOT", "KM_ARG_VAR"), p("GCD", "AB_CASGCD", "KM_ARG_VAR"),
               p("CANCL", "AB_CASCANCL", "KM_ARG_VAR"),
               o("CPLX", "AB_CASCPLX"),             # 076: SOLVE's complex roots on or off (decision 88), marked when on
-              NONE, ("\u25b8", "KM_MENU", "0", "CAS", 0)]),                      # back to CAS (082's CAS4 gone)
+              o("STEPS", "AB_CASSTEPS"),           # 095: the D/DX or ∫DX answer shown, its steps
+              ("\u25b8", "KM_MENU", "0", "CAS", 0)]),                      # back to CAS (082's CAS4 gone)
     # unit 070 (abacus #8545): typing's bar while Σ's upper bound is typed, last in this list so no menu's index moves;
     # = has no meaning in a bound, so its key types ∞ there (the label shows it while it is live)
     ("EQN TYPE SUM", [o("\u25c0", "AB_KLEFT"), o("\u25b6", "AB_KRIGHT"), o("( )", "AB_KPAREN"), o("\u221e", "AB_KINF"),
@@ -281,6 +283,9 @@ MENUS = [
                   o("EXPND", "AB_CASEXP"), p("SOLVE", "AB_CASSOLVE", "KM_ARG_VAR"), ("\u25b8", "KM_MENU", "0", "CAS", 0)]),
     ("ROW ALG", [o("EDIT", "AB_ROWEDIT"), p("STO", "AB_ROWSTO", "KM_ARG_VAR"), o("SHOW", "AB_ROWSHOW"),
                  o("FRAC", "AB_ROWFRAC"), NONE, o("INFO", "AB_ROWINFO")]),
+    # unit 095: the steps view open (work/cas-steps-device.md): up and down page, wrapping; C leaves. Last in this list so
+    # no menu's index moves
+    ("CAS STEPS", [o("\u25b2", "AB_BST"), o("\u25bc", "AB_SST"), NONE, NONE, NONE, NONE]),
 ]
 # Menu legends that act as plain ops until their menu is ruled (abacus #3867): the EQN menu's
 # first item will take this over.

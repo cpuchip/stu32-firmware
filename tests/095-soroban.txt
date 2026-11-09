@@ -1,0 +1,36 @@
+# Unit 095 (work/cas-steps-device.md, revision 1; abacus #14234, #14240, #14242): STEPS, Casimir's show-steps on the
+# calculator, one line a step. The derive pages are casim's own docs/language.md steps table read one-line (its template
+# lines left out, as CASIM_STEPS_ONE_LINE does); the solve's and the integral's counts and the solve's first page are the
+# bench's (work/cas-steps-evidence/). Dumps: %STEPREQ, %STEPN, %STEPK, %STEP, %STEPRULE, %STEPDEPTH (#14239).
+#
+# The view: X^2×SIN(X) differentiated in RAD: POWER, SIN, PRODUCT
+P01 | STEPS on the D/DX answer shown: STEP 1 of 3, POWER at depth 1 | RAD STU EQ:X^2×SIN(X) CASD:X CASSTEPS | %STEPREQ=D:X %STEPN=3 %STEPK=1 %STEP=POWER:_d/dX(X^2)_=_2×X %STEPRULE=POWER %STEPDEPTH=1
+P02 | down a page: SIN, depth 1 | RAD STU EQ:X^2×SIN(X) CASD:X CASSTEPS SST | %STEPK=2 %STEP=SIN:_d/dX(SIN(X))_=_COS(X) %STEPRULE=SIN %STEPDEPTH=1
+P03 | the last page is the answer, at depth 0 | RAD STU EQ:X^2×SIN(X) CASD:X CASSTEPS SST SST | %STEPK=3 %STEP=PRODUCT:_d/dX(X^2×SIN(X))_=_2×X×SIN(X)+X^2×COS(X) %STEPRULE=PRODUCT %STEPDEPTH=0
+P04 | down from the last wraps to STEP 1 | RAD STU EQ:X^2×SIN(X) CASD:X CASSTEPS SST SST SST | %STEPK=1 %STEPRULE=POWER
+P05 | up from STEP 1 wraps to the last | RAD STU EQ:X^2×SIN(X) CASD:X CASSTEPS BST | %STEPK=3 %STEPRULE=PRODUCT
+P06 | a two-word rule dumps with _ | RAD STU EQ:3×X^2 CASD:X CASSTEPS SST | %STEPN=2 %STEPK=2 %STEP=CONSTANT_MULTIPLE:_d/dX(3×X^2)_=_6×X %STEPRULE=CONSTANT_MULTIPLE %STEPDEPTH=0
+P07 | one step: the answer alone | RAD STU EQ:X^X CASD:X CASSTEPS | %STEPN=1 %STEP=GENERAL_POWER:_d/dX(X^X)_=_X^X×(LN(X)+1)
+P08 | the chain's last page | RAD STU EQ:SIN(X^2) CASD:X CASSTEPS SST | %STEPN=2 %STEP=CHAIN:_d/dX(SIN(X^2))_=_2×X×COS(X^2) %STEPRULE=CHAIN
+P09 | C leaves the view; the answer and its steps stay | RAD STU EQ:X^2×SIN(X) CASD:X CASSTEPS C | %STEPN=- %STEPREQ=D:X
+P10 | another key leaves the view and acts (EQN: out of Equation mode) | RAD STU EQ:X^2×SIN(X) CASD:X CASSTEPS SST EQN | %STEPN=- %EQNMODE=0
+# SOLVE: from its report, the view over it
+S01 | STEPS on the report: SOLVE's steps, the report under the view | STU EQ:X^2-5×X+6=0 CASSOLVE:X CASSTEPS | %STEPREQ=S:X %STEPN=4 %STEPK=1 %STEP=LINEAR_FACTOR:_(X-2)×(X-3)=0 %CASREP=SOLVED:_X=2;_X=3
+S02 | C from the view returns to the report | STU EQ:X^2-5×X+6=0 CASSOLVE:X CASSTEPS C | %STEPN=- %STEPREQ=S:X %CASREP=SOLVED:_X=2;_X=3
+S03 | the report closed: the request goes with it | STU EQ:X^2-5×X+6=0 CASSOLVE:X CASSTEPS C C | %STEPREQ=- %CASREP=none
+S04 | CAS 039's letter solve: three pages, the answer last | STU EQ:V=I×R CASSOLVE:R CASSTEPS BST | %STEPN=3 %STEPK=3 %STEPRULE=ANSWER %STEPDEPTH=0
+S05 | on the stack, through the report's bar | STU EQ:2×X+5=11 EQDROP CASSOLVE:X CASSTEPS | %STEPREQ=S:X %STEPK=1
+# ∫DX
+I01 | ∫DX's steps: two pages | RAD STU EQ:X^2 CASINT:X CASSTEPS | %STEPREQ=I:X %STEPN=2 %STEPK=1
+# When the request is gone, and when STEPS does nothing
+R01 | nothing asked yet: nothing | STU CASSTEPS | %STEPREQ=- %STEPN=-
+R02 | an op without steps (SIMP) leaves none | STU EQ:X+X CASSIMP CASSTEPS | %STEPREQ=- %STEPN=-
+R03 | a new CAS op replaces the request | RAD STU EQ:X^2×SIN(X) CASD:X CASSIMP | %STEPREQ=-
+R04 | a refused op leaves none | RAD STU EQ:X^2 CASD:X EQ:X=1 CASINT:X | ERR %STEPREQ=-
+R05 | the list cleared: the answer gone, the request with it | RAD STU EQ:X^2×SIN(X) CASD:X CLEQN | %STEPREQ=-
+R06 | CLEAR ALL | RAD STU EQ:X^2×SIN(X) CASD:X CLALL | %STEPREQ=-
+R07 | MEMORY CLEAR | RAD STU EQ:X^2×SIN(X) CASD:X MEMCLR STU | %STEPREQ=-
+R08 | another entry shown: STEPS does nothing there | RAD STU EQ:X^2×SIN(X) CASD:X BST CASSTEPS | %STEPN=- %STEPREQ=D:X
+R09 | back on the answer: its steps again | RAD STU EQ:X^2×SIN(X) CASD:X BST SST CASSTEPS | %STEPN=3 %STEPK=1
+R10 | in a program STEPS isn't a line | STU PRGM CASSTEPS | ERR %ERR=NONPROGRAMMABLE
+R11 | a C during a page discards it and leaves the view | RAD STU EQ:X^2×SIN(X) CASD:X INTR:1 CASSTEPS | ERR %ERR=INTERRUPTED %STEPN=- %STEPREQ=D:X

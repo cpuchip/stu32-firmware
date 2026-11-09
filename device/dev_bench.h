@@ -348,6 +348,54 @@ static __attribute__((noinline, unused)) void dev_rowbench(ab_flash *fl, uint8_t
 }
 
 
+/* STEPBENCH (unit 095, work/cas-steps-device.md; abacus #14234: Rev A's page times, the heavy integral's worst page):
+   STEPS through the keys' path, on a calculator of its own in PSRAM: each case's op (D/DX, ∫DX, SOLVE) as the list runs
+   it, then STEPS (the view on STEP 1) and every page down, each timed, from the calc task, the CAS arena the core's: the
+   count, the opening, the slowest page and every page in microseconds, and the task's stack still free. */
+static __attribute__((noinline, unused)) void dev_stepbench(void)
+{
+    static const struct { const char *name; int op, var; const char *eqn; } K[] = {
+        {"solve quadratic", AB_CASSOLVE, 23, "X^2-5\xc3\x97" "X+6=0"},
+        {"solve V=IxR", AB_CASSOLVE, 17, "V=I\xc3\x97" "R"},
+        {"solve sextic", AB_CASSOLVE, 23, "(X-1)\xc3\x97" "(X-2)\xc3\x97" "(X-3)\xc3\x97" "(X-4)\xc3\x97" "(X-5)\xc3\x97" "(X-6)"},
+        {"derive product", AB_CASD, 23, "X^3\xc3\x97" "SIN(X)\xc3\x97" "EXP(X)\xc3\x97" "LN(X)"},
+        {"derive quotient", AB_CASD, 23, "(X^2+1)^5\xc3\x97" "(X-3)^4\xc3\xb7" "(X+2)^3"},
+        {"integrate X^2", AB_CASINT, 23, "X^2"},
+        {"integrate e^x sin", AB_CASINT, 23, "EXP(X)\xc3\x97" "SIN(X)"},
+        {"integrate ATAN", AB_CASINT, 23, "ATAN(X)"},
+        {"integrate XATAN", AB_CASINT, 23, "X\xc3\x97" "ATAN(X)"},
+        {"integrate XATAN+pf", AB_CASINT, 23, "X\xc3\x97" "ATAN(X)+1\xc3\xb7" "(X^2-1)"},
+        {"integrate pf4", AB_CASINT, 23, "1\xc3\xb7" "((X-1)\xc3\x97" "(X-2)\xc3\x97" "(X-3)\xc3\x97" "(X-4))"},
+    };
+    ab_calc *t = heap_caps_calloc(1, sizeof *t, MALLOC_CAP_SPIRAM);
+    if (!t) {
+        printf("stepbench: no memory\n");
+        return;
+    }
+    for (size_t k = 0; k < sizeof K / sizeof K[0]; k++) {
+        ab_init(t);
+        ab_do_arg(t, AB_MODEL, AB_MODEL_STU);
+        ab_do(t, AB_RAD);
+        ab_eqn_add(t, K[k].eqn);
+        abn_status st = ab_do_arg(t, (ab_op)K[k].op, K[k].var);
+        int64_t t0 = esp_timer_get_time();
+        abn_status s2 = ab_do(t, AB_CASSTEPS);
+        int64_t t1 = esp_timer_get_time(), worst = 0, all = t1 - t0;
+        int n = ab_steps_open(t) ? t->step_n : 0;
+        for (int i = 1; i < n; i++) {
+            int64_t a = esp_timer_get_time();
+            ab_do(t, AB_SST);
+            int64_t d = esp_timer_get_time() - a;
+            all += d, worst = d > worst ? d : worst;
+        }
+        printf("stepbench: %-20s op %d steps %d %d open %lld us page max %lld us all %lld us stack-free %u\n", K[k].name,
+               (int)st, (int)s2, n, (long long)(t1 - t0), (long long)(worst > t1 - t0 ? worst : t1 - t0), (long long)all,
+               (unsigned)uxTaskGetStackHighWaterMark(NULL));
+    }
+    printf("stepbench: done\n");
+    heap_caps_free(t);
+}
+
 /* SAVEBENCH (unit 090, abacus #14093): the device's save to the flash, SB_N times for each of ROWBENCH's three states, as
    a distribution (min, median, max), each save split into the store's three steps through a flash that times its own
    calls: the erase of the sectors the image takes, the image's write and the header's, and the reads (examine reads

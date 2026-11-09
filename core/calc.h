@@ -171,10 +171,14 @@ typedef enum {
     /* unit 094 (work/094-report-enter.md, decision 98; nonprogrammable): EVAL on SOLVE's report, what ENTER did there
        before (the rows checked at the stored letters, then the answer's value in X); ENTER now copies the answer.
        Outside the report it does nothing */
-    AB_CASEVAL
+    AB_CASEVAL,
+    /* unit 095 (work/cas-steps-device.md; nonprogrammable): STEPS, the working of the last D/DX, ∫DX or SOLVE answer,
+       one step a page (Casimir's show-steps, one line each): from SOLVE's report while it is open, from the list while
+       the D/DX or ∫DX answer's entry is the one shown. Otherwise it does nothing */
+    AB_CASSTEPS
 } ab_op;
 
-#define AB_OP_LAST AB_CASEVAL  /* the last op: loops over every op end here */
+#define AB_OP_LAST AB_CASSTEPS  /* the last op: loops over every op end here */
 
 /* Why the last run stopped (unit 012 rule 1): the device draws it; the core never waits. */
 typedef enum {
@@ -495,6 +499,17 @@ typedef struct {
     int8_t sel_level, sel_entry_level;
     bool sel_drop;
     uint8_t sel_view;
+    /* unit 095: the last D/DX, ∫DX or SOLVE answer's request (step_op: the Casimir op + 1, 0 none), as the op ran: its
+       letter, model, angle (with CPLX's bit), its equation's text, and for D/DX and ∫DX the answer inserted (the request
+       lives while an entry of the list holds it; SOLVE's while its report is open); the steps view: open, page k (from
+       0) of n, the page's text ("RULE: text", casim's one line), its rule and depth. RAM only: MEMORY CLEAR, CLEAR ALL
+       and an image's load clear it */
+    uint8_t step_op;
+    int8_t step_var, step_depth;
+    bool step_open;
+    int16_t step_k, step_n;
+    int step_model, step_angle, step_rule;
+    char step_eqn[AB_EQN_LEN], step_ans[AB_EQN_LEN], step_page[256];
     char exprs[AB_EXPR_SLOTS][AB_EQN_LEN];  /* unit 082: the expressions values hold, by slot; a slot no live value names is
                                                free (ab_expr_new sweeps). In the image by content, never by slot */
     /* unit 089 (work/worksheet-1-rows.md): the worksheet's rows, in RAM (the tail, so UNDO's image loaded keeps them;
@@ -519,6 +534,11 @@ int ab_op_text(const ab_calc *c, int op, int arg, char *out, int size);
    And the selection dropped (the app's UNDO and the keys it takes before the core) */
 const char *ab_sel_menu(const ab_calc *c);
 void ab_sel_clear(ab_calc *c);
+/* Unit 095: the steps request and view dropped (MEMORY CLEAR, CLEAR ALL, an image's load); whether the view is open; the
+   live request as "D:X", "I:X" or "S:R" into out (false, "-", when there is none) */
+void ab_steps_clear(ab_calc *c);
+bool ab_steps_open(const ab_calc *c);
+bool ab_steps_req(const ab_calc *c, char *out, int size);
 
 /* Performs one operation. On an arithmetic error (divide by zero, out of range) the four
    registers and LAST X are left as they were and the error is returned; a number being

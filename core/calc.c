@@ -57,6 +57,7 @@ static void init_fields(ab_calc *c, bool keep_hist)
     c->sel_row = c->sel_entry = c->sel_top = c->sel_view_row = 0;     /* unit 093: no row selected (the tail's) */
     c->sel_drop = false;
     c->sel_view = 0;
+    ab_steps_clear(c);                                  /* unit 095: no steps kept (the tail's) */
     c->lift = true;             /* a cleared calculator has stack lift enabled (UG p.B-4) */
     c->ans = ab_real(abn_zero());   /* ANS 0 to begin (unit 029 rule 4) */
     c->tbl_var = c->tbl_v = c->tbl_eq = -1;     /* TABLE: the first variable, start from it, step 1 (032) */
@@ -3232,6 +3233,7 @@ static abn_status program_key(ab_calc *c, ab_op op, int arg)
     case AB_EQDROP: case AB_EQSTORE:        /* 082 */
     case AB_SEL: case AB_COPY: case AB_ROWSTO: case AB_ROWSHOW: case AB_ROWFRAC: case AB_ROWINFO: case AB_ROWEDIT:    /* 093 */
     case AB_CASEVAL:                        /* 094 */
+    case AB_CASSTEPS:                       /* 095 */
         return ABN_NONPROGRAMMABLE;
     case AB_FDISP:
     case AB_CLALL:                          /* in program entry the menu offers CLPGM in its place
@@ -3915,6 +3917,21 @@ static bool cas_plain_number(const char *t)
    (082 stamps a dropped expression STU), and SIMP's and EXPND's answer replaces X (LASTx the old X, the lift enabled,
    as a one-argument function's: 084's class), a decimal number alone as a number; SOLVE's report opens as on the
    list. A refusal leaves everything as it was. */
+/* ---- unit 095: show steps (work/cas-steps-device.md, revision 1) ---- */
+
+#ifdef AB_CASIM
+static void step_keep(ab_calc *c, const casim_req *rq, const char *answer)
+{
+    c->step_op = (uint8_t)(rq->op + 1);
+    c->step_var = (int8_t)rq->var;
+    c->step_model = rq->model;
+    c->step_angle = rq->angle;
+    snprintf(c->step_eqn, sizeof c->step_eqn, "%s", rq->eqn);
+    snprintf(c->step_ans, sizeof c->step_ans, "%s", answer ? answer : "");
+}
+#endif
+static abn_status steps_open(ab_calc *c);      /* (below, beside the view's keys) */
+
 static abn_status cas_step(ab_calc *c, int op, int var, const char *repl, const char *repl2)
 {
 #ifdef AB_CASIM
@@ -3922,6 +3939,8 @@ static abn_status cas_step(ab_calc *c, int op, int var, const char *repl, const 
     casim_status cs;
     if (!c->stu) return ABN_STU_ONLY;
     bool onx = !c->eqn_mode && ab_is_sym(&c->x);   /* unit 088: the CAS on the stack */
+    c->step_op = 0;                             /* unit 095: a new CAS op replaces the steps' request (a refusal: none) */
+    c->step_ans[0] = '\0';
     if (!onx && (c->eqn_cur < 0 || eqn_builtin(c, c->eqn_cur))) return ABN_NO_EQN;
     const char *text = onx ? ab_expr_text(c, &c->x) : c->eqn[c->eqn_cur];
     int model = onx ? AB_MODEL_STU : c->eqn_model[c->eqn_cur];
@@ -3960,6 +3979,7 @@ static abn_status cas_step(ab_calc *c, int op, int var, const char *repl, const 
                                                    equation has no complex numbers, so not there) */
         snprintf(c->cas_rep, sizeof c->cas_rep, "%s", out);
         c->cas_row = 0;
+        step_keep(c, &rq, NULL);                /* unit 095: its steps, while the report is open */
         c->cas_rep_row = onx ? c->x.row : 0;   /* unit 094: what the answer's row links to (none from the list) */
         return ABN_OK;
     }
@@ -3979,6 +3999,8 @@ static abn_status cas_step(ab_calc *c, int op, int var, const char *repl, const 
             return ABN_OK;
         }
         abn_status st = eqn_insert(c, out);
+        if (st == ABN_OK && (op == CASIM_DERIVE || op == CASIM_INTEGRATE))
+            step_keep(c, &rq, c->eqn[c->eqn_cur]);     /* unit 095: its steps, while the list holds this answer */
         if (st == ABN_OK && (op == CASIM_INTEGRATE || cs == CASIM_PARTIAL))
             c->eqn_note[c->eqn_cur] = op == CASIM_INTEGRATE ? AB_NOTE_PLUSC : AB_NOTE_MORE;  /* ∫'s +C: beside, never
                                                    in the text (048 rule 3) */
@@ -4225,6 +4247,7 @@ static bool eqn_handles(ab_op op)
     case AB_CASCANCL: case AB_CASSUM: case AB_KINF: case AB_XEQ: case AB_SOLVE: case AB_INTEG: case AB_EQTOP:
     case AB_SST: case AB_BST: case AB_KBKSP: case AB_KLEFT: case AB_KRIGHT: case AB_EQDROP: case AB_EQSTORE:
     case AB_CASEVAL:                            /* (094: outside the report, nothing) */
+    case AB_CASSTEPS:                           /* (095) */
         return true;
     default:
         return false;
@@ -4295,6 +4318,10 @@ static abn_status eqn_key(ab_calc *c, ab_op op, int arg)
         return eqn_solve_key(c, op, arg);
     case AB_CASEVAL:                                /* unit 094: outside SOLVE's report, nothing */
         return ABN_OK;
+    case AB_CASSTEPS:                               /* unit 095: the D/DX or ∫DX answer shown: its steps */
+        if (c->eqn_typing || c->eqn_cur < 0 || !c->step_ans[0] || strcmp(c->eqn[c->eqn_cur], c->step_ans) != 0)
+            return ABN_OK;                          /* (step_ans: only D/DX's and ∫DX's requests keep an answer) */
+        return steps_open(c);
     case AB_EQTOP:                                  /* NEW: typing then starts at TOP (unit 020) */
         if (!c->eqn_typing) c->eqn_cur = -1;
         return ABN_OK;
@@ -4469,6 +4496,7 @@ static bool alg_handles(ab_op op)
     case AB_TSTART: case AB_TSTEP: case AB_ANS: case AB_LASTX:
     case AB_SEL: case AB_COPY: case AB_ROWSTO: case AB_ROWSHOW: case AB_ROWFRAC: case AB_ROWINFO: case AB_ROWEDIT:  /* 093 */
     case AB_CASEVAL:                                                                                                /* 094 */
+    case AB_CASSTEPS:                                                                                               /* 095 */
         return true;
     default:
         return false;
@@ -4493,6 +4521,7 @@ static abn_status alg_key(ab_calc *c, ab_op op, int arg)
         return ABN_OK;
     case AB_SEL: case AB_COPY:                      /* unit 093: in ALG the row shown is the selected one; no COPY */
     case AB_CASEVAL:                                /* (094: outside the report, nothing) */
+    case AB_CASSTEPS:                               /* (095: nothing on the line) */
         return ABN_OK;
     case AB_ROWEDIT:                                /* (the shown row's text to the line, as ENTER on it) */
         if (!c->hist_row) return ABN_OK;
@@ -5112,6 +5141,106 @@ void ab_sel_clear(ab_calc *c)
     c->sel_view = 0;
 }
 
+/* Unit 095: the steps' request, live: SOLVE's while its report is open, D/DX's and ∫DX's while an entry of the list
+   holds the answer as it was inserted (edited, deleted or the list cleared: gone) */
+static bool step_live(const ab_calc *c)
+{
+#ifdef AB_CASIM
+    if (c->step_op == CASIM_SOLVE + 1) return c->cas_rep[0] != '\0';
+    if (c->step_op == CASIM_DERIVE + 1 || c->step_op == CASIM_INTEGRATE + 1) {
+        for (int i = 0; i < c->eqn_count; i++)
+            if (!strcmp(c->eqn[i], c->step_ans)) return true;
+    }
+#else
+    (void)c;
+#endif
+    return false;
+}
+
+void ab_steps_clear(ab_calc *c)
+{
+    c->step_op = 0;
+    c->step_open = false;
+    c->step_k = c->step_n = 0;
+    c->step_page[0] = c->step_ans[0] = c->step_eqn[0] = '\0';
+}
+
+bool ab_steps_open(const ab_calc *c)
+{
+    return c->step_open;
+}
+
+bool ab_steps_req(const ab_calc *c, char *out, int size)
+{
+    if (!step_live(c)) {
+        snprintf(out, (size_t)size, "-");
+        return false;
+    }
+#ifdef AB_CASIM
+    snprintf(out, (size_t)size, "%c:%c", c->step_op == CASIM_SOLVE + 1 ? 'S' : c->step_op == CASIM_DERIVE + 1 ? 'D' : 'I',
+             'A' + c->step_var);
+#endif
+    return true;
+}
+
+/* Page k of the request's steps (each call is complete in itself: Casimir runs the op again with steps on, so only the
+   page shown is computed): its text as casim prints it, "RULE: text" without the indent, its rule and depth; the count
+   too. A C during the call discards the page and leaves the view (048's rule); a refusal leaves it with its message. */
+static abn_status step_page(ab_calc *c, int k)
+{
+#ifdef AB_CASIM
+    casim_req rq = {(casim_op)(c->step_op - 1), c->step_eqn, c->step_model, c->step_var, NULL, AB_MODEL_STU,
+                    c->step_angle, NULL};
+    casim_step_info in = {0, 0, 0, 0};
+    char out[220];
+    casim_status cs = casim_step(&rq, k, CASIM_STEPS_ONE_LINE, &in, out, sizeof out, ab_cas_arena, sizeof ab_cas_arena);
+    if (c->intr_after > 0 && --c->intr_after == 0) c->intr = true;     /* the tests' interrupt */
+    if (c->intr) {
+        c->intr = false;
+        c->step_open = false;
+        return ABN_INTERRUPTED;
+    }
+    if (cs != CASIM_OK && cs != CASIM_PARTIAL && cs != CASIM_DECIMAL_FORM) {
+        c->step_open = false;
+        return cs == CASIM_NO_ROOM ? ABN_CAS_NO_ROOM : cs == CASIM_TOO_LONG ? ABN_CAS_TOO_LONG : ABN_CAS_UNSUPPORTED;
+    }
+    c->step_n = (int16_t)in.count;
+    c->step_k = (int16_t)k;
+    c->step_rule = in.rule;
+    c->step_depth = (int8_t)in.depth;
+    snprintf(c->step_page, sizeof c->step_page, "%s: %s", casim_rule_name(in.rule), out);
+    return ABN_OK;
+#else
+    (void)c, (void)k;
+    return ABN_OK;
+#endif
+}
+
+/* STEPS: the view opens on STEP 1 (revision 1: top-down, as the lessons read) */
+static abn_status steps_open(ab_calc *c)
+{
+    if (!step_live(c)) return ABN_OK;           /* (nothing to show: nothing done) */
+    c->step_open = true;
+    abn_status st = step_page(c, 0);
+    if (st == ABN_OK && c->step_n <= 0) c->step_open = false;
+    return st;
+}
+
+/* A key while the steps view shows: down and up page, wrapping, as the report's rows; C or backspace leaves (to the
+   report, when it was opened from it); STEPS again does nothing; any other key leaves and then acts (false) */
+static bool steps_key(ab_calc *c, ab_op op, abn_status *st)
+{
+    *st = ABN_OK;
+    if (op == AB_SST || op == AB_BST) {
+        int n = c->step_n > 0 ? c->step_n : 1;
+        *st = step_page(c, (c->step_k + (op == AB_SST ? 1 : n - 1)) % n);
+        return true;
+    }
+    if (op == AB_CASSTEPS) return true;
+    c->step_open = false;
+    return op == AB_CANCEL || op == AB_KBKSP;
+}
+
 static abn_status do_arg(ab_calc *c, ab_op op, int arg)
 {
     abn_status st;
@@ -5143,6 +5272,7 @@ static abn_status do_arg(ab_calc *c, ab_op op, int arg)
     c->err_set = false;
     c->ovf = 0;
     c->rowctx.route = AB_ROUTE_REPORT;          /* (unit 089: which keys reach the stack, for its rows) */
+    if (c->step_open && steps_key(c, op, &st)) goto done;      /* unit 095: the steps view open (over the report) */
     if (c->cas_rep[0] && casrep_key(c, op, &st)) goto done;    /* unit 048: SOLVE's report open */
     c->rowctx.route = AB_ROUTE_NONE;
     if (c->sel_row && c->stu && !c->prgm && !c->alg) {     /* unit 093: a row selected on STU's home */
@@ -5324,6 +5454,10 @@ static bool casrep_key(ab_calc *c, ab_op op, abn_status *st)
     *st = ABN_OK;
     if (op == AB_SST || op == AB_BST) {
         c->cas_row = (int8_t)((c->cas_row + (op == AB_SST ? 1 : n - 1)) % n);
+        return true;
+    }
+    if (op == AB_CASSTEPS) {                    /* unit 095: SOLVE's steps, over the report (C returns to it) */
+        *st = steps_open(c);
         return true;
     }
     if (op == AB_ENTER || op == AB_CASEVAL) {
@@ -5666,6 +5800,7 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
         return sel_enter(c);
     case AB_COPY: case AB_ROWSTO: case AB_ROWSHOW: case AB_ROWFRAC: case AB_ROWINFO: case AB_ROWEDIT:
     case AB_CASEVAL:                            /* (094: outside SOLVE's report, nothing) */
+    case AB_CASSTEPS:                           /* (095: on the stack, the report's bar is the way in) */
         return ABN_OK;                          /* (with no row selected: nothing) */
     case AB_CMPLX:
         return cmplx_pair(c, arg);

@@ -1,0 +1,10 @@
+# Unit 095's STEPBENCH (device/dev_bench.h, both boards; abacus #14234: Rev A's page times, the heavy integral's worst
+# page): STEPS through the keys' path on a calculator of its own, each case's op, then STEPS and every page down, each
+# timed, and the calc task's stack still free. A field session like savebench090.txt: no version, no control.
+wait : heap internal 30
+sleep 3
+send X
+wait state: 10
+send STEPBENCH
+expect stepbench: integrate pf4 400
+expect stepbench: done 30

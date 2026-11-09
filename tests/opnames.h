@@ -2,7 +2,7 @@
 #ifndef AB_OPNAMES_H
 #define AB_OPNAMES_H
 
-#define AB_OPNAMES_N 244
+#define AB_OPNAMES_N 245
 static const char *const AB_OPNAMES[AB_OPNAMES_N] = {
     "K0", "K1", "K2", "K3", "K4", "K5", "K6", "K7", "K8", "K9", "KPOINT", "KE", "KCHS", "KBKSP", "ENTER", "RDN",
     "RUP", "XY", "LASTX", "CLX", "CLSTK", "ADD", "SUB", "MUL", "DIV", "EXP", "LN", "TENX", "LOG", "IDIV", "RMDR",
@@ -22,6 +22,7 @@ static const char *const AB_OPNAMES[AB_OPNAMES_N] = {
     "GMOVE", "GTRACE", "GMARK", "GFACT", "GFCN", "CASD", "CASSIMP", "CASEXP", "CASCOL", "CASSUB", "CUBE", "CBRT",
     "ENGL", "ENGR", "CASSOLVE", "CASINT", "CASFACT", "CASDEF", "CASQUOT", "CASGCD", "CASCANCL", "CASSUM", "KINF",
     "CASCPLX", "EQDROP", "EQSTORE", "SEL", "COPY", "ROWSTO", "ROWSHOW", "ROWFRAC", "ROWINFO", "ROWEDIT", "CASEVAL",
+    "CASSTEPS",
 };
 
 #endif

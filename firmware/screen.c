@@ -339,6 +339,19 @@ static void val_line(const ab_val *v, const ab_calc *c, const screen_ui *ui, lin
 #define PG_RULE 2               /* the page's lowest line this much higher than a level's pitch, the rule centred in the
                                    gap (abacus #14082 (2): at 0 the rule sat on Y's letter) */
 
+/* Unit 095: how many of the n cells at cp a steps row takes: all that fit, else up to the last blank or operator in the
+   row's second half (after it, so a row ends with the operator and the next starts with what it joins), else a whole
+   row (a name longer than half a row is cut where the row ends) */
+static int steps_row(const uint32_t *cp, int n)
+{
+    if (n <= PG_CELLS) return n;
+    for (int i = PG_CELLS - 1; i >= PG_CELLS / 2; i--) {
+        uint32_t ch = cp[i] & CP_MASK;
+        if (ch == ' ' || ch == '+' || ch == '-' || ch == '=' || ch == 0x00D7 || ch == 0x00F7 || ch == ',') return i + 1;
+    }
+    return PG_CELLS;
+}
+
 static uint32_t rd32(const uint8_t *p) { return (uint32_t)p[0] | (uint32_t)p[1] << 8 | (uint32_t)p[2] << 16 | (uint32_t)p[3] << 24; }
 
 /* A decoded value (no slot: an expression's text in t) as the levels show one */
@@ -699,6 +712,7 @@ typedef struct {
     screen_kind xk, yk;
     bool x_left, x_letter, prompt;
     bool view;              /* SYS's view: four left lines at scale 2, no letters (unit 027) */
+    bool steps;             /* unit 095: the steps view: T the status, X the page's text wrapped at 2 below it */
     bool table;             /* a table open (unit 032): four rows, x left and the value right, at scale 2 */
     bool show;              /* SHOW held (unit 030): each part's digits in two halves, left, no letters:
                                one part on Y and X, two on T and Z then Y and X */
@@ -1055,6 +1069,16 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
         line_add(xl, m);                        /* every message is one line (#3822) */
         k->x_left = true;
         k->xk = SCREEN_MESSAGE;
+    } else if (ab_steps_open(c) && !c->prgm) { /* unit 095: the steps view: STEP k OF n, then the page ("RULE: text",
+                                                   a · for each level of depth before it), wrapped by the drawing */
+        char st[24];
+        snprintf(st, sizeof st, "STEP %d OF %d", c->step_k + 1, c->step_n);
+        line_add(&k->t, st);
+        for (int d = 0; d < c->step_depth && d < 8; d++) line_add_cp(&k->x, 0x00B7);
+        line_add(&k->x, c->step_page);
+        k->view = k->steps = k->x_left = true;
+        k->xk = k->yk = SCREEN_MESSAGE;
+        return;
     } else if (ab_cas_report(c) && !c->prgm) { /* SOLVE's exact roots (unit 048): rows k-3..k, the cursor's on X,
                                                    as the table's; the status row first */
         line *ls[4] = {&k->t, &k->z, &k->y, &k->x};
@@ -1673,6 +1697,17 @@ void screen_render(const ab_calc *c, const screen_ui *ui, ls027_frame *f)
         draw_line(f, BOT_Z, 2, &k->z, true);
         draw_line(f, BOT_Y, 3, &k->y, true);
         draw_line(f, BOT_X, 3, &k->x, true);
+        soft_band(f, ui);
+        return;
+    }
+    if (k->steps) {                             /* unit 095: the status, then the page in rows of PG_CELLS at 2 */
+        draw_line(f, PG_TOP + PG_PITCH, 2, &k->t, true);
+        for (int r = 0, at = 0; at < k->x.n && PG_TOP + PG_PITCH * (r + 2) <= SOFT_Y; r++) {
+            int n = steps_row(k->x.cp + at, k->x.n - at);
+            draw_cps(f, NUM_X, PG_TOP + PG_PITCH * (r + 2) - 14, 2, k->x.cp + at, n, true);
+            at += n;
+            if (at < k->x.n && (k->x.cp[at] & CP_MASK) == ' ') at++;     /* (a row doesn't start with the blank) */
+        }
         soft_band(f, ui);
         return;
     }

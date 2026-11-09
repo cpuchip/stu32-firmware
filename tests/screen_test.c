@@ -1217,6 +1217,36 @@ int main(int argc, char **argv)
         frame("63-sel-scrolled", &c, &ui);
         screen_lines(&c, &ui, &pg);
         expect(pg.page_n == 7 && pg.pagemark[6] == 'S', "093: scrolled, the selected row on the top line");
+        /* unit 095: the steps view: STEP k OF n, then the page wrapped in rows of 31 cells at 2 (one, three, five rows) */
+        STU0();
+        ab_do(&c, AB_RAD);
+        ab_eqn_add(&c, "X^2\xc3\x97" "SIN(X)");
+        ab_do_arg(&c, AB_CASD, 23);
+        ab_do(&c, AB_CASSTEPS);
+        frame("64-steps-one-row", &c, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(!strcmp(pg.t.text, "STEP 1 OF 3") && !strcmp(pg.x.text, "\xc2\xb7" "POWER: d/dX(X^2) = 2\xc3\x97X"),
+               "095: STEP 1 OF 3, POWER at depth 1 (one dot)");
+        STU0();
+        ab_do(&c, AB_RAD);
+        ab_eqn_add(&c, "1\xc3\xb7((X-1)\xc3\x97(X-2)\xc3\x97(X-3)\xc3\x97(X-4))");
+        ab_do_arg(&c, AB_CASINT, 23);
+        ab_do(&c, AB_CASSTEPS);
+        for (int i = 0; i < c.step_n && strncmp(c.step_page, "FORM: ", 6); i++) ab_do(&c, AB_SST);
+        frame("65-steps-three-rows", &c, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(strstr(pg.x.text, "FORM: ") && screen_cells(pg.x.text) > 62 && screen_cells(pg.x.text) <= 93,
+               "095: the partial fractions' FORM, three rows");
+        STU0();
+        ab_do(&c, AB_RAD);
+        ab_eqn_add(&c, "X^3\xc3\x97" "SIN(X)\xc3\x97" "EXP(X)\xc3\x97" "LN(X)");
+        ab_do_arg(&c, AB_CASD, 23);
+        ab_do(&c, AB_CASSTEPS);
+        ab_do(&c, AB_BST);
+        frame("66-steps-long-page", &c, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(!strcmp(pg.t.text, "STEP 5 OF 5") && screen_cells(pg.x.text) > 124,
+               "095: the product's answer, the longest page (broken after its operators: six rows)");
 #undef STU0
 #undef PAGE
     }

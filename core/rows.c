@@ -238,6 +238,7 @@ void ab_rows_clear_all(ab_calc *c)
     c->sel_row = c->sel_entry = c->sel_top = 0;     /* (unit 093: no row left to select) */
     c->sel_drop = false;
     c->sel_view = 0;
+    ab_steps_clear(c);                              /* (unit 095: CLEAR ALL keeps no steps) */
 }
 
 /* ---- unit 090: ALG's history ---- */
