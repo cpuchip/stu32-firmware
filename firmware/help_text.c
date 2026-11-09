@@ -220,6 +220,12 @@ const help_entry help_table[] = {
     {HELP_OP, AB_KRIGHT, -1, "EDIT: edits the equation shown,\ncursor at its start (not TOP or\na built-in). \342\226\266: cursor right."},
     {HELP_OP, AB_EQTOP, -1, "Goes to the list's TOP, so the\nnext equation typed goes first."},
     {HELP_MENU, 0, -1, "CAS\037Algebra on the equation shown."},
+    {HELP_MENU, 0, -1, "NORM\037The normal distribution, ERF."},
+    {HELP_OP, AB_NCDF, -1, "\316\246(z): the normal probability\nbelow z (the lower tail)."},
+    {HELP_OP, AB_NCDFC, -1, "1\342\210\222\316\246(z): the probability above\nz, from ERFC, never as 1 \342\210\222 \316\246,\nso its tail keeps its digits."},
+    {HELP_OP, AB_NCDFINV, -1, "\316\246\342\201\273\302\271(p): the z whose \316\246(z) is p,\nfor p between 0 and 1."},
+    {HELP_OP, AB_ERF, -1, "The error function of X."},
+    {HELP_OP, AB_ERFC, -1, "1 \342\210\222 ERF(X), formed on its own:\nits tail keeps its digits."},
     {HELP_OP, AB_TVAR, -1, "VAR, then a letter: the\nvariable TABLE and GRAPH step.\nThe start follows it again.\n35: Sets it, but the table runs\n35: in STU only: MODE, STU."},
     {HELP_OP, AB_TSTART, -1, "The table starts at X (else at\nthe variable's value at GO).\n35: Sets it, but the table runs\n35: in STU only: MODE, STU."},
     {HELP_OP, AB_TSTEP, -1, "The table steps by X.\n35: Sets it, but the table runs\n35: in STU only: MODE, STU."},
@@ -322,7 +328,7 @@ const help_entry help_table[] = {
     {HELP_GRAPHPAD, 0, -1, "Moves the graph's cursor: 8 up,\n2 down (TRACE off), 4 left, 6\nright, 5 home. GOLD: 10 pixels."},
     {HELP_CMPLXPAIR, 0, -1, "33s CMPLX: does it on complex\nnumbers held as stack pairs."},
 };
-const int help_table_n = 316;
+const int help_table_n = 322;
 
 /* the entries whose text must differ by mode (help.txt's MODE lines) */
 const int help_mode_list[] = {46, 54, 69, 98, 86, 95, 59, 62, 206, 92, 47, 99, 15, 11, 24, -1};

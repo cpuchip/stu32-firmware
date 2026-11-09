@@ -1650,7 +1650,8 @@ int main(void)
                     continue;
                 }
                 /* SETUP's OFF and VOL show their values after the legend (unit 022) */
-                if (!strcmp(mn->name, "MODE") && i == 4) {     /* ALG: hidden outside STU (unit 029) */
+                if ((!strcmp(mn->name, "MODE") && i == 4) ||   /* ALG: hidden outside STU (unit 029) */
+                    (!strcmp(mn->name, "PROB") && i == 5)) {    /* NORM: the same (unit 097) */
                     ok = ok && (!ui.soft[i] || !*ui.soft[i]);
                     continue;
                 }
@@ -5365,6 +5366,38 @@ int main(void)
                "081: around entry 2: 1 and 0 above (nearest first), 3 and 4 below");
         ab_do_arg(&c, AB_MODEL, 33);
         expect(screen_wheel(&c, ent) == 0, "081: no wheel in 33s mode");
+    }
+    {   /* unit 097: PROB's sixth key opens NORM (STU's only); its labels' glyphs exactly (tutor #14275); its keys act on X
+           in RPN and type their names in ALG; ▸ back to PROB; in 35s mode the sixth key is empty and does nothing */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        int prob = menu_named_t("PROB"), norm = menu_named_t("NORM");
+        press(&a, "BLUE k:34");
+        app_ui(&a, &ui);
+        expect(a.menu == prob && ui.soft[5] && !strcmp(ui.soft[5], "NORM"), "097: BLUE \xc3\x97 opens PROB, NORM on its sixth key");
+        press(&a, "k:5");
+        app_ui(&a, &ui);
+        static const char *const L[6] = {"\xce\xa6", "1\xe2\x88\x92\xce\xa6", "\xce\xa6\xe2\x81\xbb\xc2\xb9", "ERF", "ERFC",
+                                         "\xe2\x96\xb8"};
+        int same = a.menu == norm;
+        for (int i = 0; i < 6; i++) same = same && ui.soft[i] && !strcmp(ui.soft[i], L[i]);
+        expect(same, "097: NORM's labels: \xce\xa6 1\xe2\x88\x92\xce\xa6 \xce\xa6\xe2\x81\xbb\xc2\xb9 ERF ERFC \xe2\x96\xb8 (U+2212, U+207B U+00B9)");
+        press(&a, "k:5");
+        expect(a.menu == prob, "097: \xe2\x96\xb8 goes back to PROB");
+        press(&a, "k:5 C 1 . 9 6 BLUE k:34 k:5 k:0");
+        expect(fabs(x_of(&c) - 0.9750021048517796) < 1e-15 && !c.msg, "097: 1.96 then NORM's \xce\xa6: 0.97500210485 in X");
+        ab_do_arg(&c, AB_ENTRYM, 1);            /* ALG */
+        press(&a, "BLUE k:34 k:5 k:0");
+        expect(!strcmp(c.ebuf, "NCDF()"), "097: in ALG, NORM's \xce\xa6 types NCDF( on the line");
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, 35);
+        press(&a, "BLUE k:34");
+        app_ui(&a, &ui);
+        expect(a.menu == prob && (!ui.soft[5] || !ui.soft[5][0]), "097: in 35s mode PROB's sixth key is empty");
+        press(&a, "k:5");
+        expect(a.menu == prob && !c.msg, "097: and does nothing");
     }
     printf("app_test: %d/%d checks\n", checks - bad, checks);
     return bad != 0;

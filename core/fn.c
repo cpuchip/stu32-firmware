@@ -8,6 +8,10 @@
 #include <string.h>
 
 #include "fn.h"
+
+#include <math.h>                       /* (unit 097: Phi^-1's start, a double) */
+#include <stdio.h>
+#include <stdlib.h>
 #include "arena.h"
 #include "sbig.h"
 #include "bigint.h"
@@ -1371,6 +1375,164 @@ abn_status fn_tanh(abn *out, const abn *x)
 abn_status fn_asinh(abn *out, const abn *x) { return sure(out, odd_fn(out, x, abn_asinh), x, f_ahyp, 0); }
 abn_status fn_acosh(abn *out, const abn *x) { return sure(out, abn_acosh(out, x), x, f_ahyp, 1); }
 abn_status fn_atanh(abn *out, const abn *x) { return sure(out, odd_fn(out, x, abn_atanh), x, f_ahyp, 2); }
+
+/* ---- unit 097: the normal distribution from erf and erfc (work/normal-distribution.md, revision 1) ---- */
+
+abn_status fn_erf(abn *out, const abn *x) { return abn_erf(out, x); }
+abn_status fn_erfc(abn *out, const abn *x) { return abn_erfc(out, x); }
+
+#define ND_P 64                 /* the argument's working digits (revision 1: measured at 64) */
+
+/* erfc(u)/2 for u = sign z/sqrt2, z in hp (*hz, fw[0]): u formed at ND_P digits, u0 its 34-digit rounding and r = u - u0;
+   erfc(u) = erfc(u0) - r t + r^2 u0 t with t = (2/sqrt pi) e^(-u0^2) (two Taylor terms, abacus #14270's correction), every
+   term in hp, halved and rounded once. Measured within 4.17 units (Phi) and 3.81 (Q) of the 34th digit over 5,132 z to
+   |z| = 39 (work/erf-evidence/phifix-judge.out). fw is the shared working set (none of its other users runs meanwhile) */
+static abn_status nd_half_erfc(abn *out, int sign)
+{
+    hp *A = &fw[0], *B = &fw[1], *C = &fw[2], *D = &fw[3], *E = &fw[4], *F = &fw[5];
+    abn u0, ec;
+    abn_status st;
+    hp_set_int(B, 2);
+    if (!hp_sqrt(C, B, ND_P) || !hp_div(D, A, C, ND_P)) return ABN_RANGE;     /* D = z / sqrt2 */
+    if (sign < 0) hp_neg(D);                                                  /* u */
+    if ((st = hp_round(&u0, D)) != ABN_OK) return st;
+    if (!hp_from_abn(E, &u0) || !hp_add(A, D, E, true, ND_P)) return ABN_RANGE;   /* A = r = u - u0 */
+    if ((st = abn_erfc(&ec, &u0)) != ABN_OK) return st;                       /* (an underflow: the tail's 0) */
+    if (!hp_mul(B, E, E, ND_P)) return ABN_RANGE;
+    hp_neg(B);
+    if (!hp_exp(C, B, ND_P) || !hp_pi(B, ND_P) || !hp_sqrt(D, B, ND_P)) return ABN_RANGE;   /* C = e^(-u0^2) */
+    hp_set_int(B, 2);
+    if (!hp_div(F, B, D, ND_P) || !hp_mul(B, F, C, ND_P)) return ABN_RANGE;   /* B = t */
+    if (!hp_mul(C, A, B, ND_P) || !hp_mul(D, A, A, ND_P) || !hp_mul(F, D, B, ND_P) || !hp_mul(D, F, E, ND_P))
+        return ABN_RANGE;                                                     /* C = r t, D = r^2 u0 t */
+    if (!hp_from_abn(F, &ec) || !hp_add(B, F, C, true, ND_P) || !hp_add(F, B, D, false, ND_P)) return ABN_RANGE;
+    hp_set_int(E, 2);
+    if (!hp_div(A, F, E, ND_P)) return ABN_RANGE;
+    return hp_round(out, A);
+}
+
+/* Phi(z) = erfc(-z/sqrt2)/2 and Q(z) = erfc(z/sqrt2)/2: Q computed from erfc, never as 1 - Phi, so its tail keeps its digits
+   (Q(27) is 7.39E-161; 1 - Phi(27) is 0). Past |z| = 200 the tail is below the range (an underflow: 0) and the other side
+   is 1, rounded (its distance from 1 is below the 34th digit) */
+abn_status fn_ncdf(abn *out, const abn *z, bool upper)
+{
+    abn big = K("200"), az = abn_abs(z);
+    bool tail = upper != abn_is_negative(z);        /* the side whose value is small: Phi below 0, Q above */
+    if (abn_cmp(&az, &big) > 0) {
+        if (tail) return ABN_UNDERFLOW;
+        *out = one();
+        abn_round_note();                           /* (096: 1, not quite) */
+        return ABN_OK;
+    }
+    if (!hp_from_abn(&fw[0], z)) return ABN_RANGE;
+    return nd_half_erfc(out, upper ? 1 : -1);
+}
+
+/* the start for Phi^-1(p), 0 < p <= 0.5, from lnp = ln p: a rational approximation in t = sqrt(-2 ln p), in the form of
+   Abramowitz and Stegun 26.2.23 (coefficients as recalled, not checked against the book: only a start; Newton's method
+   below gives the digits, and the census measures the result), as a double. ln p comes from the engine, so p down to
+   1E-6176 has a start (a double's own log would underflow) */
+static double nd_start(double lnp)
+{
+    double t = sqrt(-2.0 * lnp);
+    return -(t - (2.515517 + 0.802853 * t + 0.010328 * t * t) / (1.0 + 1.432788 * t + 0.189269 * t * t + 0.001308 * t * t * t));
+}
+
+/* Phi^-1(p) for 0 < p < 1 by Newton's method, each step's correction formed in hp and the last step's z rounded once.
+   - p > 0.5: -Phi^-1(1 - p), 1 - p exact for p >= 0.5 in decimal128; so below, p <= 0.5;
+   - 0.1 <= p <= 0.5: on erf, x = z/sqrt2 solving erf(x) = 2p - 1 (exact for p <= 0.5), so the centre keeps its relative
+     digits (Phi(z) - p would cancel there: p = 0.5000000001 has z near 2.5E-10);
+   - p < 0.1: on Phi itself (the corrected one above), whose tail keeps relative digits.
+   Revision 1: kept only at the house bar, 8 units of the 34th digit; measured in the build (work/097-...). */
+abn_status fn_ncdfinv(abn *out, const abn *p)
+{
+    abn zero = abn_zero(), onev = one(), lo = K("0.1"), half = K("0.5"), w, q, x, f;
+    abn_status st;
+    if (abn_cmp(p, &zero) <= 0 || abn_cmp(p, &onev) >= 0) return ABN_DOMAIN;
+    if (abn_cmp(p, &half) == 0) {               /* Phi^-1(0.5) = 0, exactly (Newton on erf at 0 would shrink x out of the
+                                                   range: each step cubes it) */
+        *out = zero;
+        return ABN_OK;
+    }
+    bool neg = abn_cmp(p, &half) > 0;          /* p > 0.5: -Phi^-1(1 - p), so w <= 0.5 and 2w - 1 below is exact (2p - 1 for
+                                                   p > 0.5 can need 35 digits: measured 501 units off at 0.50081...) */
+    if (neg && (st = abn_sub(&w, &onev, p)) != ABN_OK) return st;            /* 1 - p, exact */
+    if (!neg) w = *p;
+    bool centre = abn_cmp(&w, &lo) >= 0, upperhalf = abn_cmp(&w, &half) > 0;
+    char buf[ABN_TEXT_MAX];
+    abn lw, ln;
+    if (upperhalf && (st = abn_sub(&lw, &onev, &w)) != ABN_OK) return st;    /* (the start uses the smaller side) */
+    if (!upperhalf) lw = w;
+    if ((st = fn_ln(&ln, &lw)) != ABN_OK) return st;
+    abn_to_text(&ln, buf, sizeof buf);
+    double z0 = nd_start(strtod(buf, NULL));
+    if (upperhalf) z0 = -z0;
+    if (centre) {
+        abn two = abn_from_int(2), t;
+        if ((st = abn_mul(&t, &w, &two)) != ABN_OK || (st = abn_sub(&q, &t, &onev)) != ABN_OK) return st;   /* 2w - 1 */
+        z0 /= 1.4142135623730951;                   /* x's start */
+    } else {
+        q = w;
+    }
+    snprintf(buf, sizeof buf, "%.17g", z0);
+    if (abn_from_text(&x, buf) != ABN_OK) return ABN_RANGE;
+    /* Newton: x <- x - (f(x) - q) / f'(x), f = erf (f' = (2/sqrt pi) e^(-x^2)) or Phi (f' = e^(-x^2/2)/sqrt(2 pi)) */
+    static hp hx, res, d, step, k;
+    for (int it = 0; it < 40; it++) {
+        if (centre) st = abn_erf(&f, &x);
+        else st = fn_ncdf(&f, &x, false);
+        if (st != ABN_OK) return st == ABN_UNDERFLOW ? ABN_RANGE : st;
+        if (!hp_from_abn(&hx, &x) || !hp_from_abn(&res, &f) || !hp_from_abn(&d, &q) ||
+            !hp_add(&step, &res, &d, true, ND_P)) return ABN_RANGE;          /* step = f(x) - q, exact */
+        if (!hp_mul(&d, &hx, &hx, ND_P)) return ABN_RANGE;                    /* x^2 */
+        hp_neg(&d);
+        if (!centre) {
+            hp_set_int(&k, 2);
+            if (!hp_div(&res, &d, &k, ND_P)) return ABN_RANGE;
+            d = res;                                                          /* -x^2/2 */
+        }
+        if (!hp_exp(&res, &d, ND_P)) return ABN_RANGE;                       /* res = e^(...) */
+        {
+            /* the derivative into d: centre (2/sqrt pi) e^(-x^2), else e^(-x^2/2) / sqrt(2 pi) */
+            static hp two, sp;
+            hp_set_int(&two, 2);
+            if (centre) {
+                if (!hp_pi(&sp, ND_P) || !hp_sqrt(&k, &sp, ND_P) || !hp_div(&sp, &two, &k, ND_P) || !hp_mul(&d, &sp, &res, ND_P))
+                    return ABN_RANGE;
+            } else {
+                if (!hp_pi(&sp, ND_P) || !hp_mul(&k, &sp, &two, ND_P) || !hp_sqrt(&sp, &k, ND_P) || !hp_div(&d, &res, &sp, ND_P))
+                    return ABN_RANGE;
+            }
+        }
+        if (!hp_div(&res, &step, &d, ND_P) || !hp_add(&step, &hx, &res, true, ND_P)) return ABN_RANGE;   /* x - (f-q)/f' */
+        abn nx;
+        if ((st = hp_round(&nx, &step)) != ABN_OK) return st;
+        bool near = abn_cmp(&nx, &x) == 0;
+        if (!near && !abn_is_zero(&x)) {            /* within 4 units of x's 34th digit: the function's own last-digit
+                                                       noise (measured: a 3-cycle at p = 0.499999996), so converged */
+            bool ng;
+            char dg[ABN_DIGITS + 1], u[24];
+            int lead;
+            abn dd, ulp4;
+            abn_digits(&x, &ng, dg, &lead);
+            snprintf(u, sizeof u, "4E%d", lead - 33);
+            near = abn_from_text(&ulp4, u) == ABN_OK && abn_sub(&dd, &nx, &x) == ABN_OK && (dd = abn_abs(&dd),
+                   abn_cmp(&dd, &ulp4) <= 0);
+        }
+        if (near) {
+            /* converged: the last step's x, formed in hp, rounded once (for the centre z = sqrt2 x formed from it) */
+            if (centre) {
+                hp_set_int(&k, 2);
+                if (!hp_sqrt(&d, &k, ND_P) || !hp_mul(&res, &d, &step, ND_P)) return ABN_RANGE;
+                step = res;
+            }
+            if (neg) hp_neg(&step);
+            return hp_round(out, &step);
+        }
+        x = nx;
+    }
+    return ABN_RANGE;                               /* (no convergence: not seen; the census measures it) */
+}
 
 /* ======================================================================================== */
 /* unit 004: parts of numbers, RND, H.MMSS, conversions, probability, rect/polar, RAND        */

@@ -5,7 +5,7 @@
 #ifndef VERSION_H
 #define VERSION_H
 
-#define AB_FW_VERSION "0.97"        /* "0.<the last work unit>" until 1.0, plus one for each unit built out of order
+#define AB_FW_VERSION "0.98"        /* "0.<the last work unit>" until 1.0, plus one for each unit built out of order
                                        (work/version-extra.txt: 0.95 is 094 + 092); each unit bumps it (abacus #6810,
                                        #14190; scripts/check-version.sh) */
 #ifdef AB_HAVE_COMMIT_H

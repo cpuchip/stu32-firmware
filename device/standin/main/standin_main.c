@@ -684,7 +684,10 @@ static __attribute__((noinline)) void fnbench(void)
         {"ACOS DEG", 8, -20, -1, true, FN_DEG}, {"ATAN GRAD", 9, -30, 30, true, FN_GRAD},
         {"SINH", 10, -20, 3, true, FN_RAD}, {"COSH", 11, -20, 3, true, FN_RAD}, {"TANH", 12, -20, 1, true, FN_RAD},
         {"ASINH", 13, -30, 300, true, FN_RAD}, {"ACOSH", 14, 0, 300, false, FN_RAD}, {"ATANH", 15, -20, -1, true, FN_RAD},
-        {"TORAD", 16, -100, 100, true, FN_RAD}, {"TODEG", 17, -100, 100, true, FN_RAD}};
+        {"TORAD", 16, -100, 100, true, FN_RAD}, {"TODEG", 17, -100, 100, true, FN_RAD},
+        /* unit 097: erf, erfc, Phi and 1 - Phi of x to 99 (the corrected tails past 8), Phi^-1 of p in (0, 1) */
+        {"ERF", 18, -3, 0, true, FN_RAD}, {"ERFC", 19, -3, 1, true, FN_RAD}, {"NCDF", 20, -3, 1, true, FN_RAD},
+        {"NCDFC", 21, -3, 1, true, FN_RAD}, {"NCDFINV", 22, -300, -1, false, FN_RAD}};
     for (size_t c = 0; c < sizeof C / sizeof C[0]; c++) {
         int64_t us[40];
         abn worst_x = abn_zero();
@@ -715,6 +718,11 @@ static __attribute__((noinline)) void fnbench(void)
             case 14: fn_acosh(&r, &x); break;
             case 15: fn_atanh(&r, &x); break;
             case 16: fn_torad(&r, &x); break;
+            case 18: fn_erf(&r, &x); break;
+            case 19: fn_erfc(&r, &x); break;
+            case 20: fn_ncdf(&r, &x, false); break;
+            case 21: fn_ncdf(&r, &x, true); break;
+            case 22: fn_ncdfinv(&r, &x); break;
             default: fn_todeg(&r, &x); break;
             }
             us[i] = esp_timer_get_time() - t0;

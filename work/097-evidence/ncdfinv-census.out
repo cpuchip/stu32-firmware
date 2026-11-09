@@ -1,0 +1,6 @@
+uniform: 1000 p, the worst 2.64 units (p = 0.158829694250596786808671367907605)
+1E-k: 1000 p, the worst 0.5 units (p = 9E-3772)
+near 0.5: 1000 p, the worst 1.23 units (p = 0.49999999999997)
+1 - 1E-k: 1000 p, the worst 0.515 units (p = 0.9999999999999999998)
+near 0.1, 0.9: 1000 p, the worst 0.667 units (p = 0.10000000000000000000000027)
+5000 p, 0 past 8 units or refused

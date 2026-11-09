@@ -175,10 +175,14 @@ typedef enum {
     /* unit 095 (work/cas-steps-device.md; nonprogrammable): STEPS, the working of the last D/DX, ∫DX or SOLVE answer,
        one step a page (Casimir's show-steps, one line each): from SOLVE's report while it is open, from the list while
        the D/DX or ∫DX answer's entry is the one shown. Otherwise it does nothing */
-    AB_CASSTEPS
+    AB_CASSTEPS,
+    /* unit 097 (work/normal-distribution.md, revision 1; STU only, programmable): erf and erfc of X, and the standard
+       normal distribution of z in X: Phi(z) the lower tail, 1 - Phi(z) the upper (from erfc, never as 1 - Phi), Phi's
+       inverse for 0 < p < 1. PROB's sixth key, NORM: Phi, 1-Phi, Phi^-1, ERF, ERFC */
+    AB_ERF, AB_ERFC, AB_NCDF, AB_NCDFC, AB_NCDFINV
 } ab_op;
 
-#define AB_OP_LAST AB_CASSTEPS  /* the last op: loops over every op end here */
+#define AB_OP_LAST AB_NCDFINV   /* the last op: loops over every op end here */
 
 /* Why the last run stopped (unit 012 rule 1): the device draws it; the core never waits. */
 typedef enum {

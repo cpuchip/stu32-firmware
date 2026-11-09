@@ -1,0 +1,8 @@
+# Unit 097: FNBENCH on the stand-in (a field session, not replayed): each one-input function's median and worst time over
+# 40 arguments, ERF, ERFC, NCDF, NCDFC and NCDFINV among them (the blueprint's measure: under 1 ms a call for erf and erfc)
+wait : heap internal 30
+sleep 3
+send X
+wait state: 10
+send FNBENCH
+expect fnbench: NCDFINV 120

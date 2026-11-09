@@ -1,0 +1,59 @@
+# Unit 097 on the stand-in (work/normal-distribution.md): NORM from the keys. From MEMORY CLEAR: STU, 1.96, blue × (PROB),
+# F6 (NORM: Φ 1−Φ Φ⁻¹ ERF ERFC ▸), F1 (Φ): X is 0.97500…, ≈ before it, the bar NORM's. Each frame's CRC is the host's
+# (standin_replay); rows 21-205, so the bar itself is the host's frame 67. Then PROB, NORM again and F3 (Φ⁻¹) take
+# it back to 1.96 (a frame), and the calc task's stack low-water mark, no lower
+# than the deep paths' (8,188 B free). Ends with a control that must FAIL.
+# replay: current
+wait : heap internal 30
+sleep 3
+send WIPE
+expect wipe: both slots erased
+send RESTART
+expect load: no image: MEMORY CLEAR 30
+expect ver=0.98 30
+wait READY 30
+# STU
+send K42
+sleep 0.25
+send K42
+sleep 0.25
+send K36
+sleep 0.25
+send K18
+sleep 0.25
+send K2
+sleep 0.25
+# 1.96, PROB, NORM, Φ
+send K37
+sleep 0.25
+send K44
+sleep 0.25
+send K27
+sleep 0.25
+send K33
+sleep 0.25
+send K36
+sleep 0.25
+send K34
+sleep 0.25
+send K5
+sleep 0.25
+send K0
+sleep 0.25
+send FRAMECRC
+expect framecrc: rows 21-205 69A4A992 10
+# PROB, NORM, Φ⁻¹: back to 1.96 (a menu closes after its op)
+send K36
+sleep 0.25
+send K34
+sleep 0.25
+send K5
+sleep 0.25
+send K2
+sleep 0.25
+send FRAMECRC
+expect framecrc: rows 21-205 92E301E0 10
+send X
+expect-min stack-free 8188 10
+# CONTROL: must FAIL
+expect framecrc: rows 21-205 00000000 3

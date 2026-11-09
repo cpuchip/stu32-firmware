@@ -20,6 +20,9 @@ typedef abn_status (*f1)(abn *, const abn *);
 typedef abn_status (*fa)(abn *, const abn *, fn_angle);
 typedef abn_status (*f2)(abn *, const abn *, const abn *);
 
+static abn_status ncdf_lo(abn *out, const abn *z) { return fn_ncdf(out, z, false); }
+static abn_status ncdf_hi(abn *out, const abn *z) { return fn_ncdf(out, z, true); }
+
 static const struct { const char *name; f1 one; fa ang; f2 two; } FNS[] = {
     {"EXP", fn_exp, 0, 0}, {"LN", fn_ln, 0, 0}, {"TENX", fn_tenx, 0, 0}, {"LOG", fn_log, 0, 0},
     {"SQ", fn_sq, 0, 0}, {"SQRT", fn_sqrt, 0, 0}, {"INV", fn_inv, 0, 0},
@@ -34,6 +37,8 @@ static const struct { const char *name; f1 one; fa ang; f2 two; } FNS[] = {
     {"INTG", fn_intg, 0, 0}, {"NCR", 0, 0, fn_ncr}, {"NPR", 0, 0, fn_npr},
     {"TOPOL", 0, 0, 0}, {"TOREC", 0, 0, 0},
     {"EXPM1", fn_expm1, 0, 0}, {"LN1P", fn_ln1p, 0, 0}, {"TWOX", fn_twox, 0, 0}, {"LOG2", fn_log2, 0, 0},
+    {"ERF", fn_erf, 0, 0}, {"ERFC", fn_erfc, 0, 0}, {"NCDF", ncdf_lo, 0, 0}, {"NCDFC", ncdf_hi, 0, 0},     /* unit 097 */
+    {"NCDFINV", fn_ncdfinv, 0, 0},
 };
 
 static const struct { const char *name; fn_unit u; } UNITS[] = {

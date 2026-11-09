@@ -1,0 +1,62 @@
+# Unit 097 (work/normal-distribution.md, revision 1; abacus #14270, #14272, #14274, #14276, #14277; tutor #14275): erf,
+# erfc and the standard normal distribution, STU's only, on PROB's sixth key (NORM: Φ, 1−Φ, Φ⁻¹, ERF, ERFC, ▸) and as
+# ERF( ERFC( NCDF( NCDFC( NCDFINV( in STU's lines and equations. soroban's own cases; the accuracy is fn_table's
+# (tests/fn_table.py over tests/erf-table.txt), so values here are the textbook's at FIX 4 or the engine's exact text.
+#
+# The textbook values (X's line at FIX 4)
+T01 | Φ(1.96) = 0.97500… | STU 1.96 NCDF | %XLINE=0.9750
+T02 | 1−Φ(1.645) = 0.04998… | STU 1.645 NCDFC | %XLINE=0.0500
+T03 | Φ⁻¹(0.975) = 1.95996… | STU 0.975 NCDFINV | %XLINE=1.9600
+T04 | ERF(1) = 0.842700… | STU 1 ERF | %XLINE=0.8427
+T05 | ERFC(1) = 0.157299… | STU 1 ERFC | %XLINE=0.1573
+T06 | Φ(1.96), every digit | STU 1.96 NCDF | %XRAW=+9750021048517795658634157309591630E-34
+# The tails keep their digits: 1−Φ from erfc, never as 1 − Φ (the HELP line's lesson: Φ(27) is 1, 1−Φ(27) is not 0)
+L01 | 1−Φ(27) = 7.389…E-161 | STU 27 NCDFC | %XRAW=+7389481006885018257517944005216003E-194
+L02 | Φ(−27) is the same | STU 27 CHS NCDF | %XRAW=+7389481006885018257517944005216003E-194
+L03 | Φ(27) is 1, marked rounded | STU 27 NCDF | X=1 %ROUNDED-X=R %XMARK=≈
+L04 | 1 − Φ(27) on the stack is 0 | STU 1 ENTER 27 NCDF - | X=0
+L05 | Φ(−38.5) and 1−Φ(38.5) agree | STU 38.5 CHS NCDF | %XRAW=+1408182463170517461770099630245198E-357
+L06 | 1−Φ(38.5) | STU 38.5 NCDFC | %XRAW=+1408182463170517461770099630245198E-357
+L07 | past the range: 1−Φ(300) is 0, rounded | STU 300 NCDFC | X=0 %ROUNDED-X=R
+L08 | Φ(300) is 1, rounded | STU 300 NCDF | X=1 %ROUNDED-X=R
+L09 | ERFC(26.5) | STU 26.5 ERFC | %XRAW=+2210907664263734275929239022915826E-340
+# The inverse
+I01 | Φ⁻¹(0.5) is 0 | STU 0.5 NCDFINV | X=0
+I02 | Φ⁻¹(1E-100) | STU 1 E 100 CHS NCDFINV | %XRAW=-2127345356096532429511721218866223E-32
+I03 | Φ⁻¹(0.999999) | STU 0.999999 NCDFINV | %XRAW=+4753424308822898948193988187004275E-33
+I04 | Φ⁻¹ of 0 is refused | STU 0 NCDFINV | ERR %ERR=DOMAIN X=0
+I05 | Φ⁻¹ of 1 is refused | STU 1 NCDFINV | ERR %ERR=DOMAIN X=1
+I06 | Φ⁻¹ of 1.5 is refused | STU 1.5 NCDFINV | ERR %ERR=DOMAIN
+I07 | Φ⁻¹ of −0.1 is refused | STU 0.1 CHS NCDFINV | ERR %ERR=DOMAIN
+I08 | Φ(Φ⁻¹(0.975)) at FIX 4 | STU 0.975 NCDFINV NCDF | %XLINE=0.9750
+# As any one-number function: LASTx, the stack, lift
+F01 | LASTx keeps z | STU 1.96 NCDF LASTX | X=1.96 Y=0.9750021048517795658634157309591630
+F02 | Y untouched | STU 5 ENTER 1.96 NCDF | Y=5
+F03 | an expression in X is NOT A NUMBER | STU EQ:X EQDROP NCDF | ERR %ERR=NOT_NUMBER
+F04 | a complex X is INVALID DATA | STU 1 CI 1 NCDF | ERR %ERR=DOMAIN
+F05 | its result is rounded (an untracked path, 096) | STU 1 ERF | %ROUNDED-X=R
+# STU only: the 33s and 35s modes refuse (herf-v's own is MODE35's NCDF)
+M01 | 35s: STU ONLY | MODE35 1.96 NCDF | ERR %ERR=STU_ONLY X=1.96
+M02 | 33s: STU ONLY | MODE33 1 ERF | ERR %ERR=STU_ONLY X=1
+M03 | 35s: Φ⁻¹ STU ONLY | MODE35 0.5 NCDFINV | ERR %ERR=STU_ONLY
+# ALG: the keys type the names (tutor #14275 1: the lesson prints Φ and says the line reads NCDF()
+A01 | ALG: the Φ key types NCDF( | STU ALG NCDF | %LINE=NCDF()
+A02 | ALG: the 1−Φ key types NCDFC( | STU ALG NCDFC | %LINE=NCDFC()
+A03 | ALG: the Φ⁻¹ key types NCDFINV( | STU ALG NCDFINV | %LINE=NCDFINV()
+A04 | ALG: ERF and ERFC | STU ALG ERFC | %LINE=ERFC()
+A05 | ALG: NCDF(1.96) evaluated | STU ALG NCDF 1.96 ENTER | %LINE=NCDF(1.96) N=0.9750021048517795658634157309591630
+A06 | ALG: a TI user's NCDF(−1,1) is refused, SYNTAX, the line kept to edit (tutor #14275 2) | STU ALG NCDF 1 CHS , 1 ENTER | ERR %ERR=SYNTAX %LINE=NCDF(-1,1)
+# EQN: the names, the numeric evaluation, the two-argument refusal, and the CAS refusing them by name
+E01 | EQN: ERF(1) evaluated | STU EQ:ERF(1) XEQ | %XLINE=0.8427
+E02 | EQN: NCDFINV(NCDF(1)) | STU EQ:NCDFINV(NCDF(1)) XEQ | %XLINE=1.0000
+E03 | EQN: NCDF(−1,1) is refused, SYNTAX (tutor #14275 2) | STU EQ:NCDF(-1,1) XEQ | ERR %ERR=SYNTAX
+E04 | EQN: a 35s equation can't hold the names | MODE35 EQ:ERF(1) XEQ | ERR %ERR=SYNTAX
+E05 | CAS D/DX of ERF: UNSUPPORTED ERF | STU EQ:ERF(X) CASD:X | ERR %ERR=CAS_UNSUPPORTED %ERRMSG=UNSUPPORTED_ERF
+E06 | CAS ∫DX of NCDF: UNSUPPORTED NCDF | STU EQ:NCDF(X) CASINT:X | ERR %ERR=CAS_UNSUPPORTED %ERRMSG=UNSUPPORTED_NCDF
+E07 | CAS SIMP of NCDFINV: UNSUPPORTED NCDFINV (the longest name) | STU EQ:NCDFINV(X)+1 CASSIMP | ERR %ERR=CAS_UNSUPPORTED %ERRMSG=UNSUPPORTED_NCDFINV
+# Programs: a line, and the image (version 26 for a program holding one; an older version refuses it)
+P01 | a program line | STU PRGM CLPGM LBL:A NCDF RTN PRGM 1.96 XEQ:A | %XLINE=0.9750
+P02 | saved and loaded, it runs | STU PRGM CLPGM LBL:A NCDF RTN PRGM SAVE LOAD 1.96 XEQ:A | %XLINE=0.9750
+P03 | the same image as version 25 is refused | STU PRGM CLPGM LBL:A NCDF RTN PRGM SAVE DROPSEC:25 IMGVER:25 LOAD | ERR %ERR=BAD_IMAGE
+P04 | the control: without the line, version 25 loads | STU PRGM CLPGM LBL:A SQRT RTN PRGM SAVE IMGVER:25 LOAD 4 XEQ:A | X=2
+P05 | a message from Φ⁻¹ saved: version 26 too | STU 0 NCDFINV SAVE IMGVER:25 LOAD | ERR %ERR=BAD_IMAGE

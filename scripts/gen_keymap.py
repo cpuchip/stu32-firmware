@@ -106,7 +106,11 @@ MENUS = [
     ("SUMS", [o("n", "AB_NSUM"), o("\u03a3x", "AB_SUMX"), o("\u03a3y", "AB_SUMY"), o("\u03a3x\u00b2", "AB_SUMX2"),
               o("\u03a3y\u00b2", "AB_SUMY2"), o("\u03a3xy", "AB_SUMXY")]),
     ("PROB", [o("Cn,r", "AB_NCR"), o("Pn,r", "AB_NPR"), o("n!", "AB_FACT"), o("RAND", "AB_RAND"),
-              o("SEED", "AB_SEED"), NONE]),
+              o("SEED", "AB_SEED"), ("NORM", "KM_MENU", "0", "NORM", 0)]),   # unit 097: NORM, STU's only (as CAS)
+    # unit 097 (work/normal-distribution.md revision 1, abacus #14272, tutor #14275): the labels' glyphs exactly as
+    # written there (U+2212 in 1−Φ, U+207B U+00B9 in Φ⁻¹); ▸ back to PROB
+    ("NORM", [o("Φ", "AB_NCDF"), o("1−Φ", "AB_NCDFC"), o("Φ⁻¹", "AB_NCDFINV"),
+              o("ERF", "AB_ERF"), o("ERFC", "AB_ERFC"), ("▸", "KM_MENU", "0", "PROB", 0)]),
     # SF, CF, FS? take the flag from the digit prompt: 10 and 11 by .0 and .1 (UG p.14-9)
     ("FLAGS", [p("SF", "AB_SF", "KM_ARG_DIGITS"), p("CF", "AB_CF", "KM_ARG_DIGITS"),
                p("FS?", "AB_FS", "KM_ARG_DIGITS"), o("BEEP", "AB_BEEP"), NONE, NONE]),   # unit 027: BEEP, ours

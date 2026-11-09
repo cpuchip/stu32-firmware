@@ -296,6 +296,10 @@ test: all
 	./build/vectors tests/094-soroban.txt    # (unit 094: the report's ENTER and EVAL; no save/load pass: the report isn't in the image)
 	./build/vectors tests/095-soroban.txt    # (unit 095: STEPS; no save/load pass: the steps are RAM only)
 	./build/vectors tests/096-soroban.txt    # (unit 096: the mark; no save/load pass: INFO's row view is RAM, and the image cases SAVE and LOAD themselves)
+	./build/vectors tests/097-soroban.txt    # (unit 097: erf and the normal distribution)
+	AB_SAVELOAD=1 AB_STORE=1 ./build/vectors tests/097-soroban.txt
+	python3 tests/fn_table.py build/fn_drive tests/erf-table.txt   # (unit 097: the accuracy, 8 units; mpmath 1.3.0's table)
+	python3 tests/fn_table.py build/fn_drive tests/erf-table.txt --control   # (and its bar's control: a moved TRUE fails)
 	./build/rows_test
 	./build/eqn_say_test tests/086-corpus.txt    # (unit 086: the round trip over every equation the vectors type)
 	if AB_SAY_PLANT=1 ./build/eqn_say_test tests/086-corpus.txt > /dev/null; then \
@@ -496,6 +500,7 @@ sanitize: build/san/load_fuzz build/san/expr_test build/san/app_test build/san/v
 	./build/san/vectors tests/094-soroban.txt
 	./build/san/vectors tests/095-soroban.txt
 	./build/san/vectors tests/096-soroban.txt
+	./build/san/vectors tests/097-soroban.txt
 	./build/san/store_sim tests/092-soroban-store.txt   # (unit 092)
 	./build/san/app_test
 	for f in $(KEYV) work/016-vectors.txt work/017-vectors.txt; do AB_SAVELOAD=1 AB_STORE=1 ./build/san/vectors $$f || exit 1; done

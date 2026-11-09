@@ -468,6 +468,7 @@ static bool cx_prefix(const app_state *a, int menu)
 static bool menu_hidden(const ab_calc *c, const km_menu *mn)
 {
     if (mn && !strcmp(mn->name, "CAS")) return !c->stu;   /* CAS 004: STU's only (in 33s and 35s it doesn't exist) */
+    if (mn && !strcmp(mn->name, "NORM")) return !c->stu;  /* unit 097: the same (PROB's sixth key stays empty there) */
     if (!mn || ab_rec35(c)) return false;      /* in program entry, the edited label's mode (041 C, #4850) */
     if (!strcmp(mn->name, "TABLE") || !strcmp(mn->name, "GRAPH")) return true;
     if (!strcmp(mn->name, "CMPLX") && c->base == 10 && !c->eqn_mode) return false;   /* where the prefix works */
@@ -1751,8 +1752,9 @@ void app_ui(const app_state *a, screen_ui *ui)
         }
         ui->soft_sub[i] = it->kind == KM_MENU;  /* a submenu: its box marked (#3958) */
         ui->soft_dim[i] = item_hidden(a->c, it);   /* unit 041 A */
-        if (it->kind == KM_MENU && it->arg >= 0 && !strcmp(km_menu_at(it->arg)->name, "CAS") && !a->c->stu)
-            ui->soft[i] = NULL, ui->soft_dim[i] = false;    /* CAS 004: no CAS outside STU, not even dimmed */
+        if (it->kind == KM_MENU && it->arg >= 0 && (!strcmp(km_menu_at(it->arg)->name, "CAS") ||
+                                                    !strcmp(km_menu_at(it->arg)->name, "NORM")) && !a->c->stu)
+            ui->soft[i] = NULL, ui->soft_dim[i] = false;    /* CAS 004: no CAS outside STU, not even dimmed; 097: NORM */
         if (it->kind == KM_DEVICE) {            /* the settings in effect (unit 022) */
             static char off[8], vol[8];
             switch (it->arg) {

@@ -810,6 +810,11 @@ static abn_status one_number_fn(ab_calc *c, ab_op op)
         st = fn_xroot(&r, &c->x.re, &three);
         break;
     }
+    case AB_ERF: st = fn_erf(&r, &c->x.re); break;              /* unit 097 */
+    case AB_ERFC: st = fn_erfc(&r, &c->x.re); break;
+    case AB_NCDF: st = fn_ncdf(&r, &c->x.re, false); break;
+    case AB_NCDFC: st = fn_ncdf(&r, &c->x.re, true); break;
+    case AB_NCDFINV: st = fn_ncdfinv(&r, &c->x.re); break;
     case AB_SQRT: st = fn_sqrt(&r, &c->x.re); break;
     case AB_INV: st = fn_inv(&r, &c->x.re); break;
     case AB_SIN: st = fn_sin(&r, &c->x.re, m); break;
@@ -3537,6 +3542,8 @@ static const char *eqn_fname(ab_op op)
     case AB_ARG: return "ARG"; case AB_XHAT: return "x\xcc\x82"; case AB_YHAT: return "\xc5\xb7";
     case AB_AND: return "AND"; case AB_XOR: return "XOR"; case AB_OR: return "OR"; case AB_NOT: return "NOT";
     case AB_NAND: return "NAND"; case AB_NOR: return "NOR"; case AB_PCT: return "%";
+    case AB_ERF: return "ERF"; case AB_ERFC: return "ERFC"; case AB_NCDF: return "NCDF";     /* unit 097 */
+    case AB_NCDFC: return "NCDFC"; case AB_NCDFINV: return "NCDFINV";
     default: return NULL;
     }
 }
@@ -3954,6 +3961,17 @@ static void step_keep(ab_calc *c, const casim_req *rq, const char *answer)
 #endif
 static abn_status steps_open(ab_calc *c);      /* (below, beside the view's keys) */
 
+/* Unit 097: the first of the normal distribution's names in text (longest first: NCDFINV before NCDF), or NULL. casim's
+   language has no such names (docs/language.md: an unknown name is SYNTAX), so the CAS refuses an equation holding one
+   by name, UNSUPPORTED, as 041 D's 33s names casim lacks; casim learning them would be a CAS unit of its own */
+static const char *nd_name_in(const char *text)
+{
+    static const char *const ND[] = {"NCDFINV(", "NCDFC(", "NCDF(", "ERFC(", "ERF("};
+    for (size_t i = 0; i < sizeof ND / sizeof ND[0]; i++)
+        if (strstr(text, ND[i])) return ND[i];
+    return NULL;
+}
+
 static abn_status cas_step(ab_calc *c, int op, int var, const char *repl, const char *repl2)
 {
 #ifdef AB_CASIM
@@ -3968,6 +3986,11 @@ static abn_status cas_step(ab_calc *c, int op, int var, const char *repl, const 
     int model = onx ? AB_MODEL_STU : c->eqn_model[c->eqn_cur];
     if (eqn_too_deep(c, text, model))
         return ABN_TOO_DEEP;                    /* an older image's, quarantined: casim never walks it (unit 047) */
+    const char *nd = nd_name_in(text);
+    if (nd) {                                   /* unit 097: UNSUPPORTED and the name, without its "(" */
+        snprintf(c->cas_bad, sizeof c->cas_bad, "%.*s", (int)strlen(nd) - 1, nd);
+        return ABN_CAS_UNSUPPORTED;
+    }
     if (model == 33) {                          /* 041 D: what the 33s refuses is refused; its spelling translated */
         ab_val v;
         int pos;
@@ -4857,7 +4880,7 @@ static bool reads_x(ab_op op)
            (op >= AB_HMS && op <= AB_TOREC && op != AB_RAND) || op == AB_SIGMAPLUS ||
            op == AB_SIGMAMINUS || op == AB_XHAT || op == AB_YHAT || op == AB_SETC ||
            (op >= AB_AND && op <= AB_NOR) || op == AB_ARG || (op >= AB_EXPM1 && op <= AB_LOG2) ||
-           op == AB_CUBE || op == AB_CBRT;
+           op == AB_CUBE || op == AB_CBRT || (op >= AB_ERF && op <= AB_NCDFINV);
 }
 
 static bool reads_y(ab_op op)
@@ -5960,6 +5983,8 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
     if (sym_kind(op) >= 0 && ab_rec_model(c) == AB_MODEL_STU &&
         (ab_is_sym(&c->x) || (sym_kind(op) < 5 && ab_is_sym(&c->y))))
         return sym_arith(c, op);
+    /* Unit 097: the normal distribution and erf are STU's (the 33s and 35s have neither): STU ONLY first, whatever X holds */
+    if (op >= AB_ERF && op <= AB_NCDFINV && !c->stu) return ABN_STU_ONLY;
     /* Unit 082: an expression or a name where a number is read is NOT A NUMBER, nothing changed (is_cx and is_vec
        compare the kind exactly, so the guards below would let one through as a real 0). */
     if ((reads_x(op) && ab_is_sym(&c->x)) || (reads_y(op) && ab_is_sym(&c->y))) return ABN_NOT_NUMBER;
@@ -6090,6 +6115,7 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
     case AB_FACT: case AB_IP: case AB_FP: case AB_INTG: case AB_ABS: case AB_SGN: case AB_RND:
     case AB_EXPM1: case AB_LN1P: case AB_TWOX: case AB_LOG2:
     case AB_CUBE: case AB_CBRT:                 /* unit 041 C */
+    case AB_ERF: case AB_ERFC: case AB_NCDF: case AB_NCDFC: case AB_NCDFINV:     /* unit 097 (STU's: refused above) */
         return one_number_fn(c, op);
     case AB_TOPOL:
     case AB_TOREC: {

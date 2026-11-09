@@ -181,7 +181,11 @@ int main(void)
                 {"SUMS", {O(AB_NSUM, 0, "n"), O(AB_SUMX, 0, "\xce\xa3x"), O(AB_SUMY, 0, "\xce\xa3y"),
                           O(AB_SUMX2, 0, "\xce\xa3x\xc2\xb2"), O(AB_SUMY2, 0, "\xce\xa3y\xc2\xb2"), O(AB_SUMXY, 0, "\xce\xa3xy")}},
                 {"PROB", {O(AB_NCR, 0, "Cn,r"), O(AB_NPR, 0, "Pn,r"), O(AB_FACT, 0, "n!"), O(AB_RAND, 0, "RAND"),
-                          O(AB_SEED, 0, "SEED"), N}},
+                          O(AB_SEED, 0, "SEED"), {KM_MENU, 0, -7, 0, "NORM"}}},     /* unit 097: NORM */
+                /* unit 097: the labels' exact glyphs (tutor #14275: U+2212 in 1−Φ, U+207B U+00B9 in Φ⁻¹) */
+                {"NORM", {O(AB_NCDF, 0, "\xce\xa6"), O(AB_NCDFC, 0, "1\xe2\x88\x92\xce\xa6"),
+                          O(AB_NCDFINV, 0, "\xce\xa6\xe2\x81\xbb\xc2\xb9"), O(AB_ERF, 0, "ERF"), O(AB_ERFC, 0, "ERFC"),
+                          {KM_MENU, 0, -8, 0, "\xe2\x96\xb8"}}},
                 {"FLAGS", {P(AB_SF, KM_ARG_DIGITS, "SF"), P(AB_CF, KM_ARG_DIGITS, "CF"), P(AB_FS, KM_ARG_DIGITS, "FS?"),
                            O(AB_BEEP, 0, "BEEP"), N, N}},   /* unit 027: BEEP, ours */
                 {"x?y", {T(0, "x\xe2\x89\xa0y?"), T(1, "x\xe2\x89\xa4y?"), T(2, "x<y?"), T(3, "x>y?"), T(4, "x\xe2\x89\xa5y?"),
@@ -273,8 +277,8 @@ int main(void)
                     bool same = it->kind == want->kind && it->op == want->op && it->prompt == want->prompt &&
                                 !strcmp(it->legend, want->legend);
                     if (want->kind == KM_MENU) {    /* a submenu by name: -2 LOGIC, -3 SUFFIX, -4 BEEP, -5 BEEP2,
-                                                       -6 CLOCK */
-                        static const char *const SUB[] = {"LOGIC", "SUFFIX", "BEEP", "BEEP2", "CLOCK"};
+                                                       -6 CLOCK, -7 NORM, -8 PROB (097) */
+                        static const char *const SUB[] = {"LOGIC", "SUFFIX", "BEEP", "BEEP2", "CLOCK", "NORM", "PROB"};
                         const km_menu *sub = km_menu_at(it->arg);
                         same = same && sub && !strcmp(sub->name, SUB[-want->arg - 2]);
                     } else {
@@ -290,7 +294,7 @@ int main(void)
                         if (km_lookup(k, sh)->kind == KM_MENU && km_lookup(k, sh)->arg == at) keyed = true;
                 snprintf(m, sizeof m, "menu %s is on its key", D[d].name);
                 bool sub = !strcmp(D[d].name, "LOGIC") || !strcmp(D[d].name, "SUFFIX") || !strcmp(D[d].name, "BEEP") ||
-                           !strcmp(D[d].name, "BEEP2") || !strcmp(D[d].name, "CLOCK") ||
+                           !strcmp(D[d].name, "BEEP2") || !strcmp(D[d].name, "CLOCK") || !strcmp(D[d].name, "NORM") ||
                            !strcmp(D[d].name, "ALG LINE") || !strcmp(D[d].name, "TABLE BAR") ||
                            !strncmp(D[d].name, "GRAPH BAR", 9) || !strncmp(D[d].name, "GRAPH ZOOM", 10) ||
                            !strncmp(D[d].name, "GRAPH FCN", 9);  /* reached by a menu;

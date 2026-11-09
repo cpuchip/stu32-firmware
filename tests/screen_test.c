@@ -1100,15 +1100,15 @@ int main(int argc, char **argv)
         frame("47-xe-memory-full", &c, &ui);
         screen_lines(&c, &ui, &pg);
         expect(pg.x.kind == SCREEN_MESSAGE && !strcmp(pg.x.text, "MEMORY FULL"), "082: MEMORY FULL on X's line");
-        /* 4C (Michael's s3-old-firmware): a newer firmware's image (tests/golden-v26-4c.img: Y, Z and T kinds this build
+        /* 4C (Michael's s3-old-firmware): a newer firmware's image (tests/golden-v27-4c.img: Y, Z and T kinds this build
            doesn't know) loads with them 0 and OLDER FIRMWARE on X's line */
         static uint8_t img[4096];
-        FILE *gf = fopen("tests/golden-v26-4c.img", "rb");
+        FILE *gf = fopen("tests/golden-v27-4c.img", "rb");
         size_t gn = gf ? fread(img, 1, sizeof img, gf) : 0;
         if (gf) fclose(gf);
         screen_ui_default(&ui);
         ab_init(&c);
-        expect(gn == 1206 && ab_state_load(&c, img, gn) == ABN_OK, "082 4C: tests/golden-v26-4c.img loads");
+        expect(gn == 1206 && ab_state_load(&c, img, gn) == ABN_OK, "082 4C: tests/golden-v27-4c.img loads");
         frame("48-older-firmware", &c, &ui);
         screen_lines(&c, &ui, &pg);
         expect(pg.x.kind == SCREEN_MESSAGE && !strcmp(pg.x.text, "OLDER FIRMWARE"), "082 4C: OLDER FIRMWARE on X's line");
@@ -1247,6 +1247,21 @@ int main(int argc, char **argv)
         screen_lines(&c, &ui, &pg);
         expect(!strcmp(pg.t.text, "STEP 5 OF 5") && screen_cells(pg.x.text) > 124,
                "095: the product's answer, the longest page (broken after its operators: six rows)");
+        /* unit 097: NORM's bar (its labels as the keymap writes them; keymap_test pins those), after 1.96 and \xce\xa6 */
+        STU0();
+        keys(&c, "1 . 9 6");
+        ab_do(&c, AB_NCDF);
+        {
+            static const char *const NORM[6] = {"\xce\xa6", "1\xe2\x88\x92\xce\xa6", "\xce\xa6\xe2\x81\xbb\xc2\xb9", "ERF",
+                                                "ERFC", "\xe2\x96\xb8"};
+            for (int k = 0; k < 6; k++) ui.soft[k] = NORM[k];
+            ui.soft_sub[5] = true;
+            frame("67-norm-menu", &c, &ui);
+            screen_lines(&c, &ui, &pg);
+            expect(!strcmp(pg.x.text, "0.9750"), "097: \xce\xa6(1.96) at FIX 4 under NORM's bar");
+            for (int k = 0; k < 6; k++) ui.soft[k] = NULL;
+            ui.soft_sub[5] = false;
+        }
 #undef STU0
 #undef PAGE
     }

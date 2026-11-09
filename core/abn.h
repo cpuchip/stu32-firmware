@@ -142,6 +142,9 @@ abn_status abn_atan(abn *out, const abn *a);
 abn_status abn_sinh(abn *out, const abn *a);
 abn_status abn_cosh(abn *out, const abn *a);
 abn_status abn_tanh(abn *out, const abn *a);
+/* Unit 097: the library's erf and erfc (within 1.22 and 1.69 units of the 34th digit, work/normal-distribution.md) */
+abn_status abn_erf(abn *out, const abn *a);
+abn_status abn_erfc(abn *out, const abn *a);
 abn_status abn_asinh(abn *out, const abn *a);
 abn_status abn_acosh(abn *out, const abn *a);
 abn_status abn_atanh(abn *out, const abn *a);

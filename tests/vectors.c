@@ -79,6 +79,7 @@ static const struct { const char *name; ab_op op; } NAMED[] = {
     {"ROWEDIT", AB_ROWEDIT},                                    /* unit 093 */
     {"CASEVAL", AB_CASEVAL},                                    /* unit 094: EVAL on SOLVE's report (abacus #14168) */
     {"CASSTEPS", AB_CASSTEPS},                                  /* unit 095: STEPS (abacus #14239) */
+    {"ERF", AB_ERF}, {"ERFC", AB_ERFC}, {"NCDF", AB_NCDF}, {"NCDFC", AB_NCDFC}, {"NCDFINV", AB_NCDFINV},    /* unit 097 (#14274) */
     {"TABLE", AB_TABLE}, {"TSTART", AB_TSTART}, {"TSTEP", AB_TSTEP}, {"TUP", AB_TUP}, {"TDOWN", AB_TDOWN},   /* 032 */
     {"GRAPH", AB_GRAPH}, {"XMIN", AB_XMIN}, {"XMAX", AB_XMAX}, {"YMIN", AB_YMIN}, {"YMAX", AB_YMAX},       /* 033 */
     {"AUTO", AB_GAUTO}, {"GLEFT", AB_GLEFT}, {"GRIGHT", AB_GRIGHT},

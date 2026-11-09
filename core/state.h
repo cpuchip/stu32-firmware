@@ -22,7 +22,7 @@
 
 #include "calc.h"
 
-#define AB_STATE_VERSION 25     /* 25 (unit 096): which values are rounded, in STU (T_ROUNDED); 24 (unit 090): which levels are bare, in STU (T_BARE); 23 (unit 089): the rows values hold and the page's newest (T_ROWREF), and the device's save the page
+#define AB_STATE_VERSION 26     /* 26 (unit 097): op codes for ERF, ERFC, NCDF, NCDFC, NCDFINV (a program line or the message's op; an image without them as before); 25 (unit 096): which values are rounded, in STU (T_ROUNDED); 24 (unit 090): which levels are bare, in STU (T_BARE); 23 (unit 089): the rows values hold and the page's newest (T_ROWREF), and the device's save the page
                                    itself (T_ROWS, ab_state_save_rows); an image with no row written as before; 22 (the CAS 038 repin, abacus #13773): no new field; the message CONDITION FAILS
                                    (ABN_CAS_CONDITION) may be the one showing; 21 (unit 082): a value may be an expression (its text) or a name (kinds 3, 4), the
                                    messages MEMORY FULL (ABN_EXPR_FULL), NOT A NUMBER and OLDER FIRMWARE may be the one showing, and a section

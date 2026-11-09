@@ -1,0 +1,649 @@
+sh scripts/check-version.sh
+check-version: AB_FW_VERSION "0.98", unit 097
+./build/abn_test
+abn_test: reads (unit 054): 1599800 of 1599800 agree with abn_digits
+abn_test: 158/158 checks
+./build/diff_test
+diff_test: reference passes 36 cases; engines agree on 200000/200000 random operations
+./build/xnum_test
+xnum_test: 10/10 checks
+python3 tests/bi_fuzz.py build/bi_drive 1 200
+bi_fuzz: 5200 cases, 0 wrong; output digest 126f5df6419d5459
+python3 tests/hp_div_fuzz.py build/hp_drive 1 5000
+hp_div_fuzz: 5000 quotients, 0 wrong
+./build/cx_drive < tests/cx_ties.in | diff - tests/cx_ties.out    # 045 review: exact ties of negative powers
+./build/vectors work/001-vectors.txt
+work/001-vectors.txt: 49/49 vectors, 113/113 expectations
+./build/vectors work/003-vectors.txt
+work/003-vectors.txt: 127/127 vectors, 158/158 expectations
+./build/vectors work/004-vectors.txt
+work/004-vectors.txt: 139/139 vectors, 174/174 expectations
+./build/vectors work/005-vectors.txt
+work/005-vectors.txt: 41/41 vectors, 85/85 expectations
+./build/vectors work/006-vectors.txt
+work/006-vectors.txt: 56/56 vectors, 74/74 expectations
+./build/vectors work/007-vectors.txt
+work/007-vectors.txt: 42/42 vectors, 50/50 expectations
+./build/fmt_vectors work/007-fmt-vectors.txt
+work/007-fmt-vectors.txt: 55/55 vectors
+./build/vectors work/008-vectors.txt
+work/008-vectors.txt: 49/49 vectors, 60/60 expectations
+./build/fmt_vectors work/008-fmt-vectors.txt
+work/008-fmt-vectors.txt: 27/27 vectors
+./build/vectors work/009-vectors.txt
+work/009-vectors.txt: 58/58 vectors, 76/76 expectations
+./build/fmt_vectors work/009-fmt-vectors.txt
+work/009-fmt-vectors.txt: 20/20 vectors
+./build/vectors work/010-vectors.txt
+work/010-vectors.txt: 60/60 vectors, 86/86 expectations
+./build/fmt_vectors work/010-fmt-vectors.txt
+work/010-fmt-vectors.txt: 14/14 vectors
+./build/vectors work/011-vectors.txt
+work/011-vectors.txt: 108/108 vectors, 149/149 expectations
+./build/vectors work/012-vectors.txt
+work/012-vectors.txt: 52/52 vectors, 102/102 expectations
+./build/vectors work/013-vectors.txt
+work/013-vectors.txt: 50/50 vectors, 97/97 expectations
+./build/vectors work/014-vectors.txt
+work/014-vectors.txt: 68/68 vectors, 107/107 expectations
+./build/vectors work/015-vectors.txt
+work/015-vectors.txt: 80/80 vectors, 154/154 expectations
+./build/vectors work/015b-vectors.txt
+work/015b-vectors.txt: 48/48 vectors, 52/52 expectations
+./build/vectors work/016-vectors.txt
+work/016-vectors.txt: 69/69 vectors, 138/138 expectations
+AB_SAVELOAD=1 AB_STORE=1 ./build/vectors work/016-vectors.txt
+work/016-vectors.txt: 69/69 vectors, 138/138 expectations
+./build/vectors work/017-vectors.txt
+work/017-vectors.txt: 44/44 vectors, 71/71 expectations
+./build/vectors work/018-vectors.txt
+work/018-vectors.txt: 50/50 vectors, 58/58 expectations
+./build/vectors work/021-vectors.txt
+work/021-vectors.txt: 42/42 vectors, 50/50 expectations
+./build/vectors work/024-vectors.txt
+work/024-vectors.txt: 8/8 vectors, 17/17 expectations
+./build/vectors work/024b-vectors.txt
+work/024b-vectors.txt: 7/7 vectors, 24/24 expectations
+./build/vectors work/025-vectors.txt
+work/025-vectors.txt: 42/42 vectors, 57/57 expectations
+AB_SAVELOAD=1 AB_STORE=1 ./build/vectors work/025-vectors.txt
+work/025-vectors.txt: 42/42 vectors, 57/57 expectations
+./build/vectors work/026-vectors.txt
+work/026-vectors.txt: 61/61 vectors, 133/133 expectations
+./build/vectors work/027-vectors.txt
+work/027-vectors.txt: 5/5 vectors, 9/9 expectations
+./build/vectors work/028-vectors.txt
+work/028-vectors.txt: 13/13 vectors, 15/15 expectations
+./build/vectors work/029-vectors.txt
+work/029-vectors.txt: 51/51 vectors, 87/87 expectations
+AB_SAVELOAD=1 AB_STORE=1 ./build/vectors work/029-vectors.txt
+work/029-vectors.txt: 51/51 vectors, 87/87 expectations
+./build/vectors work/029b-vectors.txt
+work/029b-vectors.txt: 9/9 vectors, 26/26 expectations
+AB_SAVELOAD=1 AB_STORE=1 ./build/vectors work/029b-vectors.txt
+work/029b-vectors.txt: 9/9 vectors, 26/26 expectations
+./build/vectors work/030-vectors.txt
+work/030-vectors.txt: 23/23 vectors, 32/32 expectations
+AB_SAVELOAD=1 AB_STORE=1 ./build/vectors work/030-vectors.txt
+work/030-vectors.txt: 23/23 vectors, 32/32 expectations
+./build/vectors work/030b-vectors.txt
+work/030b-vectors.txt: 4/4 vectors, 4/4 expectations
+./build/vectors work/031-vectors.txt
+work/031-vectors.txt: 56/56 vectors, 82/82 expectations
+AB_SAVELOAD=1 AB_STORE=1 ./build/vectors work/031-vectors.txt
+work/031-vectors.txt: 56/56 vectors, 82/82 expectations
+./build/vectors work/031b-vectors.txt
+work/031b-vectors.txt: 3/3 vectors, 3/3 expectations
+./build/vectors work/032-vectors.txt
+work/032-vectors.txt: 28/28 vectors, 67/67 expectations
+AB_SAVELOAD=1 AB_STORE=1 ./build/vectors work/032-vectors.txt
+work/032-vectors.txt: 28/28 vectors, 67/67 expectations
+./build/vectors work/032b-vectors.txt
+work/032b-vectors.txt: 9/9 vectors, 19/19 expectations
+AB_SAVELOAD=1 AB_STORE=1 ./build/vectors work/032b-vectors.txt
+work/032b-vectors.txt: 9/9 vectors, 19/19 expectations
+./build/vectors work/035-vectors.txt
+work/035-vectors.txt: 16/16 vectors, 41/41 expectations
+AB_SAVELOAD=1 AB_STORE=1 ./build/vectors work/035-vectors.txt
+work/035-vectors.txt: 16/16 vectors, 41/41 expectations
+./build/vectors work/039-vectors.txt
+work/039-vectors.txt: 32/32 vectors, 114/114 expectations
+AB_SAVELOAD=1 AB_STORE=1 ./build/vectors work/039-vectors.txt
+work/039-vectors.txt: 32/32 vectors, 114/114 expectations
+./build/vectors work/040-vectors.txt
+work/040-vectors.txt: 54/54 vectors, 112/112 expectations
+AB_SAVELOAD=1 AB_STORE=1 ./build/vectors work/040-vectors.txt
+work/040-vectors.txt: 54/54 vectors, 112/112 expectations
+./build/vectors work/042-sweep-vectors.txt
+work/042-sweep-vectors.txt: 401/401 vectors, 402/402 expectations
+./build/vectors work/040c-red-vectors.txt
+work/040c-red-vectors.txt: 20/20 vectors, 24/24 expectations
+./build/vectors work/040d-vectors.txt
+work/040d-vectors.txt: 18/18 vectors, 30/30 expectations
+./build/vectors work/041a-vectors.txt
+work/041a-vectors.txt: 62/62 vectors, 75/75 expectations
+./build/vectors work/041b-vectors.txt
+work/041b-vectors.txt: 6/6 vectors, 6/6 expectations
+./build/vectors work/041c-vectors.txt
+work/041c-vectors.txt: 47/47 vectors, 61/61 expectations
+./build/vectors work/041d-vectors.txt
+work/041d-vectors.txt: 48/48 vectors, 56/56 expectations
+./build/vectors work/044-vectors.txt
+work/044-vectors.txt: 5/5 vectors, 6/6 expectations
+./build/vectors work/cas004-vectors.txt
+work/cas004-vectors.txt: 30/30 vectors, 51/51 expectations
+./build/vectors work/033-vectors.txt
+work/033-vectors.txt: 26/26 vectors, 69/69 expectations
+AB_SAVELOAD=1 AB_STORE=1 ./build/vectors work/033-vectors.txt
+work/033-vectors.txt: 26/26 vectors, 69/69 expectations
+./build/vectors tests/021-soroban.txt
+tests/021-soroban.txt: 26/26 vectors, 41/41 expectations
+./build/vectors tests/019-soroban.txt
+tests/019-soroban.txt: 7/7 vectors, 12/12 expectations
+./build/vectors tests/003-soroban.txt
+tests/003-soroban.txt: 13/13 vectors, 13/13 expectations
+./build/vectors tests/018-soroban.txt
+tests/018-soroban.txt: 5/5 vectors, 7/7 expectations
+./build/vectors tests/029-soroban.txt
+tests/029-soroban.txt: 9/9 vectors, 23/23 expectations
+./build/vectors tests/034-soroban.txt
+tests/034-soroban.txt: 18/18 vectors, 28/28 expectations
+./build/vectors tests/harness-soroban.txt
+tests/harness-soroban.txt: 2/2 vectors, 4/4 expectations
+./build/vectors tests/046-soroban.txt
+tests/046-soroban.txt: 3/3 vectors, 3/3 expectations
+./build/vectors tests/047-soroban.txt
+tests/047-soroban.txt: 29/29 vectors, 29/29 expectations
+AB_SAVELOAD=1 AB_STORE=1 ./build/vectors tests/047-soroban.txt
+tests/047-soroban.txt: 29/29 vectors, 29/29 expectations
+./build/vectors tests/048-soroban.txt    # (no save/load pass: the report and the notes are not in the image)
+tests/048-soroban.txt: 85/85 vectors, 185/185 expectations
+./build/vectors tests/056-soroban.txt    # (no save/load pass: a bound being typed isn't in the image; D46-D47 test that)
+tests/056-soroban.txt: 43/43 vectors, 80/80 expectations
+./build/vectors tests/057-soroban.txt    # (no save/load pass: g being typed isn't in the image; L07-L09 and Q12 save and load)
+tests/057-soroban.txt: 37/37 vectors, 82/82 expectations
+./build/vectors tests/070-soroban.txt    # (no save/load pass: a bound being typed isn't in the image; S45-S51 save and load)
+tests/070-soroban.txt: 82/82 vectors, 160/160 expectations
+./build/vectors tests/082-soroban.txt
+tests/082-soroban.txt: 15/15 vectors, 39/39 expectations
+AB_SAVELOAD=1 AB_STORE=1 ./build/vectors tests/082-soroban.txt    # (tutor #11878: →X, →EQN, %XEXPR, %YEXPR, %XDRAWN)
+tests/082-soroban.txt: 15/15 vectors, 39/39 expectations
+./build/vectors tests/084-soroban.txt
+tests/084-soroban.txt: 67/67 vectors, 73/73 expectations
+AB_SAVELOAD=1 AB_STORE=1 ./build/vectors tests/084-soroban.txt    # (unit 084: arithmetic on an expression)
+tests/084-soroban.txt: 67/67 vectors, 73/73 expectations
+./build/vectors tests/085-soroban.txt
+tests/085-soroban.txt: 72/72 vectors, 74/74 expectations
+AB_SAVELOAD=1 AB_STORE=1 ./build/vectors tests/085-soroban.txt    # (unit 085: the spoken graph)
+tests/085-soroban.txt: 72/72 vectors, 74/74 expectations
+./build/vectors tests/086-soroban.txt
+tests/086-soroban.txt: 158/158 vectors, 158/158 expectations
+AB_SAVELOAD=1 AB_STORE=1 ./build/vectors tests/086-soroban.txt    # (unit 086: the spoken equation)
+tests/086-soroban.txt: 158/158 vectors, 158/158 expectations
+./build/vectors tests/088-soroban.txt    # (unit 088: the CAS on the stack; no save/load pass: SOLVE's report is not in the image)
+tests/088-soroban.txt: 36/36 vectors, 73/73 expectations
+./build/vectors tests/089-soroban.txt    # (unit 089: the worksheet's rows; no save/load pass: SAVE's image holds no page, so a
+tests/089-soroban.txt: 35/35 vectors, 108/108 expectations
+# row past MEMCLR LOAD is gone by design, and SAVEROWS is tested in the file itself)
+./build/vectors tests/n089-abacus.txt    # (abacus #14031: h089 as frozen with H11's name corrected, n089, sha256 dc4149a5...)
+tests/n089-abacus.txt: 24/24 vectors, 98/98 expectations
+./build/vectors tests/090-soroban.txt    # (unit 090: the worksheet's page; no save/load pass: SAVE's image holds no page, and
+tests/090-soroban.txt: 39/39 vectors, 113/113 expectations
+# ALG's history is the page's rows; SAVEROWS and SAVE are tested in the file itself)
+./build/vectors tests/h090-abacus.txt    # (abacus #14084: h090 as frozen, sha256 3ad3f033...)
+tests/h090-abacus.txt: 20/20 vectors, 80/80 expectations
+./build/vectors tests/h090-Bp-abacus.txt # (abacus #14085: h090-Bp, Michael's B', as frozen, sha256 eb90e05f...)
+tests/h090-Bp-abacus.txt: 10/10 vectors, 26/26 expectations
+./build/vectors tests/h093-abacus.txt    # (abacus #14169: h093 as frozen, sha256 ea0d1d08...)
+tests/h093-abacus.txt: 29/29 vectors, 91/91 expectations
+./build/vectors tests/n094-abacus.txt    # (abacus #14186: n094, h094 with E08's op name corrected, sha256 527c391b...)
+tests/n094-abacus.txt: 10/10 vectors, 27/27 expectations
+./build/vectors tests/h095-abacus.txt    # (abacus #14261: h095 as frozen, sha256 1a2370e6...)
+tests/h095-abacus.txt: 12/12 vectors, 27/27 expectations
+./build/vectors tests/093-soroban.txt    # (unit 093: selecting a row; no save/load pass: the selection is RAM only)
+tests/093-soroban.txt: 35/35 vectors, 105/105 expectations
+./build/vectors tests/094-soroban.txt    # (unit 094: the report's ENTER and EVAL; no save/load pass: the report isn't in the image)
+tests/094-soroban.txt: 22/22 vectors, 53/53 expectations
+./build/vectors tests/095-soroban.txt    # (unit 095: STEPS; no save/load pass: the steps are RAM only)
+tests/095-soroban.txt: 27/27 vectors, 68/68 expectations
+./build/vectors tests/096-soroban.txt    # (unit 096: the mark; no save/load pass: INFO's row view is RAM, and the image cases SAVE and LOAD themselves)
+tests/096-soroban.txt: 69/69 vectors, 120/120 expectations
+./build/vectors tests/097-soroban.txt    # (unit 097: erf and the normal distribution)
+tests/097-soroban.txt: 49/49 vectors, 63/63 expectations
+AB_SAVELOAD=1 AB_STORE=1 ./build/vectors tests/097-soroban.txt
+tests/097-soroban.txt: 49/49 vectors, 63/63 expectations
+python3 tests/fn_table.py build/fn_drive tests/erf-table.txt   # (unit 097: the accuracy, 8 units; mpmath 1.3.0's table)
+fn_table: tests/erf-table.txt: 820 lines (ERF 153, ERFC 157, NCDF 177, NCDFC 177, NCDFINV 156), 820 within 8 units; the worst: ERF 0.91 (x = 4.0066674211199426736129680648), ERFC 1.69 (x = 2.33), NCDF 2.67 (x = -23.060813850204089803241913614329), NCDFC 3.15 (x = -2.01), NCDFINV 2.00 (x = 0.828462336996)
+python3 tests/fn_table.py build/fn_drive tests/erf-table.txt --control   # (and its bar's control: a moved TRUE fails)
+fn_table --control: tests/erf-table.txt with one TRUE moved 1,000 units: failed, as it must
+./build/rows_test
+rows_test: census and invariant: 105 ops make rows, 462 rows' links as the table's; 0 census and 0 invariant failures
+rows_test: 2,000 rows past 64 KB: 1592 kept in 64476 B, 408 dropped in 2 batches, the least 8225 B
+rows_test: 144/144 checks
+./build/eqn_say_test tests/086-corpus.txt    # (unit 086: the round trip over every equation the vectors type)
+eqn_say_test: 959 equations: 895 spoken and read back (1 RAND apart, 5 too deep to re-read), 64 refused by the parser too; every one the same
+if AB_SAY_PLANT=1 ./build/eqn_say_test tests/086-corpus.txt > /dev/null; then \
+  echo "eqn_say_test: the planted reader passed: the round trip doesn't bite"; exit 1; fi
+./build/vectors tests/076-soroban.txt    # (no save/load pass: the report isn't in the image; app_test saves and loads CPLX)
+tests/076-soroban.txt: 23/23 vectors, 29/29 expectations
+./build/vectors tests/079-soroban.txt    # (no save/load pass: the report isn't in the image)
+tests/079-soroban.txt: 17/17 vectors, 23/23 expectations
+./build/vectors tests/073-soroban.txt    # (no save/load pass: E18 types a bound, which isn't in the image; E15, E16 save and load)
+tests/073-soroban.txt: 21/21 vectors, 35/35 expectations
+./build/vectors tests/050-soroban.txt
+tests/050-soroban.txt: 6/6 vectors, 6/6 expectations
+AB_SAVELOAD=1 AB_STORE=1 ./build/vectors tests/050-soroban.txt
+tests/050-soroban.txt: 6/6 vectors, 6/6 expectations
+./build/vectors tests/054-soroban.txt
+tests/054-soroban.txt: 8/8 vectors, 8/8 expectations
+AB_SAVELOAD=1 AB_STORE=1 ./build/vectors tests/054-soroban.txt
+tests/054-soroban.txt: 8/8 vectors, 8/8 expectations
+./build/vectors tests/fc-soroban.txt
+tests/fc-soroban.txt: 17/17 vectors, 17/17 expectations
+AB_SAVELOAD=1 AB_STORE=1 ./build/vectors tests/fc-soroban.txt
+tests/fc-soroban.txt: 17/17 vectors, 17/17 expectations
+./build/vectors tests/067-soroban.txt
+tests/067-soroban.txt: 6/6 vectors, 7/7 expectations
+AB_SAVELOAD=1 AB_STORE=1 ./build/vectors tests/067-soroban.txt
+tests/067-soroban.txt: 6/6 vectors, 7/7 expectations
+./build/deep_test
+deep_test: 14/14 checks
+python3 tests/eqn_depth_fuzz.py build/eqn_depth 1 3000
+eqn_depth_fuzz: 3000 equations (545 past 153), 0 differing
+python3 tests/eqn_stack_fuzz.py build/eqn_stack 1 2000
+eqn_stack_fuzz: 2003 equations, base 6360 B, most 21736 B (units 178), worst 104 B a unit; a level of ( 544 B, SIN( 544, X^( 523; 0 over the bound
+./build/vectors tests/038-soroban.txt
+tests/038-soroban.txt: 6/6 vectors, 7/7 expectations
+./build/vectors tests/golden-v1.txt
+tests/golden-v1.txt: 6/6 vectors, 19/19 expectations
+./build/load_fuzz 20000
+load_fuzz: 20000 cases, 19798 refused, 202 accepted, 0 violations
+./build/expr_test
+expr_test: 082: the store fuzz, 200000 steps over 59 places (7139 refused full), every text kept
+expr_test: 082: the op sweep, 10000 runs: 1282 NOT A NUMBER, 456 built an expression (084), 64 the CAS on X's text (088), 8198 through without a number read, 0 read one
+expr_test: 082: the op fuzz, 400 sequences, 10000 steps: 235 NOT A NUMBER, 69 built an expression (084), 15 the CAS on X's text (088), 0 read a number, 0 changed on a refusal, 0 live texts changed, 0 images that don't load
+expr_test: 084: the differential fuzz, 1500 cases, 6990 ops: 3830 built, 12564 places compared, 0 differ, 0 casim SYNTAX, 1 too long (pi pushed 591, fractions 158)
+expr_test: 430/430 checks
+python3 scripts/gen_opnames.py --check
+gen_opnames: tests/opnames.h is current
+bash tests/gen_games_test.sh
+  ok: two games
+  ok: GAMES_PINS_ID 0576033, the list's digest by sha256sum; GAMES_PINS both pins
+  ok: no game
+  ok: no game: GAMES_PINS_ID "none", GAMES_PINS ""
+  ok: two games again
+  ok: src/*.c takes src/a.c and src/b.c, not src/deeper/z.c
+  ok: exported at the pin
+  ok: games.h builds a registry of 3
+  ok: staged without a clone (and said so)
+  refused: a stage with another pin
+  refused: a pin not in the repo
+  refused: an unpushed pin
+  refused: a licence the manifest disagrees with
+  refused: an id twice
+  refused: a name twice
+  ok: a port with original
+  refused: a key nobody knows
+  refused: a six-character name
+  refused: a folder that is not GAMES or TOOLS
+  refused: a source outside the repo
+  refused: a flag not allowed
+  refused: sources matching nothing
+  refused: an app that is not a C name
+  refused: a file name with make syntax
+  refused: a source pattern with a space
+  refused: a name that would close a C comment
+  refused: a source that is a symbolic link
+  refused: a symbolic link under an include directory
+  refused: no origin HEAD (a local origin/main branch)
+  ok: one game
+  ok: a game's include directories on its own rule only
+  ok: a native game and a wasm game
+  ok: the wasm game's .aot exported, embedded and wrapped for STU_WASM only
+  ok: games.h lists the wasm game with STU_WASM only (1 game without, 2 with)
+  ok: a wasm game staged without a clone
+  refused: a wasm game whose .aot is not its sha256
+  refused: a wasm game whose .wasm is not its sha256
+  refused: a wasm game with sources
+  refused: a wasm game without its toolchain
+  refused: a wasm game whose hash is not hex
+  refused: a wasm game whose .aot is not at the pin
+  refused: a wasm game whose .aot is a symbolic link
+  refused: a native game with an aot
+  refused: an unknown kind
+GAMES-LIST GENERATOR GREEN
+./build/store_test
+store_test: power cut at every moment of 6 saves: 5497/5497 leave a good image
+store_test: settings 14/14 checks
+store_test: migration after the slots grew: the newest image kept
+store_test: the two-slot fixtures under the ring: 6035/6035 cuts leave the newest that finished; the state's seq 3 and the apps' v1.1 seq 2 loaded, then every newer one
+store_test: 10,000 saves of 1237 B (1 sectors): every sector erased 78 to 79 times (78 to 79 allowed)
+store_test: 10,000 saves of 9138 B (3 sectors): every sector erased 234 to 235 times (234 to 235 allowed)
+store_test: 10,000 saves of 27683 B (7 sectors): every sector erased 546 to 547 times (546 to 547 allowed)
+store_test: the remembered newest: a save after a load reads 32 bytes (a scan 5333); WIPE and a shared ring kept right
+./build/store_sim tests/092-soroban-store.txt   # (unit 092: the ring, the counterexample, older firmware's slots)
+CUTALL 16284: 16381 cuts, 16381 held
+CUTALL 2204: 2246 cuts, 2246 held
+CUTALL 1180: 1218 cuts, 1218 held
+CUTALL 4064: 4113 cuts, 4113 held
+CUTALL 1: 35 cuts, 35 held
+CUTALL 2204: 2246 cuts, 2246 held
+CUTALL 4064: 4113 cuts, 4113 held
+CUTALL 668: 704 cuts, 704 held
+CUTALL 2972: 3017 cuts, 3017 held
+CUTALL 1692: 1732 cuts, 1732 held
+CUTALL 3996: 4045 cuts, 4045 held
+CUTALL 412: 447 cuts, 447 held
+CUTALL 2716: 2760 cuts, 2760 held
+CUTALL 4064: 4113 cuts, 4113 held
+CUTALL 924: 961 cuts, 961 held
+CUTALL 1948: 1989 cuts, 1989 held
+CUTALL 3228: 3274 cuts, 3274 held
+CUTALL 1436: 1475 cuts, 1475 held
+CUTALL 500: 536 cuts, 536 held
+CUTALL 700: 736 cuts, 736 held
+CUTALL 900: 937 cuts, 937 held
+CUTALL 300: 335 cuts, 335 held
+CUTALL 224: 258 cuts, 258 held
+CUTALL 224: 258 cuts, 258 held
+CUTALL 224: 258 cuts, 258 held
+tests/092-soroban-store.txt: 99/99 expectations
+./build/steps_test tests/steps-corpus.txt   # (unit 095: the census, kept)
+steps_test: 75 cases, 63 paged, 12 refused as their ops refuse; the most arena 10 KiB of 16, the most steps 28, the longest page 123 cells; 0 bad
+python3 tests/mark_table.py build/mark_drive tests/mark-table.txt   # (unit 096: the mark's census, mpmath 1.3.0's table)
+mark_table: 7203 cases (table sha256 226b3999c4b5...): 6648 marked right, 68 false rounded, 0 false exact, 487 refused
+  false rounded by op: XROOT 60, POW 8
+./build/store_sim tests/h092-abacus.txt   # (abacus #14223: h092 as frozen, sha256 33238a8b..., from tests/h092gen.py)
+CUTALL 16284: 16381 cuts, 16381 held
+CUTALL 16284: 16381 cuts, 16381 held
+CUTALL 2204: 2246 cuts, 2246 held
+CUTALL 16284: 16381 cuts, 16381 held
+tests/h092-abacus.txt: 1705/1705 expectations
+./build/ls027_test
+ls027_test: the encoder matches Sharp's bit order (full, partial, both polarities, p. 20 addresses)
+./build/draw_test
+draw_test: 1448352 checks, 0 failures
+./build/keys_test
+keys_test: 43 keys alone, 1806 pairs, 200 bounce patterns, rectangle, short tap: all as expected
+./build/power_test
+power_test: 190/190 checks
+python3 scripts/gen_help.py --check
+gen_help: firmware/help_text.c matches help/help.txt
+./build/help_test
+help_test: the sweep: 1527 states, 322 of 322 entries shown
+help_test: 857329/857329 checks, 322 entries
+./build/offscreen_test
+offscreen_test: 78/78
+./build/keymap_test
+keymap_test: 3020/3020 checks; 113 actions, 0 undefined (listed above)
+./build/app_test
+app_test: 090 4a: 400 ALG lines, then RPN rows to the first drop (223 rows dropped): 177 kept, ▲ stops at the oldest kept, the page's first row, the dropped line above it (223)
+app_test: 082: 1464 keys after a change, 727 changed nothing, and after each UNDO gave the state before the change (0 did not)
+app_test: 082: 28 inserts into the list (CAS ops, →EQN, typed, NEW, on an answer and on its row) leave every sum's rows after its answer (0 did not)
+app_test: 907/907 checks
+./build/standin_replay device/standin/*.txt
+standin_replay: device/standin/arith084.txt: current, 2 of 2 frames match, 1 control
+standin_replay: device/standin/cas088.txt: current, 4 of 4 frames match, 1 control
+standin_replay: device/standin/expr082.txt: current, 2 of 2 frames match, 1 control
+standin_replay: device/standin/look080.txt: retired at 081: the wheel (3044782) redrew the equation list; the replay matches 4 of 4 at aa738bb and 0 of 4 from 3044782 on (abacus #12095). It stays as 080's board evidence.
+standin_replay: device/standin/mark096.txt: current, 4 of 4 frames match, 1 control
+standin_replay: device/standin/norm097.txt: current, 2 of 2 frames match, 1 control
+standin_replay: device/standin/page090.txt: current, 2 of 2 frames match, 1 control
+standin_replay: device/standin/repin-eedbf16.txt: current, 5 of 5 frames match, 1 control
+standin_replay: device/standin/repin-v160.txt: current, 5 of 5 frames match, 1 control
+standin_replay: device/standin/report094.txt: current, 2 of 2 frames match, 1 control
+standin_replay: device/standin/sel093.txt: current, 2 of 2 frames match, 1 control
+standin_replay: device/standin/steps095.txt: current, 2 of 2 frames match, 1 control
+standin_replay: device/standin/tbook080.txt: retired at 081: the wheel (3044782) redrew the equation list; the replay matches 1 of 1 at aa738bb and 0 of 1 from 3044782 on (abacus #12095). It stays as 080's board evidence.
+standin_replay: device/standin/wheel081.txt: current, 1 of 1 frames match, 1 control
+standin_replay: 51 scripts, every current frame matches
+./build/standin_test tests/frames/standin.crc
+standin_test: 349/349 checks, 5 screens
+python3 scripts/gen_keymap.py --check
+python3 device/reva/gen_bringup.py --check
+./build/screen_test tests/frames
+screen_test: 22-tb-stu3 (STU, "3×X^2-4" shown) rows 21-205 CRC 43FC116C
+screen_test: 9429/9429 checks, 67/67 frames match tests/frames
+./build/tbook_test build/casim/golden/corpus.txt
+tbook pool: 1+1+...+1 (191 B): parse 0, fit 0, err 2, nodes 200 of 200
+tbook tall line: 7-deep continued fraction fit 2, height 154
+tbook sweep: 204 pairs
+tbook typed: 400 equations, 0 not drawn, 0 differ, 0 the generator typed wrongly
+tbook corpus: 4865 answers; whole at 3 3513, at 2 728, wrapped 526, taller than 180 px 27, a term too wide 55, past TB_DEPTH 16, the pool full 0, not parsed 0; most nodes 166
+tbook_test: 39/39 checks
+python3 scripts/gen_font.py --check
+python3 tests/eqn_fuzz.py 1 2000 > build/eqn_fuzz.txt
+./build/vectors build/eqn_fuzz.txt
+build/eqn_fuzz.txt: 2000/2000 vectors, 2000/2000 expectations
+python3 tests/prog_fuzz.py 1 1000 > build/prog_fuzz.txt
+./build/vectors build/prog_fuzz.txt
+build/prog_fuzz.txt: 1000/1000 vectors, 14000/14000 expectations
+python3 tests/veckey_fuzz.py 1 3000 > build/veckey_fuzz.txt
+./build/vectors build/veckey_fuzz.txt
+build/veckey_fuzz.txt: 2922/2922 vectors, 6019/6019 expectations
+./build/fmt_vectors work/002-vectors.txt
+work/002-vectors.txt: 55/55 vectors
+python3 tests/fmt_fuzz.py build/fmt_drive 20000
+fmt_fuzz: reference passes the vectors; core and reference agree on 20000/20000
+./build/device_host    # the on-chip test app on the host (abacus #11893: it stopped linking at a58cb09, unseen outside make test)
+abn_test: reads (unit 054): 16104 of 16104 agree with abn_digits
+abn_test: 158/158 checks
+  [ok] abn_test, 0.0 s
+diff_test: reference passes 36 cases; engines agree on 200000/200000 random operations
+  [ok] diff_test, 0.4 s
+xnum_test: 10/10 checks
+  [ok] xnum_test, 0.0 s
+draw_test: 158994 checks, 0 failures
+  [ok] draw_test 2000, 0.1 s
+work/001-vectors.txt: 49/49 vectors, 113/113 expectations
+  [ok] work/001-vectors.txt, 0.0 s
+work/003-vectors.txt: 127/127 vectors, 158/158 expectations
+  [ok] work/003-vectors.txt, 0.0 s
+work/004-vectors.txt: 139/139 vectors, 174/174 expectations
+  [ok] work/004-vectors.txt, 0.0 s
+work/005-vectors.txt: 41/41 vectors, 85/85 expectations
+  [ok] work/005-vectors.txt, 0.0 s
+work/006-vectors.txt: 56/56 vectors, 74/74 expectations
+  [ok] work/006-vectors.txt, 0.0 s
+work/007-vectors.txt: 42/42 vectors, 50/50 expectations
+  [ok] work/007-vectors.txt, 0.0 s
+work/008-vectors.txt: 49/49 vectors, 60/60 expectations
+  [ok] work/008-vectors.txt, 0.0 s
+work/009-vectors.txt: 58/58 vectors, 76/76 expectations
+  [ok] work/009-vectors.txt, 0.0 s
+work/010-vectors.txt: 60/60 vectors, 86/86 expectations
+  [ok] work/010-vectors.txt, 0.0 s
+work/011-vectors.txt: 108/108 vectors, 149/149 expectations
+  [ok] work/011-vectors.txt, 0.1 s
+work/012-vectors.txt: 52/52 vectors, 102/102 expectations
+  [ok] work/012-vectors.txt, 0.1 s
+work/013-vectors.txt: 50/50 vectors, 97/97 expectations
+  [ok] work/013-vectors.txt, 0.0 s
+work/014-vectors.txt: 68/68 vectors, 107/107 expectations
+  [ok] work/014-vectors.txt, 0.0 s
+work/015-vectors.txt: 80/80 vectors, 154/154 expectations
+  [ok] work/015-vectors.txt, 0.0 s
+work/015b-vectors.txt: 48/48 vectors, 52/52 expectations
+  [ok] work/015b-vectors.txt, 0.0 s
+work/016-vectors.txt: 69/69 vectors, 138/138 expectations
+  [ok] work/016-vectors.txt, 0.0 s
+work/017-vectors.txt: 44/44 vectors, 71/71 expectations
+  [ok] work/017-vectors.txt, 0.0 s
+work/018-vectors.txt: 50/50 vectors, 58/58 expectations
+  [ok] work/018-vectors.txt, 0.0 s
+work/021-vectors.txt: 42/42 vectors, 50/50 expectations
+  [ok] work/021-vectors.txt, 0.0 s
+work/cas004-vectors.txt: 30/30 vectors, 51/51 expectations
+  [ok] work/cas004-vectors.txt, 0.0 s
+work/cas004-s3-vectors.txt: 344/344 vectors, 346/346 expectations
+  [ok] work/cas004-s3-vectors.txt, 0.0 s
+tests/021-soroban.txt: 26/26 vectors, 41/41 expectations
+  [ok] tests/021-soroban.txt, 0.0 s
+tests/019-soroban.txt: 7/7 vectors, 12/12 expectations
+  [ok] tests/019-soroban.txt, 0.0 s
+tests/003-soroban.txt: 13/13 vectors, 13/13 expectations
+  [ok] tests/003-soroban.txt, 0.0 s
+tests/018-soroban.txt: 5/5 vectors, 7/7 expectations
+  [ok] tests/018-soroban.txt, 0.0 s
+eqn_fuzz 1 2000: 2000/2000 vectors, 2000/2000 expectations
+  [ok] eqn_fuzz 1 2000, 0.1 s
+prog_fuzz 1 1000: 1000/1000 vectors, 14000/14000 expectations
+  [ok] prog_fuzz 1 1000, 0.0 s
+veckey_fuzz 1 3000: 2922/2922 vectors, 6019/6019 expectations
+  [ok] veckey_fuzz 1 3000, 0.1 s
+work/007-fmt-vectors.txt: 55/55 vectors
+  [ok] work/007-fmt-vectors.txt, 0.0 s
+work/008-fmt-vectors.txt: 27/27 vectors
+  [ok] work/008-fmt-vectors.txt, 0.0 s
+work/009-fmt-vectors.txt: 20/20 vectors
+  [ok] work/009-fmt-vectors.txt, 0.0 s
+work/010-fmt-vectors.txt: 14/14 vectors
+  [ok] work/010-fmt-vectors.txt, 0.0 s
+work/002-vectors.txt: 55/55 vectors
+  [ok] work/002-vectors.txt, 0.0 s
+tests/golden-v1.img: 833 bytes; load 26 us, save 14 us
+  [ok] tests/golden-v1.img, 0.0 s
+  [skip] work/016-vectors.txt + store on flash: no abstate partition
+  [skip] work/017-vectors.txt + store on flash: no abstate partition
+work/011-vectors.txt: 108/108 vectors, 149/149 expectations
+  [ok] work/011-vectors.txt + slices of 7, 0.1 s
+work/012-vectors.txt: 52/52 vectors, 102/102 expectations
+  [ok] work/012-vectors.txt + slices of 7, 0.1 s
+work/013-vectors.txt: 50/50 vectors, 97/97 expectations
+  [ok] work/013-vectors.txt + slices of 7, 0.0 s
+work/015-vectors.txt: 80/80 vectors, 154/154 expectations
+  [ok] work/015-vectors.txt + slices of 7, 0.0 s
+  [skip] work/015-vectors.txt + store on flash + slices of 7: no abstate partition
+DEVICE PASS: 42/42 steps passed, 3 skipped, 1.2 s
+make sanitize                            # (abacus #11415: under ~3 minutes, so in make test; 37 s measured)
+make[1]: Entering directory '/home/claude/code/stuffleberry/workspace/projects-internal/stu32-firmware'
+cc -std=c11 -O1 -g -Wall -Wextra -Wpedantic -Werror -Wno-format-truncation -DAB_CASIM -Ibuild/casim -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer -Icore -o build/san/load_fuzz core/calc.c core/fmt.c core/fn.c core/bigint.c core/const.c core/xnum.c core/stat.c core/frac.c core/base.c core/cplx.c core/hp.c core/sbig.c core/arena.c core/eqn.c core/lin.c core/state.c core/msg.c core/list.c core/rows.c tests/load_fuzz.c build/abn_intel.o build/casim.o build/intel/libbid.a -lm
+cc -std=c11 -O1 -g -Wall -Wextra -Wpedantic -Werror -Wno-format-truncation -DAB_CASIM -Ibuild/casim -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer -Icore -o build/san/expr_test core/calc.c core/fmt.c core/fn.c core/bigint.c core/const.c core/xnum.c core/stat.c core/frac.c core/base.c core/cplx.c core/hp.c core/sbig.c core/arena.c core/eqn.c core/lin.c core/state.c core/msg.c core/list.c core/rows.c tests/expr_test.c build/abn_intel.o build/casim.o build/intel/libbid.a -lm
+cc -std=c11 -O1 -g -Wall -Wextra -Wpedantic -Werror -Wno-format-truncation -DAB_CASIM -Ibuild/casim -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer -Icore -Ifirmware -Ibuild/games -DVER_CASIM='"175c160"' -DVER_GAMES='"8f8e9e8"' -o build/san/app_test core/calc.c core/fmt.c core/fn.c core/bigint.c core/const.c core/xnum.c core/stat.c core/frac.c core/base.c core/cplx.c core/hp.c core/sbig.c core/arena.c core/eqn.c core/lin.c core/state.c core/msg.c core/list.c core/rows.c firmware/screen.c firmware/font5x7.c firmware/draw.c firmware/tbook.c firmware/app.c firmware/apps.c firmware/keymap.c firmware/keys.c firmware/power.c firmware/settings.c firmware/piezo.c firmware/help.c firmware/help_text.c build/games-o/babal/games/babal/core/chacha20.o build/games-o/babal/games/babal/core/fake_input.o build/games-o/babal/games/babal/core/input_jump.o build/games-o/babal/games/babal/core/input_steer.o build/games-o/babal/games/babal/core/level.o build/games-o/babal/games/babal/core/maths.o build/games-o/babal/games/babal/core/player.o build/games-o/babal/games/babal/core/player_event.o build/games-o/babal/games/babal/core/points_counter.o build/games-o/babal/games/babal/core/row.o build/games-o/babal/games/babal/core/row_generator.o build/games-o/babal/games/babal/core/skill.o build/games-o/babal/games/babal/core/slab.o build/games-o/babal/games/babal/core/time_tracker.o build/games-o/babal/games/babal/core/timeval.o build/games-o/babal/games/babal/core/vec3.o build/games-o/babal/games/babal/app/babal_app.o build/games-o/babal/games/babal/app/render.o build/games-o/aim/games/aim/aim_logic.o build/games-o/aim/games/aim/aim_app.o build/games-o/land/games/land/land_logic.o build/games-o/land/games/land/land_app.o build/games-o/snake/games/snake/snake_logic.o build/games-o/snake/games/snake/snake_app.o build/games-o/mines/games/mines/mines_logic.o build/games-o/mines/games/mines/mines_app.o build/games-o/salvo/games/salvo/salvo_logic.o build/games-o/salvo/games/salvo/salvo_app.o build/games-o/rocks/games/3720/rocks_logic.o build/games-o/rocks/games/3720/rocks_app.o build/games-o/moles/games/moles/moles_logic.o build/games-o/moles/games/moles/moles_app.o build/games-o/catch/games/catch/catch_logic.o build/games-o/catch/games/catch/catch_app.o tests/app_test.c build/abn_intel.o build/casim.o build/intel/libbid.a -lm
+cc -std=c11 -O1 -g -Wall -Wextra -Wpedantic -Werror -Wno-format-truncation -DAB_CASIM -Ibuild/casim -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer -Icore -Ifirmware -Itests -o build/san/vectors core/calc.c core/fmt.c core/fn.c core/bigint.c core/const.c core/xnum.c core/stat.c core/frac.c core/base.c core/cplx.c core/hp.c core/sbig.c core/arena.c core/eqn.c core/lin.c core/state.c core/msg.c core/list.c core/rows.c firmware/screen.c firmware/font5x7.c firmware/draw.c firmware/tbook.c firmware/store.c firmware/keymap.c tests/vectors.c build/abn_intel.o build/casim.o build/intel/libbid.a -lm
+cc -std=c11 -O1 -g -Wall -Wextra -Wpedantic -Werror -Wno-format-truncation -DAB_CASIM -Ibuild/casim -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer -Icore -Itests -o build/san/rows_test core/calc.c core/fmt.c core/fn.c core/bigint.c core/const.c core/xnum.c core/stat.c core/frac.c core/base.c core/cplx.c core/hp.c core/sbig.c core/arena.c core/eqn.c core/lin.c core/state.c core/msg.c core/list.c core/rows.c tests/rows_test.c build/abn_intel.o build/casim.o build/intel/libbid.a -lm
+cc -std=c11 -O1 -g -Wall -Wextra -Wpedantic -Werror -Wno-format-truncation -DAB_CASIM -Ibuild/casim -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer -Icore -Ifirmware -o build/san/store_sim core/calc.c core/fmt.c core/fn.c core/bigint.c core/const.c core/xnum.c core/stat.c core/frac.c core/base.c core/cplx.c core/hp.c core/sbig.c core/arena.c core/eqn.c core/lin.c core/state.c core/msg.c core/list.c core/rows.c firmware/store.c tests/store_sim.c build/abn_intel.o build/casim.o build/intel/libbid.a -lm
+./build/san/load_fuzz 200000 7
+load_fuzz: 200000 cases, 198067 refused, 1933 accepted, 0 violations
+./build/san/expr_test
+expr_test: 082: the store fuzz, 200000 steps over 59 places (7139 refused full), every text kept
+expr_test: 082: the op sweep, 10000 runs: 1282 NOT A NUMBER, 456 built an expression (084), 64 the CAS on X's text (088), 8198 through without a number read, 0 read one
+expr_test: 082: the op fuzz, 400 sequences, 10000 steps: 235 NOT A NUMBER, 69 built an expression (084), 15 the CAS on X's text (088), 0 read a number, 0 changed on a refusal, 0 live texts changed, 0 images that don't load
+expr_test: 084: the differential fuzz, 1500 cases, 6990 ops: 3830 built, 12564 places compared, 0 differ, 0 casim SYNTAX, 1 too long (pi pushed 591, fractions 158)
+expr_test: 430/430 checks
+./build/san/rows_test                      # (unit 089)
+rows_test: census and invariant: 105 ops make rows, 462 rows' links as the table's; 0 census and 0 invariant failures
+rows_test: 2,000 rows past 64 KB: 1592 kept in 64476 B, 408 dropped in 2 batches, the least 8225 B
+rows_test: 144/144 checks
+./build/san/vectors tests/089-soroban.txt
+tests/089-soroban.txt: 35/35 vectors, 108/108 expectations
+./build/san/vectors tests/090-soroban.txt
+tests/090-soroban.txt: 39/39 vectors, 113/113 expectations
+./build/san/vectors tests/093-soroban.txt
+tests/093-soroban.txt: 35/35 vectors, 105/105 expectations
+./build/san/vectors tests/094-soroban.txt
+tests/094-soroban.txt: 22/22 vectors, 53/53 expectations
+./build/san/vectors tests/095-soroban.txt
+tests/095-soroban.txt: 27/27 vectors, 68/68 expectations
+./build/san/vectors tests/096-soroban.txt
+tests/096-soroban.txt: 69/69 vectors, 120/120 expectations
+./build/san/vectors tests/097-soroban.txt
+tests/097-soroban.txt: 49/49 vectors, 63/63 expectations
+./build/san/store_sim tests/092-soroban-store.txt   # (unit 092)
+CUTALL 16284: 16381 cuts, 16381 held
+CUTALL 2204: 2246 cuts, 2246 held
+CUTALL 1180: 1218 cuts, 1218 held
+CUTALL 4064: 4113 cuts, 4113 held
+CUTALL 1: 35 cuts, 35 held
+CUTALL 2204: 2246 cuts, 2246 held
+CUTALL 4064: 4113 cuts, 4113 held
+CUTALL 668: 704 cuts, 704 held
+CUTALL 2972: 3017 cuts, 3017 held
+CUTALL 1692: 1732 cuts, 1732 held
+CUTALL 3996: 4045 cuts, 4045 held
+CUTALL 412: 447 cuts, 447 held
+CUTALL 2716: 2760 cuts, 2760 held
+CUTALL 4064: 4113 cuts, 4113 held
+CUTALL 924: 961 cuts, 961 held
+CUTALL 1948: 1989 cuts, 1989 held
+CUTALL 3228: 3274 cuts, 3274 held
+CUTALL 1436: 1475 cuts, 1475 held
+CUTALL 500: 536 cuts, 536 held
+CUTALL 700: 736 cuts, 736 held
+CUTALL 900: 937 cuts, 937 held
+CUTALL 300: 335 cuts, 335 held
+CUTALL 224: 258 cuts, 258 held
+CUTALL 224: 258 cuts, 258 held
+CUTALL 224: 258 cuts, 258 held
+tests/092-soroban-store.txt: 99/99 expectations
+./build/san/app_test
+app_test: 090 4a: 400 ALG lines, then RPN rows to the first drop (223 rows dropped): 177 kept, ▲ stops at the oldest kept, the page's first row, the dropped line above it (223)
+app_test: 082: 1464 keys after a change, 727 changed nothing, and after each UNDO gave the state before the change (0 did not)
+app_test: 082: 28 inserts into the list (CAS ops, →EQN, typed, NEW, on an answer and on its row) leave every sum's rows after its answer (0 did not)
+app_test: 907/907 checks
+for f in work/001-vectors.txt work/003-vectors.txt work/004-vectors.txt work/005-vectors.txt work/006-vectors.txt work/007-vectors.txt work/008-vectors.txt work/009-vectors.txt work/010-vectors.txt work/011-vectors.txt work/012-vectors.txt work/013-vectors.txt work/014-vectors.txt work/015b-vectors.txt work/015-vectors.txt work/021-vectors.txt work/024b-vectors.txt work/024-vectors.txt work/025-vectors.txt work/026-vectors.txt work/027-vectors.txt work/028-vectors.txt work/029b-vectors.txt work/029-vectors.txt work/030b-vectors.txt work/030-vectors.txt work/031b-vectors.txt work/031-vectors.txt work/032b-vectors.txt work/032-vectors.txt work/033-vectors.txt work/035-vectors.txt work/039-vectors.txt work/040c-red-vectors.txt work/040d-vectors.txt work/040-vectors.txt work/041a-vectors.txt work/041b-vectors.txt work/041c-vectors.txt work/041d-vectors.txt work/042-sweep-vectors.txt work/044-vectors.txt work/cas004-s3-vectors.txt work/cas004-vectors.txt tests/021-soroban.txt tests/019-soroban.txt tests/003-soroban.txt tests/018-soroban.txt tests/029-soroban.txt tests/034-soroban.txt tests/harness-soroban.txt tests/046-soroban.txt tests/047-soroban.txt tests/050-soroban.txt tests/054-soroban.txt tests/fc-soroban.txt tests/067-soroban.txt tests/082-soroban.txt tests/084-soroban.txt tests/085-soroban.txt tests/086-soroban.txt work/016-vectors.txt work/017-vectors.txt; do AB_SAVELOAD=1 AB_STORE=1 ./build/san/vectors $f || exit 1; done
+work/001-vectors.txt: 49/49 vectors, 113/113 expectations
+work/003-vectors.txt: 127/127 vectors, 158/158 expectations
+work/004-vectors.txt: 139/139 vectors, 174/174 expectations
+work/005-vectors.txt: 41/41 vectors, 85/85 expectations
+work/006-vectors.txt: 56/56 vectors, 74/74 expectations
+work/007-vectors.txt: 42/42 vectors, 50/50 expectations
+work/008-vectors.txt: 49/49 vectors, 60/60 expectations
+work/009-vectors.txt: 58/58 vectors, 76/76 expectations
+work/010-vectors.txt: 60/60 vectors, 86/86 expectations
+work/011-vectors.txt: 108/108 vectors, 149/149 expectations
+work/012-vectors.txt: 52/52 vectors, 102/102 expectations
+work/013-vectors.txt: 50/50 vectors, 97/97 expectations
+work/014-vectors.txt: 68/68 vectors, 107/107 expectations
+work/015b-vectors.txt: 48/48 vectors, 52/52 expectations
+work/015-vectors.txt: 80/80 vectors, 154/154 expectations
+work/021-vectors.txt: 42/42 vectors, 50/50 expectations
+work/024b-vectors.txt: 7/7 vectors, 24/24 expectations
+work/024-vectors.txt: 8/8 vectors, 17/17 expectations
+work/025-vectors.txt: 42/42 vectors, 57/57 expectations
+work/026-vectors.txt: 61/61 vectors, 133/133 expectations
+work/027-vectors.txt: 5/5 vectors, 9/9 expectations
+work/028-vectors.txt: 13/13 vectors, 15/15 expectations
+work/029b-vectors.txt: 9/9 vectors, 26/26 expectations
+work/029-vectors.txt: 51/51 vectors, 87/87 expectations
+work/030b-vectors.txt: 4/4 vectors, 4/4 expectations
+work/030-vectors.txt: 23/23 vectors, 32/32 expectations
+work/031b-vectors.txt: 3/3 vectors, 3/3 expectations
+work/031-vectors.txt: 56/56 vectors, 82/82 expectations
+work/032b-vectors.txt: 9/9 vectors, 19/19 expectations
+work/032-vectors.txt: 28/28 vectors, 67/67 expectations
+work/033-vectors.txt: 26/26 vectors, 69/69 expectations
+work/035-vectors.txt: 16/16 vectors, 41/41 expectations
+work/039-vectors.txt: 32/32 vectors, 114/114 expectations
+work/040c-red-vectors.txt: 20/20 vectors, 24/24 expectations
+work/040d-vectors.txt: 18/18 vectors, 30/30 expectations
+work/040-vectors.txt: 54/54 vectors, 112/112 expectations
+work/041a-vectors.txt: 62/62 vectors, 75/75 expectations
+work/041b-vectors.txt: 6/6 vectors, 6/6 expectations
+work/041c-vectors.txt: 47/47 vectors, 61/61 expectations
+work/041d-vectors.txt: 48/48 vectors, 56/56 expectations
+work/042-sweep-vectors.txt: 401/401 vectors, 402/402 expectations
+work/044-vectors.txt: 5/5 vectors, 6/6 expectations
+work/cas004-s3-vectors.txt: 344/344 vectors, 346/346 expectations
+work/cas004-vectors.txt: 30/30 vectors, 51/51 expectations
+tests/021-soroban.txt: 26/26 vectors, 41/41 expectations
+tests/019-soroban.txt: 7/7 vectors, 12/12 expectations
+tests/003-soroban.txt: 13/13 vectors, 13/13 expectations
+tests/018-soroban.txt: 5/5 vectors, 7/7 expectations
+tests/029-soroban.txt: 9/9 vectors, 23/23 expectations
+tests/034-soroban.txt: 18/18 vectors, 28/28 expectations
+tests/harness-soroban.txt: 2/2 vectors, 4/4 expectations
+tests/046-soroban.txt: 3/3 vectors, 3/3 expectations
+tests/047-soroban.txt: 29/29 vectors, 29/29 expectations
+tests/050-soroban.txt: 6/6 vectors, 6/6 expectations
+tests/054-soroban.txt: 8/8 vectors, 8/8 expectations
+tests/fc-soroban.txt: 17/17 vectors, 17/17 expectations
+tests/067-soroban.txt: 6/6 vectors, 7/7 expectations
+tests/082-soroban.txt: 15/15 vectors, 39/39 expectations
+tests/084-soroban.txt: 67/67 vectors, 73/73 expectations
+tests/085-soroban.txt: 72/72 vectors, 74/74 expectations
+tests/086-soroban.txt: 158/158 vectors, 158/158 expectations
+work/016-vectors.txt: 69/69 vectors, 138/138 expectations
+work/017-vectors.txt: 44/44 vectors, 71/71 expectations
+make[1]: Leaving directory '/home/claude/code/stuffleberry/workspace/projects-internal/stu32-firmware'
+rc=0

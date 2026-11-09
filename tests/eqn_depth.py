@@ -61,12 +61,16 @@ def _load():
     enum = re.findall(r"\b(F_\w+)\b", re.search(r"enum\s*\{([^}]*\bF_REGX\b[^}]*)\}", src).group(1))
     if rng:
         hidden |= set(enum[enum.index(rng.group(1)):enum.index(rng.group(2)) + 1])
+    stu = set()                                 # unit 097: names refused outside STU's equations (eqn.c's own range)
+    srng = re.search(r"f->id >= (F_\w+) && f->id <= (F_\w+) && !p->implied", src)
+    if srng:
+        stu = set(enum[enum.index(srng.group(1)):enum.index(srng.group(2)) + 1])
     ind_i = _c_string(re.search(r"#define IND_I (\"[^\n]*\")", src).group(1))
     ind_j = _c_string(re.search(r"#define IND_J (\"[^\n]*\")", src).group(1))
-    return names, only33, only35, hidden, ind_i, ind_j
+    return names, only33, only35, hidden, ind_i, ind_j, stu
 
 
-NAMES, ONLY33, ONLY35, HIDDEN33, IND_I, IND_J = _load()
+NAMES, ONLY33, ONLY35, HIDDEN33, IND_I, IND_J, STU_ONLY = _load()
 
 
 def name_in(name, m):
@@ -202,6 +206,8 @@ def parse_prim(p):
         name, kind, fid = best
         p.i += len(name)
         if p.m33 and fid in HIDDEN33:
+            raise Fail
+        if fid in STU_ONLY and not p.implied:  # unit 097: ERF( and the normal distribution's, STU's only
             raise Fail
         if kind == "K0":
             return

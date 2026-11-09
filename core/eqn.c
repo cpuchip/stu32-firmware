@@ -27,7 +27,8 @@ enum {
     F_SLOPE, F_YINT, F_N, F_SUMX, F_SUMY, F_SUMX2, F_SUMY2, F_SUMXY,
     F_REGX, F_REGY, F_REGZ, F_REGT,
     F_AND, F_XOR, F_OR, F_NOT, F_NAND, F_NOR, F_PCT,
-    F_CUBE, F_CBRT
+    F_CUBE, F_CBRT,
+    F_ERF, F_ERFC, F_NCDF, F_NCDFC, F_NCDFINV       /* unit 097: STU's only */
 };
 
 static const fname NAMES[] = {
@@ -59,6 +60,10 @@ static const fname NAMES[] = {
     /* unit 041 D: the 33s's spellings, in 33s-stamped equations only (33s p.6-15, 6-16; name33) */
     {"CB", K1, F_CUBE}, {"CBRT", K1, F_CBRT}, {"\xe2\x86\x92HR", K1, F_HMSINV}, {"Cn,r", K2, F_NCR},
     {"Pn,r", K2, F_NPR}, {"RANDOM", K0, F_RAND},
+    /* unit 097 (work/normal-distribution.md revision 1, abacus #14270): readable names, no single letters (Q is a letter
+       in STU); in STU's equations and lines only (refused as SYNTAX in 33s and 35s ones, which have neither) */
+    {"ERF", K1, F_ERF}, {"ERFC", K1, F_ERFC}, {"NCDF", K1, F_NCDF}, {"NCDFC", K1, F_NCDFC},
+    {"NCDFINV", K1, F_NCDFINV},
 };
 
 /* Unit 041 D (abacus #4880, strict both ways): a name only the 33s's equations take (33), only the 35s's and STU's (35),
@@ -110,6 +115,7 @@ static const ab_op OPS[] = {
     [F_SUMY] = AB_SUMY, [F_SUMX2] = AB_SUMX2, [F_SUMY2] = AB_SUMY2, [F_SUMXY] = AB_SUMXY,
     [F_AND] = AB_AND, [F_XOR] = AB_XOR, [F_OR] = AB_OR, [F_NOT] = AB_NOT, [F_NAND] = AB_NAND,
     [F_NOR] = AB_NOR, [F_PCT] = AB_PCT,
+    [F_ERF] = AB_ERF, [F_ERFC] = AB_ERFC, [F_NCDF] = AB_NCDF, [F_NCDFC] = AB_NCDFC, [F_NCDFINV] = AB_NCDFINV,
 };
 
 /* (I) and (J) as one token each, apart from a plain I in parentheses (UG p.14-23): shown as the
@@ -586,6 +592,10 @@ static void parse_prim(parser *p, ab_val *v)
                 fail(p, ABN_SYNTAX);
                 return;
             }
+            if (f->id >= F_ERF && f->id <= F_NCDFINV && !p->implied) {     /* unit 097: STU's names */
+                fail(p, ABN_SYNTAX);
+                return;
+            }
             if (f->kind == K0) {
                 rec(p, SN_NAME0, f->id, 0, 0, 0, 0);
                 apply0(p, f->id, v);
@@ -976,6 +986,9 @@ static const say_name SAY_NAMES[] = {
     {F_TOIN, "the conversion to inches of", 0, 0}, {F_SEED, "the seeding with", 0, 0}, {F_ARG, "the argument of", 0, 0},
     {F_XHAT, "x hat of", 0, 0}, {F_YHAT, "y hat of", 0, 0}, {F_NOT, "the logical not of", 0, 0},
     {F_CUBE, "the cube of", 0, 0}, {F_CBRT, "the cube root of", 0, 0},
+    {F_ERF, "the error function of", 0, 0}, {F_ERFC, "the complementary error function of", 0, 0},       /* (097) */
+    {F_NCDF, "the normal probability below", 0, 0}, {F_NCDFC, "the normal probability above", 0, 0},
+    {F_NCDFINV, "the normal quantile of", 0, 0},
     /* two arguments */
     {F_IDIV, "the integer quotient of", "and", 0}, {F_RMDR, "the remainder of", "divided by", 0},
     {F_PCTCHG, "the percent change from", "to", 0}, {F_XROOT, "the root of index", "of", 0},

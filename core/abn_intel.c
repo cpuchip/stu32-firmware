@@ -528,6 +528,8 @@ abn_status abn_atan(abn *out, const abn *a) { return call1(out, bid128_atan, a);
 abn_status abn_sinh(abn *out, const abn *a) { return call1(out, bid128_sinh, a); }
 abn_status abn_cosh(abn *out, const abn *a) { return call1(out, bid128_cosh, a); }
 abn_status abn_tanh(abn *out, const abn *a) { return call1(out, bid128_tanh, a); }
+abn_status abn_erf(abn *out, const abn *a) { return call1(out, bid128_erf, a); }      /* unit 097 */
+abn_status abn_erfc(abn *out, const abn *a) { return call1(out, bid128_erfc, a); }
 abn_status abn_asinh(abn *out, const abn *a) { return call1(out, bid128_asinh, a); }
 
 abn_status abn_acosh(abn *out, const abn *a)

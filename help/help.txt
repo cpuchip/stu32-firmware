@@ -961,6 +961,23 @@ Goes to the list's TOP, so the
 next equation typed goes first.
 [menu:CAS]
 Algebra on the equation shown.
+[menu:NORM]
+The normal distribution, ERF.
+[AB_NCDF]
+Φ(z): the normal probability
+below z (the lower tail).
+[AB_NCDFC]
+1−Φ(z): the probability above
+z, from ERFC, never as 1 − Φ,
+so its tail keeps its digits.
+[AB_NCDFINV]
+Φ⁻¹(p): the z whose Φ(z) is p,
+for p between 0 and 1.
+[AB_ERF]
+The error function of X.
+[AB_ERFC]
+1 − ERF(X), formed on its own:
+its tail keeps its digits.
 [AB_TVAR]
 VAR, then a letter: the
 variable TABLE and GRAPH step.

@@ -37,8 +37,13 @@ static const ab_op V1_OPS[] = {
     AB_CMPLX,
     /* unit 041 C (appended) */
     AB_CUBE, AB_CBRT,
+    /* unit 097 (appended; an image holding one of these codes is version 26, so an older build refuses it whole rather
+       than misread it) */
+    AB_ERF, AB_ERFC, AB_NCDF, AB_NCDFC, AB_NCDFINV,
 };
+#define V1_N_096 (V1_N0 - 5)    /* the codes before 097's */
 #define V1_N ((int)(sizeof V1_OPS / sizeof V1_OPS[0]))
+#define V1_N0 V1_N
 
 /* The image version from which each status may be the message showing, in abn_status's order; 0 for one that never
    shows as a message (the brief notices). A status added to abn.h fails the assert below until it has its entry here
@@ -290,6 +295,7 @@ static size_t state_write(wr *wp)
     {
         int code = op_code((ab_op)c->err_op);   /* version 3: what the message says */
         w16(&w, (unsigned)(code < 0 ? 0xFFFF : code));
+        if (code >= V1_N_096 && w.ver < 26) w.ver = 26;                  /* (097) */
         wi32(&w, c->err_arg);
         w8(&w, (unsigned)kind_code(c->err_active));
         w8(&w, (unsigned)c->err_status);
@@ -348,6 +354,7 @@ static size_t state_write(wr *wp)
     for (int i = 0; i < c->prog_len; i++) {
         int op = c->prog[i].op;
         w16(&w, (unsigned)op_code((ab_op)op));
+        if (op_code((ab_op)op) >= V1_N_096 && w.ver < 26) w.ver = 26;   /* (097: a code an older build lacks) */
         if (op == AB_LIT) wval(&w, &c->lit[c->prog[i].arg]);
         else if (op == AB_EQLINE) wtext(&w, c->peqn[c->prog[i].arg]);
         else wi32(&w, c->prog[i].arg);
@@ -1032,7 +1039,7 @@ static void sec_modes(rd *r)
         eactive = r8(r);
         estatus = r8(r);
         rval(r, &ex, true);
-        need(r, (ecode == 0xFFFF || ecode < (unsigned)V1_N) && eactive <= 2 &&
+        need(r, (ecode == 0xFFFF || (ecode < (unsigned)V1_N && (ecode < (unsigned)V1_N_096 || r->version >= 26))) && eactive <= 2 &&
                     status_in_image(estatus, r->version));   /* unit 026
                                                    added two; CAS 004 four; 047 one; 048 four */
     } else {
@@ -1324,7 +1331,7 @@ static void sec_prog(rd *r)
     for (int i = 0; i < n && !r->bad; i++) {
         unsigned code = r16(r);
         ab_op op;
-        need(r, code < (unsigned)V1_N);
+        need(r, code < (unsigned)V1_N && (code < (unsigned)V1_N_096 || r->version >= 26));   /* (097's codes: 26) */
         if (r->bad) return;
         op = V1_OPS[code];
         if (op == AB_LIT) {

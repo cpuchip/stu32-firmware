@@ -48,6 +48,13 @@ abn_status fn_tanh(abn *out, const abn *x);
 abn_status fn_asinh(abn *out, const abn *x);
 abn_status fn_acosh(abn *out, const abn *x);
 abn_status fn_atanh(abn *out, const abn *x);
+/* Unit 097 (work/normal-distribution.md, revision 1): erf and erfc (the library's); the normal distribution's lower tail
+   Phi(z) (upper false) and upper tail Q(z) = 1 - Phi(z) (upper true), each from erfc with the argument formed in hp and
+   corrected to it; and Phi's inverse for 0 < p < 1 (else a domain error) */
+abn_status fn_erf(abn *out, const abn *x);
+abn_status fn_erfc(abn *out, const abn *x);
+abn_status fn_ncdf(abn *out, const abn *z, bool upper);
+abn_status fn_ncdfinv(abn *out, const abn *p);
 
 /* unit 004 */
 abn_status fn_ip(abn *out, const abn *x);

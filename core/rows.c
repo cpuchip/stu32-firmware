@@ -46,6 +46,7 @@ ab_rowop ab_rows_op(ab_op op, int arg)
     case AB_TOGAL: case AB_TOKM: case AB_TOMILE: case AB_FACT: case AB_IP: case AB_FP: case AB_INTG: case AB_RND:
     case AB_ABS: case AB_SGN: case AB_NOT: case AB_ARG: case AB_XHAT: case AB_YHAT: case AB_EXPM1: case AB_LN1P:
     case AB_TWOX: case AB_LOG2: case AB_CUBE: case AB_CBRT: case AB_CASSIMP: case AB_CASEXP:
+    case AB_ERF: case AB_ERFC: case AB_NCDF: case AB_NCDFC: case AB_NCDFINV:     /* (097) */
         o.makes = 1, o.reads = 1, o.kind = AB_ROWK_OP;
         break;
     /* one value from Y and X */
