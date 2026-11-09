@@ -1,0 +1,5 @@
+PHI errors in units of the 34th digit: {'<1': 3685, '<10': 1447}  worst 4.17 at z=-24.861323659703877808624383760616
+Q errors in units of the 34th digit: {'<10': 1496, '<1': 3636}  worst 3.81 at z=36.616416017552296580106485635042
+--- the same arguments without the correction (phicheck):
+PHI errors in units of the 34th digit: {'<100': 589, '<10': 1919, '<1': 2007, '<1e3': 549, '>=1e3': 68}  worst 3.25e+03 at z=-38.867161518898811323197151068598
+Q errors in units of the 34th digit: {'<10': 1948, '<1': 1931, '<100': 613, '<1e3': 579, '>=1e3': 61}  worst 2.26e+03 at z=38.278390995355707104863540735096
