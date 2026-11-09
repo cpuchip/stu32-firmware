@@ -305,7 +305,7 @@ static int full(const char *out)
         return 1;
     }
     memset(part, 0xFF, sizeof part);
-    ab_flash fl = {NULL, 4096, SLOT_SIZE, f_erase, f_write, f_read};
+    ab_flash fl = {NULL, 4096, SLOT_SIZE, f_erase, f_write, f_read, NULL};
     if (ab_store_save(&fl, img, (uint32_t)n) != 0) {
         fprintf(stderr, "stackkeys: the store refused the image\n");
         return 1;

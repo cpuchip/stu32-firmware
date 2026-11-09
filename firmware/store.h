@@ -17,6 +17,15 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/* Unit 092: where the newest image is (its header's sector, sequence number, length and CRC), kept in RAM after a load or
+   a save, so a save needn't scan every sector's header again (lean 3; on the stand-in's flash a scan is about 12 ms). A
+   save reads the remembered header back before it trusts it, so a partition erased or written behind the store's back
+   (the console's WIPE) costs one scan, never a wrong place. */
+typedef struct {
+    uint32_t seq, len, crc, at;
+    bool valid;
+} ab_store_ring;
+
 typedef struct {
     void *ctx;
     uint32_t sector;        /* erase unit, bytes (4096 on the S3's flash) */
@@ -25,6 +34,8 @@ typedef struct {
     int (*erase)(void *ctx, uint32_t off, uint32_t len);
     int (*write)(void *ctx, uint32_t off, const void *src, uint32_t len);
     int (*read)(void *ctx, uint32_t off, void *dst, uint32_t len);
+    ab_store_ring *ring;    /* unit 092: the partition's remembered newest (one per partition, shared by every ab_flash over
+                               it: SAVEBENCH's timing wrapper copies it); NULL: every save scans */
 } ab_flash;
 
 #define AB_STORE_HEADER 32

@@ -84,6 +84,7 @@ static uint8_t *image;                  /* the state image for the store, in PSR
 #define CALC_STACK 32768                /* the core's deepest use measured 27 KB (unit 016) */
 static ab_flash flash;
 static ab_flash apps_flash;             /* unit 037: the apps' saves, a store of their own (abapps) */
+static ab_store_ring state_ring, apps_ring;    /* unit 092: each partition's newest image, remembered */
 static bool memory_clear_msg;
 
 static uint32_t now_ms(void)
@@ -206,9 +207,9 @@ static void store_init(void)
         printf("store: no abstate partition\n");
         return;
     }
-    flash = (ab_flash){(void *)p, 4096, p->size / 2, fl_erase, fl_write, fl_read};
+    flash = (ab_flash){(void *)p, 4096, p->size / 2, fl_erase, fl_write, fl_read, &state_ring};
     const esp_partition_t *q = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, 0x41, "abapps");
-    if (q) apps_flash = (ab_flash){(void *)q, 4096, q->size / 2, fl_erase, fl_write, fl_read};
+    if (q) apps_flash = (ab_flash){(void *)q, 4096, q->size / 2, fl_erase, fl_write, fl_read, &apps_ring};
     else printf("store: no abapps partition\n");
 }
 

@@ -166,7 +166,7 @@ static int rf_read(void *ctx, uint32_t off, void *dst, uint32_t len)
     return 0;
 }
 
-static const ab_flash host_flash = {NULL, 4096, sizeof ram_flash / 2, rf_erase, rf_write, rf_read};
+static const ab_flash host_flash = {NULL, 4096, sizeof ram_flash / 2, rf_erase, rf_write, rf_read, NULL};
 #endif
 
 /* The harness's save and load: its own buffer, through the store when there is one. */

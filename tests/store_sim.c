@@ -21,7 +21,7 @@
  *   EXPECT LOAD seq|NONE  a load gives the image of that seq, its content whole, or none
  *   EXPECT ERASES sector lo hi    that sector's erase count since PART, from lo to hi
  *   EXPECT MAXERASES hi   no sector's count above hi
- *   REBOOT                the store's RAM state dropped (the store keeps none: every save scans)
+ *   REBOOT                the store's RAM state dropped (its remembered newest): the next save scans
  *
  * CUTALL replays the uncut save's operations a prefix at a time: the store reads only before its first erase, so a
  * save cut after b operations leaves exactly the first b of them applied (and, at an erase, that sector garbage). */
@@ -106,6 +106,7 @@ static int sim_read(void *ctx, uint32_t off, void *dst, uint32_t len)
 }
 
 static ab_flash fl;
+static ab_store_ring ring;                  /* the store's remembered newest (092): dropped where RAM is */
 
 static void fail(const char *fmt, ...)
 {
@@ -158,7 +159,8 @@ static void part(uint32_t n, uint32_t s)
     if (!mem || !snap || !erases || !snap_erases) exit(2);
     memset(mem, 0xFF, (size_t)n * s);
     memset(lens, 0, sizeof lens);
-    fl = (ab_flash){NULL, s, n * s / 2, sim_erase, sim_write, sim_read};
+    fl = (ab_flash){NULL, s, n * s / 2, sim_erase, sim_write, sim_read, &ring};
+    ring.valid = false;
     budget = -1, dead = false;
 }
 
@@ -285,6 +287,7 @@ int main(int argc, char **argv)
             part((uint32_t)x, (uint32_t)y);
         } else if (!strcmp(cmd, "OLD") && k >= 4) {
             old_save((int)x, (uint32_t)y, (uint32_t)z);
+            ring.valid = false;                  /* (an older firmware wrote it: a store that runs after boots first) */
         } else if (!strcmp(cmd, "SAVE") && k >= 2) {
             uint32_t seq;
             checks++;
@@ -297,6 +300,7 @@ int main(int argc, char **argv)
             budget = y, dead = false;
             ab_store_save(&fl, c, (uint32_t)x);
             budget = -1, dead = false;           /* the reboot: power back */
+            ring.valid = false;
             free(c);
         } else if (!strcmp(cmd, "CUTALL") && k >= 2) {
             cutall((uint32_t)x);
@@ -324,7 +328,7 @@ int main(int argc, char **argv)
                 if (erases[i] > m) m = erases[i], at = i;
             if ((long)m > hi) fail("EXPECT MAXERASES %ld: sector %u has %u", hi, (unsigned)at, (unsigned)m);
         } else if (!strcmp(cmd, "REBOOT")) {
-            /* nothing kept in RAM to drop */
+            ring.valid = false;                  /* the store's RAM state dropped: the next save scans */
         } else {
             checks++;
             line[strcspn(line, "\n")] = '\0';

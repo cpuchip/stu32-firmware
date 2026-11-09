@@ -100,6 +100,27 @@ static img_info newest(const ab_flash *f)
     }
 }
 
+/* The remembered newest, if its header still reads as remembered (one read of 32 bytes) */
+static bool remembered(const ab_flash *f, img_info *nw)
+{
+    img_info h;
+    if (!f->ring || !f->ring->valid) return false;
+    if (!header_at(f, f->ring->at, &h) || h.seq != f->ring->seq || h.len != f->ring->len || h.crc != f->ring->crc) {
+        f->ring->valid = false;
+        return false;
+    }
+    *nw = h;
+    nw->good = true;
+    return true;
+}
+
+static void remember(const ab_flash *f, const img_info *nw)
+{
+    if (!f->ring) return;
+    f->ring->valid = nw->good;
+    f->ring->seq = nw->seq, f->ring->len = nw->len, f->ring->crc = nw->crc, f->ring->at = nw->at;
+}
+
 int ab_store_save(const ab_flash *f, const uint8_t *image, uint32_t len)
 {
     uint8_t h[AB_STORE_HEADER];
@@ -107,7 +128,9 @@ int ab_store_save(const ab_flash *f, const uint8_t *image, uint32_t len)
     /* half the partition at most: then the new image's sectors, which start after the newest's, end before the
        newest's start, whatever the ring's position (both at most n/2 sectors) */
     if (len == 0 || len > f->slot_size - AB_STORE_HEADER) return -1;
-    img_info nw = newest(f);
+    img_info nw;
+    if (!remembered(f, &nw)) nw = newest(f);
+    if (f->ring) f->ring->valid = false;        /* (until this save is whole) */
     uint32_t at = nw.good ? (nw.at + span(f, nw.len)) % n : 0, k = span(f, len);
     uint32_t seq = (nw.good ? nw.seq : 0) + 1;
     /* only the sectors the header and image take, one range or two (past the end, from the start) */
@@ -121,7 +144,10 @@ int ab_store_save(const ab_flash *f, const uint8_t *image, uint32_t len)
     put32(h + 8, len);
     put32(h + 12, ab_crc32(image, len));
     put32(h + 16, ab_crc32(h, 16));
-    return f->write(f->ctx, at * f->sector, h, sizeof h);      /* the header last: it commits the save */
+    if (f->write(f->ctx, at * f->sector, h, sizeof h) != 0) return -1;     /* the header last: it commits the save */
+    img_info done = {seq, len, get32(h + 12), at, true};
+    remember(f, &done);
+    return 0;
 }
 
 int ab_store_migrate(const ab_flash *f, uint32_t old_slot_size, uint8_t *buf, uint32_t cap)
@@ -138,7 +164,8 @@ uint32_t ab_store_seq(const ab_flash *f)
 
 uint32_t ab_store_load(const ab_flash *f, uint8_t *buf, uint32_t cap)
 {
-    img_info nw = newest(f);
+    img_info nw = newest(f);                    /* (a load always scans: it is the boot's) */
+    remember(f, &nw);
     if (!nw.good || nw.len > cap) return 0;
     if (ring_io(f, false, nw.at, AB_STORE_HEADER, buf, nw.len) != 0) return 0;
     if (ab_crc32(buf, nw.len) != nw.crc) return 0;      /* changed since examined: refuse */

@@ -99,7 +99,7 @@ static int settings_checks(void)
     static ab_calc c, c2;
     static uint8_t img[SLOT], got[SLOT];
     static sim s2;
-    ab_flash f2 = {&s2, SECTOR, SLOT, sim_erase, sim_write, sim_read};
+    ab_flash f2 = {&s2, SECTOR, SLOT, sim_erase, sim_write, sim_read, NULL};
     dev_settings set, back, def;
     int bad = 0, checks = 0;
 #define CHECK(ok, what) do { checks++; if (!(ok)) { bad++; fprintf(stderr, "store_test: %s\n", what); } } while (0)
@@ -192,8 +192,8 @@ static int migrate_checks(void)
     int bad = 0;
     memset(s.mem, 0xFF, sizeof s.mem);
     s.budget = -1;
-    ab_flash oldf = {&s, SECTOR, 2 * SECTOR, sim_erase, sim_write, sim_read};
-    ab_flash newf = {&s, SECTOR, SLOT, sim_erase, sim_write, sim_read};
+    ab_flash oldf = {&s, SECTOR, 2 * SECTOR, sim_erase, sim_write, sim_read, NULL};
+    ab_flash newf = {&s, SECTOR, SLOT, sim_erase, sim_write, sim_read, NULL};
     uint32_t l1, l2, l3;
     uint8_t *i1 = image_of(1, &l1), *i2 = image_of(2, &l2), *i3 = image_of(3, &l3);
     if (l1 > 2 * SECTOR - AB_STORE_HEADER || l2 > 2 * SECTOR - AB_STORE_HEADER) bad++;
@@ -261,7 +261,7 @@ static int fixture_checks(void)
     static uint8_t snapshot[2 * SLOT];
     int bad = 0;
     long cases = 0, good = 0;
-    ab_flash f = {&s, SECTOR, SLOT, sim_erase, sim_write, sim_read};
+    ab_flash f = {&s, SECTOR, SLOT, sim_erase, sim_write, sim_read, NULL};
     s.budget = -1, s.dead = false;
     if (!read_fixture("tests/store-fixture-twoslot.bin", s.mem, sizeof s.mem) || !load_content(&f, 3, 3000)) bad++;
     uint8_t *c4 = content(4, 6000);
@@ -285,7 +285,7 @@ static int fixture_checks(void)
     free(c4);
     /* the apps' partition, 18 sectors, v1.1's 8 KiB slots: seq 2 in the old second slot (sectors 2-3) loads without a
        migration, which does nothing; the next save goes after it, at sector 4 */
-    ab_flash ap = {NULL, SECTOR, 9 * SECTOR, apps_erase, apps_write, apps_read};
+    ab_flash ap = {NULL, SECTOR, 9 * SECTOR, apps_erase, apps_write, apps_read, NULL};
     static uint8_t buf[9 * SECTOR];
     if (!read_fixture("tests/store-fixture-apps-v12.bin", apps_mem, sizeof apps_mem) || !load_content(&ap, 2, 5000) ||
         ab_store_migrate(&ap, 0x2000, buf, sizeof buf) != 0 || !load_content(&ap, 2, 5000))
@@ -328,12 +328,19 @@ static int wear_write(void *c, uint32_t off, const void *src, uint32_t len)
     for (uint32_t i = 0; i < len; i++) wear_mem[off + i] &= ((const uint8_t *)src)[i];
     return 0;
 }
-static int wear_read(void *c, uint32_t off, void *dst, uint32_t len) { (void)c; memcpy(dst, wear_mem + off, len); return 0; }
+static long wear_read_bytes;
+static int wear_read(void *c, uint32_t off, void *dst, uint32_t len)
+{
+    (void)c;
+    memcpy(dst, wear_mem + off, len);
+    wear_read_bytes += len;
+    return 0;
+}
 
 static int wear_checks(void)
 {
     static const uint32_t SIZES[3] = {1237, 9138, 27683}, K[3] = {1, 3, 7};
-    ab_flash f = {NULL, 4096, 64 * 4096, wear_erase, wear_write, wear_read};
+    ab_flash f = {NULL, 4096, 64 * 4096, wear_erase, wear_write, wear_read, NULL};
     int bad = 0;
     for (int z = 0; z < 3; z++) {
         memset(wear_mem, 0xFF, sizeof wear_mem);
@@ -351,10 +358,47 @@ static int wear_checks(void)
     return bad != 0;
 }
 
+/* The remembered newest (lean 3): after a load, a save reads one header (32 bytes) where a scan reads 128; a
+   partition erased behind the store's back (the console's WIPE) costs a scan, never a wrong place; a copy of the
+   ab_flash sharing its ring (SAVEBENCH's timing wrapper) keeps it right for both */
+static int ring_checks(void)
+{
+    static ab_store_ring r;
+    static uint8_t got[64 * 4096];
+    ab_flash f = {NULL, 4096, 64 * 4096, wear_erase, wear_write, wear_read, &r};
+    int bad = 0;
+    long scan, one;
+    memset(wear_mem, 0xFF, sizeof wear_mem);
+    memset(&r, 0, sizeof r);
+    uint8_t *c = content(1, 1237);
+    if (ab_store_save(&f, c, 1237) != 0 || ab_store_save(&f, c, 1237) != 0) bad++;
+    r.valid = false;                            /* (a boot: RAM empty) */
+    wear_read_bytes = 0;
+    if (ab_store_save(&f, c, 1237) != 0) bad++;
+    scan = wear_read_bytes;
+    r.valid = false;                            /* (a boot again, then its load: the load remembers) */
+    if (ab_store_load(&f, got, sizeof got) != 1237) bad++;
+    wear_read_bytes = 0;
+    if (ab_store_save(&f, c, 1237) != 0) bad++;
+    one = wear_read_bytes;
+    if (scan < 128 * AB_STORE_HEADER || one != AB_STORE_HEADER || ab_store_seq(&f) != 4) bad++;
+    memset(wear_mem, 0xFF, sizeof wear_mem);    /* WIPE behind its back */
+    if (ab_store_save(&f, c, 1237) != 0 || ab_store_seq(&f) != 1 || memcmp(wear_mem, "ABST", 4) != 0) bad++;
+    ab_flash g = f;                             /* SAVEBENCH's wrapper: the same ring */
+    for (int i = 0; i < 5; i++) bad += ab_store_save(&g, c, 1237) != 0;
+    if (ab_store_save(&f, c, 1237) != 0 || ab_store_seq(&f) != 7 || memcmp(wear_mem + 6 * 4096, "ABST", 4) != 0 ||
+        ab_store_load(&f, got, sizeof got) != 1237)
+        bad++;
+    free(c);
+    printf("store_test: the remembered newest: a save after a load reads %ld bytes (a scan %ld); WIPE and a shared ring "
+           "%s\n", one, scan, bad ? "FAIL" : "kept right");
+    return bad != 0;
+}
+
 int main(void)
 {
     static sim s;
-    ab_flash f = {&s, SECTOR, SLOT, sim_erase, sim_write, sim_read};
+    ab_flash f = {&s, SECTOR, SLOT, sim_erase, sim_write, sim_read, NULL};
     static uint8_t buf[SLOT];
     long cases = 0, good = 0;
     memset(s.mem, 0xFF, sizeof s.mem);
@@ -409,5 +453,5 @@ int main(void)
     }
     free(prev);
     printf("store_test: power cut at every moment of 6 saves: %ld/%ld leave a good image\n", good, cases);
-    return (good == cases ? 0 : 1) | settings_checks() | migrate_checks() | fixture_checks() | wear_checks();
+    return (good == cases ? 0 : 1) | settings_checks() | migrate_checks() | fixture_checks() | wear_checks() | ring_checks();
 }

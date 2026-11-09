@@ -217,6 +217,7 @@ static app_state app;
 static uint8_t *image;
 static ab_flash flash;
 static ab_flash apps_flash;             /* unit 037: the apps' saves, a store of their own (abapps) */
+static ab_store_ring state_ring, apps_ring;    /* unit 092: each partition's newest image, remembered */
 static gauge_bus gbus;
 static i2c_master_dev_handle_t gdev;
 static int soc = -1;
@@ -1081,9 +1082,9 @@ void app_main(void)
 #endif
 
     const esp_partition_t *p = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, 0x40, "abstate");
-    if (p) flash = (ab_flash){(void *)p, 4096, p->size / 2, fl_erase, fl_write, fl_read};
+    if (p) flash = (ab_flash){(void *)p, 4096, p->size / 2, fl_erase, fl_write, fl_read, &state_ring};
     const esp_partition_t *q = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, 0x41, "abapps");
-    if (q) apps_flash = (ab_flash){(void *)q, 4096, q->size / 2, fl_erase, fl_write, fl_read};
+    if (q) apps_flash = (ab_flash){(void *)q, 4096, q->size / 2, fl_erase, fl_write, fl_read, &apps_ring};
     calc = heap_caps_calloc(1, sizeof *calc, MALLOC_CAP_SPIRAM);
     image = heap_caps_malloc(IMAGE_CAP, MALLOC_CAP_SPIRAM);
     if (!calc || !image) {
