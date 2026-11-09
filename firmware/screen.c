@@ -248,22 +248,26 @@ static int span(int n, int s)
 /* Draws l with its bottom at bot, at the largest scale up to max that holds it; at scale 2 a
    line still too long shows a window of it (around the cursor, else its start), a cut side marked
    with an ellipsis. Right aligned unless left. */
-static void draw_line(ls027_frame *f, int bot, int max, const line *l, bool left)
+/* Unit 096: lead, when not 0, is one cell drawn before the line's own (X's ≈), fitted with it; the cells drawn */
+static int draw_line_lead(ls027_frame *f, int bot, int max, const line *l, bool left, uint32_t lead)
 {
     int s = max;
-    while (s > 2 && span(l->n, s) > NUM_R - NUM_X) s--;
-    int room = (NUM_R - NUM_X + s) / (6 * s);
+    int n = l->n, k = lead && n < LINE_MAX_CP ? 1 : 0;
     uint32_t cp[LINE_MAX_CP];
-    int n = l->n;
-    memcpy(cp, l->cp, sizeof cp[0] * (size_t)n);
-    if (n > room && l->tail > 0 && l->cursor < 0 && l->tail < room - 1) {    /* its start, an ellipsis, its tail */
-        memmove(cp + room - l->tail, l->cp + n - l->tail, sizeof cp[0] * (size_t)l->tail);
-        cp[room - l->tail - 1] = 0x2026;
+    if (k) cp[0] = lead;
+    memcpy(cp + k, l->cp, sizeof cp[0] * (size_t)n);
+    n += k;
+    struct { int cursor, tail; } lv = {l->cursor >= 0 ? l->cursor + k : -1, l->tail};
+    while (s > 2 && span(n, s) > NUM_R - NUM_X) s--;
+    int room = (NUM_R - NUM_X + s) / (6 * s);
+    if (n > room && lv.tail > 0 && lv.cursor < 0 && lv.tail < room - 1) {    /* its start, an ellipsis, its tail */
+        memmove(cp + room - lv.tail, cp + n - lv.tail, sizeof cp[0] * (size_t)lv.tail);
+        cp[room - lv.tail - 1] = 0x2026;
         n = room;
         left = true;
     } else if (n > room) {
         int start = 0;
-        if (l->cursor >= 0 && l->cursor > room - 2) start = l->cursor - (room - 2);
+        if (lv.cursor >= 0 && lv.cursor > room - 2) start = lv.cursor - (room - 2);
         if (start > n - room) start = n - room;
         memmove(cp, cp + start, sizeof cp[0] * (size_t)room);
         if (start > 0) cp[0] = 0x2026;
@@ -273,6 +277,12 @@ static void draw_line(ls027_frame *f, int bot, int max, const line *l, bool left
     }
     int x = left ? NUM_X : NUM_R - span(n, s);
     draw_cps(f, x, bot - 7 * s, s, cp, n, true);
+    return n;
+}
+
+static void draw_line(ls027_frame *f, int bot, int max, const line *l, bool left)
+{
+    draw_line_lead(f, bot, max, l, left, 0);
 }
 
 static void draw_label(ls027_frame *f, int bot, const char *label)
@@ -328,6 +338,52 @@ static void val_line(const ab_val *v, const ab_calc *c, const screen_ui *ui, lin
         if (val_text(v, &d, buf, sizeof buf, ind) < 0) snprintf(buf, sizeof buf, "?");
     }
     line_add(l, buf);
+}
+
+/* Unit 096: whether text, as d writes a number, is exactly v: the radix read as the point, the grouping mark dropped,
+   digits, signs and E kept; any other character (an ellipsis, a fraction's slash) can't be read back, so it isn't */
+static bool text_is(const char *t, const abn *v, const ab_display *d)
+{
+    char s[80];
+    size_t n = 0;
+    for (; *t; t++) {
+        char ch = *t;
+        if (ch == d->dec.radix) ch = '.';
+        else if (d->dec.separator && ch == (d->dec.separator == ' ' ? ' ' : d->dec.radix == ',' ? '.' : ','))
+            continue;                           /* (fmt.c's grouping mark) */
+        else if (!((ch >= '0' && ch <= '9') || ch == '-' || ch == '+' || ch == 'E')) return false;
+        if (n + 1 >= sizeof s) return false;
+        s[n++] = ch;
+    }
+    s[n] = '\0';
+    abn w;
+    return n > 0 && abn_from_text(&w, s) == ABN_OK && abn_cmp(&w, v) == 0;
+}
+
+/* Unit 096 (revision 1, lean 4 changed): whether the display shows v short, a nonzero digit dropped: each part as the
+   levels format it (val_line's widths), read back. A fraction shown near (its indicator) is short too. A base mode's word
+   shows the integer part. An expression or a name is never short (it isn't a number) */
+static bool shown_short(const ab_val *v, const ab_calc *c, const screen_ui *ui)
+{
+    if (ab_is_sym(v)) return false;
+    char buf[AB_EQN_LEN + 4];
+    int ind;
+    ab_display d = display_of(c, ui, FMT_WIDTH);
+    if (val_text(v, &d, buf, sizeof buf, &ind) < 0) d = display_of(c, ui, FMT_WIDE);
+    abn part[3] = {v->re, v->im, v->p3};
+    int np = v->kind == AB_COMPLEX ? 2 : v->kind == AB_VECTOR ? v->len : 1;
+    for (int i = 0; i < np; i++) {
+        if (d.base != 10) {
+            abn ip;
+            if (abn_trunc(&ip, &part[i]) != ABN_OK || abn_cmp(&ip, &part[i]) != 0) return true;
+            continue;
+        }
+        if (ab_format_display(&part[i], &d, buf, sizeof buf, &ind) < 0) return true;
+        if (ind != 0) return true;
+        if (d.fdisp && strchr(buf, '/')) continue;      /* an exact fraction shown: its value */
+        if (!text_is(buf, &part[i], &d)) return true;
+    }
+    return false;
 }
 
 /* ---- unit 090: the worksheet's page (work/worksheet-2-page.md) ---- */
@@ -711,6 +767,7 @@ typedef struct {
     line x, y, z, t;
     screen_kind xk, yk;
     bool x_left, x_letter, prompt;
+    bool xmark;             /* unit 096: ≈ before X's number (screen_page's xmark) */
     bool view;              /* SYS's view: four left lines at scale 2, no letters (unit 027) */
     bool steps;             /* unit 095: the steps view: T the status, X the page's text wrapped at 2 below it */
     bool table;             /* a table open (unit 032): four rows, x left and the value right, at scale 2 */
@@ -986,6 +1043,18 @@ static void sel_view_text(const ab_calc *c, const screen_ui *ui, const composed 
         size_t n = strlen(out);
         snprintf(out + n, (size_t)size - n, ", MORE");
     }
+    /* unit 096: the row's own value, rounded (its bit), and shown short as the levels show it (ruling (a): ROUNDED first);
+       nothing when it's exact and fully shown. FIX n drops places; SCI and ENG n show n + 1 significant digits */
+    if (!ab_val_decode(r.val, r.vlen, &v, t, sizeof t) || !c->stu) return;
+    size_t n = strlen(out);
+    if (r.flags & AB_ROWF_ROUNDED) snprintf(out + n, (size_t)size - n, ", ROUNDED"), n = strlen(out);
+    if (shown_short(&v, c, ui)) {
+        if (c->fdisp) snprintf(out + n, (size_t)size - n, ", SHOWN AS A NEAR FRACTION");
+        else if (c->disp_mode == AB_FIX) snprintf(out + n, (size_t)size - n, ", SHOWN TO %d PLACES", c->disp_n);
+        else if (c->disp_mode == AB_SCI || c->disp_mode == AB_ENG)
+            snprintf(out + n, (size_t)size - n, ", SHOWN TO %d DIGITS", c->disp_n + 1);
+        else snprintf(out + n, (size_t)size - n, ", SHOWN SHORT");     /* (ALL, a number past the line's width) */
+    }
 }
 
 static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
@@ -1149,6 +1218,8 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
         val_line(&c->x, c, ui, xl, &k->ind);
         k->x_letter = true;
         k->xexpr = c->stu && c->x.kind == AB_EXPR;
+        /* unit 096, look A: ≈ when the number drawn isn't exact (the value rounded, or shown short), STU only */
+        k->xmark = c->stu && !ab_is_sym(&c->x) && (c->x.rounded || shown_short(&c->x, c, ui));
     }
 
     /* the Y line: a prompt or a VIEW takes it */
@@ -1221,7 +1292,9 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
     k->page = c->stu && !c->prgm && !c->tbl_on && !c->gr_on && !k->eqn_screen && !k->textbook;
     k->pg_top = -1;
     if (k->page) page_plan(c, ui, k);
+    k->xmark = k->xmark && k->page;             /* (096: STU's home only) */
     if (k->page && c->sel_view && c->sel_view_row && !ab_error_message(c)) {    /* unit 093: a row's view in X's place */
+        k->xmark = false;                       /* (096: the view's text isn't X's number; INFO says it in words) */
         char t[SCREEN_TEXT_MAX];
         sel_view_text(c, ui, k, t, sizeof t);
         memset(xl, 0, sizeof *xl);
@@ -1498,6 +1571,14 @@ static void pg_line_text(const ab_calc *c, const screen_ui *ui, const composed *
     if (k->pg[i].part == 2) left[0] = '\0';
 }
 
+/* Unit 096: X's line at bot, with the mark before its number when it has one (≈, one cell, fitted as part of the line,
+   so a long number takes the mark into its fit); the cells drawn */
+static int draw_xline(ls027_frame *f, int bot, const composed *k)
+{
+    draw_line_lead(f, bot, 4, &k->x, k->x_left, k->xmark ? 0x2248u : 0);
+    return k->x.n + (k->xmark && k->x.n < LINE_MAX_CP);
+}
+
 static void draw_page(ls027_frame *f, const ab_calc *c, const screen_ui *ui, composed *k)
 {
     if (k->alg) {
@@ -1514,8 +1595,8 @@ static void draw_page(ls027_frame *f, const ab_calc *c, const screen_ui *ui, com
         }
         if (!k->xe_top || !draw_xexpr(f, c)) {
             if (k->x_letter) draw_label(f, PG_XBOT, "X");
-            draw_line(f, PG_XBOT, 4, &k->x, k->x_left);
-            if (k->x_letter && k->xk == SCREEN_VALUE) level_op(f, c, k->lvl_at[0], PG_XBOT, 4, k->x.n);
+            int cells = draw_xline(f, PG_XBOT, k);
+            if (k->x_letter && k->xk == SCREEN_VALUE) level_op(f, c, k->lvl_at[0], PG_XBOT, 4, cells);
         }
     }
     if (k->sel) {                               /* unit 093: the selected row inverted, the rows it links to dotted */
@@ -1648,6 +1729,7 @@ void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
         for (int i = 0; i < k->pg_n; i++) out->pagemark[i] = k->pg[i].mark;
         for (int i = 0; i < 4; i++) out->levelmark[i] = k->alg ? '?' : i < k->levels ? k->lvl_mark[i] : '?';
     }
+    snprintf(out->xmark, sizeof out->xmark, "%s", k->xmark ? "\xe2\x89\x88" : "");    /* unit 096: ≈ */
 }
 
 void screen_page_window(const ab_calc *c, uint32_t *top, uint32_t *bottom)
@@ -1743,6 +1825,6 @@ void screen_render(const ab_calc *c, const screen_ui *ui, ls027_frame *f)
         return;
     }
     if (k->x_letter) draw_label(f, BOT_X, "X");     /* only when the line is X */
-    draw_line(f, BOT_X, 4, &k->x, k->x_left);
+    draw_xline(f, BOT_X, k);
     soft_band(f, ui);
 }

@@ -1,0 +1,81 @@
+# Unit 096 (work/mark-exact-rounded.md, revision 1 and its grammar; abacus #14264, #14270, #14272 rulings (a) and (b),
+# #14280 ruled A): the exact-or-rounded mark, look A (≈ only when the shown number isn't exact). soroban's own cases.
+# Dumps: %ROUNDED-L (the value's bit, X Y Z T), %ROWROUNDED-k (the k-th newest row's), %XMARK (the glyph X's line draws,
+# _ none), %XLINE (ROWINFO's text). The census (tests/mark_table.py over tests/mark-table.txt) holds the functions.
+#
+# The value's bit: typed, arithmetic, functions, back-checks
+K01 | a typed number is exact | STU 2 | %ROUNDED-X=E %XMARK=_
+K02 | √2 rounded | STU 2 SQRT | %ROUNDED-X=R %XMARK=≈ %XLINE=1.4142
+K03 | √4 exact | STU 4 SQRT | %ROUNDED-X=E %XMARK=_
+K04 | 1÷3 rounded, ×3 stays rounded (an input's bit carries) | STU 1 ENTER 3 / 3 * | X=0.9999999999999999999999999999999999 %ROUNDED-X=R
+K05 | 2+3 exact | STU 2 ENTER 3 + | X=5 %ROUNDED-X=E
+K06 | back-check: 8 XROOT 3 is exactly 2 | STU 8 ENTER 3 XROOT | X=2 %ROUNDED-X=E
+K07 | back-check: 4^0.5 is exactly 2 | STU 4 ENTER 0.5 POW | X=2 %ROUNDED-X=E
+K08 | back-check: 9 XROOT 2 against 10 XROOT 2 | STU 10 ENTER 2 XROOT | %ROUNDED-X=R
+K08b | back-check that compares: 1.000…001 (34 digits) XROOT 2 rounds to 1, and 1² is not the base | STU 1.000000000000000000000000000000001 ENTER 2 XROOT | X=1 %ROUNDED-X=R
+K09 | the exact angle: ASIN 0.5 is 30 in DEG | STU DEG 0.5 ASIN | X=30 %ROUNDED-X=E
+K10 | near the exact angle: ASIN 0.5000000001 is rounded | STU DEG 0.5000000001 ASIN | %ROUNDED-X=R
+K11 | SIN 30 is exactly 0.5 in DEG | STU DEG 30 SIN | X=0.5 %ROUNDED-X=E
+K12 | TANH 100's shortcut is rounded | STU 100 TANH | X=1 %ROUNDED-X=R %XMARK=≈
+K13 | COS 0 is exactly 1 | STU RAD 0 COS | X=1 %ROUNDED-X=E
+K14 | COS 1E-35 in RAD is 1, rounded | STU RAD 1 E 35 CHS COS | X=1 %ROUNDED-X=R
+K15 | an overflow's largest number is rounded | STU 1 E 6000 ENTER * | %ROUNDED-X=R
+K16 | an underflow's 0 is rounded | STU 1 E 6000 CHS ENTER * | X=0 %ROUNDED-X=R
+K17 | π rounded | STU PI | %ROUNDED-X=R
+K18 | a typed fraction 1 1/3 rounded | STU 1.1.3 ENTER | %ROUNDED-X=R %ROUNDED-Y=R
+K19 | a typed fraction 1 1/4 exact | STU 1.1.4 ENTER | X=1.25 %ROUNDED-X=E
+K20 | 34 digits typed are exact (the entry takes no 35th) | STU 123456789123456789123456789123456789 | %ROUNDED-X=E %XRAW=+1234567891234567891234567891234567E+0
+# Carried: the stack, STO and RCL, rows, CLX
+C01 | ENTER carries it | STU 2 SQRT ENTER 4 | %ROUNDED-Y=R %ROUNDED-X=E
+C02 | STO and RCL carry it | STU 2 SQRT STO:A CLX RCL:A | %ROUNDED-X=R
+C03 | an exact letter recalled is exact | STU 4 SQRT STO:A CLX RCL:A | X=2 %ROUNDED-X=E
+C04 | RCL+ of a rounded letter | STU 2 SQRT STO:A 1 RCL+:A | %ROUNDED-X=R
+C05 | STO+ marks the letter | STU 2 SQRT STO:A 1 STO+:A CLX RCL:A | %ROUNDED-X=R
+C06 | STO+ of exact on exact stays exact | STU 2 STO:A 3 STO+:A CLX RCL:A | X=5 %ROUNDED-X=E
+C07 | CLX's 0 is exact | STU 2 SQRT CLX | X=0 %ROUNDED-X=E
+C08 | rows carry it | STU 2 SQRT 4 SQRT | %ROWROUNDED-1=E %ROWROUNDED-2=E %ROWROUNDED-3=R
+C09 | an indirect register keeps no mark: RCL (I) is rounded | STU 30 STO:I 4 STO:(I) CLX RCL:(I) | X=4 %ROUNDED-X=R
+C10 | x<>A swaps the bits with the values | STU 2 SQRT STO:A 4 XVAR:A | %ROUNDED-X=R
+# The image (also run through the save/load pass): the bits kept; an older image's values rounded
+I01 | a row's bit kept through SAVE and LOAD | STU 2 SQRT 4 SQRT SAVE LOAD | %ROWROUNDED-1=E %ROWROUNDED-3=R %ROUNDED-X=E %ROUNDED-Y=R
+I02 | a letter's bit kept through SAVE and LOAD | STU 2 SQRT STO:A CLX SAVE LOAD RCL:A | %ROUNDED-X=R
+I03 | an STU image without T_ROUNDED (relabelled 24) loads its values rounded | STU 4 SQRT SAVE DROPSEC:25 IMGVER:24 LOAD | X=2 %ROUNDED-X=R
+I04 | the 0.96 → 0.97 update: an STU image 0.96 saved (version 24) loads every value as saved, rounded (abacus #14280) | LOADFILE:tests/mark-fixture-v24.img | X=5 Y=4 @A=4 %ROUNDED-X=R %ROUNDED-Y=R %XMARK=≈
+I05 | 096's own image (version 25): X √2, Y 2, Z √2, B √2 | LOADFILE:tests/mark-fixture-v25.img | Y=2 %ROUNDED-X=R %ROUNDED-Y=E %ROUNDED-Z=R
+I06 | and its letter B rounded | LOADFILE:tests/mark-fixture-v25.img CLX RCL:B | %ROUNDED-X=R
+# Untracked paths are rounded (revision 1)
+U01 | a program's stack when it stops | STU PRGM CLPGM LBL:P 1 ENTER 3 / ENTER RTN PRGM XEQ:P | %ROUNDED-Y=R %ROUNDED-X=R
+U02 | a letter a program stores | STU PRGM CLPGM LBL:P 4 STO:B RTN PRGM XEQ:P CLX RCL:B | X=4 %ROUNDED-X=R
+U03 | SOLVE's root | STU PRGM CLPGM LBL:Q RCL:X SQ RCL:X + 6 - RTN PRGM 0 STO:X 10 FN=:Q SOLVE:X | X=2 %ROUNDED-X=R
+U04 | the letter SOLVE stores | STU PRGM CLPGM LBL:Q RCL:X SQ RCL:X + 6 - RTN PRGM 0 STO:X 10 FN=:Q SOLVE:X CLX RCL:X | %ROUNDED-X=R
+U05 | CAS's number in X (2+3×4 to 14) | STU EQ:2+3×4 EQDROP CASSIMP | X=14 %ROUNDED-X=R
+# ALG's line and EQN's evaluation
+A01 | ALG 2+3 exact | STU ALG 2 + 3 ENTER | N=5 %ROWROUNDED-1=E
+A02 | ALG 1÷3 rounded | STU ALG 1 / 3 ENTER | %ROWROUNDED-1=R
+A03 | ALG π | STU ALG PI ENTER | %ROWROUNDED-1=R
+A04 | ALG a rounded letter | STU 2 SQRT STO:A ALG RCL:A + 1 ENTER | %ROWROUNDED-1=R
+A05 | ALG an exact letter | STU 4 SQRT STO:A ALG RCL:A + 1 ENTER | %ROWROUNDED-1=E
+A06 | ALG ANS rounded, ×3 | STU ALG 1 / 3 ENTER ANS * 3 ENTER | %ROWROUNDED-1=R
+A07 | ALG √(4) exact | STU ALG SQRT 4 ENTER | %ROWROUNDED-1=E
+A08 | ALG an exact angle after a rounded term keeps the line rounded | STU DEG ALG 1 / 3 + ASIN 0.5 ENTER | %ROWROUNDED-1=R
+A09 | ALG ASIN(0.5) alone exact | STU DEG ALG ASIN 0.5 ENTER | N=30 %ROWROUNDED-1=E
+A10 | ALG leaves the stack and its bits | STU 2 SQRT ALG 1 + 1 ENTER | %ROUNDED-X=R
+Q01 | EQN 2+3 exact | STU EQ:2+3 XEQ | X=5 %ROUNDED-X=E
+Q02 | EQN 1÷3 rounded | STU EQ:1÷3 XEQ | %ROUNDED-X=R
+Q03 | EQN a rounded letter | STU 2 SQRT STO:A EQ:A+1 XEQ | %ROUNDED-X=R
+Q04 | EQN π | STU EQ:π XEQ | %ROUNDED-X=R
+# 094's report: a number copied out is rounded (ruling (b))
+R01 | ENTER on SOLVE's report copies a root out: rounded, an untracked path (ruling (b)) | STU EQ:X^2-4 CASSOLVE:X SST ENTER | %ROUNDED-X=R %XEXPR=none
+R02 | EVAL on a root row evaluates it out: rounded | STU EQ:0.5×X^2-0.25×X-0.125 CASSOLVE:X SST SST CASEVAL | %ROUNDED-X=R %XEXPR=none
+# The drawn mark (look A) and INFO (ruling (a))
+D01 | 1÷8 at FIX 4 is shown whole: no mark | STU 1 ENTER 8 / | %XMARK=_ %XLINE=0.1250
+D02 | 1÷8 at FIX 2 shows 0.13: the mark, the value still exact | STU FIX2 1 ENTER 8 / | %XMARK=≈ %ROUNDED-X=E
+D03 | 1÷3 at ALL: rounded | STU ALL 1 ENTER 3 / | %XMARK=≈
+D04 | an exact big number at ALL, every digit shown | STU ALL 123456789 ENTER 1000 * | %XMARK=_ %XLINE=123456789000
+D05 | the 33s and 35s modes: no mark | MODE35 2 SQRT | %XMARK=_
+D06 | INFO: rounded and shown short, ROUNDED first | STU 1 ENTER 3 / SEL 2 ROWINFO | %XLINE=÷_OF_1.0000,_3.0000,_ROUNDED,_SHOWN_TO_4_PLACES
+D07 | INFO: exact, shown short at FIX 2 | STU FIX2 1 ENTER 8 / SEL 2 ROWINFO | %XLINE=÷_OF_1.00,_8.00,_SHOWN_TO_2_PLACES
+D08 | INFO: SCI 2 shows 3 digits, all of 0.125 | STU SCI2 1 ENTER 8 / SEL 2 ROWINFO | %XLINE=÷_OF_1.00E0,_8.00E0
+D09 | INFO: SCI 1 shows 2 digits of 0.125 | STU SCI1 1 ENTER 8 / SEL 2 ROWINFO | %XLINE=÷_OF_1.0E0,_8.0E0,_SHOWN_TO_2_DIGITS
+D10 | the row view has no mark of its own (INFO says it in words) | STU 1 ENTER 3 / SEL 2 ROWINFO | %XMARK=_
+D11 | an exact number with separators, shown whole | STU 1234567 ENTER 1 + | %XMARK=_ %XLINE=1234568.0000

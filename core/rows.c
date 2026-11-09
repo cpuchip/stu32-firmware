@@ -123,7 +123,7 @@ bool ab_rows_parse(const uint8_t *p, size_t n, ab_row *out)
     r.arg = (int32_t)g32(p + 8);
     r.flags = p[12];
     nl = (r.flags >> 4) & 3u;
-    if (r.serial == 0 || r.serial > AB_ROW_SERIAL_LAST || nl > AB_ROW_LINKS || (r.flags & 0xC8u)) return false;
+    if (r.serial == 0 || r.serial > AB_ROW_SERIAL_LAST || nl > AB_ROW_LINKS || (r.flags & 0xC0u)) return false;   /* (bit 3: 096's, RAM only; an image's never has it) */
     at = REC_HEAD;
     if (at + 4 * nl + 1 > len) return false;
     r.nlink = (int)nl;
@@ -191,6 +191,21 @@ bool ab_rows_find(const ab_calc *c, uint32_t serial, ab_row *out)
     for (uint32_t at = 0; at < end; at += g16(c->rows + at))
         if (g32(c->rows + at + 2) == serial) return ab_rows_parse(c->rows + at, end - at, out);
     return false;
+}
+
+bool ab_rows_mark(ab_calc *c, uint32_t serial)
+{
+    for (uint32_t at = 0; serial && at < c->rows_len; at += g16(c->rows + at))
+        if (g32(c->rows + at + 2) == serial) {
+            c->rows[at + 12] |= AB_ROWF_ROUNDED;
+            return true;
+        }
+    return false;
+}
+
+void ab_rows_mark_all(ab_calc *c)
+{
+    for (uint32_t at = 0; at < c->rows_len; at += g16(c->rows + at)) c->rows[at + 12] |= AB_ROWF_ROUNDED;
 }
 
 static ab_val *held_val(ab_calc *c, int i)
@@ -376,7 +391,7 @@ static uint32_t append(ab_calc *c, unsigned op, int32_t arg, unsigned flags, con
     p32(p + 2, s);
     p16(p + 6, op);
     p32(p + 8, (uint32_t)arg);
-    p[12] = (uint8_t)((flags & 0x0Fu) | (unsigned)nlink << 4);
+    p[12] = (uint8_t)((flags & 0x07u) | (v->rounded ? AB_ROWF_ROUNDED : 0u) | (unsigned)nlink << 4);   /* (096: the mark) */
     size_t at = REC_HEAD;
     for (int i = 0; i < nlink; i++, at += 4) p32(p + at, link[i]);
     p[at++] = (uint8_t)tlen;

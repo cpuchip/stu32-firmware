@@ -63,8 +63,17 @@ abn abn_neg(const abn *a)
  * each means is the caller's. A zero result (of either sign, any exponent) becomes the one zero. */
 static bool ovf_neg;        /* the sign of the last overflow (abn_overflow_negative) */
 
+/* Unit 096 (work/mark-exact-rounded.md): whether any result the library rounded was accepted since the last clear: the
+   exact-or-rounded mark's source. The core's own paths round through abn_from_text (BI_(to_abn)), so they're seen too;
+   a value the core makes without a library call that rounds (a clamp, a flush to 0, a shortcut) notes it itself. */
+static bool rounded_seen;
+void abn_round_clear(void) { rounded_seen = false; }
+bool abn_round_seen(void) { return rounded_seen; }
+void abn_round_note(void) { rounded_seen = true; }
+
 static abn_status accept(abn *out, BID_UINT128 r, _IDEC_flags fl)
 {
+    if (fl & BID_INEXACT_EXCEPTION) rounded_seen = true;
     if ((fl & BID_INVALID_EXCEPTION) || bid128_isNaN(r)) return ABN_DOMAIN;
     if ((fl & BID_OVERFLOW_EXCEPTION) || bid128_isInf(r)) {
         ovf_neg = bid128_isSigned(r);

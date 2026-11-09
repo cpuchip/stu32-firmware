@@ -245,6 +245,7 @@ static void kop(parser *p, ab_op op, const ab_val *y, ab_val *x)
     ab_val r;
     abn_status st;
     if (p->check || p->st != ABN_OK) return;
+    if (!ab_mark_tracked(op, 0)) abn_round_note();     /* (096: an op the mark doesn't track: pi, the statistics, RAND) */
     if ((st = ab_eqn_op(p->c, op, y, x, &r)) != ABN_OK) fail(p, st);
     else *x = r;
 }
@@ -279,6 +280,7 @@ static void apply0(parser *p, int id, ab_val *v)
     if (id >= F_REGX && id <= F_REGT) {
         /* the stack register as evaluation found it: kop leaves the stack as it was (UG p.B-7) */
         if (!p->check) *v = id == F_REGX ? p->c->x : id == F_REGY ? p->c->y : id == F_REGZ ? p->c->z : p->c->t;
+        if (!p->check && v->rounded) abn_round_note();      /* (096) */
         return;
     }
     *v = real_val(abn_zero());
@@ -538,6 +540,7 @@ static void take_val(parser *p, ab_val *v, const ab_val *from)
 {
     if (ab_is_sym(from)) fail(p, ABN_NOT_NUMBER);
     else *v = *from;
+    if (from->rounded) abn_round_note();        /* (096: a rounded letter, ANS or indirect read makes the line rounded) */
 }
 
 static __attribute__((noinline)) void parse_ind(parser *p, const char *s, ab_val *v)

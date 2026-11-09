@@ -1122,6 +1122,10 @@ int vectors_run(const char *name, FILE *f)
                     } else snprintf(got, sizeof got, "%.250s", c.step_page);
                     for (char *q = got; *q; q++)
                         if (*q == ' ') *q = '_';
+                } else if (strncmp(ex, "%ROUNDED-", 9) == 0 && strchr("XYZT", ex[9]) && ex[9] && !ex[10]) {
+                    /* unit 096: the value's bit at that level (R rounded, E exact), apart from what the screen draws */
+                    const ab_val *lv = ex[9] == 'X' ? &c.x : ex[9] == 'Y' ? &c.y : ex[9] == 'Z' ? &c.z : &c.t;
+                    snprintf(got, sizeof got, "%c", lv->rounded ? 'R' : 'E');
                 } else if (strcmp(ex, "%XRAW") == 0) {
                     /* X's real part as the engine holds it, coefficient and exponent, so its cohort as well as its
                        value (unit 050: a rounding must keep the cohort, as 045 found) */
@@ -1278,6 +1282,11 @@ int vectors_run(const char *name, FILE *f)
                     if (!ab_rows_get(&c, atoi(ex + 8), &r)) snprintf(got, sizeof got, "?");
                     else if (!r.tlen) snprintf(got, sizeof got, "none");
                     else snprintf(got, sizeof got, "%.*s", (int)r.tlen, r.text), spaces_out(got);
+                } else if (strncmp(ex, "%ROWROUNDED-", 12) == 0) {     /* unit 096: R or E, the k-th newest row's value */
+                    ab_row r;
+                    rows_asked = true;
+                    snprintf(got, sizeof got, "%s", !ab_rows_get(&c, atoi(ex + 12), &r) ? "?" :
+                                                     (r.flags & AB_ROWF_ROUNDED) ? "R" : "E");
                 } else if (strncmp(ex, "%ROWFLAG-", 9) == 0) {
                     ab_row r;
                     rows_asked = true;
@@ -1291,7 +1300,9 @@ int vectors_run(const char *name, FILE *f)
                     rows_asked = true;
                     snprintf(got, sizeof got, "%lu", (unsigned long)c.rows_dropped);
                 } else if (strcmp(ex, "%SEL") == 0 || strncmp(ex, "%PAGEMARK-", 10) == 0 || strncmp(ex, "%LEVELMARK-", 11) == 0 ||
-                           strncmp(ex, "%SOFT-", 6) == 0 || strcmp(ex, "%XLINE") == 0 || strcmp(ex, "%BAND") == 0) {
+                           strncmp(ex, "%SOFT-", 6) == 0 || strcmp(ex, "%XLINE") == 0 || strcmp(ex, "%BAND") == 0 ||
+                           strcmp(ex, "%XMARK") == 0) {
+                    /* (unit 096: %XMARK, the glyph X's line draws before its number, _ none) */
                     /* unit 093 (abacus #14133, #14135): the selection as screen_lines tells it; blanks _, an empty text _ */
                     rows_asked = true;
 #ifndef AB_DEVICE
@@ -1314,6 +1325,8 @@ int vectors_run(const char *name, FILE *f)
                         for (int i = 0; mn && km_menu_at(i); i++)
                             if (!strcmp(km_menu_at(i)->name, mn) && n >= 1 && n <= 6) lab = km_menu_at(i)->item[n - 1].legend;
                         snprintf(got, sizeof got, "%s", lab && lab[0] ? lab : "_");
+                    } else if (ex[1] == 'X' && ex[2] == 'M') {
+                        snprintf(got, sizeof got, "%s", pg.xmark[0] ? pg.xmark : "_");
                     } else if (ex[1] == 'X') {
                         snprintf(got, sizeof got, "%.*s", (int)sizeof got - 1, pg.x.text[0] ? pg.x.text : "_");
                     } else {

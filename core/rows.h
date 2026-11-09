@@ -4,6 +4,7 @@
  *
  * A record, as kept in RAM and as a save writes it (little-endian):
  *   u16 its own length | u32 serial | u16 op | i32 arg | u8 flags (bits 0 ALG, 1 more read, 2 an op's second value,
+ *   3 rounded (096, RAM only),
  *   4-5 the links' count) | u32 each link's serial | u8 the text's length, the text | the value as the image writes one
  * The length goes first, so a later unit's fields after the value are skipped by this build. Serials run from 1 to
  * 0xFFFFFFFE and are never reused; at the last, the page starts again (abacus #13990 a). */
@@ -19,6 +20,7 @@
 #define AB_ROWF_ALG 0x01u
 #define AB_ROWF_MORE 0x02u          /* it read more than AB_ROW_LINKS rows: the first three are linked */
 #define AB_ROWF_PART2 0x04u         /* an op's second value (→POL's θ, CMPLX's imaginary part) */
+#define AB_ROWF_ROUNDED 0x08u       /* unit 096: its value is rounded; in RAM only (an image carries it in T_ROUNDED) */
 #define AB_ROW_SERIAL_LAST 0xFFFFFFFEu
 
 /* A row, read from its record (pointers into the page) */
@@ -72,6 +74,10 @@ int ab_rows_count(const ab_calc *c);
 bool ab_rows_get(const ab_calc *c, int k, ab_row *out);     /* k = 1 the newest */
 bool ab_rows_find(const ab_calc *c, uint32_t serial, ab_row *out);
 bool ab_rows_parse(const uint8_t *p, size_t n, ab_row *out); /* one record */
+/* Unit 096: the mark on a row's value. After a load: the row of a serial marked (false when no row has it), or every
+   row (an image older than the mark: untracked, so rounded) */
+bool ab_rows_mark(ab_calc *c, uint32_t serial);
+void ab_rows_mark_all(ab_calc *c);
 /* Every value in the state that holds a row (X, Y, Z, T, LASTx, ANS, the 27 letters): 33 at most */
 int ab_rows_held(const ab_calc *c, uint32_t out[33]);
 /* The first byte of the newest rows within budget bytes (a save keeps those, and the held rows before them) */

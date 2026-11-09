@@ -239,16 +239,17 @@ static void format(void)
     }
     ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
     n = ab_state_save(&c, img, sizeof img);
-    expect(n > 4 && img[4] == 20 && !c.x.bare && !c.t.bare, "STU with no row made and no level bare: version 20, as before 089");
+    expect(n > 4 && img[4] == 25 && !c.x.bare && !c.t.bare,
+           "STU with no row made and no level bare: version 25 (unit 096: an STU image always holds T_ROUNDED; 20 before)");
     ab_init(&c);
     ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
     n = ab_state_save(&c, img, sizeof img);
-    expect(n > 4 && img[4] == 24 && c.y.bare && c.t.bare, "unit 090: a fresh STU's levels are bare: version 24 (T_BARE)");
+    expect(n > 4 && img[4] == 25 && c.y.bare && c.t.bare, "unit 090: a fresh STU's levels are bare: version 25 (T_BARE; 096's T_ROUNDED)");
     ab_do(&c, AB_K5);
     ab_do(&c, AB_ENTER);
     n = ab_state_save(&c, img, sizeof img);
-    expect(n > 4 && img[4] == 24 && c.x.row == 1 && c.y.row == 1 && !c.y.bare && c.z.bare,
-           "a row: X and ENTER's copy hold row 1, Z and T still bare (version 24)");
+    expect(n > 4 && img[4] == 25 && c.x.row == 1 && c.y.row == 1 && !c.y.bare && c.z.bare,
+           "a row: X and ENTER's copy hold row 1, Z and T still bare (version 25, 096's; 24 before)");
     {                                           /* and with no level bare, a row alone is version 23, as 089's */
         static ab_calc d;
         ab_init(&d);
@@ -256,7 +257,12 @@ static void format(void)
         ab_do(&d, AB_K5);
         for (int i = 0; i < 3; i++) ab_do(&d, AB_ENTER);
         n = ab_state_save(&d, img, sizeof img);
-        expect(n > 4 && img[4] == 23 && !d.t.bare, "no level bare, a row held: version 23, as 089's");
+        expect(n > 4 && img[4] == 25 && !d.t.bare, "no level bare, a row held: version 25 in STU (096's T_ROUNDED; 23 before)");
+        ab_init(&d);                            /* (096: a 35s image is as before: the mark is STU's) */
+        ab_do(&d, AB_K5);
+        for (int i = 0; i < 3; i++) ab_do(&d, AB_ENTER);
+        n = ab_state_save(&d, img, sizeof img);
+        expect(n > 4 && img[4] < 25, "unit 096: a 35s image holds no T_ROUNDED: below version 25");
     }
 
     /* the record's layout: 5 ENTER 3 + makes NUM 5, NUM 3, ADD:1,2 */

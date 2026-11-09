@@ -4,13 +4,16 @@
  *
  * 1. The goldens: every tests/golden-*.img loads and saves again as version 20, its bytes pinned by size and body CRC
  *    as the core at b029c45 (before any 082 code) saved them; the two version-20 goldens equal their files (memcmp).
+ *    Unit 096 (abacus #14280, ruled A): an STU image is always version 25 now (T_ROUNDED, the mark), so an STU golden
+ *    loads with its values as saved, marked rounded (older than the mark), and re-saves at 25; taking T_ROUNDED out
+ *    and putting its version back gives the file byte for byte (unmark), so nothing else moved.
  * 2. A round trip: an expression or a name in every place a value may hold one (the stack, LASTx, the letters, the
  *    message's X, SOLVE's saved stack), saved (version 21), loaded, saved again: the same bytes, every text the same.
  *    tests/golden-v21-082.img is that image (--write-golden writes it), loaded and saved again byte for byte.
  * 3. The reader: a section after the last one this build knows is skipped by its size in a version-21 image, with
  *    OLDER FIRMWARE showing, and refused in a version-20 one; an expression in a version-20 image and a kind past
  *    AB_NAME in a version-21 one are refused; an expression in ANS (RPN to ALG sets ANS to X) loads. 4C (Michael's
- *    s3-old-firmware): tests/golden-v25-4c.img, a newer firmware's image (scripts/mk_golden_newer.py), loads with its
+ *    s3-old-firmware): tests/golden-v26-4c.img, a newer firmware's image (scripts/mk_golden_newer.py), loads with its
  *    unknown kinds 0, its unknown section skipped and OLDER FIRMWARE showing, the rest byte for byte.
  * 4. The store: all 48 places (X, Y, Z, T, LASTx, 27 letters, 16 history values) holding distinct expressions, the
  *    49th is ABN_EXPR_FULL with every text unchanged; freeing a place lets the next succeed in its slot. A fuzz of new,
@@ -74,6 +77,27 @@ static void reseal(uint8_t *p, size_t n)
 static ab_calc ca, cb, base;
 static uint8_t img1[300000], img2[300000];
 
+/* Unit 096: an image of this build with T_ROUNDED (tag 25) taken out and version ver put back, resealed: its length.
+   An STU image older than the mark is that, byte for byte, when everything else survived */
+static size_t unmark(uint8_t *p, size_t n, unsigned ver)
+{
+    size_t at = 12;
+    while (at + 6 <= n - 4) {
+        unsigned t = p[at] | p[at + 1] << 8;
+        size_t sz = (size_t)(p[at + 2] | p[at + 3] << 8 | p[at + 4] << 16 | (uint32_t)p[at + 5] << 24);
+        if (t == 25) {
+            memmove(p + at, p + at + 6 + sz, n - (at + 6 + sz));
+            n -= 6 + sz;
+            break;
+        }
+        at += 6 + sz;
+    }
+    p[4] = (uint8_t)ver;
+    p[5] = 0;
+    reseal(p, n);
+    return n;
+}
+
 /* ---- 1. the goldens ---- */
 
 static void goldens(void)
@@ -98,12 +122,19 @@ static void goldens(void)
         snprintf(what, sizeof what, "%s: loads", G[g].path);
         expect(ab_state_load(&ca, p, n) == ABN_OK, what);
         size_t m = ab_state_save(&ca, img1, sizeof img1);
-        snprintf(what, sizeof what, "%s: saves again as version 20, %zu B, body %08X (b029c45: %zu B, %08X)", G[g].path,
-                 m, body_crc(img1, m), G[g].len, G[g].crc);
-        expect(img1[4] == 20 && img1[5] == 0 && m == G[g].len && body_crc(img1, m) == G[g].crc, what);
-        if (G[g].same) {
-            snprintf(what, sizeof what, "%s: saved again, byte for byte the file", G[g].path);
-            expect(m == n && !memcmp(img1, p, n), what);
+        if (G[g].same) {                        /* (STU images: unit 096 moved these on purpose, abacus #14280) */
+            snprintf(what, sizeof what, "%s: re-saves at version 25, %zu B: the file's %zu and T_ROUNDED's 15", G[g].path,
+                     m, n);
+            expect(img1[4] == 25 && img1[5] == 0 && m == n + 15, what);
+            snprintf(what, sizeof what, "%s: its values loaded rounded (older than the mark)", G[g].path);
+            expect(ca.stu && ca.x.rounded && ca.y.rounded && ca.lastx.rounded && ca.var[0].rounded, what);
+            snprintf(what, sizeof what, "%s: re-saved, T_ROUNDED out and version 20 back: byte for byte the file", G[g].path);
+            m = unmark(img1, m, 20);
+            expect(m == n && !memcmp(img1, p, n) && m == G[g].len && body_crc(img1, m) == G[g].crc, what);
+        } else {
+            snprintf(what, sizeof what, "%s: saves again as version 20, %zu B, body %08X (b029c45: %zu B, %08X)",
+                     G[g].path, m, body_crc(img1, m), G[g].len, G[g].crc);
+            expect(img1[4] == 20 && img1[5] == 0 && m == G[g].len && body_crc(img1, m) == G[g].crc, what);
         }
         free(p);
     }
@@ -193,7 +224,8 @@ static void round_trip(bool write_golden)
     char what[160];
     build_v21(&ca);
     size_t m1 = ab_state_save(&ca, img1, sizeof img1);
-    expect(m1 > 0 && m1 <= sizeof img1 && img1[4] == 21, "082: an image with an expression is version 21");
+    expect(m1 > 0 && m1 <= sizeof img1 && img1[4] == 25,
+           "082: an image with an expression is version 21; 25 since unit 096 (STU's T_ROUNDED, always)");
     ab_init(&cb);
     expect(ab_state_load(&cb, img1, m1) == ABN_OK, "082: the version-21 image loads");
     size_t m2 = ab_state_save(&cb, img2, sizeof img2);
@@ -208,11 +240,14 @@ static void round_trip(bool write_golden)
     expect(cb.x.kind == AB_EXPR && cb.y.kind == AB_EXPR && cb.x.len == cb.y.len,
            "082: one text in two places loads into one slot");
     expect(cb.msg && cb.err_status == ABN_NOT_NUMBER, "082: the message showing loads");
-    if (write_golden) {
+    if (write_golden) {                         /* (096: the golden is the version-21 image, T_ROUNDED out) */
+        static uint8_t g21[sizeof img1];
+        memcpy(g21, img1, m1);
+        size_t n21 = unmark(g21, m1, 21);
         FILE *f = fopen("tests/golden-v21-082.img", "wb");
-        fwrite(img1, 1, m1, f);
+        fwrite(g21, 1, n21, f);
         fclose(f);
-        printf("expr_test: wrote tests/golden-v21-082.img, %zu B, body %08X\n", m1, body_crc(img1, m1));
+        printf("expr_test: wrote tests/golden-v21-082.img, %zu B, body %08X\n", n21, body_crc(g21, n21));
     }
     size_t gn;
     uint8_t *g = file("tests/golden-v21-082.img", &gn);
@@ -221,12 +256,14 @@ static void round_trip(bool write_golden)
         ab_init(&cb);
         expect(ab_state_load(&cb, g, gn) == ABN_OK, "golden-v21-082: loads");
         m2 = ab_state_save(&cb, img2, sizeof img2);
-        expect(m2 == gn && !memcmp(img2, g, gn), "golden-v21-082: saved again, byte for byte the file");
+        m2 = unmark(img2, m2, 21);              /* (096: re-saved at 25; T_ROUNDED out and 21 back) */
+        expect(m2 == gn && !memcmp(img2, g, gn), "golden-v21-082: saved again (T_ROUNDED out, 21 back), byte for byte the file");
         expect(cb.x.kind == AB_EXPR && !strcmp(ab_expr_text(&cb, &cb.x), "3\xc3\x97X^2-4") && cb.z.kind == AB_NAME &&
                    !strcmp(ab_expr_text(&cb, &cb.z), "B") && !strcmp(ab_expr_text(&cb, &cb.var[1]), "i"),
                "golden-v21-082: X 3×X^2-4, Z the name B, B the name i");
-        snprintf(what, sizeof what, "golden-v21-082: the image this build writes (%zu B, %08X; file %zu B, %08X)", m1,
-                 body_crc(img1, m1), gn, body_crc(g, gn));
+        m1 = unmark(img1, m1, 21);              /* (096) */
+        snprintf(what, sizeof what, "golden-v21-082: the image this build writes, T_ROUNDED out and 21 back (%zu B, %08X; "
+                 "file %zu B, %08X)", m1, body_crc(img1, m1), gn, body_crc(g, gn));
         expect(m1 == gn && !memcmp(img1, g, gn), what);
         free(g);
     }
@@ -268,8 +305,8 @@ static bool real_zero(const ab_val *v)
            !memcmp(&v->p3, &z, sizeof z);
 }
 
-/* 4C (Michael's s3-old-firmware): tests/golden-v25-4c.img, a newer firmware's image made from golden-v21-082's bytes
-   by scripts/mk_golden_newer.py (version 25 since unit 090 made this build 24; 24 since unit 089 made this build 23, abacus #13989 e; 23 since the CAS 038
+/* 4C (Michael's s3-old-firmware): tests/golden-v26-4c.img, a newer firmware's image made from golden-v21-082's bytes
+   by scripts/mk_golden_newer.py (version 26 since unit 096 made this build 25; 25 since unit 090 made this build 24; 24 since unit 089 made this build 23, abacus #13989 e; 23 since the CAS 038
    repin made it 22, abacus #13773; Y, Z and T value
    kinds 5, 9 and 200 with 7, 0 and 300 bytes; a section tag 40), loads with OLDER FIRMWARE showing and the rest of the state as golden-v21-082's with Y, Z and T 0 */
 static void older(void)
@@ -277,17 +314,17 @@ static void older(void)
     static uint8_t e[4096];
     char what[240];
     size_t gn, hn;
-    uint8_t *g = file("tests/golden-v25-4c.img", &gn), *h = file("tests/golden-v21-082.img", &hn);
-    expect(g != NULL && h != NULL, "tests/golden-v25-4c.img and golden-v21-082.img found");
+    uint8_t *g = file("tests/golden-v26-4c.img", &gn), *h = file("tests/golden-v21-082.img", &hn);
+    expect(g != NULL && h != NULL, "tests/golden-v26-4c.img and golden-v21-082.img found");
     if (!g || !h) return;
-    snprintf(what, sizeof what, "4C: golden-v25-4c 1206 B, body CRC 19F84F63 (%zu B, %08X)", gn, body_crc(g, gn));
-    expect(gn == 1206 && body_crc(g, gn) == 0x19F84F63u, what);
+    snprintf(what, sizeof what, "4C: golden-v26-4c 1206 B, body CRC CFAA7623 (%zu B, %08X)", gn, body_crc(g, gn));
+    expect(gn == 1206 && body_crc(g, gn) == 0xCFAA7623u, what);
     snprintf(what, sizeof what, "4C: the image is newer than this build (version %u, AB_STATE_VERSION %d)",
              (unsigned)(g[4] | g[5] << 8), AB_STATE_VERSION);
     expect((g[4] | g[5] << 8) > AB_STATE_VERSION, what);    /* the CAS 038 repin: a fixture left behind a version bump
                                                                would test nothing newer (it went red at 22, the record) */
     ab_init(&cb);
-    expect(ab_state_load(&cb, g, gn) == ABN_OK, "4C: golden-v25-4c (version 25) loads");
+    expect(ab_state_load(&cb, g, gn) == ABN_OK, "4C: golden-v26-4c (version 26) loads");
     expect(cb.msg && cb.err_status == ABN_OLDER_FW, "4C: OLDER FIRMWARE showing");
     expect(real_zero(&cb.y) && real_zero(&cb.z) && real_zero(&cb.t), "4C: Y, Z and T (kinds 5, 9, 200) loaded as 0");
     expect(cb.x.kind == AB_EXPR && !strcmp(ab_expr_text(&cb, &cb.x), "3\xc3\x97X^2-4") && cb.lastx.kind == AB_EXPR &&
@@ -299,13 +336,14 @@ static void older(void)
     expect(ab_state_load(&ca, h, hn) == ABN_OK, "4C: golden-v21-082 loads (the oracle's state)");
     ca.y = ca.z = ca.t = (ab_val){0};
     ca.y.re = ca.y.im = ca.y.p3 = abn_zero();
+    ca.y.rounded = 1;                           /* (096: what the image held, untracked: rounded, as the load marks it) */
     ca.z = ca.t = ca.y;
     older_fw(&ca);
     size_t m1 = ab_state_save(&ca, img1, sizeof img1);
     snprintf(what, sizeof what, "4C: saved again (%zu B, %08X), byte for byte golden-v21-082 with Y, Z, T 0 and "
              "OLDER FIRMWARE (%zu B, %08X): the rest survived", m2, body_crc(img2, m2), m1, body_crc(img1, m1));
     expect(m1 == m2 && !memcmp(img1, img2, m1), what);
-    expect(img2[4] == 21, "4C: saved as this build's version, 21");
+    expect(img2[4] == 25, "4C: saved as this build's version, 25 (unit 096's T_ROUNDED; 21 before)");
     expect(ab_state_load(&ca, img2, m2) == ABN_OK && ca.msg && ca.err_status == ABN_OLDER_FW,
            "4C: that image loads, OLDER FIRMWARE still showing");
 
@@ -352,8 +390,10 @@ static void v21_message(void)
     expect(ca.msg && ca.err_status == ABN_DIV_ZERO, "repin: DIVIDE BY 0 still the message showing");
     expect(ca.z.kind == AB_EXPR && !strcmp(ab_expr_text(&ca, &ca.z), "3\xc3\x97X^2-4"), "repin: Z the expression 3×X^2-4");
     size_t m = ab_state_save(&ca, img1, sizeof img1);
-    snprintf(what, sizeof what, "repin: saved again byte for byte (%zu B, version %u)", m, (unsigned)img1[4]);
-    expect(m == gn && !memcmp(img1, g, gn), what);
+    unsigned v0 = img1[4];
+    m = unmark(img1, m, 21);                    /* (096: re-saved at 25; T_ROUNDED out and 21 back) */
+    snprintf(what, sizeof what, "repin: saved again at %u, T_ROUNDED out and 21 back: byte for byte (%zu B)", v0, m);
+    expect(v0 == 25 && m == gn && !memcmp(img1, g, gn), what);
     free(g);
 }
 
@@ -362,7 +402,7 @@ static void v21_message(void)
 static void same_image(void)
 {
     static const char *const G[] = {"tests/golden-v1.img", "tests/golden-v20-082.img", "tests/golden-v21-082.img",
-                                    "tests/golden-v25-4c.img"};
+                                    "tests/golden-v26-4c.img"};
     char what[160];
     for (int k = 0; k < 4; k++) {
         size_t gn;
@@ -914,9 +954,9 @@ static void drop_store(void)
     /* (unit 089: the two →X are rows in STU, so the image holds T_ROWREF and is 23, the planned move, abacus #13989 e;
        a state with no row still writes 21 here, as the 33s and 35s checks show) */
     uint32_t xr = ca.x.row, yr = ca.y.row;
-    expect(img1[4] == 23 && ab_state_load(&cb, img1, m) == ABN_OK && !strcmp(ab_expr_text(&cb, &cb.y), "3\xc3\x97X^2-4") &&
+    expect(img1[4] == 25 && ab_state_load(&cb, img1, m) == ABN_OK && !strcmp(ab_expr_text(&cb, &cb.y), "3\xc3\x97X^2-4") &&
                xr != 0 && yr != 0 && cb.x.row == 0 && cb.y.row == 0,
-           "082: after →X the image is version 23 (089: its rows) and loads with the expressions; on a page without "
+           "082: after →X the image is version 23 (089: its rows; 25 since 096) and loads with the expressions; on a page without "
            "those rows (a fresh calculator) the values hold none");
     expect(ab_state_load(&ca, img1, m) == ABN_OK && ca.x.row == xr && ca.y.row == yr,
            "089: the same image loaded over its own page (UNDO's case) gives the values their rows back");

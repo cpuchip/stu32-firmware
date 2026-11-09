@@ -67,7 +67,9 @@ static bool status_in_image(unsigned st, int version)
 enum { T_MODES = 1, T_STACK, T_VARS, T_STAT, T_IND, T_PROG, T_EQNS, T_ENTRY, T_EDITOR, T_RUN, T_SOLVE, T_MODE25, T_ALG,
        T_EQMODEL, T_TABLE, T_GRAPH, T_ZOOM, T_CAS, T_ENG, T_EQNOTE, T_CASCPLX,
        T_ROWREF, T_ROWS,       /* unit 089 (version 23): the rows values hold; the device's save, the page */
-       T_BARE };               /* unit 090 (version 24): which of X, Y, Z, T are bare (B′), in STU, when one is */
+       T_BARE,                 /* unit 090 (version 24): which of X, Y, Z, T are bare (B′), in STU, when one is */
+       T_ROUNDED };            /* unit 096 (version 25): which values are rounded, in STU, always (an STU image without
+                                  it is older than the mark, its values untracked: loaded rounded) */
 
 #define BUILTIN2 "\x01" "2*2 lin. solve"
 #define BUILTIN3 "\x01" "3*3 lin. solve"
@@ -547,7 +549,11 @@ static size_t state_write(wr *wp)
                               (uint32_t)c->rows[at + 4] << 16 | (uint32_t)c->rows[at + 5] << 24;
                 bool keep = at >= cut;
                 for (int i = 0; i < nh && !keep; i++) keep = held[i] == sr;
-                if (keep) wbytes(&w, (const char *)c->rows + at, len);
+                if (keep) {                     /* (096: the rounded bit is RAM's; T_ROUNDED carries it) */
+                    wbytes(&w, (const char *)c->rows + at, 12);
+                    w8(&w, c->rows[at + 12] & ~AB_ROWF_ROUNDED);
+                    wbytes(&w, (const char *)c->rows + at + 13, len - 13);
+                }
                 at += len;
             }
             sec_end(&w, s);
@@ -566,9 +572,44 @@ static size_t state_write(wr *wp)
         }
     }
 
+    if (c->stu) {                               /* version 25 (unit 096): the mark, STU's only, always: X Y Z T LASTx ANS,
+                                                   the 27 letters, then the rounded rows the page section kept */
+        const ab_val *six[6] = {&c->x, &c->y, &c->z, &c->t, &c->lastx, &c->ans};
+        unsigned m = 0;
+        uint32_t vm = 0, n = 0;
+        for (int i = 0; i < 6; i++) m |= (unsigned)(six[i]->rounded != 0) << i;
+        for (int i = 0; i < 27; i++) vm |= (uint32_t)(c->var[i].rounded != 0) << i;
+        uint32_t held[33], end = 0, cut = 0;
+        int nh = 0;
+        if (w.rows && ab_rows_count(c) > 0) {
+            nh = ab_rows_held(c, held);
+            end = ab_rows_visible_len(c), cut = ab_rows_cut(c, AB_ROWS_SAVE);
+        }
+        for (int pass = 0; pass < 2; pass++) {  /* the count, then the serials: as T_ROWS keeps them */
+            if (pass) w32(&w, n);
+            for (uint32_t at = 0; at < end; at += (uint32_t)(c->rows[at] | c->rows[at + 1] << 8)) {
+                uint32_t sr = (uint32_t)c->rows[at + 2] | (uint32_t)c->rows[at + 3] << 8 |
+                              (uint32_t)c->rows[at + 4] << 16 | (uint32_t)c->rows[at + 5] << 24;
+                bool keep = at >= cut;
+                for (int i = 0; i < nh && !keep; i++) keep = held[i] == sr;
+                if (!keep || !(c->rows[at + 12] & AB_ROWF_ROUNDED)) continue;
+                if (pass) w32(&w, sr);
+                else n++;
+            }
+            if (!pass) {
+                s = sec_begin(&w, T_ROUNDED);
+                w8(&w, m);
+                w32(&w, vm);
+            }
+        }
+        sec_end(&w, s);
+        if (w.ver < 25) w.ver = 25;
+    }
+
     {
         size_t total = w.len + 4;
-        for (int i = 0; i < 2; i++)                 /* the version the content needs (082), at most this build's */
+        for (int i = 0; i < 2; i++)                 /* the version the content needs (082), at most this build's; in
+                                                       STU always 25 (096's T_ROUNDED, state.h's amendment) */
             wput(&w, 4 + (size_t)i, w.ver >> (8 * i));
         for (int i = 0; i < 4; i++) wput(&w, 8 + (size_t)i, total >> (8 * i));
         if (w.ref) {                            /* the checksum of ref's bytes (ours, where they're the same), compared */
@@ -622,6 +663,7 @@ typedef struct {
     int nx;
     bool dropped;                   /* 4C: a newer image, or a section this build can't read skipped: OLDER FIRMWARE */
     bool had_rows;                  /* unit 089: the page was in it (the device's save) */
+    bool had_rounded;               /* unit 096: T_ROUNDED was in it */
 } rd;
 
 static unsigned r8(rd *r)
@@ -1609,6 +1651,26 @@ static bool parse(rd *r)
                 r->pos = end;
             }
             break;
+        case T_ROUNDED:                         /* unit 096 */
+            if (r->version >= 25) {
+                unsigned m = r8(r);
+                uint32_t vm = r32(r), n = r32(r);
+                need(r, m < 64 && vm < 1u << 27 && n <= (end - r->pos) / 4 && n * 4 == end - r->pos);
+                if (r->bad) break;
+                r->had_rounded = true;
+                if (r->c) {
+                    ab_val *six[6] = {&r->c->x, &r->c->y, &r->c->z, &r->c->t, &r->c->lastx, &r->c->ans};
+                    for (int i = 0; i < 6; i++) six[i]->rounded = m >> i & 1;
+                    for (int i = 0; i < 27; i++) r->c->var[i].rounded = vm >> i & 1;
+                }
+                for (uint32_t i = 0; i < n && !r->bad; i++) {
+                    uint32_t sr = r32(r);
+                    if (r->c) need(r, r->had_rows && ab_rows_mark(r->c, sr));    /* (a row the page holds) */
+                }
+            } else {
+                r->pos = end;
+            }
+            break;
         default:
             r->pos = end;                       /* 082: a newer build's section (version 21 on), skipped by its size */
             r->dropped = true;                  /* (4C: OLDER FIRMWARE shows) */
@@ -1681,6 +1743,12 @@ abn_status ab_state_load(ab_calc *c, const uint8_t *buf, size_t len)
         c->err_arg = 0;
         memset(&c->err_x, 0, sizeof c->err_x);
         c->err_x.re = c->err_x.im = c->err_x.p3 = abn_zero();
+    }
+    if (c->stu && !r.had_rounded) {             /* unit 096: an STU image older than the mark: its values untracked */
+        ab_val *six[6] = {&c->x, &c->y, &c->z, &c->t, &c->lastx, &c->ans};
+        for (int i = 0; i < 6; i++) six[i]->rounded = 1;
+        for (int i = 0; i < 27; i++) c->var[i].rounded = 1;
+        if (r.had_rows) ab_rows_mark_all(c);
     }
     ab_rows_loaded(c);                          /* unit 089: a value's row that isn't on the page is no row */
     if (!c->alg || (c->hist_row && !ab_rows_find(c, c->hist_row, NULL))) c->hist_row = 0;    /* (090: UNDO hid it) */

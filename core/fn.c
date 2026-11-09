@@ -300,6 +300,7 @@ abn_status fn_tenx(abn *out, const abn *x)
     int32_t n;
     if (small_int(x, &n)) return abn_pow10(out, n);    /* 10^n exactly */
     if (tiny(x)) {                                      /* 1 + x ln 10: 1 */
+        abn_round_note();   /* (096: a value no rounding call reported) */
         *out = one();
         return ABN_OK;
     }
@@ -334,6 +335,7 @@ abn_status fn_expm1(abn *out, const abn *x)
     if (!hp_from_abn(&hx, x)) return ABN_RANGE;
     if (hp_lead(&hx) >= 7) {    /* |x| >= 10^7: e^x overflows, or is far below a unit of 1's 34th digit */
         if (!abn_is_negative(x)) return ABN_OVERFLOW;
+        abn_round_note();   /* (096: a value no rounding call reported) */
         *out = abn_from_int(-1);
         return ABN_OK;
     }
@@ -348,6 +350,7 @@ abn_status fn_ln1p(abn *out, const abn *x)
     abn m1 = abn_from_int(-1);
     if (abn_cmp(x, &m1) <= 0) return ABN_DOMAIN;
     if (abn_is_zero(x) || tiny(x)) {
+        if (!abn_is_zero(x)) abn_round_note();   /* (096: a value no rounding call reported) */
         *out = *x;                      /* ln(1 + x) = x - x^2/2: x itself below 1E-40 (see tiny) */
         return ABN_OK;
     }
@@ -428,6 +431,7 @@ abn_status fn_xroot(abn *out, const abn *y, const abn *x)
     abn_status st;
     if ((st = abn_div(&h, &u, x)) == ABN_UNDERFLOW) {
         /* |1/x| below the range: y^(1/x) is 1 to far beyond the 34th digit (unit 026) */
+        abn_round_note();   /* (096: a value no rounding call reported) */
         *out = yneg ? abn_neg(&u) : u;
         return ABN_OK;
     }
@@ -435,6 +439,7 @@ abn_status fn_xroot(abn *out, const abn *y, const abn *x)
     if (tiny(&h)) {
         /* |1/x| < 1E-40: y^(1/x) = 1 + ln(y)/x rounds to 1 (|ln y| < 14200), and the engine's pow
            underflows inside (unit 026) */
+        abn_round_note();   /* (096: a value no rounding call reported) */
         *out = yneg ? abn_neg(&u) : u;
         return ABN_OK;
     }
@@ -508,6 +513,7 @@ abn_status fn_rmdr(abn *out, const abn *y, const abn *x)
         abn_from_text(&small, "1E-6000");
         if (abn_cmp(&ax, &small) >= 0) {
             if (!floor_adjust(&r, x)) return ABN_UNDERFLOW;
+            abn_round_note();   /* (096: a value no rounding call reported) */
             *out = *x;
             return ABN_OK;
         }
@@ -776,7 +782,22 @@ bool fn_set_fast(bool on)
 /* The engine's value and status st0 replaced by the correctly rounded value; at the range's edges a sure rounding's
    status too, either way (a value the engine kept that rounds past the range, or one it overflowed or underflowed
    that rounds within it: review). The engine's other errors stand. */
+static abn_status sure_(abn *out, abn_status st0, const abn *x, hp_f1 f, int arg);
+
+/* Unit 096: these functions' true values are transcendental at every nonzero argument they take (Lindemann-Weierstrass:
+ * e^x, sin, cos, tan, the hyperbolics and their inverses, and x 180/pi, at a nonzero rational x; ln x at a rational
+ * x other than 1), so a nonzero result of a nonzero x is rounded whatever the last rounding reported: the library's
+ * cos(1E-35) is 1 with no inexact flag, and hp's 1 - 5E-71 rounds to 1 exactly. Not 10^x or log x, which are exact
+ * at integers and powers of ten; and the inverse trig's exact angles are cleared after (inverse()). */
 static abn_status sure(abn *out, abn_status st0, const abn *x, hp_f1 f, int arg)
+{
+    abn_status st = sure_(out, st0, x, f, arg);
+    if (st == ABN_OK && f != f_tenx && !(f == f_ln && arg == 1) && !abn_is_zero(x) && !abn_is_zero(out))
+        abn_round_note();
+    return st;
+}
+
+static abn_status sure_(abn *out, abn_status st0, const abn *x, hp_f1 f, int arg)
 {
     abn v;
     bool is_sure;
@@ -1078,6 +1099,7 @@ static abn_status cos_reduced(abn *out, const abn *a, const angle_unit *u)
     }
     if ((st = trig_exactish(out, a, u, true, NULL)) != ABN_DOMAIN) return st;
     if ((st = to_rad_pair(&hi, &lo, a, u->to_rad, u->to_rad_lo)) == ABN_UNDERFLOW) {
+        abn_round_note();   /* (096: a value no rounding call reported) */
         *out = one();                   /* an angle below the range in radians: cos 1 (unit 026) */
         return ABN_OK;
     }
@@ -1117,6 +1139,10 @@ abn_status fn_sin(abn *out, const abn *x, fn_angle m)
 
 abn_status fn_cos(abn *out, const abn *x, fn_angle m)
 {
+    if (abn_is_zero(x)) {                       /* (096: cos 0 is 1, exact, in every unit) */
+        *out = one();
+        return ABN_OK;
+    }
     if (m == FN_RAD) return sure(out, abn_cos(out, x), x, f_trig, 1);
     const angle_unit *u = unit_of(m);
     reduced rd;
@@ -1221,23 +1247,35 @@ static const exact_angle ACOS_EXACT[] = {
     {"1", "0", "0"}, {"0.5", "60", NULL}, {"0", "90", "100"}, {"-0.5", "120", NULL}, {"-1", "180", "200"}};
 static const exact_angle ATAN_EXACT[] = {{"0", "0", "0"}, {"1", "45", "50"}, {"-1", "-45", "-50"}};
 
+static bool exact_hit;                  /* unit 096: inverse() answered from its exact angles (x itself, not a tiny x's 0) */
+
 static abn_status inverse(abn *out, const abn *x, fn_angle m, abn_status (*f)(abn *, const abn *),
                           const exact_angle *table, int count, bool odd)
 {
     abn r, k, z = abn_zero();
     abn_status st;
-    if (tiny(x) && !odd) x = &z;        /* acos of a tiny x: acos 0 (pi/2 - x rounds to it) */
+    bool replaced = false;
+    exact_hit = false;
+    if (tiny(x) && !odd) {              /* acos of a tiny x: acos 0 (pi/2 - x rounds to it) */
+        x = &z;
+        replaced = true;
+        abn_round_note();   /* (096: a value no rounding call reported) */
+    }
     if (m != FN_RAD) {
         for (int i = 0; i < count; i++) {
             const char *v = m == FN_DEG ? table[i].deg : table[i].grad;
             k = K(table[i].arg);
             if (v && abn_cmp(x, &k) == 0) {
                 *out = K(v);
+                exact_hit = !replaced;
                 return ABN_OK;
             }
         }
     }
-    if (tiny(x)) r = *x;                /* asin, atan: x itself */
+    if (tiny(x)) {
+        r = *x;                         /* asin, atan: x itself */
+        abn_round_note();   /* (096: a value no rounding call reported) */
+    }
     else if ((st = f(&r, x)) != ABN_OK) return st;
     if (m == FN_RAD) {
         *out = r;
@@ -1249,16 +1287,24 @@ static abn_status inverse(abn *out, const abn *x, fn_angle m, abn_status (*f)(ab
 
 abn_status fn_asin(abn *out, const abn *x, fn_angle m)
 {
+    bool was = abn_round_seen();                    /* (096: an expression's rounding so far, kept) */
     abn_status st0 = inverse(out, x, m, abn_asin, ASIN_EXACT, (int)(sizeof ASIN_EXACT / sizeof ASIN_EXACT[0]), true);
+    bool hit = exact_hit;
     inv_hint(out, st0, m);
-    return inv_done(sure(out, st0, x, f_inv, 0 + UNIT3(m)));
+    abn_status st = inv_done(sure(out, st0, x, f_inv, 0 + UNIT3(m)));
+    if (hit && st == ABN_OK && !was) abn_round_clear();     /* (096: an exact angle is exact; sure's check rounded on the way) */
+    return st;
 }
 
 abn_status fn_acos(abn *out, const abn *x, fn_angle m)
 {
+    bool was = abn_round_seen();
     abn_status st0 = inverse(out, x, m, abn_acos, ACOS_EXACT, (int)(sizeof ACOS_EXACT / sizeof ACOS_EXACT[0]), false);
+    bool hit = exact_hit;
     inv_hint(out, st0, m);
-    return inv_done(sure(out, st0, x, f_inv, 1 + UNIT3(m)));
+    abn_status st = inv_done(sure(out, st0, x, f_inv, 1 + UNIT3(m)));
+    if (hit && st == ABN_OK && !was) abn_round_clear();     /* (096) */
+    return st;
 }
 
 abn_status fn_atan(abn *out, const abn *x, fn_angle m)
@@ -1268,14 +1314,19 @@ abn_status fn_atan(abn *out, const abn *x, fn_angle m)
     if (abn_cmp(&ax, &big) >= 0) {
         /* atan x = +-(pi/2 - 1/x), 1/x far below the 34th digit (the engine's atan leaves the range
            inside for the largest x, unit 026) */
+        abn_round_note();               /* (096: 90 degrees, not quite: 1/x below the 34th digit) */
         *out = K(m == FN_DEG ? "90" : m == FN_GRAD ? "100" : "1.570796326794896619231321691639751");
         if (abn_is_negative(x)) *out = abn_neg(out);
         inv_hint(out, ABN_OK, m);
         return inv_done(sure(out, ABN_OK, x, f_inv, 2 + UNIT3(m)));     /* (pi/2 - 1/x rounded once: unit 044) */
     }
+    bool was = abn_round_seen();
     abn_status st0 = inverse(out, x, m, abn_atan, ATAN_EXACT, (int)(sizeof ATAN_EXACT / sizeof ATAN_EXACT[0]), true);
+    bool hit = exact_hit;
     inv_hint(out, st0, m);
-    return inv_done(sure(out, st0, x, f_inv, 2 + UNIT3(m)));
+    abn_status st = inv_done(sure(out, st0, x, f_inv, 2 + UNIT3(m)));
+    if (hit && st == ABN_OK && !was) abn_round_clear();     /* (096) */
+    return st;
 }
 
 /* ---- hyperbolic (UG p.4-6) ---- */
@@ -1284,6 +1335,7 @@ abn_status fn_atan(abn *out, const abn *x, fn_angle m)
 static abn_status odd_fn(abn *out, const abn *x, abn_status (*f)(abn *, const abn *))
 {
     if (tiny(x)) {
+        abn_round_note();   /* (096: a value no rounding call reported) */
         *out = *x;
         return ABN_OK;
     }
@@ -1293,7 +1345,12 @@ static abn_status odd_fn(abn *out, const abn *x, abn_status (*f)(abn *, const ab
 abn_status fn_sinh(abn *out, const abn *x) { return sure(out, odd_fn(out, x, abn_sinh), x, f_hyp, 0); }
 abn_status fn_cosh(abn *out, const abn *x)
 {
+    if (abn_is_zero(x)) {                       /* (096: cosh 0 is 1, exact) */
+        *out = one();
+        return ABN_OK;
+    }
     if (tiny(x)) {
+        abn_round_note();   /* (096: a value no rounding call reported) */
         *out = one();
         return ABN_OK;
     }
@@ -1305,6 +1362,7 @@ abn_status fn_tanh(abn *out, const abn *x)
     if (abn_cmp(&ax, &big) >= 0) {
         /* 1 - |tanh x| = 2e^-2|x| lies far below the 34th digit (and the engine's tanh leaves the
            range inside for the largest x, unit 026) */
+        abn_round_note();   /* (096: a value no rounding call reported) */
         *out = abn_is_negative(x) ? abn_from_int(-1) : one();
         return ABN_OK;
     }

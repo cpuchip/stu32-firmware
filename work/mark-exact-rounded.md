@@ -185,7 +185,11 @@ functions' keys.
 - **INFO** (ROWINFO on the selected row, 093's text): after the existing text, when either applies, `, ROUNDED` (the
   value) then `, SHOWN TO n PLACES` (FIX n) or `, SHOWN TO m DIGITS` (SCI or ENG n, where m = n + 1, the significant digits shown).
   Nothing is added when the value is exact and fully shown. %XLINE reads it, blanks as `_`.
-  - `+ OF 1.0000, 0.3333, ROUNDED`: 1 + 1/3, rounded, an exact view impossible.
+  - Also, found in the build and accepted (abacus #14280): `, SHOWN AS A NEAR FRACTION` with fraction display on and
+    the fraction shown near (its indicator), and `, SHOWN SHORT` at ALL when the number is past the line's width.
+  - ~~`+ OF 1.0000, 0.3333, ROUNDED`: 1 + 1/3, rounded, an exact view impossible.~~ Superseded by ruling (a)
+    (abacus #14272): a rounded value shown short gets both, ROUNDED first: `÷ OF 1.0000, 3.0000, ROUNDED, SHOWN TO 4
+    PLACES` (1÷3 at FIX 4).
   - `÷ OF 1.0000, 8.0000, SHOWN TO 2 PLACES`: 1/8 at FIX 2 shows 0.13.
 - **The image:** `%ROUNDED-X` after SAVE and LOAD (vectors' save/load pass) shows the tag kept. The older-build proof is
   a fixture loaded by the build before (090's way), in make test.

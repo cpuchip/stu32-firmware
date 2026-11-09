@@ -4,7 +4,7 @@
  *
  * Seeds: the golden image (tests/golden-v1.img) and images of states built here (unit 029: one in
  * STU's ALG; unit 031: equations of each model; unit 082: tests/golden-v21-082.img, expressions and names in the
- * stack, the letters and the message's X; 4C: tests/golden-v25-4c.img, a newer firmware's image with value kinds and a
+ * stack, the letters and the message's X; 4C: tests/golden-v26-4c.img, a newer firmware's image with value kinds and a
  * section this build doesn't know). Each case damages
  * a seed (flipped bits, truncation, inserted or deleted bytes, or wholly random bytes), and half
  * the time repairs the length and checksum so the fields themselves are what is tested. A refused
@@ -218,9 +218,9 @@ int main(int argc, char **argv)
         fprintf(stderr, "load_fuzz: tests/golden-v21-082.img not found\n");
         return 2;
     }
-    seeds[8] = file("tests/golden-v25-4c.img", &seedn[8]);      /* 4C: a newer firmware's image */
+    seeds[8] = file("tests/golden-v26-4c.img", &seedn[8]);      /* 4C: a newer firmware's image */
     if (!seeds[8]) {
-        fprintf(stderr, "load_fuzz: tests/golden-v25-4c.img not found\n");
+        fprintf(stderr, "load_fuzz: tests/golden-v26-4c.img not found\n");
         return 2;
     }
     /* unit 089: the device's save of a page of rows (T_ROWREF, T_ROWS): numbers, an expression, ALG lines, links */

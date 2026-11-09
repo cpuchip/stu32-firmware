@@ -278,6 +278,9 @@ typedef struct {
                                CLSTK, CLEAR ALL, C, MEMORY CLEAR), cleared from each level an op makes (rows.c), carried
                                by every copy; STU hides the bare levels at the stack's top. (In the tail's padding: 64 B
                                still, rows.c asserts it) */
+    uint8_t rounded;        /* unit 096 (work/mark-exact-rounded.md): the value isn't the exact result of what made it: a
+                               rounding on its way, an input that was rounded, or a path the core doesn't track (the
+                               default). Carried by every copy; STU draws it as ≈. (Padding too: 64 B) */
 } ab_val;
 
 #define AB_EXPR_SLOTS 48            /* unit 082: the expression store: X, Y, Z, T, LASTx, 27 letters, 16 history values.
@@ -550,6 +553,9 @@ abn_status ab_do(ab_calc *c, ab_op op);
 /* An operation that takes an argument: AB_CONST (a constant's index) and AB_FIX, AB_SCI, AB_ENG
    (the digit setting). ab_do(c, op) is ab_do_arg(c, op, 0). */
 abn_status ab_do_arg(ab_calc *c, ab_op op, int arg);
+/* Unit 096: an op whose path the mark tracks (its result exact when its inputs are and no rounding was reported); every
+   other op's result is rounded. Expressions (eqn.c) ask it for each op they run. */
+bool ab_mark_tracked(ab_op op, int arg);
 /* Unit 041 C (B5): MEM's catalogs (33s p.3-3, p.12-20). Deletes label l's program (its LBL line and the lines after
    it to the next label), the pointer to the line before it, ending what R/S could resume; ABN_NONEXISTENT if there
    is no such label. Clears variable v (0..25; 26 the 33s's i) to zero. Neither runs while a program runs. */

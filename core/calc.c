@@ -477,11 +477,17 @@ static abn_status entry_key(ab_calc *c, ab_op op)
     }
     abn v;
     ab_val nv;
-value:
-    if (entry_value(&e, &v, c->base, short_frac(c)) != ABN_OK) return ABN_OK;  /* out of range: key ignored */
-    nv = ab_real(v);
-    if (c->cpart && complex_entry_value(c, &v, &nv) != ABN_OK) return ABN_OK;
-    if (c->vlen && vector_entry_value(c, &v, &nv) != ABN_OK) return ABN_OK;
+value:;
+    bool was = abn_round_seen();                /* (096: the number typed is rounded when its parse rounds: more digits
+                                                   than the engine keeps, or a fraction's quotient) */
+    abn_round_clear();
+    abn_status vst = entry_value(&e, &v, c->base, short_frac(c));
+    if (vst == ABN_OK) nv = ab_real(v);
+    if (vst == ABN_OK && c->cpart) vst = complex_entry_value(c, &v, &nv);
+    if (vst == ABN_OK && c->vlen) vst = vector_entry_value(c, &v, &nv);
+    nv.rounded = abn_round_seen();
+    if (was) abn_round_note();
+    if (vst != ABN_OK) return ABN_OK;           /* out of range: key ignored */
     /* The first key of a number places it in X, lifting if lift is enabled. Digit entry itself
      * leaves the lift flag alone (UG p.B-5). */
     entry_put(c, nv, !c->entry.active);
@@ -722,6 +728,7 @@ static void note_overflow(ab_calc *c)
 {
     c->flags = (uint16_t)(c->flags | (1u << 6));
     c->ovf++;
+    abn_round_note();                           /* (096: the largest number stands in: rounded) */
 }
 
 /* A real result out of the range: an overflow is the largest number, with the sign the true result
@@ -731,6 +738,7 @@ static abn_status settle(ab_calc *c, abn_status st, abn *r, bool neg)
 {
     if (st == ABN_UNDERFLOW) {
         *r = abn_zero();
+        abn_round_note();                       /* (096: flushed to 0: rounded) */
         return ABN_OK;
     }
     if (st != ABN_OVERFLOW) return st;
@@ -1088,6 +1096,7 @@ abn_status ab_eqn_based(const char *digits, int n, int base, abn *out)
  * shows complex numbers in the lettered variables, UG p.9-2): INVALID DATA, nothing changed. */
 static abn_status store_val(ab_calc *c, const slot *sl, ab_val v)
 {
+    if (c->running || c->active) v.rounded = 1;    /* (096: a letter a program or a solver writes: an untracked path) */
     if (sl->val) {
         *sl->val = v;
         return ABN_OK;
@@ -1149,6 +1158,7 @@ static abn_status storage_op(ab_calc *c, ab_op op, int code)
            is LAST X (not in UG p.B-6's list). An error changes nothing (unit 005 rule 3). */
         v = load_val(&sl);
         if ((st = arith(c, &r, op, &v, &c->x)) != ABN_OK) return st;
+        r.rounded = v.rounded || c->x.rounded || abn_round_seen();     /* (096: an indirect letter's too) */
         if ((st = store_val(c, &sl, r)) != ABN_OK) return st;
         break;
     case AB_RCLADD: case AB_RCLSUB: case AB_RCLMUL: case AB_RCLDIV:
@@ -1187,6 +1197,7 @@ static abn_status suffix(ab_calc *c, int base)
     char d[AB_ENTRY_TEXT];
     int64_t v;
     abn val;
+    bool rounded = false;
     if (!c->entry.active) return ABN_OK;
     if (c->cpart || c->vlen) return ABN_DOMAIN;    /* a suffix reads a real entry (ours, units 009, 010) */
     if (base != 16 && base != 8 && base != 2 && base != 10) return ABN_DOMAIN;
@@ -1195,12 +1206,18 @@ static abn_status suffix(ab_calc *c, int base)
     if (base == 10) {
         for (int i = 0; i < c->entry.len; i++)
             if (d[i] >= 'a' && d[i] <= 'f') return ABN_DOMAIN;
-        if (entry_value(&c->entry, &val, 10, short_frac(c)) != ABN_OK) return ABN_DOMAIN;
+        bool was = abn_round_seen();            /* (096: as entry_key's value) */
+        abn_round_clear();
+        abn_status vst = entry_value(&c->entry, &val, 10, short_frac(c));
+        rounded = abn_round_seen();
+        if (was) abn_round_note();
+        if (vst != ABN_OK) return ABN_DOMAIN;
     } else {
         if (strchr(d, '.') || strchr(d, 'E') || !base_parse(d, base, &v)) return ABN_DOMAIN;
         val = base_from_word(c->entry.mant_neg ? -v : v);
     }
     c->x = ab_real(val);
+    c->x.rounded = rounded;
     ab_rows_num(c);                             /* unit 089 (R3) */
     c->entry.active = false;
     c->lift = true;
@@ -2708,6 +2725,7 @@ static abn_status solve_finish(ab_calc *c)
     slot_of_id(c, c->susp.var, &sl);
     if (st != ABN_OK) return st;
     *sl.val = ab_real(o.x);
+    sl.val->rounded = 1;                        /* (096: a root by method: rounded) */
     c->x = ab_real(o.x);
     c->y = ab_real(o.prev);
     c->z = ab_real(o.fx);
@@ -2952,7 +2970,7 @@ static abn_status fn_finish(ab_calc *c)
             /* interrupted SOLVE (UG p.7-8): the best estimate in the unknown, the stack as before */
             slot sl;
             slot_of_id(c, var, &sl);
-            if (sl.val) *sl.val = ab_real(best);
+            if (sl.val) *sl.val = ab_real(best), sl.val->rounded = 1;     /* (096) */
         }
         return st;
     }
@@ -3049,7 +3067,8 @@ static abn_status prog_resume(ab_calc *c, long limit)
 {
     if (c->stop == AB_STOP_INPUT && c->pc >= 0 && c->peq_line == c->pc) {
         /* an equation line's flag-11 prompt: the next one, or the line runs again and evaluates */
-        c->var[c->stop_var] = c->x;
+        if (c->stop_var >= 0 && c->stop_var <= 26) c->var[c->stop_var] = c->x;   /* (a letter: an image may hold
+                                                                                   another id; load_fuzz, 096) */
         c->lift = true;
         if (++c->eqn_next < c->eqn_nvars) {
             eqn_prompt(c);
@@ -3583,6 +3602,7 @@ static abn_status eqn_step(ab_calc *c)
         c->stop = AB_STOP_NONE;
         return st;
     }
+    v.rounded = abn_round_seen();               /* (096: the equation's evaluation, as ALG's line) */
     if (rhs) c->var[av] = v;
     place_val(c, v);
     c->lift = true;
@@ -3703,6 +3723,8 @@ static abn_status lin_key(ab_calc *c, int n)
     c->var['X' - 'A'] = c->x = ab_real(sol[0]);
     c->var['Y' - 'A'] = c->y = ab_real(sol[1]);
     if (n == 3) c->var['Z' - 'A'] = c->z = ab_real(sol[2]);
+    c->var['X' - 'A'].rounded = c->var['Y' - 'A'].rounded = c->x.rounded = c->y.rounded = 1;   /* (096: untracked) */
+    if (n == 3) c->var['Z' - 'A'].rounded = c->z.rounded = 1;
     c->lift = true;
     return ABN_OK;
 }
@@ -4413,6 +4435,8 @@ static abn_status alg_evaluate(ab_calc *c)
         c->alg_shown = false;
         return st;
     }
+    v.rounded = abn_round_seen();                   /* (096: the line's arithmetic, a rounded letter or ANS it read,
+                                                       an untracked op: eqn.c notes each) */
     v.row = ab_rows_alg(c, c->ebuf, &v);           /* unit 089: the line's row, linked to what it read */
     c->ans = v;                                     /* (unit 090: the row is the history's entry) */
     c->alg_shown = true;
@@ -4958,11 +4982,170 @@ static bool casrep_key(ab_calc *c, ab_op op, abn_status *st);
 
 static abn_status do_arg(ab_calc *c, ab_op op, int arg);
 
-/* Unit 089: every key the keyboard sends, with the worksheet's rows around it (rows.c) */
+/* ---- unit 096: the exact-or-rounded mark (work/mark-exact-rounded.md, revision 1; abacus #14264, #14272) ---- */
+
+/* The bits a key's inputs had, taken before it acts (a number being typed is in X already, its bit 0) */
+typedef struct {
+    uint8_t lv[4], lastx, ans, var[27];
+    ab_val x, y;
+} mark_pre;
+
+static void mark_begin(const ab_calc *c, mark_pre *m)
+{
+    const ab_val *lv[4] = {&c->x, &c->y, &c->z, &c->t};
+    for (int i = 0; i < 4; i++) m->lv[i] = lv[i]->rounded;
+    m->lastx = c->lastx.rounded, m->ans = c->ans.rounded;
+    for (int i = 0; i < 27; i++) m->var[i] = c->var[i].rounded;
+    m->x = c->x, m->y = c->y;
+    abn_round_clear();
+}
+
+/* A constant stored as exactly its defined value (const.c: the 2019 SI's exact ones, and R, F, t, atm, g); every other
+   constant is rounded: pi, e, the measured ones, and those exact by definition but cut to 34 digits */
+static bool const_exact(int i)
+{
+    static const char *const EXACT[] = {"c", "g", "NA", "qe", "k", "h", "R", "F", "t", "atm"};
+    const char *n = i >= 0 && i < ab_const_count() ? ab_const_name(i) : NULL;
+    for (size_t k = 0; n && k < sizeof EXACT / sizeof EXACT[0]; k++)
+        if (!strcmp(n, EXACT[k])) return true;
+    return false;
+}
+
+/* An op whose path the mark tracks: its rounding reaches the engine's flag (or the core notes it), so with exact
+   inputs and no rounding its result is exact. Every other op's result is rounded (revision 1: an untracked path) */
+static bool mark_tracked(ab_op op, int arg)
+{
+    switch (op) {
+    case AB_KCHS: case AB_EXP: case AB_LN: case AB_TENX: case AB_LOG: case AB_SQ: case AB_SQRT: case AB_INV:
+    case AB_SIN: case AB_COS: case AB_TAN: case AB_ASIN: case AB_ACOS: case AB_ATAN: case AB_SINH: case AB_COSH:
+    case AB_TANH: case AB_ASINH: case AB_ACOSH: case AB_ATANH: case AB_HMS: case AB_HMSINV: case AB_TODEG:
+    case AB_TORAD: case AB_TOKG: case AB_TOLB: case AB_TOC: case AB_TOF: case AB_TOCM: case AB_TOIN: case AB_TOL:
+    case AB_TOGAL: case AB_TOKM: case AB_TOMILE: case AB_FACT: case AB_IP: case AB_FP: case AB_INTG: case AB_RND:
+    case AB_ABS: case AB_SGN: case AB_NOT: case AB_EXPM1: case AB_LN1P: case AB_TWOX: case AB_LOG2: case AB_CUBE:
+    case AB_CBRT:
+    case AB_ADD: case AB_SUB: case AB_MUL: case AB_DIV: case AB_IDIV: case AB_RMDR: case AB_POW: case AB_XROOT:
+    case AB_PCT: case AB_PCTCHG: case AB_NCR: case AB_NPR: case AB_AND: case AB_XOR: case AB_OR: case AB_NAND:
+    case AB_NOR:
+    case AB_RCL: case AB_RCLADD: case AB_RCLSUB: case AB_RCLMUL: case AB_RCLDIV:
+    case AB_NSUM: case AB_SIGMAPLUS: case AB_SIGMAMINUS:   /* (n: a count) */
+        return true;
+    case AB_CONST:
+        return const_exact(arg);
+    default:
+        return false;                           /* pi, RAND, the statistics, CAS on X, ...: rounded */
+    }
+}
+
+/* The back-check (revision 1, 3): a root's result r, or a power's to the exponent 1/n (n whole, 2..99, 1/n exact), is
+   exact when r^n is the base exactly. It can only prove exactness */
+static bool root_exact(const abn *r, const abn *base, const abn *index, bool pow)
+{
+    abn n, one = abn_from_int(1), t, acc;
+    int32_t k;
+    if (pow) {
+        if (abn_div(&n, &one, index) != ABN_OK || !abn_small_int(&n, &k) || abn_mul_exact(&t, &n, index) != ABN_OK ||
+            abn_cmp(&t, &one) != 0)
+            return false;
+    } else if (!abn_small_int(index, &k)) {
+        return false;
+    }
+    if (k < 1 || k > 99) return false;          /* (index 1: r is the base itself) */
+    acc = *r;
+    for (int i = 1; i < k; i++)
+        if (abn_mul_exact(&acc, &acc, r) != ABN_OK) return false;
+    return abn_cmp(&acc, base) == 0;
+}
+
+/* A run stopped (a program, SOLVE, an integral): the stack and LASTx it leaves are untracked, so rounded; the letters it
+   wrote were marked as they were written (store_val) */
+/* A store or recall's variable code as the letter it names (var[] index: A..Z, and the 33s's i at 26), or -1 for (I)
+   and (J), whose target the key doesn't name */
+static int mark_letter(int arg)
+{
+    return arg >= AB_VAR_A && arg < AB_VAR_A + 26 ? arg - AB_VAR_A : arg == AB_VAR_SI ? 26 : -1;
+}
+
+static void mark_run_end(ab_calc *c)
+{
+    c->x.rounded = c->y.rounded = c->z.rounded = c->t.rounded = c->lastx.rounded = 1;
+}
+
+static bool same_val(const ab_val *a, const ab_val *b)
+{
+    return a->kind == b->kind && a->len == b->len && !memcmp(&a->re, &b->re, sizeof a->re) &&
+           !memcmp(&a->im, &b->im, sizeof a->im) && !memcmp(&a->p3, &b->p3, sizeof a->p3);
+}
+
+static void mark_end(ab_calc *c, ab_op op, int arg, abn_status st, const mark_pre *m)
+{
+    if ((st != ABN_OK && st != ABN_CLAMPED) || c->prgm || c->entry.active || c->cpart || c->vlen) return;
+    bool seen = abn_round_seen() || st == ABN_CLAMPED;
+    switch (c->rowctx.route) {
+    case AB_ROUTE_REPORT:                       /* SOLVE's report: a number copied or evaluated out of it, (b) */
+        if ((op == AB_ENTER || op == AB_CASEVAL) && !ab_cas_report(c)) c->x.rounded = 1;
+        return;
+    case AB_ROUTE_ALG: case AB_ROUTE_EQN:       /* a line or an equation evaluated: its arithmetic's flag, a rounded
+                                                   letter it read noting it (eqn.c); a solver's root rounded */
+        if (op == AB_SOLVE || op == AB_INTEG) {
+            c->x.rounded = 1;
+            if (op == AB_SOLVE && mark_letter(arg) >= 0) c->var[mark_letter(arg)].rounded = 1;
+        } else if (!same_val(&c->x, &m->x)) {
+            c->x.rounded = seen;
+        }
+        return;
+    case AB_ROUTE_DO:
+        break;
+    default:
+        return;
+    }
+    ab_rowop o = ab_rows_op(op, arg);
+    switch (o.kind) {
+    case AB_ROWK_OP: {
+        bool in = false, tracked = mark_tracked(op, arg);
+        for (int i = 0; i < 4; i++)
+            if (o.reads >> i & 1) in = in || m->lv[i];
+        if (o.src == AB_ROWSRC_VAR && mark_letter(arg) >= 0) in = in || m->var[mark_letter(arg)];
+        else if (o.src == AB_ROWSRC_VAR) in = true;     /* (an indirect register keeps no mark: rounded) */
+        if (o.src == AB_ROWSRC_LASTX) in = in || m->lastx;
+        if (o.src == AB_ROWSRC_ANS) in = in || m->ans;
+        bool r = in || seen || !tracked;
+        if (r && !in && tracked && (op == AB_XROOT || op == AB_POW) && c->x.kind == AB_REAL && m->x.kind == AB_REAL &&
+            m->y.kind == AB_REAL && root_exact(&c->x.re, &m->y.re, &m->x.re, op == AB_POW))
+            r = false;
+        if (o.makes & 1) c->x.rounded = r;
+        if (o.makes & 2) c->y.rounded = r;
+        break;
+    }
+    case AB_ROWK_RUN:                           /* a program or a solver: rounded when it stops (an untracked path) */
+        if (c->stop != AB_STOP_SLICE) mark_run_end(c);
+        break;
+    case AB_ROWK_LETTER:
+        if (mark_letter(arg) >= 0) c->var[mark_letter(arg)].rounded = m->var[mark_letter(arg)] || m->lv[0] || seen;
+        break;
+    case AB_ROWK_CLEAR: {                       /* a cleared level is the exact 0 */
+        ab_val *lv[4] = {&c->x, &c->y, &c->z, &c->t};
+        for (int i = 0; i < 4; i++)
+            if (lv[i]->bare) lv[i]->rounded = 0;
+        break;
+    }
+    default:
+        break;
+    }
+}
+
+bool ab_mark_tracked(ab_op op, int arg)
+{
+    return mark_tracked(op, arg);
+}
+
+/* Unit 089: every key the keyboard sends, with the worksheet's rows around it (rows.c); 096's mark around it too */
 abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
 {
+    mark_pre m;
+    mark_begin(c, &m);
     ab_rows_key_begin(c, op, arg);
     abn_status st = do_arg(c, op, arg);
+    mark_end(c, op, arg, st, &m);
     ab_rows_key_end(c, op, arg, st);
     ab_rows_bare_key(c, op, arg, st);           /* unit 090 (B′), every mode */
     return st;
@@ -5639,6 +5822,7 @@ abn_status ab_continue(ab_calc *c)
         err_note(c, AB_RS, 0, NULL);
         c->err_status = st;
     }
+    if ((st == ABN_OK || st == ABN_CLAMPED) && c->stop != AB_STOP_SLICE) mark_run_end(c);    /* (096) */
     ab_rows_continue_end(c, st);                            /* unit 089: a run's one row, when it stops */
     return st;
 }
@@ -6062,7 +6246,7 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
         if (c->eqn_pending) {
             /* at an equation's prompt: X is stored and the next prompt or the value follows; lift
                is enabled so the value stays on the stack (UG p.6-14) */
-            c->var[c->stop_var] = c->x;
+            if (c->stop_var >= 0 && c->stop_var <= 26) c->var[c->stop_var] = c->x;   /* (as prog_resume's) */
             c->lift = true;
             c->eqn_next++;
             return eqn_step(c);

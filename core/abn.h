@@ -172,4 +172,10 @@ void abn_digits(const abn *a, bool *neg, char *digits, int *lead);
 bool abn_small_int(const abn *a, int32_t *v);
 int abn_sig_digits(const abn *a);
 
+/* Unit 096: the sticky "rounded" flag: set by every library result accepted with its inexact flag, and by the core
+   where it makes a value no rounding call reported (abn_round_note); cleared per key by the core. */
+void abn_round_clear(void);
+bool abn_round_seen(void);
+void abn_round_note(void);
+
 #endif

@@ -1,0 +1,5 @@
+# work/096-evidence: tests/mark-fixture-v25.img (saved by 096's build) loaded by the build before, c4aaff6 (VER 0.96), its
+# build/vectors from a git worktree at c4aaff6, run in this repo: OLDER FIRMWARE shows, every value loads as saved
+O01 | the build before loads 096's image: OLDER FIRMWARE, every value as saved | LOADFILE:tests/mark-fixture-v25.img | %STATUS=OLDER_FW %STU=1 X=1.414213562373095048801688724209698 Y=2 Z=1.414213562373095048801688724209698 @B=1.414213562373095048801688724209698
+scratch/mark/older.txt: 1/1 vectors, 6/6 expectations
+# run 2026-11-09T06:01:35Z

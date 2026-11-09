@@ -22,12 +22,14 @@
 
 #include "calc.h"
 
-#define AB_STATE_VERSION 24     /* 24 (unit 090): which levels are bare, in STU (T_BARE); 23 (unit 089): the rows values hold and the page's newest (T_ROWREF), and the device's save the page
+#define AB_STATE_VERSION 25     /* 25 (unit 096): which values are rounded, in STU (T_ROUNDED); 24 (unit 090): which levels are bare, in STU (T_BARE); 23 (unit 089): the rows values hold and the page's newest (T_ROWREF), and the device's save the page
                                    itself (T_ROWS, ab_state_save_rows); an image with no row written as before; 22 (the CAS 038 repin, abacus #13773): no new field; the message CONDITION FAILS
                                    (ABN_CAS_CONDITION) may be the one showing; 21 (unit 082): a value may be an expression (its text) or a name (kinds 3, 4), the
                                    messages MEMORY FULL (ABN_EXPR_FULL), NOT A NUMBER and OLDER FIRMWARE may be the one showing, and a section
                                    this build doesn't know is skipped by its size; an image needing none of it is still
-                                   written as 20, byte for byte (ab_state_save writes the lowest version its content needs);
+                                   written as 20, byte for byte (ab_state_save writes the lowest version its content needs;
+                                   amended by unit 096, abacus #14280: an STU image's content always needs 25, since the mark
+                                   is always written there, so STU images save as 25 and a 33s or 35s image as before);
                                    20 (unit 076): CAS3's CPLX, SOLVE's complex roots (T_CASCPLX, one byte); 19 (unit 070): no new field; a label may be WHERE (a sum's condition), and the messages
                                    NO CLOSED FORM, BAD BOUND and A CONDITION may be the one showing; 18 (CAS 015): no new field; the message CAN'T DECIDE (ABN_CAS_UNDECIDED) may be the one
                                    showing; 17 (unit 057): each equation's label (T_EQNOTE); 16 (unit 056): no new field; the messages IMPROPER INTEGRAL, UNDEFINED, BOUND NOT

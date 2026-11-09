@@ -92,8 +92,8 @@ S45 | 070: the WHERE label | STU RAD EQ:X^K CASSUM:K 0 ENTER RCL:N ENTER SST SAV
 S46 | 070: NO CLOSED FORM showing | STU RAD EQ:1÷K^2 CASSUM:K 1 ENTER RCL:N ENTER SAVE LOAD | ERR %ERR=CAS_NO_CLOSED
 S47 | 070: BAD BOUND showing | STU RAD EQ:K CASSUM:K 1.5 ENTER RCL:N ENTER SAVE LOAD | ERR %ERR=CAS_BAD_BOUND
 S48 | 070: A CONDITION showing | STU RAD EQ:X^K CASSUM:K 0 ENTER RCL:N ENTER SST CASSIMP SAVE LOAD | ERR %ERR=CAS_WHERE
-S49 | 070: an image as version 18 with NO CLOSED FORM showing is refused (the message is version 19's) (unit 090: T_BARE, 24, taken out first, so it's refused or read for its own reason) | STU RAD EQ:1÷K^2 CASSUM:K 1 ENTER RCL:N ENTER SAVE DROPSEC:24 IMGVER:18 LOAD | ERR %ERR=BAD_IMAGE
-S50 | 070: an image as version 18 holding a WHERE label is refused (the label is version 19's) (unit 090: T_BARE, 24, taken out first, so it's refused or read for its own reason) | STU RAD EQ:X^K CASSUM:K 0 ENTER RCL:N ENTER SAVE DROPSEC:24 IMGVER:18 LOAD | ERR %ERR=BAD_IMAGE
-S51 | 070: the control: the same image as version 19 loads (unit 090: T_BARE, 24, taken out first, so it's refused or read for its own reason) | STU RAD EQ:X^K CASSUM:K 0 ENTER RCL:N ENTER SAVE DROPSEC:24 IMGVER:19 LOAD | %EQN=3
+S49 | 070: an image as version 18 with NO CLOSED FORM showing is refused (the message is version 19's) (unit 090: T_BARE, 24, taken out first, and 096's T_ROUNDED, 25, so it's refused or read for its own reason) | STU RAD EQ:1÷K^2 CASSUM:K 1 ENTER RCL:N ENTER SAVE DROPSEC:24 DROPSEC:25 IMGVER:18 LOAD | ERR %ERR=BAD_IMAGE
+S50 | 070: an image as version 18 holding a WHERE label is refused (the label is version 19's) (unit 090: T_BARE, 24, taken out first, and 096's T_ROUNDED, 25, so it's refused or read for its own reason) | STU RAD EQ:X^K CASSUM:K 0 ENTER RCL:N ENTER SAVE DROPSEC:24 DROPSEC:25 IMGVER:18 LOAD | ERR %ERR=BAD_IMAGE
+S51 | 070: the control: the same image as version 19 loads (unit 090: T_BARE, 24, taken out first, and 096's T_ROUNDED, 25, so it's refused or read for its own reason) | STU RAD EQ:X^K CASSUM:K 0 ENTER RCL:N ENTER SAVE DROPSEC:24 DROPSEC:25 IMGVER:19 LOAD | %EQN=3
 S52 | 070: ∞ has no place on ALG's line: RPN ONLY | STU ALG 2 INF | ERR %ERR=RPN_ONLY
 S53 | 070: in program entry ∞ records no line | STU PRGM INF PRGM | %LINES=0

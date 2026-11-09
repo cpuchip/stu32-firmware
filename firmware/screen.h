@@ -173,6 +173,9 @@ typedef struct {
     unsigned long sel;
     char pagemark[SCREEN_PAGE_MAX];
     char levelmark[4];                              /* X, Y, Z, T */
+    /* unit 096 (work/mark-exact-rounded.md, look A): the mark X's line draws before its number on STU's home, UTF-8:
+       "≈" when the value is rounded or the display drops a nonzero digit of it; "" none. Not in x's text */
+    char xmark[4];
 } screen_page;
 
 void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out);

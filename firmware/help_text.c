@@ -314,7 +314,7 @@ const help_entry help_table[] = {
     {HELP_OP, AB_ROWSTO, -1, "Then a letter: the selected\nrow's value into it."},
     {HELP_OP, AB_ROWSHOW, -1, "The selected row's value with\nevery digit, in X's place."},
     {HELP_OP, AB_ROWFRAC, -1, "The selected row's value as a\nfraction, in X's place."},
-    {HELP_OP, AB_ROWINFO, -1, "What made the selected row:\nits op and the values it read."},
+    {HELP_OP, AB_ROWINFO, -1, "The op and the values it read,\nthen ROUNDED or SHOWN TO n\nPLACES when not exact (\342\211\210)."},
     {HELP_OP, AB_ROWEDIT, -1, "The shown line's text back on\nthe line, to change and run."},
     {HELP_OP, AB_SUF, -1, "After digits: {} reads them in\nits base: b 2, o 8, d 10, h 16."},
     {HELP_MENU, 0, -1, "GAMES\037Games: five a page, C to APPS."},

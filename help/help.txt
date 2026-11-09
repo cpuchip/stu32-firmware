@@ -1299,8 +1299,9 @@ every digit, in X's place.
 The selected row's value as a
 fraction, in X's place.
 [AB_ROWINFO]
-What made the selected row:
-its op and the values it read.
+The op and the values it read,
+then ROUNDED or SHOWN TO n
+PLACES when not exact (≈).
 [AB_ROWEDIT]
 The shown line's text back on
 the line, to change and run.

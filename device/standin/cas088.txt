@@ -96,7 +96,8 @@ send X
 expect state: X=3  10
 expect soft1=- 10
 send FRAMECRC
-expect framecrc: rows 21-205 A98892E5 10
+# (unit 096: the root copied out of the report is rounded, ruling (b): ≈ before it; A98892E5 before)
+expect framecrc: rows 21-205 EEC9832B 10
 send X
 expect-min stack-free 8188 10
 # CONTROL: must FAIL
