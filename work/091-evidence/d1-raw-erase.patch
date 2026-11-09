@@ -1,0 +1,36 @@
+--- /home/claude/scratch/soroban/dev_bench.h.keep	2026-11-09 00:31:18.441611492 +0000
++++ device/dev_bench.h	2026-11-09 00:31:18.449543991 +0000
+@@ -18,6 +18,7 @@
+ #include "fn.h"
+ #include "xnum.h"
+ #include "sdkconfig.h"
++#include "esp_flash.h"
+ #ifdef CONFIG_PM_ENABLE
+ #include "esp_pm.h"
+ #endif
+@@ -471,6 +472,25 @@
+     if (lk) esp_pm_lock_delete(lk);
+     if (lk2) esp_pm_lock_delete(lk2);
+ #endif
++    {   /* THROWAWAY DIAGNOSTIC D1 (unit 091, not committed): raw single-sector erases, each sector dirtied first */
++        static uint8_t z[256];
++        int64_t e[SB_N];
++        for (int i = 0; i < SB_N; i++) {
++            esp_flash_write(NULL, z, 0x78F000u, sizeof z);
++            int64_t t0 = esp_timer_get_time();
++            esp_err_t rc = esp_flash_erase_region(NULL, 0x78F000u, 4096);
++            e[i] = rc == ESP_OK ? esp_timer_get_time() - t0 : -1;
++        }
++        svb_line("raw erase at 0x78F000", "one sector", e);
++        uint32_t last = fl->slot_size * 2 - 4096;
++        for (int i = 0; i < SB_N; i++) {
++            fl->write(fl->ctx, last, z, sizeof z);
++            int64_t t0 = esp_timer_get_time();
++            int rc = fl->erase(fl->ctx, last, 4096);
++            e[i] = rc == 0 ? esp_timer_get_time() - t0 : -1;
++        }
++        svb_line("the partition's erase at its last sector", "one sector", e);
++    }
+     printf("savebench: done\n");
+     heap_caps_free(v);
+     heap_caps_free(c2);

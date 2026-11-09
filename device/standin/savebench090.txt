@@ -2,17 +2,14 @@
 # of ROWBENCH's three states (no page, the full page, the worst), as min, median and max, each save split into its erase,
 # its writes and its reads, with how many of the erased sectors were already blank. The calculator's own state is
 # written again after each state. On an image with power management (Rev A's), each state is timed again holding the CPU
-# at its maximum and light sleep off, the control for whether power management stretches a save. Ends with a control
-# that must FAIL.
+# at its maximum and light sleep off, the control for whether power management stretches a save. Like speed.txt, no
+# version and no control, so Rev A's bring-up (FLASH.md step 6) can run it on any later image and end ALL MET.
 wait : heap internal 30
 sleep 3
 send X
-expect ver=0.90 10
+wait state: 10
 send SAVEBENCH
 expect savebench: no page: the save 120
 expect savebench: the full page: the save 240
 expect savebench: the worst page: the save 300
 expect savebench: done 300
-# CONTROL: must FAIL
-send X
-expect savebench: never 3

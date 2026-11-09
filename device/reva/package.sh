@@ -10,6 +10,7 @@
 #   abacus_reva-bench-<sha7>.bin the same with the benches (AB_BENCH), for step 8's timing only, then flash the first
 #   talk.py, bringup.txt         the console and the bring-up session (device/standin/talk.py, device/reva/bringup.txt)
 #   speed.txt                    the benches' session (device/standin/speed.txt), for the bench image
+#   savebench090.txt             the save's distribution on the board's own flash (units 090, 091), for the bench image
 #   sdkconfig                    the configuration the image was built with
 #   FLASH.md                     how to flash and run the session, on Windows (fermion) and on lepton
 #   SHA256SUMS                   every file above
@@ -46,7 +47,8 @@ rm -rf "$OUT"
 mkdir -p "$OUT"
 cp "$B/bootloader/bootloader.bin" "$B/partition_table/partition-table.bin" "$B/abacus_reva.bin" "$B/sdkconfig" "$OUT/"
 sed -e 's#bootloader/##; s#partition_table/##' "$B/flash_args" > "$OUT/flash_args"
-cp "$WT/device/standin/talk.py" "$WT/device/reva/bringup.txt" "$WT/device/standin/speed.txt" "$OUT/"
+cp "$WT/device/standin/talk.py" "$WT/device/reva/bringup.txt" "$WT/device/standin/speed.txt" \
+    "$WT/device/standin/savebench090.txt" "$OUT/"
 mkdir -p "$OUT/bench"
 cp "$WT/device/reva/build-bench/bootloader/bootloader.bin" "$WT/device/reva/build-bench/partition_table/partition-table.bin" \
     "$WT/device/reva/build-bench/abacus_reva.bin" "$OUT/bench/"

@@ -75,12 +75,18 @@ Ctrl+Z, then Enter, ends it.
 
     python -m esptool --chip esp32s3 -p COMn -b 460800 --before default_reset --after hard_reset write_flash 0x0 abacus_reva-bench-@S7@.bin
     python talk.py COMn speed.log speed.txt
+    python talk.py COMn save.log savebench090.txt
     python -m esptool --chip esp32s3 -p COMn -b 460800 --before default_reset --after hard_reset write_flash 0x0 abacus_reva-@S7@.bin
 
 - The session should end `talk.py: ALL MET`. Send `speed.log` to abacus with `bringup.log`.
 - For comparison, head-less on the stand-in's S3 Rev A gives SOLVE about 17,000 µs, the integral about 29,000 µs, and
   PROGBENCH about 198 / 255 ms (units 059, 061).
-- The store is kept across both writes.
+- `savebench090.txt` (units 090, 091, abacus #14107) saves the state to the board's own flash 20 times for each of three
+  sizes and prints min, median and max; it should end `talk.py: ALL MET`. Send `save.log` too: its line `savebench: the worst page: the save min ... max N
+  ms` is the number that matters (unit 090's rule: N past 1,000 ms means the held rows get a cap). For comparison, on the
+  stand-in's S3 the stand-in's image gives a worst max of 573 ms and Rev A's head-less 953 ms; the stand-in chip's two
+  sectors under Rev A's store are slow to erase on their own (unit 091), so the board's own number is the one to keep.
+- The store is kept across both writes (each bench writes the calculator's own state back).
 
 ## On lepton
 

@@ -19,3 +19,33 @@ C5  the console task's 10 ms read() poll stopped while SAVEBENCH runs.
 
 I predict every candidate "doesn't move", which says I don't have a mechanism yet; the runs are a census, and the first
 that moves gets its own control (restored, the time comes back).
+
+Added after C0-C3 ran (all as predicted: no move), before C4:
+C4  struck without a run: in head-less, lcd_init returns before any SPI2 setup (reva_main.c:269-274), so the image has no
+    SPI2 bus to remove.
+D1  raw erase under Rev A's image (the stand-in diagnostic's code, unguarded): 20 single-sector erases, each dirtied first,
+    by esp_flash_erase_region at 0x78F000, and 20 by esp_partition_erase_range at its abstate's last sector.
+    Predicted: both slow, 120-230 ms, the same as SAVEBENCH's erase (so the cost is Rev A's runtime or build, not the
+    store's path). If the raw erase is fast and the partition's slow, the cost is in the partition path.
+    RESULT D1: my prediction was wrong. Raw erase at 0x78F000 20/22/22 ms; the partition's erase at its last sector
+    18/20/22 ms, in the same run whose SAVEBENCH erase was 115/223/229. So not Rev A's runtime or build: the store's
+    erases are of other sectors, its slots' first ones (0x710000 and 0x750000 on Rev A's map), which no diagnostic
+    timed until now.
+
+D2  under Rev A's image, 20 dirtied single-sector erases at each of: 0x710000 (slot 0's first sector), 0x750000 (slot
+    1's), 0x78F000 (the control, fast in D1), each sector dirtied two ways: 256 B of zeros, and all 4,096 B.
+    Predicted: the address decides, the fill doesn't. 0x710000 and 0x750000 slow (120-230 ms) with either fill;
+    0x78F000 fast (20-23 ms) with either.
+    RESULT D2 as predicted: 0x710000 186/215/227 and 170/200/227 ms (256 B, 4,096 B written), 0x750000 158/181/218 and
+    182/199/219, 0x78F000 20/22/22 and 20/20/20. The sector decides; how much of it was written doesn't.
+
+D3  under the stand-in's image (its store at 0x510000; Rev A's region unallocated there), 20 dirtied (256 B) erases at
+    0x710000, 0x716000 (the worst save's last sector in slot 0), 0x720000 (past every image's sectors), 0x74F000 (slot 0's
+    last sector), 0x750000, and 0x510000 (the stand-in's own slot 0, the control).
+    Predicted: a property of these sectors of this chip, so the same under either image: 0x710000, 0x716000 and 0x750000
+    slow (120-230 ms); 0x510000, 0x720000 and 0x74F000 fast (20-23 ms). The sectors Rev A's head-less store has cycled are
+    the slow ones; what made them slow (wear from its cycling, or something else) is the next question if this holds.
+    RESULT D3: right on five of six. 0x710000 178/190/229 ms and 0x750000 151/171/216 under the stand-in's image too;
+    0x720000 20/21/23, 0x74F000 18/21/31, 0x510000 21/23/23. Wrong on 0x716000 (the worst save's last sector in slot 0):
+    28/30/32 ms, fast. So exactly the two sectors every save erases first (each slot's first, whatever the image's size)
+    are slow, under either image.
