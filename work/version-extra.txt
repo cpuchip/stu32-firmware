@@ -1,0 +1,5 @@
+# check-version's out-of-order builds (abacus #14190): a unit built after a higher-numbered one still moves VER
+# forward, so each line here adds one to "0.<the last work unit>" from then on. A line is a unit, then the version it
+# took and why.
+092 0.95 the store's ring, built after 094: 0.95 is 094 + 092, and the next unit takes 0.96. Not 0.94.1: talk.py's
+    expect matches a substring, so "ver=0.94" would pass a 0.94.1 build
