@@ -1,0 +1,11 @@
+T0 SURVIVED 
+T1 SURVIVED 
+T2 SURVIVED 
+T3 RED: 095:P01,P02,P03,P04,P05,P06,P08,R09,S01 ## app_test 1: app_test: 095: STEPS on the D/DX answer: STEP 1 of 3, POWER, the view's bar ## screen_test frames 64,65,66; checks: screen_test: 095: STEP 1 OF 3, POWER at depth 1 (one dot) || screen_test: 095: the product's answer, the longest page (broken after its opera ## replay 4: standin_replay: device/standin/steps095.txt:86: FAIL: framecrc 1468449E, the replay gives 6EC77CEA || standin_replay: device/standin/steps095.txt:91: FAIL: framecrc 9ACB255E, the replay gives 79E924D9 || standin_replay: device/standin/steps095.txt: current, 0 of 2 frames match, 1 control: FAILED
+T4 RED: 095:R03,R04
+T5 RED: 095:S03
+T6 RED: 095:S02 ## app_test 2: app_test: 095: C leaves the steps for the report || app_test: 094: EVAL (soft key 3) on R=V÷I: 2.5 in X, the report gone
+T7 RED: 095:R11
+T8 RED: 095:P05,S04 ## screen_test frames 66; checks: screen_test: 095: the product's answer, the longest page (broken after its opera
+T9 RED: 095:R08
+restored: core/calc.c as the originals given (SCRATCH/orig095)
