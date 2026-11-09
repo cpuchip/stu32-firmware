@@ -29,3 +29,14 @@ Q5  the half-partition refusal removed (any image up to the whole partition, les
 Q6  the payload's CRC not checked (the highest-seq good header taken whatever its payload).
     Predicted red: store_test's fixtures' line only (the corrupted newest is loaded, not skipped). Green: every CUTALL:
     a cut never leaves a whole header over a broken payload, and older images' broken payloads have lower seqs.
+
+Run 3, on the store with the remembered newest (8e259ef), predicted before it ran: Q0-Q6 as run 1 and run 2 found them
+(Q3 with store_test's migrate check and store_sim F's 2-sector part), Q4 planted against the new save's ending; and two
+new faults.
+Q7  the remembered header not read back (the ring trusted as it is).
+    Predicted red: store_test's remembered-newest line only (after WIPE the save goes after the remembered place, seq
+    5, not at sector 0 as seq 1). Green: everything else (the tests' other flashes have no ring; store_sim drops it
+    wherever the flash changes behind the store).
+Q8  the ring not dropped while a save is in flight ("until this save is whole" removed).
+    Predicted SURVIVED: after a save that failed, the remembered header is still the newest's, read back whole, so the
+    next save starts where it would have anyway. The line is defensive; no test here can tell it's gone.
