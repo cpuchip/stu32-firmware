@@ -162,10 +162,15 @@ typedef enum {
     /* unit 082 (EQN MORE's →X and →EQN, STU's Equation mode, nonprogrammable): the shown equation's text dropped onto
        the stack as an expression (the stack lifted; Equation mode stays open); X's expression or name stored back into
        the list after the shown entry, which becomes the shown one (X kept; a number there is INVALID DATA) */
-    AB_EQDROP, AB_EQSTORE
+    AB_EQDROP, AB_EQSTORE,
+    /* unit 093 (work/worksheet-3-select.md; nonprogrammable, STU's home only): SEL selects a row (GOLD then soft 2);
+       while one is selected, COPY puts its value in X as a row linked to it (ENTER too), ROWSTO stores it in a letter
+       (arg, a move), ROWSHOW, ROWFRAC and ROWINFO show it in X's place until the next key, ROWEDIT puts an ALG row's text
+       on the line. Outside a selection each does nothing */
+    AB_SEL, AB_COPY, AB_ROWSTO, AB_ROWSHOW, AB_ROWFRAC, AB_ROWINFO, AB_ROWEDIT
 } ab_op;
 
-#define AB_OP_LAST AB_EQSTORE  /* the last op: loops over every op end here */
+#define AB_OP_LAST AB_ROWEDIT  /* the last op: loops over every op end here */
 
 /* Why the last run stopped (unit 012 rule 1): the device draws it; the core never waits. */
 typedef enum {
@@ -476,6 +481,14 @@ typedef struct {
     /* unit 029, 090: the line's history is the page's ALG rows; this is the one ▲ and ▼ show (its serial, 0 none), in RAM
        only. The struct's tail starts here, so that an image loaded keeps it by clearing only what is before it (state.c) */
     uint32_t hist_row;
+    /* unit 093: the row selected on STU's home (RPN): its serial (0 none), the level holding it (-1 a page row, 0-3 X-T),
+       the one SEL selected (5 returns to it), the window's top row when it's scrolled (0 the newest rows, as 090's) and
+       the dropped line shown above the oldest; a view of a row in X's place until the next key (1 INFO, 2 FRAC, 3 SHOW)
+       and the row it's of. RAM only: an image loaded clears it, as MEMORY CLEAR and CLEAR ALL do */
+    uint32_t sel_row, sel_entry, sel_top, sel_view_row;
+    int8_t sel_level, sel_entry_level;
+    bool sel_drop;
+    uint8_t sel_view;
     char exprs[AB_EXPR_SLOTS][AB_EQN_LEN];  /* unit 082: the expressions values hold, by slot; a slot no live value names is
                                                free (ab_expr_new sweeps). In the image by content, never by slot */
     /* unit 089 (work/worksheet-1-rows.md): the worksheet's rows, in RAM (the tail, so UNDO's image loaded keeps them;
@@ -496,6 +509,10 @@ void ab_init(ab_calc *c);
 int ab_prog_line(const ab_calc *c, int i, const ab_display *d, char *out, int size);
 /* Unit 090: an op's name as a worksheet row shows it (list.c's names: R/S's row reads R/S, a keyboard XEQ A its letter) */
 int ab_op_text(const ab_calc *c, int op, int arg, char *out, int size);
+/* Unit 093: the row menu for the selected row (RPN) or the row shown (ALG): "ROW NUM", "ROW EXPR", "ROW ALG"; NULL none.
+   And the selection dropped (the app's UNDO and the keys it takes before the core) */
+const char *ab_sel_menu(const ab_calc *c);
+void ab_sel_clear(ab_calc *c);
 
 /* Performs one operation. On an arithmetic error (divide by zero, out of range) the four
    registers and LAST X are left as they were and the error is returned; a number being

@@ -1277,6 +1277,25 @@ Then 2 × makes (...)×2.
 X's expression or name into
 the list, after the shown one.
 Also on the stack's X bar.
+[AB_COPY]
+The selected row's value into
+X, as a new row linked to it.
+ENTER does the same.
+[AB_ROWSTO]
+Then a letter: the selected
+row's value into it.
+[AB_ROWSHOW]
+The selected row's value with
+every digit, in X's place.
+[AB_ROWFRAC]
+The selected row's value as a
+fraction, in X's place.
+[AB_ROWINFO]
+What made the selected row:
+its op and the values it read.
+[AB_ROWEDIT]
+The shown line's text back on
+the line, to change and run.
 
 [AB_SUF]
 After digits: {} reads them in

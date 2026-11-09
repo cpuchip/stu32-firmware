@@ -60,6 +60,7 @@ static const char *const NAMES[AB_OP_LAST + 1] = {
     [AB_CUBE] = "x\xc2\xb3", [AB_CBRT] = "\xe2\x88\x9b" "x",
     [AB_ENGL] = "\xe2\x86\x90" "ENG", [AB_ENGR] = "ENG\xe2\x86\x92",
     [AB_CLVARX] = "CLVAR",
+    [AB_COPY] = "COPY",                         /* unit 093: a worksheet row's (never a program line) */
 };
 
 /* x?y and x?0, in the order of the menu (UG p.14-7) */

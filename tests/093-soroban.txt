@@ -1,0 +1,46 @@
+# Unit 093 (work/worksheet-3-select.md, revision 1; abacus #14132, #14134, #14137): selecting a row on STU's home. The
+# selection lives in the core: SEL is GOLD then soft 2; while a row is selected 8 up, 2 down, 5 back to SEL's row, 4 and
+# 6 nothing, C and BKSP leave, ENTER is COPY, the other digits, ".", E and CHS leave and type, any other key leaves and
+# acts; ROWCOPY ROWSTO:v ROWSHOW ROWFRAC ROWINFO ROWEDIT the row menu's items. Dumps (#14133): %SEL, %PAGEMARK-k,
+# %LEVELMARK-L, %SOFT-n, %XLINE, %BAND. Each expectation was worked out by hand before the first run.
+#
+# The chain 3 ENTER 4 × 5 + 2 ÷ √x: rows 1 3, 2 4, 3 ×12, 4 5, 5 +17, 6 2, 7 ÷8.5, 8 √x; X holds 8, the page 7..1.
+E01 | SEL: the lowest page line's row (÷), its links (+ 17 and 2) marked, the band SEL, the number's menu | STU 3 ENTER 4 * 5 + 2 / SQRT SEL | %SEL=7 %PAGEMARK-1=S %PAGEMARK-2=L %PAGEMARK-3=L %PAGEMARK-4=- %LEVELMARK-X=- %BAND=SEL_STU %SOFT-1=COPY %SOFT-2=STO %SOFT-3=SHOW %SOFT-4=FRAC %SOFT-5=_ %SOFT-6=INFO
+E02 | nothing selected: no marks, the band RPN, no menu | STU 3 ENTER 4 * 5 + 2 / SQRT | %SEL=- %PAGEMARK-1=- %BAND=RPN_STU %SOFT-1=_
+E03 | SEL completes a number being typed first (its row made); with no page line, X's row | STU 3 ENTER 4 SEL | %ROWS=2 %SEL=2 %LEVELMARK-X=S %LEVELMARK-Y=-
+E04 | SEL with no row at all selects nothing | STU SEL | %SEL=- %BAND=RPN_STU
+E05 | the 33s mode: SEL does nothing | MODE33 3 ENTER 4 + SEL | %SEL=- %LEVELS=none
+M01 | 8 moves up a row | STU 3 ENTER 4 * 5 + 2 / SQRT SEL 8 | %SEL=6 %PAGEMARK-2=S %PAGEMARK-1=-
+M02 | 2 below the page's newest: the top drawn level holding a row (X), its link marked | STU 3 ENTER 4 * 5 + 2 / SQRT SEL 2 | %SEL=8 %LEVELMARK-X=S %PAGEMARK-1=L
+M03 | 5 back to SEL's row | STU 3 ENTER 4 * 5 + 2 / SQRT SEL 8 8 8 5 | %SEL=7
+M04 | 4 and 6 do nothing | STU 3 ENTER 4 * 5 + 2 / SQRT SEL 8 4 6 | %SEL=6 %ROWS=8
+M05 | down from a page row through Y to X | STU 1 ENTER 2 ENTER 3 + SEL 2 2 | %SEL=4 %LEVELMARK-X=S %LEVELMARK-Y=-
+M06 | ... the first 2 lands on Y | STU 1 ENTER 2 ENTER 3 + SEL 2 | %SEL=1 %LEVELMARK-Y=S
+M07 | 2 on X does nothing | STU 3 ENTER 4 * 5 + 2 / SQRT SEL 2 2 | %SEL=8
+# Scrolling: 1 ENTER 2 + 3 + ... 9 +: 17 rows, X holds 17, 7 page lines (rows 10-16)
+W01 | moving up past the window's top scrolls a line, the selected row on the top line | STU 1 ENTER 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + SEL 8 8 8 8 8 8 8 8 | %SEL=8 %PAGEN=7 %PAGE-7=_|5.0000 %PAGEMARK-7=S %PAGE-1=_|8.0000
+W02 | moving inside the window doesn't move it | STU 1 ENTER 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + SEL 8 8 8 8 8 8 8 8 2 | %SEL=9 %PAGE-7=_|5.0000 %PAGEMARK-6=S
+W03 | inside the unscrolled window, up doesn't move it either | STU 1 ENTER 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + SEL 8 8 | %SEL=14 %PAGE-1=_|9.0000 %PAGEMARK-3=S
+W04 | the dropped line, then no further | STU ROWNEXT:4294967294 1 ENTER 2 + 3 + 4 + 5 + 6 + 7 + SEL 8 8 8 8 8 8 8 8 8 8 8 8 | %SEL=1 %PAGETOP=1 %PAGE-7=1_OLDER_ROWS_DROPPED|_ %PAGEMARK-6=S
+# Leaving
+L01 | C leaves, nothing changed | STU 3 ENTER 4 * 5 + 2 / SQRT SEL 8 C | %SEL=- %ROWS=8 %BAND=RPN_STU
+L02 | BKSP leaves, nothing changed | STU 3 ENTER 4 * 5 + 2 / SQRT SEL BKSP | %SEL=- %ROWS=8 %LBL:X=8
+L03 | another digit leaves and starts a number | STU 3 ENTER 4 * 5 + 2 / SQRT SEL 7 ENTER | %SEL=- X=7 %ROW-1=9:NUM:-:7
+L04 | "." leaves and starts a number | STU 3 ENTER 4 * SEL . 5 ENTER | %SEL=- X=0.5
+L05 | E leaves and acts as E does on the home: after a result, STU's SYNTAX | STU 3 ENTER 4 * SEL E 2 ENTER | ERR %SEL=- %ERR=SYNTAX
+L06 | another op leaves, then acts on X | STU 3 ENTER 4 * 5 + SEL SQRT | %SEL=- %ROWS=6 %ROW-1=6:SQRT:5:4.123105625617660549821409855974077
+# The actions
+A01 | ENTER is COPY: the row's value in X, a row COPY linked to it | STU 3 ENTER 4 * 5 + 2 / SQRT SEL 8 8 ENTER | %SEL=- X=17 %ROW-1=9:COPY:5:17 %ROWS=9
+A02 | ROWCOPY the same | STU 3 ENTER 4 * 5 + 2 / SQRT SEL 8 8 ROWCOPY | %SEL=- X=17 %ROW-1=9:COPY:5:17
+A03 | ROWSTO: the letter holds the selected row, no row made | STU 3 ENTER 4 * 5 + SEL 8 ROWSTO:A | %SEL=- @A=12 %LBL:@A=3 %ROWS=5
+A04 | INFO: the op and what it read, the selection kept | STU 3 ENTER 4 * 5 + 2 / SQRT SEL 8 8 ROWINFO | %XLINE=+_OF_12.0000,_5.0000 %SEL=5
+A05 | INFO on a typed number | STU 3 ENTER 4 * 5 + 2 / SQRT SEL 8 ROWINFO | %XLINE=TYPED
+A06 | INFO: a link not drawn is OFF SCREEN | STU 1 ENTER 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + SEL 8 8 8 8 8 ROWINFO | %XLINE=+_OF_15.0000_(OFF_SCREEN),_6.0000
+A07 | the view ends at the next key, the selection stays | STU 3 ENTER 4 * 5 + 2 / SQRT SEL 8 8 ROWINFO 8 | %SEL=4 %XLINE=2.9155
+A08 | a verb on an expression row: COPY, then the verb on X | STU EQ:X+1 EQDROP 2 SEL 8 CASSIMP | %SEL=- %ROWS=4 %LBL:X=4
+A09 | an expression row's menu | STU EQ:X+1 EQDROP 2 SEL 8 | %SEL=1 %SOFT-1=COPY %SOFT-3=SIMP %SOFT-4=EXPND %SOFT-5=SOLVE
+# ALG: the row shown is the selected one
+G01 | ALG's shown row: %SEL, its menu on the line's GOLD bank | STU ALG 2 + 3 ENTER 7 ENTER HUP HUP | %SEL=1 %SOFT-1=EDIT %SOFT-6=INFO %BAND=ALG_STU
+G02 | ROWEDIT puts the shown row's text on the line | STU ALG 2 + 3 ENTER 7 ENTER HUP HUP ROWEDIT | %LINE=2+3 %HSEL=-
+G03 | ROWINFO on an ALG row with no links | STU ALG 2 + 3 ENTER 7 ENTER HUP HUP ROWINFO | %XLINE=LINE
+G04 | ROWSTO stores the shown answer, its row with it | STU ALG 2 + 3 ENTER 7 ENTER HUP HUP ROWSTO:A | @A=5 %LBL:@A=1

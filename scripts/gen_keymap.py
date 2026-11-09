@@ -273,6 +273,14 @@ MENUS = [
     # the list, the sixth key to CAS. Last, so no menu's index moves
     ("X EXPR", [o("SIMP", "AB_CASSIMP"), o("EXPND", "AB_CASEXP"), p("SOLVE", "AB_CASSOLVE", "KM_ARG_VAR"),
                 o("\u2192EQN", "AB_EQSTORE"), NONE, ("\u25b8", "KM_MENU", "0", "CAS", 0)]),
+    # unit 093 (work/worksheet-3-select.md): a selected row's menu by its kind, and an ALG row's on the ALG line's GOLD bank
+    # (app.c's eqn_bar). Last, so no menu's index moves
+    ("ROW NUM", [o("COPY", "AB_COPY"), p("STO", "AB_ROWSTO", "KM_ARG_VAR"), o("SHOW", "AB_ROWSHOW"),
+                 o("FRAC", "AB_ROWFRAC"), NONE, o("INFO", "AB_ROWINFO")]),
+    ("ROW EXPR", [o("COPY", "AB_COPY"), p("STO", "AB_ROWSTO", "KM_ARG_VAR"), o("SIMP", "AB_CASSIMP"),
+                  o("EXPND", "AB_CASEXP"), p("SOLVE", "AB_CASSOLVE", "KM_ARG_VAR"), ("\u25b8", "KM_MENU", "0", "CAS", 0)]),
+    ("ROW ALG", [o("EDIT", "AB_ROWEDIT"), p("STO", "AB_ROWSTO", "KM_ARG_VAR"), o("SHOW", "AB_ROWSHOW"),
+                 o("FRAC", "AB_ROWFRAC"), NONE, o("INFO", "AB_ROWINFO")]),
 ]
 # Menu legends that act as plain ops until their menu is ruled (abacus #3867): the EQN menu's
 # first item will take this over.

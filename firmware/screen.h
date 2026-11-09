@@ -168,9 +168,17 @@ typedef struct {
         char value[AB_EQN_LEN + 4];     /* (an expression in quotes) */
     } page[SCREEN_PAGE_MAX];
     long pagetop;
+    /* unit 093: the selected row (RPN) or the row shown (ALG), 0 none; each page line's mark and each level's ('S' the
+       selected row's, 'L' a row it links to, '-' neither; '?' a level not drawn) */
+    unsigned long sel;
+    char pagemark[SCREEN_PAGE_MAX];
+    char levelmark[4];                              /* X, Y, Z, T */
 } screen_page;
 
 void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out);
+/* Unit 093: the page's window as drawn now (the default screen_ui): its top and bottom rows' serials, 0 0 with no page line.
+   ab_rows_set_window takes it (app_init, the host's runners), so the selection knows when a move leaves it */
+void screen_page_window(const ab_calc *c, uint32_t *top, uint32_t *bottom);
 /* Unit 080: whether a textbook answer drawn from line first has lines below the area (the app's SST scrolls to them) */
 bool screen_textbook_more(const ab_calc *c, int first);
 /* Unit 080: whether the shown equation is drawn in 2D, and then what's drawn as text into out (screen_page's drawn) */

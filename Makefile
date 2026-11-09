@@ -132,8 +132,8 @@ build/eqn_say_test: $(CORE) $(HDRS) $(ENGINE) tests/eqn_say_test.c | build
 build/load_fuzz: $(CORE) $(HDRS) $(ENGINE) tests/load_fuzz.c | build
 	$(CC) $(CFLAGS) -Icore -o $@ $(CORE) tests/load_fuzz.c $(ENGINE) $(LIBS)
 
-build/vectors: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) firmware/screen.h tests/vectors.c tests/norm.h tests/opnames.h firmware/store.c firmware/store.h | build
-	$(CC) $(CFLAGS) -Icore -Ifirmware -Itests -o $@ $(CORE) $(SCREEN) firmware/store.c tests/vectors.c $(ENGINE) $(LIBS)
+build/vectors: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) firmware/screen.h tests/vectors.c tests/norm.h tests/opnames.h firmware/store.c firmware/store.h firmware/keymap.c firmware/keymap.h | build
+	$(CC) $(CFLAGS) -Icore -Ifirmware -Itests -o $@ $(CORE) $(SCREEN) firmware/store.c firmware/keymap.c tests/vectors.c $(ENGINE) $(LIBS)
 
 # unit 047: the parser's depth guard at the deepest site, on a guarded thread stack; the units the parser reaches
 # (tests/eqn_depth.py's rule); the stack a check parse uses, painted
@@ -280,6 +280,7 @@ test: all
 	                                         # ALG's history is the page's rows; SAVEROWS and SAVE are tested in the file itself)
 	./build/vectors tests/h090-abacus.txt    # (abacus #14084: h090 as frozen, sha256 3ad3f033...)
 	./build/vectors tests/h090-Bp-abacus.txt # (abacus #14085: h090-Bp, Michael's B', as frozen, sha256 eb90e05f...)
+	./build/vectors tests/093-soroban.txt    # (unit 093: selecting a row; no save/load pass: the selection is RAM only)
 	./build/rows_test
 	./build/eqn_say_test tests/086-corpus.txt    # (unit 086: the round trip over every equation the vectors type)
 	if AB_SAY_PLANT=1 ./build/eqn_say_test tests/086-corpus.txt > /dev/null; then \
@@ -457,9 +458,9 @@ build/san/expr_test: $(CORE) $(HDRS) $(ENGINE) tests/expr_test.c | build
 build/san/app_test: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) $(APP) $(GAMES_O) build/games/games.h firmware/app.h firmware/keymap.h firmware/power.h firmware/screen.h firmware/version.h tests/app_test.c | build
 	@mkdir -p build/san
 	$(CC) $(SAN_CFLAGS) -Icore -Ifirmware -Ibuild/games -DVER_CASIM='"$(VER_CASIM)"' -DVER_GAMES='"$(VER_GAMES)"' -o $@ $(CORE) $(SCREEN) $(APP) $(GAMES_O) tests/app_test.c $(ENGINE) $(LIBS)
-build/san/vectors: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) firmware/screen.h tests/vectors.c tests/norm.h firmware/store.c firmware/store.h | build
+build/san/vectors: $(CORE) $(HDRS) $(ENGINE) $(SCREEN) firmware/screen.h tests/vectors.c tests/norm.h firmware/store.c firmware/store.h firmware/keymap.c | build
 	@mkdir -p build/san
-	$(CC) $(SAN_CFLAGS) -Icore -Ifirmware -o $@ $(CORE) $(SCREEN) firmware/store.c tests/vectors.c $(ENGINE) $(LIBS)
+	$(CC) $(SAN_CFLAGS) -Icore -Ifirmware -Itests -o $@ $(CORE) $(SCREEN) firmware/store.c firmware/keymap.c tests/vectors.c $(ENGINE) $(LIBS)
 build/san/rows_test: $(CORE) $(HDRS) $(ENGINE) tests/rows_test.c tests/opnames.h | build
 	@mkdir -p build/san
 	$(CC) $(SAN_CFLAGS) -Icore -Itests -o $@ $(CORE) tests/rows_test.c $(ENGINE) $(LIBS)
@@ -469,6 +470,7 @@ sanitize: build/san/load_fuzz build/san/expr_test build/san/app_test build/san/v
 	./build/san/rows_test                      # (unit 089)
 	./build/san/vectors tests/089-soroban.txt
 	./build/san/vectors tests/090-soroban.txt
+	./build/san/vectors tests/093-soroban.txt
 	./build/san/app_test
 	for f in $(KEYV) work/016-vectors.txt work/017-vectors.txt; do AB_SAVELOAD=1 AB_STORE=1 ./build/san/vectors $$f || exit 1; done
 

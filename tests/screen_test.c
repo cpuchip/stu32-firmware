@@ -16,6 +16,7 @@
 #include "screen.h"
 #include "tbook.h"
 #include "state.h"
+#include "rows.h"
 
 static int bad, checks;
 
@@ -1190,6 +1191,32 @@ int main(int argc, char **argv)
         screen_lines(&c, &ui, &pg);
         snprintf(m, sizeof m, "090: STO+ A's row on the page (lowest %s|%s)", PAGE(0));
         expect(!strcmp(pg.page[0].left, "STO+ A") && !strcmp(pg.page[0].value, "6.0000"), m);
+        /* unit 093: selecting a row: the selected line inverted, the rows it links to dotted; scrolled; a level; a view */
+        ab_rows_set_window(screen_page_window);
+        STU0();
+        keys(&c, "3 ENTER 4 * 5 + 2 / SQRT");
+        ab_do(&c, AB_SEL);
+        frame("59-sel-newest", &c, &ui);
+        ab_do(&c, AB_K8);
+        ab_do(&c, AB_K8);
+        frame("60-sel-older", &c, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(pg.sel == 5 && pg.pagemark[2] == 'S' && pg.pagemark[3] == 'L' && pg.pagemark[4] == 'L' &&
+                   !strcmp(pg.status.text + strlen(pg.status.text) - 7, "SEL STU"), "093: + 17 selected, × 12 and 5 linked");
+        ab_do(&c, AB_ROWINFO);
+        frame("61-sel-info", &c, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(pg.x.kind == SCREEN_VIEW && !strcmp(pg.x.text, "+ OF 12.0000, 5.0000"), "093: INFO in X's place");
+        ab_do(&c, AB_K5);
+        ab_do(&c, AB_K2);
+        frame("62-sel-level-x", &c, &ui);
+        STU0();
+        keys(&c, "1 ENTER 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 +");
+        ab_do(&c, AB_SEL);
+        for (int i = 0; i < 8; i++) ab_do(&c, AB_K8);
+        frame("63-sel-scrolled", &c, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(pg.page_n == 7 && pg.pagemark[6] == 'S', "093: scrolled, the selected row on the top line");
 #undef STU0
 #undef PAGE
     }

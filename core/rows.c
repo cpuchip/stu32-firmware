@@ -235,6 +235,9 @@ void ab_rows_clear_all(ab_calc *c)
     c->row_top = 0;
     c->rows_dropped = 0;
     c->hist_row = 0;
+    c->sel_row = c->sel_entry = c->sel_top = 0;     /* (unit 093: no row left to select) */
+    c->sel_drop = false;
+    c->sel_view = 0;
 }
 
 /* ---- unit 090: ALG's history ---- */
@@ -599,4 +602,72 @@ void ab_rows_bare_key(ab_calc *c, ab_op op, int arg, abn_status st)
 void ab_rows_bare_line(ab_calc *c, ab_op op, int arg)
 {
     unbare(c, op, arg);
+}
+
+/* ---- unit 093: the selection's walk ---- */
+
+int ab_rows_levels(const ab_calc *c)
+{
+    const ab_val *lv[4] = {&c->x, &c->y, &c->z, &c->t};
+    int n = 4;
+    while (n > 1 && lv[n - 1]->bare) n--;
+    return n;
+}
+
+static bool page_row(const ab_calc *c, uint32_t s)
+{
+    const ab_val *lv[4] = {&c->x, &c->y, &c->z, &c->t};
+    int n = ab_rows_levels(c);
+    for (int i = 0; i < n; i++)
+        if (lv[i]->row == s) return false;
+    return true;
+}
+
+uint32_t ab_rows_page_prev(const ab_calc *c, uint32_t before)
+{
+    uint32_t end = ab_rows_visible_len(c), found = 0;
+    for (uint32_t at = 0; at < end; at += g16(c->rows + at)) {
+        uint32_t s = g32(c->rows + at + 2);
+        if (before && s >= before) break;
+        if (page_row(c, s)) found = s;
+    }
+    return found;
+}
+
+uint32_t ab_rows_page_next(const ab_calc *c, uint32_t after)
+{
+    uint32_t end = ab_rows_visible_len(c);
+    for (uint32_t at = 0; at < end; at += g16(c->rows + at)) {
+        uint32_t s = g32(c->rows + at + 2);
+        if (s > after && page_row(c, s)) return s;
+    }
+    return 0;
+}
+
+void ab_rows_copy(ab_calc *c, uint32_t src)
+{
+    ab_rowctx *r = &c->rowctx;
+    uint32_t link[1] = {src};
+    if (!r->on) return;
+    uint32_t s = append(c, AB_COPY, 0, 0, link, 1, NULL, 0, &c->x);
+    if (!s) return;
+    c->x.row = s;
+    for (int i = 3; i > 0; i--) r->pre[i] = r->pre[i - 1], r->lv0[i] = r->lv0[i - 1];    /* (the stack lifted under it) */
+    r->pre[0] = s;                              /* a verb after it reads X as this row */
+    r->lv0[0] = c->x;
+}
+
+static ab_rows_window_fn window_fn;
+
+void ab_rows_set_window(ab_rows_window_fn fn)
+{
+    window_fn = fn;
+}
+
+bool ab_rows_window(const ab_calc *c, uint32_t *top, uint32_t *bottom)
+{
+    *top = *bottom = 0;
+    if (!window_fn) return false;
+    window_fn(c, top, bottom);
+    return true;
 }

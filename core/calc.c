@@ -54,6 +54,9 @@ static void init_fields(ab_calc *c, bool keep_hist)
     memset(c, 0, keep_hist ? offsetof(ab_calc, hist_row) : sizeof *c);
     c->x = c->y = c->z = c->t = c->lastx = ab_real(abn_zero());
     c->x.bare = c->y.bare = c->z.bare = c->t.bare = 1;    /* unit 090 (B′): a cleared stack's levels */
+    c->sel_row = c->sel_entry = c->sel_top = c->sel_view_row = 0;     /* unit 093: no row selected (the tail's) */
+    c->sel_drop = false;
+    c->sel_view = 0;
     c->lift = true;             /* a cleared calculator has stack lift enabled (UG p.B-4) */
     c->ans = ab_real(abn_zero());   /* ANS 0 to begin (unit 029 rule 4) */
     c->tbl_var = c->tbl_v = c->tbl_eq = -1;     /* TABLE: the first variable, start from it, step 1 (032) */
@@ -3227,6 +3230,7 @@ static abn_status program_key(ab_calc *c, ab_op op, int arg)
     case AB_CASSUM:                                                                             /* 070 */
     case AB_CASCPLX:                        /* 076: a setting, as ENTRYM */
     case AB_EQDROP: case AB_EQSTORE:        /* 082 */
+    case AB_SEL: case AB_COPY: case AB_ROWSTO: case AB_ROWSHOW: case AB_ROWFRAC: case AB_ROWINFO: case AB_ROWEDIT:    /* 093 */
         return ABN_NONPROGRAMMABLE;
     case AB_FDISP:
     case AB_CLALL:                          /* in program entry the menu offers CLPGM in its place
@@ -4458,6 +4462,7 @@ static bool alg_handles(ab_op op)
     case AB_CANCEL: case AB_HUP: case AB_HDOWN: case AB_ENTER: case AB_KLEFT: case AB_KRIGHT: case AB_KBKSP: case AB_STO:
     case AB_TABLE: case AB_TVAR: case AB_GRAPH: case AB_GAUTO: case AB_XMIN: case AB_XMAX: case AB_YMIN: case AB_YMAX:
     case AB_TSTART: case AB_TSTEP: case AB_ANS: case AB_LASTX:
+    case AB_SEL: case AB_COPY: case AB_ROWSTO: case AB_ROWSHOW: case AB_ROWFRAC: case AB_ROWINFO: case AB_ROWEDIT:  /* 093 */
         return true;
     default:
         return false;
@@ -4471,6 +4476,8 @@ bool ab_alg_refuses(const ab_calc *c, ab_op op, int arg)
     return !alg_handles(op) && !alg_setting(op) && (op == AB_KEQ || !eqn_typable(op, arg));
 }
 
+static abn_status sel_view(ab_calc *c, uint32_t s, uint8_t kind);    /* (unit 093, below) */
+
 static abn_status alg_key(ab_calc *c, ab_op op, int arg)
 {
     if (ab_alg_refuses(c, op, arg)) return ABN_RPN_ONLY;   /* unit 075: the one test, which HELP's page asks too */
@@ -4478,6 +4485,18 @@ static abn_status alg_key(ab_calc *c, ab_op op, int arg)
     case AB_CANCEL:                                 /* C clears the line; the history stays */
         alg_new_line(c, false);
         return ABN_OK;
+    case AB_SEL: case AB_COPY:                      /* unit 093: in ALG the row shown is the selected one; no COPY */
+        return ABN_OK;
+    case AB_ROWEDIT:                                /* (the shown row's text to the line, as ENTER on it) */
+        if (!c->hist_row) return ABN_OK;
+        ab_rows_text(c, c->hist_row, c->ebuf, sizeof c->ebuf);
+        c->ecur = (int)strlen(c->ebuf);
+        c->hist_row = 0;
+        c->alg_shown = false;
+        return ABN_OK;
+    case AB_ROWSHOW: return sel_view(c, c->hist_row, 3);
+    case AB_ROWFRAC: return sel_view(c, c->hist_row, 2);
+    case AB_ROWINFO: return sel_view(c, c->hist_row, 1);
     case AB_HUP: {                                  /* unit 090: the page's ALG rows, newest first, stopping at the
                                                        oldest kept */
         uint32_t s = ab_rows_alg_prev(c, c->hist_row);
@@ -4521,6 +4540,9 @@ static abn_status alg_key(ab_calc *c, ab_op op, int arg)
         c->hist_row = 0;
         ed_backspace(c);
         return ABN_OK;
+    case AB_ROWSTO:                                 /* unit 093: the shown answer stored, as STO does */
+        if (!c->hist_row) return ABN_OK;
+        /* fall through */
     case AB_STO: {
         ab_val v;
         abn_status st;
@@ -4910,6 +4932,179 @@ abn_status ab_do_arg(ab_calc *c, ab_op op, int arg)
     return st;
 }
 
+/* ---- unit 093: selecting a row on STU's home (work/worksheet-3-select.md, abacus #14132, #14137) ---- */
+
+static void sel_clear(ab_calc *c)
+{
+    c->sel_row = c->sel_entry = c->sel_top = 0;
+    c->sel_drop = false;
+}
+
+static ab_val *sel_level_val(ab_calc *c, int i)
+{
+    return i == 0 ? &c->x : i == 1 ? &c->y : i == 2 ? &c->z : &c->t;
+}
+
+/* SEL (GOLD then soft 2): the lowest page line's row, else X's; nothing with neither. The number being typed was
+   completed on the way here (do_key), its row made */
+static abn_status sel_enter(ab_calc *c)
+{
+    uint32_t s = ab_rows_page_prev(c, 0);
+    if (!c->stu || c->alg || c->prgm) return ABN_OK;
+    sel_clear(c);
+    if (s) {
+        c->sel_row = s;
+        c->sel_level = -1;
+    } else if (c->x.row && ab_rows_find(c, c->x.row, NULL)) {
+        c->sel_row = c->x.row;
+        c->sel_level = 0;
+    } else {
+        return ABN_OK;
+    }
+    c->sel_entry = c->sel_row;
+    c->sel_entry_level = c->sel_level;
+    return ABN_OK;
+}
+
+/* 8: up. A level's: the next drawn level above holding a row, else the page's newest row. A page row's: the one before;
+   past the window's top the window scrolls one line, the row at its top; past the oldest, once, the dropped line shown */
+static void sel_up(ab_calc *c)
+{
+    uint32_t top, bot;
+    if (c->sel_level >= 0) {
+        int n = ab_rows_levels(c);
+        for (int i = c->sel_level + 1; i < n; i++)
+            if (sel_level_val(c, i)->row) {
+                c->sel_row = sel_level_val(c, i)->row;
+                c->sel_level = (int8_t)i;
+                return;
+            }
+        uint32_t p = ab_rows_page_prev(c, 0);
+        if (p) c->sel_row = p, c->sel_level = -1, c->sel_top = 0, c->sel_drop = false;
+        return;
+    }
+    uint32_t p = ab_rows_page_prev(c, c->sel_row);
+    if (!p) {
+        if (c->rows_dropped && !c->sel_drop) c->sel_drop = true, c->sel_top = c->sel_row;
+        return;
+    }
+    c->sel_row = p;
+    if (ab_rows_window(c, &top, &bot) && top && p < top) c->sel_top = p;
+}
+
+/* 2: down. A page row's: the next; past the window's bottom (scrolled) it scrolls a line, until the row is in it; past
+   the newest, the top drawn level holding a row. A level's: the next below holding one; X's, nothing */
+static void sel_down(ab_calc *c)
+{
+    uint32_t top, bot;
+    if (c->sel_level >= 0) {
+        for (int i = c->sel_level - 1; i >= 0; i--)
+            if (sel_level_val(c, i)->row) {
+                c->sel_row = sel_level_val(c, i)->row;
+                c->sel_level = (int8_t)i;
+                return;
+            }
+        return;
+    }
+    uint32_t n = ab_rows_page_next(c, c->sel_row);
+    if (!n) {
+        for (int i = ab_rows_levels(c) - 1; i >= 0; i--)
+            if (sel_level_val(c, i)->row) {
+                c->sel_row = sel_level_val(c, i)->row;
+                c->sel_level = (int8_t)i;
+                c->sel_top = 0, c->sel_drop = false;
+                return;
+            }
+        return;
+    }
+    c->sel_row = n;
+    for (int k = 0; k < 8 && (c->sel_top || c->sel_drop) && ab_rows_window(c, &top, &bot) && bot &&
+                    n > bot; k++) {
+        if (c->sel_drop) c->sel_drop = false;
+        else c->sel_top = ab_rows_page_next(c, c->sel_top);
+    }
+}
+
+/* COPY (and ENTER): the row's exact value in X, the stack lifted, and a row linked to it (R4's rule) */
+static abn_status sel_copy(ab_calc *c, uint32_t src)
+{
+    ab_val v;
+    abn_status st = ab_rows_value(c, src, &v);
+    if (st != ABN_OK) return st;
+    sel_clear(c);
+    place_val(c, v);
+    c->lift = true;
+    ab_rows_copy(c, src);
+    return ABN_OK;
+}
+
+/* A row's view in X's place until the next key: INFO, FRAC or SHOW (FRAC on a number only) */
+static abn_status sel_view(ab_calc *c, uint32_t s, uint8_t kind)
+{
+    ab_val v;
+    if (!s) return ABN_OK;
+    if (kind == 2 && (!ab_rows_peek(c, s, &v, NULL, 0) || ab_is_sym(&v))) return ABN_OK;
+    c->sel_view = kind;
+    c->sel_view_row = s;
+    return ABN_OK;
+}
+
+/* A key while a row is selected (abacus #14132 5b): *handled false when it goes on to act as it would have */
+static abn_status sel_key(ab_calc *c, ab_op op, int arg, bool *handled)
+{
+    *handled = true;
+    switch (op) {
+    case AB_K8: sel_up(c); return ABN_OK;
+    case AB_K2: sel_down(c); return ABN_OK;
+    case AB_K5:
+        c->sel_row = c->sel_entry, c->sel_level = c->sel_entry_level, c->sel_top = 0, c->sel_drop = false;
+        return ABN_OK;
+    case AB_K4: case AB_K6: case AB_SEL: case AB_ROWEDIT:
+        return ABN_OK;                          /* (4, 6: kept for the link walk) */
+    case AB_CANCEL: case AB_KBKSP:
+        sel_clear(c);
+        return ABN_OK;
+    case AB_ENTER: case AB_COPY:
+        return sel_copy(c, c->sel_row);
+    case AB_ROWSTO: {
+        ab_val v;
+        slot sl;
+        abn_status st;
+        if ((st = resolve(c, arg, false, &sl)) != ABN_OK) return st;
+        if ((st = ab_rows_value(c, c->sel_row, &v)) != ABN_OK) return st;
+        sel_clear(c);
+        return store_val(c, &sl, v);            /* (a move: the letter holds the selected row) */
+    }
+    case AB_ROWSHOW: return sel_view(c, c->sel_row, 3);
+    case AB_ROWFRAC: return sel_view(c, c->sel_row, 2);
+    case AB_ROWINFO: return sel_view(c, c->sel_row, 1);
+    case AB_CASSIMP: case AB_CASEXP: case AB_CASSOLVE: {
+        abn_status st = sel_copy(c, c->sel_row);    /* a verb: COPY, then the verb on X */
+        *handled = st != ABN_OK;
+        return st;
+    }
+    default:
+        sel_clear(c);                           /* the other digits, ".", E and CHS start an entry; any key acts */
+        *handled = false;
+        return ABN_OK;
+    }
+}
+
+const char *ab_sel_menu(const ab_calc *c)
+{
+    ab_val v;
+    uint32_t s = c->alg ? c->hist_row : c->sel_row;
+    if (!c->stu || c->prgm || !s) return NULL;
+    if (c->alg) return "ROW ALG";
+    return ab_rows_peek(c, s, &v, NULL, 0) && ab_is_sym(&v) ? "ROW EXPR" : "ROW NUM";
+}
+
+void ab_sel_clear(ab_calc *c)
+{
+    sel_clear(c);
+    c->sel_view = 0;
+}
+
 static abn_status do_arg(ab_calc *c, ab_op op, int arg)
 {
     abn_status st;
@@ -4926,6 +5121,7 @@ static abn_status do_arg(ab_calc *c, ab_op op, int arg)
         goto done;
     }
     c->eng_on = false;                          /* the view lasts until the next key */
+    c->sel_view = 0;                            /* (unit 093: a row's view, too) */
     if (key_inert(c, op, arg)) return ABN_OK;
     if (c->tbl_on || c->gr_on) {                /* the table or the graph open: its keys alone (units 032,
                                                    033), each with a fresh error record and overflow count */
@@ -4942,6 +5138,11 @@ static abn_status do_arg(ab_calc *c, ab_op op, int arg)
     c->rowctx.route = AB_ROUTE_REPORT;          /* (unit 089: which keys reach the stack, for its rows) */
     if (c->cas_rep[0] && casrep_key(c, op, &st)) goto done;    /* unit 048: SOLVE's report open */
     c->rowctx.route = AB_ROUTE_NONE;
+    if (c->sel_row && c->stu && !c->prgm && !c->alg) {     /* unit 093: a row selected on STU's home */
+        bool handled;
+        st = sel_key(c, op, arg, &handled);
+        if (handled) goto done;
+    }
     /* CLEAR ALL, CLR EQN and CLPGM act in Equation mode too (unit 021: never a silent no-op once the
        device has asked CLR ALL?, CLR EQN? or CLR PGMS?; CLPGM's question: abacus #8497) */
     if (c->prgm) st = program_key(c, op, arg);
@@ -5437,6 +5638,10 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
         return ABN_DOMAIN;
 
     switch (op) {
+    case AB_SEL:                                /* unit 093: the number typed is completed above, its row made */
+        return sel_enter(c);
+    case AB_COPY: case AB_ROWSTO: case AB_ROWSHOW: case AB_ROWFRAC: case AB_ROWINFO: case AB_ROWEDIT:
+        return ABN_OK;                          /* (with no row selected: nothing) */
     case AB_CMPLX:
         return cmplx_pair(c, arg);
     case AB_KBKSP:  /* with no entry in progress backspace acts as clear X (UG p.1-17) */

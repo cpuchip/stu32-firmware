@@ -100,4 +100,17 @@ abn_status ab_rows_value(ab_calc *c, uint32_t serial, ab_val *out);
 void ab_rows_bare_key(ab_calc *c, ab_op op, int arg, abn_status st);
 void ab_rows_bare_line(ab_calc *c, ab_op op, int arg);
 
+/* Unit 093 (work/worksheet-3-select.md): the selection's walk over STU's home. The levels drawn (B′: the bare ones at the
+   top hidden, X always), as 090's screen draws them; the page's rows are those no drawn level holds */
+int ab_rows_levels(const ab_calc *c);
+uint32_t ab_rows_page_prev(const ab_calc *c, uint32_t before);    /* the newest page row older than before (0: of all) */
+uint32_t ab_rows_page_next(const ab_calc *c, uint32_t after);     /* the oldest page row newer than after, 0 none */
+/* COPY's row: X's value (just placed, the stack lifted) linked to the row src, X holding it */
+void ab_rows_copy(ab_calc *c, uint32_t src);
+/* The screen's window over the page, as drawn now: its top and bottom rows' serials (0 0 with no page line). The screen
+   registers it (app_init, the host's runners); the selection asks it whether a move leaves the window */
+typedef void (*ab_rows_window_fn)(const ab_calc *c, uint32_t *top, uint32_t *bottom);
+void ab_rows_set_window(ab_rows_window_fn fn);
+bool ab_rows_window(const ab_calc *c, uint32_t *top, uint32_t *bottom);    /* false: none registered */
+
 #endif

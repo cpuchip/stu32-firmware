@@ -716,6 +716,48 @@ int main(void)
                    pg.pagetop == (long)c.rows_dropped && pg.page_n == 1, m);
         printf("app_test: %s\n", m);
     }
+    /* unit 093 (work/worksheet-3-select.md; abacus #14137): what only the app does: GOLD and soft 2 (key 1) select on STU's
+       home, soft 3 too; a soft key is then the row menu's item (COPY, STO's letter prompt); a key the app takes (UNDO, a
+       menu) leaves the selection first; GOLD and soft 2 elsewhere as before */
+    {
+        static uint8_t u0[1 << 18], u1[1 << 18];
+        screen_ui su;
+        static screen_page pg;
+        ab_row r;
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        app_undo_buffers(&a, u0, u1, sizeof u0);
+        press(&a, "3 ENTER 4 \xc3\x97 5 +");
+        press(&a, "GOLD k:1");
+        expect(c.sel_row == 4 && c.sel_level == -1, "093: GOLD and soft 2 select the lowest page line's row");
+        app_ui(&a, &su);
+        screen_lines(&c, &su, &pg);
+        expect(su.soft[0] && !strcmp(su.soft[0], "COPY") && su.soft[5] && !strcmp(su.soft[5], "INFO") &&
+                   !strcmp(pg.status.text + strlen(pg.status.text) - 7, "SEL STU"),
+               "093: the soft keys are the number's row menu, the band SEL");
+        press(&a, "GOLD k:1");
+        expect(c.sel_row == 3, "093: GOLD and soft 2 again move up, as 8");
+        press(&a, "GOLD k:2");
+        expect(c.sel_row == 4, "093: GOLD and soft 3 move down, as 2");
+        press(&a, "k:0");
+        expect(!c.sel_row && ab_rows_get(&c, 1, &r) && r.op == AB_COPY && r.nlink == 1 && r.link[0] == 4 && x_of(&c) == 5,
+               "093: soft 1 (COPY): the row's value in X, a COPY row linked to it");
+        press(&a, "GOLD k:1 8 k:1 ltr:B");
+        expect(!c.sel_row && var_of(&c, 'B') == 12 && c.var[1].row == 3, "093: soft 2 (STO) prompts a letter; B holds row 3");
+        press(&a, "GOLD k:1");
+        expect(c.sel_row != 0, "093: selected again");
+        press(&a, "BLUE \xe2\x86\x90");
+        expect(!c.sel_row && var_of(&c, 'B') == 0, "093: UNDO leaves the selection first, then undoes (B's STO gone)");
+        press(&a, "GOLD k:1 GOLD \xe2\x86\x90");
+        app_ui(&a, &su);
+        expect(!c.sel_row && su.soft[1] && !strcmp(su.soft[1], "STK"), "093: a menu key leaves the selection, then opens");
+        press(&a, "C");
+        ab_init(&c);                            /* the 35s mode: GOLD and soft 2 as before (nothing on the home) */
+        app_init(&a, &c, now);
+        press(&a, "3 ENTER 4 + GOLD k:1");
+        expect(!c.sel_row && x_of(&c) == 7, "093: the 35s mode: GOLD and soft 2 select nothing");
+    }
 
     /* unit 021: UNDO, one level (ours): the state before the last key that reached the core; a
        second UNDO puts it back. Compared as whole state images. */

@@ -308,13 +308,19 @@ const help_entry help_table[] = {
     {HELP_OP, AB_KINF, -1, "Types \342\210\236 in \316\243's upper bound, TO.\n\342\210\236 alone: a sum to infinity."},
     {HELP_OP, AB_EQDROP, -1, "The shown equation into X, as\nan expression. Leaves the list.\nThen 2 \303\227 makes (...)\303\2272."},
     {HELP_OP, AB_EQSTORE, -1, "X's expression or name into\nthe list, after the shown one.\nAlso on the stack's X bar."},
+    {HELP_OP, AB_COPY, -1, "The selected row's value into\nX, as a new row linked to it.\nENTER does the same."},
+    {HELP_OP, AB_ROWSTO, -1, "Then a letter: the selected\nrow's value into it."},
+    {HELP_OP, AB_ROWSHOW, -1, "The selected row's value with\nevery digit, in X's place."},
+    {HELP_OP, AB_ROWFRAC, -1, "The selected row's value as a\nfraction, in X's place."},
+    {HELP_OP, AB_ROWINFO, -1, "What made the selected row:\nits op and the values it read."},
+    {HELP_OP, AB_ROWEDIT, -1, "The shown line's text back on\nthe line, to change and run."},
     {HELP_OP, AB_SUF, -1, "After digits: {} reads them in\nits base: b 2, o 8, d 10, h 16."},
     {HELP_MENU, 0, -1, "GAMES\037Games: five a page, C to APPS."},
     {HELP_MORE, 0, -1, "Shows the next five.\nFrom the last page: the first."},
     {HELP_GRAPHPAD, 0, -1, "Moves the graph's cursor: 8 up,\n2 down (TRACE off), 4 left, 6\nright, 5 home. GOLD: 10 pixels."},
     {HELP_CMPLXPAIR, 0, -1, "33s CMPLX: does it on complex\nnumbers held as stack pairs."},
 };
-const int help_table_n = 308;
+const int help_table_n = 314;
 
 /* the entries whose text must differ by mode (help.txt's MODE lines) */
 const int help_mode_list[] = {46, 54, 69, 98, 86, 95, 59, 62, 206, 92, 47, 99, 15, 11, 24, -1};

@@ -932,6 +932,7 @@ bool ab_line_ok(ab_op op, int32_t arg)
     case AB_CASSUM: case AB_KINF:                                                                     /* (070) */
     case AB_CASCPLX:                                                                                  /* (076) */
     case AB_EQDROP: case AB_EQSTORE:                                                                  /* (082) */
+    case AB_SEL: case AB_COPY: case AB_ROWSTO: case AB_ROWSHOW: case AB_ROWFRAC: case AB_ROWINFO: case AB_ROWEDIT:   /* (093) */
     case AB_ENGL: case AB_ENGR:                                                                       /* (041 C) */
     case AB_FRACFMT: case AB_CLEQN:     /* nonprogrammable since 019 and 021 (load_fuzz's line sweep) */
         return false;
@@ -1681,6 +1682,7 @@ abn_status ab_state_load(ab_calc *c, const uint8_t *buf, size_t len)
     }
     ab_rows_loaded(c);                          /* unit 089: a value's row that isn't on the page is no row */
     if (!c->alg || (c->hist_row && !ab_rows_find(c, c->hist_row, NULL))) c->hist_row = 0;    /* (090: UNDO hid it) */
+    ab_sel_clear(c);                            /* unit 093: an image loaded selects nothing (SAVE, LOAD, UNDO) */
     /* an image from before unit 031: its equations stamped left to right (35), as every mode read them */
     for (int i = 0; i < c->eqn_count; i++)
         if (!c->eqn_model[i]) c->eqn_model[i] = 35;

@@ -9,6 +9,8 @@
 #include "keymap.h"
 #include "piezo.h"
 #include "state.h"
+#include "rows.h"
+#include "screen.h"
 
 #ifndef ESP_PLATFORM
 static uint8_t host_saves[APP_SAVES_IMG_MAX], host_run[APP_SAVE_MAX];    /* a host's own (a device gives PSRAM) */
@@ -19,6 +21,7 @@ void app_init(app_state *a, ab_calc *c, uint32_t now_ms)
     memset(a, 0, sizeof *a);
     a->c = c;
     a->prompt_op = -1;
+    ab_rows_set_window(screen_page_window);     /* unit 093: the selection asks the screen where its window is */
     a->tgt_label = -1;
     a->idle_limit = true;                       /* (a host may turn it off: abacus #4661) */
 #ifndef ESP_PLATFORM
@@ -508,6 +511,10 @@ static int eqn_bar(const app_state *a)
     }
     if (ab_view_linear(a->c)) return menu_named("LIN VIEW");         /* x= y= (z=): unit 035 */
     if (ab_cas_report(a->c)) return menu_named("CAS REPORT");       /* SOLVE's exact roots: unit 048 */
+    if (a->c->stu && !a->c->prgm && !a->c->alg && a->c->sel_row && ab_sel_menu(a->c))
+        return menu_named(ab_sel_menu(a->c));   /* unit 093: the selected row's menu */
+    if (a->c->alg && !a->c->prgm && a->shift == 1 && ab_sel_menu(a->c))
+        return menu_named("ROW ALG");           /* 093: the row shown, on the ALG line's GOLD bank */
     if (a->c->alg && !a->c->prgm) return menu_named("ALG LINE");    /* STU's line (unit 029) */
     if (a->c->eqn_typing)                       /* Σ's upper bound: the bar's = key is ∞ there (unit 070) */
         return menu_named(a->c->cas_def && a->c->cas_def_sum && a->c->cas_def_step == 2 ? "EQN TYPE SUM" : "EQN TYPE");
@@ -1113,6 +1120,15 @@ void app_key(app_state *a, int key, uint32_t now_ms)
                                                    menu"; back-arrow backs out of MEM one level: 041 C) */
         }
     }
+    if (face->kind == KM_SOFT && (face->arg == 1 || face->arg == 2) && a->shift == 1 && a->c->stu && !a->c->prgm &&
+        !a->c->alg && !a->c->eqn_mode && !a->c->tbl_on && !a->c->gr_on) {
+        /* unit 093 (stu-soft-shift's first piece): gold ▲ and ▼ on STU's home. With no row selected either selects the
+           newest (SEL); with one, they move it as 8 and 2 do */
+        a->shift = 0;
+        if (!a->c->sel_row) do_op(a, AB_SEL, 0);
+        else do_op(a, face->arg == 1 ? AB_K8 : AB_K2, 0);
+        return;
+    }
     if (face->kind == KM_SOFT && eqn_bar(a) >= 0) {     /* Equation mode's bar (unit 020) */
         int bar = eqn_bar(a);                   /* (with the shift's bank: unit 040) */
         a->shift = 0;
@@ -1141,6 +1157,8 @@ void app_key(app_state *a, int key, uint32_t now_ms)
     const km_action *act = km_lookup(key, a->shift);
     if (act->kind == KM_NONE) act = face;       /* no separate legend: the face action (#3827) */
     a->shift = 0;
+    if (a->c->sel_row && act->kind != KM_OP) ab_sel_clear(a->c);   /* unit 093: a key the app takes (a menu, a prompt,
+                                                   UNDO) leaves the selection first, then acts (the core does the rest) */
     do_action(a, act);
 }
 

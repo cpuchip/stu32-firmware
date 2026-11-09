@@ -490,7 +490,8 @@ static void status_band(ls027_frame *f, const ab_calc *c, const screen_ui *ui, i
     if (c->tbl_on) screen_text(f, 164, 2, 2, "TABLE", true);  /* a table open (unit 032), over PRGM/EQN */
     else if (c->gr_on) screen_text(f, 164, 2, 2, "GRAPH", true);  /* a graph open (unit 033) */
     else if (c->prgm) screen_text(f, 164, 2, 2, "PRGM", true);
-    else if (c->stu) screen_text(f, 164, 2, 2, c->alg ? "ALG" : "RPN", true);   /* STU's entry (unit 029) */
+    else if (c->stu) screen_text(f, 164, 2, 2, c->alg ? "ALG" : c->sel_row ? "SEL" : "RPN", true);   /* STU's entry (029;
+                                                   093: SEL while a row is selected) */
     if (c->eqn_mode && !c->tbl_on && !c->gr_on) screen_text(f, 216, 2, 2, "EQN", true);
     if (ind) screen_text(f, 255, 2, 2, ind > 0 ? "\xe2\x96\xb2" : "\xe2\x96\xbc", true);
     for (int n = 0; n <= 4; n++) {
@@ -721,8 +722,11 @@ typedef struct {
     struct {
         uint32_t at;
         uint8_t part;       /* 0 the row on one line, 1 its left above, 2 its value below, 3 the dropped line */
+        char mark;          /* unit 093: 'S' the selected row's, 'L' a row it links to, '-' neither */
     } pg[SCREEN_PAGE_MAX];
     long pg_top;            /* the dropped count when its line is drawn, else -1 */
+    uint32_t sel;           /* unit 093: the selected row (RPN) or the one shown (ALG), 0 none */
+    char lvl_mark[4];       /* each level's mark as pg's ('?' not drawn) */
 } composed;
 
 static composed comp;           /* compose's result, shared by screen_render and screen_lines (one at a time:
@@ -773,11 +777,20 @@ static void pg_draw_text(ls027_frame *f, int bot, const char *s, bool left)
    and its result, with the rows before it above); then the dropped line, when the page's oldest row is on the screen */
 static void page_plan(const ab_calc *c, const screen_ui *ui, composed *k)
 {
-    uint32_t held[4] = {0}, limit = UINT32_MAX, ring[SCREEN_PAGE_MAX];
-    int nh = 0, bot, avail, rn = 0, rh = 0, matched = 0, used = 0, drawn = 0;
+    uint32_t held[4] = {0}, limit = UINT32_MAX, ring[SCREEN_PAGE_MAX], fw[SCREEN_PAGE_MAX], links[AB_ROW_LINKS] = {0};
+    int nh = 0, bot, avail, rn = 0, rh = 0, matched = 0, used = 0, drawn = 0, nf = 0, after_fw = 0, nlinks = 0;
+    bool scrolled = !k->alg && c->sel_row && (c->sel_top || c->sel_drop);
     k->pg_n = 0;
-    for (int i = 0; i < 4; i++) k->lvl_at[i] = UINT32_MAX;
+    for (int i = 0; i < 4; i++) k->lvl_at[i] = UINT32_MAX, k->lvl_mark[i] = '?';
     k->xe_top = 0;
+    k->sel = k->alg ? c->hist_row : c->sel_row;
+    if (k->sel) {                               /* unit 093: what the selected row links to (its dots) */
+        ab_row r;
+        if (ab_rows_find(c, k->sel, &r)) {
+            nlinks = r.nlink;
+            for (int i = 0; i < nlinks; i++) links[i] = r.link[i];
+        }
+    }
     if (k->alg) {
         k->levels = 0;
         k->lvl_bot[0] = PG_XBOT;
@@ -794,7 +807,12 @@ static void page_plan(const ab_calc *c, const screen_ui *ui, composed *k)
         k->lvl_bot[0] = PG_XBOT;
         for (int i = 1; i < 4; i++) k->lvl_bot[i] = i == 1 ? xtop - 6 : k->lvl_bot[i - 1] - PG_PITCH;
         bot = (n > 1 ? k->lvl_bot[n - 1] - PG_PITCH : xtop - 6) - PG_RULE;
-        for (int i = 0; i < n; i++) held[nh++] = lv[i]->row;
+        for (int i = 0; i < n; i++) {
+            held[nh++] = lv[i]->row;
+            k->lvl_mark[i] = !lv[i]->row ? '-' : lv[i]->row == k->sel ? 'S' : '-';
+            for (int j = 0; j < nlinks; j++)
+                if (lv[i]->row && lv[i]->row == links[j] && k->lvl_mark[i] == '-') k->lvl_mark[i] = 'L';
+        }
     }
     k->pg_bot0 = bot;
     avail = bot - 14 >= PG_TOP ? (bot - 14 - PG_TOP) / PG_PITCH + 1 : 0;
@@ -813,35 +831,147 @@ static void page_plan(const ab_calc *c, const screen_ui *ui, composed *k)
             rh = (rh + 1) % avail;
             if (rn < avail) rn++;
         }
-    }
-    for (int i = 0; i < rn; i++) {
-        uint32_t at = ring[(rh - 1 - i + 2 * avail) % avail];
-        char l[AB_EQN_LEN], v[AB_EQN_LEN + 4];
-        pg_texts(c, ui, at, l, sizeof l, v, sizeof v);
-        bool one = pg_one_line(l, v);
-        if (used + (one ? 1 : 2) > avail) break;
-        int b0 = bot - used * PG_PITCH;
-        if (one) {
-            k->pg[used].at = at, k->pg[used++].part = 0;
-            if (pg_draw && l[0]) pg_draw_text(pg_draw, b0, l, true);
-            if (pg_draw && v[0]) pg_draw_text(pg_draw, b0, v, false);
-        } else {
-            k->pg[used].at = at, k->pg[used++].part = 2;
-            k->pg[used].at = at, k->pg[used++].part = 1;
-            if (pg_draw) pg_draw_text(pg_draw, b0, v, false), pg_draw_text(pg_draw, b0 - PG_PITCH, l, true);
+        if (scrolled && sr >= c->sel_top) {     /* unit 093: the rows from the window's top on, when it's scrolled */
+            if (nf < avail) fw[nf++] = at;
+            else after_fw++;
         }
-        drawn++;
     }
-    if (drawn == matched && c->rows_dropped && used < avail) {
-        k->pg[used].at = 0, k->pg[used++].part = 3;
-        k->pg_top = (long)c->rows_dropped;
-        if (pg_draw) {
-            char t[48];
-            snprintf(t, sizeof t, "%ld OLDER ROWS DROPPED", k->pg_top);
-            pg_draw_text(pg_draw, bot - (used - 1) * PG_PITCH, t, true);
+    /* the window: scrolled, the rows from its top (the dropped line above the oldest when it's shown) while they fill it;
+       else the newest rows that fit, as 090's */
+    int cap = avail - (c->sel_drop ? 1 : 0), nwin = 0, lines = 0;
+    bool one_fw[SCREEN_PAGE_MAX];
+    if (scrolled) {
+        for (int i = 0; i < nf; i++) {
+            char l[AB_EQN_LEN], v[AB_EQN_LEN + 4];
+            pg_texts(c, ui, fw[i], l, sizeof l, v, sizeof v);
+            one_fw[i] = pg_one_line(l, v);
+            if (lines + (one_fw[i] ? 1 : 2) > cap) break;
+            lines += one_fw[i] ? 1 : 2;
+            nwin++;
+        }
+        if (nwin < nf || after_fw) {            /* it fills the window: draw it from the top, the newest of it lowest */
+            for (int i = nwin - 1; i >= 0; i--) {
+                char l[AB_EQN_LEN], v[AB_EQN_LEN + 4];
+                int b0 = bot - used * PG_PITCH;
+                if (pg_draw) pg_texts(c, ui, fw[i], l, sizeof l, v, sizeof v);
+                if (one_fw[i]) {
+                    k->pg[used].at = fw[i], k->pg[used++].part = 0;
+                    if (pg_draw && l[0]) pg_draw_text(pg_draw, b0, l, true);
+                    if (pg_draw && v[0]) pg_draw_text(pg_draw, b0, v, false);
+                } else {
+                    k->pg[used].at = fw[i], k->pg[used++].part = 2;
+                    k->pg[used].at = fw[i], k->pg[used++].part = 1;
+                    if (pg_draw) pg_draw_text(pg_draw, b0, v, false), pg_draw_text(pg_draw, b0 - PG_PITCH, l, true);
+                }
+            }
+            if (c->sel_drop && c->rows_dropped && used < avail) {
+                k->pg[used].at = 0, k->pg[used++].part = 3;
+                k->pg_top = (long)c->rows_dropped;
+                if (pg_draw) {
+                    char t[48];
+                    snprintf(t, sizeof t, "%ld OLDER ROWS DROPPED", k->pg_top);
+                    pg_draw_text(pg_draw, bot - (used - 1) * PG_PITCH, t, true);
+                }
+            }
+            scrolled = true;
+        } else {
+            scrolled = false;                   /* (the rows from the top don't fill it: the newest rows, as unscrolled) */
+        }
+    }
+    if (!scrolled) {
+        for (int i = 0; i < rn; i++) {
+            uint32_t at = ring[(rh - 1 - i + 2 * avail) % avail];
+            char l[AB_EQN_LEN], v[AB_EQN_LEN + 4];
+            pg_texts(c, ui, at, l, sizeof l, v, sizeof v);
+            bool one = pg_one_line(l, v);
+            if (used + (one ? 1 : 2) > avail) break;
+            int b0 = bot - used * PG_PITCH;
+            if (one) {
+                k->pg[used].at = at, k->pg[used++].part = 0;
+                if (pg_draw && l[0]) pg_draw_text(pg_draw, b0, l, true);
+                if (pg_draw && v[0]) pg_draw_text(pg_draw, b0, v, false);
+            } else {
+                k->pg[used].at = at, k->pg[used++].part = 2;
+                k->pg[used].at = at, k->pg[used++].part = 1;
+                if (pg_draw) pg_draw_text(pg_draw, b0, v, false), pg_draw_text(pg_draw, b0 - PG_PITCH, l, true);
+            }
+            drawn++;
+        }
+        if (drawn == matched && c->rows_dropped && used < avail) {
+            k->pg[used].at = 0, k->pg[used++].part = 3;
+            k->pg_top = (long)c->rows_dropped;
+            if (pg_draw) {
+                char t[48];
+                snprintf(t, sizeof t, "%ld OLDER ROWS DROPPED", k->pg_top);
+                pg_draw_text(pg_draw, bot - (used - 1) * PG_PITCH, t, true);
+            }
         }
     }
     k->pg_n = used;
+    for (int i = 0; i < used; i++) {            /* unit 093: the marks */
+        uint32_t sr = k->pg[i].part == 3 ? 0 : rd32(c->rows + k->pg[i].at + 2);
+        k->pg[i].mark = sr && sr == k->sel ? 'S' : '-';
+        for (int j = 0; j < nlinks && sr; j++)
+            if (sr == links[j] && k->pg[i].mark == '-') k->pg[i].mark = 'L';
+    }
+}
+
+/* Unit 093 (abacus #14132 6): a row's view. INFO: "OP OF V1, V2, V3" (", MORE" when it read more), each V the linked row's
+   value as the levels format it, " (OFF SCREEN)" after one not drawn, "(DROPPED)" for one the page has lost; a typed
+   number "TYPED", another row with no links its OP alone; an ALG row's OP is LINE. FRAC: the value as a fraction. SHOW:
+   its digits, all of them */
+static bool sel_drawn(const ab_calc *c, const composed *k, uint32_t s)
+{
+    for (int i = 0; i < k->pg_n; i++)
+        if (k->pg[i].part != 3 && rd32(c->rows + k->pg[i].at + 2) == s) return true;
+    for (int i = 0; i < (k->alg ? 0 : k->levels); i++)
+        if ((i == 0 ? c->x.row : i == 1 ? c->y.row : i == 2 ? c->z.row : c->t.row) == s) return true;
+    return k->alg && (s == c->hist_row || (!c->hist_row && c->alg_shown && s == c->ans.row));
+}
+
+static void sel_view_text(const ab_calc *c, const screen_ui *ui, const composed *k, char *out, int size)
+{
+    ab_row r;
+    ab_val v;
+    char t[AB_EQN_LEN], buf[AB_EQN_LEN + 4];
+    int ind;
+    out[0] = '\0';
+    if (!ab_rows_find(c, c->sel_view_row, &r)) return;
+    if (c->sel_view != 1) {
+        ab_display d = display_of(c, ui, FMT_WIDE);
+        if (!ab_val_decode(r.val, r.vlen, &v, t, sizeof t)) return;
+        if (c->sel_view == 2) d.fdisp = true;   /* (FRAC: this value alone, the mode untouched) */
+        else d.dec.mode = AB_ALL;               /* (SHOW: every digit) */
+        if (ab_is_sym(&v)) snprintf(out, (size_t)size, "'%s'", t);
+        else if (val_text(&v, &d, out, size, &ind) < 0) snprintf(out, (size_t)size, "?");
+        return;
+    }
+    char op[AB_EQN_LEN];
+    if (r.op == AB_ROW_OP_NUM) snprintf(op, sizeof op, "TYPED");
+    else if (r.op == AB_ROW_OP_ALG) snprintf(op, sizeof op, "LINE");
+    else if (ab_op_text(c, (int)r.op, r.arg, op, sizeof op) <= 0) snprintf(op, sizeof op, "?");
+    snprintf(out, (size_t)size, "%s", op);
+    for (int i = 0; i < r.nlink; i++) {
+        ab_row lr;
+        size_t n = strlen(out);
+        if (!ab_rows_find(c, r.link[i], &lr) || !ab_val_decode(lr.val, lr.vlen, &v, t, sizeof t)) {
+            snprintf(buf, sizeof buf, "(DROPPED)");
+        } else if (ab_is_sym(&v)) {
+            snprintf(buf, sizeof buf, "'%.*s'", AB_EQN_LEN - 3, t);
+        } else {
+            ab_display d = display_of(c, ui, FMT_WIDTH);
+            if (val_text(&v, &d, buf, sizeof buf, &ind) < 0) {
+                d = display_of(c, ui, FMT_WIDE);
+                if (val_text(&v, &d, buf, sizeof buf, &ind) < 0) snprintf(buf, sizeof buf, "?");
+            }
+        }
+        bool off = ab_rows_find(c, r.link[i], NULL) && !sel_drawn(c, k, r.link[i]);
+        snprintf(out + n, (size_t)size - n, "%s%s%s", i ? ", " : " OF ", buf, off ? " (OFF SCREEN)" : "");
+    }
+    if (r.flags & AB_ROWF_MORE) {
+        size_t n = strlen(out);
+        snprintf(out + n, (size_t)size - n, ", MORE");
+    }
 }
 
 static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
@@ -1067,6 +1197,17 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
     k->page = c->stu && !c->prgm && !c->tbl_on && !c->gr_on && !k->eqn_screen && !k->textbook;
     k->pg_top = -1;
     if (k->page) page_plan(c, ui, k);
+    if (k->page && c->sel_view && c->sel_view_row && !ab_error_message(c)) {    /* unit 093: a row's view in X's place */
+        char t[SCREEN_TEXT_MAX];
+        sel_view_text(c, ui, k, t, sizeof t);
+        memset(xl, 0, sizeof *xl);
+        xl->cursor = -1;
+        line_add(xl, t);
+        k->x_left = true;
+        k->x_letter = false;
+        k->xk = SCREEN_VIEW;
+        k->xe_top = 0;
+    }
 }
 
 static void page_line(screen_line *o, const line *l, screen_kind kind, bool left, const char *label)
@@ -1353,6 +1494,22 @@ static void draw_page(ls027_frame *f, const ab_calc *c, const screen_ui *ui, com
             if (k->x_letter && k->xk == SCREEN_VALUE) level_op(f, c, k->lvl_at[0], PG_XBOT, 4, k->x.n);
         }
     }
+    if (k->sel) {                               /* unit 093: the selected row inverted, the rows it links to dotted */
+        for (int i = 0; i < k->pg_n; i++) {
+            int b0 = k->pg_bot0 - i * PG_PITCH;
+            if (k->pg[i].mark == 'S')
+                for (int y = b0 - 16; y < b0 + 2; y++)
+                    for (int x = 0; x < LS027_ROW_BYTES; x++) f->px[y][x] ^= 0xFF;
+            else if (k->pg[i].mark == 'L') screen_fill(f, 13, b0 - 9, 4, 4, true);
+        }
+        for (int i = 0; i < k->levels; i++) {
+            int b0 = k->lvl_bot[i], h = i == 0 ? (k->xe_top ? PG_XBOT - k->xe_top : 28) : 14;
+            if (k->lvl_mark[i] == 'S')
+                for (int y = b0 - h - 2; y < b0 + 2 && y < H; y++)
+                    for (int x = 0; x < LS027_ROW_BYTES; x++) f->px[y][x] ^= 0xFF;
+            else if (k->lvl_mark[i] == 'L') screen_fill(f, 13, b0 - (i == 0 ? 16 : 9), 4, 4, true);
+        }
+    }
     if (k->pg_n > 0)                            /* the rule between the page and the levels */
         for (int x = 0; x < W; x += 3) put(f, x, k->pg_bot0 + 3, true);
     (void)ui;                                   /* (the page's lines were drawn by its plan: pg_draw) */
@@ -1419,7 +1576,7 @@ void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
     st->base = c->base == 16 ? "HEX" : c->base == 8 ? "OCT" : c->base == 2 ? "BIN" : NULL;
     st->hyp = ui->hyp;                          /* unit 073 */
     st->prgm = c->prgm;
-    st->entry = c->stu && !c->prgm ? (c->alg ? "ALG" : "RPN") : NULL;
+    st->entry = c->stu && !c->prgm ? (c->alg ? "ALG" : c->sel_row ? "SEL" : "RPN") : NULL;     /* (093: SEL) */
     st->eqn = c->eqn_mode;
     st->frac = k->ind > 0 ? 1 : k->ind < 0 ? -1 : 0;
     int nf = 0;
@@ -1463,6 +1620,24 @@ void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
             pg_line_text(c, ui, k, i, out->page[i].left, sizeof out->page[i].left, out->page[i].value,
                          sizeof out->page[i].value);
         out->pagetop = k->pg_top;
+        out->sel = k->sel;                      /* unit 093 */
+        for (int i = 0; i < k->pg_n; i++) out->pagemark[i] = k->pg[i].mark;
+        for (int i = 0; i < 4; i++) out->levelmark[i] = k->alg ? '?' : i < k->levels ? k->lvl_mark[i] : '?';
+    }
+}
+
+void screen_page_window(const ab_calc *c, uint32_t *top, uint32_t *bottom)
+{
+    screen_ui ui;
+    composed *k = &comp;
+    *top = *bottom = 0;
+    screen_ui_default(&ui);
+    compose(c, &ui, k);
+    for (int i = 0; i < k->pg_n; i++) {
+        if (k->pg[i].part == 3) continue;
+        uint32_t sr = rd32(c->rows + k->pg[i].at + 2);
+        if (!*bottom) *bottom = sr;
+        *top = sr;
     }
 }
 

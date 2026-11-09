@@ -30,6 +30,7 @@
 #include "opnames.h"
 #ifndef AB_DEVICE
 #include "screen.h"   /* %XDRAWN (082): the console's drawn=, from the screen's compose */
+#include "keymap.h"   /* %SOFT-n (093): the row menu's labels */
 #endif
 
 #define LINE_MAX_ 16384
@@ -71,6 +72,8 @@ static const struct { const char *name; ab_op op; } NAMED[] = {
     {"CLALL", AB_CLALL}, {"CLEQN", AB_CLEQN}, {"BEEP", AB_BEEP},
     {"ANS", AB_ANS}, {"HUP", AB_HUP}, {"HDOWN", AB_HDOWN},     /* unit 029 */
     {"SHOW", AB_SHOW},                                          /* unit 030 */
+    {"SEL", AB_SEL}, {"ROWCOPY", AB_COPY}, {"ROWSHOW", AB_ROWSHOW}, {"ROWFRAC", AB_ROWFRAC}, {"ROWINFO", AB_ROWINFO},
+    {"ROWEDIT", AB_ROWEDIT},                                    /* unit 093 */
     {"TABLE", AB_TABLE}, {"TSTART", AB_TSTART}, {"TSTEP", AB_TSTEP}, {"TUP", AB_TUP}, {"TDOWN", AB_TDOWN},   /* 032 */
     {"GRAPH", AB_GRAPH}, {"XMIN", AB_XMIN}, {"XMAX", AB_XMAX}, {"YMIN", AB_YMIN}, {"YMAX", AB_YMAX},       /* 033 */
     {"AUTO", AB_GAUTO}, {"GLEFT", AB_GLEFT}, {"GRIGHT", AB_GRIGHT},
@@ -231,7 +234,8 @@ static int apply_token(ab_calc *c, const char *tok, int *errors)
         {"STO:", AB_STO}, {"RCL:", AB_RCL}, {"STO+:", AB_STOADD}, {"STO-:", AB_STOSUB},
         {"STO*:", AB_STOMUL}, {"STO/:", AB_STODIV}, {"RCL+:", AB_RCLADD}, {"RCL-:", AB_RCLSUB},
         {"RCL*:", AB_RCLMUL}, {"RCL/:", AB_RCLDIV}, {"XVAR:", AB_XVAR}, {"VIEW:", AB_VIEW},
-        {"INPUT:", AB_INPUT}, {"SOLVE:", AB_SOLVE}, {"INTEG:", AB_INTEG}, {"TVAR:", AB_TVAR}};
+        {"INPUT:", AB_INPUT}, {"SOLVE:", AB_SOLVE}, {"INTEG:", AB_INTEG}, {"TVAR:", AB_TVAR},
+        {"ROWSTO:", AB_ROWSTO}};                /* (093) */
     for (size_t i = 0; i < sizeof STORE / sizeof STORE[0]; i++) {
         size_t n = strlen(STORE[i].prefix);
         if (strncmp(tok, STORE[i].prefix, n) == 0) {
@@ -1264,6 +1268,39 @@ int vectors_run(const char *name, FILE *f)
                 } else if (strcmp(ex, "%ROWDROP") == 0) {
                     rows_asked = true;
                     snprintf(got, sizeof got, "%lu", (unsigned long)c.rows_dropped);
+                } else if (strcmp(ex, "%SEL") == 0 || strncmp(ex, "%PAGEMARK-", 10) == 0 || strncmp(ex, "%LEVELMARK-", 11) == 0 ||
+                           strncmp(ex, "%SOFT-", 6) == 0 || strcmp(ex, "%XLINE") == 0 || strcmp(ex, "%BAND") == 0) {
+                    /* unit 093 (abacus #14133, #14135): the selection as screen_lines tells it; blanks _, an empty text _ */
+                    rows_asked = true;
+#ifndef AB_DEVICE
+                    static screen_page pg;
+                    screen_ui ui;
+                    screen_ui_default(&ui);
+                    screen_lines(&c, &ui, &pg);
+                    if (ex[1] == 'S' && ex[2] == 'E') {
+                        if (pg.page_on && pg.sel) snprintf(got, sizeof got, "%lu", pg.sel);
+                        else snprintf(got, sizeof got, "-");
+                    } else if (ex[1] == 'P') {
+                        int k = atoi(ex + 10);
+                        snprintf(got, sizeof got, "%c", pg.page_on && k >= 1 && k <= pg.page_n ? pg.pagemark[k - 1] : '?');
+                    } else if (ex[1] == 'L') {
+                        const char *lv = strchr("XYZT", ex[11]);
+                        snprintf(got, sizeof got, "%c", pg.page_on && lv && ex[11] ? pg.levelmark[lv - "XYZT"] : '?');
+                    } else if (ex[1] == 'S') {          /* %SOFT-n: the row menu's labels while one is selected */
+                        int n = atoi(ex + 6);
+                        const char *mn = ab_sel_menu(&c), *lab = "";
+                        for (int i = 0; mn && km_menu_at(i); i++)
+                            if (!strcmp(km_menu_at(i)->name, mn) && n >= 1 && n <= 6) lab = km_menu_at(i)->item[n - 1].legend;
+                        snprintf(got, sizeof got, "%s", lab && lab[0] ? lab : "_");
+                    } else if (ex[1] == 'X') {
+                        snprintf(got, sizeof got, "%.*s", (int)sizeof got - 1, pg.x.text[0] ? pg.x.text : "_");
+                    } else {
+                        snprintf(got, sizeof got, "%s", pg.status.text[0] ? pg.status.text : "_");
+                    }
+                    spaces_out(got);
+#else
+                    snprintf(got, sizeof got, "(no screen on the device runner)");
+#endif
                 } else if (strcmp(ex, "%PAGEN") == 0 || strncmp(ex, "%PAGE-", 6) == 0 || strcmp(ex, "%PAGETOP") == 0 ||
                            strcmp(ex, "%LEVELS") == 0) {
                     /* unit 090: the worksheet as screen_lines tells it (abacus #14043's grammar): %PAGEN lines above the
@@ -1515,6 +1552,9 @@ int main(int argc, char **argv)
         perror(argv[1]);
         return 2;
     }
+#ifndef AB_DEVICE
+    ab_rows_set_window(screen_page_window);    /* unit 093: the selection's window, as the app registers it */
+#endif
     int r = vectors_run(argv[1], f);
     fclose(f);
     return r;
