@@ -60,7 +60,7 @@
 enum { EV_KEY = 0, EV_OP, EV_DUMP, EV_SAVE, EV_WIPE, EV_RESTART, EV_TOUCHED, EV_BENCH, EV_TIME, EV_POWBENCH,
        EV_KEYUP, EV_TBLBENCH, EV_GRBENCH, EV_FRAMEBENCH, EV_FRAMECRC,
        EV_POLBENCH, EV_ZOOMBENCH, EV_CASBENCH, EV_DIFFBENCH, EV_FNBENCH, EV_HPBENCH, EV_PROGBENCH, EV_EQNBENCH, EV_OPBENCH,
-       EV_ROWBENCH };                          /* EV_KEYUP: a the key released (unit 030: SHOW, held) */
+       EV_ROWBENCH, EV_SAVEBENCH };                          /* EV_KEYUP: a the key released (unit 030: SHOW, held) */
 static char time_text[16];             /* TIME's argument, for the calc task (unit 027) */
 
 typedef struct {
@@ -1142,6 +1142,7 @@ static void console_task(void *arg)
         else if (!strcmp(line, "EQNBENCH")) e.kind = EV_EQNBENCH;        /* unit 049: equations evaluated */
         else if (!strcmp(line, "OPBENCH")) e.kind = EV_OPBENCH;          /* after unit 050: a cube's stages */
         else if (!strcmp(line, "ROWBENCH")) e.kind = EV_ROWBENCH;        /* unit 089: the worksheet's rows' costs */
+        else if (!strcmp(line, "SAVEBENCH")) e.kind = EV_SAVEBENCH;      /* unit 090: the save's distribution */
         else if (!strcmp(line, "DIFFBENCH")) e.kind = EV_DIFFBENCH;  /* apps.h v1.2 item 1: the line diff's time */
         else if (!strcmp(line, "FNBENCH")) e.kind = EV_FNBENCH;      /* unit 044 rule 4: each function's time */
         else if (!strcmp(line, "HPBENCH")) e.kind = EV_HPBENCH;      /* the hp speed proposal: each primitive's time */
@@ -1226,6 +1227,8 @@ static void calc_task(void *arg)
             opbench();
         } else if (got && ev.kind == EV_ROWBENCH) {
             dev_rowbench(&flash, image, IMAGE_CAP, &app.set, save);
+        } else if (got && ev.kind == EV_SAVEBENCH) {
+            dev_savebench(&flash, image, IMAGE_CAP, &app.set, save);
         } else if (got && ev.kind == EV_DIFFBENCH) {
             diffbench();
         } else if (got && ev.kind == EV_FNBENCH) {

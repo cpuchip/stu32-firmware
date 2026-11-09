@@ -7,6 +7,7 @@
 #ifdef AB_BENCH
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "arena.h"
@@ -16,6 +17,10 @@
 #include "esp_timer.h"
 #include "fn.h"
 #include "xnum.h"
+#include "sdkconfig.h"
+#ifdef CONFIG_PM_ENABLE
+#include "esp_pm.h"
+#endif
 #include "ls027.h"
 #include "rows.h"
 #include "screen.h"
@@ -206,6 +211,45 @@ static __attribute__((noinline, unused)) void eqnbench(void)
 }
 
 
+/* ROWBENCH's and SAVEBENCH's states (unit 089, 090): 0 no page; 1 the page full of (1 +) rows, nothing more held; 2 the
+   worst: each of the 33 values a save keeps holding a row of the largest kind (191 B typed and three links; the letters,
+   ANS and LASTx a 191-byte expression, X, Y, Z and T a number), then 8 KB of rows no value holds */
+static void rb_build(ab_calc *c2, int pass)
+{
+    ab_init(c2);
+    ab_do_arg(c2, AB_MODEL, AB_MODEL_STU);
+    if (pass) while (c2->rows_dropped == 0) ab_do(c2, AB_K1), ab_do(c2, AB_ADD);
+    if (pass == 2) {
+        char t[AB_EQN_LEN];
+        for (int i = 0; i < AB_EQN_LEN - 1; i++) t[i] = i % 2 ? '+' : (char)('A' + i / 2 % 26);
+        t[AB_EQN_LEN - 1] = '\0';
+        for (int i = 0; i < 33; i++) {
+            ab_val v;
+            uint32_t lk[3] = {c2->row_top, c2->row_top - 1, c2->row_top - 2};
+            ab_val *at = i == 0 ? &c2->x : i == 1 ? &c2->y : i == 2 ? &c2->z : i == 3 ? &c2->t : i == 4 ? &c2->lastx
+                       : i == 5 ? &c2->ans : &c2->var[i - 6];
+            if (i < 4) {                    /* the levels: a number, so the keys below work */
+                memset(&v, 0, sizeof v);
+                v.kind = AB_REAL;
+                v.re = abn_from_int(i + 2);
+                v.im = v.p3 = abn_zero();
+            } else if (ab_expr_new(c2, t, &v) != ABN_OK) {
+                break;
+            }
+            *at = v;
+            ab_rows_test_append(c2, at, t, strlen(t), lk, 3);
+        }
+        for (int i = 0; i < 230; i++) {     /* then 8 KB of rows no value holds, newer: the save keeps both */
+            ab_val v;
+            memset(&v, 0, sizeof v);
+            v.kind = AB_REAL;
+            v.re = abn_from_int(i + 1);
+            v.im = v.p3 = abn_zero();
+            ab_rows_test_append(c2, &v, "1", 1, NULL, 0);
+        }
+    }
+}
+
 /* ROWBENCH (unit 089, work/089-worksheet-rows.md; unit 090: shared, so Rev A's head-less build runs it too, with the
    page's frame drawn and a full page with nothing more held): the worksheet's costs, in a second calculator in PSRAM,
    STU's RPN. Three states: no page, the page full and nothing held beyond the levels', and the worst (the 64 KB page full of (1 +) rows, and each of the 33 values a save keeps holding a
@@ -226,38 +270,7 @@ static __attribute__((noinline, unused)) void dev_rowbench(ab_flash *fl, uint8_t
     static const char *const NAME[3] = {"no page", "the full page", "the worst page"};
     ls027_frame *fr = heap_caps_malloc(sizeof *fr, MALLOC_CAP_SPIRAM);
     for (int pass = 0; pass < 3; pass++) {
-        ab_init(c2);
-        ab_do_arg(c2, AB_MODEL, AB_MODEL_STU);
-        if (pass) while (c2->rows_dropped == 0) ab_do(c2, AB_K1), ab_do(c2, AB_ADD);
-        if (pass == 2) {
-            char t[AB_EQN_LEN];
-            for (int i = 0; i < AB_EQN_LEN - 1; i++) t[i] = i % 2 ? '+' : (char)('A' + i / 2 % 26);
-            t[AB_EQN_LEN - 1] = '\0';
-            for (int i = 0; i < 33; i++) {
-                ab_val v;
-                uint32_t lk[3] = {c2->row_top, c2->row_top - 1, c2->row_top - 2};
-                ab_val *at = i == 0 ? &c2->x : i == 1 ? &c2->y : i == 2 ? &c2->z : i == 3 ? &c2->t : i == 4 ? &c2->lastx
-                           : i == 5 ? &c2->ans : &c2->var[i - 6];
-                if (i < 4) {                    /* the levels: a number, so the keys below work */
-                    memset(&v, 0, sizeof v);
-                    v.kind = AB_REAL;
-                    v.re = abn_from_int(i + 2);
-                    v.im = v.p3 = abn_zero();
-                } else if (ab_expr_new(c2, t, &v) != ABN_OK) {
-                    break;
-                }
-                *at = v;
-                ab_rows_test_append(c2, at, t, strlen(t), lk, 3);
-            }
-            for (int i = 0; i < 230; i++) {     /* then 8 KB of rows no value holds, newer: the save keeps both */
-                ab_val v;
-                memset(&v, 0, sizeof v);
-                v.kind = AB_REAL;
-                v.re = abn_from_int(i + 1);
-                v.im = v.p3 = abn_zero();
-                ab_rows_test_append(c2, &v, "1", 1, NULL, 0);
-            }
-        }
+        rb_build(c2, pass);
         uint32_t held[33];
         int nh = ab_rows_held(c2, held), nr = ab_rows_count(c2);
         size_t n = 0, n0 = 0, m = 0;
@@ -330,6 +343,136 @@ static __attribute__((noinline, unused)) void dev_rowbench(ab_flash *fl, uint8_t
                (unsigned)(c2->rows_dropped - d0), c2->x.kind == AB_REAL ? "a number" : "not a number");
     }
     heap_caps_free(fr);
+    heap_caps_free(c2);
+}
+
+
+/* SAVEBENCH (unit 090, abacus #14093): the device's save to the flash, SB_N times for each of ROWBENCH's three states, as
+   a distribution (min, median, max), each save split into the store's three steps through a flash that times its own
+   calls: the erase of the sectors the image takes, the image's write and the header's, and the reads (examine reads
+   both slots back to check their CRCs). Before each erase, untimed, its sectors are read to see whether they were
+   already blank (abacus's guess for the spread). The calculator's own state is written again after each state. */
+#define SB_N 20
+typedef struct {
+    ab_flash *real;
+    int64_t er_us, wr_us, rd_us;
+    int sectors, blank;
+} svb_ctx;
+
+static int svb_erase(void *ctx, uint32_t off, uint32_t len)
+{
+    svb_ctx *s = ctx;
+    static uint8_t buf[256];
+    for (uint32_t sec = 0; sec < len; sec += s->real->sector) {
+        bool blank = true;
+        for (uint32_t at = 0; at < s->real->sector && blank; at += sizeof buf) {
+            if (s->real->read(s->real->ctx, off + sec + at, buf, sizeof buf) != 0) blank = false;
+            for (size_t i = 0; i < sizeof buf && blank; i++) blank = buf[i] == 0xFF;
+        }
+        s->sectors++;
+        s->blank += blank;
+    }
+    int64_t t0 = esp_timer_get_time();
+    int rc = s->real->erase(s->real->ctx, off, len);
+    s->er_us += esp_timer_get_time() - t0;
+    return rc;
+}
+
+static int svb_write(void *ctx, uint32_t off, const void *src, uint32_t len)
+{
+    svb_ctx *s = ctx;
+    int64_t t0 = esp_timer_get_time();
+    int rc = s->real->write(s->real->ctx, off, src, len);
+    s->wr_us += esp_timer_get_time() - t0;
+    return rc;
+}
+
+static int svb_read(void *ctx, uint32_t off, void *dst, uint32_t len)
+{
+    svb_ctx *s = ctx;
+    int64_t t0 = esp_timer_get_time();
+    int rc = s->real->read(s->real->ctx, off, dst, len);
+    s->rd_us += esp_timer_get_time() - t0;
+    return rc;
+}
+
+static int svb_cmp(const void *a, const void *b)
+{
+    int64_t x = *(const int64_t *)a, y = *(const int64_t *)b;
+    return x < y ? -1 : x > y;
+}
+
+static void svb_line(const char *state, const char *what, int64_t *v)
+{
+    qsort(v, SB_N, sizeof v[0], svb_cmp);
+    printf("savebench: %s: %s min %lld median %lld max %lld ms\n", state, what, (long long)v[0] / 1000,
+           (long long)(v[SB_N / 2 - 1] + v[SB_N / 2]) / 2000, (long long)v[SB_N - 1] / 1000);
+}
+
+static __attribute__((noinline, unused)) void dev_savebench(ab_flash *fl, uint8_t *image, size_t cap,
+                                                            const dev_settings *set, void (*save_fn)(void))
+{
+    static const char *const NAME[3] = {"no page", "the full page", "the worst page"};
+    ab_calc *c2 = heap_caps_calloc(1, sizeof *c2, MALLOC_CAP_SPIRAM);
+    int64_t *v = heap_caps_malloc(4 * SB_N * sizeof *v, MALLOC_CAP_SPIRAM);
+    if (!c2 || !v || !fl->ctx) {
+        printf("savebench: no room, or no flash\n");
+        heap_caps_free(c2);
+        heap_caps_free(v);
+        return;
+    }
+#ifdef CONFIG_PM_ENABLE
+    /* Rev A's image runs power management (light sleep, the CPU at its minimum when no lock is held); the stand-in's
+       doesn't. Each state is timed twice there, the second time holding the CPU at its maximum and light sleep off: the
+       control for whether power management stretches a save */
+    esp_pm_lock_handle_t lk = NULL;
+    esp_pm_lock_handle_t lk2 = NULL;
+    esp_pm_lock_create(ESP_PM_CPU_FREQ_MAX, 0, "savebench", &lk);
+    esp_pm_lock_create(ESP_PM_NO_LIGHT_SLEEP, 0, "savebench2", &lk2);
+    int runs = lk && lk2 ? 2 : 1;
+#else
+    int runs = 1;
+#endif
+    for (int pass = 0; pass < 3 * runs; pass++) {
+        int locked = pass >= 3;
+        char state[48];
+        snprintf(state, sizeof state, "%s%s", NAME[pass % 3], locked ? " (PM lock held)" : "");
+#ifdef CONFIG_PM_ENABLE
+        if (pass == 3) esp_pm_lock_acquire(lk), esp_pm_lock_acquire(lk2);
+#endif
+        rb_build(c2, pass % 3);
+        size_t m = dev_image_save(c2, set, image, cap);
+        svb_ctx sc = {fl, 0, 0, 0, 0, 0};
+        ab_flash tf = *fl;
+        tf.ctx = &sc;
+        tf.erase = svb_erase, tf.write = svb_write, tf.read = svb_read;
+        int bad = 0, blank_sectors = 0, sectors = 0, slow_blank = 0, slow = 0;
+        int64_t slowest = 0;
+        for (int i = 0; i < SB_N && m <= cap; i++) {
+            sc.er_us = sc.wr_us = sc.rd_us = 0;
+            sc.sectors = sc.blank = 0;
+            int64_t t0 = esp_timer_get_time();
+            bad += ab_store_save(&tf, image, (uint32_t)m) != 0;
+            v[i] = esp_timer_get_time() - t0;
+            v[SB_N + i] = sc.er_us, v[2 * SB_N + i] = sc.wr_us, v[3 * SB_N + i] = sc.rd_us;
+            sectors += sc.sectors, blank_sectors += sc.blank;
+            if (v[i] > slowest) slowest = v[i], slow_blank = sc.blank, slow = sc.sectors;
+        }
+        printf("savebench: %s: %u B, %d saves (%d failed), %d of %d sectors already blank before their erase; the slowest "
+               "save's %d of %d\n", state, (unsigned)m, SB_N, bad, blank_sectors, sectors, slow_blank, slow);
+        svb_line(state, "the save", v);
+        svb_line(state, "its erase", v + SB_N);
+        svb_line(state, "its writes", v + 2 * SB_N);
+        svb_line(state, "its reads", v + 3 * SB_N);
+        save_fn();                              /* the calculator's own state written again over it */
+    }
+#ifdef CONFIG_PM_ENABLE
+    if (runs == 2) esp_pm_lock_release(lk), esp_pm_lock_release(lk2);
+    if (lk) esp_pm_lock_delete(lk);
+    if (lk2) esp_pm_lock_delete(lk2);
+#endif
+    printf("savebench: done\n");
+    heap_caps_free(v);
     heap_caps_free(c2);
 }
 

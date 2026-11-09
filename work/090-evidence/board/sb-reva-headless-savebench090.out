@@ -1,0 +1,448 @@
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+Checking "python3" ...
+Python 3.12.3
+"python3" has been detected
+Activating ESP-IDF 5.4
+Setting IDF_PATH to '/opt/esp/idf'.
+* Checking python version ... 3.12.3
+* Checking python dependencies ... OK
+* Deactivating the current ESP-IDF environment (if any) ... OK
+* Establishing a new ESP-IDF environment ... OK
+* Identifying shell ... bash
+* Detecting outdated tools in system ... OK - no outdated tools found
+warning:  Failed to get username with error: 'getpwuid(): uid not found: 1001'. Using default temporary directory /tmp/esp_idf_activate.
+* Shell completion ... Autocompletion code generated
+
+Done! You can now compile ESP-IDF projects.
+Go to the project directory and run:
+
+  idf.py build
+Activating ESP-IDF 5.4
+Setting IDF_PATH to '/opt/esp/idf'.
+* Checking python version ... 3.12.3
+* Checking python dependencies ... OK
+* Deactivating the current ESP-IDF environment (if any) ... OK
+* Establishing a new ESP-IDF environment ... OK
+* Identifying shell ... bash
+* Detecting outdated tools in system ... OK - no outdated tools found
+warning:  Failed to get username with error: 'getpwuid(): uid not found: 1001'. Using default temporary directory /tmp/esp_idf_activate.
+* Shell completion ... Autocompletion code generated
+fetch-intel-dfp: verified 85dafd70f0fe2a8da218ade4233fca9d3228b0b04cd6d8527f7499926be01037, built build/intel-esp32s3/libbid.a
+Executing action: all (aliases: build)
+Running ninja in directory /project/device/reva/build-headless
+Executing "ninja all"...
+[0/2] Re-checking globbed directories...
+[1/2] Re-running CMake...
+-- ccache will be used for faster recompilation
+-- Building ESP-IDF components for target esp32s3
+-- Project sdkconfig file /project/device/reva/build-headless/sdkconfig
+Loading defaults file /project/device/reva/sdkconfig.defaults...
+Loading defaults file /project/device/reva/headless.defaults...
+-- Compiler supported targets: xtensa-esp-elf
+-- USING O3
+-- App "abacus_reva" version: 03e0808-dirty
+-- Adding linker script /project/device/reva/build-headless/esp-idf/esp_system/ld/memory.ld
+-- Adding linker script /project/device/reva/build-headless/esp-idf/esp_system/ld/sections.ld.in
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.api.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.bt_funcs.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.libgcc.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.wdt.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.version.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.ble_master.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.ble_50.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.ble_smp.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.ble_dtm.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.ble_test.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.ble_scan.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.newlib.ld
+-- Adding linker script /opt/esp/idf/components/soc/esp32s3/ld/esp32s3.peripherals.ld
+-- Adding linker script /project/device/reva/build-headless/esp-idf/main/ulp_main/ulp_main.ld
+-- Components: app_update bootloader bootloader_support cxx driver efuse esp_adc esp_app_format esp_bootloader_format esp_common esp_driver_ana_cmpr esp_driver_dac esp_driver_gpio esp_driver_gptimer esp_driver_i2c esp_driver_i2s esp_driver_ledc esp_driver_mcpwm esp_driver_parlio esp_driver_pcnt esp_driver_rmt esp_driver_sdio esp_driver_sdm esp_driver_sdmmc esp_driver_sdspi esp_driver_spi esp_driver_tsens esp_driver_uart esp_driver_usb_serial_jtag esp_hw_support esp_mm esp_partition esp_pm esp_psram esp_ringbuf esp_rom esp_security esp_system esp_timer esptool_py freertos hal heap log main mbedtls newlib partition_table pthread sdmmc soc spi_flash ulp xtensa
+-- Component paths: /opt/esp/idf/components/app_update /opt/esp/idf/components/bootloader /opt/esp/idf/components/bootloader_support /opt/esp/idf/components/cxx /opt/esp/idf/components/driver /opt/esp/idf/components/efuse /opt/esp/idf/components/esp_adc /opt/esp/idf/components/esp_app_format /opt/esp/idf/components/esp_bootloader_format /opt/esp/idf/components/esp_common /opt/esp/idf/components/esp_driver_ana_cmpr /opt/esp/idf/components/esp_driver_dac /opt/esp/idf/components/esp_driver_gpio /opt/esp/idf/components/esp_driver_gptimer /opt/esp/idf/components/esp_driver_i2c /opt/esp/idf/components/esp_driver_i2s /opt/esp/idf/components/esp_driver_ledc /opt/esp/idf/components/esp_driver_mcpwm /opt/esp/idf/components/esp_driver_parlio /opt/esp/idf/components/esp_driver_pcnt /opt/esp/idf/components/esp_driver_rmt /opt/esp/idf/components/esp_driver_sdio /opt/esp/idf/components/esp_driver_sdm /opt/esp/idf/components/esp_driver_sdmmc /opt/esp/idf/components/esp_driver_sdspi /opt/esp/idf/components/esp_driver_spi /opt/esp/idf/components/esp_driver_tsens /opt/esp/idf/components/esp_driver_uart /opt/esp/idf/components/esp_driver_usb_serial_jtag /opt/esp/idf/components/esp_hw_support /opt/esp/idf/components/esp_mm /opt/esp/idf/components/esp_partition /opt/esp/idf/components/esp_pm /opt/esp/idf/components/esp_psram /opt/esp/idf/components/esp_ringbuf /opt/esp/idf/components/esp_rom /opt/esp/idf/components/esp_security /opt/esp/idf/components/esp_system /opt/esp/idf/components/esp_timer /opt/esp/idf/components/esptool_py /opt/esp/idf/components/freertos /opt/esp/idf/components/hal /opt/esp/idf/components/heap /opt/esp/idf/components/log /project/device/reva/main /opt/esp/idf/components/mbedtls /opt/esp/idf/components/newlib /opt/esp/idf/components/partition_table /opt/esp/idf/components/pthread /opt/esp/idf/components/sdmmc /opt/esp/idf/components/soc /opt/esp/idf/components/spi_flash /opt/esp/idf/components/ulp /opt/esp/idf/components/xtensa
+-- Configuring done (3.2s)
+-- Generating done (0.2s)
+-- Build files have been written to: /project/device/reva/build-headless
+[0/2] Re-checking globbed directories...
+[1/50] Performing build step for 'ulp_main'
+ninja: no work to do.
+[2/48] No install step for 'ulp_main'
+[3/48] cd /project/device/reva/build-headless/esp-idf/main && /opt/esp/tools/cmake/3.30.2/bin/cmake -DREPO=/project -DOUT=/project/device/reva/build-headless/esp-idf/main/ab_commit.h -P /project/scripts/gen_commit.cmake
+[4/48] Completed 'ulp_main'
+[5/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/vec3.c.obj
+[6/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/row.c.obj
+[7/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/fake_input.c.obj
+[8/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/slab.c.obj
+[9/48] Performing build step for 'bootloader'
+[1/1] cd /project/device/reva/build-headless/bootloader/esp-idf/esptool_py && /opt/esp/python_env/idf5.4_py3.12_env/bin/python /opt/esp/idf/components/partition_table/check_sizes.py --offset 0x8000 bootloader 0x0 /project/device/reva/build-headless/bootloader/bootloader.bin
+Bootloader binary size 0x5760 bytes. 0x28a0 bytes (32%) free.
+[10/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/input_jump.c.obj
+[11/48] No install step for 'bootloader'
+[12/48] Completed 'bootloader'
+[13/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/player_event.c.obj
+[14/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/row_generator.c.obj
+[15/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/firmware/apps.c.obj
+[16/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/maths.c.obj
+[17/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/timeval.c.obj
+[18/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/level.c.obj
+[19/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/time_tracker.c.obj
+[20/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/input_steer.c.obj
+[21/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/chacha20.c.obj
+[22/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/skill.c.obj
+[23/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/snake/games/snake/snake_logic.c.obj
+[24/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/snake/games/snake/snake_app.c.obj
+[25/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/moles/games/moles/moles_logic.c.obj
+[26/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/points_counter.c.obj
+[27/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/aim/games/aim/aim_app.c.obj
+[28/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/catch/games/catch/catch_logic.c.obj
+[29/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/salvo/games/salvo/salvo_app.c.obj
+[30/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/land/games/land/land_app.c.obj
+[31/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/land/games/land/land_logic.c.obj
+[32/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/app/render.c.obj
+[33/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/mines/games/mines/mines_app.c.obj
+[34/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/app/babal_app.c.obj
+[35/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/player.c.obj
+[36/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/salvo/games/salvo/salvo_logic.c.obj
+[37/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/aim/games/aim/aim_logic.c.obj
+[38/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/mines/games/mines/mines_logic.c.obj
+[39/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/rocks/games/3720/rocks_logic.c.obj
+[40/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/catch/games/catch/catch_app.c.obj
+[41/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/moles/games/moles/moles_app.c.obj
+[42/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/rocks/games/3720/rocks_app.c.obj
+[43/48] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/reva_main.c.obj
+[44/48] Linking C static library esp-idf/main/libmain.a
+[45/48] Generating ld/sections.ld
+[46/48] Linking CXX executable abacus_reva.elf
+[47/48] Generating binary image from built executable
+esptool.py v4.9.0
+Creating esp32s3 image...
+Merged 3 ELF sections
+Successfully created esp32s3 image.
+Generated /project/device/reva/build-headless/abacus_reva.bin
+[48/48] cd /project/device/reva/build-headless/esp-idf/esptool_py && /opt/esp/python_env/idf5.4_py3.12_env/bin/python /opt/esp/idf/components/partition_table/check_sizes.py --offset 0x8000 partition --type app /project/device/reva/build-headless/partition_table/partition-table.bin /project/device/reva/build-headless/abacus_reva.bin
+abacus_reva.bin binary size 0x21cb40 bytes. Smallest app partition is 0x700000 bytes. 0x4e34c0 bytes (70%) free.
+
+Project build complete. To flash, run:
+ idf.py flash
+or
+ idf.py -p PORT flash
+or
+ python -m esptool --chip esp32s3 -b 460800 --before default_reset --after hard_reset write_flash --flash_mode dio --flash_size 8MB --flash_freq 80m 0x0 build-headless/bootloader/bootloader.bin 0x8000 build-headless/partition_table/partition-table.bin 0x10000 build-headless/abacus_reva.bin
+or from the "/project/device/reva/build-headless" directory
+ python -m esptool --chip esp32s3 -b 460800 --before default_reset --after hard_reset write_flash "@flash_args"
+Executing action: flash
+Running ninja in directory /project/device/reva/build-headless
+Executing "ninja flash"...
+[0/2] Re-checking globbed directories...
+[1/17] Performing build step for 'ulp_main'
+ninja: no work to do.
+[2/15] No install step for 'ulp_main'
+[3/15] cd /project/device/reva/build-headless/esp-idf/main && /opt/esp/tools/cmake/3.30.2/bin/cmake -DREPO=/project -DOUT=/project/device/reva/build-headless/esp-idf/main/ab_commit.h -P /project/scripts/gen_commit.cmake
+[4/9] Completed 'ulp_main'
+[5/9] Performing build step for 'bootloader'
+[1/1] cd /project/device/reva/build-headless/bootloader/esp-idf/esptool_py && /opt/esp/python_env/idf5.4_py3.12_env/bin/python /opt/esp/idf/components/partition_table/check_sizes.py --offset 0x8000 bootloader 0x0 /project/device/reva/build-headless/bootloader/bootloader.bin
+Bootloader binary size 0x5760 bytes. 0x28a0 bytes (32%) free.
+[6/9] No install step for 'bootloader'
+[7/9] cd /project/device/reva/build-headless/esp-idf/esptool_py && /opt/esp/python_env/idf5.4_py3.12_env/bin/python /opt/esp/idf/components/partition_table/check_sizes.py --offset 0x8000 partition --type app /project/device/reva/build-headless/partition_table/partition-table.bin /project/device/reva/build-headless/abacus_reva.bin
+abacus_reva.bin binary size 0x21cb40 bytes. Smallest app partition is 0x700000 bytes. 0x4e34c0 bytes (70%) free.
+[8/9] Completed 'bootloader'
+[8/9] cd /opt/esp/idf/components/esptool_py && /opt/esp/tools/cmake/3.30.2/bin/cmake -D IDF_PATH=/opt/esp/idf -D "SERIAL_TOOL=/opt/esp/python_env/idf5.4_py3.12_env/bin/python;;/opt/esp/idf/components/esptool_py/esptool/esptool.py;--chip;esp32s3" -D "SERIAL_TOOL_ARGS=--before=default_reset;--after=hard_reset;write_flash;@flash_args" -D WORKING_DIRECTORY=/project/device/reva/build-headless -P /opt/esp/idf/components/esptool_py/run_serial_tool.cmake
+esptool.py --chip esp32s3 -p /dev/serial/by-id/usb-1a86_USB_Single_Serial_56E1012198-if00 -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 80m --flash_size 8MB 0x0 bootloader/bootloader.bin 0x10000 abacus_reva.bin 0x8000 partition_table/partition-table.bin
+esptool.py v4.9.0
+Serial port /dev/serial/by-id/usb-1a86_USB_Single_Serial_56E1012198-if00
+Connecting...
+Failed to get PID of a device on /dev/serial/by-id/usb-1a86_USB_Single_Serial_56E1012198-if00, using standard reset sequence.
+.
+Chip is ESP32-S3 (QFN56) (revision v0.1)
+Features: WiFi, BLE, Embedded PSRAM 8MB (AP_3v3)
+Crystal is 40MHz
+MAC: 34:85:18:76:ce:8c
+Uploading stub...
+Running stub...
+Stub running...
+Changing baud rate to 460800
+Changed.
+Configuring flash size...
+Flash will be erased from 0x00000000 to 0x00005fff...
+Flash will be erased from 0x00010000 to 0x0022cfff...
+Flash will be erased from 0x00008000 to 0x00008fff...
+SHA digest in image updated
+Compressed 22368 bytes to 14200...
+Writing at 0x00000000... (100 %)
+Wrote 22368 bytes (14200 compressed) at 0x00000000 in 0.6 seconds (effective 289.5 kbit/s)...
+Hash of data verified.
+Compressed 2214720 bytes to 1835748...
+Writing at 0x00010000... (0 %)
+Writing at 0x0001a0a4... (1 %)
+Writing at 0x000253df... (2 %)
+Writing at 0x0002abac... (3 %)
+Writing at 0x0002eba7... (4 %)
+Writing at 0x00032ba2... (5 %)
+Writing at 0x00036b9d... (6 %)
+Writing at 0x0003ab98... (7 %)
+Writing at 0x0003eb93... (7 %)
+Writing at 0x00042b8e... (8 %)
+Writing at 0x00046b89... (9 %)
+Writing at 0x0004ab84... (10 %)
+Writing at 0x0004eb7f... (11 %)
+Writing at 0x00052b7a... (12 %)
+Writing at 0x00056b75... (13 %)
+Writing at 0x0005ab70... (14 %)
+Writing at 0x0005eb6b... (15 %)
+Writing at 0x00062b66... (15 %)
+Writing at 0x00066b61... (16 %)
+Writing at 0x0006ab5c... (17 %)
+Writing at 0x0006eaae... (18 %)
+Writing at 0x000742ff... (19 %)
+Writing at 0x000784ce... (20 %)
+Writing at 0x0007c4c9... (21 %)
+Writing at 0x000804c4... (22 %)
+Writing at 0x000844bf... (23 %)
+Writing at 0x000884ba... (23 %)
+Writing at 0x0008c4b5... (24 %)
+Writing at 0x000904b0... (25 %)
+Writing at 0x000944ab... (26 %)
+Writing at 0x000984a6... (27 %)
+Writing at 0x0009ca25... (28 %)
+Writing at 0x000a0a70... (29 %)
+Writing at 0x000a4a6b... (30 %)
+Writing at 0x000a8a66... (30 %)
+Writing at 0x000aca61... (31 %)
+Writing at 0x000b0a5c... (32 %)
+Writing at 0x000b4a57... (33 %)
+Writing at 0x000b8a52... (34 %)
+Writing at 0x000bca4d... (35 %)
+Writing at 0x000c0a48... (36 %)
+Writing at 0x000c4a43... (37 %)
+Writing at 0x000c8a3e... (38 %)
+Writing at 0x000cca39... (38 %)
+Writing at 0x000d0a34... (39 %)
+Writing at 0x000d4a2f... (40 %)
+Writing at 0x000d8a2a... (41 %)
+Writing at 0x000dca25... (42 %)
+Writing at 0x000e0a20... (43 %)
+Writing at 0x000e4a1b... (44 %)
+Writing at 0x000e89ea... (45 %)
+Writing at 0x000ecfe6... (46 %)
+Writing at 0x000f0fe1... (46 %)
+Writing at 0x000f4fdc... (47 %)
+Writing at 0x000f8fd7... (48 %)
+Writing at 0x000fcfd2... (49 %)
+Writing at 0x00100fcd... (50 %)
+Writing at 0x00104fc8... (51 %)
+Writing at 0x00108fc3... (52 %)
+Writing at 0x0010cf7c... (53 %)
+Writing at 0x001120ec... (53 %)
+Writing at 0x0011b24a... (54 %)
+Writing at 0x0011f428... (55 %)
+Writing at 0x0012365d... (56 %)
+Writing at 0x00127885... (57 %)
+Writing at 0x0012ba9b... (58 %)
+Writing at 0x0012fdce... (59 %)
+Writing at 0x00133fe9... (60 %)
+Writing at 0x00138252... (61 %)
+Writing at 0x0013c46e... (61 %)
+Writing at 0x00140641... (62 %)
+Writing at 0x00146969... (63 %)
+Writing at 0x0015184d... (64 %)
+Writing at 0x00157267... (65 %)
+Writing at 0x0015c92d... (66 %)
+Writing at 0x00161cda... (67 %)
+Writing at 0x00167279... (68 %)
+Writing at 0x0016ca18... (69 %)
+Writing at 0x00171dec... (69 %)
+Writing at 0x00177173... (70 %)
+Writing at 0x0017c610... (71 %)
+Writing at 0x0018158d... (72 %)
+Writing at 0x00186dca... (73 %)
+Writing at 0x0018bfae... (74 %)
+Writing at 0x00191476... (75 %)
+Writing at 0x001961e0... (76 %)
+Writing at 0x0019b53e... (76 %)
+Writing at 0x001a09a3... (77 %)
+Writing at 0x001a5b67... (78 %)
+Writing at 0x001aac04... (79 %)
+Writing at 0x001afc1d... (80 %)
+Writing at 0x001b4d94... (81 %)
+Writing at 0x001b9f8c... (82 %)
+Writing at 0x001bf16b... (83 %)
+Writing at 0x001c436c... (84 %)
+Writing at 0x001c981a... (84 %)
+Writing at 0x001ceea8... (85 %)
+Writing at 0x001d3c29... (86 %)
+Writing at 0x001d958a... (87 %)
+Writing at 0x001dfad8... (88 %)
+Writing at 0x001e50d5... (89 %)
+Writing at 0x001ea0d8... (90 %)
+Writing at 0x001ef875... (91 %)
+Writing at 0x001f43f9... (92 %)
+Writing at 0x001f9282... (92 %)
+Writing at 0x001fe170... (93 %)
+Writing at 0x0020317d... (94 %)
+Writing at 0x0020d4bb... (95 %)
+Writing at 0x00213ecc... (96 %)
+Writing at 0x0021960e... (97 %)
+Writing at 0x00220704... (98 %)
+Writing at 0x0022641e... (99 %)
+Writing at 0x0022c773... (100 %)
+Wrote 2214720 bytes (1835748 compressed) at 0x00010000 in 40.7 seconds (effective 435.7 kbit/s)...
+Hash of data verified.
+Compressed 3072 bytes to 136...
+Writing at 0x00008000... (100 %)
+Wrote 3072 bytes (136 compressed) at 0x00008000 in 0.0 seconds (effective 534.4 kbit/s)...
+Hash of data verified.
+
+Leaving...
+Hard resetting via RTS pin...
+Done
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x1 (POWERON),boot:0x8 (SPI_FAST_FLASH_BOOT)
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x16d0
+load:0x403c8700,len:0x4
+load:0x403c8704,len:0xec8
+load:0x403cb700,len:0x3160
+entry 0x403c8950
+I (27) boot: ESP-IDF v5.4.2 2nd stage bootloader
+I (27) boot: compile time Nov  8 2026 07:00:20
+I (27) boot: Multicore bootloader
+I (27) boot: chip revision: v0.1
+I (30) boot: efuse block revision: v1.2
+I (33) qio_mode: Enabling default flash chip QIO
+I (38) boot.esp32s3: Boot SPI Speed : 80MHz
+I (42) boot.esp32s3: SPI Mode       : QIO
+I (45) boot.esp32s3: SPI Flash Size : 8MB
+I (49) boot: Enabling RNG early entropy source...
+I (54) boot: Partition Table:
+I (56) boot: ## Label            Usage          Type ST Offset   Length
+I (63) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (69) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (76) boot:  2 factory          factory app      00 00 00010000 00700000
+I (82) boot:  3 abstate          Unknown data     01 40 00710000 00080000
+I (89) boot:  4 abapps           Unknown data     01 41 00790000 00012000
+I (95) boot: End of partition table
+I (98) esp_image: segment 0: paddr=00010020 vaddr=3c0d0020 size=137920h (1276192) map
+I (295) esp_image: segment 1: paddr=00147948 vaddr=3fc98c00 size=086d0h ( 34512) load
+I (302) esp_image: segment 2: paddr=00150020 vaddr=42000020 size=c9938h (825656) map
+I (424) esp_image: segment 3: paddr=00219960 vaddr=3fca12d0 size=025a0h (  9632) load
+I (426) esp_image: segment 4: paddr=0021bf08 vaddr=40378000 size=10bb4h ( 68532) load
+I (441) esp_image: segment 5: paddr=0022cac4 vaddr=50001000 size=00004h (     4) load
+I (442) esp_image: segment 6: paddr=0022cad0 vaddr=600fe000 size=0004ch (    76) load
+I (453) boot: Loaded app from partition at offset 0x10000
+I (453) boot: Disabling RNG early entropy source...
+I (467) octal_psram: ECC is enabled
+I (467) octal_psram: vendor id    : 0x0d (AP)
+I (467) octal_psram: dev id       : 0x02 (generation 3)
+I (468) octal_psram: density      : 0x03 (64 Mbit)
+I (472) octal_psram: good-die     : 0x01 (Pass)
+I (477) octal_psram: Latency      : 0x01 (Fixed)
+I (481) octal_psram: VCC          : 0x01 (3V)
+I (485) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (490) octal_psram: BurstType    : 0x00 ( Wrap)
+I (494) octal_psram: BurstLen     : 0x03 (1024 Byte)
+I (499) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (504) octal_psram: DriveStrength: 0x00 (1/1)
+I (509) MSPI Timing: PSRAM timing tuning index: 4
+I (513) esp_psram: Found 8MB PSRAM device
+I (516) esp_psram: Speed: 80MHz
+I (519) cpu_start: Multicore app
+I (940) esp_psram: SPI SRAM memory test OK
+I (952) cpu_start: Pro cpu start user code
+I (952) cpu_start: cpu freq: 240000000 Hz
+I (952) app_init: Application information:
+I (952) app_init: Project name:     abacus_reva
+I (956) app_init: App version:      03e0808-dirty
+I (960) app_init: Compile time:     Nov  8 2026 23:58:02
+I (965) app_init: ELF file SHA256:  c8ac0f54e...
+I (970) app_init: ESP-IDF:          v5.4.2
+I (974) efuse_init: Min chip rev:     v0.0
+I (977) efuse_init: Max chip rev:     v0.99 
+I (981) efuse_init: Chip rev:         v0.1
+I (985) heap_init: Initializing. RAM available for dynamic allocation:
+I (992) heap_init: At 3FCBA278 len 0002F498 (189 KiB): RAM
+I (997) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (1002) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (1007) heap_init: At 600FE04C len 00001F9C (7 KiB): RTCRAM
+I (1013) esp_psram: Adding pool of 7588K of PSRAM memory to heap allocator
+I (1019) spi_flash: detected chip: gd
+I (1023) spi_flash: flash io: qio
+I (1026) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (1032) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (1050) main_task: Started on CPU0
+I (1051) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (1051) main_task: Calling app_main()
+gauge: head-less
+load: 1068 bytes ok
+reva: heap internal 189639 (largest block 94208), PSRAM 6437508
+I (1088) main_task: Returned from app_main()
+boot: boots=1 reason=POWERON new=1 wake=none pins=0x0 ver=0.90 core=03e0808+dirty id=f52f16b5
+REVA READY
+tone: 4000 Hz 30 ms level 4
+talk.py: PASS line 10: expect 'ver=0.90'
+state: X=8 stop=NONE lines=0 prgm=0 running=0 shift=0 prompt=- msg=- heap=189639 stack-free=28420
+boot: boots=1 reason=POWERON new=1 wake=none pins=0x0 ver=0.90 core=03e0808+dirty id=f52f16b5
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=175c160a1b3c778ab67f049fe14baac81d1e23e2 games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=- off=0
+app: -
+rows: 3 top=3 next=4 dropped=0 x=3 y=0
+eqn: - | note=- | rep=- | row=- | drawn=-
+ui: show=0 -
+reva: soc=-1 vbat=0 uV ulp-edges=3512950177 chg_n=0 pgood_n=0
+reva: set radix=. off=10 vol=4 h24=0
+savebench: no page: 758 B, 20 saves (0 failed), 0 of 20 sectors already blank before their erase; the slowest save's 0 of 1
+savebench: no page: the save min 128 median 184 max 227 ms
+savebench: no page: its erase min 121 median 178 max 221 ms
+savebench: no page: its writes min 4 median 5 max 5 ms
+savebench: no page: its reads min 0 median 0 max 6 ms
+talk.py: PASS line 12: expect 'savebench: no page: the save'
+save: 1068 bytes, ok, 145 ms
+savebench: the full page: 9138 B, 20 saves (0 failed), 0 of 60 sectors already blank before their erase; the slowest save's 0 of 3
+savebench: the full page: the save min 391 median 539 max 630 ms
+savebench: the full page: its erase min 329 median 479 max 568 ms
+savebench: the full page: its writes min 49 median 50 max 50 ms
+savebench: the full page: its reads min 0 median 4 max 4 ms
+talk.py: PASS line 13: expect 'savebench: the full page: the save'
+save: 1068 bytes, ok, 233 ms
+savebench: the worst page: 27683 B, 20 saves (0 failed), 0 of 140 sectors already blank before their erase; the slowest save's 0 of 7
+savebench: the worst page: the save min 721 median 871 max 953 ms
+savebench: the worst page: its erase min 546 median 697 max 778 ms
+savebench: the worst page: its writes min 140 median 140 max 141 ms
+savebench: the worst page: its reads min 2 median 13 max 13 ms
+talk.py: PASS line 14: expect 'savebench: the worst page: the save'
+save: 1068 bytes, ok, 218 ms
+savebench: no page (PM lock held): 758 B, 20 saves (0 failed), 0 of 20 sectors already blank before their erase; the slowest save's 0 of 1
+savebench: no page (PM lock held): the save min 131 median 189 max 238 ms
+savebench: no page (PM lock held): its erase min 124 median 183 max 218 ms
+savebench: no page (PM lock held): its writes min 4 median 5 max 5 ms
+savebench: no page (PM lock held): its reads min 0 median 0 max 7 ms
+save: 1068 bytes, ok, 186 ms
+savebench: the full page (PM lock held): 9138 B, 20 saves (0 failed), 0 of 60 sectors already blank before their erase; the slowest save's 0 of 3
+savebench: the full page (PM lock held): the save min 408 median 558 max 617 ms
+savebench: the full page (PM lock held): its erase min 349 median 496 max 555 ms
+savebench: the full page (PM lock held): its writes min 50 median 50 max 51 ms
+savebench: the full page (PM lock held): its reads min 0 median 4 max 4 ms
+save: 1068 bytes, ok, 177 ms
+savebench: the worst page (PM lock held): 27683 B, 20 saves (0 failed), 0 of 140 sectors already blank before their erase; the slowest save's 0 of 7
+savebench: the worst page (PM lock held): the save min 762 median 873 max 942 ms
+savebench: the worst page (PM lock held): its erase min 587 median 699 max 768 ms
+savebench: the worst page (PM lock held): its writes min 140 median 141 max 141 ms
+savebench: the worst page (PM lock held): its reads min 2 median 13 max 13 ms
+save: 1068 bytes, ok, 228 ms
+savebench: done
+talk.py: PASS line 15: expect 'savebench: done'
+state: X=8 stop=NONE lines=0 prgm=0 running=0 shift=0 prompt=- msg=- heap=189551 stack-free=28164
+boot: boots=1 reason=POWERON new=0 wake=none pins=0x0 ver=0.90 core=03e0808+dirty id=f52f16b5
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=175c160a1b3c778ab67f049fe14baac81d1e23e2 games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=- off=0
+app: -
+rows: 3 top=3 next=4 dropped=0 x=3 y=0
+eqn: - | note=- | rep=- | row=- | drawn=-
+ui: show=0 -
+reva: soc=-1 vbat=0 uV ulp-edges=3512950177 chg_n=0 pgood_n=0
+reva: set radix=. off=10 vol=4 h24=0
+talk.py: FAIL line 18: expect 'savebench: never'
+talk.py: 1 NOT MET
