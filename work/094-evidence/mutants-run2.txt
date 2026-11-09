@@ -1,0 +1,3 @@
+P0 SURVIVED 
+P7 RED: app_test 2: app_test: 094: the report's bar: ▲ ▼ EVAL || app_test: 094: EVAL (soft key 3) on R=V÷I: 2.5 in X, the report gone ## help_test 3: help_test: entry 303 (kind 1, op 243, arg -1, On SOLVE's report: t) is reached by no actio || help_test: entry 303 (kind 1, op 243, On SOLVE's report: the a): no state's HELP shows it || help_test: the sweep: 1514 states, 314 of 315 entries shown
+restored: core/rows.c, core/calc.c, firmware/keymap.c as the originals given (SCRATCH/orig094)

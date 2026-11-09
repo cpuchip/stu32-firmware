@@ -1,0 +1,10 @@
+P0 SURVIVED 
+P1 RED: 094:K05,K06,V02 ## 048:C01,C03,C04,C05,C06,C07,C08,C09,C10,C11,C12,C13,L06,R02 ## 088:S04,S05 ## 076:C03 ## app_test 1: app_test: 094: EVAL (soft key 3) on R=V÷I: 2.5 in X, the report gone
+P2 RED: 094:E01,E02,E03,E04,E07,E08,K04 ## app_test 1: app_test: 094: ENTER on R=V÷I: the expression V÷I in X, the report gone
+P3 RED: 094:E07,E08
+P4 RED: 094:E05,E06,E07,E08,K01,K03 ## 048:R01,R03,R09,R10 ## 088:S02,S03 ## 076:C22 ## 079:W03,W11 ## app_test 2: app_test: 088: ENTER on the root: 3 in X, the expression in Y; a number in X: the keys bla || app_test: 048: ENTER on X=3: 3 in X, shown, the report gone, nothing stored ## replay 3: standin_replay: device/standin/cas088.txt:99: FAIL: framecrc A98892E5, the replay gives 7555E4FF || standin_replay: device/standin/cas088.txt: current, 3 of 4 frames match, 1 control: FAILED || standin_replay: 45 scripts, FAILED
+P5 RED: 094:K01,K02
+P6 RED: 094:K06 ## 048:C01,C03,C05,C06,C07,C08,C09,C10,C12,C13 ## 088:S05
+P7 RED: app_test 3: app_test: 094: the report's bar: ▲ ▼ EVAL || app_test: 094: EVAL (soft key 3) on R=V÷I: 2.5 in X, the report gone || app_test: 094: ENTER on R=V÷I: the expression V÷I in X, the report gone ## help_test 3: help_test: entry 303 (kind 1, op 243, arg -1, On SOLVE's report: t) is reached by no actio || help_test: entry 303 (kind 1, op 243, On SOLVE's report: the a): no state's HELP shows it || help_test: the sweep: 1514 states, 314 of 315 entries shown
+P8 RED: 094:V06
+restored: core/rows.c, core/calc.c, firmware/keymap.c as the originals given (SCRATCH/orig094)

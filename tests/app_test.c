@@ -5031,7 +5031,11 @@ int main(void)
         press(&a, "k:1 k:2");                   /* down to R=V÷I, then EVAL */
         expect(!ab_cas_report(&c) && c.x.kind == AB_REAL && x_of(&c) == 2.5,
                "094: EVAL (soft key 3) on R=V\xc3\xb7I: 2.5 in X, the report gone");
-        ab_do(&c, AB_EQN), ab_do_arg(&c, AB_CASSOLVE, 'R' - 'A');     /* (back to the list: EVAL left it) */
+        ab_init(&c);                            /* (its own state: the check above doesn't decide this one) */
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        ab_eqn_add(&c, "V=I\xc3\x97R");
+        ab_do_arg(&c, AB_CASSOLVE, 'R' - 'A');
         press(&a, "k:1 ENTER");
         expect(!ab_cas_report(&c) && c.x.kind == AB_EXPR && !strcmp(ab_expr_text(&c, &c.x), "V\xc3\xb7I"),
                "094: ENTER on R=V\xc3\xb7I: the expression V\xc3\xb7I in X, the report gone");
