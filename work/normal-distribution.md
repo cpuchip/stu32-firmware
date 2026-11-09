@@ -33,8 +33,9 @@ in decimal128. Measured over 1,601 z on [−8, 8], 1,500 random, and the tail 9 
 - **Φ:** within 77.7 units of the 34th digit, the worst at z = −7.04.
 - **Q:** within 1,680 units, at z = 27.
 - **Why:** this is the argument's rounding, not erf's. z/√2 rounded to 34 digits carries a relative error near
-  1E-34, and in the tail the result's relative sensitivity to its argument grows like z². So Φ and Q are right to at
-  least 30 significant digits for |z| ≤ 39 (where Q is about 1E-333).
+  1E-34, and in the tail the result's relative sensitivity to its argument grows like z². ~~So Φ and Q are right to at
+  least 30 significant digits for |z| ≤ 39 (where Q is about 1E-333).~~ Struck in revision 1: the house's 8-unit bar
+  applies, and the corrected form meets it.
 - **Doing better** would mean computing erfc's argument at higher precision (the core's hp) and a series of our own.
   I don't propose it: 30 digits under a 12-digit display.
 - **My judge was wrong first:** it took Q as 1 − Φ at 80 digits, which cancels to 0 for z ≥ 18. Fixed to erfc
@@ -107,3 +108,35 @@ So under a millisecond a call. The stack stayed at 26,812 B free.
 3. The parser's names (ERF( ERFC( NCDF( NCDFINV( ) for ALG, EQN and the CAS's numeric evaluation, given Casimir's
    language. Or the keys only, in this unit.
 4. z only (standardizing left to the student), not μ and σ from the Σ registers.
+
+## Revision 1: abacus #14270
+
+Accepted: ERF and ERFC as measured (1.22 and 1.69 units, under the core's 8-unit bar, unit 003 amendment 1); NORM on
+PROB's sixth key; z only. Not accepted: Φ and Q at 77.7 and 1,680 units. SHOW puts all 34 digits on the screen, and
+the bar is the house's for every function, not 30 significant digits. The 30-digit figure above is withdrawn.
+
+- **The fix (abacus's), measured:** x = ±z/√2 formed in hp at 64 digits, x0 its 34-digit rounding, r = x − x0 in hp,
+  then erfc(x) = erfc(x0) − r·(2/√π)·e^(−x0²) + r²·x0·(2/√π)·e^(−x0²), every term in hp, halved, rounded once
+  (work/erf-evidence/phifix.c, the core's own hp; phijudge2.py; phifix-judge.out).
+- **The arguments:** the earlier 3,132 z (every 0.01 on [−8, 8], 1,500 random, the integers 9 to 39) and 2,000 random
+  34-digit z in the tails, 8 to 39 on each side. 5,132 in all.
+
+  | | corrected: the worst | without the correction, the same z |
+  |---|---|---|
+  | Φ | 4.17 units of the 34th digit (z = −24.86…) | 3,250 units (z = −38.86…) |
+  | Q | 3.81 units (z = 36.61…) | 2,260 units (z = 38.27…) |
+
+  Under 8, so **Φ and Q are held to the house bar.** The plain form is what the build must not ship. The tail's 2,000
+  random z show it worse than the first measurement's integers did.
+- **Φ⁻¹:** Newton on the corrected Φ, from a rational start, held to the same 8 units over (0, 1), its tails included
+  (p down to the smallest Φ gives, and 1 − p likewise through Q). Measured in the build before it's kept. If it can't
+  meet 8, it comes out of the unit with the reason, never in at a quieter bar.
+- **Names, readable, no single letters** (Q is a letter in STU, so Q( would read as Q × (…)):
+  - the parser's: ERF( ERFC( NCDF( (Φ, the lower tail) NCDFC( (the upper tail, named as ERFC is) NCDFINV( (Φ⁻¹);
+  - the soft keys' labels on NORM: Φ, 1−Φ, Φ⁻¹, ERF, ERFC, ▸ (back to PROB).
+
+  The upper tail's label reads 1−Φ, though it's computed from erfc and never as 1 − Φ. Its HELP entry says so. For
+  tutor before the freeze, through abacus.
+- **CAS:** in EQN, the CAS ops on an expression holding these names give UNSUPPORTED (casim refuses names it lacks).
+  Tested; casim learning them is a CAS unit of its own.
+- **Lean 3's question, answered:** the parser's names, yes; the CAS, the refusal.
