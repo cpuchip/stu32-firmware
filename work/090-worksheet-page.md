@@ -209,7 +209,8 @@ runs again holding the CPU at its maximum and light sleep off. Min / median / ma
 - **Not the flash chip or its region:** the same S3 and flash chip erase a sector in 21-23 ms under the stand-in's image,
   and a raw erase timed there at Rev A's abstate address (0x78F000, unallocated in the stand-in's map) took 20-22 ms,
   the same as at the stand-in's own (sb-standin-raw-erase-experiment.out; the throwaway patch is
-  sb-raw-erase-diagnostic.patch, not committed). Under Rev A's image one sector takes 117-227 ms.
+  sb-raw-erase-diagnostic.patch, not committed). Under Rev A's image one sector takes 121-221 ms (the no-page state's
+  erase in the two runs of its shipped configuration).
 - **Not Rev A's configuration, falsified one difference at a time** (throwaway builds, sdkconfig.defaults restored after
   each, nothing committed): power management (the PM-locked half above: the same), the 1 ms tick (100 Hz: erase
   191 ms median a sector; its worst save 864 / 1,004 / 1,049 ms, past 1 s), PSRAM ECC off (205 ms a sector), a 16 KB
@@ -217,7 +218,7 @@ runs again holding the CPU at its maximum and light sleep off. Min / median / ma
   builds' sdkconfigs.
 - **So my read:** the extra erase time is Rev A's main at run time during the erase. Its other work (the 1 ms key scan
   on core 0, the ULP, the gauge) would hold up a flash operation that has to stop both cores' caches, but which of them
-  does it, I haven't isolated. If one does, each save could be four to nine times shorter, and the margin question goes
-  away. Not built; a candidate for its own small unit.
+  does it, I haven't isolated. If one does, the erase could be some eight times shorter (a sector's median 23 ms against
+  198), and the worst save, by arithmetic (871 less its erase's 708 plus the stand-in's 214), near 380 ms, unmeasured. Not built; a candidate for its own small unit.
 - Claims: lepton docker soroban-* 4 GiB and the stand-in board 2026-11-08 23:57Z to 2026-11-09 00:18Z; peak 722 MiB
   (docker stats every 2 s, 231 samples). The board is left on the stand-in's image at ca1d330.
