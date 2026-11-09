@@ -70,3 +70,62 @@ and the semihosting and termios ones are the console's file layer).
   no control): the stand-in ran it to ALL MET at bc37c08 (restore-standin-savebench.out, worst 524 / 550 / 571 ms).
 - Claims: lepton docker soroban-* 4 GiB and the stand-in board, 2026-11-09 00:20Z-00:42Z; peak 734 MiB (docker stats
   every 2 s, 252 samples). The board is left on the stand-in's image at bc37c08.
+
+## The wear test (abacus #14121; predictions committed first at 3f8e7c4)
+
+The stand-in's image with SAVEBENCH replaced by the test (work/091-evidence/wear.patch, not committed as code;
+device/standin/wear091.txt; wear-standin.out). 0x720000 cycled 5,000 times (a 4,096 B write, then the timed erase);
+every hundredth erase logged with its cycle count and its block of 100's min, median and max. 0x730000, the control,
+erased 20 times at the start and 20 at the end, never otherwise.
+
+**It's wear. My prediction ("not wear") was wrong.** Block medians of 0x720000's erase, in ms, by cycle count:
+
+| 100 | 500 | 1,000 | 1,500 | 2,000 | 2,500 | 3,000 | 3,500 | 4,000 | 4,500 | 5,000 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 20.3 | 21.1 | 22.4 | 26.2 | 29.6 | 29.7 | 29.4 | 36.2 | 32.9 | 36.2 | 37.6 |
+
+All 50 blocks are in the log. The rise is steady: about 3.5 ms per 1,000 cycles, 1.85 times the first block's median by
+the last, past the predicted 1.5-times line. The control: 21.9 ms median at the start, 20.2 at the end (−8%), so the board
+didn't drift; the test sector did. This makes cycling a sufficient explanation for 0x710000 and 0x750000's 150-230 ms,
+though their cycle counts still aren't known, and neither is why the stand-in's own slot 0 (0x510000, 23 ms) is fast
+after its own years of saves. Its cycle count isn't known either.
+
+## (a) The chips
+
+- **The stand-in's:** JEDEC id 0xC84017, 8,388,608 B (read on the board by esp_flash_read_id; boot's "detected chip: gd").
+  C8 40 17 is GigaDevice's GD25Q64 family's id. The GD25Q64C datasheet's RDID table gives C8 40 17 (p.15). The id
+  doesn't tell the C from the family's other revisions, so these figures are the C's: "Minimum 100,000 Program/Erase
+  Cycles" and "20-year data retention typical" (p.4); the 4 KB Sector Erase Time tSE 50 ms typical, and maximum "200ms"
+  at ≤50K cycles and "300ms" past 50K to 100K (p.56 and its note 1; pp.58 and 60, the other temperature grades: maximum
+  400 and 500 ms). Read with pypdfium2 from the PDF at espruino.com/datasheets/GD25Q64C.pdf, the datasheet's own
+  revision line not extracted. This chip's fresh 20-23 ms is under the 50 ms typical; 0x710000's 150-230 ms sits near
+  the 200 ms maximum the datasheet allows up to 50K cycles.
+- **Rev A's:** an ESP32-S3-WROOM-1-N16R8, 16 MB of Quad SPI flash (abacus-firmware docs/hw/2026-10-03-datasheet-facts.md
+  §2, from the module's Table 1-1). The module's datasheet doesn't name the flash's maker, so it can only be read on the
+  board. SAVEBENCH now prints the JEDEC id first (3c39e51; the stand-in printed 0xC84017 and ran to ALL MET), so
+  FLASH.md step 6's save.log will carry Rev A's chip with its numbers.
+
+## (b) The store's erases per year of each slot's first sector
+
+From the code: every key the core handles marks the state dirty (app.c:252); a quiet save follows once 30 s pass with
+no key and no run (APP_QUIET_MS, app.c:1439); OFF always saves before it sleeps (reva_main.c:977-978), and the
+10-minute idle off takes the same path. Every save erases its slot's first sector (store.c: the sectors from the slot's
+start that the image needs), and saves alternate between the two slots, so each slot's first sector is erased on every
+second save.
+
+Stated use: a student's hour a day, 365 days a year, one session (one OFF) a day. The quiet saves an hour are the
+pauses of 30 s or more after keys:
+
+| use | quiet saves an hour | saves a year (quiet + OFF) | erases a year of each first sector | to 50K | to 100K (the C's minimum) |
+|---|---|---|---|---|---|
+| a pause every 6 minutes | 10 | 4,015 | 2,008 | 24.9 y | 49.8 y |
+| a pause every 2 minutes | 30 | 11,315 | 5,658 | 8.8 y | 17.7 y |
+| the bound: a key, then 30 s, all hour | 116 | 42,705 | 21,352 | 2.3 y | 4.7 y |
+
+So it is a product question. A calculator used in the upper case reaches the datasheet's minimum endurance on its two
+slot-first sectors in under five years, and the slower erases sooner (the 200 ms maximum at 50K applies in 2.3 years).
+The store puts all of that wear on two of the slot's 64 sectors. Spreading the image's start across the slot (or a
+header that moves) would divide it. That's the design question for abacus and Michael, not built.
+
+- Claims for the wear test and the restore: lepton docker soroban-* 4 GiB and the stand-in board 00:43Z-00:53Z; peak
+  148 MiB (docker stats every 2 s, 95 samples). The board is left on the stand-in's image at 3c39e51.
