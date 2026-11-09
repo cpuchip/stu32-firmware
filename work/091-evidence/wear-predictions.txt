@@ -1,0 +1,17 @@
+Unit 091's wear test (abacus #14121): predictions, committed before the run.
+
+The run (the stand-in's image, a throwaway bench, its patch kept): the flash's JEDEC ID read first. Then the control
+sector 0x730000 (unused in both maps, never cycled otherwise): 20 erases, each dirtied with 4,096 B written, at the
+start. Then the test sector 0x720000 (fast in D3: 20/21/23 ms): 5,000 cycles of a 4,096 B write then an erase, every
+erase timed, every hundredth erase's time logged with its cycle count, and each block of 100's median. Then the control
+sector's 20 erases again.
+
+- Cycle 0: 0x720000's erase 20-23 ms (D3). The control's start: 20-23 ms.
+- "Wear" would read: the block medians rising with the cycle count, the last block's median at least 1.5 times the first
+  (about 32 ms or more), while the control's end stays within 10% of its start.
+- "Not wear" would read: the last block's median within 20% of the first, no rising trend across the 50 blocks, the
+  control unchanged.
+- "The board drifted" would read: the control's end moved as much as the test sector did.
+- My prediction: not wear. The test is 5,000 cycles. A NOR sector's rated endurance is normally far beyond that (the
+  datasheet's figure goes in the record, read, not recalled). So a null here doesn't exclude a slowing nearer the
+  rating, and it doesn't explain 0x710000 and 0x750000, whose cycle counts nobody recorded.
