@@ -1,14 +1,15 @@
-/* store: unit 016's state image kept in flash, two slots, safe against a power cut (unit 018,
- * scope 6). Portable C over a small flash interface, so the same code runs on the host against
- * a simulated flash (tests/store_test.c cuts the power at every byte) and on the device against
- * an ESP-IDF partition.
+/* store: unit 016's state image kept in flash, safe against a power cut (unit 018, scope 6), in a ring over the whole
+ * partition since unit 092 (work/092-store-wear.md). Portable C over a small flash interface, so the same code runs on
+ * the host against a simulated flash (tests/store_test.c cuts the power at every byte, tests/store_sim.c is the hidden
+ * set's tool) and on the device against an ESP-IDF partition.
  *
- * Each slot: a 32-byte header (magic "ABST", sequence number, payload length, CRC-32 of the
- * payload, CRC-32 of the header's first 16 bytes, padding) and the image after it. A save goes
- * to the slot that does not hold the newest good image: erase it, write the image, write the
- * header last. A cut at any moment leaves at most that slot bad; the other is never touched, so
- * one good image always remains (the newest that finished, or the one before). A load takes the
- * good slot with the higher sequence number; with none, the device does MEMORY CLEAR. */
+ * Each image: a 32-byte header (magic "ABST", sequence number, payload length, CRC-32 of the payload, CRC-32 of the
+ * header's first 16 bytes, padding) at a sector's start, and the image after it, running on past the partition's end
+ * at its start. A save starts at the sector after the newest good image's last: erase the sectors it takes, write the
+ * image, write the header last. An image is at most half the partition, so the new one never reaches the newest, and a
+ * cut at any moment leaves the newest that finished. A load reads every sector-start header and takes the good image
+ * with the highest sequence number (an older firmware's two-slot images are found the same way); with none, the device
+ * does MEMORY CLEAR. The partition is 2 × slot_size (slot_size: the old layout's slot, still each image's most). */
 #ifndef STORE_H
 #define STORE_H
 
@@ -28,16 +29,19 @@ typedef struct {
 
 #define AB_STORE_HEADER 32
 
-/* Writes image (len bytes) to the slot the newest good image is not in. 0 on success. */
+/* Writes image (len bytes) after the newest good image, at most slot_size - AB_STORE_HEADER. 0 on success. */
 int ab_store_save(const ab_flash *f, const uint8_t *image, uint32_t len);
 
-/* After a partition's slots grew in place (apps.h v1.2: the apps' saves, 8 KB to 36 KB slots), the old second slot
-   (at old_slot_size) lies inside the new first. A good image there newer than every good slot now is saved again into
-   the new layout (buf, cap: room to read it). 1 if one moved, 0 if none, -1 on a failure. Call before loading. */
+/* apps.h v1.2's migration (the old 8 KB second slot inside today's first) saved that image again into the two-slot
+   layout. Since unit 092 the load's scan finds it where it is, so this does nothing and returns 0; kept for its
+   callers. */
 int ab_store_migrate(const ab_flash *f, uint32_t old_slot_size, uint8_t *buf, uint32_t cap);
 
-/* Reads the newest good image into buf (cap bytes): its length, or 0 if no slot holds one (or
-   it does not fit). A slot is good when its header and payload CRCs match. */
+/* The newest good image's sequence number, 0 if there is none (unit 092: store_sim's images are a function of it). */
+uint32_t ab_store_seq(const ab_flash *f);
+
+/* Reads the newest good image into buf (cap bytes): its length, or 0 if there is none (or it does not fit). An image is
+   good when its header and payload CRCs match. */
 uint32_t ab_store_load(const ab_flash *f, uint8_t *buf, uint32_t cap);
 
 #endif

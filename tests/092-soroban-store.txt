@@ -1,0 +1,137 @@
+# Unit 092 (work/092-store-wear.md, revision 1; abacus #14138, #14140): the store's ring, through build/store_sim. Each
+# expectation was worked out by hand from the rule: a save starts at the sector after the newest good image's last
+# (modulo the partition), takes ceil((32 + bytes) / s) sectors, and its seq is the newest's + 1. An image of k·s − 100
+# bytes takes k sectors. 256-byte sectors keep the CUTALLs small; the store doesn't care about the sector's size.
+#
+# A: the counterexample (#14138), the state's shape: the newest at 61-76, then a 64-sector save. The no-wrap rule put
+# it at 0-63 over the newest; the ring puts it at 77-127 and 0-12, and a cut anywhere leaves the newest that finished.
+PART 128 256
+SAVE 15516
+SAVE 3996
+EXPECT LOAD 2
+CUTALL 16284
+EXPECT LOAD 3
+EXPECT ERASES 60 1 1
+EXPECT ERASES 61 1 1
+EXPECT ERASES 76 1 1
+EXPECT ERASES 77 1 1
+EXPECT ERASES 127 1 1
+EXPECT ERASES 0 2 2
+EXPECT ERASES 12 2 2
+EXPECT ERASES 13 1 1
+EXPECT MAXERASES 2
+#
+# B: the apps' version (18 sectors): the newest at 8-15, then a 9-sector save, at 16-17 and 0-6
+PART 18 256
+SAVE 1948
+SAVE 1948
+CUTALL 2204
+EXPECT LOAD 3
+EXPECT ERASES 6 2 2
+EXPECT ERASES 7 1 1
+EXPECT ERASES 8 1 1
+EXPECT ERASES 15 1 1
+EXPECT ERASES 16 1 1
+EXPECT ERASES 17 1 1
+#
+# C: sizes from 1 byte to the cap (16 sectors of 32: 4,064 bytes), each save cut at every moment, 145 sectors in all:
+# four times round the ring. Each sector is erased 4 or 5 times: 0-16 five (145 = 4 × 32 + 17), 17-31 four.
+PART 32 256
+CUTALL 1180
+EXPECT LOAD 1
+CUTALL 4064
+EXPECT LOAD 2
+CUTALL 1
+EXPECT LOAD 3
+CUTALL 2204
+EXPECT LOAD 4
+CUTALL 4064
+EXPECT LOAD 5
+CUTALL 668
+EXPECT LOAD 6
+CUTALL 2972
+EXPECT LOAD 7
+CUTALL 1692
+EXPECT LOAD 8
+CUTALL 3996
+EXPECT LOAD 9
+CUTALL 412
+EXPECT LOAD 10
+CUTALL 2716
+EXPECT LOAD 11
+CUTALL 4064
+EXPECT LOAD 12
+CUTALL 924
+EXPECT LOAD 13
+CUTALL 1948
+EXPECT LOAD 14
+CUTALL 3228
+EXPECT LOAD 15
+CUTALL 1436
+EXPECT LOAD 16
+EXPECT ERASES 0 5 5
+EXPECT ERASES 16 5 5
+EXPECT ERASES 17 4 4
+EXPECT ERASES 31 4 4
+EXPECT MAXERASES 5
+REBOOT
+EXPECT LOAD 16
+#
+# D: an older firmware's two slots, the newest in slot 1 (sectors 8-15): it loads, and the ring goes on at sector 0
+PART 16 256
+OLD 0 1000 5
+OLD 1 2000 6
+EXPECT LOAD 6
+CUTALL 500
+EXPECT LOAD 7
+EXPECT ERASES 0 2 2
+EXPECT ERASES 2 2 2
+EXPECT ERASES 3 1 1
+SAVE 1500
+EXPECT LOAD 8
+EXPECT ERASES 8 2 2
+EXPECT ERASES 9 1 1
+REBOOT
+EXPECT LOAD 8
+#
+# E: the newest in slot 0, an older one in slot 1: the ring starts after slot 0's image and runs over slot 1's
+PART 16 256
+OLD 1 2000 8
+OLD 0 1000 9
+EXPECT LOAD 9
+CUTALL 700
+EXPECT LOAD 10
+CUTALL 900
+EXPECT LOAD 11
+EXPECT ERASES 5 1 1
+EXPECT ERASES 8 2 2
+EXPECT ERASES 12 1 1
+#
+# F: an empty partition: nothing, then a first save cut at every moment (none until its header), and the smallest
+# partition (two sectors: one sector each, which is the two-slot store's alternation)
+PART 16 256
+EXPECT LOAD NONE
+CUTALL 300
+EXPECT LOAD 1
+PART 2 256
+CUTALL 224
+CUTALL 224
+CUTALL 224
+EXPECT LOAD 3
+EXPECT ERASES 0 2 2
+EXPECT ERASES 1 1 1
+#
+# G: CUT: a save cut in its payload leaves the one before, and the next save, with the same seq, takes the same
+# sectors again; a budget past the save's own count is no cut
+PART 16 256
+SAVE 500
+CUT 500 10
+EXPECT LOAD 1
+SAVE 500
+EXPECT LOAD 2
+EXPECT ERASES 3 2 2
+EXPECT ERASES 5 2 2
+EXPECT ERASES 6 0 0
+CUT 500 100000
+EXPECT LOAD 3
+EXPECT ERASES 6 1 1

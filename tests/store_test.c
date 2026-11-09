@@ -182,7 +182,9 @@ static int settings_checks(void)
 }
 
 /* apps.h v1.2: abapps grew from 8 KB slots to bigger ones in place; the newest image in the old second slot (inside
-   the new first) must not be lost (fresh eyes: it was) */
+   the new first) must not be lost (fresh eyes: it was). Unit 092: the ring's load finds it at its sector without a
+   migration (before 092 the load gave the older one, the loss, until migrate saved it again), and migrate does
+   nothing */
 static int migrate_checks(void)
 {
     static sim s;
@@ -198,10 +200,10 @@ static int migrate_checks(void)
     ab_store_save(&oldf, i1, l1);
     ab_store_save(&oldf, i2, l2);               /* the newest, in the old second slot */
     uint32_t n = ab_store_load(&newf, buf, sizeof buf);
-    if (!same(buf, n, i1, l1)) bad++;           /* without the migration: the older one (the loss) */
-    if (ab_store_migrate(&newf, 2 * SECTOR, buf, sizeof buf) != 1) bad++;
+    if (!same(buf, n, i2, l2)) bad++;           /* without a migration: the newest (092's scan; before, the loss) */
+    if (ab_store_migrate(&newf, 2 * SECTOR, buf, sizeof buf) != 0) bad++;   /* (092: nothing to do) */
     n = ab_store_load(&newf, buf, sizeof buf);
-    if (!same(buf, n, i2, l2)) bad++;           /* with it: the newest */
+    if (!same(buf, n, i2, l2)) bad++;           /* and still the newest */
     if (ab_store_migrate(&newf, 2 * SECTOR, buf, sizeof buf) != 0) bad++;   /* once only */
     ab_store_save(&newf, i3, l3);
     n = ab_store_load(&newf, buf, sizeof buf);
@@ -211,6 +213,141 @@ static int migrate_checks(void)
     if (ab_store_migrate(&newf, 2 * SECTOR, buf, sizeof buf) != 0 || !same(buf, ab_store_load(&newf, buf, sizeof buf), i1, l1)) bad++;
     free(i1), free(i2), free(i3);
     printf("store_test: migration after the slots grew: %s\n", bad ? "FAIL" : "the newest image kept");
+    return bad != 0;
+}
+
+/* ---- unit 092: the ring ---- */
+
+static uint8_t apps_mem[18 * 4096];         /* the apps' partition (abapps, 72 KiB), no cuts */
+static int apps_erase(void *c, uint32_t off, uint32_t len) { (void)c; memset(apps_mem + off, 0xFF, len); return 0; }
+static int apps_write(void *c, uint32_t off, const void *src, uint32_t len)
+{
+    (void)c;
+    for (uint32_t i = 0; i < len; i++) apps_mem[off + i] &= ((const uint8_t *)src)[i];
+    return 0;
+}
+static int apps_read(void *c, uint32_t off, void *dst, uint32_t len) { (void)c; memcpy(dst, apps_mem + off, len); return 0; }
+
+static uint8_t *content(uint32_t seq, uint32_t n)
+{
+    uint8_t *b = malloc(n);
+    for (uint32_t i = 0; i < n; i++) b[i] = (uint8_t)(((uint64_t)seq * 31 + i) % 251);
+    return b;
+}
+
+static bool load_content(const ab_flash *f, uint32_t seq, uint32_t n)
+{
+    static uint8_t got[64 * 4096];
+    uint8_t *c = content(seq, n);
+    bool ok = ab_store_load(f, got, sizeof got) == n && ab_store_seq(f) == seq && memcmp(got, c, n) == 0;
+    free(c);
+    return ok;
+}
+
+static bool read_fixture(const char *path, uint8_t *mem, size_t n)
+{
+    FILE *in = fopen(path, "rb");
+    bool ok = in && fread(mem, 1, n, in) == n && fgetc(in) == EOF;
+    if (in) fclose(in);
+    return ok;
+}
+
+/* The two-slot store's partitions (written by store.c at b59caec, work/092-evidence/make-fixtures.c) load under the
+   ring: the state's shape (seq 3 in slot 0 the newest, seq 2 in slot 1), a ring save from it cut at every moment, the
+   apps' v1.1 layout (the newest in the old 8 KiB second slot, inside v1.2's first) */
+static int fixture_checks(void)
+{
+    static sim s;
+    static uint8_t snapshot[2 * SLOT];
+    int bad = 0;
+    long cases = 0, good = 0;
+    ab_flash f = {&s, SECTOR, SLOT, sim_erase, sim_write, sim_read};
+    s.budget = -1, s.dead = false;
+    if (!read_fixture("tests/store-fixture-twoslot.bin", s.mem, sizeof s.mem) || !load_content(&f, 3, 3000)) bad++;
+    uint8_t *c4 = content(4, 6000);
+    long steps = (long)((AB_STORE_HEADER + 6000 + SECTOR - 1) / SECTOR) + 6000 + AB_STORE_HEADER;
+    memcpy(snapshot, s.mem, sizeof snapshot);
+    for (long cut = 0; cut <= steps; cut++) {
+        memcpy(s.mem, snapshot, sizeof s.mem);
+        s.dead = false, s.budget = cut, s.seed = (unsigned)cut * 2654435761u;
+        ab_store_save(&f, c4, 6000);
+        s.budget = -1, s.dead = false;
+        cases++;
+        good += cut == steps ? load_content(&f, 4, 6000) : load_content(&f, 3, 3000) || load_content(&f, 4, 6000);
+    }
+    if (good != cases) bad++;
+    /* the new one went after seq 3's sector; the next ones run on over slot 1's seq 2, and the newest always wins */
+    for (uint32_t k = 5; k < 12; k++) {
+        uint8_t *c = content(k, 7000 + 900 * k);
+        if (ab_store_save(&f, c, 7000 + 900 * k) != 0 || !load_content(&f, k, 7000 + 900 * k)) bad++;
+        free(c);
+    }
+    free(c4);
+    /* the apps' partition, 18 sectors, v1.1's 8 KiB slots: seq 2 in the old second slot (sectors 2-3) loads without a
+       migration, which does nothing; the next save goes after it, at sector 4 */
+    ab_flash ap = {NULL, SECTOR, 9 * SECTOR, apps_erase, apps_write, apps_read};
+    static uint8_t buf[9 * SECTOR];
+    if (!read_fixture("tests/store-fixture-apps-v12.bin", apps_mem, sizeof apps_mem) || !load_content(&ap, 2, 5000) ||
+        ab_store_migrate(&ap, 0x2000, buf, sizeof buf) != 0 || !load_content(&ap, 2, 5000))
+        bad++;
+    uint8_t *c3 = content(3, 30000);
+    if (ab_store_save(&ap, c3, 30000) != 0 || !load_content(&ap, 3, 30000) || memcmp(apps_mem + 4 * SECTOR, "ABST", 4) != 0)
+        bad++;
+    free(c3);
+    /* a good header over a payload that isn't whole (a worn bit, or sectors a later save took): skipped, the one
+       before loads; and an image past half the partition refused (it could reach the newest) */
+    apps_mem[4 * SECTOR + AB_STORE_HEADER + 100] ^= 0x01;
+    if (!load_content(&ap, 2, 5000)) bad++;
+    apps_mem[4 * SECTOR + AB_STORE_HEADER + 100] ^= 0x01;
+    if (!load_content(&ap, 3, 30000)) bad++;
+    uint8_t *big = content(9, 9 * SECTOR - AB_STORE_HEADER + 1);
+    if (ab_store_save(&ap, big, 9 * SECTOR - AB_STORE_HEADER + 1) != -1 || !load_content(&ap, 3, 30000)) bad++;
+    if (ab_store_save(&ap, big, 9 * SECTOR - AB_STORE_HEADER) != 0) bad++;    /* (exactly half: taken) */
+    free(big);
+    printf("store_test: the two-slot fixtures under the ring: %ld/%ld cuts leave the newest that finished; %s\n", good,
+           cases, bad ? "FAIL" : "the state's seq 3 and the apps' v1.1 seq 2 loaded, then every newer one");
+    return bad != 0;
+}
+
+/* The erases a sector takes over 10,000 saves on the state's partition (128 sectors of 4,096 B), for the three states
+   of 091 (b)'s table: 1,237 B (1 sector), 9,138 B (3), 27,683 B (7). Each save erases the k sectors after the last
+   one's, so every sector's count is 10,000 × k / 128 rounded down or up (the blueprint's table: k/128 of the saves,
+   where the two-slot store put half of them on each slot's first sector) */
+static uint8_t wear_mem[128 * 4096];
+static uint32_t wear_n[128];
+static int wear_erase(void *c, uint32_t off, uint32_t len)
+{
+    (void)c;
+    memset(wear_mem + off, 0xFF, len);
+    for (uint32_t a = off; a < off + len; a += 4096) wear_n[a / 4096]++;
+    return 0;
+}
+static int wear_write(void *c, uint32_t off, const void *src, uint32_t len)
+{
+    (void)c;
+    for (uint32_t i = 0; i < len; i++) wear_mem[off + i] &= ((const uint8_t *)src)[i];
+    return 0;
+}
+static int wear_read(void *c, uint32_t off, void *dst, uint32_t len) { (void)c; memcpy(dst, wear_mem + off, len); return 0; }
+
+static int wear_checks(void)
+{
+    static const uint32_t SIZES[3] = {1237, 9138, 27683}, K[3] = {1, 3, 7};
+    ab_flash f = {NULL, 4096, 64 * 4096, wear_erase, wear_write, wear_read};
+    int bad = 0;
+    for (int z = 0; z < 3; z++) {
+        memset(wear_mem, 0xFF, sizeof wear_mem);
+        memset(wear_n, 0, sizeof wear_n);
+        uint8_t *c = content(1, SIZES[z]);
+        for (int i = 0; i < 10000; i++)
+            if (ab_store_save(&f, c, SIZES[z]) != 0) bad++;
+        free(c);
+        uint32_t lo = 10000 * K[z] / 128, hi = (10000 * K[z] + 127) / 128, mn = UINT32_MAX, mx = 0;
+        for (int i = 0; i < 128; i++) mn = wear_n[i] < mn ? wear_n[i] : mn, mx = wear_n[i] > mx ? wear_n[i] : mx;
+        if (mn < lo || mx > hi || ab_store_seq(&f) != 10000) bad++;
+        printf("store_test: 10,000 saves of %u B (%u sectors): every sector erased %u to %u times (%u to %u allowed)\n",
+               (unsigned)SIZES[z], (unsigned)K[z], (unsigned)mn, (unsigned)mx, (unsigned)lo, (unsigned)hi);
+    }
     return bad != 0;
 }
 
@@ -272,5 +409,5 @@ int main(void)
     }
     free(prev);
     printf("store_test: power cut at every moment of 6 saves: %ld/%ld leave a good image\n", good, cases);
-    return (good == cases ? 0 : 1) | settings_checks() | migrate_checks();
+    return (good == cases ? 0 : 1) | settings_checks() | migrate_checks() | fixture_checks() | wear_checks();
 }
