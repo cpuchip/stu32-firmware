@@ -1,0 +1,14 @@
+# abacus's hidden cases for unit 094 (SOLVE's report: ENTER copies, EVAL evaluates), written 2026-11-09 from soroban's
+# blueprint at stu32-firmware 302b7c4 (work/094-report-enter.md), decision 98 and abacus's rulings (#14168): the
+# tension ruled (a), the copy without reading the rows. The syntax is tests/048-soroban.txt's. Ruled here: EVAL's
+# vector token is CASEVAL (the op AB_CASEVAL), and a SOLVE row with no link prints - as its links, as NUM's do.
+E01 | abacus: ENTER copies an expression answer and closes the report | STU EQ:V=I×R CASSOLVE:R SST ENTER | %XEXPR=V÷I %CASREP=none
+E02 | abacus: ENTER doesn't read the rows (C03's state: I=0) | 5 STO:V 0 STO:I CLX STU EQ:V=I×R CASSOLVE:R SST ENTER | %XEXPR=V÷I %CASREP=none
+E03 | abacus: EVAL is 99a62eb's ENTER: C03's row fails | 5 STO:V 0 STO:I CLX STU EQ:V=I×R CASSOLVE:R SST CASEVAL | ERR %ERR=CAS_CONDITION %ERRMSG=CONDITION_FAILS %CASROW=I≠0 X=0
+E04 | abacus: EVAL evaluates at the stored letters (C04's state) | 5 STO:V 2 STO:I CLX STU EQ:V=I×R CASSOLVE:R SST CASEVAL | X=2.5 %XEXPR=none %CASREP=none
+E05 | abacus: the tension ruled (a): C05's plain-number answer is copied, no message | 0 STO:Y CLX STU EQ:X×Y÷Y=3 CASSOLVE:X SST ENTER | X=3 %XEXPR=none %CASREP=none
+E06 | abacus: EVAL keeps C05's rule | 0 STO:Y CLX STU EQ:X×Y÷Y=3 CASSOLVE:X SST CASEVAL | ERR %ERR=CAS_CONDITION %CASROW=Y≠0 X=0
+E07 | abacus: (MULT k) is dropped from the copy | STU EQ:X^3-3×X+2 CASSOLVE:X SST SST ENTER | X=1 %XEXPR=none
+E08 | abacus: 089's link fixed: a solve from the list links no row | STU 7 ENTER EQ:2×X=6 CASSOLVE:X SST ENTER | X=3 Y=7 %ROWS=2 %ROW-1=2:CASSOLVE:-:3
+E09 | abacus: EVAL on the report's status row does nothing | STU EQ:2×X=6 CASSOLVE:X CASEVAL | X=0 %ROWS=0
+E10 | abacus: EVAL outside the report does nothing | STU 5 ENTER CASEVAL | X=5 %ROWS=1

@@ -284,6 +284,7 @@ test: all
 	./build/vectors tests/h090-abacus.txt    # (abacus #14084: h090 as frozen, sha256 3ad3f033...)
 	./build/vectors tests/h090-Bp-abacus.txt # (abacus #14085: h090-Bp, Michael's B', as frozen, sha256 eb90e05f...)
 	./build/vectors tests/h093-abacus.txt    # (abacus #14169: h093 as frozen, sha256 ea0d1d08...)
+	./build/vectors tests/n094-abacus.txt    # (abacus #14186: n094, h094 with E08's op name corrected, sha256 527c391b...)
 	./build/vectors tests/093-soroban.txt    # (unit 093: selecting a row; no save/load pass: the selection is RAM only)
 	./build/vectors tests/094-soroban.txt    # (unit 094: the report's ENTER and EVAL; no save/load pass: the report isn't in the image)
 	./build/rows_test
