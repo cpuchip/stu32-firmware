@@ -1,0 +1,48 @@
+Preparing worktree (detached HEAD b59caec)
+HEAD is now at b59caec 092 blueprint revision 1 (abacus #14138): the no-wrap rule's overlap owned and struck; a circular buffer; migrate's proof and fixture; the store_sim interface for the hidden set
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+casim 175c160a1b3c778ab67f049fe14baac81d1e23e2
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+
+### standin: b59caec -> f0b67ba
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,327,808 | 2,336,672 | +8,864 |
+| internal RAM static (DIRAM, of 341,760) | 207,667 | 207,683 | +16 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 59,074 | 59,074 | +0 |
+| calc_task's frame (under every deep path's stack), B | 144 | 144 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 770,967 -> 779,276 (+8,309)
+- libesp_app_format.a: 74,734 -> 75,214 (+480)
+- libbid.a: 1,435,954 -> 1,436,046 (+92)
+- libesp_partition.a: 1,578 -> 1,574 (-4)
+- libesp_lcd.a: 9,197 -> 9,193 (-4)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 160,611 -> 160,623 (+12)
+- comp: 8392 -> 8400
+- window_fn: 0 -> 4
+
+### reva: b59caec -> f0b67ba
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,255,872 | 2,264,384 | +8,512 |
+| internal RAM static (DIRAM, of 341,760) | 215,310 | 215,318 | +8 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 78,086 | 78,086 | +0 |
+| calc_task's frame (under every deep path's stack), B | 128 | 128 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 711,590 -> 719,687 (+8,097)
+- libesp_app_format.a: 73,362 -> 73,842 (+480)
+- libc.a: 83,969 -> 83,941 (-28)
+- libbid.a: 1,388,928 -> 1,388,908 (-20)
+- libesp_mm.a: 3,400 -> 3,396 (-4)
+- libesp_driver_gpio.a: 7,801 -> 7,797 (-4)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 133,273 -> 133,285 (+12)
+- comp: 8392 -> 8400
+- window_fn: 0 -> 4
