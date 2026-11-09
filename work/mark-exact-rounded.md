@@ -183,7 +183,7 @@ functions' keys.
     nonzero digit of an exact value.
   - SHOW's full digits drop nothing.
 - **INFO** (ROWINFO on the selected row, 093's text): after the existing text, when either applies, `, ROUNDED` (the
-  value) then `, SHOWN TO n PLACES` (FIX n) or `, SHOWN TO n DIGITS` (SCI or ENG n: n + 1 significant digits).
+  value) then `, SHOWN TO n PLACES` (FIX n) or `, SHOWN TO m DIGITS` (SCI or ENG n, where m = n + 1, the significant digits shown).
   Nothing is added when the value is exact and fully shown. %XLINE reads it, blanks as `_`.
   - `+ OF 1.0000, 0.3333, ROUNDED`: 1 + 1/3, rounded, an exact view impossible.
   - `÷ OF 1.0000, 8.0000, SHOWN TO 2 PLACES`: 1/8 at FIX 2 shows 0.13.
