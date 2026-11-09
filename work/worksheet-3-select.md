@@ -6,7 +6,8 @@ the menus), stu-nav ("Digits pick; 8/2/4/6 move only in GRAPH and worksheet row 
 stu-soft-shift ("gold the arrows and tools, blue the CAS verbs", with Michael's note "we'll try your recommendation after
 chatting about it").
 
-**Status:** a draft for abacus. No code. Read on the host at 88458d4. The prototype is throwaway, its frames and source
+**Status:** revision 1 (abacus #14132's rulings, at the end; where a ruling changes a lean below, the lean says so).
+Unit 093; abacus freezes h093 before any src. No code yet. Read on the host at 88458d4. The prototype is throwaway, its frames and source
 in work/worksheet-evidence/part3/ (it draws over today's screen_render).
 
 ## What part 3 is, and what it leaves
@@ -48,11 +49,12 @@ already do.
    - The selection runs over every row on the screen in order: the page's rows, then the levels' (T to X).
    - Moving up past the page's top scrolls it a line, to the oldest row the page holds; then the dropped line, if there
      is one, and no further.
-   - 4 and 6 do nothing in part 3 (the note's walk is later). Other digits do nothing while a row is selected.
+   - 4 and 6 do nothing in part 3 (the note's walk is later). Revision 1 (5b): every other digit, ".", E and CHS
+     leaves the selection and starts a new entry.
 3. **Leaving:** C or ← leaves, nothing changed. Any other key leaves the selection, then acts as it would have (a menu's
    rule, app.h: "any other key closes it and acts").
 4. **The row menu,** by the row's kind (the soft keys while selected):
-   - a number: COPY, STO, SHOW, →FRAC, (empty), INFO
+   - a number: COPY, STO, SHOW, FRAC, (empty), INFO (revision 1: FRAC is a view, not →FRAC; see 5a)
    - an expression: COPY, STO, SIMP, EXPND, SOLVE, ▸ (088's X EXPR verbs, then CAS's page, as the bar has them)
    - an ALG row: its kind's menu, with EDIT in COPY's place (the line takes its text, as ENTER on a shown row does today)
 5. **What the actions do:**
@@ -64,8 +66,8 @@ already do.
      bottom (the note: "Answers land at the bottom").
    - **STO** stores the row's value in a letter. That's a move: the letter holds the selected row, and no row is made.
    - **SHOW** is today's SHOW of that value.
-   - **INFO** shows the row's op and what it read in X's place until the next key, e.g. "÷ OF 17 (ROW 5), 2 (ROW 6)",
-     reaching links off the screen too.
+   - **INFO** shows the row's op and what it read in X's place until the next key, reaching links off the screen too.
+     Revision 1 (6): no serials, so "÷ OF 17, 2", with "(OFF SCREEN)" after a link that isn't drawn.
    - After an action the selection ends, and the screen returns to the newest rows with the result at X.
 6. **What-made-this:** a dot at the left of each line the selected row links to (rows on the page and the levels alike).
    A link off the screen gets no dot; INFO names it.
@@ -112,3 +114,45 @@ already do.
 3. The selection running through the levels as well as the page.
 4. COPY as R4's rule (a row linked to the selected one), ENTER as COPY, a verb as COPY then the verb.
 5. ALG keeping 090's ▲ ▼ over its own rows, with the row menu, or walking every row.
+
+## Revision 1: abacus #14132's rulings
+
+Accepted as written: the scope (1), GOLD ▲ ▼ on STU's home as stu-soft-shift's first piece (2), the selection through
+the levels (3), COPY, ENTER as COPY, and a verb as COPY then the verb (4), and ALG keeping 090's ▲ ▼ over its own rows
+with the shown row's menu and dots (7). SEL takes RPN's place in the status band: "SEL STU", never "RPN" with it (the
+prototype's "SELSTU" was its overlay, not the band).
+
+- **5a. FRAC, a view.** There's no →FRAC op, only AB_FDISP, the whole screen's fraction mode (calc.h:53, flag 7). On a
+  number row, FRAC shows the selected value as a fraction in X's place until the next key, the way SHOW shows its
+  digits. No row is made, the mode doesn't change, and the selection stays. It formats with the screen's fraction
+  setting forced on for that one value; the build measures its flash, and drops it if that's large.
+- **5b. The keys while a row is selected:**
+  - 8 up, 2 down, 5 to the newest;
+  - 4 and 6 nothing (kept for the link walk);
+  - 0, 1, 3, 7, 9, ".", E and CHS leave the selection and start a new entry with that key, as they would on the home;
+  - C and ← leave, nothing changed;
+  - ENTER copies (COPY);
+  - the soft keys are the row's menu;
+  - every other key leaves the selection, then acts as it would have.
+  - Each gets a vector.
+- **6. INFO's text:** `OP OF V1, V2, V3`, then `, MORE` when the row read more than three. OP is the row's left as the
+  page writes it (list.c's name, or for an ALG row the word LINE), and each V is the linked row's value as the levels
+  format it. Each V that isn't drawn on the screen is followed by ` (OFF SCREEN)`, and each whose row has left the page
+  is written `(DROPPED)` in its place. A typed number has no links and reads `TYPED`; a row with no links otherwise reads
+  OP alone (π, RAND, a run with X empty).
+- **The levels in the selection:** a level holding a row is selectable; a level with no row (row 0: bare, cleared, or
+  never made) is skipped by 8 and 2, as is a hidden level (B′).
+
+## The dumps (host only, from screen_lines, as 090's)
+
+- `%SEL=s`: the selected row's serial, decimal; `-` when no row is selected (off STU's home, in the 33s and 35s modes,
+  or not selecting).
+- `%PAGEMARK-k=m`: k = 1 the lowest page line, as %PAGE-k. m is `S` for a line of the selected row (both lines of a
+  two-line row), `L` for a line of a row the selected row links to (both lines of a two-line row), `-` for any other line
+  (the dropped line always `-`), and `?` when k is past %PAGEN. With no selection every line is `-`.
+- `%LEVELMARK-L=m`: L one of X, Y, Z, T. m is `S`, `L` or `-` as above, for the row that level holds; `?` for a level
+  not drawn (B′ hid it) or off STU's home.
+- `%SOFT-n=label`: n = 1 to 6, left to right; the label as the soft key draws it, blanks written `_`, an empty key `_`
+  alone.
+- `%XLINE=text`: X's line as screen_lines gives it (INFO's text, FRAC's view), blanks written `_`, an empty line `_`.
+- `%BAND=text`: the status band's annunciators as screen_lines gives them (`SEL` replaces `RPN`), blanks written `_`.
