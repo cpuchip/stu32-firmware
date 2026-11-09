@@ -1,0 +1,53 @@
+--- /home/claude/scratch/soroban/dev_bench.h.keep	2026-11-09 00:44:13.391610337 +0000
++++ device/dev_bench.h	2026-11-09 00:44:13.400629672 +0000
+@@ -18,6 +18,7 @@
+ #include "fn.h"
+ #include "xnum.h"
+ #include "sdkconfig.h"
++#include "esp_flash.h"
+ #ifdef CONFIG_PM_ENABLE
+ #include "esp_pm.h"
+ #endif
+@@ -412,6 +413,42 @@
+ static __attribute__((noinline, unused)) void dev_savebench(ab_flash *fl, uint8_t *image, size_t cap,
+                                                             const dev_settings *set, void (*save_fn)(void))
+ {
++    {   /* THROWAWAY: unit 091's wear test (abacus #14121; work/091-evidence/wear-predictions.txt), in SAVEBENCH's place */
++        static uint8_t z[4096];
++        uint32_t id = 0, size = 0;
++        esp_flash_read_id(NULL, &id);
++        esp_flash_get_size(NULL, &size);
++        printf("wear: flash JEDEC id 0x%06lX, size %lu B\n", (unsigned long)id, (unsigned long)size);
++        int64_t e[100];
++        for (int pass = 0; pass < 2; pass++) {
++            if (pass) {
++                for (int c = 0; c < 5000; c++) {
++                    esp_flash_write(NULL, z, 0x720000u, sizeof z);
++                    int64_t t0 = esp_timer_get_time();
++                    esp_err_t rc = esp_flash_erase_region(NULL, 0x720000u, 4096);
++                    e[c % 100] = rc == ESP_OK ? esp_timer_get_time() - t0 : -1;
++                    if (c % 100 == 99) {
++                        int64_t last = e[99];
++                        qsort(e, 100, sizeof e[0], svb_cmp);
++                        printf("wear: cycle %d erase %lld us (block %d-%d: min %lld median %lld max %lld us)\n", c + 1,
++                               (long long)last, c - 98, c + 1, (long long)e[0], (long long)(e[49] + e[50]) / 2,
++                               (long long)e[99]);
++                    }
++                }
++            }
++            for (int i = 0; i < 20; i++) {
++                esp_flash_write(NULL, z, 0x730000u, sizeof z);
++                int64_t t0 = esp_timer_get_time();
++                esp_err_t rc = esp_flash_erase_region(NULL, 0x730000u, 4096);
++                e[i] = rc == ESP_OK ? esp_timer_get_time() - t0 : -1;
++            }
++            qsort(e, 20, sizeof e[0], svb_cmp);
++            printf("wear: control 0x730000 %s: min %lld median %lld max %lld us\n", pass ? "end" : "start", (long long)e[0],
++                   (long long)(e[9] + e[10]) / 2, (long long)e[19]);
++        }
++        printf("wear: done\n");
++        return;
++    }
+     static const char *const NAME[3] = {"no page", "the full page", "the worst page"};
+     ab_calc *c2 = heap_caps_calloc(1, sizeof *c2, MALLOC_CAP_SPIRAM);
+     int64_t *v = heap_caps_malloc(4 * SB_N * sizeof *v, MALLOC_CAP_SPIRAM);

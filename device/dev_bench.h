@@ -18,6 +18,7 @@
 #include "fn.h"
 #include "xnum.h"
 #include "sdkconfig.h"
+#include "esp_flash.h"
 #ifdef CONFIG_PM_ENABLE
 #include "esp_pm.h"
 #endif
@@ -433,6 +434,13 @@ static __attribute__((noinline, unused)) void dev_savebench(ab_flash *fl, uint8_
 #else
     int runs = 1;
 #endif
+    {                                           /* unit 091: the chip whose erases these are (Rev A's module doesn't
+                                                   name its flash's maker: the bring-up reads it here) */
+        uint32_t id = 0, fsz = 0;
+        esp_flash_read_id(NULL, &id);
+        esp_flash_get_size(NULL, &fsz);
+        printf("savebench: flash JEDEC id 0x%06lX, %lu B\n", (unsigned long)id, (unsigned long)fsz);
+    }
     for (int pass = 0; pass < 3 * runs; pass++) {
         int locked = pass >= 3;
         char state[48];

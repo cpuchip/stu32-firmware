@@ -1,0 +1,13 @@
+# Unit 091's wear test (abacus #14121; work/091-evidence/wear-predictions.txt): run on a throwaway image whose SAVEBENCH
+# is replaced by the test (work/091-evidence/wear.patch). The bench chip only: 0x720000 cycled 5,000 times, 0x730000 the
+# control. Not for any other image: on a normal one SAVEBENCH runs instead and this session's expects fail.
+wait : heap internal 30
+sleep 3
+send X
+wait state: 10
+send SAVEBENCH
+expect wear: flash JEDEC id 30
+expect wear: control 0x730000 start 60
+expect wear: cycle 5000 900
+expect wear: control 0x730000 end 60
+expect wear: done 30
