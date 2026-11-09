@@ -94,7 +94,8 @@ first run's output is kept, named so).
      scrolls with the page, as the report's rows do.
    - Its depth: a leading `·` for each level.
    - ▲ ▼ page, wrapping as the report does. C and ← leave. Any other key leaves and acts.
-   - It opens on the last page (the answer), since a student usually asks how that answer came.
+   - ~~It opens on the last page (the answer), since a student usually asks how that answer came.~~ Struck in
+     revision 1: it opens on STEP 1.
 4. **The time:** opening counts the steps (about one page's time) and computes the shown page. Each ▲ ▼ computes one
    page. A page past a frame's time shows the busy mark the app shows for any long CAS op (048's `computing`). C during
    it discards the page and leaves, as C during a SOLVE does (048's interrupt).
