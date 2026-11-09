@@ -89,9 +89,9 @@ The random run has 11, all XROOT.
    - The worksheet's rows, the levels above X, the 33s and 35s modes, programs' displays and ALG's history: no mark in
      this unit.
    - INFO on a selected row (093) says EXACT or ROUNDED.
-4. **The display's own rounding is separate.** FIX 4 shows 1.2346 for the exact 1.23456. The mark speaks of the value,
+4. ~~**The display's own rounding is separate.** FIX 4 shows 1.2346 for the exact 1.23456. The mark speaks of the value,
    as SHOW's full digits do, not of the digits drawn. That's the one thing a student could misread, so HELP's entry for
-   the mark says it.
+   the mark says it.~~ Struck in revision 1: the line shows what's true of the number drawn.
 5. **Complex and base modes:** a complex value is rounded if either part is. Base modes are integers, and a clamp there
    (ABN_CLAMPED) marks it rounded.
 6. **CAS:** an expression is exact by construction (rationals). A plain number from SIMP or EXPND is exact, unless
