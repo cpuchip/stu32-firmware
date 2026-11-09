@@ -1,0 +1,5 @@
+J0 SURVIVED 
+J6 RED: 097:E05,E06,E07 ## 097 save/load:E05,E06,E07
+J8 RED: 097:P06 ## 097 save/load:P06
+J10 RED: fn_table 1 past the bar (first 40 by name: {'NCDFINV': 1})
+restored: core/calc.c, core/fn.c, core/state.c as the originals given (SCRATCH/orig097)

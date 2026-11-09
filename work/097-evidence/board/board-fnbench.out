@@ -1,0 +1,153 @@
+Checking "python3" ...
+Python 3.12.3
+"python3" has been detected
+Activating ESP-IDF 5.4
+Setting IDF_PATH to '/opt/esp/idf'.
+* Checking python version ... 3.12.3
+* Checking python dependencies ... OK
+* Deactivating the current ESP-IDF environment (if any) ... OK
+* Establishing a new ESP-IDF environment ... OK
+* Identifying shell ... bash
+* Detecting outdated tools in system ... OK - no outdated tools found
+warning:  Failed to get username with error: 'getpwuid(): uid not found: 1001'. Using default temporary directory /tmp/esp_idf_activate.
+* Shell completion ... Autocompletion code generated
+
+Done! You can now compile ESP-IDF projects.
+Go to the project directory and run:
+
+  idf.py build
+Activating ESP-IDF 5.4
+Setting IDF_PATH to '/opt/esp/idf'.
+* Checking python version ... 3.12.3
+* Checking python dependencies ... OK
+* Deactivating the current ESP-IDF environment (if any) ... OK
+* Establishing a new ESP-IDF environment ... OK
+* Identifying shell ... bash
+* Detecting outdated tools in system ... OK - no outdated tools found
+warning:  Failed to get username with error: 'getpwuid(): uid not found: 1001'. Using default temporary directory /tmp/esp_idf_activate.
+* Shell completion ... Autocompletion code generated
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x1 (POWERON),boot:0x8 (SPI_FAST_FLASH_BOOT)
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x16d0
+load:0x403c8700,len:0x4
+load:0x403c8704,len:0xec8
+load:0x403cb700,len:0x3160
+entry 0x403c8950
+I (27) boot: ESP-IDF v5.4.2 2nd stage bootloader
+I (27) boot: compile time Oct 14 2026 14:41:40
+I (27) boot: Multicore bootloader
+I (27) boot: chip revision: v0.1
+I (30) boot: efuse block revision: v1.2
+I (33) qio_mode: Enabling default flash chip QIO
+I (38) boot.esp32s3: Boot SPI Speed : 80MHz
+I (42) boot.esp32s3: SPI Mode       : QIO
+I (45) boot.esp32s3: SPI Flash Size : 8MB
+I (49) boot: Enabling RNG early entropy source...
+I (54) boot: Partition Table:
+I (56) boot: ## Label            Usage          Type ST Offset   Length
+I (63) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (69) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (76) boot:  2 factory          factory app      00 00 00010000 00500000
+I (82) boot:  3 abstate          Unknown data     01 40 00510000 00080000
+I (89) boot:  4 abapps           Unknown data     01 41 00590000 00012000
+I (95) boot: End of partition table
+I (98) esp_image: segment 0: paddr=00010020 vaddr=3c100020 size=13f494h (1307796) map
+I (300) esp_image: segment 1: paddr=0014f4bc vaddr=3fc92700 size=00b5ch (  2908) load
+I (301) esp_image: segment 2: paddr=00150020 vaddr=42000020 size=f17b4h (989108) map
+I (451) esp_image: segment 3: paddr=002417dc vaddr=3fc9325c size=0a534h ( 42292) load
+I (458) esp_image: segment 4: paddr=0024bd18 vaddr=40374000 size=0e6c4h ( 59076) load
+I (470) esp_image: segment 5: paddr=0025a3e4 vaddr=600fe000 size=0001ch (    28) load
+I (477) boot: Loaded app from partition at offset 0x10000
+I (477) boot: Disabling RNG early entropy source...
+I (488) octal_psram: vendor id    : 0x0d (AP)
+I (488) octal_psram: dev id       : 0x02 (generation 3)
+I (488) octal_psram: density      : 0x03 (64 Mbit)
+I (490) octal_psram: good-die     : 0x01 (Pass)
+I (494) octal_psram: Latency      : 0x01 (Fixed)
+I (499) octal_psram: VCC          : 0x01 (3V)
+I (503) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (508) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (513) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (517) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (522) octal_psram: DriveStrength: 0x00 (1/1)
+I (527) MSPI Timing: PSRAM timing tuning index: 4
+I (531) esp_psram: Found 8MB PSRAM device
+I (535) esp_psram: Speed: 80MHz
+I (538) cpu_start: Multicore app
+I (947) esp_psram: SPI SRAM memory test OK
+I (958) cpu_start: Pro cpu start user code
+I (958) cpu_start: cpu freq: 240000000 Hz
+I (958) app_init: Application information:
+I (958) app_init: Project name:     abacus_standin
+I (963) app_init: App version:      c2db894
+I (967) app_init: Compile time:     Nov  9 2026 07:27:00
+I (972) app_init: ELF file SHA256:  e0de678a0...
+I (976) app_init: ESP-IDF:          v5.4.2
+I (980) efuse_init: Min chip rev:     v0.0
+I (984) efuse_init: Max chip rev:     v0.99 
+I (988) efuse_init: Chip rev:         v0.1
+I (992) heap_init: Initializing. RAM available for dynamic allocation:
+I (998) heap_init: At 3FCBABB0 len 0002EB60 (186 KiB): RAM
+I (1003) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (1008) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (1014) heap_init: At 600FE01C len 00001FCC (7 KiB): RTCRAM
+I (1019) esp_psram: Adding pool of 8100K of PSRAM memory to heap allocator
+I (1026) spi_flash: detected chip: gd
+I (1029) spi_flash: flash io: qio
+I (1032) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (1038) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (1045) main_task: Started on CPU0
+I (1075) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (1075) main_task: Calling app_main()
+standin: largest internal block 139264; calc stack 32768, then 110592; keyboard image 96000, then 31744
+touch: GT911 id '911' (ESP_OK)
+load: no image: MEMORY CLEAR
+apps: saves loaded
+standin: heap internal 71459 (largest block 31744), PSRAM 6972472
+I (1325) main_task: Returned from app_main()
+boot: boots=1 reason=POWERON new=1 wake=none pins=0x0 ver=0.98 core=c2db894 id=e0adc29c
+STANDIN READY
+tone: use 16 level 4
+state: X=0 stop=NONE lines=0 prgm=0 running=0 shift=0 prompt=- msg=- heap=66915 stack-free=27548
+boot: boots=1 reason=POWERON new=1 wake=none pins=0x0 ver=0.98 core=c2db894 id=e0adc29c
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=175c160a1b3c778ab67f049fe14baac81d1e23e2 games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=- off=0
+app: -
+rows: 0 top=0 next=0 dropped=0 x=0 y=0
+eqn: - | note=- | rep=- | row=- | drawn=-
+ui: show=0 -
+pixels: gold key 4208, blue key 4208 (gold FD20, blue 4D9F, key 4208)
+fnbench: EXP           median   1089 us, worst   2199 us (at +50070914110736476160E-20)
+fnbench: LN            median   3072 us, worst   3417 us (at +51220661641742570979E-318)
+fnbench: LOG           median   3342 us, worst   3593 us (at +50562750840518444328E-313)
+fnbench: TENX          median   1115 us, worst   2457 us (at +22356425337020963754E-20)
+fnbench: SIN RAD       median   1266 us, worst   2583 us (at +80794487309533931193E-20)
+fnbench: COS RAD       median   1218 us, worst   2577 us (at -63072966327787587922E-17)
+fnbench: TAN RAD       median   1547 us, worst   2823 us (at +61972935150734470323E-18)
+fnbench: SIN RAD 1E40  median   2554 us, worst   2963 us (at +55714771835489488915E+15)
+fnbench: ASIN RAD      median   2833 us, worst   4470 us (at -95832090745472610330E-20)
+fnbench: ACOS RAD      median   2938 us, worst   4338 us (at -69246366125988593019E-20)
+fnbench: ATAN RAD      median   1783 us, worst   2759 us (at -97367670725727690589E-19)
+fnbench: ASIN DEG      median   3409 us, worst   5303 us (at +95870536669937827567E-20)
+fnbench: ACOS DEG      median   3748 us, worst   4789 us (at +98738587840038559055E-20)
+fnbench: ATAN GRAD     median   2498 us, worst   3333 us (at +24110756170476128979E-17)
+fnbench: SINH          median   1494 us, worst   3107 us (at -22339975886661795970E-18)
+fnbench: COSH          median   1517 us, worst   2854 us (at -47416072330116534618E-18)
+fnbench: TANH          median   1719 us, worst   2949 us (at -62272539337355625251E-20)
+fnbench: ASINH         median   3087 us, worst   4646 us (at -19753953799124212414E-10)
+fnbench: ACOSH         median   3088 us, worst   4375 us (at +65234631968025722944000000001E+0)
+fnbench: ATANH         median   2985 us, worst   4520 us (at -58149405970828358678E-21)
+fnbench: TORAD         median    781 us, worst    953 us (at -37558127568719188591E+62)
+fnbench: TODEG         median    807 us, worst    994 us (at +55662616488533941841E-106)
+fnbench: ERF           median    388 us, worst    662 us (at +38196803941577559195E-19)
+fnbench: ERFC          median    695 us, worst    967 us (at +83837716492381359616E-19)
+fnbench: NCDF          median   4517 us, worst   5071 us (at -93083890195529648500E-20)
+fnbench: NCDFC         median   4460 us, worst   4993 us (at -83439121740388875301E-20)
+fnbench: NCDFINV       median  41119 us, worst  41947 us (at +43521888669241966992E-204)
+talk.py: PASS line 8: expect 'fnbench: NCDFINV'
+fnbench: plot SIN(X)    491 ms (400 of 400 samples)
+talk.py: ALL MET
