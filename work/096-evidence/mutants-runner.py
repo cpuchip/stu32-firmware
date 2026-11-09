@@ -16,7 +16,7 @@ M = {
  'R3': [('core/calc.c', "        abn_round_note();                       /* (096: flushed to 0: rounded) */\n", "")],
  'R4': [('core/fn.c', "        abn_round_note();   /* (096: a value no rounding call reported) */\n        *out = abn_is_negative(x) ? abn_from_int(-1) : one();",
          "        *out = abn_is_negative(x) ? abn_from_int(-1) : one();")],
- 'R5': [('core/calc.c', "    return abn_cmp(&acc, base) == 0;", "    return true;")],
+ 'R5': [('core/calc.c', "    return abn_cmp(&acc, base) == 0;", "    return (void)base, true;")],     # (run 1: 'return true;' left base unused: -Werror)
  'R6': [('core/fn.c', "            if (v && abn_cmp(x, &k) == 0) {",
          "            abn dd, ad, eps = K(\"1E-9\");\n            abn_sub(&dd, x, &k);\n            ad = abn_abs(&dd);\n"
          "            if (v && abn_cmp(&ad, &eps) < 0) {")],

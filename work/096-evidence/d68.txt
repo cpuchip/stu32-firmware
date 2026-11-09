@@ -1,0 +1,47 @@
+Preparing worktree (detached HEAD a4fd932)
+HEAD is now at a4fd932 erf evidence revision 1 cites and its commit (32ad875) left out: phifix.c (the hp correction through the core's own hp), phijudge2.py and phifix-judge.out (Φ 4.17, Q 3.81 units over 5,132 z)
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+casim 175c160a1b3c778ab67f049fe14baac81d1e23e2
+Preparing worktree (detached HEAD 358da4f)
+HEAD is now at 358da4f Unit 096 src: the exact-or-rounded mark (work/mark-exact-rounded.md rev 1 and grammar; abacus #14264, #14272 rulings (a) (b), #14280 ruled A), VER 0.97
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+casim 175c160a1b3c778ab67f049fe14baac81d1e23e2
+
+### standin: a4fd932 -> 358da4f
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,387,488 | 2,393,216 | +5,728 |
+| internal RAM static (DIRAM, of 341,760) | 207,731 | 207,731 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 59,074 | 59,074 | +0 |
+| calc_task's frame (under every deep path's stack), B | 144 | 144 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 829,051 -> 834,669 (+5,618)
+- libesp_app_format.a: 76,070 -> 76,202 (+132)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 160,675 -> 160,677 (+2)
+- exact_hit: 0 -> 1
+- rounded_seen: 0 -> 1
+
+### reva: a4fd932 -> 358da4f
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,314,320 | 2,320,128 | +5,808 |
+| internal RAM static (DIRAM, of 341,760) | 215,374 | 215,374 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 78,086 | 78,086 | +0 |
+| calc_task's frame (under every deep path's stack), B | 128 | 128 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 769,327 -> 774,965 (+5,638)
+- libesp_app_format.a: 74,166 -> 74,298 (+132)
+- libbid.a: 1,389,008 -> 1,389,048 (+40)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 133,337 -> 133,339 (+2)
+- exact_hit: 0 -> 1
+- rounded_seen: 0 -> 1
+rc=0
+# docker stats every 2 s, soroban-* containers: peak 593.7 MiB, 32 samples

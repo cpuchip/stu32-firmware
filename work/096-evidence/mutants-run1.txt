@@ -1,0 +1,16 @@
+R0 SURVIVED 
+R1 RED: 096:A02,A04,A06,A08,A10,C01,C02,C04,C05,C08,C10,D06,I01,I02,K02,K04,K08,K08b,K18,Q02,Q03 ## census 1834 false exact (first 40 by op: {'SQRT': 23, 'INV': 14, 'LOG': 3})
+R2 RED: census 14 false exact (first 40 by op: {'SINH': 1, 'COSH': 1, 'FACT': 4, 'POW': 2, 'XROOT': 6})
+R3 SURVIVED 
+R4 RED: 096:K12 ## census 17 false exact (first 40 by op: {'TANH': 17})
+R5 RED: BUILD FAILED (build/vectors,build/mark_drive,build/expr_test,build/screen_test,build/standin_replay): cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -DDECIMAL_CALL_BY_REFERENCE=0 -DDECIMAL_GLOBAL_ROUNDING=0 -DDECIMAL_GLOBAL_EXCEPTION_FLAGS=0 -isystem third_party/intel-dfp/IntelRDFPMathLib20U5/LIBRARY/src -c -o build/abn_intel.o core/abn_intel.c|cc -std=c11 -O2 -Wall -Wextr
+R6 RED: 096:K10 ## census 26 false exact (first 40 by op: {'ASIN': 9, 'ACOS': 8, 'ATAN': 9})
+R7 RED: 096:D05 ## screen_test frames 08,10,12
+R8 RED: 096:K14 ## census 2 false exact (first 40 by op: {'COS': 2})
+R9 RED: 096:U02
+R10 RED: 096:I01,I05 ## expr_test 2: FAIL: 082: saved, loaded, saved again: byte for byte || FAIL: 082: ... and the rest loaded as without it ## replay 3: standin_replay: device/standin/page090.txt:53: FAIL: framecrc 2CE8A469, the replay gives 6BA9B5A7 || standin_replay: device/standin/page090.txt: current, 1 of 2 frames match, 1 control: FAILED || standin_replay: 48 scripts, FAILED
+R11 RED: 096:I03,I04 ## expr_test 3: FAIL: tests/golden-v20-082.img: its values loaded rounded (older than the mark) || FAIL: tests/golden-v20-082-full.img: its values loaded rounded (older than the mark) || FAIL: 4C: saved again (889 B, 5CDEC428), byte for byte golden-v21-082 with Y, Z, T 0 and O
+R12 RED: 096:C09
+R13 RED: 096:K18
+R14 RED: 096:R01,R02 ## replay 3: standin_replay: device/standin/cas088.txt:100: FAIL: framecrc EEC9832B, the replay gives A98892E5 || standin_replay: device/standin/cas088.txt: current, 3 of 4 frames match, 1 control: FAILED || standin_replay: 48 scripts, FAILED
+restored: core/abn_intel.c, core/calc.c, core/fn.c, core/state.c, firmware/screen.c as the originals given (SCRATCH/orig096)
