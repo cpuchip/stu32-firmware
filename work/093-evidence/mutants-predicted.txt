@@ -1,0 +1,30 @@
+Unit 093's planted faults, each predicted before any was run (src b204453). The runner (mutants-runner.py, 090's with
+this unit's faults) builds vectors, app_test and screen_test with one fault, runs tests/093-soroban.txt,
+tests/090-soroban.txt, tests/h090-abacus.txt, app_test and screen_test against tests/frames, and names what went red.
+"only" means nothing else goes red. M0 is the control (no fault).
+
+N1  the window doesn't follow: moving up past its top doesn't scroll (sel_up's sel_top line removed).
+    Predicted red: 093 W01, W02 (the window stays on the newest rows); screen_test's scrolled check and frame 63. Not
+    W03 or A06 (no scroll there either way), not W04 (its rows fit unscrolled once the dropped line... no: W04 scrolls
+    eleven times; predicted red too).
+N2  COPY's row without its link.
+    Predicted red: 093 A01, A02; app_test's COPY check (its link). Only those.
+N3  a verb acts on X, not the selected row (no COPY first).
+    Predicted red: 093 A08 only.
+N4  C and BKSP don't leave; they act as keys.
+    Predicted red: 093 L02 (BKSP on the home clears X: X's row 0). Not L01: C on the home with no entry does nothing
+    more than leave. app_test green.
+N5  past the oldest row the selection wraps to the newest, instead of showing the dropped line and stopping.
+    Predicted red: 093 W04 only.
+N6  5 doesn't return to SEL's row.
+    Predicted red: 093 M03 only. (screen_test's frame 62 presses 5 then 2 from + 17: without the return, 2 goes to 2's
+    row, not X: frame 62 red too.)
+N7  ENTER isn't COPY (it leaves and acts as ENTER).
+    Predicted red: 093 A01 only.
+N8  the page's L marks (a row the selected one links to) never set.
+    Predicted red: 093 E01, M02; screen_test's + 17 check; frames 55, 59, 60, 61 (their dots). Frame 62's dot is on a
+    page line too: red. Not the levels' L.
+N9  the other digits don't leave (0 1 3 7 9 do nothing while selected).
+    Predicted red: 093 L03 only.
+N10 a view doesn't end at the next key.
+    Predicted red: 093 A07; screen_test frame 62 (INFO still in X's place after 5 and 2).
