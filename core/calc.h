@@ -167,10 +167,14 @@ typedef enum {
        while one is selected, COPY puts its value in X as a row linked to it (ENTER too), ROWSTO stores it in a letter
        (arg, a move), ROWSHOW, ROWFRAC and ROWINFO show it in X's place until the next key, ROWEDIT puts an ALG row's text
        on the line. Outside a selection each does nothing */
-    AB_SEL, AB_COPY, AB_ROWSTO, AB_ROWSHOW, AB_ROWFRAC, AB_ROWINFO, AB_ROWEDIT
+    AB_SEL, AB_COPY, AB_ROWSTO, AB_ROWSHOW, AB_ROWFRAC, AB_ROWINFO, AB_ROWEDIT,
+    /* unit 094 (work/094-report-enter.md, decision 98; nonprogrammable): EVAL on SOLVE's report, what ENTER did there
+       before (the rows checked at the stored letters, then the answer's value in X); ENTER now copies the answer.
+       Outside the report it does nothing */
+    AB_CASEVAL
 } ab_op;
 
-#define AB_OP_LAST AB_ROWEDIT  /* the last op: loops over every op end here */
+#define AB_OP_LAST AB_CASEVAL  /* the last op: loops over every op end here */
 
 /* Why the last run stopped (unit 012 rule 1): the device draws it; the core never waits. */
 typedef enum {
@@ -395,6 +399,8 @@ typedef struct {
     char cas_rep[AB_EQN_LEN];   /* unit 048: SOLVE's report, casim's line, while its view is open, else ""; not in the
                                image (abacus #5267) */
     int8_t cas_row;         /* unit 048: the report's row under the cursor: 0 the status, then a root each */
+    uint32_t cas_rep_row;   /* unit 094: the row the report's SOLVE read (X's on the stack, 0 from the list), which the
+                               answer's row links to; with the report, not in the image */
     uint8_t eqn_note[AB_EQN_MAX + 2];   /* unit 057 (#5670 rule 1): each equation's label (AB_NOTE_*, 0 none), moved
                                with the list as eqn_model is, dropped when its text is edited or it is deleted; in the
                                image (version 17). +C beside its answer; the rest above it on Y */

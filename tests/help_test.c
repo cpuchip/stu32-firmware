@@ -124,14 +124,16 @@ int __wrap_help_lines(const help_entry *e, int model, const char *legend, char o
     return __real_help_lines(e, model, legend, out, max);
 }
 
-enum { R_PLAIN, R_EQN, R_TYPING, R_ALG, R_ALGRES, R_GRAPH, R_TABLE, R_SUM, R_PROG, R_SEL, R_SELX, R_HIST, R_N };
+enum { R_PLAIN, R_EQN, R_TYPING, R_ALG, R_ALGRES, R_GRAPH, R_TABLE, R_SUM, R_PROG, R_SEL, R_SELX, R_HIST, R_REP, R_N };
 static const char *const RNAME[R_N] = {"plain", "eqn list", "eqn typed", "ALG", "ALG result", "graph", "table", "sum bound",
-                                       "program", "a row selected", "an expression row selected", "ALG's row shown"};
+                                       "program", "a row selected", "an expression row selected", "ALG's row shown",
+                                       "SOLVE's report"};
 #define MAXP 10
 #define MAXS 3000
 typedef struct { int8_t root, n; int model, stamp; uint8_t k[MAXP]; } spath;   /* stamp: R_PROG's label's mode */
-typedef struct { int model, dev, menu, page, cat, gpage, step, base; bool gr, tbl, alg, shown, eqn, typing, prgm, sel, selx, hist; }
-    ssig;                                       /* (093: sel, selx, hist: a row selected, an expression's, ALG's row shown) */
+typedef struct { int model, dev, menu, page, cat, gpage, step, base; bool gr, tbl, alg, shown, eqn, typing, prgm, sel, selx, hist, rep; }
+    ssig;                                       /* (093: sel, selx, hist: a row selected, an expression's, ALG's row shown;
+                                                   094: rep, SOLVE's report open) */
 static spath st[MAXS];
 static ssig sg[MAXS];
 static int ns;
@@ -189,6 +191,7 @@ static void setup(int root, int model, int stamp)
         ab_eqn_add(&sc, "X+1");
         ab_do(&sc, AB_EQDROP), ab_do(&sc, AB_K2), ab_do(&sc, AB_SEL), ab_do(&sc, AB_K2);
     }
+    if (root == R_REP) ab_eqn_add(&sc, "X^2-1"), ab_do_arg(&sc, AB_CASSOLVE, 23);     /* (094) the report: EVAL's bar */
     if (root == R_HIST)                         /* (093) ALG's row shown */
         ab_do_arg(&sc, AB_ENTRYM, 1), ab_do(&sc, AB_K2), ab_do(&sc, AB_ENTER), ab_do(&sc, AB_K3), ab_do(&sc, AB_ENTER),
             ab_do(&sc, AB_HUP);
@@ -212,7 +215,7 @@ static ssig sig_now(void)
     ssig s = {ab_rec_model(&sc), sc.stu ? AB_MODEL_STU : sc.m35 ? 35 : 33, sa.menu, sa.menu_page, sa.cat, sa.gpage,
               sc.cas_def ? sc.cas_def_step : 0, sc.base, sc.gr_on, sc.tbl_on, sc.alg, sc.alg_shown, sc.eqn_mode,
               sc.eqn_typing, sc.prgm, sc.sel_row != 0, ab_sel_menu(&sc) && !strcmp(ab_sel_menu(&sc), "ROW EXPR"),
-              sc.alg && sc.hist_row != 0};
+              sc.alg && sc.hist_row != 0, ab_cas_report(&sc) != NULL};
     return s;
 }
 
@@ -222,7 +225,7 @@ static bool sig_eq(const ssig *x, const ssig *y)
            x->gpage == y->gpage && x->step == y->step && x->base == y->base && x->gr == y->gr && x->tbl == y->tbl &&
            x->alg == y->alg && x->shown == y->shown &&
            x->eqn == y->eqn && x->typing == y->typing && x->prgm == y->prgm && x->sel == y->sel && x->selx == y->selx &&
-           x->hist == y->hist;
+           x->hist == y->hist && x->rep == y->rep;
 }
 
 static bool usable(void) { return !app_running(&sa) && sa.prompt_op < 0 && !sa.view && !sa.help && !sa.graphing; }
@@ -369,7 +372,7 @@ static void sweep(void)
             for (int t = 0; t < 3; t++) {      /* (each stamp for R_PROG; the device's mode for the rest) */
                 bool stu = MODELS[m] == AB_MODEL_STU;
                 if ((r == R_ALG || r == R_ALGRES || r == R_GRAPH || r == R_TABLE || r == R_SUM || r == R_SEL || r == R_SELX ||
-                     r == R_HIST) && !stu) continue;
+                     r == R_HIST || r == R_REP) && !stu) continue;
                 if (r != R_PROG && t != m) continue;
                 spath q = {(int8_t)r, 0, MODELS[m], MODELS[t], {0}};
                 apply(&q);                      /* each root is the state it names (a control on the setup) */
@@ -384,6 +387,7 @@ static void sweep(void)
                           r == R_SEL ? sc.sel_row != 0 :
                           r == R_SELX ? sc.sel_row != 0 && !strcmp(ab_sel_menu(&sc), "ROW EXPR") :
                           r == R_HIST ? sc.alg && sc.hist_row != 0 :
+                          r == R_REP ? ab_cas_report(&sc) != NULL :
                           sc.prgm && ab_rec_model(&sc) == MODELS[t];
                 char w[96];
                 snprintf(w, sizeof w, "the sweep's root %s in mode %d (stamp %d) is not that state", RNAME[r], MODELS[m],

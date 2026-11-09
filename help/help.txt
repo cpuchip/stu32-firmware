@@ -1232,8 +1232,8 @@ replaces it, ENTER. C cancels.
 The result is added.
 [AB_CASSOLVE]
 SOLVE, then a letter: its exact
-roots, of X's too. ENTER: to X.
-▲▼ steps, C ends. CPLX: CAS3.
+roots. ENTER copies one, EVAL
+its value. ▲▼ steps. CPLX: CAS3
 [AB_CASINT]
 ∫DX, then a letter: the anti-
 derivative, +C beside it.
@@ -1277,6 +1277,10 @@ Then 2 × makes (...)×2.
 X's expression or name into
 the list, after the shown one.
 Also on the stack's X bar.
+[AB_CASEVAL]
+On SOLVE's report: the answer's
+value at the stored letters,
+its rows checked first.
 [AB_COPY]
 The selected row's value into
 X, as a new row linked to it.

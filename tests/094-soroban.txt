@@ -1,0 +1,32 @@
+# Unit 094 (work/094-report-enter.md; decision 98; abacus #14168's rulings): on SOLVE's report, ENTER copies the answer's
+# right side into X by 088's rule (a plain decimal a number, else an expression; (MULT k) dropped; the rows not read),
+# and EVAL (CASEVAL, soft key 3) does what ENTER did (the rows checked, CONDITION FAILS, else the value). The SOLVE row
+# links to the row the solve read: X's on the stack, none from the list (089's link to Y fixed). The copied texts are the
+# report's answer rows as casim writes them (038's table, and the blueprint's prototype for the complex root); every other
+# expectation was worked out by hand before the first run.
+#
+# ENTER copies
+E01 | ENTER copies an expression: V=I×R for R gives V÷I in X, the report closed | 5 STO:V 2 STO:I CLX STU EQ:V=I×R CASSOLVE:R SST ENTER | %XEXPR=V÷I %CASREP=none
+E02 | a long answer (37 cells, drawn as 30 and an ellipsis) copied whole | 1 STO:A 2 STO:B 1 STO:C 1 STO:D 1 STO:E CLX STU EQ:X×(A^2+B^2-C^2-D^2-E^2)=(A+B)×(C+D+E) CASSOLVE:X SST ENTER | %XEXPR=(A+B)×(C+D+E)÷(A^2+B^2-C^2-D^2-E^2)
+E03 | a complex root copies as the report writes it | STU CASCPLX EQ:X^2+X+1 CASSOLVE:X SST SST ENTER | %XEXPR=(-1+SQRT(3)×0i1)÷2 %CASREP=none
+E04 | an answer with a root sign stays an expression | STU EQ:0.5×X^2-0.25×X-0.125 CASSOLVE:X SST SST ENTER | %XEXPR=(1+SQRT(5))÷4
+E05 | a plain decimal is a number, its (MULT k) dropped | STU EQ:X^3-3×X+2 CASSOLVE:X SST SST ENTER | X=1 %XEXPR=none %CASREP=none
+E06 | the copy lifts as RCL: the old X in Y | 7 STU EQ:X^2-5×X+6=0 CASSOLVE:X SST ENTER | X=2 Y=7 %CASREP=none
+E07 | ENTER doesn't read the rows: X×A=X at A=1 copies 0, no CONDITION FAILS (EVAL checks) | 1 STO:A CLX STU EQ:X×A=X CASSOLVE:X SST ENTER | X=0 %CASREP=none
+E08 | ... nor X×Y÷Y=3 at Y=0 (ruled (a), abacus #14168) | 0 STO:Y CLX STU EQ:X×Y÷Y=3 CASSOLVE:X SST ENTER | X=3 %CASREP=none
+E09 | ENTER on the status row does nothing | STU EQ:X^2-5×X+6=0 CASSOLVE:X ENTER | X=0 %CASROW=SOLVED %CASREP=SOLVED:_X=2;_X=3
+E10 | ENTER on a condition row does nothing | 1 STO:A CLX STU EQ:X×A=X CASSOLVE:X SST SST ENTER | X=0 %CASROW=A≠1 %CASREP=SOLVED:_X=0;_A≠1
+# EVAL
+V01 | EVAL on the status row does nothing | STU EQ:X^2-5×X+6=0 CASSOLVE:X CASEVAL | X=0 %CASROW=SOLVED %CASREP=SOLVED:_X=2;_X=3
+V02 | EVAL gives the value where ENTER gives the expression | 5 STO:V 2 STO:I CLX STU EQ:V=I×R CASSOLVE:R SST CASEVAL | X=2.5 %XEXPR=none %CASREP=none
+V03 | EVAL outside the report, on the stack: nothing | STU 3 CASEVAL | X=3 %ROWS=1
+V04 | EVAL outside the report, in Equation mode: nothing, no message | STU EQ:X+1 CASEVAL | X=0 %EQN=1
+V05 | EVAL in ALG: nothing | STU ALG CASEVAL | %ROWS=0
+V06 | EVAL isn't programmable | STU PRGM CASEVAL | ERR %ERR=NONPROGRAMMABLE
+# The SOLVE row's link: the row the solve read
+K01 | from the list: no link (089's link to the typed 7 fixed) | STU 7 ENTER EQ:X^2-5×X+6=0 CASSOLVE:X SST ENTER | %ROWS=2 %ROW-1=2:CASSOLVE:-:2 X=2 Y=7
+K02 | ... and the same with EVAL | STU 7 ENTER EQ:X^2-5×X+6=0 CASSOLVE:X SST CASEVAL | %ROWS=2 %ROW-1=2:CASSOLVE:-:2
+K03 | on the stack: the expression's row, the copy a number | 7 STU EQ:2×X+5=11 EQDROP CASSOLVE:X SST ENTER | %ROWS=2 %ROW-1=2:CASSOLVE:1:3 X=3 %YEXPR=2×X+5=11
+K04 | on the stack: the copy an expression, linked to the expression's row | 5 STO:V 2 STO:I CLX STU EQ:V=I×R EQDROP CASSOLVE:R SST ENTER | %ROWS=2 %ROW-1=2:CASSOLVE:1:E:V÷I %XEXPR=V÷I %YEXPR=V=I×R
+K05 | on the stack with EVAL: the value, the same link | 5 STO:V 2 STO:I CLX STU EQ:V=I×R EQDROP CASSOLVE:R SST CASEVAL | %ROWS=2 %ROW-1=2:CASSOLVE:1:2.5 X=2.5
+K06 | CONDITION FAILS makes no row | 0 STO:I CLX STU EQ:V=I×R EQDROP CASSOLVE:R SST CASEVAL | ERR %ERR=CAS_CONDITION %ROWS=1

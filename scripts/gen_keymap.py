@@ -240,7 +240,7 @@ MENUS = [
               p("\u03a3", "AB_CASSUM", "KM_ARG_VAR"),                                                 # 070: Σ
               ("\u25b8", "KM_MENU", "0", "CAS3", 0)]),                                             # 057: on to CAS3
     # unit 048: SOLVE's report open: up and down step among its rows (ENTER copies a root, C leaves)
-    ("CAS REPORT", [o("\u25b2", "AB_BST"), o("\u25bc", "AB_SST"), NONE, NONE, NONE, NONE]),
+    ("CAS REPORT", [o("\u25b2", "AB_BST"), o("\u25bc", "AB_SST"), o("EVAL", "AB_CASEVAL"), NONE, NONE, NONE]),   # 094
     # unit 046 (abacus #4996): EQN LIST's GOLD bank (eqn_bar takes it with GOLD), the REG names as a first character;
     # in 33s mode dimmed and doing nothing (041 A11)
     ("EQN LIST GOLD", [o("REGX", "AB_KREG", 0), o("REGY", "AB_KREG", 1), o("REGZ", "AB_KREG", 2), o("REGT", "AB_KREG", 3),

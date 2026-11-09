@@ -7,7 +7,7 @@
 # ID | description | keys | expected
 C01 | 076: off (MEMORY CLEAR), NO REAL ROOTS says where: CAS3's CPLX | STU EQ:X^2+X+1 CASSOLVE:X | %CASREP=NO_REAL_ROOTS._CAS3_CPLX_ON %CASROW=NO_REAL_ROOTS._CAS3_CPLX_ON
 C02 | 076: on, the conjugate pair (CAS 020 rule 3), the negative imaginary part first | STU CASCPLX EQ:X^2+X+1 CASSOLVE:X | %CASREP=SOLVED:_X=(-1-SQRT(3)×0i1)÷2;_X=(-1+SQRT(3)×0i1)÷2
-C03 | 076: on, ENTER on the second root: its value to X through the core's evaluation, complex (-1+i√3)÷2 | STU CASCPLX EQ:X^2+X+1 CASSOLVE:X SST SST ENTER | X^-0.5i0.8660254037844386467637231707529362 %CASREP=none
+C03 | 076: on, ENTER on the second root: its value to X through the core's evaluation, complex (-1+i√3)÷2 (EVAL since 094, ENTER before) | STU CASCPLX EQ:X^2+X+1 CASSOLVE:X SST SST CASEVAL | X^-0.5i0.8660254037844386467637231707529362 %CASREP=none
 C04 | 076: on, the real root first, then the pair: (X-2)×(X^2+1) | STU CASCPLX EQ:(X-2)×(X^2+1) CASSOLVE:X | %CASREP=SOLVED:_X=2;_X=-0i1;_X=0i1
 C05 | 076: off, the pair left out over the reals, counted after the status since Casimir 1.1.0 (CAS 028's ", n CPLX") | STU EQ:(X-2)×(X^2+1) CASSOLVE:X | %CASREP=SOLVED,_2_CPLX:_X=2
 C06 | 076: on twice is off: the toggle | STU CASCPLX CASCPLX EQ:X^2+X+1 CASSOLVE:X | %CASREP=NO_REAL_ROOTS._CAS3_CPLX_ON

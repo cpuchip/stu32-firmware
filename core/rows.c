@@ -560,10 +560,13 @@ void ab_rows_key_end(ab_calc *c, ab_op op, int arg, abn_status st)
             } else if (o.kind == AB_ROWK_LETTER) {
                 make_letter(c, op, arg);
             }
-        } else if (r->route == AB_ROUTE_REPORT && op == AB_ENTER && !same_val(c, &c->x, &r->lv0[0])) {
-            /* 048's report: ENTER placed a root over the equation, linked to it (088: Y keeps it) */
-            uint32_t link[1] = {c->y.row};
-            c->x.row = append(c, AB_CASSOLVE, 0, 0, link, c->y.row ? 1 : 0, NULL, 0, &c->x);
+        } else if (r->route == AB_ROUTE_REPORT && (op == AB_ENTER || op == AB_CASEVAL) &&
+                   !same_val(c, &c->x, &r->lv0[0])) {
+            /* 048's report: ENTER (the answer copied, 094) or EVAL (its value) placed it in X: a SOLVE row linked to
+               the row the solve read (088's X, which Y now keeps; none from the list: 094 fixed 089's link to Y,
+               which on the list's path was whatever X had held) */
+            uint32_t link[1] = {c->cas_rep_row};
+            c->x.row = append(c, AB_CASSOLVE, 0, 0, link, c->cas_rep_row ? 1 : 0, NULL, 0, &c->x);
         } else if (r->route == AB_ROUTE_EQN && op == AB_EQDROP) {
             c->x.row = append(c, AB_EQDROP, 0, 0, NULL, 0, NULL, 0, &c->x);     /* the list's equation on the stack */
         }

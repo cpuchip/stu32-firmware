@@ -74,6 +74,7 @@ static const struct { const char *name; ab_op op; } NAMED[] = {
     {"SHOW", AB_SHOW},                                          /* unit 030 */
     {"SEL", AB_SEL}, {"ROWCOPY", AB_COPY}, {"ROWSHOW", AB_ROWSHOW}, {"ROWFRAC", AB_ROWFRAC}, {"ROWINFO", AB_ROWINFO},
     {"ROWEDIT", AB_ROWEDIT},                                    /* unit 093 */
+    {"CASEVAL", AB_CASEVAL},                                    /* unit 094: EVAL on SOLVE's report (abacus #14168) */
     {"TABLE", AB_TABLE}, {"TSTART", AB_TSTART}, {"TSTEP", AB_TSTEP}, {"TUP", AB_TUP}, {"TDOWN", AB_TDOWN},   /* 032 */
     {"GRAPH", AB_GRAPH}, {"XMIN", AB_XMIN}, {"XMAX", AB_XMAX}, {"YMIN", AB_YMIN}, {"YMAX", AB_YMAX},       /* 033 */
     {"AUTO", AB_GAUTO}, {"GLEFT", AB_GLEFT}, {"GRIGHT", AB_GRIGHT},

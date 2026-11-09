@@ -5014,6 +5014,27 @@ int main(void)
                    strstr(pg.x.text, "3"),
                "048: ENTER on X=3: 3 in X, shown, the report gone, nothing stored");
         expect(!pg.view, "048: the stack's page is not a view");
+        /* unit 094 (decision 98): the report's bar is ▲ ▼ EVAL; EVAL (soft key 3) gives the answer's value, ENTER
+           copies the answer itself */
+        ab_init(&c);
+        app_init(&a, &c, now);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        ab_do(&c, AB_K5), ab_do_arg(&c, AB_STO, 'V' - 'A'), ab_do(&c, AB_K2), ab_do_arg(&c, AB_STO, 'I' - 'A');
+        ab_do(&c, AB_CLX);
+        ab_eqn_add(&c, "V=I\xc3\x97R");
+        ab_do_arg(&c, AB_CASSOLVE, 'R' - 'A');
+        app_ui(&a, &ui);
+        expect(ab_cas_report(&c) && ui.soft[0] && !strcmp(ui.soft[0], "\xe2\x96\xb2") && ui.soft[1] &&
+                   !strcmp(ui.soft[1], "\xe2\x96\xbc") && ui.soft[2] && !strcmp(ui.soft[2], "EVAL") &&
+                   (!ui.soft[3] || !ui.soft[3][0]),
+               "094: the report's bar: \xe2\x96\xb2 \xe2\x96\xbc EVAL");
+        press(&a, "k:1 k:2");                   /* down to R=V÷I, then EVAL */
+        expect(!ab_cas_report(&c) && c.x.kind == AB_REAL && x_of(&c) == 2.5,
+               "094: EVAL (soft key 3) on R=V\xc3\xb7I: 2.5 in X, the report gone");
+        ab_do(&c, AB_EQN), ab_do_arg(&c, AB_CASSOLVE, 'R' - 'A');     /* (back to the list: EVAL left it) */
+        press(&a, "k:1 ENTER");
+        expect(!ab_cas_report(&c) && c.x.kind == AB_EXPR && !strcmp(ab_expr_text(&c, &c.x), "V\xc3\xb7I"),
+               "094: ENTER on R=V\xc3\xb7I: the expression V\xc3\xb7I in X, the report gone");
         /* the image keeps neither the report nor a note */
         static uint8_t img[1 << 16];
         static ab_calc c3;

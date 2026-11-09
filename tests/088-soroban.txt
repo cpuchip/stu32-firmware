@@ -27,8 +27,8 @@ N10 | the number's LASTx is the expression | STU EQ:2+3×4 EQDROP CASSIMP LASTX 
 S01 | SOLVE X: the report, X unchanged | 7 STU EQ:2×X+5=11 EQDROP CASSOLVE:X | %CASREP=SOLVED:_X=3 %XEXPR=2×X+5=11 Y=7
 S02 | ENTER on the root: 3 in X, the expression in Y, the old Y in Z | 7 STU EQ:2×X+5=11 EQDROP CASSOLVE:X SST ENTER | X=3 %YEXPR=2×X+5=11 Z=7 %CASREP=none
 S03 | two roots, the second to X | STU EQ:X^2-5×X+6 EQDROP CASSOLVE:X SST SST ENTER | X=3 %YEXPR=X^2-5×X+6
-S04 | SOLVE in another letter (CAS 038) | 5 STO:V 2 STO:I CLX STU EQ:V=I×R EQDROP CASSOLVE:R SST ENTER | X=2.5 %YEXPR=V=I×R
-S05 | the repin's rule on the stack: I≠0 fails at I=0 | 0 STO:I CLX STU EQ:V=I×R EQDROP CASSOLVE:R SST ENTER | ERR %ERR=CAS_CONDITION %CASROW=I≠0 %XEXPR=V=I×R
+S04 | SOLVE in another letter (CAS 038) (EVAL since 094, ENTER before) | 5 STO:V 2 STO:I CLX STU EQ:V=I×R EQDROP CASSOLVE:R SST CASEVAL | X=2.5 %YEXPR=V=I×R
+S05 | the repin's rule on the stack: I≠0 fails at I=0 (EVAL since 094, ENTER before) | 0 STO:I CLX STU EQ:V=I×R EQDROP CASSOLVE:R SST CASEVAL | ERR %ERR=CAS_CONDITION %CASROW=I≠0 %XEXPR=V=I×R
 S06 | C leaves the report, the expression still in X | STU EQ:2×X+5=11 EQDROP CASSOLVE:X C | %CASREP=none %XEXPR=2×X+5=11
 S08 | X's text, not the list's: X+1=0 dropped, the list then showing X-5=0 | STU EQ:X+1=0 EQDROP EQ:X-5=0 EQN CASSOLVE:X | %CASREP=SOLVED:_X=-1 %XEXPR=X+1=0
 S07 | a C during SOLVE: no report, X as it was | STU EQ:2×X+5=11 EQDROP INTR:1 CASSOLVE:X | ERR %ERR=INTERRUPTED %CASREP=none %XEXPR=2×X+5=11

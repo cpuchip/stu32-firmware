@@ -3231,6 +3231,7 @@ static abn_status program_key(ab_calc *c, ab_op op, int arg)
     case AB_CASCPLX:                        /* 076: a setting, as ENTRYM */
     case AB_EQDROP: case AB_EQSTORE:        /* 082 */
     case AB_SEL: case AB_COPY: case AB_ROWSTO: case AB_ROWSHOW: case AB_ROWFRAC: case AB_ROWINFO: case AB_ROWEDIT:    /* 093 */
+    case AB_CASEVAL:                        /* 094 */
         return ABN_NONPROGRAMMABLE;
     case AB_FDISP:
     case AB_CLALL:                          /* in program entry the menu offers CLPGM in its place
@@ -3959,6 +3960,7 @@ static abn_status cas_step(ab_calc *c, int op, int var, const char *repl, const 
                                                    equation has no complex numbers, so not there) */
         snprintf(c->cas_rep, sizeof c->cas_rep, "%s", out);
         c->cas_row = 0;
+        c->cas_rep_row = onx ? c->x.row : 0;   /* unit 094: what the answer's row links to (none from the list) */
         return ABN_OK;
     }
     switch (cs) {
@@ -4222,6 +4224,7 @@ static bool eqn_handles(ab_op op)
     case AB_CASSUB: case AB_CASSOLVE: case AB_CASINT: case AB_CASFACT: case AB_CASDEF: case AB_CASQUOT: case AB_CASGCD:
     case AB_CASCANCL: case AB_CASSUM: case AB_KINF: case AB_XEQ: case AB_SOLVE: case AB_INTEG: case AB_EQTOP:
     case AB_SST: case AB_BST: case AB_KBKSP: case AB_KLEFT: case AB_KRIGHT: case AB_EQDROP: case AB_EQSTORE:
+    case AB_CASEVAL:                            /* (094: outside the report, nothing) */
         return true;
     default:
         return false;
@@ -4290,6 +4293,8 @@ static abn_status eqn_key(ab_calc *c, ab_op op, int arg)
     case AB_INTEG:
         if (c->eqn_typing && (st = eqn_store_typed(c)) != ABN_OK) return st;
         return eqn_solve_key(c, op, arg);
+    case AB_CASEVAL:                                /* unit 094: outside SOLVE's report, nothing */
+        return ABN_OK;
     case AB_EQTOP:                                  /* NEW: typing then starts at TOP (unit 020) */
         if (!c->eqn_typing) c->eqn_cur = -1;
         return ABN_OK;
@@ -4463,6 +4468,7 @@ static bool alg_handles(ab_op op)
     case AB_TABLE: case AB_TVAR: case AB_GRAPH: case AB_GAUTO: case AB_XMIN: case AB_XMAX: case AB_YMIN: case AB_YMAX:
     case AB_TSTART: case AB_TSTEP: case AB_ANS: case AB_LASTX:
     case AB_SEL: case AB_COPY: case AB_ROWSTO: case AB_ROWSHOW: case AB_ROWFRAC: case AB_ROWINFO: case AB_ROWEDIT:  /* 093 */
+    case AB_CASEVAL:                                                                                                /* 094 */
         return true;
     default:
         return false;
@@ -4486,6 +4492,7 @@ static abn_status alg_key(ab_calc *c, ab_op op, int arg)
         alg_new_line(c, false);
         return ABN_OK;
     case AB_SEL: case AB_COPY:                      /* unit 093: in ALG the row shown is the selected one; no COPY */
+    case AB_CASEVAL:                                /* (094: outside the report, nothing) */
         return ABN_OK;
     case AB_ROWEDIT:                                /* (the shown row's text to the line, as ENTER on it) */
         if (!c->hist_row) return ABN_OK;
@@ -5303,9 +5310,14 @@ static int cas_cond_holds(ab_calc *c, const char *row)
 }
 
 /* A key while the report shows (048 rule 5, abacus #5267): down and up step among the rows, wrapping, as a linear
-   solution's view (35s p.7-7); ENTER on a root puts its value in X, read through the core's own evaluation of the
-   root's text (STU's parse, the angle mode; its (MULT k) is not part of it), the stack lifted as RCL's, and leaves;
-   ENTER on the status row does nothing; C or backspace leaves. Any other key leaves and then acts (false). */
+   solution's view (35s p.7-7); C or backspace leaves. Any other key leaves and then acts (false).
+   On an answer row (`X=…`; its (MULT k) not part of it), since unit 094 (decision 98, work/094-report-enter.md):
+   - ENTER copies the answer's right side into X, as COPY does a selected row (093): 088's rule, a plain decimal a
+     number, else an expression; the rows aren't read; the stack lifted as RCL's, and the report closes;
+   - EVAL is what ENTER was (048, the 038 repin): the rows checked at the stored letters, the first that fails giving
+     CONDITION FAILS with the cursor on it (the view stays), else the right side's value through the core's own
+     evaluation (STU's parse, the angle mode) into X, and the report closes.
+   Either on the status, a note or a condition row (no `=`) does nothing. */
 static bool casrep_key(ab_calc *c, ab_op op, abn_status *st)
 {
     int n = ab_cas_rows(c);
@@ -5314,13 +5326,25 @@ static bool casrep_key(ab_calc *c, ab_op op, abn_status *st)
         c->cas_row = (int8_t)((c->cas_row + (op == AB_SST ? 1 : n - 1)) % n);
         return true;
     }
-    if (op == AB_ENTER) {
+    if (op == AB_ENTER || op == AB_CASEVAL) {
         char row[AB_EQN_LEN], *eq, *mult;
         ab_val v;
         int pos;
         if (c->cas_row == 0 || !ab_cas_row(c, c->cas_row, row, sizeof row) || (eq = strchr(row, '=')) == NULL)
             return true;
         if ((mult = strstr(eq, " (MULT")) != NULL) *mult = '\0';
+#ifdef AB_CASIM
+        if (op == AB_ENTER) {                   /* unit 094: the copy (MEMORY FULL: nothing changed, the view stays) */
+            *st = cas_plain_number(eq + 1) ? eqn_eval(c, eq + 1, AB_MODEL_STU, false, false, &v, &pos)
+                                           : ab_expr_new(c, eq + 1, &v);
+            if (*st != ABN_OK) return true;
+            c->cas_rep[0] = '\0';
+            place_val(c, v);
+            c->lift = true;
+            c->eqn_mode = false;
+            return true;
+        }
+#endif
         for (int k = 1; k < n; k++) {           /* the CAS 038 repin (abacus #13771): the answer holds only where its
                                                    rows hold, so a row that fails at the stored values places nothing:
                                                    CONDITION FAILS, the cursor on that row (the view stays) */
@@ -5641,6 +5665,7 @@ static abn_status do_key(ab_calc *c, ab_op op, int arg)
     case AB_SEL:                                /* unit 093: the number typed is completed above, its row made */
         return sel_enter(c);
     case AB_COPY: case AB_ROWSTO: case AB_ROWSHOW: case AB_ROWFRAC: case AB_ROWINFO: case AB_ROWEDIT:
+    case AB_CASEVAL:                            /* (094: outside SOLVE's report, nothing) */
         return ABN_OK;                          /* (with no row selected: nothing) */
     case AB_CMPLX:
         return cmplx_pair(c, arg);

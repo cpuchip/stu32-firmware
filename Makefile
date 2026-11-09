@@ -282,6 +282,7 @@ test: all
 	./build/vectors tests/h090-Bp-abacus.txt # (abacus #14085: h090-Bp, Michael's B', as frozen, sha256 eb90e05f...)
 	./build/vectors tests/h093-abacus.txt    # (abacus #14169: h093 as frozen, sha256 ea0d1d08...)
 	./build/vectors tests/093-soroban.txt    # (unit 093: selecting a row; no save/load pass: the selection is RAM only)
+	./build/vectors tests/094-soroban.txt    # (unit 094: the report's ENTER and EVAL; no save/load pass: the report isn't in the image)
 	./build/rows_test
 	./build/eqn_say_test tests/086-corpus.txt    # (unit 086: the round trip over every equation the vectors type)
 	if AB_SAY_PLANT=1 ./build/eqn_say_test tests/086-corpus.txt > /dev/null; then \
@@ -472,6 +473,7 @@ sanitize: build/san/load_fuzz build/san/expr_test build/san/app_test build/san/v
 	./build/san/vectors tests/089-soroban.txt
 	./build/san/vectors tests/090-soroban.txt
 	./build/san/vectors tests/093-soroban.txt
+	./build/san/vectors tests/094-soroban.txt
 	./build/san/app_test
 	for f in $(KEYV) work/016-vectors.txt work/017-vectors.txt; do AB_SAVELOAD=1 AB_STORE=1 ./build/san/vectors $$f || exit 1; done
 
