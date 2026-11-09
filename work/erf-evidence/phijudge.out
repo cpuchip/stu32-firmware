@@ -1,0 +1,2 @@
+PHI errors in units of the 34th digit: {'<100': 295, '<10': 1772, '<1': 1065}  worst 77.7 at z=-7.04
+Q errors in units of the 34th digit: {'<10': 1775, '<1': 1022, '<100': 314, '<1e3': 19, '>=1e3': 2}  worst 1.68e+03 at z=27

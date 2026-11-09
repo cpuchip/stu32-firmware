@@ -1,0 +1,68 @@
+diff --git a/core/abn_intel.c b/core/abn_intel.c
+index 9a89685..7544aa1 100644
+--- a/core/abn_intel.c
++++ b/core/abn_intel.c
+@@ -562,3 +562,7 @@ abn_status abn_atan2(abn *out, const abn *y, const abn *x)
+     BID_UINT128 r = bid128_atan2(to_bid(y), to_bid(x), RND, &fl);
+     return accept(out, r, fl);
+ }
++
++/* THROWAWAY (decision 95's normal distribution, measured first): the library's erf and erfc */
++abn_status abn_erf(abn *out, const abn *a) { return call1(out, bid128_erf, a); }
++abn_status abn_erfc(abn *out, const abn *a) { return call1(out, bid128_erfc, a); }
+diff --git a/device/standin/erfbench.txt b/device/standin/erfbench.txt
+new file mode 100644
+index 0000000..55e0bb7
+--- /dev/null
++++ b/device/standin/erfbench.txt
+@@ -0,0 +1,7 @@
++# THROWAWAY
++wait : heap internal 30
++sleep 3
++send X
++wait state: 10
++send ERFBENCH
++expect erfbench: done 60
+diff --git a/device/standin/main/standin_main.c b/device/standin/main/standin_main.c
+index 02f1a42..b3bc43c 100644
+--- a/device/standin/main/standin_main.c
++++ b/device/standin/main/standin_main.c
+@@ -60,7 +60,7 @@
+ enum { EV_KEY = 0, EV_OP, EV_DUMP, EV_SAVE, EV_WIPE, EV_RESTART, EV_TOUCHED, EV_BENCH, EV_TIME, EV_POWBENCH,
+        EV_KEYUP, EV_TBLBENCH, EV_GRBENCH, EV_FRAMEBENCH, EV_FRAMECRC,
+        EV_POLBENCH, EV_ZOOMBENCH, EV_CASBENCH, EV_DIFFBENCH, EV_FNBENCH, EV_HPBENCH, EV_PROGBENCH, EV_EQNBENCH, EV_OPBENCH,
+-       EV_ROWBENCH, EV_SAVEBENCH, EV_STEPBENCH };                          /* EV_KEYUP: a the key released (unit 030: SHOW, held) */
++       EV_ROWBENCH, EV_SAVEBENCH, EV_STEPBENCH, EV_ERFBENCH };                          /* EV_KEYUP: a the key released (unit 030: SHOW, held) */
+ static char time_text[16];             /* TIME's argument, for the calc task (unit 027) */
+ 
+ typedef struct {
+@@ -1145,6 +1145,7 @@ static void console_task(void *arg)
+         else if (!strcmp(line, "ROWBENCH")) e.kind = EV_ROWBENCH;        /* unit 089: the worksheet's rows' costs */
+         else if (!strcmp(line, "SAVEBENCH")) e.kind = EV_SAVEBENCH;      /* unit 090: the save's distribution */
+         else if (!strcmp(line, "STEPBENCH")) e.kind = EV_STEPBENCH;      /* unit 095: STEPS' page times */
++        else if (!strcmp(line, "ERFBENCH")) e.kind = EV_ERFBENCH;        /* THROWAWAY: erf's cost */
+         else if (!strcmp(line, "DIFFBENCH")) e.kind = EV_DIFFBENCH;  /* apps.h v1.2 item 1: the line diff's time */
+         else if (!strcmp(line, "FNBENCH")) e.kind = EV_FNBENCH;      /* unit 044 rule 4: each function's time */
+         else if (!strcmp(line, "HPBENCH")) e.kind = EV_HPBENCH;      /* the hp speed proposal: each primitive's time */
+@@ -1229,6 +1230,21 @@ static void calc_task(void *arg)
+             opbench();
+         } else if (got && ev.kind == EV_ROWBENCH) {
+             dev_rowbench(&flash, image, IMAGE_CAP, &app.set, save);
++        } else if (got && ev.kind == EV_ERFBENCH) {
++            extern abn_status abn_erf(abn *out, const abn *a), abn_erfc(abn *out, const abn *a);
++            static const char *const X[] = {"0.5", "1", "2.33", "-0.557095771417706941974756773561239", "5", "13.4",
++                                            "27", "100"};
++            for (int i = 0; i < 8; i++) {
++                abn x, r1, r2;
++                abn_from_text(&x, X[i]);
++                int64_t t0 = esp_timer_get_time();
++                for (int k = 0; k < 20; k++) abn_erf(&r1, &x);
++                int64_t t1 = esp_timer_get_time();
++                for (int k = 0; k < 20; k++) abn_erfc(&r2, &x);
++                int64_t t2 = esp_timer_get_time();
++                printf("erfbench: x=%s erf %lld us erfc %lld us\n", X[i], (long long)(t1 - t0) / 20, (long long)(t2 - t1) / 20);
++            }
++            printf("erfbench: done stack-free %u\n", (unsigned)uxTaskGetStackHighWaterMark(NULL));
+         } else if (got && ev.kind == EV_STEPBENCH) {
+             dev_stepbench();
+         } else if (got && ev.kind == EV_SAVEBENCH) {
