@@ -1,0 +1,31 @@
+Unit 092's planted faults, each predicted before any was run (src 2ae28ca). The runner (mutants-runner.py) plants one
+fault in firmware/store.c, rebuilds store_test and store_sim, runs store_test and store_sim on tests/092-soroban-store.txt,
+and names what went red: store_test's lines that say FAIL or fall short (n/m with n < m, or outside "allowed"), and
+store_sim's FAIL lines by section (A 6-23, B 24-36, C 37-79, D 80-96, E 97-109, F 110-123, G 124-137 of the file).
+"only" means nothing else goes red. Q0 is the control (no fault).
+
+Q1  the start not moving: every save at sector 0 (one place, as a single slot).
+    Predicted red: store_test's six-save cut test (a cut in the erase destroys the only image), the fixtures' cut line,
+    all three wear lines (sector 0 takes every save); store_sim A-E and G (every CUTALL after a first image loses it
+    at the erase's cuts; the ERASES expectations), F's 2-sector part. Green: F's first CUTALL (no image before it).
+Q2  the image not wrapping (the struck rule: a save that would run past the end starts at 0).
+    Predicted red: store_sim A (the counterexample: the cut at 0-63's erase reaches 61-63, the newest; and its ERASES),
+    B (the same at 0-8 over 8-15), C (its wrapping saves, and the erase counts); store_test's 3- and 7-sector wear
+    lines (the tail sectors 128 mod 3 and mod 7 never erased: below the allowed). Green: the 1-sector wear line, D, E,
+    F, G (no save there runs past the end), store_test's six-save test and fixtures.
+Q3  the load taking the first good header found (the lowest sector), not the highest seq.
+    Predicted red: store_test's six-save test, the fixtures' line (after the ring's first save at sector 1, sector 0's
+    seq 3 is found first), the wear lines (ab_store_seq isn't 10,000); store_sim A-E and G. Green: F's first CUTALL.
+Q4  the header written before the payload.
+    Predicted red: store_sim's every CUTALL whose image is more than its header (a cut in the payload after the header
+    is whole leaves a header whose payload fails: the load gives the one before, where the sim expects this one); C's
+    1-byte CUTALL too (a cut between the header and its byte). Green: store_test entirely (its cut test accepts either
+    image), and every EXPECT LOAD after a CUTALL or SAVE (the uncut save is whole).
+Q5  the half-partition refusal removed (any image up to the whole partition, less its header).
+    Predicted red: store_test's fixtures' line only (the one-byte-past-half save is taken). Green: everything else; no
+    save in the store_sim file is past half. (The blueprint said this mutant "must go red on the counterexample". It
+    can't as built: the counterexample's save is exactly half, which the refusal allows, and the ring, not the refusal,
+    keeps it off the newest.)
+Q6  the payload's CRC not checked (the highest-seq good header taken whatever its payload).
+    Predicted red: store_test's fixtures' line only (the corrupted newest is loaded, not skipped). Green: every CUTALL:
+    a cut never leaves a whole header over a broken payload, and older images' broken payloads have lower seqs.
