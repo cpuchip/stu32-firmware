@@ -1,0 +1,12 @@
+M0 SURVIVED 
+N1 RED: 093:W01,W02 ## screen_test frames 63; checks 1: screen_test: 093: scrolled, the selected row on the top line
+N2 RED: 093:A01,A02 ## app_test 1: app_test: 093: soft 1 (COPY): the row's value in X, a COPY row linked to it
+N3 RED: 093:A08
+N4 RED: 093:L02
+N5 RED: 093:W04
+N6 RED: 093:M03 ## screen_test frames 62
+N7 RED: 093:A01
+N8 RED: 093:E01,M02 ## screen_test frames 55,59,60,61,62; checks 1: screen_test: 093: + 17 selected, × 12 and 5 linked
+N9 RED: 093:L03
+N10 RED: 093:A07 ## screen_test frames 62
+restored: core/rows.c, core/calc.c, firmware/screen.c as the originals given (SCRATCH/orig093)

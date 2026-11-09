@@ -1,0 +1,59 @@
+# Unit 093 on the stand-in (work/worksheet-3-select.md): selecting a row. From MEMORY CLEAR: STU, then 3 ENTER 4 × 5 + 2 ÷
+# (page090's keys); GOLD then soft 2 selects the lowest page line's row (÷ 8.5), 8 and 8 move up to + 17: its line
+# inverted, × 12 and 5 dotted, SEL in the band, the row menu on the soft keys. Then soft 6 (INFO): "+ OF 12.0000, 5.0000"
+# in X's place. Each frame's rows 21-205 have the host's CRC (standin_replay). Ends with a control that must FAIL.
+# replay: current
+wait : heap internal 30
+sleep 3
+send WIPE
+expect wipe: both slots erased
+send RESTART
+expect load: no image: MEMORY CLEAR 30
+expect ver=0.93 30
+wait READY 30
+send K42
+sleep 0.25
+send K42
+sleep 0.25
+send K36
+sleep 0.25
+send K18
+sleep 0.25
+send K2
+sleep 0.25
+send K42
+sleep 0.25
+send K39
+sleep 0.25
+send K18
+sleep 0.25
+send K31
+sleep 0.25
+send K34
+sleep 0.25
+send K32
+sleep 0.25
+send K46
+sleep 0.25
+send K38
+sleep 0.25
+send K28
+sleep 0.25
+send K30
+sleep 0.25
+send K1
+sleep 0.25
+send K26
+sleep 0.25
+send K26
+sleep 0.25
+send FRAMECRC
+expect framecrc: rows 21-205 828E790B 10
+send K5
+sleep 0.25
+send FRAMECRC
+expect framecrc: rows 21-205 8EF1CF36 10
+send X
+expect-min stack-free 8188 10
+# CONTROL: must FAIL
+expect framecrc: rows 21-205 00000000 3
