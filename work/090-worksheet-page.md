@@ -182,3 +182,42 @@ All at 6081504 unless named (465bcb4 is 1095994 with clang's one-line fix; 60815
   - PROGBENCH (a66f409, the restore run): SIN 274 ms, LN 384 ms.
   - Claims: lepton docker soroban-* 4 GiB and the stand-in board 23:45-23:56Z; peak 174 MiB (docker stats every 2 s,
     106 samples, the restore's build not sampled). The board left on the stand-in's image at a66f409.
+
+## The save's distribution (abacus #14093, lean 7)
+
+SAVEBENCH (ca1d330, device/dev_bench.h, both boards): ROWBENCH's three states, the device's save to the flash 20 times
+each, split through a flash that times its own calls into the erase, the writes and the reads, with the erased sectors
+read first (untimed) to see whether they were already blank. On an image with power management (Rev A's) each state
+runs again holding the CPU at its maximum and light sleep off. Min / median / max over 20 saves, in ms:
+
+| | no page (758 B) | the full page (9,138 B) | the worst (27,683 B) |
+|---|---|---|---|
+| Rev A's main head-less, run 1: the save | 144 / 204 / 240 | 265 / 561 / 636 | 599 / 879 / 924 |
+| its erase | 137 / 198 / 220 | 209 / 499 / 576 | 434 / 708 / 751 |
+| Rev A head-less, run 2: the save | 128 / 184 / 227 | 391 / 539 / 630 | 721 / 871 / 953 |
+| run 2 with the PM lock held | 131 / 189 / 238 | 408 / 558 / 617 | 762 / 873 / 942 |
+| the stand-in's image (ca1d330): the save | 30 / 38 / 69 | 189 / 205 / 210 | 495 / 553 / 573 |
+| its erase | 21 / 23 / 32 | 72 / 88 / 92 | 193 / 214 / 236 |
+
+- **Lean 7's rule:** the worst state's save never passed 1 s on Rev A's image: 60 saves (two runs, and the second's
+  locked half), the slowest 953 ms. So by the blueprint's rule there's no cap on the held rows. The margin is 4.7%, and
+  one throwaway configuration below went past 1 s. The Rev A board's own flash stays unmeasured (it isn't on lepton).
+- **Where the time and the spread are:** the erase. Rev A's writes are flat (140-141 ms for the worst) and its reads
+  small. The erase varies by 200 to 300 ms within each state.
+- **Not whether the sectors needed erasing** (abacus's guess): almost none were blank before their erase (0 of 140 for
+  the worst in both Rev A runs, 0 in every slowest save), so dirty sectors alone carry the whole spread.
+- **Not the flash chip or its region:** the same S3 and flash chip erase a sector in 21-23 ms under the stand-in's image,
+  and a raw erase timed there at Rev A's abstate address (0x78F000, unallocated in the stand-in's map) took 20-22 ms,
+  the same as at the stand-in's own (sb-standin-raw-erase-experiment.out; the throwaway patch is
+  sb-raw-erase-diagnostic.patch, not committed). Under Rev A's image one sector takes 117-227 ms.
+- **Not Rev A's configuration, falsified one difference at a time** (throwaway builds, sdkconfig.defaults restored after
+  each, nothing committed): power management (the PM-locked half above: the same), the 1 ms tick (100 Hz: erase
+  191 ms median a sector; its worst save 864 / 1,004 / 1,049 ms, past 1 s), PSRAM ECC off (205 ms a sector), a 16 KB
+  instruction cache (203 ms). Those four are the whole flash-, cache- and tick-relevant difference between the two
+  builds' sdkconfigs.
+- **So my read:** the extra erase time is Rev A's main at run time during the erase. Its other work (the 1 ms key scan
+  on core 0, the ULP, the gauge) would hold up a flash operation that has to stop both cores' caches, but which of them
+  does it, I haven't isolated. If one does, each save could be four to nine times shorter, and the margin question goes
+  away. Not built; a candidate for its own small unit.
+- Claims: lepton docker soroban-* 4 GiB and the stand-in board 2026-11-08 23:57Z to 2026-11-09 00:18Z; peak 722 MiB
+  (docker stats every 2 s, 231 samples). The board is left on the stand-in's image at ca1d330.
