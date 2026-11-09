@@ -1,0 +1,148 @@
+Checking "python3" ...
+Python 3.12.3
+"python3" has been detected
+Activating ESP-IDF 5.4
+Setting IDF_PATH to '/opt/esp/idf'.
+* Checking python version ... 3.12.3
+* Checking python dependencies ... OK
+* Deactivating the current ESP-IDF environment (if any) ... OK
+* Establishing a new ESP-IDF environment ... OK
+* Identifying shell ... bash
+* Detecting outdated tools in system ... OK - no outdated tools found
+warning:  Failed to get username with error: 'getpwuid(): uid not found: 1001'. Using default temporary directory /tmp/esp_idf_activate.
+* Shell completion ... Autocompletion code generated
+
+Done! You can now compile ESP-IDF projects.
+Go to the project directory and run:
+
+  idf.py build
+Activating ESP-IDF 5.4
+Setting IDF_PATH to '/opt/esp/idf'.
+* Checking python version ... 3.12.3
+* Checking python dependencies ... OK
+* Deactivating the current ESP-IDF environment (if any) ... OK
+* Establishing a new ESP-IDF environment ... OK
+* Identifying shell ... bash
+* Detecting outdated tools in system ... OK - no outdated tools found
+warning:  Failed to get username with error: 'getpwuid(): uid not found: 1001'. Using default temporary directory /tmp/esp_idf_activate.
+* Shell completion ... Autocompletion code generated
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x1 (POWERON),boot:0x8 (SPI_FAST_FLASH_BOOT)
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x16d0
+load:0x403c8700,len:0x4
+load:0x403c8704,len:0xec8
+load:0x403cb700,len:0x3160
+entry 0x403c8950
+I (27) boot: ESP-IDF v5.4.2 2nd stage bootloader
+I (27) boot: compile time Nov  9 2026 04:07:09
+I (27) boot: Multicore bootloader
+I (27) boot: chip revision: v0.1
+I (30) boot: efuse block revision: v1.2
+I (33) qio_mode: Enabling default flash chip QIO
+I (38) boot.esp32s3: Boot SPI Speed : 80MHz
+I (42) boot.esp32s3: SPI Mode       : QIO
+I (45) boot.esp32s3: SPI Flash Size : 8MB
+I (49) boot: Enabling RNG early entropy source...
+I (54) boot: Partition Table:
+I (56) boot: ## Label            Usage          Type ST Offset   Length
+I (63) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (69) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (76) boot:  2 factory          factory app      00 00 00010000 00500000
+I (82) boot:  3 abstate          Unknown data     01 40 00510000 00080000
+I (89) boot:  4 abapps           Unknown data     01 41 00590000 00012000
+I (95) boot: End of partition table
+I (98) esp_image: segment 0: paddr=00010020 vaddr=3c0f0020 size=13e788h (1304456) map
+I (299) esp_image: segment 1: paddr=0014e7b0 vaddr=3fc92700 size=01868h (  6248) load
+I (301) esp_image: segment 2: paddr=00150020 vaddr=42000020 size=ee5f4h (976372) map
+I (448) esp_image: segment 3: paddr=0023e61c vaddr=3fc93f68 size=09828h ( 38952) load
+I (455) esp_image: segment 4: paddr=00247e4c vaddr=40374000 size=0e6c4h ( 59076) load
+I (467) esp_image: segment 5: paddr=00256518 vaddr=600fe000 size=0001ch (    28) load
+I (474) boot: Loaded app from partition at offset 0x10000
+I (475) boot: Disabling RNG early entropy source...
+I (485) octal_psram: vendor id    : 0x0d (AP)
+I (485) octal_psram: dev id       : 0x02 (generation 3)
+I (485) octal_psram: density      : 0x03 (64 Mbit)
+I (487) octal_psram: good-die     : 0x01 (Pass)
+I (492) octal_psram: Latency      : 0x01 (Fixed)
+I (496) octal_psram: VCC          : 0x01 (3V)
+I (500) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (505) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (510) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (514) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (519) octal_psram: DriveStrength: 0x00 (1/1)
+I (524) MSPI Timing: PSRAM timing tuning index: 4
+I (528) esp_psram: Found 8MB PSRAM device
+I (532) esp_psram: Speed: 80MHz
+I (535) cpu_start: Multicore app
+I (944) esp_psram: SPI SRAM memory test OK
+I (955) cpu_start: Pro cpu start user code
+I (955) cpu_start: cpu freq: 240000000 Hz
+I (955) app_init: Application information:
+I (955) app_init: Project name:     abacus_standin
+I (960) app_init: App version:      1
+I (963) app_init: Compile time:     Nov  9 2026 04:07:03
+I (968) app_init: ELF file SHA256:  b47dea788...
+I (973) app_init: ESP-IDF:          v5.4.2
+I (976) efuse_init: Min chip rev:     v0.0
+I (980) efuse_init: Max chip rev:     v0.99 
+I (984) efuse_init: Chip rev:         v0.1
+I (988) heap_init: Initializing. RAM available for dynamic allocation:
+I (994) heap_init: At 3FCBABB0 len 0002EB60 (186 KiB): RAM
+I (1000) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (1005) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (1010) heap_init: At 600FE01C len 00001FCC (7 KiB): RTCRAM
+I (1016) esp_psram: Adding pool of 8100K of PSRAM memory to heap allocator
+I (1023) spi_flash: detected chip: gd
+I (1025) spi_flash: flash io: qio
+I (1029) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (1035) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (1042) main_task: Started on CPU0
+I (1072) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (1072) main_task: Calling app_main()
+standin: largest internal block 139264; calc stack 32768, then 110592; keyboard image 96000, then 31744
+touch: GT911 id '911' (ESP_OK)
+load: 1163 bytes ok
+apps: saves loaded
+standin: heap internal 71459 (largest block 31744), PSRAM 6972472
+I (1332) main_task: Returned from app_main()
+boot: boots=1 reason=POWERON new=1 wake=none pins=0x0 ver=0.95 core=60a3eea id=f46cb858
+STANDIN READY
+tone: use 16 level 4
+state: X=3 stop=NONE lines=0 prgm=0 running=0 shift=0 prompt=- msg=- heap=66915 stack-free=27548
+boot: boots=1 reason=POWERON new=1 wake=none pins=0x0 ver=0.95 core=60a3eea id=f46cb858
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=175c160a1b3c778ab67f049fe14baac81d1e23e2 games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=- off=0
+app: -
+rows: 5 top=5 next=6 dropped=0 x=5 y=4
+eqn: - | note=- | rep=- | row=- | drawn=-
+ui: show=0 -
+pixels: gold key 4208, blue key 4208 (gold FD20, blue 4D9F, key 4208)
+stepbench: solve quadratic      TL st 0 steps  5 count 1946 us page max 1889 us all 9111 us cells 21 stack-free 26828
+stepbench: solve quadratic      1L st 0 steps  4 count 1748 us page max 1836 us all 7275 us cells 16 stack-free 26828
+stepbench: solve sextic         TL st 0 steps 18 count 61313 us page max 61563 us all 1104401 us cells 92 stack-free 26828
+stepbench: solve sextic         1L st 0 steps 13 count 61397 us page max 61494 us all 797587 us cells 48 stack-free 26828
+stepbench: solve V=IxR          TL st 0 steps  3 count 2520 us page max 2647 us all 7628 us cells 20 stack-free 26828
+stepbench: solve V=IxR          1L st 0 steps  3 count 2482 us page max 2841 us all 7867 us cells 20 stack-free 26828
+stepbench: derive product       TL st 0 steps  6 count 1034 us page max 1583 us all 7475 us cells 151 stack-free 26828
+stepbench: derive product       1L st 0 steps  5 count 993 us page max 1545 us all 5984 us cells 129 stack-free 26828
+stepbench: derive quotient      TL st 0 steps 20 count 1233 us page max 1934 us all 30703 us cells 131 stack-free 26828
+stepbench: derive quotient      1L st 0 steps 13 count 1190 us page max 1923 us all 19216 us cells 120 stack-free 26828
+stepbench: integrate X^2        TL st 0 steps  2 count 1179 us page max 1993 us all 3718 us cells 17 stack-free 26828
+stepbench: integrate X^2        1L st 0 steps  2 count 1169 us page max 1733 us all 3438 us cells 17 stack-free 26828
+stepbench: integrate pf4        TL st 0 steps 36 count 259151 us page max 384194 us all 10281652 us cells 124 stack-free 26828
+stepbench: integrate pf4        1L st 0 steps 22 count 258804 us page max 383691 us all 6400521 us cells 115 stack-free 26828
+stepbench: integrate ATAN       TL st 0 steps 13 count 59533 us page max 120825 us all 1198728 us cells 66 stack-free 25676
+stepbench: integrate ATAN       1L st 0 steps  9 count 59393 us page max 121038 us all 808761 us cells 40 stack-free 25676
+stepbench: integrate XATAN      TL st 0 steps 20 count 71140 us page max 148333 us all 2425247 us cells 73 stack-free 25484
+stepbench: integrate XATAN      1L st 0 steps 15 count 71357 us page max 148150 us all 1816078 us cells 48 stack-free 25484
+stepbench: integrate XATAN+pf   TL st 0 steps 44 count 136726 us page max 285162 us all 9067285 us cells 87 stack-free 24332
+stepbench: integrate XATAN+pf   1L st 0 steps 30 count 137365 us page max 286023 us all 6331134 us cells 87 stack-free 24332
+stepbench: integrate e^x sin    TL st 0 steps 11 count 16159 us page max 21730 us all 192038 us cells 106 stack-free 24332
+stepbench: integrate e^x sin    1L st 0 steps  8 count 15845 us page max 21489 us all 141017 us cells 74 stack-free 24332
+stepbench: done
+talk.py: PASS line 7: expect 'stepbench: done'
+talk.py: ALL MET

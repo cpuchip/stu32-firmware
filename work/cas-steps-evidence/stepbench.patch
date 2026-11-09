@@ -1,0 +1,105 @@
+diff --git a/device/standin/main/standin_main.c b/device/standin/main/standin_main.c
+index e429120..3ce3145 100644
+--- a/device/standin/main/standin_main.c
++++ b/device/standin/main/standin_main.c
+@@ -43,6 +43,7 @@
+ #include "dev_common.h"
+ #include "dev_bench.h"
+ #include "arena.h"
++#include "casim.h"
+ #include "fn.h"
+ #include "hp.h"
+ #include "sbig.h"
+@@ -60,7 +61,7 @@
+ enum { EV_KEY = 0, EV_OP, EV_DUMP, EV_SAVE, EV_WIPE, EV_RESTART, EV_TOUCHED, EV_BENCH, EV_TIME, EV_POWBENCH,
+        EV_KEYUP, EV_TBLBENCH, EV_GRBENCH, EV_FRAMEBENCH, EV_FRAMECRC,
+        EV_POLBENCH, EV_ZOOMBENCH, EV_CASBENCH, EV_DIFFBENCH, EV_FNBENCH, EV_HPBENCH, EV_PROGBENCH, EV_EQNBENCH, EV_OPBENCH,
+-       EV_ROWBENCH, EV_SAVEBENCH };                          /* EV_KEYUP: a the key released (unit 030: SHOW, held) */
++       EV_ROWBENCH, EV_SAVEBENCH, EV_STEPBENCH };                          /* EV_KEYUP: a the key released (unit 030: SHOW, held) */
+ static char time_text[16];             /* TIME's argument, for the calc task (unit 027) */
+ 
+ typedef struct {
+@@ -955,6 +956,51 @@ static __attribute__((noinline)) void casbench(void)
+     heap_caps_free(t);
+ }
+ 
++/* THROWAWAY (cas-steps-device's measured cost, not for the repo): casim_step paged on the S3, in the CAS arena, from
++   the calc task: each case's count, its slowest page and all its pages in microseconds, its longest page in cells, the
++   task's stack still free */
++static __attribute__((noinline)) void stepbench(void)
++{
++    static const struct { const char *name; int op; const char *eqn; } K[] = {
++        {"solve quadratic", CASIM_SOLVE, "X^2-5\xc3\x97X+6=0"},
++        {"solve sextic", CASIM_SOLVE, "(X-1)\xc3\x97(X-2)\xc3\x97(X-3)\xc3\x97(X-4)\xc3\x97(X-5)\xc3\x97(X-6)"},
++        {"solve V=IxR", CASIM_SOLVE, "V=I\xc3\x97R"},
++        {"derive product", CASIM_DERIVE, "X^3\xc3\x97SIN(X)\xc3\x97" "EXP(X)\xc3\x97LN(X)"},
++        {"derive quotient", CASIM_DERIVE, "(X^2+1)^5\xc3\x97(X-3)^4\xc3\xb7(X+2)^3"},
++        {"integrate X^2", CASIM_INTEGRATE, "X^2"},
++        {"integrate pf4", CASIM_INTEGRATE, "1\xc3\xb7((X-1)\xc3\x97(X-2)\xc3\x97(X-3)\xc3\x97(X-4))"},
++        {"integrate ATAN", CASIM_INTEGRATE, "ATAN(X)"},
++        {"integrate XATAN", CASIM_INTEGRATE, "X\xc3\x97" "ATAN(X)"},
++        {"integrate XATAN+pf", CASIM_INTEGRATE, "X\xc3\x97" "ATAN(X)+1\xc3\xb7(X^2-1)"},
++        {"integrate e^x sin", CASIM_INTEGRATE, "EXP(X)\xc3\x97SIN(X)"},
++    };
++    char out[512];
++    for (size_t k = 0; k < sizeof K / sizeof K[0]; k++)
++        for (int flags = 0; flags <= CASIM_STEPS_ONE_LINE; flags++) {
++            casim_req rq = {(casim_op)K[k].op, K[k].eqn, CASIM_MODEL_STU, K[k].op == CASIM_SOLVE && k == 2 ? 'R' - 'A' : 23,
++                            NULL, CASIM_MODEL_STU, 0, NULL};
++            casim_step_info in = {0, 0, 0, 0};
++            int64_t c0 = esp_timer_get_time();
++            casim_status st = casim_step(&rq, -1, flags, &in, out, sizeof out, ab_cas_arena, sizeof ab_cas_arena);
++            int64_t c1 = esp_timer_get_time(), worst = 0, all = 0;
++            int cells = 0;
++            for (int i = 0; i < in.count; i++) {
++                int64_t t0 = esp_timer_get_time();
++                casim_status s2 = casim_step(&rq, i, flags, &in, out, sizeof out, ab_cas_arena, sizeof ab_cas_arena);
++                int64_t dt = esp_timer_get_time() - t0;
++                all += dt, worst = dt > worst ? dt : worst;
++                int n = 0;
++                for (const char *p = out; *p; p++) n += ((unsigned char)*p & 0xC0) != 0x80;
++                if (n > cells) cells = n;
++                if (s2 != CASIM_OK && s2 != CASIM_PARTIAL) st = s2;
++            }
++            printf("stepbench: %-20s %s st %d steps %2d count %lld us page max %lld us all %lld us cells %d stack-free %u\n",
++                   K[k].name, flags ? "1L" : "TL", (int)st, in.count, (long long)(c1 - c0), (long long)worst,
++                   (long long)all, cells, (unsigned)uxTaskGetStackHighWaterMark(NULL));
++        }
++    printf("stepbench: done\n");
++}
++
+ /* POLBENCH (unit 034 rule 3): ->POL's time on the S3, before (the engine's hypot and atan2, and in DEG the one
+    product, which was fn_topol's route) and after (fn_topol: hp_hypot, hp_atan2 at 56 digits rounded once); and
+    ->REC's in RAD, fn_torec now. Non-integer arguments (a benchmark lesson of unit 032). */
+@@ -1143,7 +1189,8 @@ static void console_task(void *arg)
+         else if (!strcmp(line, "EQNBENCH")) e.kind = EV_EQNBENCH;        /* unit 049: equations evaluated */
+         else if (!strcmp(line, "OPBENCH")) e.kind = EV_OPBENCH;          /* after unit 050: a cube's stages */
+         else if (!strcmp(line, "ROWBENCH")) e.kind = EV_ROWBENCH;        /* unit 089: the worksheet's rows' costs */
+-        else if (!strcmp(line, "SAVEBENCH")) e.kind = EV_SAVEBENCH;      /* unit 090: the save's distribution */
++        else if (!strcmp(line, "SAVEBENCH")) e.kind = EV_SAVEBENCH;
++        else if (!strcmp(line, "STEPBENCH")) e.kind = EV_STEPBENCH;      /* THROWAWAY: cas-steps-device's cost */      /* unit 090: the save's distribution */
+         else if (!strcmp(line, "DIFFBENCH")) e.kind = EV_DIFFBENCH;  /* apps.h v1.2 item 1: the line diff's time */
+         else if (!strcmp(line, "FNBENCH")) e.kind = EV_FNBENCH;      /* unit 044 rule 4: each function's time */
+         else if (!strcmp(line, "HPBENCH")) e.kind = EV_HPBENCH;      /* the hp speed proposal: each primitive's time */
+@@ -1228,6 +1275,8 @@ static void calc_task(void *arg)
+             opbench();
+         } else if (got && ev.kind == EV_ROWBENCH) {
+             dev_rowbench(&flash, image, IMAGE_CAP, &app.set, save);
++        } else if (got && ev.kind == EV_STEPBENCH) {
++            stepbench();
+         } else if (got && ev.kind == EV_SAVEBENCH) {
+             dev_savebench(&flash, image, IMAGE_CAP, &app.set, save);
+         } else if (got && ev.kind == EV_DIFFBENCH) {
+diff --git a/device/standin/stepbench.txt b/device/standin/stepbench.txt
+new file mode 100644
+index 0000000..ec7c4c9
+--- /dev/null
++++ b/device/standin/stepbench.txt
+@@ -0,0 +1,7 @@
++# THROWAWAY: cas-steps-device's measured cost (not for the repo)
++wait : heap internal 30
++sleep 3
++send X
++wait state: 10
++send STEPBENCH
++expect stepbench: done 600

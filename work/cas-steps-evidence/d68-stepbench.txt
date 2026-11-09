@@ -1,0 +1,45 @@
+Preparing worktree (detached HEAD aedaa0f)
+HEAD is now at aedaa0f h092 adopted (abacus #14223): tests/h092-abacus.txt from abacus's generator tests/h092gen.py (95 lines), sha256 33238a8b...ff9b (= abacus's), 1,752 lines; in make test: 1,705/1,705 expectations, every CUTALL held
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+casim 175c160a1b3c778ab67f049fe14baac81d1e23e2
+Preparing worktree (detached HEAD 60a3eea)
+HEAD is now at 60a3eea THROWAWAY: STEPBENCH's literals split (a hex escape ate E and A)
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+casim 175c160a1b3c778ab67f049fe14baac81d1e23e2
+
+### standin: aedaa0f -> 60a3eea
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,337,392 | 2,385,248 | +47,856 |
+| internal RAM static (DIRAM, of 341,760) | 207,731 | 207,731 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 59,074 | 59,074 | +0 |
+| calc_task's frame (under every deep path's stack), B | 144 | 144 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 779,938 -> 826,943 (+47,005)
+- libesp_app_format.a: 75,302 -> 75,942 (+640)
+- libbid.a: 1,436,046 -> 1,436,138 (+92)
+- libc.a: 85,308 -> 85,356 (+48)
+- libesp_hw_support.a: 32,130 -> 32,122 (-8)
+- libfreertos.a: 19,490 -> 19,486 (-4)
+- libesp_rom.a: 765 -> 761 (-4)
+- libesp_driver_i2c.a: 10,009 -> 10,005 (-4)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 160,671 -> 160,671 (+0), none changed
+
+### reva: aedaa0f -> 60a3eea
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,265,104 | 2,265,104 | +0 |
+| internal RAM static (DIRAM, of 341,760) | 215,366 | 215,366 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 78,086 | 78,086 | +0 |
+| calc_task's frame (under every deep path's stack), B | 128 | 128 | +0 |
+
+Libraries that changed (all memory types):
+
+- none
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 133,333 -> 133,333 (+0), none changed

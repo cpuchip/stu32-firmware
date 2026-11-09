@@ -1,0 +1,150 @@
+s X X^2-5×X+6=0                                   TL steps  5 cells  21 bytes  23 depth 1 arena  5 KiB page max     3.4 us all     16.0 us
+s X X^2-5×X+6=0                                   1L steps  4 cells  16 bytes  16 depth 1 arena  5 KiB page max     3.3 us all     12.4 us
+s X X^3-3×X+2                                     TL steps  7 cells  27 bytes  30 depth 1 arena  5 KiB page max     4.2 us all     28.3 us
+s X X^3-3×X+2                                     1L steps  5 cells  26 bytes  26 depth 1 arena  5 KiB page max     4.2 us all     20.1 us
+s X X^3-2×X-5                                     TL steps  2 cells  26 bytes  27 depth 1 arena  5 KiB page max     2.6 us all      4.9 us
+s X X^3-2×X-5                                     1L steps  2 cells  26 bytes  27 depth 1 arena  5 KiB page max     2.5 us all      4.8 us
+s X (X+3)×(X^3-2×X-5)                            TL steps  6 cells  41 bytes  46 depth 1 arena  5 KiB page max     4.0 us all     22.6 us
+s X (X+3)×(X^3-2×X-5)                            1L steps  5 cells  28 bytes  28 depth 1 arena  5 KiB page max     3.8 us all     18.4 us
+s X X^2+X+1                                        TL steps  3 cells  25 bytes  27 depth 1 arena  5 KiB page max     2.1 us all      6.1 us
+s X X^2+X+1                                        1L steps  2 cells  24 bytes  24 depth 1 arena  5 KiB page max     2.0 us all      4.0 us
+s X X+1=X                                          TL steps  2 cells  11 bytes  11 depth 0 arena  5 KiB page max     1.3 us all      2.6 us
+s X X+1=X                                          1L steps  2 cells  11 bytes  11 depth 0 arena  5 KiB page max     1.3 us all      2.6 us
+s X 2×X=X+X                                       TL steps  2 cells   7 bytes   7 depth 0 arena  5 KiB page max     1.5 us all      2.9 us
+s X 2×X=X+X                                       1L steps  2 cells   7 bytes   7 depth 0 arena  5 KiB page max     1.5 us all      2.9 us
+s X SIN(X)=0.5                                     TL steps  0 cells   0 bytes   0 depth 0 arena  0 KiB page max     0.0 us all      0.0 us REFUSED
+s X SIN(X)=0.5                                     1L steps  0 cells   0 bytes   0 depth 0 arena  0 KiB page max     0.0 us all      0.0 us REFUSED
+s X A×X^2-1                                       TL steps  0 cells   0 bytes   0 depth 0 arena  0 KiB page max     0.0 us all      0.0 us REFUSED
+s X A×X^2-1                                       1L steps  0 cells   0 bytes   0 depth 0 arena  0 KiB page max     0.0 us all      0.0 us REFUSED
+s X X^14-1                                         TL steps  0 cells   0 bytes   0 depth 0 arena  0 KiB page max     0.0 us all      0.0 us REFUSED
+s X X^14-1                                         1L steps  0 cells   0 bytes   0 depth 0 arena  0 KiB page max     0.0 us all      0.0 us REFUSED
+s X (X^2-X-3)×(X^2-X-5)×(X^2-X-7)×(X^2-X-11)×(X^2-X-13)×(X^2-X-17) TL steps  0 cells   0 bytes   0 depth 0 arena  0 KiB page max     0.0 us all      0.0 us REFUSED
+s X (X^2-X-3)×(X^2-X-5)×(X^2-X-7)×(X^2-X-11)×(X^2-X-13)×(X^2-X-17) 1L steps  0 cells   0 bytes   0 depth 0 arena  0 KiB page max     0.0 us all      0.0 us REFUSED
+s X X^3^2-64                                       TL steps  3 cells  23 bytes  23 depth 1 arena  5 KiB page max    11.8 us all     33.3 us
+s X X^3^2-64                                       1L steps  3 cells  23 bytes  23 depth 1 arena  5 KiB page max    11.5 us all     32.8 us
+s X X^2-1                                          TL steps  5 cells  17 bytes  18 depth 1 arena  5 KiB page max     3.5 us all     16.6 us
+s X X^2-1                                          1L steps  4 cells  17 bytes  17 depth 1 arena  5 KiB page max     3.4 us all     13.1 us
+s X 0.5×X^2-0.25×X-0.125                         TL steps  6 cells  49 bytes  53 depth 1 arena  5 KiB page max     8.4 us all     49.5 us
+s X 0.5×X^2-0.25×X-0.125                         1L steps  4 cells  47 bytes  51 depth 1 arena  5 KiB page max     8.3 us all     33.0 us
+i X 3×X^2+2×X+1                                  TL steps 12 cells  45 bytes  57 depth 2 arena  2 KiB page max     9.1 us all     69.3 us
+i X 3×X^2+2×X+1                                  1L steps  9 cells  28 bytes  32 depth 2 arena  2 KiB page max     9.1 us all     53.3 us
+i X COS(X)                                         TL steps  2 cells  27 bytes  31 depth 0 arena  1 KiB page max     3.1 us all      6.3 us
+i X COS(X)                                         1L steps  2 cells  27 bytes  31 depth 0 arena  1 KiB page max     3.0 us all      6.0 us
+i X SIN(3×X)                                      TL steps  3 cells  36 bytes  43 depth 0 arena  2 KiB page max     5.2 us all     14.8 us
+i X SIN(3×X)                                      1L steps  2 cells  31 bytes  37 depth 0 arena  2 KiB page max     5.0 us all     10.0 us
+i X EXP(X^2)                                       TL steps  0 cells   0 bytes   0 depth 0 arena  0 KiB page max     0.0 us all      0.0 us REFUSED
+i X EXP(X^2)                                       1L steps  0 cells   0 bytes   0 depth 0 arena  0 KiB page max     0.0 us all      0.0 us REFUSED
+i X X=1                                            TL steps  0 cells   0 bytes   0 depth 0 arena  0 KiB page max     0.0 us all      0.0 us REFUSED
+i X X=1                                            1L steps  0 cells   0 bytes   0 depth 0 arena  0 KiB page max     0.0 us all      0.0 us REFUSED
+i X X^2^3                                          TL steps  2 cells  21 bytes  23 depth 0 arena  2 KiB page max     4.1 us all      8.2 us
+i X X^2^3                                          1L steps  2 cells  21 bytes  23 depth 0 arena  2 KiB page max     4.1 us all      8.2 us
+i X 1÷(X^2-1)                                     TL steps 22 cells  66 bytes  80 depth 3 arena  8 KiB page max    88.9 us all   1558.7 us
+i X 1÷(X^2-1)                                     1L steps 14 cells  61 bytes  69 depth 3 arena  8 KiB page max    89.3 us all   1011.5 us
+i X 1÷(X×(X+1))                                  TL steps 19 cells  43 bytes  52 depth 3 arena  8 KiB page max    56.2 us all    855.9 us
+i X 1÷(X×(X+1))                                  1L steps 13 cells  43 bytes  47 depth 3 arena  8 KiB page max    56.4 us all    604.2 us
+i X X×LN(X)                                       TL steps  9 cells  54 bytes  64 depth 2 arena  2 KiB page max    33.2 us all    251.2 us
+i X X×LN(X)                                       1L steps  7 cells  34 bytes  39 depth 2 arena  2 KiB page max    33.1 us all    197.1 us
+i X ATAN(X)                                        TL steps 13 cells  66 bytes  77 depth 3 arena  3 KiB page max   393.8 us all   3156.1 us
+i X ATAN(X)                                        1L steps  9 cells  40 bytes  46 depth 3 arena  3 KiB page max   264.1 us all   1759.5 us
+i X EXP(X)×SIN(X)                                 TL steps 11 cells 106 bytes 127 depth 3 arena  3 KiB page max    60.2 us all    527.3 us
+i X EXP(X)×SIN(X)                                 1L steps  8 cells  74 bytes  84 depth 3 arena  3 KiB page max    64.8 us all    387.5 us
+i X X×ATAN(X)                                     TL steps 20 cells  73 bytes  86 depth 5 arena  9 KiB page max   329.5 us all   5459.7 us
+i X X×ATAN(X)                                     1L steps 15 cells  48 bytes  56 depth 5 arena  9 KiB page max   323.0 us all   4036.5 us
+i X SIN(X)+1÷(X^2-1)                              TL steps 26 cells  66 bytes  80 depth 4 arena  9 KiB page max   183.9 us all   4184.2 us
+i X SIN(X)+1÷(X^2-1)                              1L steps 17 cells  66 bytes  74 depth 4 arena  9 KiB page max   182.6 us all   2732.6 us
+i X X×ATAN(X)+1÷(X^2-1)                          TL steps 44 cells  87 bytes  99 depth 6 arena 10 KiB page max   673.3 us all  20907.5 us
+i X X×ATAN(X)+1÷(X^2-1)                          1L steps 30 cells  87 bytes  99 depth 6 arena 10 KiB page max   651.0 us all  14587.9 us
+i X (X^2+3×X-1)×(3×X+2)÷(3×X+2)^2             TL steps 21 cells  69 bytes  82 depth 4 arena  8 KiB page max   102.7 us all   1726.9 us
+i X (X^2+3×X-1)×(3×X+2)÷(3×X+2)^2             1L steps 14 cells  69 bytes  82 depth 4 arena  8 KiB page max   102.2 us all   1177.4 us
+i X (X^3+X)÷(X^2+1)                               TL steps  4 cells  29 bytes  34 depth 0 arena  6 KiB page max    22.1 us all     84.4 us
+i X (X^3+X)÷(X^2+1)                               1L steps  3 cells  28 bytes  32 depth 0 arena  6 KiB page max    22.2 us all     64.9 us
+i X ATANH(1)×X                                    TL steps  0 cells   0 bytes   0 depth 0 arena  0 KiB page max     0.0 us all      0.0 us REFUSED
+i X ATANH(1)×X                                    1L steps  0 cells   0 bytes   0 depth 0 arena  0 KiB page max     0.0 us all      0.0 us REFUSED
+s X X+TAN(π÷2)                                   TL steps  2 cells  25 bytes  29 depth 1 arena  2 KiB page max    12.8 us all     25.4 us
+s X X+TAN(π÷2)                                   1L steps  2 cells  25 bytes  29 depth 1 arena  2 KiB page max    12.6 us all     25.1 us
+s X CBRT(X)-2                                      TL steps  0 cells   0 bytes   0 depth 0 arena  0 KiB page max     0.0 us all      0.0 us REFUSED
+s X CBRT(X)-2                                      1L steps  0 cells   0 bytes   0 depth 0 arena  0 KiB page max     0.0 us all      0.0 us REFUSED
+s X (X-1)×(X-2)×(X-3)×(X-4)                     TL steps 12 cells  51 bytes  57 depth 1 arena  5 KiB page max    16.7 us all    197.8 us
+s X (X-1)×(X-2)×(X-3)×(X-4)                     1L steps  9 cells  27 bytes  30 depth 1 arena  5 KiB page max    16.6 us all    148.0 us
+s R V=I×R                                         TL steps  3 cells  20 bytes  24 depth 1 arena  2 KiB page max     6.2 us all     18.1 us
+s R V=I×R                                         1L steps  3 cells  20 bytes  24 depth 1 arena  2 KiB page max     6.1 us all     17.9 us
+s T P×V=N×R×T                                   TL steps  3 cells  33 bytes  43 depth 1 arena  2 KiB page max     8.1 us all     23.8 us
+s T P×V=N×R×T                                   1L steps  3 cells  33 bytes  43 depth 1 arena  2 KiB page max     8.2 us all     23.7 us
+s X SQRT(A×B)×X=1                                TL steps  3 cells  40 bytes  48 depth 1 arena  2 KiB page max     8.2 us all     24.1 us
+s X SQRT(A×B)×X=1                                1L steps  3 cells  40 bytes  48 depth 1 arena  2 KiB page max     8.3 us all     24.0 us
+s X X×SQRT(-B÷2-C÷2)=1                          TL steps  3 cells  52 bytes  62 depth 1 arena  3 KiB page max    11.6 us all     34.1 us
+s X X×SQRT(-B÷2-C÷2)=1                          1L steps  3 cells  52 bytes  62 depth 1 arena  3 KiB page max    11.6 us all     33.9 us
+s X X×(A^2+B^2-C^2-D^2)=(A+B)×(C+D)              TL steps  3 cells  85 bytes  91 depth 1 arena  4 KiB page max    17.0 us all     48.8 us
+s X X×(A^2+B^2-C^2-D^2)=(A+B)×(C+D)              1L steps  3 cells  85 bytes  91 depth 1 arena  4 KiB page max    17.5 us all     49.8 us
+s X X×(A^2+B^2-C^2-D^2-E^2)=(A+B)×(C+D+E)        TL steps  3 cells 101 bytes 107 depth 1 arena  4 KiB page max    21.6 us all     60.2 us
+s X X×(A^2+B^2-C^2-D^2-E^2)=(A+B)×(C+D+E)        1L steps  3 cells 101 bytes 107 depth 1 arena  4 KiB page max    20.0 us all     57.2 us
+s U 1÷F=1÷U+1÷V                                 TL steps  0 cells   0 bytes   0 depth 0 arena  0 KiB page max     0.0 us all      0.0 us REFUSED
+s U 1÷F=1÷U+1÷V                                 1L steps  0 cells   0 bytes   0 depth 0 arena  0 KiB page max     0.0 us all      0.0 us REFUSED
+s X X×A=X                                         TL steps  3 cells  19 bytes  22 depth 1 arena  2 KiB page max     6.5 us all     19.2 us
+s X X×A=X                                         1L steps  3 cells  19 bytes  22 depth 1 arena  2 KiB page max     6.5 us all     19.1 us
+s X X×Y÷Y=3                                      TL steps  3 cells  16 bytes  18 depth 1 arena  2 KiB page max     5.6 us all     16.7 us
+s X X×Y÷Y=3                                      1L steps  3 cells  16 bytes  18 depth 1 arena  2 KiB page max     5.6 us all     16.7 us
+s X A×X=A×B                                      TL steps  3 cells  19 bytes  23 depth 1 arena  2 KiB page max     6.5 us all     19.2 us
+s X A×X=A×B                                      1L steps  3 cells  19 bytes  23 depth 1 arena  2 KiB page max     6.5 us all     19.1 us
+s X (A^2-1)×X=A+1                                 TL steps  3 cells  46 bytes  52 depth 1 arena  3 KiB page max    10.9 us all     31.6 us
+s X (A^2-1)×X=A+1                                 1L steps  3 cells  46 bytes  52 depth 1 arena  3 KiB page max    10.9 us all     31.7 us
+s X LN(A)×X=1                                     TL steps  3 cells  27 bytes  31 depth 1 arena  2 KiB page max     6.6 us all     19.4 us
+s X LN(A)×X=1                                     1L steps  3 cells  27 bytes  31 depth 1 arena  2 KiB page max     6.5 us all     19.1 us
+s X X÷A=B                                         TL steps  3 cells  18 bytes  21 depth 1 arena  2 KiB page max     6.1 us all     18.0 us
+s X X÷A=B                                         1L steps  3 cells  18 bytes  21 depth 1 arena  2 KiB page max     5.9 us all     17.6 us
+s X X×SQRT(A)=SQRT(A)                             TL steps  3 cells  29 bytes  32 depth 1 arena  2 KiB page max     6.9 us all     20.3 us
+s X X×SQRT(A)=SQRT(A)                             1L steps  3 cells  29 bytes  32 depth 1 arena  2 KiB page max     6.8 us all     20.2 us
+s X X÷(B÷2+C÷2)=1+X                             TL steps  3 cells  51 bytes  62 depth 1 arena  4 KiB page max    14.4 us all     42.1 us
+s X X÷(B÷2+C÷2)=1+X                             1L steps  3 cells  51 bytes  62 depth 1 arena  4 KiB page max    14.5 us all     42.1 us
+d X 0^(-1)×X                                      TL steps  0 cells   0 bytes   0 depth 0 arena  0 KiB page max     0.0 us all      0.0 us REFUSED
+d X 0^(-1)×X                                      1L steps  0 cells   0 bytes   0 depth 0 arena  0 KiB page max     0.0 us all      0.0 us REFUSED
+i X 3×X^2                                         TL steps  4 cells  23 bytes  29 depth 1 arena  2 KiB page max     3.4 us all     12.6 us
+i X 3×X^2                                         1L steps  3 cells  17 bytes  19 depth 1 arena  2 KiB page max     3.4 us all      9.7 us
+s X (X-2)×(X^2+1)                                 TL steps  7 cells  27 bytes  29 depth 1 arena  5 KiB page max     2.8 us all     18.6 us
+s X (X-2)×(X^2+1)                                 1L steps  5 cells  22 bytes  22 depth 1 arena  5 KiB page max     2.8 us all     13.1 us
+d X X^3×SIN(X)                                    TL steps  4 cells  52 bytes  55 depth 1 arena  1 KiB page max     2.8 us all      9.8 us
+d X X^3×SIN(X)                                    1L steps  3 cells  48 bytes  55 depth 1 arena  1 KiB page max     2.6 us all      6.9 us
+s X (X^2+X+1)×(X^2+3×X+7)×(X^2+5×X+11)×(X^2+7×X+19) TL steps 16 cells 125 bytes 138 depth 1 arena  5 KiB page max    50.4 us all    727.0 us
+s X (X^2+X+1)×(X^2+3×X+7)×(X^2+5×X+11)×(X^2+7×X+19) 1L steps  9 cells  67 bytes  74 depth 1 arena  5 KiB page max    49.7 us all    409.8 us
+s X (X^2+1)×(X^3-2×X-5)                          TL steps  7 cells  39 bytes  43 depth 1 arena  5 KiB page max     3.6 us all     23.7 us
+s X (X^2+1)×(X^3-2×X-5)                          1L steps  5 cells  30 bytes  30 depth 1 arena  5 KiB page max     3.5 us all     16.8 us
+s X (X^2+1)^5×(X^2-2)                             TL steps 10 cells  76 bytes  85 depth 1 arena  5 KiB page max    96.1 us all    953.7 us
+s X (X^2+1)^5×(X^2-2)                             1L steps  6 cells  44 bytes  49 depth 1 arena  5 KiB page max    99.4 us all    574.7 us
+s X (X-3)×(X^2+1)×(X^3-2×X-5)                   TL steps 10 cells  59 bytes  65 depth 1 arena  5 KiB page max     5.1 us all     48.9 us
+s X (X-3)×(X^2+1)×(X^3-2×X-5)                   1L steps  7 cells  35 bytes  36 depth 1 arena  5 KiB page max     5.1 us all     33.9 us
+s X (X^2+1)×(X^2+4)                               TL steps  8 cells  27 bytes  29 depth 1 arena  5 KiB page max     2.9 us all     22.0 us
+s X (X^2+1)×(X^2+4)                               1L steps  5 cells  22 bytes  22 depth 1 arena  5 KiB page max     2.8 us all     13.4 us
+s X 2×X+5=11                                      TL steps  5 cells  11 bytes  13 depth 1 arena  5 KiB page max     2.1 us all      9.6 us
+s X 2×X+5=11                                      1L steps  4 cells  11 bytes  11 depth 1 arena  5 KiB page max     2.1 us all      7.6 us
+s X X^2-5×X+6                                     TL steps  5 cells  21 bytes  23 depth 1 arena  5 KiB page max     2.8 us all     13.4 us
+s X X^2-5×X+6                                     1L steps  4 cells  16 bytes  16 depth 1 arena  5 KiB page max     2.8 us all     10.7 us
+s X X-5=0                                          TL steps  2 cells  11 bytes  11 depth 1 arena  5 KiB page max     2.0 us all      3.7 us
+s X X-5=0                                          1L steps  2 cells  11 bytes  11 depth 1 arena  5 KiB page max     2.0 us all      3.6 us
+s X SIN(X)-0.5                                     TL steps  0 cells   0 bytes   0 depth 0 arena  0 KiB page max     0.0 us all      0.0 us REFUSED
+s X SIN(X)-0.5                                     1L steps  0 cells   0 bytes   0 depth 0 arena  0 KiB page max     0.0 us all      0.0 us REFUSED
+d X X^2                                            TL steps  1 cells  15 bytes  16 depth 0 arena  1 KiB page max     1.4 us all      1.4 us
+d X X^2                                            1L steps  1 cells  15 bytes  16 depth 0 arena  1 KiB page max     1.2 us all      1.2 us
+s X 2×X=6                                         TL steps  5 cells  11 bytes  13 depth 1 arena  5 KiB page max     1.9 us all      8.8 us
+s X 2×X=6                                         1L steps  4 cells  11 bytes  11 depth 1 arena  5 KiB page max     1.9 us all      7.0 us
+d X SIN(COS(TAN(X^2+1)))                           TL steps 10 cells  93 bytes  99 depth 4 arena  2 KiB page max     5.0 us all     43.2 us
+d X SIN(COS(TAN(X^2+1)))                           1L steps  6 cells  93 bytes  99 depth 4 arena  1 KiB page max     4.9 us all     24.2 us
+d X X^3×SIN(X)×EXP(X)×LN(X)                     TL steps  6 cells 151 bytes 166 depth 1 arena  1 KiB page max     4.7 us all     22.0 us
+d X X^3×SIN(X)×EXP(X)×LN(X)                     1L steps  5 cells 129 bytes 147 depth 1 arena  1 KiB page max     4.6 us all     17.0 us
+d X (X^2+1)^5×(X-3)^4÷(X+2)^3                    TL steps 20 cells 131 bytes 140 depth 3 arena  2 KiB page max     8.4 us all    101.1 us
+d X (X^2+1)^5×(X-3)^4÷(X+2)^3                    1L steps 13 cells 120 bytes 132 depth 3 arena  2 KiB page max     8.3 us all     62.3 us
+d X SQRT(1+SQRT(1+SQRT(1+X)))                      TL steps 16 cells  91 bytes  95 depth 6 arena  1 KiB page max     4.7 us all     53.5 us
+d X SQRT(1+SQRT(1+SQRT(1+X)))                      1L steps 10 cells  91 bytes  95 depth 6 arena  1 KiB page max     4.3 us all     31.0 us
+i X EXP(X)×SIN(X)                                 TL steps 11 cells 106 bytes 127 depth 3 arena  3 KiB page max    64.5 us all    522.3 us
+i X EXP(X)×SIN(X)                                 1L steps  8 cells  74 bytes  84 depth 3 arena  3 KiB page max    59.1 us all    378.7 us
+i X X^3×EXP(2×X)                                 TL steps 27 cells  88 bytes 109 depth 4 arena  3 KiB page max   302.4 us all   6794.0 us
+i X X^3×EXP(2×X)                                 1L steps 17 cells  81 bytes  98 depth 4 arena  3 KiB page max   302.1 us all   4315.4 us
+i X 1÷((X-1)×(X-2)×(X-3)×(X-4))                TL steps 36 cells 124 bytes 150 depth 3 arena  8 KiB page max   316.2 us all   8157.0 us
+i X 1÷((X-1)×(X-2)×(X-3)×(X-4))                1L steps 22 cells 115 bytes 129 depth 3 arena  8 KiB page max   313.1 us all   5360.7 us
+i X (X^2+3×X+5)÷((X+1)×(X^2+2×X+5))            TL steps 28 cells  93 bytes 109 depth 3 arena  8 KiB page max   142.8 us all   3005.7 us
+i X (X^2+3×X+5)÷((X+1)×(X^2+2×X+5))            1L steps 17 cells  93 bytes 109 depth 3 arena  8 KiB page max   148.4 us all   1872.0 us
+i X X×COS(X^2)                                    TL steps  7 cells  38 bytes  44 depth 2 arena  3 KiB page max    34.1 us all    204.7 us
+i X X×COS(X^2)                                    1L steps  5 cells  32 bytes  37 depth 2 arena  3 KiB page max    33.8 us all    148.7 us
+s X X^4-10×X^2+9                                  TL steps 11 cells  34 bytes  37 depth 1 arena  5 KiB page max     4.2 us all     44.5 us
+s X X^4-10×X^2+9                                  1L steps  8 cells  28 bytes  28 depth 1 arena  5 KiB page max     4.1 us all     32.1 us
+s X (X-1)×(X-2)×(X-3)×(X-4)×(X-5)×(X-6)       TL steps 18 cells  92 bytes 102 depth 1 arena  5 KiB page max    31.5 us all    561.0 us
+s X (X-1)×(X-2)×(X-3)×(X-4)×(X-5)×(X-6)       1L steps 13 cells  48 bytes  53 depth 1 arena  5 KiB page max    36.7 us all    410.3 us
