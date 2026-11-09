@@ -1,0 +1,2 @@
+R5 RED: 096:K08b
+restored: core/abn_intel.c, core/calc.c, core/fn.c, core/state.c, firmware/screen.c as the originals given (SCRATCH/orig096)

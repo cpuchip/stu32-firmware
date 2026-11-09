@@ -1,0 +1,423 @@
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+Checking "python3" ...
+Python 3.12.3
+"python3" has been detected
+Activating ESP-IDF 5.4
+Setting IDF_PATH to '/opt/esp/idf'.
+* Checking python version ... 3.12.3
+* Checking python dependencies ... OK
+* Deactivating the current ESP-IDF environment (if any) ... OK
+* Establishing a new ESP-IDF environment ... OK
+* Identifying shell ... bash
+* Detecting outdated tools in system ... OK - no outdated tools found
+warning:  Failed to get username with error: 'getpwuid(): uid not found: 1001'. Using default temporary directory /tmp/esp_idf_activate.
+* Shell completion ... Autocompletion code generated
+
+Done! You can now compile ESP-IDF projects.
+Go to the project directory and run:
+
+  idf.py build
+Activating ESP-IDF 5.4
+Setting IDF_PATH to '/opt/esp/idf'.
+* Checking python version ... 3.12.3
+* Checking python dependencies ... OK
+* Deactivating the current ESP-IDF environment (if any) ... OK
+* Establishing a new ESP-IDF environment ... OK
+* Identifying shell ... bash
+* Detecting outdated tools in system ... OK - no outdated tools found
+warning:  Failed to get username with error: 'getpwuid(): uid not found: 1001'. Using default temporary directory /tmp/esp_idf_activate.
+* Shell completion ... Autocompletion code generated
+fetch-intel-dfp: verified 85dafd70f0fe2a8da218ade4233fca9d3228b0b04cd6d8527f7499926be01037, built build/intel-esp32s3/libbid.a
+Executing action: all (aliases: build)
+Running ninja in directory /project/device/standin/build
+Executing "ninja all"...
+[0/2] Re-checking globbed directories...
+[1/2] Re-running CMake...
+-- ccache will be used for faster recompilation
+-- Building ESP-IDF components for target esp32s3
+-- Project sdkconfig file /project/device/standin/build/sdkconfig
+Loading defaults file /project/device/standin/sdkconfig.defaults...
+-- Compiler supported targets: xtensa-esp-elf
+-- USING O3
+-- App "abacus_standin" version: ccffbbc
+-- Adding linker script /project/device/standin/build/esp-idf/esp_system/ld/memory.ld
+-- Adding linker script /project/device/standin/build/esp-idf/esp_system/ld/sections.ld.in
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.api.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.bt_funcs.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.libgcc.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.wdt.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.version.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.ble_master.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.ble_50.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.ble_smp.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.ble_dtm.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.ble_test.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.ble_scan.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.newlib.ld
+-- Adding linker script /opt/esp/idf/components/soc/esp32s3/ld/esp32s3.peripherals.ld
+-- Components: app_update bootloader bootloader_support cxx driver efuse esp_app_format esp_bootloader_format esp_common esp_driver_ana_cmpr esp_driver_dac esp_driver_gpio esp_driver_gptimer esp_driver_i2c esp_driver_i2s esp_driver_ledc esp_driver_mcpwm esp_driver_parlio esp_driver_pcnt esp_driver_rmt esp_driver_sdio esp_driver_sdm esp_driver_sdmmc esp_driver_sdspi esp_driver_spi esp_driver_tsens esp_driver_uart esp_driver_usb_serial_jtag esp_hw_support esp_lcd esp_mm esp_partition esp_pm esp_psram esp_ringbuf esp_rom esp_security esp_system esp_timer esp_vfs_console esptool_py freertos hal heap log main mbedtls newlib partition_table pthread sdmmc soc spi_flash vfs xtensa
+-- Component paths: /opt/esp/idf/components/app_update /opt/esp/idf/components/bootloader /opt/esp/idf/components/bootloader_support /opt/esp/idf/components/cxx /opt/esp/idf/components/driver /opt/esp/idf/components/efuse /opt/esp/idf/components/esp_app_format /opt/esp/idf/components/esp_bootloader_format /opt/esp/idf/components/esp_common /opt/esp/idf/components/esp_driver_ana_cmpr /opt/esp/idf/components/esp_driver_dac /opt/esp/idf/components/esp_driver_gpio /opt/esp/idf/components/esp_driver_gptimer /opt/esp/idf/components/esp_driver_i2c /opt/esp/idf/components/esp_driver_i2s /opt/esp/idf/components/esp_driver_ledc /opt/esp/idf/components/esp_driver_mcpwm /opt/esp/idf/components/esp_driver_parlio /opt/esp/idf/components/esp_driver_pcnt /opt/esp/idf/components/esp_driver_rmt /opt/esp/idf/components/esp_driver_sdio /opt/esp/idf/components/esp_driver_sdm /opt/esp/idf/components/esp_driver_sdmmc /opt/esp/idf/components/esp_driver_sdspi /opt/esp/idf/components/esp_driver_spi /opt/esp/idf/components/esp_driver_tsens /opt/esp/idf/components/esp_driver_uart /opt/esp/idf/components/esp_driver_usb_serial_jtag /opt/esp/idf/components/esp_hw_support /opt/esp/idf/components/esp_lcd /opt/esp/idf/components/esp_mm /opt/esp/idf/components/esp_partition /opt/esp/idf/components/esp_pm /opt/esp/idf/components/esp_psram /opt/esp/idf/components/esp_ringbuf /opt/esp/idf/components/esp_rom /opt/esp/idf/components/esp_security /opt/esp/idf/components/esp_system /opt/esp/idf/components/esp_timer /opt/esp/idf/components/esp_vfs_console /opt/esp/idf/components/esptool_py /opt/esp/idf/components/freertos /opt/esp/idf/components/hal /opt/esp/idf/components/heap /opt/esp/idf/components/log /project/device/standin/main /opt/esp/idf/components/mbedtls /opt/esp/idf/components/newlib /opt/esp/idf/components/partition_table /opt/esp/idf/components/pthread /opt/esp/idf/components/sdmmc /opt/esp/idf/components/soc /opt/esp/idf/components/spi_flash /opt/esp/idf/components/vfs /opt/esp/idf/components/xtensa
+-- Configuring done (3.2s)
+-- Generating done (0.2s)
+-- Build files have been written to: /project/device/standin/build
+[0/2] Re-checking globbed directories...
+[1/78] cd /project/device/standin/build/esp-idf/main && /opt/esp/tools/cmake/3.30.2/bin/cmake -DREPO=/project -DOUT=/project/device/standin/build/esp-idf/main/ab_commit.h -P /project/scripts/gen_commit.cmake
+[2/78] Performing build step for 'bootloader'
+[1/1] cd /project/device/standin/build/bootloader/esp-idf/esptool_py && /opt/esp/python_env/idf5.4_py3.12_env/bin/python /opt/esp/idf/components/partition_table/check_sizes.py --offset 0x8000 bootloader 0x0 /project/device/standin/build/bootloader/bootloader.bin
+Bootloader binary size 0x5760 bytes. 0x28a0 bytes (32%) free.
+[3/78] No install step for 'bootloader'
+[4/78] Completed 'bootloader'
+[5/78] Building C object esp-idf/esp_app_format/CMakeFiles/__idf_esp_app_format.dir/esp_app_desc.c.obj
+[6/78] Linking C static library esp-idf/esp_app_format/libesp_app_format.a
+[7/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/firmware/font5x7.c.obj
+[8/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/fake_input.c.obj
+[9/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/core/arena.c.obj
+[10/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/firmware/help_text.c.obj
+[11/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/core/const.c.obj
+[12/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/firmware/keymap.c.obj
+[13/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/firmware/apps.c.obj
+[14/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/input_jump.c.obj
+[15/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/chacha20.c.obj
+[16/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/core/base.c.obj
+[17/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/core/lin.c.obj
+[18/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/firmware/settings.c.obj
+[19/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/core/stat.c.obj
+[20/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/core/xnum.c.obj
+[21/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/core/msg.c.obj
+[22/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/firmware/store.c.obj
+[23/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/core/list.c.obj
+[24/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/core/frac.c.obj
+[25/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/firmware/help.c.obj
+[26/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/input_steer.c.obj
+[27/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/row.c.obj
+[28/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/maths.c.obj
+[29/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/vec3.c.obj
+[30/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/slab.c.obj
+[31/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/player_event.c.obj
+[32/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/row_generator.c.obj
+[33/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/level.c.obj
+[34/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/time_tracker.c.obj
+[35/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/timeval.c.obj
+[36/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/core/cplx.c.obj
+[37/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/firmware/standin.c.obj
+[38/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/skill.c.obj
+[39/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/points_counter.c.obj
+[40/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/core/bigint.c.obj
+[41/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/core/fmt.c.obj
+[42/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/snake/games/snake/snake_logic.c.obj
+[43/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/core/abn_intel.c.obj
+[44/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/snake/games/snake/snake_app.c.obj
+[45/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/aim/games/aim/aim_app.c.obj
+[46/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/app/render.c.obj
+[47/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/salvo/games/salvo/salvo_app.c.obj
+[48/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/land/games/land/land_app.c.obj
+[49/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/core/sbig.c.obj
+[50/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/app/babal_app.c.obj
+[51/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/land/games/land/land_logic.c.obj
+[52/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/catch/games/catch/catch_logic.c.obj
+[53/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/player.c.obj
+[54/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/moles/games/moles/moles_logic.c.obj
+[55/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/salvo/games/salvo/salvo_logic.c.obj
+[56/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/core/rows.c.obj
+[57/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/aim/games/aim/aim_logic.c.obj
+[58/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/core/hp.c.obj
+[59/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/mines/games/mines/mines_app.c.obj
+[60/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/mines/games/mines/mines_logic.c.obj
+[61/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/core/eqn.c.obj
+[62/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/catch/games/catch/catch_app.c.obj
+[63/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/moles/games/moles/moles_app.c.obj
+[64/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/rocks/games/3720/rocks_logic.c.obj
+[65/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/rocks/games/3720/rocks_app.c.obj
+[66/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/firmware/tbook.c.obj
+[67/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/core/fn.c.obj
+[68/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/firmware/app.c.obj
+[69/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/standin_main.c.obj
+[70/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/firmware/screen.c.obj
+[71/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/core/state.c.obj
+[72/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/core/calc.c.obj
+[73/78] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/casim/casim.c.obj
+[74/78] Linking C static library esp-idf/main/libmain.a
+[75/78] Generating ld/sections.ld
+[76/78] Linking CXX executable abacus_standin.elf
+[77/78] Generating binary image from built executable
+esptool.py v4.9.0
+Creating esp32s3 image...
+Merged 2 ELF sections
+Successfully created esp32s3 image.
+Generated /project/device/standin/build/abacus_standin.bin
+[78/78] cd /project/device/standin/build/esp-idf/esptool_py && /opt/esp/python_env/idf5.4_py3.12_env/bin/python /opt/esp/idf/components/partition_table/check_sizes.py --offset 0x8000 partition --type app /project/device/standin/build/partition_table/partition-table.bin /project/device/standin/build/abacus_standin.bin
+abacus_standin.bin binary size 0x248480 bytes. Smallest app partition is 0x500000 bytes. 0x2b7b80 bytes (54%) free.
+
+Project build complete. To flash, run:
+ idf.py flash
+or
+ idf.py -p PORT flash
+or
+ python -m esptool --chip esp32s3 -b 460800 --before default_reset --after hard_reset write_flash --flash_mode dio --flash_size 8MB --flash_freq 80m 0x0 build/bootloader/bootloader.bin 0x8000 build/partition_table/partition-table.bin 0x10000 build/abacus_standin.bin
+or from the "/project/device/standin/build" directory
+ python -m esptool --chip esp32s3 -b 460800 --before default_reset --after hard_reset write_flash "@flash_args"
+Executing action: flash
+Running ninja in directory /project/device/standin/build
+Executing "ninja flash"...
+[0/2] Re-checking globbed directories...
+[1/12] cd /project/device/standin/build/esp-idf/main && /opt/esp/tools/cmake/3.30.2/bin/cmake -DREPO=/project -DOUT=/project/device/standin/build/esp-idf/main/ab_commit.h -P /project/scripts/gen_commit.cmake
+[2/6] cd /project/device/standin/build/esp-idf/esptool_py && /opt/esp/python_env/idf5.4_py3.12_env/bin/python /opt/esp/idf/components/partition_table/check_sizes.py --offset 0x8000 partition --type app /project/device/standin/build/partition_table/partition-table.bin /project/device/standin/build/abacus_standin.bin
+abacus_standin.bin binary size 0x248480 bytes. Smallest app partition is 0x500000 bytes. 0x2b7b80 bytes (54%) free.
+[3/6] Performing build step for 'bootloader'
+[1/1] cd /project/device/standin/build/bootloader/esp-idf/esptool_py && /opt/esp/python_env/idf5.4_py3.12_env/bin/python /opt/esp/idf/components/partition_table/check_sizes.py --offset 0x8000 bootloader 0x0 /project/device/standin/build/bootloader/bootloader.bin
+Bootloader binary size 0x5760 bytes. 0x28a0 bytes (32%) free.
+[4/6] No install step for 'bootloader'
+[5/6] Completed 'bootloader'
+[5/6] cd /opt/esp/idf/components/esptool_py && /opt/esp/tools/cmake/3.30.2/bin/cmake -D IDF_PATH=/opt/esp/idf -D "SERIAL_TOOL=/opt/esp/python_env/idf5.4_py3.12_env/bin/python;;/opt/esp/idf/components/esptool_py/esptool/esptool.py;--chip;esp32s3" -D "SERIAL_TOOL_ARGS=--before=default_reset;--after=hard_reset;write_flash;@flash_args" -D WORKING_DIRECTORY=/project/device/standin/build -P /opt/esp/idf/components/esptool_py/run_serial_tool.cmake
+esptool.py --chip esp32s3 -p /dev/ttyACM1 -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 80m --flash_size 8MB 0x0 bootloader/bootloader.bin 0x10000 abacus_standin.bin 0x8000 partition_table/partition-table.bin
+esptool.py v4.9.0
+Serial port /dev/ttyACM1
+Connecting....
+Chip is ESP32-S3 (QFN56) (revision v0.1)
+Features: WiFi, BLE, Embedded PSRAM 8MB (AP_3v3)
+Crystal is 40MHz
+MAC: 34:85:18:76:ce:8c
+Uploading stub...
+Running stub...
+Stub running...
+Changing baud rate to 460800
+Changed.
+Configuring flash size...
+Flash will be erased from 0x00000000 to 0x00005fff...
+Flash will be erased from 0x00010000 to 0x00258fff...
+Flash will be erased from 0x00008000 to 0x00008fff...
+SHA digest in image updated
+Compressed 22368 bytes to 14198...
+Writing at 0x00000000... (100 %)
+Wrote 22368 bytes (14198 compressed) at 0x00000000 in 0.6 seconds (effective 291.8 kbit/s)...
+Hash of data verified.
+Compressed 2393216 bytes to 1962319...
+Writing at 0x00010000... (0 %)
+Writing at 0x00019ec3... (1 %)
+Writing at 0x00024ecc... (2 %)
+Writing at 0x0002e62b... (3 %)
+Writing at 0x00032791... (4 %)
+Writing at 0x0003678c... (5 %)
+Writing at 0x0003a787... (5 %)
+Writing at 0x0003e782... (6 %)
+Writing at 0x0004277d... (7 %)
+Writing at 0x00046778... (8 %)
+Writing at 0x0004a773... (9 %)
+Writing at 0x0004e76e... (10 %)
+Writing at 0x00052769... (10 %)
+Writing at 0x00056764... (11 %)
+Writing at 0x0005a75f... (12 %)
+Writing at 0x0005e75a... (13 %)
+Writing at 0x00062755... (14 %)
+Writing at 0x00066750... (15 %)
+Writing at 0x0006a74b... (15 %)
+Writing at 0x0006e746... (16 %)
+Writing at 0x00072741... (17 %)
+Writing at 0x000766ca... (18 %)
+Writing at 0x0007c0fd... (19 %)
+Writing at 0x000800ea... (20 %)
+Writing at 0x000840e5... (20 %)
+Writing at 0x000880e0... (21 %)
+Writing at 0x0008c0db... (22 %)
+Writing at 0x000900d6... (23 %)
+Writing at 0x000940d1... (24 %)
+Writing at 0x000980cc... (25 %)
+Writing at 0x0009c0c7... (25 %)
+Writing at 0x000a00c2... (26 %)
+Writing at 0x000a4694... (27 %)
+Writing at 0x000a868d... (28 %)
+Writing at 0x000ac688... (29 %)
+Writing at 0x000b0683... (30 %)
+Writing at 0x000b467e... (30 %)
+Writing at 0x000b8679... (31 %)
+Writing at 0x000bc674... (32 %)
+Writing at 0x000c066f... (33 %)
+Writing at 0x000c466a... (34 %)
+Writing at 0x000c8665... (35 %)
+Writing at 0x000cc660... (35 %)
+Writing at 0x000d065b... (36 %)
+Writing at 0x000d4656... (37 %)
+Writing at 0x000d8651... (38 %)
+Writing at 0x000dc64c... (39 %)
+Writing at 0x000e0647... (40 %)
+Writing at 0x000e4642... (40 %)
+Writing at 0x000e863d... (41 %)
+Writing at 0x000ec638... (42 %)
+Writing at 0x000f0633... (43 %)
+Writing at 0x000f4c05... (44 %)
+Writing at 0x000f8bfc... (45 %)
+Writing at 0x000fcbf7... (45 %)
+Writing at 0x00100bf2... (46 %)
+Writing at 0x00104bed... (47 %)
+Writing at 0x00108be8... (48 %)
+Writing at 0x0010cbe3... (49 %)
+Writing at 0x00110bde... (50 %)
+Writing at 0x00114bd9... (50 %)
+Writing at 0x0011afac... (51 %)
+Writing at 0x00122c7d... (52 %)
+Writing at 0x00126e9e... (53 %)
+Writing at 0x0012b0d7... (54 %)
+Writing at 0x0012f2fb... (55 %)
+Writing at 0x00133564... (55 %)
+Writing at 0x0013787c... (56 %)
+Writing at 0x0013ba9c... (57 %)
+Writing at 0x0013fcbb... (58 %)
+Writing at 0x00143ee2... (59 %)
+Writing at 0x00148ee6... (60 %)
+Writing at 0x0014fb2e... (60 %)
+Writing at 0x0015587b... (61 %)
+Writing at 0x0015b87f... (62 %)
+Writing at 0x00160bb6... (63 %)
+Writing at 0x001661a0... (64 %)
+Writing at 0x0016b6a2... (65 %)
+Writing at 0x00170d99... (65 %)
+Writing at 0x00176385... (66 %)
+Writing at 0x0017b8dd... (67 %)
+Writing at 0x00180b71... (68 %)
+Writing at 0x00185ecd... (69 %)
+Writing at 0x0018b434... (70 %)
+Writing at 0x001909fc... (70 %)
+Writing at 0x00195deb... (71 %)
+Writing at 0x0019af1d... (72 %)
+Writing at 0x0019fdf5... (73 %)
+Writing at 0x001a5136... (74 %)
+Writing at 0x001aa5a2... (75 %)
+Writing at 0x001af673... (75 %)
+Writing at 0x001b47cc... (76 %)
+Writing at 0x001b9a11... (77 %)
+Writing at 0x001bea46... (78 %)
+Writing at 0x001c3d1b... (79 %)
+Writing at 0x001c8fa0... (80 %)
+Writing at 0x001cdee4... (80 %)
+Writing at 0x001d3175... (81 %)
+Writing at 0x001d832a... (82 %)
+Writing at 0x001dd6c8... (83 %)
+Writing at 0x001e2b4b... (84 %)
+Writing at 0x001e7b1e... (85 %)
+Writing at 0x001ed33a... (85 %)
+Writing at 0x001f2a88... (86 %)
+Writing at 0x001f80fb... (87 %)
+Writing at 0x001fe23d... (88 %)
+Writing at 0x00203944... (89 %)
+Writing at 0x002087a7... (90 %)
+Writing at 0x0020dd33... (90 %)
+Writing at 0x00213059... (91 %)
+Writing at 0x00217ddd... (92 %)
+Writing at 0x0021cb28... (93 %)
+Writing at 0x00221bbd... (94 %)
+Writing at 0x00226f00... (95 %)
+Writing at 0x00230e7e... (95 %)
+Writing at 0x00237c1e... (96 %)
+Writing at 0x0023d151... (97 %)
+Writing at 0x00245ab5... (98 %)
+Writing at 0x0024db88... (99 %)
+Writing at 0x00253850... (100 %)
+Wrote 2393216 bytes (1962319 compressed) at 0x00010000 in 43.4 seconds (effective 441.3 kbit/s)...
+Hash of data verified.
+Compressed 3072 bytes to 137...
+Writing at 0x00008000... (100 %)
+Wrote 3072 bytes (137 compressed) at 0x00008000 in 0.0 seconds (effective 540.0 kbit/s)...
+Hash of data verified.
+
+Leaving...
+Hard resetting via RTS pin...
+Done
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x1 (POWERON),boot:0x8 (SPI_FAST_FLASH_BOOT)
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x16d0
+load:0x403c8700,len:0x4
+load:0x403c8704,len:0xec8
+load:0x403cb700,len:0x3160
+entry 0x403c8950
+I (27) boot: ESP-IDF v5.4.2 2nd stage bootloader
+I (27) boot: compile time Oct 14 2026 14:41:40
+I (27) boot: Multicore bootloader
+I (27) boot: chip revision: v0.1
+I (30) boot: efuse block revision: v1.2
+I (33) qio_mode: Enabling default flash chip QIO
+I (38) boot.esp32s3: Boot SPI Speed : 80MHz
+I (42) boot.esp32s3: SPI Mode       : QIO
+I (45) boot.esp32s3: SPI Flash Size : 8MB
+I (49) boot: Enabling RNG early entropy source...
+I (54) boot: Partition Table:
+I (56) boot: ## Label            Usage          Type ST Offset   Length
+I (63) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (69) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (76) boot:  2 factory          factory app      00 00 00010000 00500000
+I (82) boot:  3 abstate          Unknown data     01 40 00510000 00080000
+I (89) boot:  4 abapps           Unknown data     01 41 00590000 00012000
+I (95) boot: End of partition table
+I (98) esp_image: segment 0: paddr=00010020 vaddr=3c100020 size=13ea08h (1305096) map
+I (300) esp_image: segment 1: paddr=0014ea30 vaddr=3fc92700 size=015e8h (  5608) load
+I (301) esp_image: segment 2: paddr=00150020 vaddr=42000020 size=f0298h (983704) map
+I (449) esp_image: segment 3: paddr=002402c0 vaddr=3fc93ce8 size=09aa8h ( 39592) load
+I (457) esp_image: segment 4: paddr=00249d70 vaddr=40374000 size=0e6c4h ( 59076) load
+I (468) esp_image: segment 5: paddr=0025843c vaddr=600fe000 size=0001ch (    28) load
+I (476) boot: Loaded app from partition at offset 0x10000
+I (476) boot: Disabling RNG early entropy source...
+I (486) octal_psram: vendor id    : 0x0d (AP)
+I (486) octal_psram: dev id       : 0x02 (generation 3)
+I (486) octal_psram: density      : 0x03 (64 Mbit)
+I (488) octal_psram: good-die     : 0x01 (Pass)
+I (493) octal_psram: Latency      : 0x01 (Fixed)
+I (497) octal_psram: VCC          : 0x01 (3V)
+I (501) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (506) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (511) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (515) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (521) octal_psram: DriveStrength: 0x00 (1/1)
+I (526) MSPI Timing: PSRAM timing tuning index: 4
+I (529) esp_psram: Found 8MB PSRAM device
+I (533) esp_psram: Speed: 80MHz
+I (536) cpu_start: Multicore app
+I (945) esp_psram: SPI SRAM memory test OK
+I (956) cpu_start: Pro cpu start user code
+I (956) cpu_start: cpu freq: 240000000 Hz
+I (957) app_init: Application information:
+I (957) app_init: Project name:     abacus_standin
+I (961) app_init: App version:      ccffbbc
+I (965) app_init: Compile time:     Nov  9 2026 06:35:53
+I (970) app_init: ELF file SHA256:  5b2080886...
+I (974) app_init: ESP-IDF:          v5.4.2
+talk.py: port lost (device reports readiness to read but returned no data (device disconnected or multiple access on port?)); opening /dev/ttyACM1 again
+talk.py: FAIL line 8: wait ': heap internal'
+talk.py: send 'WIPE' failed (write failed: [Errno 5] Input/output error)
+talk.py: FAIL line 11: expect 'wipe: both slots erased'
+talk.py: send 'RESTART' failed (write failed: [Errno 5] Input/output error)
+talk.py: FAIL line 13: expect 'load: no image: MEMORY CLEAR'
+talk.py: FAIL line 14: expect 'ver=0.97'
+talk.py: FAIL line 15: wait 'READY'
+talk.py: send 'K42' failed (write failed: [Errno 5] Input/output error)
+talk.py: send 'K42' failed (write failed: [Errno 5] Input/output error)
+talk.py: send 'K36' failed (write failed: [Errno 5] Input/output error)
+talk.py: send 'K18' failed (write failed: [Errno 5] Input/output error)
+talk.py: send 'K2' failed (write failed: [Errno 5] Input/output error)
+talk.py: send 'K38' failed (write failed: [Errno 5] Input/output error)
+talk.py: send 'K6' failed (write failed: [Errno 5] Input/output error)
+talk.py: send 'FRAMECRC' failed (write failed: [Errno 5] Input/output error)
+talk.py: FAIL line 33: expect 'framecrc: rows 21-205 E25B3087'
+talk.py: send 'K31' failed (write failed: [Errno 5] Input/output error)
+talk.py: send 'K6' failed (write failed: [Errno 5] Input/output error)
+talk.py: send 'FRAMECRC' failed (write failed: [Errno 5] Input/output error)
+talk.py: FAIL line 40: expect 'framecrc: rows 21-205 241167AD'
+talk.py: send 'SAVE' failed (write failed: [Errno 5] Input/output error)
+talk.py: FAIL line 42: expect 'bytes, ok,'
+talk.py: send 'RESTART' failed (write failed: [Errno 5] Input/output error)
+talk.py: PASS line 44: expect 'load:'
+talk.py: FAIL line 45: wait 'READY'
+talk.py: send 'FRAMECRC' failed (write failed: [Errno 5] Input/output error)
+talk.py: FAIL line 47: expect 'framecrc: rows 21-205 241167AD'
+talk.py: send 'K37' failed (write failed: [Errno 5] Input/output error)
+talk.py: send 'K18' failed (write failed: [Errno 5] Input/output error)
+talk.py: send 'K26' failed (write failed: [Errno 5] Input/output error)
+talk.py: send 'K28' failed (write failed: [Errno 5] Input/output error)
+talk.py: send 'FRAMECRC' failed (write failed: [Errno 5] Input/output error)
+talk.py: FAIL line 58: expect 'framecrc: rows 21-205 403D7A07'
+talk.py: send 'X' failed (write failed: [Errno 5] Input/output error)
+talk.py: FAIL line 60: expect-min stack-free 8188 (got None)
+talk.py: FAIL line 62: expect 'framecrc: rows 21-205 00000000'
+talk.py: 13 NOT MET

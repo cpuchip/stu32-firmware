@@ -1,0 +1,62 @@
+# Unit 096 on the stand-in (work/mark-exact-rounded.md, look A): the mark on STU's home. From MEMORY CLEAR: STU, then
+# 2 √x: X 1.4142 with ≈ before it (the value rounded); then 4 √x: X 2 with no mark, √2 above it on the page. SAVE and
+# RESTART: the device's save keeps the bits (T_ROUNDED, version 25), so the frame is the same. Then 1 ENTER 8 ÷ at FIX 4
+# (0.1250, no mark: an exact value shown whole).
+# Each frame's CRC is the host's (standin_replay). Then the calc task's stack low-water mark, no lower than the deep
+# paths' (8,188 B free). Ends with a control that must FAIL.
+# replay: current
+wait : heap internal 30
+sleep 3
+send WIPE
+expect wipe: both slots erased
+send RESTART
+expect load: no image: MEMORY CLEAR 30
+expect ver=0.97 30
+wait READY 30
+# STU
+send K42
+sleep 0.25
+send K42
+sleep 0.25
+send K36
+sleep 0.25
+send K18
+sleep 0.25
+send K2
+sleep 0.25
+# 2 √x: ≈1.4142
+send K38
+sleep 0.25
+send K6
+sleep 0.25
+send FRAMECRC
+expect framecrc: rows 21-205 E25B3087 10
+# 4 √x: 2, no mark
+send K31
+sleep 0.25
+send K6
+sleep 0.25
+send FRAMECRC
+expect framecrc: rows 21-205 241167AD 10
+send SAVE
+expect bytes, ok, 10
+send RESTART
+expect load: 30
+wait READY 30
+send FRAMECRC
+expect framecrc: rows 21-205 241167AD 10
+# 1 ENTER 8 ÷ at FIX 4: 0.1250, no mark
+send K37
+sleep 0.25
+send K18
+sleep 0.25
+send K26
+sleep 0.25
+send K28
+sleep 0.25
+send FRAMECRC
+expect framecrc: rows 21-205 403D7A07 10
+send X
+expect-min stack-free 8188 10
+# CONTROL: must FAIL
+expect framecrc: rows 21-205 00000000 3
