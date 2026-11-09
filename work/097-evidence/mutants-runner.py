@@ -19,7 +19,7 @@ M = {
          "            if (!hp_from_abn(&step, &x)) return ABN_RANGE;\n            if (centre) {\n                hp_set_int(&k, 2);")],
  'J4': [('core/fn.c', "    if (abn_cmp(p, &zero) <= 0 || abn_cmp(p, &onev) >= 0) return ABN_DOMAIN;", "    (void)zero;")],
  'J5': [('core/calc.c', "    if (op >= AB_ERF && op <= AB_NCDFINV && !c->stu) return ABN_STU_ONLY;", "")],
- 'J6': [('core/calc.c', "    const char *nd = nd_name_in(text);", "    const char *nd = NULL;")],
+ 'J6': [('core/calc.c', "    const char *nd = nd_name_in(text);", "    const char *nd = nd_name_in(\"\");")],     # (run 1: NULL left nd_name_in unused: -Werror)
  'J7': [('core/state.c', "        if (op_code((ab_op)op) >= V1_N_096 && w.ver < 26) w.ver = 26;   /* (097: a code an older build lacks) */", "")],
  'J8': [('core/state.c', "        if (code >= V1_N_096 && w.ver < 26) w.ver = 26;                  /* (097) */", "")],
  'J9': [('core/fn.c', "    if (!hp_from_abn(E, &u0) || !hp_add(A, D, E, true, ND_P)) return ABN_RANGE;   /* A = r = u - u0 */",

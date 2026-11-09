@@ -1,0 +1,12 @@
+J0 SURVIVED 
+J1 RED: 097:L01,L06 ## 097 save/load:L01,L06 ## fn_table 79 past the bar (first 40 by name: {'NCDFC': 40})
+J2 RED: 097:A05,E02,F01,I02,I03,I08,L02,L03,L04,L05,P01,P02,T01,T03,T06 ## 097 save/load:A05,E02,F01,I02,I03,I08,L02,L03,L04,L05,P01,P02,T01,T03,T06 ## fn_table 262 past the bar (first 40 by name: {'NCDF': 40}) ## app_test 1: app_test: 097: 1.96 then NORM's Φ: 0.97500210485 in X ## screen_test frames 67; checks: screen_test: 097: Φ(1.96) at FIX 4 under NORM's bar ## replay 4: standin_replay: device/standin/norm097.txt:44: FAIL: framecrc 69A4A992, the replay gives 9CD5C406 || standin_replay: device/standin/norm097.txt:55: FAIL: framecrc 92E301E0, the replay gives DAB99A93 || standin_replay: device/standin/norm097.txt: current, 0 of 2 frames match, 1 control: FAILED
+J3 SURVIVED 
+J4 SURVIVED 
+J5 RED: 097:M01,M02,M03 ## 097 save/load:M01,M02,M03
+J6 RED: BUILD FAILED (build/vectors,build/app_test,build/screen_test,build/standin_replay): cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CASIM -Ibuild/casim -Icore -o build/fn_drive core/fn.c core/hp.c core/bigint.c core/arena.c core/sbig.c core/xnum.c tests/fn_drive.c build/abn_intel.o build/casim.o build/intel/libbid.a -lm|cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -DAB_CA
+J7 RED: 097:P02 ## 097 save/load:P01,P02 ## screen_test frames ; checks: screen_test: op 245 arg 0: the line 'ERF' recorded, its image refused || screen_test: op 246 arg 0: the line 'ERFC' recorded, its image refused || screen_test: op 247 arg 0: the line 'Φ' recorded, its image refused
+J8 SURVIVED 
+J9 RED: 097:L01,L02,L05,L06 ## 097 save/load:L01,L02,L05,L06 ## fn_table 125 past the bar (first 40 by name: {'NCDF': 20, 'NCDFC': 20})
+J10 SURVIVED 
+restored: core/calc.c, core/fn.c, core/state.c as the originals given (SCRATCH/orig097)

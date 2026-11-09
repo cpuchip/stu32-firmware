@@ -1,0 +1,58 @@
+Preparing worktree (detached HEAD 1ca9364)
+HEAD is now at 1ca9364 Unit 096 built: the exact-or-rounded mark (work/096-mark-built.md). Census 0 false exact over 7,203 cases; mutants 12 of 15 exactly as predicted (run 2: R5 K08b only); the stand-in's frames the host's (≈1.4142, kept through SAVE and RESTART); D68 flash +5,728 / +5,808, RAM +0; VER 0.97
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+casim 175c160a1b3c778ab67f049fe14baac81d1e23e2
+Preparing worktree (detached HEAD e7d3d3b)
+HEAD is now at e7d3d3b Unit 097 src: erf, erfc and the normal distribution, STU's only (work/normal-distribution.md rev 1; abacus #14270, #14272, #14274, #14276, #14277; tutor #14275), VER 0.98
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+casim 175c160a1b3c778ab67f049fe14baac81d1e23e2
+
+### standin: 1ca9364 -> e7d3d3b
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,393,216 | 2,401,328 | +8,112 |
+| internal RAM static (DIRAM, of 341,760) | 207,731 | 209,835 | +2,104 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 59,074 | 59,074 | +0 |
+| calc_task's frame (under every deep path's stack), B | 144 | 144 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 834,669 -> 840,218 (+5,549)
+- libbid.a: 1,436,138 -> 1,440,315 (+4,177)
+- libesp_app_format.a: 76,202 -> 76,654 (+452)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 160,677 -> 162,777 (+2,100)
+- d: 840 -> 1140
+- hx: 1500 -> 1800
+- k: 600 -> 900
+- res: 0 -> 300
+- sp: 0 -> 300
+- step: 0 -> 300
+- two: 1200 -> 1500
+
+### reva: 1ca9364 -> e7d3d3b
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,320,128 | 2,328,000 | +7,872 |
+| internal RAM static (DIRAM, of 341,760) | 215,374 | 217,478 | +2,104 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 78,086 | 78,086 | +0 |
+| calc_task's frame (under every deep path's stack), B | 128 | 128 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 774,965 -> 780,270 (+5,305)
+- libbid.a: 1,389,048 -> 1,393,253 (+4,205)
+- libesp_app_format.a: 74,298 -> 74,750 (+452)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 133,339 -> 135,439 (+2,100)
+- d: 600 -> 900
+- hx: 1500 -> 1800
+- k: 600 -> 900
+- res: 0 -> 300
+- sp: 0 -> 300
+- step: 0 -> 300
+- two: 1200 -> 1500
+rc=0
+# docker stats every 2 s, soroban-* containers: peak 579.6 MiB, 31 samples
