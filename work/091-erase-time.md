@@ -108,7 +108,7 @@ after its own years of saves. Its cycle count isn't known either.
 ## (b) The store's erases per year of each slot's first sector
 
 From the code: every key the core handles marks the state dirty (app.c:252); a quiet save follows once 30 s pass with
-no key and no run (APP_QUIET_MS, app.c:1439); OFF always saves before it sleeps (reva_main.c:977-978), and the
+no key and no run (APP_QUIET_MS, app.c:1439); OFF always saves before it sleeps (reva_main.c:983-984), and the
 10-minute idle off takes the same path. Every save erases its slot's first sector (store.c: the sectors from the slot's
 start that the image needs), and saves alternate between the two slots, so each slot's first sector is erased on every
 second save.
