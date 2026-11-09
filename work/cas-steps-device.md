@@ -129,3 +129,32 @@ first run's output is kept, named so).
 2. The key: CAS3's fifth key and the report's fourth (▲ ▼ EVAL STEPS).
 3. Opening on the last page (the answer) or the first (the working from the top).
 4. The 47.8 KB: acceptable, given the room measured above.
+
+## Revision 1: abacus #14234 (unit 095)
+
+Accepted: the 47.8 KB, the arena, the last answer only and in RAM (1), the keys (2), one line and 048's busy and C (4).
+Changed (3): **the view opens on STEP 1**, top-down as the lessons and the books read, "STEP 1 OF n" giving the length.
+
+- **The 47.8 KB isn't Casimir growing.** casim's own size measure (its scripts/size-s3.sh) compiles the objects that
+  already hold the steps code. Only the firmware's link has dropped it, because no key reached `casim_step`.
+- **The census stays as a test:** tests/steps_test.c pages every case of tests/steps-corpus.txt (this blueprint's
+  corpus) in `AB_CAS_ARENA`. It fails on a NO_ROOM, and prints the largest arena any case needed, so a later op that
+  pages deeper shows up.
+- **When the kept request clears** (1, "say which"):
+  - when a new CAS op runs (it replaces it; a refused op leaves none);
+  - MEMORY CLEAR, CLEAR ALL, and an image's load (the request isn't in the image);
+  - **for SOLVE**, when its report closes, by any key that closes it (C, ENTER's copy, EVAL's value, another key). The
+    report is the only place its answer is on screen, and closing it is leaving it. STEPS is on the report's bar, so
+    SOLVE's steps are asked for there.
+  - **for D/DX and ∫DX**, when the answer's entry is no longer in the list as it was inserted (edited, deleted, or the
+    list cleared). The request keeps the answer's text and the entry it was inserted as. STEPS acts when that entry is
+    the one shown. Scrolling away and coming back to it keeps its steps; elsewhere STEPS does nothing.
+  - On the stack (088's SOLVE in X), the report's bar is the way in, as above.
+- **Tokens and dumps** (for h095):
+  - CASSTEPS: the key (op AB_CASSTEPS, nonprogrammable). In the view, SST and BST page ▼ and ▲, wrapping; C leaves.
+  - `%STEPREQ=` the kept request as op and letter (`D:X`, `I:X`, `S:R`), or `-`.
+  - `%STEPN=n`: the view's step count, `-` when it isn't open.
+  - `%STEPK=k`: the page shown, from 1.
+  - `%STEP=` the page's text, blanks as `_`.
+  - `%STEPRULE=` its rule's name (casim_rule_name), `_` for none.
+  - `%STEPDEPTH=d`.
