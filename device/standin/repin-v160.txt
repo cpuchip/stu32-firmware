@@ -69,8 +69,8 @@ send X
 expect row=R=V÷I 10
 send FRAMECRC
 expect framecrc: rows 21-205 80608263 10
-# ENTER on R=V÷I at I=0: CONDITION FAILS, nothing placed, the cursor on I≠0 (the view stays); C leaves the message
-send K18
+# EVAL (soft key 3; ENTER before unit 094, which made ENTER a copy) on R=V÷I at I=0: CONDITION FAILS, nothing placed, the cursor on I≠0 (the view stays); C leaves the message
+send K2
 sleep 0.25
 send X
 expect msg=CONDITION FAILS 10
