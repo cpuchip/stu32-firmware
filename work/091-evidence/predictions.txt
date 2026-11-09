@@ -1,0 +1,21 @@
+Unit 091, Rev A's erase time (abacus #14107, #14108, #14109): predictions written before each run. The measure is SAVEBENCH's no-page
+state (one 4 KB sector a save), its erase's min / median / max over 20 saves, on Rev A's main head-less on the stand-in's
+S3 (the chip that erases a sector in 21-23 ms under the stand-in's image). Each run is a throwaway build differing from
+ca1d330 in one thing; sdkconfig.defaults is restored after each and nothing is committed. "Moves" means the median falls
+below 60 ms.
+
+C0  control: ca1d330 unchanged, rerun first in this session.
+    Predicted: 120-230 ms (two earlier runs: medians 198, 178; ranges 137-220, 121-221).
+C1  CONFIG_PM_ENABLE and CONFIG_FREERTOS_USE_TICKLESS_IDLE off (compiled out; never configured in head-less).
+    Predicted: doesn't move. The PM lock held at run time changed nothing (#14106), and nothing configures PM here.
+C2  CONFIG_ULP_COPROC_ENABLED off (and the ULP's build step with it, if it can be left out cleanly).
+    Predicted: doesn't move. The ULP is never loaded or started in head-less.
+C3  FreeRTOS functions placed in flash (CONFIG_FREERTOS_PLACE_FUNCTIONS_INTO_FLASH=y, as the stand-in).
+    Predicted: doesn't move, or slower: code in flash can only cost during a flash operation.
+C4  lcd_init's SPI2 bus not initialized in head-less.
+    Predicted: doesn't move. The bus is idle during the bench (no frame is sent while the calc task runs it).
+C5  the console task's 10 ms read() poll stopped while SAVEBENCH runs.
+    Predicted: doesn't move. It runs on core 0 every 10 ms, briefly.
+
+I predict every candidate "doesn't move", which says I don't have a mechanism yet; the runs are a census, and the first
+that moves gets its own control (restored, the time comes back).
