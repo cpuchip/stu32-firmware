@@ -165,3 +165,30 @@ abacus's card.
 - **The table (6):** made by a script (scripts/gen_mark_table.py) with mpmath pinned at 1.3.0, abacus's version. The
   seat's venv here has 1.4.1, so the build makes a 1.3.0 venv for it. The table's header carries its own sha256, and
   tests/mark_test fails when the body's hash doesn't match.
+
+## The grammar for the set (abacus #14270)
+
+No new op, so no new vector token: the mark is the core's bit and the screen's drawing. The existing tokens set
+everything the cases need: FIX, SCI, ENG and ALL with their digits, ROWINFO for INFO (093), the stack's and the
+functions' keys.
+
+- **The value's bit, kept apart from the drawing:**
+  - `%ROUNDED-L=` R or E for L one of X, Y, Z, T: the bit of the value that level holds (R rounded, E exact). A
+    complex value is R when either part is.
+  - `%ROWROUNDED-k=` R or E: the bit of the value the k-th newest row holds (k as %ROW-k, from 1).
+- **The mark drawn (host only, from screen_lines, as 093's %XLINE):** `%XMARK=` the glyph X's line draws before the
+  number, `_` when it draws none. It's ≈ under the look that's decided, whatever that look is: the dump gives the
+  glyph, so a later look changes expectations, not the grammar.
+  - It combines the bit with the display's rounding (revision 1): `≈` when the value is R, or the display drops a
+    nonzero digit of an exact value.
+  - SHOW's full digits drop nothing.
+- **INFO** (ROWINFO on the selected row, 093's text): after the existing text, when either applies, `, ROUNDED` (the
+  value) then `, SHOWN TO n PLACES` (FIX n) or `, SHOWN TO n DIGITS` (SCI or ENG n: n + 1 significant digits).
+  Nothing is added when the value is exact and fully shown. %XLINE reads it, blanks as `_`.
+  - `+ OF 1.0000, 0.3333, ROUNDED`: 1 + 1/3, rounded, an exact view impossible.
+  - `÷ OF 1.0000, 8.0000, SHOWN TO 2 PLACES`: 1/8 at FIX 2 shows 0.13.
+- **The image:** `%ROUNDED-X` after SAVE and LOAD (vectors' save/load pass) shows the tag kept. The older-build proof is
+  a fixture loaded by the build before (090's way), in make test.
+- **The census:** tests/mark_test over the checked-in table (scripts/gen_mark_table.py, mpmath 1.3.0, the table's own
+  hash), each case `op mode x [y]`, and its verdict R or E. It fails on any false exact, and on false rounded above a
+  stated bound per op.
