@@ -1,0 +1,47 @@
+Unit 096's planted faults, each predicted before any was run (src 358da4f). The
+runner (mutants-runner.py, 095's with this unit's faults) applies one fault, deletes and rebuilds vectors, mark_drive,
+expr_test, screen_test and standin_replay, then runs tests/096-soroban.txt, the census (tests/mark_table.py over
+tests/mark-table.txt), expr_test, screen_test against tests/frames and the stand-in scripts' replay, and names what went
+red. "only" means nothing else goes red. R0 is the control (no fault). Census counts are false exacts (its hard fail).
+The counts below were read from the census's own output at the src (which cases reach each path), not from a run of
+any fault.
+
+R1  the library's flag not carried (accept()'s INEXACT line removed).
+    Predicted red: the census, false exact in the thousands (every rounded case whose only signal is the flag; the hp
+    and xnum paths round through accept too); 096 at least K02, K04, K08, K08b, K18, A02, Q02, D03, D06 (and more:
+    any rounded value the flag alone marks); screen_test frames 49, 50, 59, 60, 62 (their √ values lose the ≈).
+    Not the replay (cas088's ≈ is ruling (b)'s, not the flag's).
+R2  the clamp not marked (note_overflow's abn_round_note removed).
+    Predicted red: the census, 14 false exact (SINH, COSH and FACT at 1E10, FACT at 3 random x, POW 1E10^10 and
+    1E10^100, XROOT of 1E-20, 1E-50 and 1E-35 at 10 and at 100: the cases the first census run showed before the clamp
+    was marked) only. 096 K15 green: 1E6000 × 1E6000 overflows in the library, which raises inexact with it.
+R3  the flush not marked (settle's underflow abn_round_note removed).
+    Predicted SURVIVED: the census holds no case that underflows to 0 (0 measured), and K16's product underflows in the
+    library, which raises inexact with it. The note covers the core's own flushes; no test here reaches one without the
+    flag. (Named as a gap in the record, not hidden.)
+R4  TANH's shortcut not marked (fn_tanh's |x| >= 100 note removed).
+    Predicted red: the census, 17 false exact (every TANH case with |x| >= 100); 096 K12 only.
+R5  the back-check not comparing (root_exact true once rⁿ is exact, the comparison with the base dropped).
+    Predicted red: 096 K08b only. The census: 0 (no root in it rounds to a decimal whose power is exact but not the base).
+R6  the exact-angle path for a near angle (the table matched within 1E-9, not exactly).
+    Predicted red: the census, 26 false exact (ASIN 9, ACOS 8, ATAN 9: DEG arguments within 1E-9 of 0, the tiny ACOS ones
+    excepted, which are replaced before the table); 096 K10 only.
+R7  the mark drawn outside STU's home (compose's c->stu and the k->page line both dropped).
+    Predicted red: 096 D05 (35s √2); screen_test: frames of 33s or 35s with a rounded X differ; the replay's frames of
+    those modes with a rounded X. (Which frames: not predicted by number.)
+R8  the transcendental rule removed (sure() as before 096, no wrapper's note).
+    Predicted red: the census, 2 false exact (COS RAD 1E-35, in the fixed list and the random one); 096 K14 only.
+R9  a letter written in a run not marked (store_val's running/active line removed).
+    Predicted red: 096 U02 only (U04's root is marked by solve_finish itself).
+R10 T_ROUNDED not read (its section skipped, had_rounded left false: every STU value loads rounded).
+    Predicted red: 096 I01 (X and row 1 exact), I05 (Y exact); expr_test's round trip ("saved, loaded, saved again: byte for
+    byte", the bits now all set). I02, I03, I04, I06 green (rounded either way).
+R11 the older image's rule removed (no T_ROUNDED: values loaded as they are, exact).
+    Predicted red: 096 I03, I04; expr_test's two "values loaded rounded" checks and 4C's byte-for-byte check (its oracle
+    marks Y, Z, T rounded).
+R12 an indirect register's RCL not marked (the indirect line in mark_end removed).
+    Predicted red: 096 C09 only.
+R13 a typed fraction not marked (entry_key's nv.rounded from the parse removed: 0).
+    Predicted red: 096 K18 only.
+R14 ruling (b) removed (a number out of the report not marked).
+    Predicted red: 096 R01, R02; the replay's cas088 frame (its copied root loses the ≈).
