@@ -41,9 +41,10 @@ that calls `casim_step`, against its base):
   `casim_run` gives.
 
 **The page's length:**
-- The longest page in the corpus is **151 cells**: X³×SIN(X)×EXP(X)×LN(X) differentiated.
+- The longest page in the corpus is **151 cells** with template lines, 129 one-line: X³×SIN(X)×EXP(X)×LN(X)
+  differentiated (the S3 gave the same).
 - A run's longest page has a median of 28 cells and a 90th percentile of 92.
-- At the report's 31 cells a row, 151 cells is 5 rows.
+- At the report's 31 cells a row, 129 cells is 5 rows (151 too).
 
 **The time on the S3** (the stand-in, its 16 KB instruction cache; STEPBENCH from the calc task, with the CAS arena),
 one-line mode, in ms:
@@ -66,8 +67,8 @@ one-line mode, in ms:
 - **Typical cases:** a page takes about 2 ms.
 - **Heavy integrals:** a page can take 0.1-0.4 s, so paging them all would take 6 s. So the view computes a page only
   when it's shown, never all of them.
-- Rev A's 32 KB instruction cache made its CAS about 40% faster than the stand-in in unit 059 (SOLVE 29.6 → 17.4 ms).
-  That's an estimate here, not a measurement.
+- Rev A should be faster. Unit 059 gave Rev A head-less a 32 KB instruction cache (the stand-in stays at 16 KB), and
+  its SOLVE went from 29.6 to 17.4 ms. That's an estimate here, not a measurement.
 
 **The stack:** the calc task's low-water mark over the whole bench was 24,332 B free of 32,768, against the deep paths'
 floor of 8,188 B.
@@ -89,7 +90,7 @@ first run's output is kept, named so).
    it's also the fourth key: ▲ ▼ EVAL STEPS. That's one place to find it from the list, and the report's own bar.
 3. **The view** (SYS's view, as the report):
    - The status line: `STEP k OF n` and the rule's name.
-   - The step's text, wrapped over the rows. 151 cells measured is 5 rows of 31; a longer one scrolls with the page,
+   - The step's text, wrapped over the rows. 129 cells (one-line's longest measured) is 5 rows of 31; a longer one scrolls with the page,
      as the report's rows do.
    - Its depth: a leading `·` for each level.
    - ▲ ▼ page, wrapping as the report does. C and ← leave. Any other key leaves and acts.
