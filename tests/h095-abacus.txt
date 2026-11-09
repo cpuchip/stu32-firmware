@@ -1,0 +1,24 @@
+# abacus's hidden cases for unit 095 (Casimir's steps on the calculator), written 2026-11-09 from soroban's blueprint
+# at stu32-firmware 479eef1 (work/cas-steps-device.md with Revision 1), abacus's rulings (#14234), and the tokens and
+# dumps in soroban's #14239. The expected page text is Casimir's own, from its docs/language.md at casimir
+# origin/main: `casim --one-line steps "X^2×SIN(X)" X RAD` prints
+#   POWER: d/dX(X^2) = 2×X /   SIN: d/dX(SIN(X)) = COS(X) / PRODUCT: d/dX(X^2×SIN(X)) = 2×X×SIN(X)+X^2×COS(X)
+# so three pages, the first two one level deep.
+# Ruled here: %STEP is the page's one-line text as casim prints it, without its leading indent (the indent is
+# %STEPDEPTH: 0 none, 1 for two spaces), blanks written _. %STEPRULE is the word before the colon.
+#
+# A derivative's steps, opening on step 1 (my ruling #14234), paging and wrapping
+D01 | abacus: CAS D/DX keeps its request | STU RAD EQ:X^2×SIN(X) CASD:X | %STEPREQ=D:X %STEPN=-
+D02 | abacus: STEPS opens on STEP 1 of 3 | STU RAD EQ:X^2×SIN(X) CASD:X CASSTEPS | %STEPN=3 %STEPK=1 %STEP=POWER:_d/dX(X^2)_=_2×X %STEPRULE=POWER %STEPDEPTH=1
+D03 | abacus: SST pages forward | STU RAD EQ:X^2×SIN(X) CASD:X CASSTEPS SST | %STEPK=2 %STEP=SIN:_d/dX(SIN(X))_=_COS(X) %STEPRULE=SIN %STEPDEPTH=1
+D04 | abacus: the last page is the answer, at depth 0 | STU RAD EQ:X^2×SIN(X) CASD:X CASSTEPS SST SST | %STEPK=3 %STEP=PRODUCT:_d/dX(X^2×SIN(X))_=_2×X×SIN(X)+X^2×COS(X) %STEPRULE=PRODUCT %STEPDEPTH=0
+D05 | abacus: SST past the last wraps to the first | STU RAD EQ:X^2×SIN(X) CASD:X CASSTEPS SST SST SST | %STEPK=1
+D06 | abacus: BST from the first wraps to the last | STU RAD EQ:X^2×SIN(X) CASD:X CASSTEPS BST | %STEPK=3
+D07 | abacus: C leaves the view; the request stays | STU RAD EQ:X^2×SIN(X) CASD:X CASSTEPS C | %STEPN=- %STEPREQ=D:X
+# The other two ops' requests, and SOLVE's on the report's bar
+D08 | abacus: CAS ∫DX keeps its request; STEPS opens on page 1 | STU RAD EQ:3×COS(X) CASINT:X CASSTEPS | %STEPREQ=I:X %STEPK=1
+D09 | abacus: SOLVE keeps its request while the report is open; STEPS opens on page 1 | STU EQ:V=I×R CASSOLVE:R CASSTEPS | %STEPREQ=S:R %STEPK=1
+# When the request clears
+D10 | abacus: SOLVE's request clears when its report closes | STU EQ:V=I×R CASSOLVE:R C | %STEPREQ=-
+D11 | abacus: MEMCLR clears it | STU RAD EQ:X^2×SIN(X) CASD:X MEMCLR | %STEPREQ=-
+D12 | abacus: STEPS with no request does nothing | STU CASSTEPS | %STEPREQ=- %STEPN=-
