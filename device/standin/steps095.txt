@@ -1,8 +1,8 @@
 # Unit 095 on the stand-in (work/cas-steps-device.md, revision 1): STEPS through the keys. From MEMORY CLEAR in STU:
 # EXP(X)×SIN(X) typed into EQN and stored, ∫DX in X (CAS, ▸, ∫DX, X; keys from tests/stackkeys.c, cas i TEXT), then STEPS
 # on CAS3's fifth key (CAS, ▸, ▸, STEPS): the view on STEP 1, its bar (soft1= ▲), its frame; ▼ to STEP 2 and its
-# frame; C back to the list. Then 1÷((X-1)×(X-2)×(X-3)×(X-4)), ∫DX, STEPS, and C sent straight after ▼, during the
-# page (about 384 ms on this S3): the page discarded, the view left, INTERRUPTED (abacus #14234: C during a page; the
+# frame; C back to the list. Then 1÷((X-1)×(X-2)×(X-3)×(X-4)), ∫DX, STEPS, and C sent 0.1 s after ▼, during the
+# page (about 384 ms on this S3; sent at once it reached the queue before the calc task took ▼, and was only a key): the page discarded, the view left, INTERRUPTED (abacus #14234: C during a page; the
 # console's lines only, as the host replays a key only after the one before it ends). Then the calc task's
 # stack low-water mark, no lower than the deep paths' (8,188 B free), and a control that must FAIL.
 # replay: current
@@ -193,6 +193,7 @@ sleep 3
 send X
 expect soft1=▲ 10
 send K1
+sleep 0.1
 send K42
 sleep 2
 send X
