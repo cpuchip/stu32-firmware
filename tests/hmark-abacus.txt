@@ -1,0 +1,24 @@
+# abacus's hidden cases for the exact-or-rounded mark (decision 95), written 2026-11-09 from soroban's blueprint at
+# stu32-firmware c4aaff6 (work/mark-exact-rounded.md with Revision 1 and "The grammar for the set"), abacus's rulings
+# (#14264), and the grammar in soroban's #14271. Whether a result is exact comes from abacus's own arithmetic (decimal
+# to 34 digits: 1/4 and 3+2 are exact, 1/3 and the square root of 2 are not), not from soroban's census.
+# Ruled here: when a value is rounded and also shown short, INFO appends both, ROUNDED first
+# (", ROUNDED, SHOWN TO n PLACES"). A value copied out of CAS's report is an untracked path, so it's rounded.
+M01 | abacus: a typed number is exact | STU 7 ENTER | %ROUNDED-X=E %ROUNDED-Y=E
+M02 | abacus: 3 + 2 is exact | STU 3 ENTER 2 + | %ROUNDED-X=E %ROWROUNDED-1=E
+M03 | abacus: 1 ÷ 4 is exact | STU 1 ENTER 4 / | %ROUNDED-X=E
+M04 | abacus: 1 ÷ 3 is rounded, and so is its row | STU 1 ENTER 3 / | %ROUNDED-X=R %ROWROUNDED-1=R
+M05 | abacus: √2 is rounded; √4 is exact | STU 2 SQRT 4 SQRT | %ROUNDED-X=E %ROUNDED-Y=R
+M06 | abacus: π is rounded by definition | STU PI | %ROUNDED-X=R
+M07 | abacus: the bit is sticky: (1 ÷ 3) × 3 stays rounded, though the last product is exact | STU 1 ENTER 3 / 3 * | %ROUNDED-X=R
+M08 | abacus: ENTER carries the bit | STU 1 ENTER 3 / ENTER | %ROUNDED-Y=R %ROUNDED-X=R
+M09 | abacus: STO and RCL carry it | STU 1 ENTER 3 / STO:A CLX RCL:A | %ROUNDED-X=R
+M10 | abacus: an exact value through STO and RCL stays exact | STU 1 ENTER 4 / STO:A CLX RCL:A | %ROUNDED-X=E
+M11 | abacus: an overflow clamped is rounded | STU 9 E 6144 ENTER 10 * | %ROUNDED-X=R
+M12 | abacus: an underflow flushed to 0 is rounded | STU 1 E 6000 INV SQ | %ROUNDED-X=R
+M13 | abacus: a value from CAS's report is untracked, so rounded | STU EQ:2×X=6 CASSOLVE:X SST ENTER | X=3 %ROUNDED-X=R
+M14 | abacus: the bit survives SAVE, MEMCLR and LOAD | STU 1 ENTER 3 / SAVE MEMCLR LOAD | %ROUNDED-X=R
+M15 | abacus: and an exact one stays exact through them | STU 1 ENTER 4 / SAVE MEMCLR LOAD | %ROUNDED-X=E
+M16 | abacus: INFO on an exact, fully shown value adds nothing | STU 1 ENTER 4 / SEL 2 ROWINFO | %XLINE=÷_OF_1.0000,_4.0000
+M17 | abacus: INFO on a rounded value | STU 1 ENTER 3 / SEL 2 ROWINFO | %XLINE=÷_OF_1.0000,_3.0000,_ROUNDED,_SHOWN_TO_4_PLACES
+M18 | abacus: INFO on an exact value the display cuts | STU 1 ENTER 8 / FIX2 SEL 2 ROWINFO | %XLINE=÷_OF_1.00,_8.00,_SHOWN_TO_2_PLACES

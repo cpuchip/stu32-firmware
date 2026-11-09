@@ -137,6 +137,8 @@ the bar is the house's for every function, not 30 significant digits. The 30-dig
 
   The upper tail's label reads 1−Φ, though it's computed from erfc and never as 1 − Φ. Its HELP entry says so. For
   tutor before the freeze, through abacus.
-- **CAS:** in EQN, the CAS ops on an expression holding these names give UNSUPPORTED (casim refuses names it lacks).
-  Tested; casim learning them is a CAS unit of its own.
+- **CAS:** in EQN, the CAS ops on an expression holding these names give UNSUPPORTED ~~(casim refuses names it lacks)~~.
+  Tested; casim learning them is a CAS unit of its own. Corrected in the build (unit 097): casim's language has no such
+  names, and an unknown name is SYNTAX there (casim docs/language.md), so the firmware finds the five names before
+  calling casim and answers UNSUPPORTED with the name (UNSUPPORTED ERF), as 041 D does for 33s names casim lacks.
 - **Lean 3's question, answered:** the parser's names, yes; the CAS, the refusal.

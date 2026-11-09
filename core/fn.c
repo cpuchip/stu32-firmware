@@ -1477,36 +1477,37 @@ abn_status fn_ncdfinv(abn *out, const abn *p)
     snprintf(buf, sizeof buf, "%.17g", z0);
     if (abn_from_text(&x, buf) != ABN_OK) return ABN_RANGE;
     /* Newton: x <- x - (f(x) - q) / f'(x), f = erf (f' = (2/sqrt pi) e^(-x^2)) or Phi (f' = e^(-x^2/2)/sqrt(2 pi)) */
-    static hp hx, res, d, step, k;
+    /* the working values: fn.c's shared sets (fw's six, u44's first), free here: fn_ncdf uses fw only inside its own
+       call, finished before any of these is formed, and nothing below calls a function that uses u44 (no new RAM) */
+    hp *hx = &fw[0], *res = &fw[1], *d = &fw[2], *step = &fw[3], *k = &fw[4], *two = &fw[5], *sp = &u44[0];
     for (int it = 0; it < 40; it++) {
         if (centre) st = abn_erf(&f, &x);
         else st = fn_ncdf(&f, &x, false);
         if (st != ABN_OK) return st == ABN_UNDERFLOW ? ABN_RANGE : st;
-        if (!hp_from_abn(&hx, &x) || !hp_from_abn(&res, &f) || !hp_from_abn(&d, &q) ||
-            !hp_add(&step, &res, &d, true, ND_P)) return ABN_RANGE;          /* step = f(x) - q, exact */
-        if (!hp_mul(&d, &hx, &hx, ND_P)) return ABN_RANGE;                    /* x^2 */
-        hp_neg(&d);
+        if (!hp_from_abn(hx, &x) || !hp_from_abn(res, &f) || !hp_from_abn(d, &q) ||
+            !hp_add(step, res, d, true, ND_P)) return ABN_RANGE;          /* step = f(x) - q, exact */
+        if (!hp_mul(d, hx, hx, ND_P)) return ABN_RANGE;                    /* x^2 */
+        hp_neg(d);
         if (!centre) {
-            hp_set_int(&k, 2);
-            if (!hp_div(&res, &d, &k, ND_P)) return ABN_RANGE;
-            d = res;                                                          /* -x^2/2 */
+            hp_set_int(k, 2);
+            if (!hp_div(res, d, k, ND_P)) return ABN_RANGE;
+            *d = *res;                                                        /* -x^2/2 */
         }
-        if (!hp_exp(&res, &d, ND_P)) return ABN_RANGE;                       /* res = e^(...) */
+        if (!hp_exp(res, d, ND_P)) return ABN_RANGE;                       /* res = e^(...) */
         {
             /* the derivative into d: centre (2/sqrt pi) e^(-x^2), else e^(-x^2/2) / sqrt(2 pi) */
-            static hp two, sp;
-            hp_set_int(&two, 2);
+            hp_set_int(two, 2);
             if (centre) {
-                if (!hp_pi(&sp, ND_P) || !hp_sqrt(&k, &sp, ND_P) || !hp_div(&sp, &two, &k, ND_P) || !hp_mul(&d, &sp, &res, ND_P))
+                if (!hp_pi(sp, ND_P) || !hp_sqrt(k, sp, ND_P) || !hp_div(sp, two, k, ND_P) || !hp_mul(d, sp, res, ND_P))
                     return ABN_RANGE;
             } else {
-                if (!hp_pi(&sp, ND_P) || !hp_mul(&k, &sp, &two, ND_P) || !hp_sqrt(&sp, &k, ND_P) || !hp_div(&d, &res, &sp, ND_P))
+                if (!hp_pi(sp, ND_P) || !hp_mul(k, sp, two, ND_P) || !hp_sqrt(sp, k, ND_P) || !hp_div(d, res, sp, ND_P))
                     return ABN_RANGE;
             }
         }
-        if (!hp_div(&res, &step, &d, ND_P) || !hp_add(&step, &hx, &res, true, ND_P)) return ABN_RANGE;   /* x - (f-q)/f' */
+        if (!hp_div(res, step, d, ND_P) || !hp_add(step, hx, res, true, ND_P)) return ABN_RANGE;   /* x - (f-q)/f' */
         abn nx;
-        if ((st = hp_round(&nx, &step)) != ABN_OK) return st;
+        if ((st = hp_round(&nx, step)) != ABN_OK) return st;
         bool near = abn_cmp(&nx, &x) == 0;
         if (!near && !abn_is_zero(&x)) {            /* within 4 units of x's 34th digit: the function's own last-digit
                                                        noise (measured: a 3-cycle at p = 0.499999996), so converged */
@@ -1522,12 +1523,12 @@ abn_status fn_ncdfinv(abn *out, const abn *p)
         if (near) {
             /* converged: the last step's x, formed in hp, rounded once (for the centre z = sqrt2 x formed from it) */
             if (centre) {
-                hp_set_int(&k, 2);
-                if (!hp_sqrt(&d, &k, ND_P) || !hp_mul(&res, &d, &step, ND_P)) return ABN_RANGE;
-                step = res;
+                hp_set_int(k, 2);
+                if (!hp_sqrt(d, k, ND_P) || !hp_mul(res, d, step, ND_P)) return ABN_RANGE;
+                *step = *res;
             }
-            if (neg) hp_neg(&step);
-            return hp_round(out, &step);
+            if (neg) hp_neg(step);
+            return hp_round(out, step);
         }
         x = nx;
     }

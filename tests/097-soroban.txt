@@ -60,3 +60,4 @@ P02 | saved and loaded, it runs | STU PRGM CLPGM LBL:A NCDF RTN PRGM SAVE LOAD 1
 P03 | the same image as version 25 is refused | STU PRGM CLPGM LBL:A NCDF RTN PRGM SAVE DROPSEC:25 IMGVER:25 LOAD | ERR %ERR=BAD_IMAGE
 P04 | the control: without the line, version 25 loads | STU PRGM CLPGM LBL:A SQRT RTN PRGM SAVE IMGVER:25 LOAD 4 XEQ:A | X=2
 P05 | a message from Φ⁻¹ saved: version 26 too | STU 0 NCDFINV SAVE IMGVER:25 LOAD | ERR %ERR=BAD_IMAGE
+P06 | and that image loads back, the message still showing (added after mutant run 1, where J8 survived) | STU 0 NCDFINV SAVE LOAD | ERR %ERR=DOMAIN X=0
