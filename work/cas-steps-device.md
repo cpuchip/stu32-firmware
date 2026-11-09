@@ -32,7 +32,7 @@ that calls `casim_step`, against its base):
 - The app partitions have the room: the stand-in's is 5 MiB with 2.34 MB used, Rev A's 7 MiB with 2.27 MB.
 - Rev A's build wasn't measured. It compiles the same casim.c, so the figure should carry; the build's D68 will say.
 
-**The arena:** the host census (census.c over corpus.txt) found the smallest arena that pages every step, in 1 KiB steps.
+**The arena:** the host census (census.c over corpus.txt) found the smallest arena paging every step, in 1 KiB steps.
 - At most **10 KiB** of the firmware's 16 KiB `ab_cas_arena`.
 - No case went NO_ROOM at 16 KiB.
 - **The corpus:** the 64 distinct D/DX, ∫DX and SOLVE cases in tests/*.txt, plus 11 stress cases made for this: deep
@@ -91,7 +91,7 @@ first run's output is kept, named so).
 3. **The view** (SYS's view, as the report):
    - The status line: `STEP k OF n` and the rule's name.
    - The step's text, wrapped over the rows. 129 cells (one-line's longest measured) is 5 rows of 31; a longer one
-     scrolls with the page,     as the report's rows do.
+     scrolls with the page, as the report's rows do.
    - Its depth: a leading `·` for each level.
    - ▲ ▼ page, wrapping as the report does. C and ← leave. Any other key leaves and acts.
    - It opens on the last page (the answer), since a student usually asks how that answer came.
