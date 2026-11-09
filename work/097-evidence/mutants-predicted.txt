@@ -1,0 +1,36 @@
+Unit 097's planted faults, each predicted before any was run (src e7d3d3b). The runner (mutants-runner.py, 096's with
+this unit's faults) applies one fault, deletes and rebuilds fn_drive, vectors, app_test, screen_test and standin_replay,
+then runs tests/097-soroban.txt plain and through the save/load pass, fn_table over tests/erf-table.txt, app_test,
+screen_test against tests/frames and the stand-in scripts' replay, and names what went red. "only" means nothing else
+goes red. J0 is the control.
+
+J1  1−Φ as 1 − Φ (the upper tail from the lower: abn 1 minus nd_half_erfc(-1)).
+    Predicted red: fn_table, NCDFC lines in the upper tail (z above about 1.5, where Φ's last unit outweighs 8 of Q's;
+    Q(27) becomes 0); 097 L01 and L06 (the tails' digits), in both passes. T02 (FIX 4) and L07 green.
+J2  erfc's sign wrong in Φ (Φ computed with the upper tail's sign: Φ = Q).
+    Predicted red: fn_table NCDF on every line but z = 0, and NCDFINV's p below 0.1 (its Newton runs on Φ); 097 T01, T06,
+    L02, L03, L05, L08, I02, I08, F01, A05, E02, P01, P02 (both passes); app_test's 097 Φ check; screen_test frame 67;
+    the replay's norm097 frames.
+J3  Newton's last step not taken (the converged branch returns x as accepted, not x minus its last correction).
+    Predicted SURVIVED: x is accepted within 4 units of the next step, so the answer stays under the 8-unit bar
+    (fn_table green), and the vectors' exact values are tail ones whose Newton lands exactly (nx = x). The cost shows only
+    in the census's units, not in a test: named as a gap.
+J4  Φ⁻¹ outside (0, 1) not refused (fn_ncdfinv's domain line removed).
+    Predicted SURVIVED: the start's ln(p) (and ln(1 − p) above 0.5) refuses the same p, DOMAIN: 0, 1, 1.5, −0.1 all
+    reach fn_ln of 0 or a negative. A second guard, not a gap in behaviour.
+J5  STU ONLY removed (the 33s and 35s modes run them).
+    Predicted red: 097 M01, M02, M03 only (both passes).
+J6  the CAS's name check removed (casim sees ERF( itself).
+    Predicted red: 097 E05, E06, E07 (SYNTAX, not CAS_UNSUPPORTED) only, both passes.
+J7  the program line's version rule removed (an image with a 097 op in a program written as 25).
+    Predicted red: 097 P02 (SAVE LOAD: this build's reader refuses a 097 code below 26: BAD_IMAGE); in the save/load
+    pass also P01. P03 green (refused either way).
+J8  the message's version rule removed (an image whose message names a 097 op written as 25).
+    Predicted red: 097's save/load pass only, I04, I05, I06, I07 (each leaves Φ⁻¹'s DOMAIN showing, and its image is
+    refused on reload); the plain pass green, P05 green (refused either way).
+J9  the hp correction removed (r = 0: erfc(u0)/2 alone, the plain form).
+    Predicted red: fn_table NCDF and NCDFC in the tails (revision 1 measured 3,250 and 2,260 units without it); 097
+    L01, L02, L05, L06 (both passes), and likely T06 (Φ(1.96)'s last digit). FIX 4 values green.
+J10 the fold at 0.9 instead of 0.5 (2p − 1 inexact for a 34-digit p in (0.5, 0.9)).
+    Predicted red: fn_table, the NCDFINV lines whose p in (0.5, 0.9) has 34 significant digits (the census measured
+    501 units at 0.50081...); not predicted by count. The vectors green.
