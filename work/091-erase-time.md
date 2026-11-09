@@ -89,6 +89,10 @@ the last, past the predicted 1.5-times line. The control: 21.9 ms median at the 
 didn't drift; the test sector did. This makes cycling a sufficient explanation for 0x710000 and 0x750000's 150-230 ms,
 though their cycle counts still aren't known, and neither is why the stand-in's own slot 0 (0x510000, 23 ms) is fast
 after its own years of saves. Its cycle count isn't known either.
+An estimate, not a measurement (abacus #14129's arithmetic, checked here): if the rise stayed linear at 3.5 ms per 1,000
+cycles from a fresh 20 ms, 150-230 ms would be about 37,000-60,000 cycles. That would put the bench chip's 0x710000 and
+0x750000 near the datasheet's 50K line, where its maximum tSE steps from 200 to 300 ms, with perhaps half their rated
+life spent. The 5,000 measured cycles don't show the rise stays linear that far.
 
 ## (a) The chips
 
@@ -97,8 +101,8 @@ after its own years of saves. Its cycle count isn't known either.
   doesn't tell the C from the family's other revisions, so these figures are the C's: "Minimum 100,000 Program/Erase
   Cycles" and "20-year data retention typical" (p.4); the 4 KB Sector Erase Time tSE 50 ms typical, and maximum "200ms"
   at ≤50K cycles and "300ms" past 50K to 100K (p.56 and its note 1; pp.58 and 60, the other temperature grades: maximum
-  400 and 500 ms). Read with pypdfium2 from the PDF at espruino.com/datasheets/GD25Q64C.pdf, the datasheet's own
-  revision line not extracted. This chip's fresh 20-23 ms is under the 50 ms typical; 0x710000's 150-230 ms sits near
+  400 and 500 ms). Read by soroban with pypdfium2 from the PDF at espruino.com/datasheets/GD25Q64C.pdf (page numbers as above), the
+  datasheet's own revision line not extracted; abacus didn't open it (#14129). This chip's fresh 20-23 ms is under the 50 ms typical; 0x710000's 150-230 ms sits near
   the 200 ms maximum the datasheet allows up to 50K cycles.
 - **Rev A's:** an ESP32-S3-WROOM-1-N16R8, 16 MB of Quad SPI flash (abacus-firmware docs/hw/2026-10-03-datasheet-facts.md
   §2, from the module's Table 1-1). The module's datasheet doesn't name the flash's maker, so it can only be read on the
