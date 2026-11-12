@@ -1,0 +1,22 @@
+Unit 098's planted faults, each predicted before any was run. The runner (mutants-runner.py) applies one fault to
+firmware/screen.c, deletes and rebuilds vectors, screen_test, app_test and standin_replay, then runs tests/098-soroban.txt,
+hmark and hmark-A, screen_test against tests/frames (its level_ops block included), app_test and the stand-in scripts'
+replay, and names what went red. M0 is the control.
+
+M1  Y's op not told (screen_lines leaves levelop[1] "").
+    Predicted red: 098 O02, O03, O07, O08, N03 (each names Y's op); screen_test level_ops on every case naming one for Y
+    (x by Y, all four, x² by a short Y: 3 cases), each twice: the text, and the pixel check's "no op told, none drawn"
+    (all three set Y's room bit), so 6 checks. Frames green; replay green.
+M2  the op drawn one row lower (screen_text at the level's bottom − 13).
+    Predicted red: screen_test frames that show a level's op (the worksheet's, unit 090 and later: some of 50-67); level_ops'
+    pixel check on every named op (10: √x, ×, the four, √x by Z, XEQ T, ÷, x²); the replay's frames that show one. 098's
+    vectors green (the text is unchanged).
+M3  X's op told when X is drawn in 2D (level_op_text without its xe_top test; draw_page still draws none there).
+    Predicted red: screen_test "X in 2D" (X told × where none is drawn: the text check, and the pixel check as told but
+    not drawn); 098 N02. Frames green (the drawing is unchanged).
+M4  X's cells counted without the ≈'s (the fit judged one cell short when X is marked).
+    Predicted SURVIVED: it differs only where the ≈'s cell decides whether the op fits, and no state here sits on that
+    edge. Named as a gap, not built to fail (abacus #14713).
+M5  the prompt's test removed (Y's op drawn and told while Y is a prompt).
+    Predicted red: screen_test "Y a prompt" (Y told × under B?); any frame with a prompt over a Y that has an op (I
+    know of none); 098 vectors green.
