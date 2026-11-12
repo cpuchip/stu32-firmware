@@ -1,0 +1,39 @@
+Preparing worktree (detached HEAD 8234192)
+HEAD is now at 8234192 096's look is A, final (Michael, decision 99; abacus #14459): hmark-A adopted as tests/hmark-A-abacus.txt (sha256 c500320f...51b2, blob 212338fd), in make test and the sanitizer run, 4/4; a flipped K01A fails (rc 1); make test rc 0, 21,900/21,900 vectors
+gen_games: 9 game(s): BABAL (babal at bca20f0, staged: not checked as pushed), AIM (aim at 5fe8cea, staged: not checked as pushed), LAND (land at bca20f0, staged: not checked as pushed), SNAKE (snake at 5947c16, staged: not checked as pushed), MINES (mines at 7344045, staged: not checked as pushed), SALVO (salvo at bca20f0, staged: not checked as pushed), 3720 (rocks at 7686766, staged: not checked as pushed), MOLES (moles at 7686766, staged: not checked as pushed), CATCH (catch at 7686766, staged: not checked as pushed)
+casim 175c160a1b3c778ab67f049fe14baac81d1e23e2
+Preparing worktree (detached HEAD 4e443e7)
+HEAD is now at 4e443e7 Unit 098: the levels' op names in screen_page (work/level-op-export.md; abacus #14703, #14713). level_op splits into level_op_text, the one source for what draw_page draws beside a level and for screen_page.levelop[4][32] (X Y Z T, UTF-8, "" none); screen_level_bottoms for the tests; no state version. Frames unchanged (67/67). screen_test's level_ops judges each told op against screen_render's pixels (13 cases); tests/098-soroban.txt in the %LEVELOP-k grammar, 16/16; make test rc 0, 21,932/21,932 vectors; VER 0.99
+gen_games: 9 game(s): BABAL (babal at bca20f0, staged: not checked as pushed), AIM (aim at 5fe8cea, staged: not checked as pushed), LAND (land at bca20f0, staged: not checked as pushed), SNAKE (snake at 5947c16, staged: not checked as pushed), MINES (mines at 7344045, staged: not checked as pushed), SALVO (salvo at bca20f0, staged: not checked as pushed), 3720 (rocks at 7686766, staged: not checked as pushed), MOLES (moles at 7686766, staged: not checked as pushed), CATCH (catch at 7686766, staged: not checked as pushed)
+casim 175c160a1b3c778ab67f049fe14baac81d1e23e2
+
+### standin: 8234192 -> 4e443e7
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,401,328 | 2,401,568 | +240 |
+| internal RAM static (DIRAM, of 341,760) | 207,731 | 207,731 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 59,074 | 59,074 | +0 |
+| calc_task's frame (under every deep path's stack), B | 144 | 144 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 838,114 -> 838,355 (+241)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 160,677 -> 160,677 (+0), none changed
+
+### reva: 8234192 -> 4e443e7
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,328,000 | 2,328,208 | +208 |
+| internal RAM static (DIRAM, of 341,760) | 215,374 | 215,374 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 78,086 | 78,086 | +0 |
+| calc_task's frame (under every deep path's stack), B | 128 | 128 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 778,158 -> 778,370 (+212)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 133,339 -> 133,339 (+0), none changed
+rc=0
