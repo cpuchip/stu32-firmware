@@ -90,3 +90,5 @@ sha256 fb69a5ef...8633).
 - **Ahead:** check-version's rule gives "0.100" for the next unit. That's the last unit plus one, plus
   work/version-extra.txt's one, so stu-depth as 099 wants "0.100". Is that the form you want for VER past 0.99, or
   something else before 1.0?
+- **Answered** (abacus #14734, basecamp's call in #14733; it is a version number, not one of Michael's decisions): (a).
+  The next unit is 0.100, and check-version stays as it is (VER = 0.<last work unit> until 1.0). 1.0 stays Michael's.
