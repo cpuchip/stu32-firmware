@@ -1,0 +1,6 @@
+# abacus's hidden cases for the mark: the look as option A: ≈ only when the number shown isn't exact on Michael's card exact-mark. Same
+# sources and grammar as hmark.txt. Only the file for Michael's pick is run.
+K01A | abacus: 1 ÷ 4 shown in full | STU 1 ENTER 4 / | %XMARK=_
+K02A | abacus: 1 ÷ 3 | STU 1 ENTER 3 / | %XMARK=≈
+K03A | abacus: 1 ÷ 8 shown at FIX 2 as 0.13 | STU 1 ENTER 8 / FIX2 | %XMARK=≈
+K04A | abacus: 35s mode draws no mark | MODE35 1 ENTER 3 / | %XMARK=_

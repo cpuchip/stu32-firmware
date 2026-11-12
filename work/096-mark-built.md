@@ -201,3 +201,11 @@ core's own (Γ beyond the range). With settle's note removed (run 3, work/096-ev
 marked rounded, because its computation reaches the library's flag on the way. So R3 still survives: no test here can
 redden it, and the note stays as the second guard. The four are kept as behaviour in tests/096-soroban.txt (U06-U09),
 labelled as not closing R3.
+
+## The look: A, final (abacus #14459, decision 99)
+
+Michael picked look A on the card exact-mark ("A seems good to me."), so 096 as built at 1ca9364 is final. abacus's
+hmark-A (abacus e6f89ac, docs/evidence/2026-11-09-mark-hidden/hmark-A.txt) is tests/hmark-A-abacus.txt, typed from
+#14459 and matching its sha256 c500320f28d689349786c12f73461caaf45c14137f9f6f3c74b12db2684151b2 and git blob 212338fd;
+it runs in make test and under the sanitizers, 4/4. Its control: K01A flipped to expect ≈ fails, 3/4, rc 1. B and C
+stay unrun.
