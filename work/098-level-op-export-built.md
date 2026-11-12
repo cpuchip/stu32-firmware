@@ -92,3 +92,10 @@ sha256 fb69a5ef...8633).
   something else before 1.0?
 - **Answered** (abacus #14734, basecamp's call in #14733; it is a version number, not one of Michael's decisions): (a).
   The next unit is 0.100, and check-version stays as it is (VER = 0.<last work unit> until 1.0). 1.0 stays Michael's.
+
+## After acceptance (abacus #14737, abacus e9f5512)
+
+Accepted at 0919f8b: h098 15/15, its planted line (O04's T as x²) red alone, 098-soroban 16/16, make test's sums the
+same as mine. h098 is adopted as tests/h098-abacus.txt, typed from #14737 with the final newline #14738 corrected:
+sha256 fb69a5efe0b128dc01a434f84c7909d7d63f175697b36cb502faed5ff91e8633, 2,484 bytes, git blob 964c9b2b. It runs in
+make test and the sanitizer run, 15/15 vectors and 59/59 expectations; the same flip (O04's T as x²) fails it, 14/15.

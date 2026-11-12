@@ -1,0 +1,20 @@
+# abacus's hidden cases for the levels' op names in screen_page (soroban's blueprint, stu32-firmware 3ecae74,
+# work/level-op-export.md), frozen before src. Grammar: soroban's %LEVELOP-k (blanks _, _ alone for a drawn level with
+# no op, ? for a level not drawn). Each expectation is from the worksheet's spec, not from screen.c: every copy carries
+# its row (worksheet-1-rows.md:78), a typed number has no name (worksheet-2-page.md, 3), cleared levels are bare (090 B02).
+# %LEVELS is in each line too, as the check on my own stack reading.
+O01 | abacus: a fresh STU screen, X alone and no op | STU | %LEVELS=X %LEVELOP-X=_ %LEVELOP-Y=? %LEVELOP-Z=? %LEVELOP-T=?
+O02 | abacus: × made X, the levels above it bare | STU 3 ENTER 4 * | %LEVELS=X %LEVELOP-X=× %LEVELOP-Y=?
+O03 | abacus: ENTER's copy carries the row, so Y draws × too | STU 3 ENTER 4 * ENTER | %LEVELS=YX %LEVELOP-X=× %LEVELOP-Y=×
+O04 | abacus: four ops, one on each level | STU 9 SQRT 2 SQ 2 INV LASTX | %LEVELS=TZYX %LEVELOP-X=LASTx %LEVELOP-Y=1/x %LEVELOP-Z=x² %LEVELOP-T=√x
+O05 | abacus: R↓ moves each op with its value | STU 9 SQRT 2 SQ 2 INV LASTX RDN | %LEVELS=TZYX %LEVELOP-X=1/x %LEVELOP-Y=x² %LEVELOP-Z=√x %LEVELOP-T=LASTx
+O06 | abacus: x↔y swaps the two ops and leaves Z and T | STU 9 SQRT 2 SQ 2 INV LASTX XY | %LEVELS=TZYX %LEVELOP-X=1/x %LEVELOP-Y=LASTx %LEVELOP-Z=x² %LEVELOP-T=√x
+O07 | abacus: + drops the stack, and T's copy down keeps √x in Z and T | STU 9 SQRT 2 SQ 2 INV LASTX + | %LEVELS=TZYX %LEVELOP-X=+ %LEVELOP-Y=x² %LEVELOP-Z=√x %LEVELOP-T=√x
+O08 | abacus: the number being typed has no op; Y keeps √x | STU 9 SQRT 5 | %LEVELS=YX %LEVELOP-X=_ %LEVELOP-Y=√x
+O09 | abacus: RCL A names its letter | STU 5 STO:A CLX RCL:A | %LEVELS=X %LEVELOP-X=RCL_A %LEVELOP-Y=?
+O10 | abacus: X's ≈ with an op | STU 1 ENTER 3 / | %LEVELS=X %LEVELOP-X=÷
+O11 | abacus: three ENTERs fill the stack with one row, and + keeps it above X | STU 9 SQRT ENTER ENTER ENTER + | %LEVELS=TZYX %LEVELOP-X=+ %LEVELOP-Y=√x %LEVELOP-Z=√x %LEVELOP-T=√x
+O12 | abacus: CLSTK leaves bare levels, so X has no op | STU 9 SQRT ENTER CLSTK | %LEVELS=X %LEVELOP-X=_ %LEVELOP-Y=?
+O13 | abacus: ALG draws no op on any level | STU ALG 2 + 3 ENTER | %LEVELOP-X=? %LEVELOP-Y=? %LEVELOP-Z=? %LEVELOP-T=?
+O14 | abacus: the 33s mode, no page | MODE33 9 SQRT | %LEVELOP-X=? %LEVELOP-Y=? %LEVELOP-Z=? %LEVELOP-T=?
+O15 | abacus: the 35s mode, no page | 9 SQRT | %LEVELOP-X=? %LEVELOP-Y=? %LEVELOP-Z=? %LEVELOP-T=?
