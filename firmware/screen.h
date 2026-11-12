@@ -176,12 +176,18 @@ typedef struct {
     /* unit 096 (work/mark-exact-rounded.md, look A): the mark X's line draws before its number on STU's home, UTF-8:
        "≈" when the value is rounded or the display drops a nonzero digit of it; "" none. Not in x's text */
     char xmark[4];
+    /* unit 098 (work/level-op-export.md, abacus #14703): the op name drawn beside each level (X, Y, Z, T, as levelmark), the
+       frame's own bytes, UTF-8; "" none (off STU's home, in ALG, a level not drawn, or no op drawn) */
+    char levelop[4][32];
 } screen_page;
 
 void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out);
 /* Unit 093: the page's window as drawn now (the default screen_ui): its top and bottom rows' serials, 0 0 with no page line.
    ab_rows_set_window takes it (app_init, the host's runners), so the selection knows when a move leaves it */
 void screen_page_window(const ab_calc *c, uint32_t *top, uint32_t *bottom);
+/* Unit 098: each level's bottom row on STU's home as drawn now (the default screen_ui), X, Y, Z, T; -1 a level not drawn
+   (off the home, in ALG). For the tests that read the op beside a level from the frame */
+void screen_level_bottoms(const ab_calc *c, int bot[4]);
 /* Unit 080: whether a textbook answer drawn from line first has lines below the area (the app's SST scrolls to them) */
 bool screen_textbook_more(const ab_calc *c, int first);
 /* Unit 080: whether the shown equation is drawn in 2D, and then what's drawn as text into out (screen_page's drawn) */

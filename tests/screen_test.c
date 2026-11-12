@@ -85,7 +85,7 @@ static ab_op key_op(const char *k)
         {"+", AB_ADD}, {"-", AB_SUB}, {"*", AB_MUL}, {"/", AB_DIV}, {"I", AB_KI}, {"THETA", AB_KTHETA},
         {"[", AB_KVEC}, {",", AB_KCOMMA}, {"RAD", AB_RAD}, {"GRAD", AB_GRAD}, {"HEX", AB_HEX},
         {"FDISP", AB_FDISP}, {"PRGM", AB_PRGM}, {"RTA", AB_RTA}, {"SQRT", AB_SQRT}, {"EQN", AB_EQN},
-        {"PI", AB_PI}, {"INV", AB_INV}};
+        {"PI", AB_PI}, {"INV", AB_INV}, {"SQ", AB_SQ}, {"BIN", AB_BIN} /* 098 */};
     if (k[0] >= '0' && k[0] <= '9' && !k[1]) return (ab_op)(AB_K0 + k[0] - '0');
     for (size_t i = 0; i < sizeof K / sizeof K[0]; i++)
         if (strcmp(K[i].name, k) == 0) return K[i].op;
@@ -234,6 +234,46 @@ static void frame(const char *name, const ab_calc *c, const screen_ui *ui)
 
 #define TB_CRC_22 0x43FC116CUL    /* unit 080: 22-tb-stu3's rows 21-205, the frame looked at before it was kept (tally #10916); 081: a wheel now,
                                      re-pinned (080's was 9A4A7D8C) */
+
+/* Unit 098 (work/level-op-export.md, abacus #14703): screen_page's levelop judged against screen_render's pixels, apart
+   from screen.c's level_op_text. The place is this test's own: x 22 (NUM_X + 2), 14 rows ending at the level's bottom,
+   scale 2. want[i] (X, Y, Z, T) the op expected, "" none. A named op must be there pixel for pixel, as screen_text draws
+   it alone on a blank frame, with the 12 columns after it blank; a level with none, where room has its bit, must have
+   its first two cells blank there (an op drawn but not told) */
+static void level_ops(const ab_calc *c, const char *name, const char *const want[4], int room)
+{
+    static ls027_frame f, g;
+    static screen_page pg;
+    screen_ui ui;
+    int bot[4];
+    char m[160];
+    screen_ui_default(&ui);
+    screen_render(c, &ui, &f);
+    screen_lines(c, &ui, &pg);
+    screen_level_bottoms(c, bot);
+    for (int i = 0; i < 4; i++) {
+        const char *op = pg.levelop[i];
+        snprintf(m, sizeof m, "098 %s: level %c's op '%s', expected '%s'", name, "XYZT"[i], op, want[i]);
+        expect(!strcmp(op, want[i]), m);
+        if (bot[i] < 0) {
+            snprintf(m, sizeof m, "098 %s: level %c not drawn, no op told", name, "XYZT"[i]);
+            expect(!op[0], m);
+            continue;
+        }
+        if (op[0]) {
+            int w = screen_cells(op) * 12 - 2, same = 1;
+            screen_clear(&g);
+            screen_text(&g, 22, bot[i] - 14, 2, op, true);
+            for (int y = bot[i] - 14; y < bot[i]; y++)
+                for (int x = 22; x < 22 + w; x++) same &= px(&f, x, y) == px(&g, x, y);
+            snprintf(m, sizeof m, "098 %s: level %c's '%s' drawn as told, the 12 columns after it blank", name, "XYZT"[i], op);
+            expect(same && dark_in(&f, 22, bot[i] - 14, w, 14) > 0 && dark_in(&f, 22 + w, bot[i] - 14, 12, 14) == 0, m);
+        } else if (room & (1 << i)) {
+            snprintf(m, sizeof m, "098 %s: level %c, no op told, none drawn", name, "XYZT"[i]);
+            expect(dark_in(&f, 22, bot[i] - 14, 22, 14) == 0, m);
+        }
+    }
+}
 
 int main(int argc, char **argv)
 {
@@ -1345,6 +1385,71 @@ int main(int argc, char **argv)
         screen_lines(&c, &ui, &pg);
         expect(pg.soft[0] && !strcmp(pg.soft[0], "SINH") && pg.soft_sub[4] && !pg.soft_on[0], "text: the soft labels");
         screen_ui_default(&ui);
+    }
+
+    /* unit 098: the op beside each level, told as drawn (level_ops) */
+    {
+        static screen_page pg;
+#define STU0() (ab_init(&c), ab_do_arg(&c, AB_MODEL, AB_MODEL_STU))
+#define OPS(n, x, y, z, t, room) do { static const char *const w_[4] = {x, y, z, t}; level_ops(&c, n, w_, room); } while (0)
+        STU0();
+        keys(&c, "2 SQRT");
+        OPS("2 SQRT", "\xe2\x88\x9ax", "", "", "", 1);
+        STU0();
+        keys(&c, "2 ENTER 3 * 4");
+        OPS("x by Y, a typed X (left, so no room judged)", "", "\xc3\x97", "", "", 2);
+        STU0();
+        keys(&c, "2 SQRT 4 ENTER");
+        OPS("a typed number ENTERed: no op by X or Y", "", "", "\xe2\x88\x9ax", "", 7);
+        STU0();
+        keys(&c, "2 SQRT 3 ENTER 4 + 5 ENTER 6 * 7 ENTER 8 -");
+        OPS("all four, T's copy", "-", "\xc3\x97", "+", "+", 15);
+        STU0();
+        ab_do(&c, AB_PRGM);
+        ab_do_arg(&c, AB_LBL, 19);
+        keys(&c, "5");
+        ab_do(&c, AB_RTN);
+        ab_do(&c, AB_PRGM);
+        ab_do_arg(&c, AB_XEQ, 19 * 1000);
+        OPS("XEQ T", "XEQ T", "", "", "", 1);
+        STU0();
+        keys(&c, "1 ENTER 3 /");
+        screen_lines(&c, &ui, &pg);
+        expect(pg.xmark[0], "098: 1/3 is marked");
+        OPS("1/3 with the mark", "\xc3\xb7", "", "", "", 1);
+        STU0();
+        keys(&c, "2 ENTER 3 * 4");
+        c.stop = AB_STOP_INPUT;
+        c.stop_var = 1;
+        screen_lines(&c, &ui, &pg);
+        expect(!strcmp(pg.y.text, "B?"), "098: Y the prompt B?");
+        OPS("Y a prompt", "", "", "", "", 0);
+        STU0();
+        ab_eqn_add(&c, "X");
+        ab_do(&c, AB_EQDROP);
+        keys(&c, "2 *");
+        screen_lines(&c, &ui, &pg);
+        expect(pg.textbook_on, "098: X's expression drawn in 2D");
+        OPS("X in 2D", "", "", "", "", 0);
+        STU0();
+        keys(&c, "4 SQRT SQ BIN 1");
+        OPS("x\xc2\xb2 by a short Y", "", "x\xc2\xb2", "", "", 2);
+        STU0();
+        keys(&c, "1073741824 SQRT SQ BIN 1");
+        OPS("x\xc2\xb2 by a long Y: no room", "", "", "", "", 0);
+        STU0();
+        ab_do_arg(&c, AB_ENTRYM, 1);
+        keys(&c, "2 + 3 ENTER");
+        OPS("ALG", "", "", "", "", 0);
+        ab_init(&c);
+        keys(&c, "2 SQRT");
+        OPS("33s", "", "", "", "", 0);
+        ab_init(&c);
+        ab_do_arg(&c, AB_MODEL, 35);
+        keys(&c, "2 SQRT");
+        OPS("35s", "", "", "", "", 0);
+#undef OPS
+#undef STU0
     }
 
     printf("screen_test: %d/%d checks, %d/%d frames %s %s\n", checks - bad, checks, frames_ok, frames,

@@ -1,0 +1,23 @@
+# Unit 098 (work/level-op-export.md; abacus #14703, #14713): the op name drawn beside each level on STU's home, in
+# screen_page's levelop, for the web page's screen-reader label. %LEVELOP-k=TEXT, k one of X Y Z T: the op drawn beside
+# that level (blanks _), _ alone when the level is drawn with no op, ? when it isn't drawn (off STU's home, in ALG, or
+# above the levels drawn). That the text is what the frame draws is screen_test's (level_ops, judged on the pixels).
+#
+# Each level's op
+O01 | X: √x | STU 2 SQRT | %LEVELS=X %LEVELOP-X=√x
+O02 | Y: × above a typed X, which has none | STU 2 ENTER 3 * 4 | %LEVELS=YX %LEVELOP-Y=× %LEVELOP-X=_
+O03 | all four: T's copy carries its row (+ twice) | STU 2 SQRT 3 ENTER 4 + 5 ENTER 6 * 7 ENTER 8 - | %LEVELS=TZYX %LEVELOP-T=+ %LEVELOP-Z=+ %LEVELOP-Y=× %LEVELOP-X=-
+O04 | XEQ T, a program's name | STU PRGM CLPGM LBL:T 5 RTN PRGM XEQ:T | %LEVELOP-X=XEQ_T
+O05 | ÷ beside X's ≈ | STU 1 ENTER 3 / | %XMARK=≈ %LEVELOP-X=÷
+O06 | an ENTERed copy of a typed number has none | STU 2 SQRT 4 ENTER | %LEVELS=ZYX %LEVELOP-Z=√x %LEVELOP-Y=_ %LEVELOP-X=_
+O07 | ENTER's copy of a result carries its row | STU 2 SQRT ENTER | %LEVELS=YX %LEVELOP-Y=√x %LEVELOP-X=√x
+O08 | +/− is an op | STU 2 ENTER 3 * 4 SQRT CHS | %LEVELOP-X=+/- %LEVELOP-Y=×
+# Where none is drawn
+N01 | a level not drawn | STU 2 SQRT | %LEVELOP-Y=? %LEVELOP-Z=? %LEVELOP-T=?
+N02 | X's expression drawn in 2D | STU EQ:X EQDROP 2 * | %LEVELOP-X=_
+N03 | x² by a short Y | STU 4 SQRT SQ BIN 1 | %LEVELOP-Y=x²
+N04 | x² by a Y too long to leave room | STU 1073741824 SQRT SQ BIN 1 | %LEVELOP-Y=_
+N05 | ALG: no levels | STU ALG 2 + 3 ENTER | %LEVELS=- %LEVELOP-X=? %LEVELOP-Y=?
+N06 | 35s: no page | MODE35 2 SQRT | %LEVELOP-X=?
+N07 | 33s: no page | MODE33 2 SQRT | %LEVELOP-X=?
+N08 | the grammar: a letter not a level | STU 2 SQRT | %LEVELOP-Q=?

@@ -1301,7 +1301,7 @@ int vectors_run(const char *name, FILE *f)
                     rows_asked = true;
                     snprintf(got, sizeof got, "%lu", (unsigned long)c.rows_dropped);
                 } else if (strcmp(ex, "%SEL") == 0 || strncmp(ex, "%PAGEMARK-", 10) == 0 || strncmp(ex, "%LEVELMARK-", 11) == 0 ||
-                           strncmp(ex, "%SOFT-", 6) == 0 || strcmp(ex, "%XLINE") == 0 || strcmp(ex, "%BAND") == 0 ||
+                           strncmp(ex, "%LEVELOP-", 9) == 0 || strncmp(ex, "%SOFT-", 6) == 0 || strcmp(ex, "%XLINE") == 0 || strcmp(ex, "%BAND") == 0 ||
                            strcmp(ex, "%XMARK") == 0) {
                     /* (unit 096: %XMARK, the glyph X's line draws before its number, _ none) */
                     /* unit 093 (abacus #14133, #14135): the selection as screen_lines tells it; blanks _, an empty text _ */
@@ -1317,6 +1317,11 @@ int vectors_run(const char *name, FILE *f)
                     } else if (ex[1] == 'P') {
                         int k = atoi(ex + 10);
                         snprintf(got, sizeof got, "%c", pg.page_on && k >= 1 && k <= pg.page_n ? pg.pagemark[k - 1] : '?');
+                    } else if (ex[1] == 'L' && ex[6] == 'O') {
+                        /* unit 098 (abacus #14713): %LEVELOP-k, the op drawn beside level k, _ none, ? the level not drawn */
+                        const char *lv = ex[9] ? strchr("XYZT", ex[9]) : NULL;
+                        if (!pg.page_on || !lv || ex[10] || !strchr(pg.levels, ex[9])) snprintf(got, sizeof got, "?");
+                        else snprintf(got, sizeof got, "%s", pg.levelop[lv - "XYZT"][0] ? pg.levelop[lv - "XYZT"] : "_");
                     } else if (ex[1] == 'L') {
                         const char *lv = strchr("XYZT", ex[11]);
                         snprintf(got, sizeof got, "%c", pg.page_on && lv && ex[11] ? pg.levelmark[lv - "XYZT"] : '?');

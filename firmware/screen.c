@@ -1544,17 +1544,45 @@ static bool draw_xexpr(ls027_frame *f, const ab_calc *c)
 /* ---- unit 090: drawing the page ---- */
 
 /* A level's op beside its letter (p2's "Y +", "X √x"), when its record is on the page, it's no typed number or ALG line,
-   and the value at the scale it's drawn at leaves room */
-static void level_op(ls027_frame *f, const ab_calc *c, uint32_t at, int bot, int max, int cells)
+   and the value at the scale it's drawn at leaves room. Unit 098: the one source for what's drawn and screen_page's
+   levelop: level i (0 X .. 3 T) of k's page, its op's text into t, and whether it's drawn. draw_page's own conditions are
+   here too: no op in ALG or above the levels drawn, none on Y as a prompt, and X's only on its text line as a value with
+   its letter (not drawn in 2D), its cells counting the ≈ */
+static bool level_op_text(const ab_calc *c, const composed *k, int i, char *t, int tsz)
 {
     ab_row r;
-    char t[32];
-    int s = max;
-    if (at == UINT32_MAX || !ab_rows_parse(c->rows + at, c->rows_len - at, &r)) return;
-    if (r.op == AB_ROW_OP_NUM || r.op == AB_ROW_OP_ALG || ab_op_text(c, (int)r.op, r.arg, t, sizeof t) <= 0) return;
+    int max, cells, s;
+    t[0] = '\0';
+    if (!k->page || k->alg || i < 0 || i >= k->levels) return false;
+    if (i == 0) {
+        if (k->xe_top || !k->x_letter || k->xk != SCREEN_VALUE) return false;
+        max = 4;
+        cells = k->x.n + (k->xmark && k->x.n < LINE_MAX_CP);   /* (as draw_xline returns) */
+    } else {
+        if (i == 1 && k->prompt) return false;
+        const line *ll[4] = {&k->x, &k->y, &k->z, &k->t};
+        max = 2;
+        cells = ll[i]->n;
+    }
+    uint32_t at = k->lvl_at[i];
+    if (at == UINT32_MAX || !ab_rows_parse(c->rows + at, c->rows_len - at, &r)) return false;
+    if (r.op == AB_ROW_OP_NUM || r.op == AB_ROW_OP_ALG || ab_op_text(c, (int)r.op, r.arg, t, tsz) <= 0) {
+        t[0] = '\0';
+        return false;
+    }
+    s = max;
     while (s > 2 && span(cells, s) > NUM_R - NUM_X) s--;
-    if (NUM_X + 2 + span(screen_cells(t), 2) + 12 > NUM_R - span(cells, s)) return;
-    screen_text(f, NUM_X + 2, bot - 14, 2, t, true);
+    if (NUM_X + 2 + span(screen_cells(t), 2) + 12 > NUM_R - span(cells, s)) {
+        t[0] = '\0';
+        return false;
+    }
+    return true;
+}
+
+static void level_op(ls027_frame *f, const ab_calc *c, const composed *k, int i)
+{
+    char t[32];
+    if (level_op_text(c, k, i, t, sizeof t)) screen_text(f, NUM_X + 2, k->lvl_bot[i] - 14, 2, t, true);
 }
 
 /* One of the page's lines into l: its text at the left or its value at the right, as part says */
@@ -1591,12 +1619,12 @@ static void draw_page(ls027_frame *f, const ab_calc *c, const screen_ui *ui, com
             bool prompt = i == 1 && k->prompt;
             if (!prompt) draw_label(f, k->lvl_bot[i], lb[i]);
             draw_line(f, k->lvl_bot[i], 2, ll[i], prompt);
-            if (!prompt) level_op(f, c, k->lvl_at[i], k->lvl_bot[i], 2, ll[i]->n);
+            level_op(f, c, k, i);
         }
         if (!k->xe_top || !draw_xexpr(f, c)) {
             if (k->x_letter) draw_label(f, PG_XBOT, "X");
-            int cells = draw_xline(f, PG_XBOT, k);
-            if (k->x_letter && k->xk == SCREEN_VALUE) level_op(f, c, k->lvl_at[0], PG_XBOT, 4, cells);
+            draw_xline(f, PG_XBOT, k);
+            level_op(f, c, k, 0);
         }
     }
     if (k->sel) {                               /* unit 093: the selected row inverted, the rows it links to dotted */
@@ -1728,6 +1756,7 @@ void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
         out->sel = k->sel;                      /* unit 093 */
         for (int i = 0; i < k->pg_n; i++) out->pagemark[i] = k->pg[i].mark;
         for (int i = 0; i < 4; i++) out->levelmark[i] = k->alg ? '?' : i < k->levels ? k->lvl_mark[i] : '?';
+        for (int i = 0; i < 4; i++) level_op_text(c, k, i, out->levelop[i], sizeof out->levelop[i]);    /* unit 098 */
     }
     snprintf(out->xmark, sizeof out->xmark, "%s", k->xmark ? "\xe2\x89\x88" : "");    /* unit 096: ≈ */
 }
@@ -1745,6 +1774,15 @@ void screen_page_window(const ab_calc *c, uint32_t *top, uint32_t *bottom)
         if (!*bottom) *bottom = sr;
         *top = sr;
     }
+}
+
+void screen_level_bottoms(const ab_calc *c, int bot[4])
+{
+    screen_ui ui;
+    composed *k = &comp;
+    screen_ui_default(&ui);
+    compose(c, &ui, k);
+    for (int i = 0; i < 4; i++) bot[i] = k->page && !k->alg && i < k->levels ? k->lvl_bot[i] : -1;
 }
 
 void screen_render(const ab_calc *c, const screen_ui *ui, ls027_frame *f)
