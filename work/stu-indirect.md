@@ -125,6 +125,34 @@ shouldn't bend toward it. What that mode's storage would be, from the 50g's guid
   keys don't change for it. The one bridge already in place is 082's AB_NAME, a letter as a value on the stack, which
   is the 50g's quoted name in miniature.
 
+## 5a. Two promises (abacus #15031, after tutor's census #15030)
+
+tutor's census found no lesson that uses indirect addressing. Lessons do use **I as a plain letter** in STU: ISG I as a
+loop counter (fn-02, int-01, seq-01) and eq-04's V = I × R with STO I and RCL I.
+
+**Promise 1: I and J stay ordinary letters in STU, and nothing about them moves.** Only (I) and (J), the indirect forms,
+change. Today's build already gives the same results in all three modes. These vectors pass now (9/9,
+`work/stu-indirect-evidence/baseline.txt` and its run), go into the unit's file unchanged, and must still pass after it:
+- ISG I from 1.005 in a loop, ending at 6.005, in STU, the 33s and the 35s (B1-B3);
+- RCL I in an equation, 2×I with I = 5, giving 10, in STU, the 35s and the 33s (B4-B6). An equation stops to prompt
+  for I, so R/S finishes it.
+
+**Promise 2: the index i and the complex unit i can't be confused.** STU now has both.
+
+| where | the index i | the complex unit |
+|---|---|---|
+| a variable prompt | `STO i`, `RCL i`, `STO (i)`: lowercase, from the prompt's letter layer (app.c:961, open only while a prompt is) | never appears |
+| the keys | the (I) and (J) keys in a prompt (§2) | CMPLX's i key outside a prompt, as poly-04 types it, untouched: the prompt's letter layer isn't active then |
+| the stack | never: a variable is a value there, not a name | between the two parts, the 35s's form: `3.0000i4.0000` (B7) |
+| an STU equation | only as the glyph ⒤ | only between two numbers: `3i4` is 3 + 4i (B8, its ABS 5) |
+
+- **A correction to the premise:** a lone i in an STU equation isn't the complex unit today. It's SYNTAX ERROR (B9).
+  The complex unit is only ever written between two numbers there, and the variable i is read only under the 33s
+  stamp (eqn.c:643). The blueprint keeps that: an STU equation names neither i itself nor a lone imaginary i, so
+  nothing in one can be read two ways.
+- The vectors are B7 to B9, plus the prompt's text `STO (i)` in screen_test, since a prompt isn't in the vector
+  grammar.
+
 ## 6. The test, for the build
 
 1. **Vectors** (the unit's own):

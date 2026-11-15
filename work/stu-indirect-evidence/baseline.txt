@@ -1,0 +1,11 @@
+# The promises' baseline (abacus #15031), run on today's build (build/vectors 2026-11-12 18:22, newer than core/calc.c and
+# core/eqn.c; src unchanged since). These go into the unit's vectors unchanged and must still pass after it.
+B1 | ISG I in 33s | MODE33 1.005 STO:I PRGM LBL:A ISG:I GTO:A RTN PRGM XEQ:A | @I=6.005
+B2 | ISG I in 35s | MODE35 1.005 STO:I PRGM LBL:A ISG:I GTO:A RTN PRGM XEQ:A | @I=6.005
+B3 | ISG I in STU | STU 1.005 STO:I PRGM LBL:A ISG:I GTO:A RTN PRGM XEQ:A | @I=6.005
+B4 | RCL I in an equation, 35s | MODE35 5 STO:I EQ:2×I ENTER RS | X=10
+B5 | RCL I in an equation, STU | STU 5 STO:I EQ:2×I ENTER RS | X=10
+B6 | RCL I in an equation, 33s | MODE33 5 STO:I EQ:2×I XEQ RS | X=10
+B7 | STU complex after entry | STU 3 CI 4 ENTER | %XLINE=3.0000i4.0000
+B8 | STU equation 3i4 is the complex 3+4i (its ABS 5) | STU EQ:3i4 ENTER ABS | X=5
+B9 | STU equation lone i | STU EQ:2×i ENTER | ERR %ERRMSG=SYNTAX_ERROR

@@ -1,0 +1,2 @@
+work/stu-indirect-evidence/baseline.txt: 9/9 vectors, 9/9 expectations
+rc=0
