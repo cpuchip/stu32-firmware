@@ -1,5 +1,12 @@
 # STU's stack at 16 levels (blueprint)
 
+**PARKED: for a future 50g or RPL mode (abacus decision 101); not built.** Michael ruled that STU stays at 4 levels (his
+words, through abacus #15019: "Yes 4 level stack now record it" and "Please keep them for a 50g or RPL mode"). Unit
+099 is withdrawn; no src was written. The evidence and prototype.diff stay. In such a mode the 50g's model comes whole,
+as its own mode: no T copy-down and an interactive stack, not this blueprint's hybrid of the 35s at four and the 50g
+above. What led to the ruling: tutor's walk diff on prototype.diff (#15005, via abacus #15008) moved 49 of 161 STU
+walks, 4 of them visibly to learners (rpn-01's T-copy section), because a walk keeps one device through a lesson.
+
 Asked by abacus (#14960), after the page-levels release (primer 4580f0e, live 11-12 20:56Z). Decision 100: STU's stack
 has 16 levels; the 33s and the 35s stay at 4. This is the blueprint, with no src. The one piece of code is a throwaway
 prototype in a scratch worktree, kept as `work/stu-depth-evidence/prototype.diff` so its measurements can be repeated.
