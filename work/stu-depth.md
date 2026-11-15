@@ -92,7 +92,15 @@ would start at 12, so **8 levels is the most the area holds**, X included.
   one visible choice, the same kind as 090's A and B:
   - **(A), my lean:** as many levels as fit. The stack is the work in hand, and the page comes back as the values are
     used.
-  - **(B):** at most 6 levels, keeping 2 page lines, with the count above level 6.
+  - **(B):** the levels and the count take at most 6 lines, so the page keeps 2: 6 levels when 6 are live, else 5
+    levels and the count above them. (Corrected 11-15 at the frames: 5e0c7b2 said "at most 6 levels … with the count
+    above level 6", which leaves the page 1 line, not 2.)
+  - **The frames** (abacus #14992), rendered from the prototype: `work/stu-depth-evidence/frames/`, made by
+    depthframes.c, with their keys and hashes in frames.txt.
+    - d1, 7 levels live and 3 rows for the page: (A) draws X to 7 and 1 page line; (B) draws X to 5, "2 LEVELS
+      ABOVE" and 2 page lines.
+    - d2, 16 live: (A) X to 7 and "9 LEVELS ABOVE"; (B) X to 5 and "11 LEVELS ABOVE".
+    - d0, 4 live: (A) and (B) are the same frame, as today's.
   - I can render both as frames from the build's code for Michael's card, as p1-A and p1-B were.
 - **Names past T:** 5, 6, 7 and 8 in the letter's place at x 2. Each is one cell at scale 2, as X Y Z T are.
   - The 50g labels its levels with numbers from the bottom (50g UG p.1-15), and Michael's note names the 50g. Letters

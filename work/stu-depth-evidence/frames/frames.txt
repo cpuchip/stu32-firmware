@@ -1,0 +1,12 @@
+d1-seven-live-A: keys "STU 2 SQRT ENTER 3 * 5 ENTER 6 ENTER 7 ENTER 8 ENTER 9 ENTER 10"; levels 765TZYX, page lines 1
+d2-sixteen-live-A: keys "STU 1 ENTER 2 ENTER 3 ENTER 4 ENTER 5 ENTER 6 ENTER 7 ENTER 8 ENTER 9 ENTER 10 ENTER 11 ENTER 12 ENTER 13 ENTER 14 ENTER 15 ENTER 16"; levels 765TZYX, page lines 0
+d0-four-live-A: keys "STU 2 SQRT ENTER 3 * 5 ENTER 6 ENTER 7"; levels TZYX, page lines 3
+d1-seven-live-B: keys "STU 2 SQRT ENTER 3 * 5 ENTER 6 ENTER 7 ENTER 8 ENTER 9 ENTER 10"; levels 5TZYX, page lines 2
+d2-sixteen-live-B: keys "STU 1 ENTER 2 ENTER 3 ENTER 4 ENTER 5 ENTER 6 ENTER 7 ENTER 8 ENTER 9 ENTER 10 ENTER 11 ENTER 12 ENTER 13 ENTER 14 ENTER 15 ENTER 16"; levels 5TZYX, page lines 0
+d0-four-live-B: keys "STU 2 SQRT ENTER 3 * 5 ENTER 6 ENTER 7"; levels TZYX, page lines 3
+9c8274224a9e57fb96f3a8b6896baf7491811f1abed8cf9ea45dba5b34724726  d0-four-live-A.png
+9c8274224a9e57fb96f3a8b6896baf7491811f1abed8cf9ea45dba5b34724726  d0-four-live-B.png
+32f8dd2b6edd5fd9709c2f6ce0ee1837a23311306883a63ce8477e52cd82fac8  d1-seven-live-A.png
+8fcad2f250f699438ff4720bd872fd74be81f26be626fd908f991dd629dbc8ee  d1-seven-live-B.png
+7d26e9e8ca524cf74477ad32db45169b3b4fdf1c516b7fa8ab9ca7870ad89a1d  d2-sixteen-live-A.png
+b2ef5020b15abc918d37ac7b32278bbf71778cedd5130e73b484e1ec1344a1f6  d2-sixteen-live-B.png

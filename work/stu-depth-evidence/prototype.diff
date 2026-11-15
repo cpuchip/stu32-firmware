@@ -110,6 +110,148 @@ index 14e5fea..52bd516 100644
      ab_val lastx;
      bool lift;              /* stack lift enabled */
      ab_angle angle;         /* angular mode for trigonometry */
+diff --git a/firmware/screen.c b/firmware/screen.c
+index edc5abf..6755d50 100644
+--- a/firmware/screen.c
++++ b/firmware/screen.c
+@@ -785,10 +785,12 @@ typedef struct {
+        Y's place is the line), each one's bottom, X's expression's top when it's drawn in 2D, each level's own record
+        (its op beside its letter), and the page's lines from the lowest: a record's offset and which part of it */
+     int levels;
+-    int lvl_bot[4];
++    int lvl_bot[8];
++    int above;              /* PROTOTYPE: the count line's k */
++    line deep[4];           /* PROTOTYPE: levels 5-8 */
+     int xe_top;
+     int pg_bot0;
+-    uint32_t lvl_at[4];     /* (UINT32_MAX: none on the page) */
++    uint32_t lvl_at[8];     /* (UINT32_MAX: none on the page) */
+     int pg_n;
+     struct {
+         uint32_t at;
+@@ -797,9 +799,10 @@ typedef struct {
+     } pg[SCREEN_PAGE_MAX];
+     long pg_top;            /* the dropped count when its line is drawn, else -1 */
+     uint32_t sel;           /* unit 093: the selected row (RPN) or the one shown (ALG), 0 none */
+-    char lvl_mark[4];       /* each level's mark as pg's ('?' not drawn) */
++    char lvl_mark[8];       /* each level's mark as pg's ('?' not drawn) */
+ } composed;
+ 
++int proto_mode_b;
+ static composed comp;           /* compose's result, shared by screen_render and screen_lines (one at a time:
+                                    about 8 KB, kept off the stack) */
+ 
+@@ -848,11 +851,12 @@ static void pg_draw_text(ls027_frame *f, int bot, const char *s, bool left)
+    and its result, with the rows before it above); then the dropped line, when the page's oldest row is on the screen */
+ static void page_plan(const ab_calc *c, const screen_ui *ui, composed *k)
+ {
+-    uint32_t held[4] = {0}, limit = UINT32_MAX, ring[SCREEN_PAGE_MAX], fw[SCREEN_PAGE_MAX], links[AB_ROW_LINKS] = {0};
++    uint32_t held[16] = {0}, limit = UINT32_MAX, ring[SCREEN_PAGE_MAX], fw[SCREEN_PAGE_MAX], links[AB_ROW_LINKS] = {0};
+     int nh = 0, bot, avail, rn = 0, rh = 0, matched = 0, used = 0, drawn = 0, nf = 0, after_fw = 0, nlinks = 0;
+     bool scrolled = !k->alg && c->sel_row && (c->sel_top || c->sel_drop);
+     k->pg_n = 0;
+-    for (int i = 0; i < 4; i++) k->lvl_at[i] = UINT32_MAX, k->lvl_mark[i] = '?';
++    for (int i = 0; i < 8; i++) k->lvl_at[i] = UINT32_MAX, k->lvl_mark[i] = '?';
++    k->above = 0;
+     k->xe_top = 0;
+     k->sel = k->alg ? c->hist_row : c->sel_row;
+     if (k->sel) {                               /* unit 093: what the selected row links to (its dots) */
+@@ -870,20 +874,26 @@ static void page_plan(const ab_calc *c, const screen_ui *ui, composed *k)
+         if (c->hist_row) limit = c->hist_row;
+         else if (c->alg_shown && c->ans.row) held[nh++] = c->ans.row;
+     } else {
+-        const ab_val *lv[4] = {&c->x, &c->y, &c->z, &c->t};
+-        int n = 4, xtop = PG_XBOT - 28, top;
++        const ab_val *lv[16] = {&c->x, &c->y, &c->z, &c->t};
++        for (int i = 0; i < 12; i++) lv[4 + i] = &c->deep[i];
++        int n = 16, xtop = PG_XBOT - 28, top, slots = 0;
+         while (n > (k->prompt ? 2 : 1) && lv[n - 1]->bare) n--;
+-        k->levels = n;
+         if (k->xexpr && xexpr_fit(c, &top)) xtop = k->xe_top = top;
+         k->lvl_bot[0] = PG_XBOT;
+-        for (int i = 1; i < 4; i++) k->lvl_bot[i] = i == 1 ? xtop - 6 : k->lvl_bot[i - 1] - PG_PITCH;
+-        bot = (n > 1 ? k->lvl_bot[n - 1] - PG_PITCH : xtop - 6) - PG_RULE;
++        for (int i = 1; i < 8; i++) k->lvl_bot[i] = i == 1 ? xtop - 6 : k->lvl_bot[i - 1] - PG_PITCH;
++        for (int i = 0; i < 8; i++) if (k->lvl_bot[i] - 14 >= PG_TOP) slots = i + 1;
++        if (proto_mode_b && slots > 6) slots = 6;
++        if (n > slots) k->above = n - (slots - 1), n = slots - 1;
++        k->levels = n;
++        int used_lines = n + (k->above ? 1 : 0);
++        bot = (used_lines > 1 ? k->lvl_bot[used_lines - 1] - PG_PITCH : xtop - 6) - PG_RULE;
+         for (int i = 0; i < n; i++) {
+             held[nh++] = lv[i]->row;
+             k->lvl_mark[i] = !lv[i]->row ? '-' : lv[i]->row == k->sel ? 'S' : '-';
+             for (int j = 0; j < nlinks; j++)
+                 if (lv[i]->row && lv[i]->row == links[j] && k->lvl_mark[i] == '-') k->lvl_mark[i] = 'L';
+         }
++        for (int i = n; i < n + k->above; i++) held[nh++] = lv[i]->row;     /* PROTOTYPE: a level not drawn keeps its row off the page */
+     }
+     k->pg_bot0 = bot;
+     avail = bot - 14 >= PG_TOP ? (bot - 14 - PG_TOP) / PG_PITCH + 1 : 0;
+@@ -894,7 +904,7 @@ static void page_plan(const ab_calc *c, const screen_ui *ui, composed *k)
+         bool h = false;
+         if (sr >= limit) break;
+         for (int j = 0; j < nh; j++)
+-            if (held[j] == sr) h = true, k->lvl_at[j] = k->alg ? UINT32_MAX : at;
++            if (held[j] == sr) { h = true; if (j < 8) k->lvl_at[j] = k->alg ? UINT32_MAX : at; }
+         if (h) continue;
+         matched++;
+         if (avail) {
+@@ -1257,6 +1267,7 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
+     }
+     val_line(&c->z, c, ui, &k->z, &unused);
+     val_line(&c->t, c, ui, &k->t, &unused);
++    for (int i = 0; i < 4; i++) val_line(&c->deep[i], c, ui, &k->deep[i], &unused);
+     if (c->eqn_mode && !c->prgm && !c->alg && !c->tbl_on && !c->gr_on) {   /* (TABLE and GRAPH: their views, as 080) */
+         /* unit 083 (Michael's eqn-screen, option 1): Equation mode has its own screen in every mode, list and typing
+            alike, and in a prompt or menu opened there (SOLVE's and ∫'s letter, RCL while typing, REG): the stack hidden
+@@ -1560,7 +1571,7 @@ static bool level_op_text(const ab_calc *c, const composed *k, int i, char *t, i
+         cells = k->x.n + (k->xmark && k->x.n < LINE_MAX_CP);   /* (as draw_xline returns) */
+     } else {
+         if (i == 1 && k->prompt) return false;
+-        const line *ll[4] = {&k->x, &k->y, &k->z, &k->t};
++        const line *ll[8] = {&k->x, &k->y, &k->z, &k->t, &k->deep[0], &k->deep[1], &k->deep[2], &k->deep[3]};
+         max = 2;
+         cells = ll[i]->n;
+     }
+@@ -1613,8 +1624,13 @@ static void draw_page(ls027_frame *f, const ab_calc *c, const screen_ui *ui, com
+         draw_line(f, k->lvl_bot[1], 2, &k->y, true);
+         draw_line(f, PG_XBOT, 4, &k->x, k->x_left);
+     } else {
+-        line *ll[4] = {&k->x, &k->y, &k->z, &k->t};
+-        static const char *const lb[4] = {"X", "Y", "Z", "T"};
++        line *ll[8] = {&k->x, &k->y, &k->z, &k->t, &k->deep[0], &k->deep[1], &k->deep[2], &k->deep[3]};
++        static const char *const lb[8] = {"X", "Y", "Z", "T", "5", "6", "7", "8"};
++        if (k->above) {
++            char at[32];
++            snprintf(at, sizeof at, "%d LEVELS ABOVE", k->above);
++            screen_text(f, 2, k->lvl_bot[k->levels] - 14, 2, at, true);
++        }
+         for (int i = k->levels - 1; i >= 1; i--) {
+             bool prompt = i == 1 && k->prompt;
+             if (!prompt) draw_label(f, k->lvl_bot[i], lb[i]);
+@@ -1747,7 +1763,7 @@ void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
+     out->pagetop = -1;                          /* unit 090: the worksheet */
+     if (k->page) {
+         out->page_on = true;
+-        snprintf(out->levels, sizeof out->levels, "%s", k->alg ? "-" : &"TZYX"[4 - k->levels]);
++        snprintf(out->levels, sizeof out->levels, "%s", k->alg ? "-" : &"8765TZYX"[8 - k->levels]);
+         out->page_n = k->pg_n;
+         for (int i = 0; i < k->pg_n; i++)
+             pg_line_text(c, ui, k, i, out->page[i].left, sizeof out->page[i].left, out->page[i].value,
+diff --git a/firmware/screen.h b/firmware/screen.h
+index 09a0444..7d16839 100644
+--- a/firmware/screen.h
++++ b/firmware/screen.h
+@@ -161,7 +161,7 @@ typedef struct {
+        left, its value as a level's (a row that doesn't fit one line is two: its left above its value); the dropped
+        line counts as one, its text at the left. pagetop: the dropped count when that line is drawn, else -1 */
+     bool page_on;
+-    char levels[5];
++    char levels[9];
+     int page_n;
+     struct {
+         char left[AB_EQN_LEN];
 diff --git a/tests/vectors.c b/tests/vectors.c
 index 132859c..cfc7263 100644
 --- a/tests/vectors.c
