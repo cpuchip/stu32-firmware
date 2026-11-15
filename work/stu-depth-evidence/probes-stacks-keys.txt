@@ -1,0 +1,7 @@
+Q02 | UG p.2-6 with a leftover, full stack | STU 9 SQRT 1.5 ENTER ENTER ENTER 100 * * * | X=-1 Y=-1 Z=-1 T=-1 5=-1 6=-1
+Q02a | after the constants | STU 9 SQRT 1.5 ENTER ENTER ENTER | X=-1 Y=-1 Z=-1 T=-1 5=-1 6=-1
+Q04 | Horner with a leftover, full stack | STU 9 SQRT 2 ENTER ENTER ENTER 2 * 3 - * 4 + * 5 - | X=-1 Y=-1 Z=-1 T=-1 5=-1 6=-1
+Q04b | Horner degree 5 with a leftover: x^5+x^4+x^3+x^2+x+1 at 2 = 63 | STU 9 SQRT 2 ENTER ENTER ENTER 1 * 1 + * 1 + * 1 + * 1 + * 1 + | X=-1 Y=-1 Z=-1 T=-1 5=-1
+R1 | after 100 | STU 9 SQRT 1.5 ENTER ENTER ENTER 100 | X=-1 Y=-1 Z=-1 T=-1 5=-1 6=-1
+R2 | after one * | STU 9 SQRT 1.5 ENTER ENTER ENTER 100 * | X=-1 Y=-1 Z=-1 T=-1 5=-1 6=-1
+R3 | after two * | STU 9 SQRT 1.5 ENTER ENTER ENTER 100 * * | X=-1 Y=-1 Z=-1 T=-1 5=-1 6=-1

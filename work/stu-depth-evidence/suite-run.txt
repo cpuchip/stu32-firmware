@@ -1,0 +1,11 @@
+# The prototype (prototype.diff, a scratch worktree at ffc9fa4, not committed as src): make -i test, so every step ran and
+# make's rc is 0 by -i, not a pass. Every line below with FAIL or a short count; the rest of the output passed.
+FAIL O03: expected %LEVELOP-T=+, got √x
+tests/098-soroban.txt: 15/16 vectors, 33/34 expectations
+screen_test: 098 all four, T's copy: level T's op '√x', expected '+'
+screen_test: 9528/9529 checks, 67/67 frames match tests/frames
+FAIL O03: expected %LEVELOP-T=+, got √x
+tests/098-soroban.txt: 15/16 vectors, 33/34 expectations
+sum of every n/m vectors: 21960/21962
+sum of every n/m expectations: 60982/60984
+# O03 fails twice: in make test and again in the sanitizer run (Makefile 307, 513). The screen_test line is level_ops' case on the same keys.

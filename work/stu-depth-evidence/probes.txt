@@ -1,0 +1,18 @@
+# prototype probes, predictions written before the run (soroban, stu-depth, 2026-11-15)
+P01 | UG p.2-6 constant, fresh STU | STU 1.5 ENTER ENTER ENTER 100 * * * | X=337.5 Y=1.5 Z=1.5 T=1.5 5=0
+P02 | UG p.2-6 with a leftover 3 under the constants | STU 9 SQRT 1.5 ENTER ENTER ENTER 100 * * * | X=337.5 Y=1.5 Z=3 T=3 5=0
+P03 | Horner 2x3-3x2+4x-5 at 2, fresh | STU 2 ENTER ENTER ENTER 2 * 3 - * 4 + * 5 - | X=7 Y=2 Z=2 T=2
+P04 | Horner with a leftover 3: predicted not 7 | STU 9 SQRT 2 ENTER ENTER ENTER 2 * 3 - * 4 + * 5 - | X=7
+P05 | Horner after CLSTK | STU 9 SQRT CLSTK 2 ENTER ENTER ENTER 2 * 3 - * 4 + * 5 - | X=7 Y=2 Z=2 T=2
+P06 | Horner by RCL* | STU 9 SQRT 2 STO:X 2 RCL*:X 3 - RCL*:X 4 + RCL*:X 5 - | X=7
+P07 | six deep, five + | STU 1 ENTER 2 ENTER 3 ENTER 4 ENTER 5 ENTER 6 + + + + + | X=21 Y=1 Z=1 T=1 5=0
+P08 | six deep before the drops | STU 1 ENTER 2 ENTER 3 ENTER 4 ENTER 5 ENTER 6 | X=6 Y=5 Z=4 T=3 5=2 6=1 7=0
+P09 | R-down over five | STU 1 ENTER 2 ENTER 3 ENTER 4 ENTER 5 RDN | X=4 Y=3 Z=2 T=1 5=5 6=0
+P10 | R-down then R-up | STU 1 ENTER 2 ENTER 3 ENTER 4 ENTER 5 RDN RUP | X=5 Y=4 Z=3 T=2 5=1
+P11 | R-down with two live: as the 35s | STU 2 ENTER 3 RDN | X=2 Y=0 Z=0 T=3 5=0
+P12 | seventeen pushed: level 9 | STU 1 ENTER 2 ENTER 3 ENTER 4 ENTER 5 ENTER 6 ENTER 7 ENTER 8 ENTER 9 ENTER 10 ENTER 11 ENTER 12 ENTER 13 ENTER 14 ENTER 15 ENTER 16 ENTER 17 | X=17 9=9
+P13 | 35s mode: four | MODE35 1 ENTER 2 ENTER 3 ENTER 4 ENTER 5 + | X=9 Y=3 Z=2 T=2 5=0
+P14 | STU-stamped program | STU PRGM LBL:A 1 ENTER 2 ENTER 3 ENTER 4 ENTER 5 + RTN PRGM XEQ:A | X=9 Y=3 Z=2 T=1 5=0
+P15 | 35s-stamped program run in STU | MODE35 PRGM LBL:A 1 ENTER 2 ENTER 3 ENTER 4 ENTER 5 + RTN PRGM STU XEQ:A | X=9 Y=3 Z=2 T=2 5=0
+P16 | SOLVE leaves 5-8 alone | STU 1 ENTER 2 ENTER 3 ENTER 4 ENTER 5 ENTER 6 PRGM CLPGM LBL:Q RCL:X SQ RCL:X + 6 - RTN PRGM 0 STO:X 10 FN=:Q SOLVE:X | X=2 5=4 6=3 7=2 8=1
+P17 | CLSTK in 35s clears the deep levels too | STU 1 ENTER 2 ENTER 3 ENTER 4 ENTER 5 MODE35 CLSTK STU | 5=0
