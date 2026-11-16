@@ -1,0 +1,43 @@
+# h099: abacus's hidden set for unit 099, STU's indirect addressing (stu32-firmware work/stu-indirect.md at 430eafd,
+# decisions 100 and 102). Written from the blueprint and the rulings, before src. Tokens as tests/vectors.c reads them:
+# i is the index (AB_VAR_SI), (i) is indirect through it; the keys that make them in STU are soroban's own vectors' and
+# screen_test's to check, not this file's.
+# Registers: (i) names unnamed register int(i), 0 to 800. NO REGISTER: i negative, above 800, complex; a read above the
+# defined range. I and J are plain letters in STU. Jumps (decision 102): XEQ, GTO (i) with int(i) 1 to 26 name labels
+# A to Z; NO REGISTER for 0, 27 up, negative, complex; NONEXISTENT for a label not in memory.
+H01 | STU: (i) at i = 5 writes register 5; I is untouched | STU 5 STO:i 7 STO:(i) | @#5=7 @i=5 @I=0
+H02 | STU: RCL (i) reads it back (I = 9 so the 35s's (I) would read another register) | STU 9 STO:I 5 STO:i 7 STO:(i) CLX RCL:(i) | X=7 @#5=7
+H03 | STU: i's integer part (5.7 is 5) | STU 5.7 STO:i 7 STO:(i) | @#5=7
+H04 | STU: i = 0 is register 0 (I = 9) | STU 9 STO:I 0 STO:i 4 STO:(i) | @#0=4
+H05 | STU: i = 1 is register 1, not the letter A | STU 1 STO:i 9 STO:(i) | @#1=9 @A=0
+H06 | STU: the top, 800 | STU 800 STO:i 9 STO:(i) | @#800=9
+H07 | STU: 801 names no register | STU 801 STO:i 9 STO:(i) | ERR %ERRMSG=NO_REGISTER
+H08 | STU: a negative i names no register (no numbered letters) | STU 3 CHS STO:i 9 STO:(i) | ERR %ERRMSG=NO_REGISTER @C=0
+H09 | STU: a complex i names no register | STU 3 CI 4 STO:i 9 STO:(i) | ERR %ERRMSG=NO_REGISTER
+H10 | STU: a read above the defined range | STU 5 STO:i 7 STO:(i) 6 STO:i RCL:(i) | ERR %ERRMSG=NO_REGISTER
+H11 | STU: a read inside the range of a register never written is 0 | STU 5 STO:i 7 STO:(i) 3 STO:i RCL:(i) | X=0
+H12 | STU: 0 stored in the top register releases it | STU 5 STO:i 7 STO:(i) 0 STO:(i) RCL:(i) | ERR %ERRMSG=NO_REGISTER
+H13 | STU: STO+ (i) | STU 5 STO:i 7 STO:(i) 3 STO+:(i) | @#5=10
+H14 | STU: RCL× (i) (I = 9) | STU 9 STO:I 5 STO:i 7 STO:(i) 2 RCL*:(i) | X=14 @#5=7
+H15 | STU: x↔ (i) | STU 5 STO:i 7 STO:(i) 3 XVAR:(i) | X=7 @#5=3
+H16 | STU: ISG (i) | STU 5 STO:i 1.003 STO:(i) ISG:(i) | @#5=2.003
+H17 | STU: DSE (i) | STU 5 STO:i 3 STO:(i) DSE:(i) | @#5=2
+H18 | STU: I is a plain letter, not the index (i is still 0) | STU 5 STO:I 7 STO:(i) | @I=5 @#0=7
+H19 | STU: ISG on the plain letter I runs a loop | STU 2.004 STO:I PRGM CLPGM LBL:B ISG:I GTO:B RTN PRGM XEQ:B | @I=5.004
+H20 | STU: J is a plain letter | STU 4 STO:J RCL:J | X=4 @J=4
+J01 | STU: XEQ (i) at i = 4 runs label D | STU PRGM CLPGM LBL:D 11 RTN PRGM 4 STO:i XEQ:(i) | X=11
+J02 | STU: GTO (i) in a program, i = 26 goes to label Z | STU PRGM CLPGM LBL:A 26 STO:i GTO:(i) RTN LBL:Z 13 RTN PRGM XEQ:A | X=13
+J03 | STU: i = 1 names label A | STU PRGM CLPGM LBL:A 21 RTN PRGM 1 STO:i XEQ:(i) | X=21
+J04 | STU: i's integer part in a jump (4.9 is D) | STU PRGM CLPGM LBL:D 11 RTN PRGM 4.9 STO:i XEQ:(i) | X=11
+J05 | STU: i = 0 in a jump names nothing | STU PRGM CLPGM LBL:A 21 RTN PRGM 0 STO:i XEQ:(i) | ERR %ERRMSG=NO_REGISTER
+J06 | STU: i = 27 in a jump names nothing | STU PRGM CLPGM LBL:A 21 RTN PRGM 27 STO:i XEQ:(i) | ERR %ERRMSG=NO_REGISTER
+J07 | STU: a negative i in a jump names nothing (the 33s would take it as C) | STU PRGM CLPGM LBL:C 21 RTN PRGM 3 CHS STO:i XEQ:(i) | ERR %ERRMSG=NO_REGISTER
+J08 | STU: a complex i in a jump names nothing | STU PRGM CLPGM LBL:C 21 RTN PRGM 3 CI 4 STO:i XEQ:(i) | ERR %ERRMSG=NO_REGISTER
+J09 | STU: a label not in memory (I = -1, which the 35s's (I) would take as A) | STU PRGM CLPGM LBL:A 21 RTN PRGM 1 CHS STO:I 3 STO:i XEQ:(i) | ERR %ERRMSG=NONEXISTENT
+J10 | STU: a jump leaves register 4 and the letter D alone | STU PRGM CLPGM LBL:D 11 RTN PRGM 4 STO:i XEQ:(i) | @D=0 X=11
+C01 | 35s unchanged: (I) at I = 5 is register 5 | MODE35 5 STO:I 7 STO:(I) | @#5=7
+C02 | 35s unchanged: I = -3 is the letter C | MODE35 3 CHS STO:I 7 STO:(I) | @C=7
+C03 | 35s unchanged: XEQ (I) at I = -3 runs label C | MODE35 PRGM CLPGM LBL:C 21 RTN PRGM 3 CHS STO:I XEQ:(I) | X=21
+C04 | 33s unchanged: i = 3 is the letter C | MODE33 3 STO:i 7 STO:(i) | @C=7
+C05 | 33s unchanged: XEQ (i) at i = 3 runs label C | MODE33 PRGM CLPGM LBL:C 21 RTN PRGM 3 STO:i XEQ:(i) | X=21
+C06 | 33s unchanged: the sign is ignored in a jump | MODE33 PRGM CLPGM LBL:C 21 RTN PRGM 3 CHS STO:i XEQ:(i) | X=21

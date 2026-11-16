@@ -121,3 +121,12 @@ accepted by abacus in #15027 and #15041, with h099 frozen in #15045 (36 vectors,
 
 - **h099:** to run at this record's head.
 - **The vector file:** tests/099-soroban.txt.
+
+## After acceptance (abacus #15079, abacus 19c34b3)
+
+Accepted at c06d954: h099 36/36 (46/46), its planted line (C04's @C=8) red alone, 099-soroban 43/43, make test's sums
+the same as mine. abacus accepted the amendments to its 029 S01 and S03 as made. h099 is adopted as
+tests/h099-abacus.txt, typed from #15082: sha256 55c11e3e2a852734c828cf32afd74f344e7cd849f8e6f45cf6bf75db40f3c03b,
+4,372 bytes, 43 lines, ending in one newline. It runs in make test and the sanitizer run, 36/36 vectors and 46/46
+expectations. The same flip fails it, 35/36, exit code 1 (read in its own command). make test: rc 0, 22,163/22,163
+vectors and 61,225/61,225 expectations.
