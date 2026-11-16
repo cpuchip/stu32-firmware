@@ -1,0 +1,25 @@
+Unit 099's mutants, each predicted before any run (written at 9f09f1f, the build's own commit). Each is one fault
+applied alone by work/099-evidence/mutants-runner.py; the binaries are deleted and rebuilt; the runner reads
+099-soroban, work/029-vectors, 029-soroban and 096-soroban (each plain), app_test, expr_test, rows_test and store_test.
+
+M0  control: no change.                                                   SURVIVED.
+M1  resolve's STU branch removed (STU falls through to the 35s's (I)).     RED: 099 R01-R15 (their (i) reads I, which
+    is 0 or a letter), E01, E02; 029 S01 and S03 and Z05, 096 C09 (i is no longer the index); app_test's STO (i)
+    key check. B, M, J untouched (jumps have their own branch).
+M2  a negative i accepted as a letter (STU's branch takes -1 to -26 as A to Z, the 35s's numbers).
+                                                                          RED: 099 R05 only.
+M3  the top at 799.                                                       RED: 099 R03 only.
+M4  the top at 801 (ind[] has 801 entries: an index of 801 would read past it; the build's sanitizer would catch
+    that, the plain run sees R04 store and pass).                         RED: 099 R04 only.
+M5  the loader's restamp skipped.                                         RED: 099 S01 only.
+M6  the saver's version marker skipped (STU images stay at 25 or 26, so they load as pre-unit and their STU labels
+    holding (I) are restamped 35).                                        RED: 099 S02; expr_test's and rows_test's
+    and store_test's version-27 pins.
+M7  the jump's STU branch removed (STU jumps fall to the 33s's branch).    RED: 099 J05 (0: INVALID (i)), J06 (27:
+    NONEXISTENT), J07 (-3 runs C), J08 (complex: INVALID (i)). J01, J02, J04, J09, J10 still pass (the 33s's
+    branch agrees for 1-26 and a missing label).
+M8  app.c's SOLVE/integral guard removed.                                 RED: app_test "SOLVE's prompt takes no (i)".
+M9  the listing's STU name reverted (STU's lines and rows read (I)).        RED: app_test's three (i) listing and
+    row checks.
+M10 the key test left at "not 35s" (STU keeps the 35s's keys).             RED: app_test's FN= (i) and STO (i) key
+    checks (in STU the (I) key gives (I), which reads I).
