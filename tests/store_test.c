@@ -153,9 +153,9 @@ static int settings_checks(void)
         c.x = v;
         n = dev_image_save(&c, &set, img, sizeof img);
         back = def;
-        CHECK(img[4] == 25 && dev_image_load(&c2, &back, img, n) == ABN_OK && back.h24 && c2.x.kind == AB_EXPR &&
+        CHECK(img[4] == 27 && dev_image_load(&c2, &back, img, n) == ABN_OK && back.h24 && c2.x.kind == AB_EXPR &&
                   !strcmp(ab_expr_text(&c2, &c2.x), "3\xc3\x97X^2-4") && c2.z.bare && c2.t.bare && !c2.y.bare,
-              "082: an expression's image (version 24 since unit 090: Z and T bare; 25 since 096, STU's T_ROUNDED) with "
+              "082: an expression's image (version 24 since unit 090: Z and T bare; 25 since 096, STU's T_ROUNDED; 27 since 099, STU's marker) with "
               "the device's record: both load back, X's expression whole, the bare marks too");
     }
     for (int on = 0; on <= 1; on++) {

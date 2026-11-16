@@ -1,0 +1,52 @@
+# Unit 099 (work/stu-indirect.md at 430eafd; decisions 100 and 102): STU's own indirect model. Each expectation is
+# the blueprint's, written before src ran (the baseline B and the jumps J were run on 430eafd's build first:
+# work/stu-indirect-evidence/). i is the index; (i) names the unnamed registers 0-800 by its integer part; NO REGISTER
+# for an index that names nothing; in XEQ, GTO and FN=, i 1-26 names label A-Z; I and J are plain letters.
+# The registers
+R01 | (i) at 0, I set apart (9) so the 35s's (I) would land elsewhere | STU 9 STO:I 0 STO:i 7 STO:(i) CLX RCL:(i) | X=7 @#0=7 @#9=0
+R02 | (i) at 5 | STU 5 STO:i 7 STO:(i) | @#5=7
+R03 | (i) at 800, the top | STU 800 STO:i 7 STO:(i) | @#800=7
+R04 | 801, past the top: NO REGISTER | STU 801 STO:i 7 STO:(i) | ERR %ERRMSG=NO_REGISTER
+R05 | a negative i: NO REGISTER (the letters go by name) | STU 1 CHS STO:i 7 STO:(i) | ERR %ERRMSG=NO_REGISTER
+R06 | 5.7 truncated to 5 | STU 5.7 STO:i 7 STO:(i) | @#5=7
+R07 | a complex i: NO REGISTER | STU 3 CI 4 STO:i 7 STO:(i) | ERR %ERRMSG=NO_REGISTER
+R08 | reading past the defined range: NO REGISTER | STU 5 STO:i RCL:(i) | ERR %ERRMSG=NO_REGISTER
+R09 | (J) has no meaning in STU: NO REGISTER | STU 5 STO:J RCL:(J) | ERR %ERRMSG=NO_REGISTER
+R10 | an expression in i stays NOT A NUMBER (082) | STU EQ:X+1 EQDROP STO:i RCL:(i) | ERR %ERRMSG=NOT_A_NUMBER
+R11 | STO+ (i) | STU 5 STO:i 7 STO:(i) 3 STO+:(i) | @#5=10
+R12 | RCL× (i), I set apart (9) | STU 9 STO:I 5 STO:i 7 STO:(i) 3 RCL*:(i) | X=21 @#5=7
+R13 | x↔ (i) | STU 5 STO:i 7 STO:(i) 2 XVAR:(i) | X=7 @#5=2
+R14 | ISG (i) | STU 5 STO:i 1.002 STO:(i) ISG:(i) | @#5=2.002
+R15 | VIEW (i) names unnamed register 5 | STU 5 STO:i 7 STO:(i) VIEW:(i) | %VIEW=1005
+R16 | a letter by name, I a plain letter | STU 5 STO:I CLX RCL:I | X=5
+# The 33s and 35s unchanged beside them
+M01 | 35s: I = 900 is INVALID (I) | MODE35 900 STO:I RCL:(I) | ERR %ERRMSG=INVALID_(I)
+M02 | 35s: I = -1 names A | MODE35 7 STO:A 1 CHS STO:I RCL:(I) | X=7
+M03 | 33s: i = 34 is INVALID (i) | MODE33 34 STO:i RCL:(i) | ERR %ERRMSG=INVALID_(i)
+M04 | 33s: i = 1 names A | MODE33 7 STO:A 1 STO:i RCL:(i) | X=7
+# Equations
+E01 | an STU equation reads (i) by its glyph, I set apart (9) | STU 9 STO:I 5 STO:i 7 STO:(i) EQ:⒤+1 ENTER | X=8 @#5=7
+E02 | an STU equation's (J): NO REGISTER | STU 5 STO:J EQ:⒥+1 ENTER | ERR %ERRMSG=NO_REGISTER
+# The jumps (decision 102)
+J01 | XEQ (i) with i = 3 runs label C | STU PRGM CLPGM LBL:C 5 RTN PRGM 3 STO:i XEQ:(i) | X=5
+J02 | GTO (i) inside a program: i = 2 goes to label B | STU PRGM CLPGM LBL:A 2 STO:i GTO:(i) RTN LBL:B 7 RTN PRGM XEQ:A | X=7
+J03 | the 33s's XEQ (i), the control | MODE33 PRGM CLPGM LBL:C 5 RTN PRGM 3 STO:i XEQ:(i) | X=5
+J04 | i = 5.7 names E | STU PRGM CLPGM LBL:E 9 RTN PRGM 5.7 STO:i XEQ:(i) | X=9
+J05 | i = 0: NO REGISTER | STU PRGM CLPGM LBL:A 5 RTN PRGM 0 STO:i XEQ:(i) | ERR %ERRMSG=NO_REGISTER
+J06 | i = 27: NO REGISTER | STU PRGM CLPGM LBL:A 5 RTN PRGM 27 STO:i XEQ:(i) | ERR %ERRMSG=NO_REGISTER
+J07 | i = -3: NO REGISTER (the 33s would take C) | STU PRGM CLPGM LBL:C 5 RTN PRGM 3 CHS STO:i XEQ:(i) | ERR %ERRMSG=NO_REGISTER
+J08 | a complex i: NO REGISTER | STU PRGM CLPGM LBL:C 5 RTN PRGM 3 CI 4 STO:i XEQ:(i) | ERR %ERRMSG=NO_REGISTER
+J09 | i = 3 with no LBL C: NONEXISTENT, as XEQ C (I = -1 set apart: the 35s's (I) would run A) | STU 1 CHS STO:I PRGM CLPGM LBL:A 5 RTN PRGM 3 STO:i XEQ:(i) | ERR %ERRMSG=NONEXISTENT
+J10 | FN= (i): i = 17 chooses Q, and SOLVE finds X^2 = 4's root | STU PRGM CLPGM LBL:Q RCL:X SQ 4 - RTN PRGM 17 STO:i 1 STO:X FN=:(i) SOLVE:X | X=2
+# Saved programs (§3): an image from before the unit
+S01 | a pre-unit image (version set to 26): its STU label holding (I) loads stamped 35, and (I) reads I as before | STU PRGM CLPGM LBL:A 5 STO:I 7 STO:(I) RTN PRGM SAVE SETBYTE:4:26 FIXCRC LOAD XEQ:A | @#5=7
+S02 | the same label in this build's image keeps STU: its (i) reads i (0) | STU PRGM CLPGM LBL:A 5 STO:I 7 STO:(I) RTN PRGM SAVE LOAD XEQ:A | @#0=7 @#5=0
+B1 | ISG I in 33s | MODE33 1.005 STO:I PRGM LBL:A ISG:I GTO:A RTN PRGM XEQ:A | @I=6.005
+B2 | ISG I in 35s | MODE35 1.005 STO:I PRGM LBL:A ISG:I GTO:A RTN PRGM XEQ:A | @I=6.005
+B3 | ISG I in STU | STU 1.005 STO:I PRGM LBL:A ISG:I GTO:A RTN PRGM XEQ:A | @I=6.005
+B4 | RCL I in an equation, 35s | MODE35 5 STO:I EQ:2×I ENTER RS | X=10
+B5 | RCL I in an equation, STU | STU 5 STO:I EQ:2×I ENTER RS | X=10
+B6 | RCL I in an equation, 33s | MODE33 5 STO:I EQ:2×I XEQ RS | X=10
+B7 | STU complex after entry | STU 3 CI 4 ENTER | %XLINE=3.0000i4.0000
+B8 | STU equation 3i4 is the complex 3+4i (its ABS 5) | STU EQ:3i4 ENTER ABS | X=5
+B9 | STU equation lone i | STU EQ:2×i ENTER | ERR %ERRMSG=SYNTAX_ERROR

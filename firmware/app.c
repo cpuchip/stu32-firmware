@@ -962,11 +962,15 @@ void app_key(app_state *a, int key, uint32_t now_ms)
         const km_letter *l = km_letter_of(key);
         if (l->kind == KL_LETTER || l->kind == KL_IND_I || l->kind == KL_IND_J) {
             int arg = km_prompt_arg(a->prompt_kind, l);
-            if (!ab_rec35(a->c) && l->kind != KL_LETTER) {    /* (in program entry, the edited label's: 041 C) */
-                /* 33s mode (unit 025): the (I) key gives i, the (J) key (i), the 33s's one index */
+            if (ab_rec_model(a->c) != 35 && l->kind != KL_LETTER) {    /* (in program entry, the edited label's: 041 C) */
+                /* 33s mode (unit 025) and STU (unit 099): the (I) key gives i, the (J) key (i), the one index */
                 bool var = a->prompt_kind == KM_ARG_VAR,
                      tgt = a->prompt_kind == KM_ARG_TARGET || a->prompt_kind == KM_ARG_FN;
                 arg = l->kind == KL_IND_I ? (var ? AB_VAR_SI : -1) : var ? AB_VAR_IND_I : tgt ? AB_TGT_IND_I : -1;
+                if (ab_rec_model(a->c) == AB_MODEL_STU && arg == AB_VAR_IND_I &&
+                    (a->prompt_op == AB_SOLVE || a->prompt_op == AB_INTEG))
+                    arg = -1;                   /* 099: STU's (i) names only unnamed registers, which SOLVE and ∫ can't
+                                                   take (35s p.14-23): not offered */
             }
             if (arg != -1) {
                 int op = a->prompt_op;

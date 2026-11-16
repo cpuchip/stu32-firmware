@@ -71,7 +71,7 @@ static const char *const TESTS[12] = {
     "x\xe2\x89\xa0" "0?", "x\xe2\x89\xa4" "0?", "x<0?", "x>0?", "x\xe2\x89\xa5" "0?", "x=0?",
 };
 
-/* (I) is the index of the line's mode: (i) under a 33s label (unit 025) */
+/* (I) is the index of the line's mode: (i) under a 33s label (unit 025) or an STU one (unit 099) */
 static bool line_m35;
 
 static void var_text(int code, char *out, size_t size)
@@ -107,7 +107,7 @@ int ab_prog_line(const ab_calc *c, int i, const ab_display *d, char *out, int si
                 pos = c->labelpos[l];
                 best = l;
             }
-        line_m35 = best >= 0 && c->lmode[best] ? c->lmode[best] != 33 : c->m35;   /* STU's as 35s */
+        line_m35 = best >= 0 && c->lmode[best] ? c->lmode[best] == 35 : c->m35 && !c->stu;   /* 099: STU's is (i) */
     }
     if ((op == AB_LIT && (arg < 0 || arg >= AB_PROG_LITS)) || (op == AB_EQLINE && (arg < 0 || arg >= AB_PEQN_MAX))) {
         snprintf(out, (size_t)size, "?");       /* a pool index out of range: not a line the core makes */
@@ -144,7 +144,7 @@ int ab_op_text(const ab_calc *c, int op, int arg, char *out, int size)
 {
     if (size <= 0) return -1;
     out[0] = '\0';
-    line_m35 = c->stu || c->m35;
+    line_m35 = c->m35 && !c->stu;          /* (unit 099: STU's index is (i), as the 33s's) */
     if (op == AB_RS) {
         snprintf(out, (size_t)size, "R/S");
         return (int)strlen(out);

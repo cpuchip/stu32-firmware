@@ -2,9 +2,9 @@
 # STU (MODE F3), ALG and RPN (MODE F5, F4), ANS, HUP and HDOWN (the line's history); the editor's keys as
 # in Equation mode ("()" a pair, < > the cursor, BKSP), ENTER is the line's =. Expectations: %LINE the line,
 # N the value of ANS (as X), %ALG and %STU 0 or 1, %HIST the entries kept, %HSEL the entry shown (- none).
-S01 | rule 1: STU is a personality, saved; it behaves as 35s mode: (I) the 35s's, I = 900 INVALID (I) | STU 900 STO:I RCL:(I) | ERR %STU=1 %ERRMSG=INVALID_(I)
+S01 | rule 1: STU is a personality, saved; it behaves as 35s mode: (I) the 35s's, I = 900 INVALID (I). Amended by unit 099 (work/stu-indirect.md, decision 100): STU's indirect is its own, i the index, 900 past its 800 registers is NO REGISTER | STU 900 STO:i RCL:(i) | ERR %STU=1 %ERRMSG=NO_REGISTER
 S02 | rule 1: STU survives a save and load | STU SAVE MEMCLR LOAD | %STU=1
-S03 | rule 1: a label written in STU runs as 35s mode does, whatever the mode after (I = 5: unnamed 5) | STU PRGM CLPGM LBL:A 5 STO:I 7 STO:(I) RTN PRGM MODE33 XEQ:A | @#5=7
+S03 | rule 1: a label written in STU runs as 35s mode does, whatever the mode after (I = 5: unnamed 5). Amended by unit 099: a label written in STU runs by STU's own indirect model, whatever the mode after (i = 5: unnamed 5) | STU PRGM CLPGM LBL:A 5 STO:i 7 STO:(i) RTN PRGM MODE33 XEQ:A | @#5=7
 S04 | rule 2: ALG only in STU: refused in 35s mode | MODE35 ALG | ERR %ALG=0
 S05 | rule 2: ALG refused in 33s mode | MODE33 ALG | ERR %ALG=0
 S06 | rule 2 with 6: 35s mode from ALG returns to RPN, ANS in X | STU ALG 2 + 3 ENTER MODE35 | %ALG=0 %STU=0 X=5

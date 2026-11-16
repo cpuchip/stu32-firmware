@@ -90,9 +90,11 @@ typedef enum {
                                value kind loaded as 0, a section skipped): OLDER FIRMWARE (Michael's s3-old-firmware) */
     ABN_CAS_CONDITION,      /* the CAS 038 repin (abacus #13771): ENTER on SOLVE's answer where one of the report's rows
                                fails at the stored values: CONDITION FAILS (abacus's word; a card to Michael) */
+    ABN_NO_REGISTER,        /* unit 099 (work/stu-indirect.md, decision 100's simpler STU model): STU's (i) given an index
+                               that names no register (or, in a jump, no label 1-26): NO REGISTER */
 } abn_status;
 
-#define ABN_STATUS_LAST ABN_CAS_CONDITION        /* the last status: loops over every status end here (056: screen_test's
+#define ABN_STATUS_LAST ABN_NO_REGISTER        /* the last status: loops over every status end here (056: screen_test's
                                                ended at ABN_BAD_IMAGE and missed every one after it) */
 
 abn abn_zero(void);

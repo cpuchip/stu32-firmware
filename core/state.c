@@ -61,6 +61,7 @@ static const uint8_t STATUS_SINCE[] = {
     0,                          /* unit 073: ABN_NOT_IN_EQN, a brief notice */
     21, 21, 21,                 /* unit 082: ABN_EXPR_FULL, ABN_NOT_NUMBER, ABN_OLDER_FW (4C) */
     22,                         /* the CAS 038 repin: ABN_CAS_CONDITION */
+    27,                         /* unit 099: ABN_NO_REGISTER */
 };
 _Static_assert(sizeof STATUS_SINCE == ABN_STATUS_LAST + 1, "an image version for every status (STATUS_SINCE)");
 
@@ -613,10 +614,22 @@ static size_t state_write(wr *wp)
         if (w.ver < 25) w.ver = 25;
     }
 
+    {                                           /* unit 099 (version 27): STU's own indirect model. An image with anything
+                                                   stamped STU, or in STU, is written at 27 at least, so a load can tell
+                                                   it from an older one, whose STU labels' (I) lines meant the 35s's */
+        bool stu = c->stu;
+        for (int l = 0; l < 26 && !stu; l++) stu = c->lmode[l] == AB_MODEL_STU;
+        for (int i = 0; i < c->eqn_count && !stu; i++) stu = c->eqn_model[i] == AB_MODEL_STU;
+        for (int i = 0; i < c->prog_len && !stu; i++)
+            stu = c->prog[i].op == AB_EQLINE && c->prog[i].arg >= 0 && c->prog[i].arg < AB_PEQN_MAX &&
+                  c->peqn_model[c->prog[i].arg] == AB_MODEL_STU;
+        if (stu && w.ver < 27) w.ver = 27;
+    }
+
     {
         size_t total = w.len + 4;
         for (int i = 0; i < 2; i++)                 /* the version the content needs (082), at most this build's; in
-                                                       STU always 25 (096's T_ROUNDED, state.h's amendment) */
+                                                       STU always 27 now (099; 25 was 096 T_ROUNDED) */
             wput(&w, 4 + (size_t)i, w.ver >> (8 * i));
         for (int i = 0; i < 4; i++) wput(&w, 8 + (size_t)i, total >> (8 * i));
         if (w.ref) {                            /* the checksum of ref's bytes (ours, where they're the same), compared */
@@ -1691,6 +1704,26 @@ static bool parse(rd *r)
 /* Unit 041 D: an older image's 33-stamped equation, restamped 35 on load? Below version 11 (041 A's (a)): when the 33s
    parse refuses it and the 35s parse takes it. At 11 and 12 (D): also only when the 33s parse takes it in the 33s's
    spelling (the comma a colon, nCr Cn,r, nPr Pn,r, HMS→ →HR, RAND RANDOM), so the spelling was the reason. */
+/* Unit 099: whether program line i reads an index: a variable op on (I) or (J), XEQ, GTO or FN= of (I) or (J), or an
+   equation line holding the (I) or (J) glyph (eqn.c's IND_I and IND_J) */
+static bool indirect_line(const ab_calc *c, int i)
+{
+    int op = c->prog[i].op, arg = c->prog[i].arg;
+    switch (op) {
+    case AB_STO: case AB_RCL: case AB_STOADD: case AB_STOSUB: case AB_STOMUL: case AB_STODIV:
+    case AB_RCLADD: case AB_RCLSUB: case AB_RCLMUL: case AB_RCLDIV: case AB_XVAR: case AB_VIEW:
+    case AB_ISG: case AB_DSE: case AB_INPUT: case AB_SOLVE: case AB_INTEG:
+        return arg == AB_VAR_IND_I || arg == AB_VAR_IND_J;
+    case AB_XEQ: case AB_GTO: case AB_FN:
+        return arg == AB_TGT_IND_I || arg == AB_TGT_IND_J;
+    case AB_EQLINE:
+        return arg >= 0 && arg < AB_PEQN_MAX &&
+               (strstr(c->peqn[arg], "\xe2\x92\xa4") || strstr(c->peqn[arg], "\xe2\x92\xa5"));
+    default:
+        return false;
+    }
+}
+
 static bool restamp33(ab_calc *c, const char *t, int version)
 {
     ab_val v;
@@ -1790,5 +1823,17 @@ abn_status ab_state_load(ab_calc *c, const uint8_t *buf, size_t len)
         c->err_m35 = true;
     }
     ab_prog_relabel(c);
+    if (r.version < 27) {
+        /* unit 099 (work/stu-indirect.md §3): an image from before STU's own indirect model. Its STU labels' (I) and (J)
+           lines were written under the 35s's, so a label stamped STU that holds one is restamped 35, as 025 did for the
+           33s: 35 is how those lines behaved. The rest keep STU (its other behaviour is the calculator's mode's) */
+        for (int l = 0; l < 26; l++)
+            if (c->lmode[l] == AB_MODEL_STU && c->labelpos[l] >= 0)
+                for (int i = c->labelpos[l] + 1; i < c->prog_len && c->prog[i].op != AB_LBL; i++)
+                    if (indirect_line(c, i)) {
+                        c->lmode[l] = 35;
+                        break;
+                    }
+    }
     return ABN_OK;
 }

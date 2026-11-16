@@ -1176,6 +1176,48 @@ int main(void)
         snprintf(kk, sizeof kk, "C 2 6 +/\xe2\x88\x92 STO k:%d GOLD 9 k:3 k:%d", ki, kj);
         press(&a, kk);
         expect(c.fn == 'Z' - 'A', "041 C: 33s mode: FN= (i) chooses the label i names");
+        /* unit 099 (work/stu-indirect.md §2): STU takes the 33s's keys, the (I) key i and the (J) key (i); in a jump i
+           1-26 names label A-Z, positive (decision 102); (i) stores in the unnamed register i names; SOLVE and ∫ don't
+           take (i) in STU (it names only unnamed registers): the key gives nothing and the prompt stays */
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        c.fn = 0;
+        snprintf(kk, sizeof kk, "C 2 6 STO k:%d GOLD 9 k:3 k:%d", ki, kj);
+        press(&a, kk);
+        expect(c.fn == 'Z' - 'A' && !c.msg, "099: STU: FN= (i) chooses the label i names (i = 26: Z)");
+        snprintf(kk, sizeof kk, "C 5 STO k:%d 7 STO k:%d", ki, kj);
+        press(&a, kk);
+        expect(c.ind_top == 5 && !abn_is_zero(&c.ind[5]) && fabs(x_of(&c) - 7) < 1e-12 && !c.msg,
+               "099: STU: STO (i) from the keys stores in unnamed register 5");
+        snprintf(kk, sizeof kk, "C GOLD 7 k:%d", kj);
+        press(&a, kk);
+        app_ui(&a, &ui);
+        expect(ui.prompt && !strncmp(ui.prompt, "SOLVE", 5) && !c.msg, "099: STU: SOLVE's prompt takes no (i): it stays open");
+        press(&a, "C");
+        ab_do_arg(&c, AB_MODEL, 35);
+        snprintf(kk, sizeof kk, "C GOLD 7 k:%d", kj);
+        press(&a, kk);
+        app_ui(&a, &ui);
+        expect(!(ui.prompt && !strncmp(ui.prompt, "SOLVE", 5)), "099: 35s mode: SOLVE's prompt still takes (J), as before");
+        press(&a, "C");
+        {                                       /* 099: the listing and the worksheet row name STU's index (i) */
+            char lt[64];
+            ab_init(&c);
+            ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+            ab_do(&c, AB_PRGM);
+            ab_do_arg(&c, AB_LBL, 0);
+            ab_do_arg(&c, AB_STO, AB_VAR_IND_I);
+            ab_do_arg(&c, AB_XEQ, AB_TGT_IND_I);
+            ab_prog_line(&c, 1, NULL, lt, sizeof lt);
+            expect(!strcmp(lt, "STO (i)"), "099: an STU label's line lists STO (i)");
+            ab_prog_line(&c, 2, NULL, lt, sizeof lt);
+            expect(!strcmp(lt, "XEQ (i)"), "099: and XEQ (i)");
+            ab_do(&c, AB_PRGM);
+            ab_op_text(&c, AB_STO, AB_VAR_IND_I, lt, sizeof lt);
+            expect(!strcmp(lt, "STO (i)"), "099: STU's worksheet row reads STO (i)");
+            ab_do_arg(&c, AB_MODEL, 35);
+            ab_op_text(&c, AB_STO, AB_VAR_IND_I, lt, sizeof lt);
+            expect(!strcmp(lt, "STO (I)"), "099: the 35s's row still reads STO (I)");
+        }
     }
 
     /* unit 041 C (B5, abacus #4850): MEM on blue 1. Its menu VAR PGM, with bytes free on X's line: the image's room,

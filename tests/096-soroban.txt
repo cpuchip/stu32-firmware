@@ -34,7 +34,7 @@ C05 | STO+ marks the letter | STU 2 SQRT STO:A 1 STO+:A CLX RCL:A | %ROUNDED-X=R
 C06 | STO+ of exact on exact stays exact | STU 2 STO:A 3 STO+:A CLX RCL:A | X=5 %ROUNDED-X=E
 C07 | CLX's 0 is exact | STU 2 SQRT CLX | X=0 %ROUNDED-X=E
 C08 | rows carry it | STU 2 SQRT 4 SQRT | %ROWROUNDED-1=E %ROWROUNDED-2=E %ROWROUNDED-3=R
-C09 | an indirect register keeps no mark: RCL (I) is rounded | STU 30 STO:I 4 STO:(I) CLX RCL:(I) | X=4 %ROUNDED-X=R
+C09 | an indirect register keeps no mark: RCL (I) is rounded (amended by unit 099: STU's index is i, register 30) | STU 30 STO:i 4 STO:(i) CLX RCL:(i) | X=4 %ROUNDED-X=R
 C10 | x<>A swaps the bits with the values | STU 2 SQRT STO:A 4 XVAR:A | %ROUNDED-X=R
 # The image (also run through the save/load pass): the bits kept; an older image's values rounded
 I01 | a row's bit kept through SAVE and LOAD | STU 2 SQRT 4 SQRT SAVE LOAD | %ROWROUNDED-1=E %ROWROUNDED-3=R %ROUNDED-X=E %ROUNDED-Y=R

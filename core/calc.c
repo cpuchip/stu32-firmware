@@ -1029,6 +1029,20 @@ static abn_status resolve(ab_calc *c, int code, bool for_read, slot *out)
         return ABN_OK;
     }
     if (code != AB_VAR_IND_I && code != AB_VAR_IND_J) return ABN_DOMAIN;
+    if (ab_rec_model(c) == AB_MODEL_STU) {
+        /* unit 099 (work/stu-indirect.md, decision 100): STU's (i). The index is i; it names only the unnamed registers,
+           0 to 800, by its integer part (truncated, as 005's); the letters go by name. Anything else is NO REGISTER: a
+           negative i, past 800, a complex number or a vector, (J), or reading past the defined range (35s p.14-24's
+           rule, STU's message). An expression or a name in i stays NOT A NUMBER (082) */
+        const ab_val *ix = &c->var[26];
+        if (code == AB_VAR_IND_J) return ABN_NO_REGISTER;
+        if (ab_is_sym(ix)) return ABN_NOT_NUMBER;
+        if (ix->kind != AB_REAL || !int_in(&ix->re, 0, AB_IND_MAX, &k)) return ABN_NO_REGISTER;
+        if (for_read && k > c->ind_top) return ABN_NO_REGISTER;
+        out->reg = &c->ind[k];
+        out->ind = k;
+        return ABN_OK;
+    }
     if (!ab_mode35(c)) {
         /* the 33s's (i) (33s p.13-21; unit 025): only |integer part of i| counts: 1-26 are A-Z,
            27 is i, 28-33 the statistics registers n, Sx, Sy, Sx2, Sy2, Sxy; 0 or 34 up INVALID (i).
@@ -1598,6 +1612,18 @@ static abn_status ind_target(const ab_calc *c, int arg, int *tgt)
     int k;
     if (arg != AB_TGT_IND_I && arg != AB_TGT_IND_J) {
         *tgt = arg;
+        return ABN_OK;
+    }
+    if (ab_rec_model(c) == AB_MODEL_STU) {
+        /* unit 099 (decision 102, (b)): in XEQ, GTO and FN=, STU's i from 1 to 26 names label A to Z, by its integer
+           part; 0, 27 up, a negative i, a complex number or a vector, or (J): NO REGISTER. A label not in memory is
+           NONEXISTENT downstream, as XEQ of that letter. (The 33s's branch below ignores the sign and differs at 0 and
+           27 up, so STU has its own) */
+        const ab_val *ix = &c->var[26];
+        if (arg == AB_TGT_IND_J) return ABN_NO_REGISTER;
+        if (ab_is_sym(ix)) return ABN_NOT_NUMBER;
+        if (ix->kind != AB_REAL || !int_in(&ix->re, 1, 26, &k)) return ABN_NO_REGISTER;
+        *tgt = (k - 1) * 1000 + 1;
         return ABN_OK;
     }
     if (!ab_mode35(c)) {
