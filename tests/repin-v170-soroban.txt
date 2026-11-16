@@ -1,0 +1,7 @@
+# The Casimir 1.7.0 repin (CASIM_PIN 8a76a80, the v1.7.0 tag 346cb36; abacus #15159, muster T9): what moves through the
+# firmware. CAS 040 refuses a solve whose X coefficient reads 0 at its fixed points. The Pythagorean identity's
+# coefficient is 0 for every A, so 1.7.0 refuses it where 1.6.0 (175c160) solved it with a condition. Both lines were
+# read on both pins before this file was written: V01 fails on 1.6.0 (SOLVED: X=1÷(SIN(A)^2+COS(A)^2-1) with the
+# coefficient ≠ 0), and V02, the control, reads the same on both.
+V01 | CAS 040 through the keys: the identity's coefficient reads 0, so solve refuses | STU EQ:(SIN(A)^2+COS(A)^2-1)×X=1 CASSOLVE:X | ERR %ERRMSG=COEF_NOT_NUMERIC
+V02 | the control: a letter coefficient that isn't 0 still solves, its condition shown | STU EQ:(A+1)×X=1 CASSOLVE:X | %CASREP=SOLVED:_X=1÷(A+1);_A≠-1

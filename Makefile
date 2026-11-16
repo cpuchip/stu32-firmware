@@ -309,6 +309,7 @@ test: all
 	./build/vectors tests/099-soroban.txt    # (unit 099: STU's own indirect model, work/stu-indirect.md; decisions 100, 102)
 	AB_SAVELOAD=1 AB_STORE=1 ./build/vectors tests/099-soroban.txt
 	./build/vectors tests/h099-abacus.txt   # (abacus #15082: h099 as frozen, sha256 55c11e3e...c03b)
+	./build/vectors tests/repin-v170-soroban.txt    # (the Casimir 1.7.0 repin: CAS 040 through the keys; fails on 175c160)
 	./build/rows_test
 	./build/eqn_say_test tests/086-corpus.txt    # (unit 086: the round trip over every equation the vectors type)
 	if AB_SAY_PLANT=1 ./build/eqn_say_test tests/086-corpus.txt > /dev/null; then \
