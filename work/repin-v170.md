@@ -21,7 +21,8 @@ results below.
     (evidence: old-pin-run.txt).
 - **No other vector moved.** make test on the new pin, before the file was added, gave the same totals as 674f66a's:
   22,163/22,163 vectors and 61,225/61,225 expectations. Nothing in the suite had reached CAS 040's case. The two
-  STU-facing rows abacus names (the identity, in casim's h038 and h039) are casim's own sets.
+  STU-facing rows abacus names (the identity, h038 and h039) are in abacus's hidden sets for casim's units, not
+  this firmware's (wording corrected per abacus #15209).
 
 ## Results
 
