@@ -1,0 +1,5 @@
+# the old pin's build (a scratch worktree at 674f66a, CASIM_PIN 175c160): the repin's vectors
+FAIL V01: expected an error, none returned
+FAIL V01: expected %ERRMSG=COEF_NOT_NUMERIC, got none
+tests/repin-v170-soroban.txt: 1/2 vectors, 1/2 expectations
+rc=1

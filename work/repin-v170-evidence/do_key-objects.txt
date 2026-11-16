@@ -1,0 +1,4 @@
+reva 674f66a: .text.do_key: 12566 B, sha256 530fd4b208ec78b7 .rela.text.do_key: 20196 B, sha256 56c5d7e6227d93a5 .literal.do_key: 1400 B, sha256 b5a176acaefcdcdf
+reva 9b72b35: .text.do_key: 12566 B, sha256 530fd4b208ec78b7 .rela.text.do_key: 20196 B, sha256 56c5d7e6227d93a5 .literal.do_key: 1400 B, sha256 b5a176acaefcdcdf
+standin 674f66a: .text.do_key: 12566 B, sha256 530fd4b208ec78b7 .rela.text.do_key: 20196 B, sha256 56c5d7e6227d93a5 .literal.do_key: 1400 B, sha256 b5a176acaefcdcdf
+standin 9b72b35: .text.do_key: 12566 B, sha256 530fd4b208ec78b7 .rela.text.do_key: 20196 B, sha256 56c5d7e6227d93a5 .literal.do_key: 1400 B, sha256 b5a176acaefcdcdf
