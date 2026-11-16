@@ -10,8 +10,9 @@ stack. No src. Everything is measured at 6a2f7a4 unless it says otherwise.
 > "I assume 0 and 27+ are unnamed registers, where as 1-26 are the named one?" (his 10-08 note, as abacus quotes it
 > in #14679)
 
-**In STU, no number names a letter.** Every number in i names an unnamed register: 0, 1, 2 and up to 800. So 1 is
-register 1, not A. The letters A to Z have no numbers; you reach them by their own keys (STO A, RCL B).
+**In STU, no number names a letter variable.** Every number in i names an unnamed register: 0, 1, 2 and up to 800.
+So for STO and RCL, 1 is register 1, not A. The letters A to Z have no numbers; you reach them by their own keys
+(STO A, RCL B). **The one exception is a jump** (decision 102): in XEQ, GTO and FN=, i from 1 to 26 names label A to Z.
 
 Where his reading comes from: it is close to the 33s. The two machines number differently, and STU today follows the
 35s.
@@ -23,6 +24,7 @@ Where his reading comes from: it is close to the 33s. The two machines number di
 | i itself | 27 | — | by name only |
 | statistics registers | 28 to 33 | −27 to −32 | by the SUMS menu, not by number |
 | unnamed registers | none | 0 to 800 | 0 to 800 |
+| labels, in XEQ, GTO and FN= | 1 to 26 (sign ignored) | −1 to −26 | 1 to 26 (decision 102) |
 | anything else | INVALID (i) | INVALID (I) | NO REGISTER |
 
 ## 1. The model
@@ -48,13 +50,22 @@ Where his reading comes from: it is close to the 33s. The two machines number di
 - **Where it doesn't:**
   - **SOLVE (i) and ∫ (i).** The 35s can't solve or integrate for an unnamed variable (35s UG p.14-23), and in STU
     (i) names only unnamed registers, so the prompt doesn't offer them.
-  - **XEQ (i), GTO (i) and FN= (i).** A label is a letter, and STU's numbers don't name letters. This one is a real
-    loss: a 35s program can branch by number (−1 to −26 as labels A to Z), and STU's couldn't.
-    - **(a), my lean:** not offered in STU. The model stays one sentence: numbers name registers, names name
-      letters and labels.
-    - **(b):** i from 1 to 26 names label A to Z, for labels only. That's unambiguous, since labels have no
-      unnamed counterpart, but it puts numbered letters back in the one place.
-    - It's Michael's choice. A computed branch is advanced programming, and STU is the learner's mode.
+- **XEQ (i), GTO (i) and FN= (i): i from 1 to 26 names label A to Z** (decision 102, (b); abacus #15041, Michael:
+  "Why is A your lean? If we already support it on 35s why be different?", then "Lets do b"). I'd leaned (a), not
+  offered; he chose to keep the computed branch the 35s has. The numbers are positive, as the 33s numbers labels,
+  because a negative i is NO REGISTER everywhere else in STU. Labels have no unnamed counterpart, so 1 to 26 can't be
+  read two ways inside a jump.
+  - **i's integer part** is used, as for registers (int_in truncates: 5.7 names E).
+  - **NO REGISTER** for i of 0, of 27 or above, negative, complex or a vector, as abacus leans: one message for every
+    index that names nothing.
+  - **NOT A NUMBER** for an expression or a name in i (082's guard), as for registers.
+  - **NONEXISTENT** when i names a label that isn't in memory (i = 3 and no LBL C), the same message XEQ C gives
+    then (35s UG F-3; msg.c).
+  - **The 33s's branch** (ind_target, calc.c:1596) does three things differently, so STU gets its own:
+    - it ignores the sign (−3 names C);
+    - 0, and 34 and up, are INVALID (i);
+    - 27 to 33 are NONEXISTENT.
+  - **The 33s and 35s are unchanged.** The 33s keeps |i| 1 to 26; the 35s keeps I or J from −1 to −26.
   - **The statistics registers by number.** The SUMS menu still recalls them. Storing into one directly becomes
     impossible in STU (the 33s and 35s reach them through the index). Only a program that edits a Σ register in place would notice.
 - **Room for later, without a promise:** 082's AB_NAME (a letter as a value, 'A') would let i hold a name, and (i)
@@ -69,7 +80,8 @@ Where his reading comes from: it is close to the 33s. The two machines number di
   - The code already does this for the 33s (app.c:965: `!ab_rec35(a->c)`). The change is the test: the model in force
     is 33s or STU (`ab_rec_model`), not "not 35s".
   - The same holds in program entry, by the edited label's stamp (unit 041 C), as now.
-- **In a target prompt** (XEQ, GTO, FN=), the indirect keys give nothing in STU under (a), or (i) under (b).
+- **In a target prompt** (XEQ, GTO, FN=), as the 33s's (app.c:969): the key that gives (J) in 35s mode gives
+  **(i)**, and the (I) key gives nothing, since a jump takes no direct i. The prompt shows `XEQ (i)`.
 - **In an equation,** STU reaches (i) by the indirect glyph ⒤ alone. A lone i in an STU-stamped equation isn't the
   variable i (eqn.c:643 reads it so only in the 33s stamp), and ⒥ has no meaning in STU: NO REGISTER.
 - **33s and 35s modes: unchanged.** The 35s keeps I, J, the negative letters and 0 to 800; the 33s keeps i and 1 to 33.
@@ -164,7 +176,13 @@ change. Today's build already gives the same results in all three modes. These v
    - the keys (the (I) key gives i, the (J) key gives (i), and `STO (i)` on the prompt);
    - 33s and 35s unchanged beside each STU case;
    - an STU equation with ⒤ and with ⒥;
-   - Z05 and C09 amended.
+   - Z05 and C09 amended;
+   - the jumps (decision 102), both failing on today's build and passing on the unit's
+     (work/stu-indirect-evidence/jumps.txt):
+     - J01, XEQ (i) with i = 3 runs label C;
+     - J02, GTO (i) inside a program goes to label B;
+     - J03, the 33s's XEQ (i) beside them as the control;
+   - i at 0, 27, −3, 5.7 and a complex number in a jump, and i = 3 with no LBL C (NONEXISTENT).
 2. **The image:**
    - a pre-unit image with an STU label holding (I) loads stamped 35 and still writes the register it wrote before;
    - a new STU image is at the new version;
@@ -184,9 +202,10 @@ change. Today's build already gives the same results in all three modes. These v
 - **To judge:**
   - the model in §1;
   - NO REGISTER's cases;
-  - (a) or (b) for XEQ, GTO and FN= (i), which looks like Michael's;
+  - XEQ, GTO and FN= (i), now (b) by decision 102: the cases under §1;
   - the statistics registers by number dropped in STU;
   - the restamp rule and the version marker for saved programs;
   - the Z05 and C09 amendments.
-- **To put back to Michael:** the plain answer at the top. His 1 to 26 are the 33s's numbers; in STU they're
-  registers 1 to 26, and the letters go by name.
+- **To put back to Michael:** the plain answer at the top. His 1 to 26 are the 33s's numbers. In STU they're
+  registers 1 to 26 for STO and RCL, and labels A to Z in a jump; the letter variables go by name.
+- **The unit's number:** 099 is fine, since stu-depth's 099 was withdrawn before any src.

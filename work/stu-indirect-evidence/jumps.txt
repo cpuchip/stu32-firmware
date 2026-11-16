@@ -1,0 +1,4 @@
+# Decision 102's jumps, written before src: J01 and J02 must fail on today's build (STU follows the 35s's I) and pass on the unit's; J03 is the 33s's control.
+J01 | XEQ (i) with i = 3 runs label C | STU PRGM CLPGM LBL:C 5 RTN PRGM 3 STO:i XEQ:(i) | X=5
+J02 | GTO (i) inside a program: i = 2 goes to label B | STU PRGM CLPGM LBL:A 2 STO:i GTO:(i) RTN LBL:B 7 RTN PRGM XEQ:A | X=7
+J03 | the 33s today, for comparison: XEQ (i) with i = 3 | MODE33 PRGM CLPGM LBL:C 5 RTN PRGM 3 STO:i XEQ:(i) | X=5
