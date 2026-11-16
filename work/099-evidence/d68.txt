@@ -1,0 +1,44 @@
+Preparing worktree (detached HEAD 430eafd)
+HEAD is now at 430eafd stu-indirect revised for decision 102 ((b), abacus #15041): in XEQ, GTO and FN=, i from 1 to 26 names label A to Z; NO REGISTER for 0, 27 up, negative, complex; truncated; NONEXISTENT for a label not in memory; the 33s's branch differs (sign ignored, INVALID (i), NONEXISTENT 27-33) so STU gets its own; the target prompt's (J) key gives (i). Jump vectors J01/J02 fail on today's build, J03's 33s control passes (work/stu-indirect-evidence/jumps*.txt). Unit 099
+gen_games: 9 game(s): BABAL (babal at bca20f0, staged: not checked as pushed), AIM (aim at 5fe8cea, staged: not checked as pushed), LAND (land at bca20f0, staged: not checked as pushed), SNAKE (snake at 5947c16, staged: not checked as pushed), MINES (mines at 7344045, staged: not checked as pushed), SALVO (salvo at bca20f0, staged: not checked as pushed), 3720 (rocks at 7686766, staged: not checked as pushed), MOLES (moles at 7686766, staged: not checked as pushed), CATCH (catch at 7686766, staged: not checked as pushed)
+casim 175c160a1b3c778ab67f049fe14baac81d1e23e2
+Preparing worktree (detached HEAD 9f09f1f)
+HEAD is now at 9f09f1f Unit 099: STU's own indirect model (work/stu-indirect.md at 430eafd; decisions 100 and 102; abacus #15027, #15041, #15045). i is STU's index; (i) names the unnamed registers 0-800 by its integer part; NO REGISTER (a new status, image version 27) for a negative i, past 800, complex, (J), or a read past the defined range; in XEQ, GTO and FN= i 1-26 names label A-Z. STU takes the 33s's prompt keys; SOLVE and integral prompts take no (i) in STU. The listing and rows read (i) in STU. An image from before (version under 27) loads its STU labels holding (I)/(J) stamped 35; an image with anything stamped STU is written at 27. I and J stay plain letters. tests/099-soroban.txt 43 vectors (16 pass on 430eafd: the controls; every new-model vector fails there). Amended in place with notes: 029 S01, S03 (abacus's), Z05, C09, 056 D56 (one past the last status is now 51), the version pins 25 to 27, golden-v28-4c regenerated at 28. make test rc 0, 22,091/22,091 vectors, 61,131/61,131 expectations; VER 0.100
+gen_games: 9 game(s): BABAL (babal at bca20f0, staged: not checked as pushed), AIM (aim at 5fe8cea, staged: not checked as pushed), LAND (land at bca20f0, staged: not checked as pushed), SNAKE (snake at 5947c16, staged: not checked as pushed), MINES (mines at 7344045, staged: not checked as pushed), SALVO (salvo at bca20f0, staged: not checked as pushed), 3720 (rocks at 7686766, staged: not checked as pushed), MOLES (moles at 7686766, staged: not checked as pushed), CATCH (catch at 7686766, staged: not checked as pushed)
+casim 175c160a1b3c778ab67f049fe14baac81d1e23e2
+
+### standin: 430eafd -> 9f09f1f
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,401,568 | 2,402,448 | +880 |
+| internal RAM static (DIRAM, of 341,760) | 207,731 | 207,731 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 59,074 | 59,074 | +0 |
+| calc_task's frame (under every deep path's stack), B | 144 | 144 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 838,355 -> 839,205 (+850)
+- libbid.a: 1,440,315 -> 1,440,339 (+24)
+- libesp_app_format.a: 76,654 -> 76,666 (+12)
+- libesp_partition.a: 1,574 -> 1,570 (-4)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 160,677 -> 160,677 (+0), none changed
+
+### reva: 430eafd -> 9f09f1f
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,328,208 | 2,329,104 | +896 |
+| internal RAM static (DIRAM, of 341,760) | 215,374 | 215,374 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 78,086 | 78,086 | +0 |
+| calc_task's frame (under every deep path's stack), B | 128 | 128 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 778,370 -> 779,131 (+761)
+- libbid.a: 1,393,253 -> 1,393,377 (+124)
+- libesp_app_format.a: 74,750 -> 74,762 (+12)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 133,339 -> 133,339 (+0), none changed
+rc=0

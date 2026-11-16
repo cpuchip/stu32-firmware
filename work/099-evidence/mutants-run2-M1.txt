@@ -1,0 +1,2 @@
+M1 RED: 099-soroban.txt:E01,E02,R01,R02,R03,R04,R05,R06,R07,R08,R09,R10,R11,R12,R13,R14,R15,S02 ## 029-vectors.txt:S01,S03 ## 029-soroban.txt:Z05 ## 096-soroban.txt:C09 ## app_test rc 1, 1 short
+restored: core/calc.c, core/state.c, firmware/app.c, core/list.c as the originals given (SCRATCH/orig099), compared byte for byte

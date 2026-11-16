@@ -1,0 +1,14 @@
+M0 SURVIVED 
+M1 RED: 099-soroban.txt:E01,E02,R01,R02,R03,R04,R05,R06,R07,R08,R09,R10,R11,R12,R13,R14,R15,S02 ## 029-vectors.txt:S01,S03 ## 029-soroban.txt:Z05 ## app_test rc 1, 1 short
+M2 RED: 099-soroban.txt:R05
+M3 RED: 099-soroban.txt:R03
+M4 RED: 099-soroban.txt:R04
+M5 RED: 099-soroban.txt:S01
+M6 RED: 099-soroban.txt:S02 ## expr_test rc 1, 6 short: FAIL: tests/golden-v20-082.img: re-saves at version 27 (099's marker; 25 at 096), 1077 B: the file's 1062 and  || FAIL: tests/golden-v20-082-full.img: re-saves at version 27 (099's marker; 25 at 096), 14246 B: the file's 142 || FAIL: 082: an image with an expression is version 21; 25 since unit 096 (STU's T_ROUNDED, always); 27 since 09 ## rows_test rc 1, 4 short: FAIL: STU with no row made and no level bare: version 27 (unit 099's STU marker; 25 at 096's T_ROUNDED; 20 bef || FAIL: unit 090: a fresh STU's levels are bare: version 27 (T_BARE; 096's T_ROUNDED; 099's marker) || FAIL: a row: X and ENTER's copy hold row 1, Z and T still bare (version 27, 099's; 25 at 096; 24 before) ## store_test rc 1, 1 short
+M7 RED: 099-soroban.txt:J01,J02,J04,J05,J06,J07,J08,J09,J10
+M8 RED: app_test rc 1, 1 short
+M9 RED: app_test rc 1, 3 short
+M10 RED: app_test rc 1, 3 short
+restored: core/calc.c, core/state.c, firmware/app.c, core/list.c as the originals given (SCRATCH/orig099), compared byte for byte
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 8:07.04
+	Maximum resident set size (kbytes): 217368
