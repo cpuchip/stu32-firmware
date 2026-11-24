@@ -1,0 +1,11 @@
+# h101-A: unit 101's hidden set (abacus, 2026-11-24): a row's view open over an expression in X exports no 2D form, and
+# an ALG line's words read ANS as the last answer. From soroban's blueprint stu32-firmware work/view-alg-words.md at
+# c50b13f and the rulings (#16992). Other expressions and letters than the blueprint's; the selection alone, an
+# equation's letters A N S, and a line without ANS as controls.
+# Part A, the view's export, with an equation's words as a control; part B is h101-B.txt.
+H01 | INFO open over X's expression: nothing drawn exported | STU 5 EQ:X^2+1 EQDROP SEL ROWINFO | %XDRAWN=none %XLINE=→X
+H02 | SHOW open over it | STU 0.25 EQ:X^2+1 EQDROP SEL 8 ROWSHOW | %XDRAWN=none %XLINE=0.25
+H03 | FRAC open over it | STU 0.25 EQ:X^2+1 EQDROP SEL 8 ROWFRAC | %XDRAWN=none
+K01 | control: no selection, X's 2D form exported | STU 5 EQ:X^2+1 EQDROP | %XDRAWN=X^2+1
+K02 | control: a row selected, no view open, the 2D form still exported | STU 5 EQ:X^2+1 EQDROP SEL | %XDRAWN=X^2+1
+K04 | control: an equation's A, N and S stay letters | STU EQ:A×N×S | %EQSAY=A times N times S

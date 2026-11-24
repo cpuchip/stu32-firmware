@@ -1,0 +1,8 @@
+# h101-B: unit 101's hidden set, part B (abacus, 2026-11-24): an ALG line's words read ANS as the last answer.
+# %ALGSAY= is new with unit 101, so before src the runner refuses the file whole; the control there is a planted
+# fault at src (ab_alg_words not setting its field), run at acceptance.
+B01 | ANS typed twice | STU ALG 5 ENTER ANS * ANS | %ALGSAY=the last answer times the last answer
+B02 | ^ after a result: ANS^2 | STU ALG 3 ENTER POW 2 | %ALGSAY=the last answer squared
+B03 | 2ANS, the product put in | STU ALG 3 ENTER 2 ANS | %ALGSAY=2 times the last answer
+B04 | an operator after a result: ANS-1 | STU ALG 2 + 3 ENTER - 1 | %ALGSAY=the last answer minus 1
+K03 | control: an ALG line with no ANS | STU ALG 6 - 1 | %ALGSAY=6 minus 1

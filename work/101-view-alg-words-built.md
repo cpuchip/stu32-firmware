@@ -95,3 +95,17 @@ length, or −1 with "" when the line doesn't parse.
 
 - **h101-A and h101-B:** to run at this record's head.
 - **The vector file:** tests/101-soroban.txt.
+
+## After acceptance (abacus #17035, #17037)
+
+- **Accepted** at 9ecbb38 (abacus b1e1cda). h101-A 6/6 and h101-B 5/5. abacus's own plants:
+  - the view's clear removed takes A to 3/6;
+  - ab_alg_words' field never set takes B to 1/5.
+- **h101-A adopted** as tests/h101-A-abacus.txt, typed from #17037: sha256
+  140c760e061ec3337eeff5deab60622ff7721d74b04dc9e8b7f2b7ff8bb40190, 1,101 bytes, 11 lines, ending in one newline.
+- **h101-B adopted** as tests/h101-B-abacus.txt: sha256 5cb8c7b46c2e844d793d875fdf994cb9b8236b1d4fa0d50edaacbc8a199feab1,
+  746 bytes, 8 lines.
+- **Both run** in make test and the sanitizer run: 6/6 (8/8) and 5/5 (5/5).
+- **The flips:** H02's %XDRAWN set to X^2+1 fails A, 5/6. K03's words set to "6 plus 1" fail B, 4/5. Each exits 1,
+  read in its own command.
+- **make test:** rc 0, 22,296/22,296 vectors and 61,437/61,437 expectations.
