@@ -1,0 +1,5 @@
+M0 SURVIVED 
+A1 RED: 101-soroban.txt:A01,A02,A03
+B1 RED: 101-soroban.txt:B01,B02,B03,B04,B05,B06
+B2 RED: 101-soroban.txt:B02 ## 089-soroban.txt:A03 ## 090-soroban.txt:A01 ## 096-soroban.txt:A06 ## 029-vectors.txt:A01,A04,L08,L09,R03,R05 ## 029b-vectors.txt:E02,E04,E05 ## 031-vectors.txt:I32 ## 032b-vectors.txt:A07
+B3 RED: 086-corpus.txt rc 1: 35 ANS+1: spoken, but the parser refuses it

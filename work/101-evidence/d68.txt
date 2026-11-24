@@ -1,0 +1,38 @@
+Preparing worktree (detached HEAD c50b13f)
+HEAD is now at c50b13f Blueprint (unit 101, abacus #16971 from tally #16969): A, a row's view open over an expression in X clears xexpr too, so the labels stop exporting X's 2D form (reproduced for INFO, SHOW and FRAC at aa68826); B, ab_alg_words: an ALG line's words with ANS read as ANS (086's 'the last answer', unreachable since ab_eqn_words runs outside alg_eval). The prototype moves nothing in the suite (22,246 vectors, 67/67 frames, 51 replay scripts, app_test 917, eqn_say 959). Oracle: 101-soroban (%ALGSAY= new), eqn_say_test's round trip gains the vector files' 44 ALG lines, mutants M0, A1, B1-B3. Four asks. No src
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+casim c564e411d208a2960ee222590c4dd90bcee1c5bf
+Preparing worktree (detached HEAD f4d8b2d)
+HEAD is now at f4d8b2d Unit 101 (work/view-alg-words.md at c50b13f; abacus #16971, rulings #16992; h101-A 140c760e and h101-B 5cb8c7b4 frozen before src). A: a row's view (093's INFO, SHOW, FRAC) clears xexpr too, so nothing exports X's 2D form while it's open (screen_lines, screen_drawn); the frame never drew it. B: ab_alg_words, an ALG line's words read as STU reads it with ANS 'the last answer' (086's words, unreachable from ab_eqn_words, which runs outside alg_eval); ab_eqn_words unchanged; devices get a stub. tally (native/stu32_ffi.c) and primer (web/calc/calc.c) bind it themselves. tests/101-soroban.txt (14: A01-A03, B01-B06 fail on c50b13f, K01-K05 pass; %ALGSAY= new in vectors.c); eqn_say_test's round trip gains ALG rows (tests/101-alg-corpus.txt, the 44 lines the vectors state) and 097's five phrases in its reader (no spec held them). make test rc 0, 22,274/22,274 vectors, 61,411/61,411 expectations. VER 0.102
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+casim c564e411d208a2960ee222590c4dd90bcee1c5bf
+
+### standin: c50b13f -> f4d8b2d
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,414,544 | 2,414,592 | +48 |
+| internal RAM static (DIRAM, of 341,760) | 207,731 | 207,731 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 59,074 | 59,074 | +0 |
+| calc_task's frame (under every deep path's stack), B | 144 | 144 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 851,290 -> 851,330 (+40)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 160,677 -> 160,677 (+0), none changed
+
+### reva: c50b13f -> f4d8b2d
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,341,552 | 2,341,568 | +16 |
+| internal RAM static (DIRAM, of 341,760) | 215,374 | 215,374 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 78,086 | 78,086 | +0 |
+| calc_task's frame (under every deep path's stack), B | 128 | 128 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 791,536 -> 791,560 (+24)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 133,339 -> 133,339 (+0), none changed

@@ -1,0 +1,19 @@
+FAIL A01: expected %XDRAWN=none, got 3X^2-4
+  the page, 2 row(s), newest last (dropped 0):
+    1:NUM:-:+7E+0
+    2:EQDROP:-:E:3×X^2-4
+FAIL A02: expected %XDRAWN=none, got 3X^2-4
+  the page, 2 row(s), newest last (dropped 0):
+    1:NUM:-:+5E-1
+    2:EQDROP:-:E:3×X^2-4
+FAIL A03: expected %XDRAWN=none, got 3X^2-4
+  the page, 2 row(s), newest last (dropped 0):
+    1:NUM:-:+5E-1
+    2:EQDROP:-:E:3×X^2-4
+FAIL B01: expected %ALGSAY=the last answer plus 4, got (24) A times N times S plus 4
+FAIL B02: expected %ALGSAY=the last answer plus 4, got (24) A times N times S plus 4
+FAIL B03: expected %ALGSAY=2 times the last answer, got (25) 2 times A times N times S
+FAIL B04: expected %ALGSAY=the last answer squared, got (25) A times N times S squared
+FAIL B05: expected %ALGSAY=the last answer times the last answer, got (41) A times N times S times A times N times S
+FAIL B06: expected %ALGSAY=the last answer plus 1, got (24) A times N times S plus 1
+tests/101-soroban.txt: 5/14 vectors, 16/25 expectations

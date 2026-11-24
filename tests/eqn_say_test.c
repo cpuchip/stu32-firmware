@@ -12,7 +12,9 @@
  *
  * Unit 101 (work/view-alg-words.md): a row whose model is ALG is an ALG line (tests/101-alg-corpus.txt). It is said by
  * ab_alg_words, and evaluated as the line is, with alg_eval set (ANS a name) and ANS holding 7.125, which no product of
- * the letters' values here gives, so a line read back with ANS as A×N×S evaluates otherwise. */
+ * the letters' values here gives, so a line read back with ANS as A×N×S evaluates otherwise. alg_eval is set only
+ * around the evaluations, never around the words: set around them, it let the words find ANS without ab_alg_words
+ * (mutant B1 survived it, run 1). */
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -386,7 +388,7 @@ static ab_calc c;
 
 /* the two texts' values at four sets of A-Z: 1 the same at all four, 0 not, -1 the second doesn't evaluate as the
    first does because it nests too deep */
-static int same_values(const char *t1, const char *t2, int model)
+static int same_values(const char *t1, const char *t2, int model, bool alg)
 {
     for (int k = 0; k < 4; k++) {
         srand(1234 + k);
@@ -401,7 +403,9 @@ static int same_values(const char *t1, const char *t2, int model)
         }
         ab_val y1, y2;
         int e1, e2;
+        c.alg_eval = alg;                       /* (unit 101: an ALG line is evaluated as the line is, ANS a name) */
         abn_status s1 = eqn_eval(&c, t1, model, false, false, &y1, &e1), s2 = eqn_eval(&c, t2, model, false, false, &y2, &e2);
+        c.alg_eval = false;
         if (s2 == ABN_TOO_DEEP && s1 != ABN_TOO_DEEP) return -1;
         if (s1 != s2) return 0;
         if (s1 != ABN_OK) continue;
@@ -436,7 +440,6 @@ int main(int argc, char **argv)
         const char *text = tab + 1;
         bool alg = !strcmp(line, "ALG");       /* unit 101: an ALG line */
         int model = !strcmp(line, "STU") || alg ? AB_MODEL_STU : atoi(line);
-        c.alg_eval = alg;
         if (alg) {
             memset(&c.ans, 0, sizeof c.ans);
             c.ans.kind = AB_REAL;
@@ -445,7 +448,9 @@ int main(int argc, char **argv)
         lines++;
         ab_val v;
         int ep;
+        c.alg_eval = alg;                       /* only while evaluating: the words must find ANS by themselves (101) */
         bool parses = eqn_eval(&c, text, model, false, true, &v, &ep) == ABN_OK;
+        c.alg_eval = false;
         int n = alg ? ab_alg_words(&c, text, words, sizeof words) : ab_eqn_words(&c, text, model, words, sizeof words);
         if (n < 0) {                            /* no words: the parser must refuse it too */
             if (parses) {
@@ -468,7 +473,7 @@ int main(int argc, char **argv)
             bad++;
             continue;
         }
-        int same = same_values(text, back, model);
+        int same = same_values(text, back, model, alg);
         bool rnd = strstr(text, "RAND") != NULL;
         if (same < 0) {
             deep++;
