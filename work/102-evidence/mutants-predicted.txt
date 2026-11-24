@@ -1,0 +1,13 @@
+Unit 102's mutants, each predicted before any run (written with the build's own commit). Each is one fault applied
+alone by work/102-evidence/mutants-runner.py; the binaries are deleted and rebuilt (and the restored tree built again at
+the end); the runner reads 102-soroban, 090-soroban, 093-soroban and 100-soroban (plain) and app_test.
+
+M0  control: no change.                                                   SURVIVED.
+M1  an ALG row's kind O (not A).                                          RED: 102 P03, P04, P05 (their A lines) only.
+    app_test green: its census checks a kind against its text's presence, and A and O both have one.
+M2  a two-line row's value line keeps its row's kind (part 2 not -).       RED: 102 P05 (its value line reads A).
+    app_test's census: red only if its 600 keys make a two-line row, which I haven't checked (not predicted either way).
+M3  the dropped line's kind - (not D).                                    RED: 102 P06, P07 only (the census makes no
+    dropped line: D 0 in its count).
+M4  an op this build doesn't name keeps O.                                RED: app_test's damaged-row kind check only
+    (1 short). No vector holds an unnamed op.
