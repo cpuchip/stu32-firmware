@@ -1,0 +1,22 @@
+FAIL A01: expected %PAGEN=?, got 2
+FAIL A01: expected %PAGE-1=?, got _|2.0000
+FAIL A01: expected %PAGE-2=?, got ?|'2×X+5'
+  the page, 3 row(s), newest last (dropped 0):
+    1:EQDROP:-:E:2×X+5
+    2:NUM:-:+2E+0
+    3:MUL:1,2:E:(2×X+5)×2
+FAIL A02: expected %PAGE-1=?, got ?|'X+X'
+  the page, 2 row(s), newest last (dropped 0):
+    1:EQDROP:-:E:X+X
+    2:CASSIMP:1:E:2×X
+FAIL A03: expected %PAGE-1=?, got ?|'(X+1)^2'
+  the page, 2 row(s), newest last (dropped 0):
+    1:EQDROP:-:E:(X+1)^2
+    2:CASEXP:1:E:2×X+X^2+1
+FAIL A04: expected %LEVELS=?, got X
+  the page, 1 row(s), newest last (dropped 0):
+    1:CASSOLVE:-:-2E+0
+FAIL A06: expected %ROWS=?, got 1
+  the page, 1 row(s), newest last (dropped 0):
+    1:EQDROP:-:E:2×X+5
+/home/claude/code/stuffleberry/workspace/projects-internal/stu32-firmware/work/row-op-names-evidence/probe.txt: 1/6 vectors, 4/11 expectations

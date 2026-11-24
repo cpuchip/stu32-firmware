@@ -1,0 +1,25 @@
+diff --git a/core/list.c b/core/list.c
+index 9fb1666..4b59f98 100644
+--- a/core/list.c
++++ b/core/list.c
+@@ -58,6 +58,7 @@ static const char *const NAMES[AB_OP_LAST + 1] = {
+     [AB_FN] = "FN=", [AB_SOLVE] = "SOLVE", [AB_INTEG] = "\xe2\x88\xab" "FN d",
+     [AB_EXPM1] = "e\xcb\xa3-1", [AB_LN1P] = "LN(1+x)", [AB_TWOX] = "2\xcb\xa3", [AB_LOG2] = "LOG2", [AB_CMPLX] = "CMPLX",
+     [AB_CUBE] = "x\xc2\xb3", [AB_CBRT] = "\xe2\x88\x9b" "x",
++    [AB_SST] = "SST", [AB_CASSIMP] = "SIMP", [AB_CASEXP] = "EXPND", [AB_CASSOLVE] = "SOLVE", [AB_EQDROP] = "\xe2\x86\x92X",   /* PROTO */
+     [AB_ERF] = "ERF", [AB_ERFC] = "ERFC", [AB_NCDF] = "\xce\xa6", [AB_NCDFC] = "1\xe2\x88\x92\xce\xa6",     /* (097: the keys' labels) */
+     [AB_NCDFINV] = "\xce\xa6\xe2\x81\xbb\xc2\xb9",
+     [AB_ENGL] = "\xe2\x86\x90" "ENG", [AB_ENGR] = "ENG\xe2\x86\x92",
+diff --git a/firmware/screen.c b/firmware/screen.c
+index edc5abf..9f44f30 100644
+--- a/firmware/screen.c
++++ b/firmware/screen.c
+@@ -434,7 +434,7 @@ static void pg_texts(const ab_calc *c, const screen_ui *ui, uint32_t at, char *l
+     left[0] = val[0] = '\0';
+     if (!ab_rows_parse(c->rows + at, c->rows_len - at, &r)) return;
+     if (r.op == AB_ROW_OP_ALG) snprintf(left, (size_t)lsz, "%.*s", (int)r.tlen, r.text);
+-    else if (r.op != AB_ROW_OP_NUM) ab_op_text(c, (int)r.op, r.arg, left, lsz);
++    else if (r.op != AB_ROW_OP_NUM && ab_op_text(c, (int)r.op, r.arg, left, lsz) <= 0) left[0] = '\0';
+     if (!ab_val_decode(r.val, r.vlen, &v, t, sizeof t)) return;
+     if (v.kind == AB_EXPR || v.kind == AB_NAME) {           /* as val_line writes one, without a slot */
+         snprintf(val, (size_t)vsz, "'%s'", t);

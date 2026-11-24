@@ -1,0 +1,6 @@
+A01 | abacus's case: →X, then 2 × | STU EQ:2×X+5 EQDROP 2 * | %PAGEN=? %PAGE-1=? %PAGE-2=? %PAGE-3=?
+A02 | SIMP on the stack | STU EQ:X+X EQDROP CASSIMP | %PAGE-1=? %PAGE-2=?
+A03 | EXPND | STU EQ:(X+1)^2 EQDROP CASEXP | %PAGE-1=?
+A04 | CAS SOLVE's EVAL | STU EQ:X^2-4 CASSOLVE:X SST CASEVAL | %PAGE-1=? %LEVELS=?
+A05 | SST of a program line | STU PRGM CLPGM LBL:A 5 RTN PRGM GTO:A SST | %PAGE-1=?
+A06 | INFO on the →X row | STU EQ:2×X+5 EQDROP ROWINFO | %ROWS=?
