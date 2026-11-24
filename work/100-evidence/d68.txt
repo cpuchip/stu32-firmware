@@ -1,0 +1,38 @@
+Preparing worktree (detached HEAD fa79084)
+HEAD is now at fa79084 Blueprint (unit 100): every op that leaves a worksheet row has a name (abacus #16928, tally #16924). Census by the seven routes that write a row, and by logging every op row over make -i test at 4237c2e (129,842 rows, 116 ops): five unnamed, EQDROP, SST, CASSIMP, CASEXP, CASSOLVE, none programmable. The change: their soft keys' names in NAMES (→X, SST, SIMP, EXPND, SOLVE), pg_texts blank on <=0 as level_op; INFO keeps ?. The prototype moves only the stand-in replay's arith084 and cas088 frames (before/after PNGs). Oracle: 100-soroban vectors, a by-construction name census in rows_test, app_test's damaged row, mutants M0-M7. Four asks. No src
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+casim c564e411d208a2960ee222590c4dd90bcee1c5bf
+Preparing worktree (detached HEAD 8b64c04)
+HEAD is now at 8b64c04 Unit 100: every op that leaves a worksheet row has a name (work/row-op-names.md at fa79084; abacus #16928, rulings #16953; h100 frozen 2c154014 before src). NAMES gains the five soft keys' names: →X (EQDROP), SIMP, EXPND, SOLVE (CAS SOLVE's row: the key's label, no letter), SST; none is a program line. pg_texts writes no left for an op with no name (only a damaged image holds one), as level_op_text; INFO keeps ?. tests/100-soroban.txt (19 vectors: page, level and INFO for each, abacus's case, 4 controls; plain and san, no save/load pass as 088/090/093); rows_test's name census over every op that can leave a row (416, 0 unnamed); app_test's damaged row. The stand-in replay's arith084 and cas088 CRCs updated in place (the names drawn). make test rc 0, 22,222/22,222 vectors, 61,307/61,307 expectations. VER 0.101
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+casim c564e411d208a2960ee222590c4dd90bcee1c5bf
+
+### standin: fa79084 -> 8b64c04
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,414,528 | 2,414,544 | +16 |
+| internal RAM static (DIRAM, of 341,760) | 207,731 | 207,731 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 59,074 | 59,074 | +0 |
+| calc_task's frame (under every deep path's stack), B | 144 | 144 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 851,270 -> 851,290 (+20)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 160,677 -> 160,677 (+0), none changed
+
+### reva: fa79084 -> 8b64c04
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,341,536 | 2,341,552 | +16 |
+| internal RAM static (DIRAM, of 341,760) | 215,374 | 215,374 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 78,086 | 78,086 | +0 |
+| calc_task's frame (under every deep path's stack), B | 128 | 128 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 791,516 -> 791,536 (+20)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 133,339 -> 133,339 (+0), none changed

@@ -1,0 +1,320 @@
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x1 (POWERON),boot:0x8 (SPI_FAST_FLASH_BOOT)
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x16d0
+load:0x403c8700,len:0x4
+load:0x403c8704,len:0xec8
+load:0x403cb700,len:0x3160
+entry 0x403c8950
+I (27) boot: ESP-IDF v5.4.2 2nd stage bootloader
+I (27) boot: compile time Oct 14 2026 14:41:40
+I (27) boot: Multicore bootloader
+I (27) boot: chip revision: v0.1
+I (30) boot: efuse block revision: v1.2
+I (33) qio_mode: Enabling default flash chip QIO
+I (38) boot.esp32s3: Boot SPI Speed : 80MHz
+I (42) boot.esp32s3: SPI Mode       : QIO
+I (45) boot.esp32s3: SPI Flash Size : 8MB
+I (49) boot: Enabling RNG early entropy source...
+I (54) boot: Partition Table:
+I (56) boot: ## Label            Usage          Type ST Offset   Length
+I (63) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (69) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (76) boot:  2 factory          factory app      00 00 00010000 00500000
+I (82) boot:  3 abstate          Unknown data     01 40 00510000 00080000
+I (89) boot:  4 abapps           Unknown data     01 41 00590000 00012000
+I (95) boot: End of partition table
+I (98) esp_image: segment 0: paddr=00010020 vaddr=3c100020 size=13f504h (1307908) map
+I (300) esp_image: segment 1: paddr=0014f52c vaddr=3fc92700 size=00aech (  2796) load
+I (301) esp_image: segment 2: paddr=00150020 vaddr=42000020 size=f4aech (1002220) map
+I (453) esp_image: segment 3: paddr=00244b14 vaddr=3fc931ec size=0a5a4h ( 42404) load
+I (460) esp_image: segment 4: paddr=0024f0c0 vaddr=40374000 size=0e6c4h ( 59076) load
+I (472) esp_image: segment 5: paddr=0025d78c vaddr=600fe000 size=0001ch (    28) load
+I (479) boot: Loaded app from partition at offset 0x10000
+I (479) boot: Disabling RNG early entropy source...
+I (490) octal_psram: vendor id    : 0x0d (AP)
+I (490) octal_psram: dev id       : 0x02 (generation 3)
+I (490) octal_psram: density      : 0x03 (64 Mbit)
+I (492) octal_psram: good-die     : 0x01 (Pass)
+I (496) octal_psram: Latency      : 0x01 (Fixed)
+I (501) octal_psram: VCC          : 0x01 (3V)
+I (505) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (510) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (515) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (519) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (524) octal_psram: DriveStrength: 0x00 (1/1)
+I (529) MSPI Timing: PSRAM timing tuning index: 4
+I (533) esp_psram: Found 8MB PSRAM device
+I (537) esp_psram: Speed: 80MHz
+I (540) cpu_start: Multicore app
+I (949) esp_psram: SPI SRAM memory test OK
+I (960) cpu_start: Pro cpu start user code
+I (960) cpu_start: cpu freq: 240000000 Hz
+I (960) app_init: Application information:
+I (960) app_init: Project name:     abacus_standin
+I (965) app_init: App version:      201491a
+I (969) app_init: Compile time:     Nov 24 2026 21:53:25
+I (974) app_init: ELF file SHA256:  f1bde084c...
+I (978) app_init: ESP-IDF:          v5.4.2
+I (982) efuse_init: Min chip rev:     v0.0
+I (986) efuse_init: Max chip rev:     v0.99 
+I (990) efuse_init: Chip rev:         v0.1
+I (994) heap_init: Initializing. RAM available for dynamic allocation:
+I (1000) heap_init: At 3FCBABB0 len 0002EB60 (186 KiB): RAM
+I (1005) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (1010) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (1016) heap_init: At 600FE01C len 00001FCC (7 KiB): RTCRAM
+I (1021) esp_psram: Adding pool of 8100K of PSRAM memory to heap allocator
+I (1028) spi_flash: detected chip: gd
+I (1031) spi_flash: flash io: qio
+I (1034) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (1040) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (1047) main_task: Started on CPU0
+I (1077) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (1077) main_task: Calling app_main()
+standin: largest internal block 139264; calc stack 32768, then 110592; keyboard image 96000, then 31744
+touch: GT911 id '911' (ESP_OK)
+load: 1086 bytes ok
+apps: saves loaded
+standin: heap internal 71459 (largest block 31744), PSRAM 6972472
+I (1337) main_task: Returned from app_main()
+boot: boots=1 reason=POWERON new=1 wake=none pins=0x0 ver=0.101 core=201491a id=9f873d7d
+STANDIN READY
+tone: use 16 level 4
+wipe: both slots erased
+talk.py: PASS line 11: expect 'wipe: both slots erased'
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x40056f8a
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x16d0
+load:0x403c8700,len:0x4
+load:0x403c8704,len:0xec8
+load:0x403cb700,len:0x3160
+entry 0x403c8950
+I (31) boot: ESP-IDF v5.4.2 2nd stage bootloader
+I (31) boot: compile time Oct 14 2026 14:41:40
+I (31) boot: Multicore bootloader
+I (31) boot: chip revision: v0.1
+I (34) boot: efuse block revision: v1.2
+I (38) qio_mode: Enabling default flash chip QIO
+I (42) boot.esp32s3: Boot SPI Speed : 80MHz
+I (46) boot.esp32s3: SPI Mode       : QIO
+I (50) boot.esp32s3: SPI Flash Size : 8MB
+I (54) boot: Enabling RNG early entropy source...
+I (58) boot: Partition Table:
+I (61) boot: ## Label            Usage          Type ST Offset   Length
+I (67) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (73) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (80) boot:  2 factory          factory app      00 00 00010000 00500000
+I (87) boot:  3 abstate          Unknown data     01 40 00510000 00080000
+I (93) boot:  4 abapps           Unknown data     01 41 00590000 00012000
+I (100) boot: End of partition table
+I (103) esp_image: segment 0: paddr=00010020 vaddr=3c100020 size=13f504h (1307908) map
+I (306) esp_image: segment 1: paddr=0014f52c vaddr=3fc92700 size=00aech (  2796) load
+I (306) esp_image: segment 2: paddr=00150020 vaddr=42000020 size=f4aech (1002220) map
+I (459) esp_image: segment 3: paddr=00244b14 vaddr=3fc931ec size=0a5a4h ( 42404) load
+I (467) esp_image: segment 4: paddr=0024f0c0 vaddr=40374000 size=0e6c4h ( 59076) load
+I (478) esp_image: segment 5: paddr=0025d78c vaddr=600fe000 size=0001ch (    28) load
+I (486) boot: Loaded app from partition at offset 0x10000
+I (486) boot: Disabling RNG early entropy source...
+I (496) octal_psram: vendor id    : 0x0d (AP)
+I (496) octal_psram: dev id       : 0x02 (generation 3)
+I (497) octal_psram: density      : 0x03 (64 Mbit)
+I (499) octal_psram: good-die     : 0x01 (Pass)
+I (503) octal_psram: Latency      : 0x01 (Fixed)
+I (507) octal_psram: VCC          : 0x01 (3V)
+I (511) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (516) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (521) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (526) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (531) octal_psram: DriveStrength: 0x00 (1/1)
+I (536) MSPI Timing: PSRAM timing tuning index: 4
+I (539) esp_psram: Found 8MB PSRAM device
+I (543) esp_psram: Speed: 80MHz
+I (546) cpu_start: Multicore app
+I (955) esp_psram: SPI SRAM memory test OK
+I (967) cpu_start: Pro cpu start user code
+I (967) cpu_start: cpu freq: 240000000 Hz
+I (967) app_init: Application information:
+I (967) app_init: Project name:     abacus_standin
+I (971) app_init: App version:      201491a
+I (975) app_init: Compile time:     Nov 24 2026 21:53:25
+I (980) app_init: ELF file SHA256:  f1bde084c...
+I (984) app_init: ESP-IDF:          v5.4.2
+I (988) efuse_init: Min chip rev:     v0.0
+I (992) efuse_init: Max chip rev:     v0.99 
+I (996) efuse_init: Chip rev:         v0.1
+I (1000) heap_init: Initializing. RAM available for dynamic allocation:
+I (1006) heap_init: At 3FCBABB0 len 0002EB60 (186 KiB): RAM
+I (1012) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (1017) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (1022) heap_init: At 600FE01C len 00001FCC (7 KiB): RTCRAM
+I (1028) esp_psram: Adding pool of 8100K of PSRAM memory to heap allocator
+I (1035) spi_flash: detected chip: gd
+I (1037) spi_flash: flash io: qio
+I (1041) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (1047) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (1054) main_task: Started on CPU0
+I (1084) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (1084) main_task: Calling app_main()
+standin: largest internal block 139264; calc stack 32768, then 110592; keyboard image 96000, then 31744
+touch: GT911 id '911' (ESP_OK)
+load: no image: MEMORY CLEAR
+apps: saves loaded
+standin: heap internal 71459 (largest block 31744), PSRAM 6972472
+I (1334) main_task: Returned from app_main()
+talk.py: PASS line 13: expect 'load: no image: MEMORY CLEAR'
+boot: boots=2 reason=SW new=1 wake=none pins=0x0 ver=0.101 core=201491a id=52a96177
+STANDIN READY
+tone: use 16 level 4
+talk.py: FAIL line 14: expect 'ver=0.88'
+key 42
+tone: use 1 level 4
+key 42
+tone: use 1 level 4
+key 36
+tone: use 1 level 4
+key 18
+tone: use 1 level 4
+key 2
+tone: use 1 level 4
+key 42
+tone: use 1 level 4
+key 30
+tone: use 1 level 4
+key 43
+tone: use 1 level 4
+key 38
+tone: use 1 level 4
+key 34
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 33
+tone: use 1 level 4
+key 46
+tone: use 1 level 4
+key 32
+tone: use 1 level 4
+key 3
+tone: use 1 level 4
+key 37
+tone: use 1 level 4
+key 37
+tone: use 1 level 4
+key 18
+tone: use 1 level 4
+state: X=0 stop=NONE lines=0 prgm=0 running=0 shift=0 prompt=- msg=- heap=66915 stack-free=27356
+boot: boots=2 reason=SW new=1 wake=none pins=0x0 ver=0.101 core=201491a id=52a96177
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=c564e411d208a2960ee222590c4dd90bcee1c5bf games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=▲ off=0
+app: -
+rows: 0 top=0 next=0 dropped=0 x=0 y=0
+eqn: 2×X+5=11 | note=- | rep=- | row=- | drawn=2X+5=11
+ui: show=0 -
+talk.py: PASS line 53: expect '2×X+5=11'
+pixels: gold key 4208, blue key 4208 (gold FD20, blue 4D9F, key 4208)
+key 5
+tone: use 1 level 4
+key 0
+tone: use 1 level 4
+state: X='2×X+5=11' stop=NONE lines=0 prgm=0 running=0 shift=0 prompt=- msg=- heap=66915 stack-free=26828
+boot: boots=2 reason=SW new=0 wake=none pins=0x0 ver=0.101 core=201491a id=52a96177
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=c564e411d208a2960ee222590c4dd90bcee1c5bf games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=SIMP off=0
+talk.py: PASS line 60: expect "state: X='2×X+5=11'"
+talk.py: PASS line 61: expect 'soft1=SIMP'
+app: -
+rows: 1 top=1 next=2 dropped=0 x=1 y=0
+eqn: - | note=- | rep=- | row=- | drawn=2X+5=11
+ui: show=0 -
+pixels: gold key 4208, blue key 4208 (gold FD20, blue 4D9F, key 4208)
+framecrc: rows 21-205 1468CB35
+talk.py: PASS line 63: expect 'framecrc: rows 21-205 1468CB35'
+key 38
+tone: use 1 level 4
+key 34
+tone: use 1 level 4
+state: X='(2×X+5)×2=11×2' stop=NONE lines=0 prgm=0 running=0 shift=0 prompt=- msg=- heap=66915 stack-free=26828
+boot: boots=2 reason=SW new=0 wake=none pins=0x0 ver=0.101 core=201491a id=52a96177
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=c564e411d208a2960ee222590c4dd90bcee1c5bf games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+talk.py: PASS line 70: expect "state: X='(2×X+5)×2=11×2'"
+ui: clock=--:--  view=- soft1=SIMP off=0
+app: -
+rows: 3 top=3 next=4 dropped=0 x=3 y=0
+eqn: - | note=- | rep=- | row=- | drawn=(2X+5)·2=11·2
+ui: show=0 -
+pixels: gold key 4208, blue key 4208 (gold FD20, blue 4D9F, key 4208)
+talk.py: PASS line 71: expect 'soft1=SIMP'
+key 0
+tone: use 1 level 4
+state: X='4×X+10=22' stop=NONE lines=0 prgm=0 running=0 shift=0 prompt=- msg=- heap=66915 stack-free=24364
+boot: boots=2 reason=SW new=0 wake=none pins=0x0 ver=0.101 core=201491a id=52a96177
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=c564e411d208a2960ee222590c4dd90bcee1c5bf games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=SIMP off=0
+app: -
+rows: 4 top=4 next=5 dropped=0 x=4 y=0
+eqn: - | note=- | rep=- | row=- | drawn=4X+10=22
+ui: show=0 -
+pixels: gold key 4208, blue key 4208 (gold FD20, blue 4D9F, key 4208)
+talk.py: PASS line 76: expect "state: X='4×X+10=22'"
+talk.py: PASS line 77: expect 'soft1=SIMP'
+framecrc: rows 21-205 3C0C4FC9
+talk.py: PASS line 80: expect 'framecrc: rows 21-205 3C0C4FC9'
+key 2
+tone: use 1 level 4
+key 33
+tone: use 1 level 4
+state: X='4×X+10=22' stop=NONE lines=0 prgm=0 running=0 shift=0 prompt=- msg=- heap=66915 stack-free=24364
+boot: boots=2 reason=SW new=0 wake=none pins=0x0 ver=0.101 core=201491a id=52a96177
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=c564e411d208a2960ee222590c4dd90bcee1c5bf games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=▲ off=0
+talk.py: PASS line 87: expect 'soft1=▲'
+app: -
+rows: 4 top=4 next=5 dropped=0 x=4 y=0
+eqn: - | note=- | rep=SOLVED: X=3 | row=SOLVED | drawn=-
+ui: show=0 -
+pixels: gold key 4208, blue key 4208 (gold FD20, blue 4D9F, key 4208)
+talk.py: PASS line 88: expect 'rep=SOLVED: X=3 | row=SOLVED'
+framecrc: rows 21-205 6288D7A8
+talk.py: PASS line 90: expect 'framecrc: rows 21-205 6288D7A8'
+key 1
+tone: use 1 level 4
+key 18
+tone: use 1 level 4
+state: X=3 stop=NONE lines=0 prgm=0 running=0 shift=0 prompt=- msg=- heap=66915 stack-free=24364
+boot: boots=2 reason=SW new=0 wake=none pins=0x0 ver=0.101 core=201491a id=52a96177
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=c564e411d208a2960ee222590c4dd90bcee1c5bf games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=- off=0
+app: -
+talk.py: PASS line 97: expect 'state: X=3 '
+talk.py: PASS line 98: expect 'soft1=-'
+rows: 5 top=5 next=6 dropped=0 x=5 y=4
+eqn: - | note=- | rep=- | row=- | drawn=-
+ui: show=0 -
+pixels: gold key 4208, blue key 4208 (gold FD20, blue 4D9F, key 4208)
+framecrc: rows 21-205 64939EE0
+talk.py: PASS line 102: expect 'framecrc: rows 21-205 64939EE0'
+state: X=3 stop=NONE lines=0 prgm=0 running=0 shift=0 prompt=- msg=- heap=66915 stack-free=24364
+boot: boots=2 reason=SW new=0 wake=none pins=0x0 ver=0.101 core=201491a id=52a96177
+flash: io=QIO chip=8MB header=DIO/8MB
+pins: casim=c564e411d208a2960ee222590c4dd90bcee1c5bf games=8f8e9e8 babal=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 aim=5fe8ceaceedd3d4aac5513f1c7e713b45aa24509 land=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 snake=5947c16d6b96928b5511129a6024c2ea570d152e mines=7344045c918f2818963ab5946aca3f3d3fad644f salvo=bca20f0ef5161e63d287921f7cfed26a72dfd4e9 rocks=7686766a1e99a7c4555071d28b6189fb144a9bfd moles=7686766a1e99a7c4555071d28b6189fb144a9bfd catch=7686766a1e99a7c4555071d28b6189fb144a9bfd
+ui: clock=--:--  view=- soft1=- off=0
+app: -
+rows: 5 top=5 next=6 dropped=0 x=5 y=4
+eqn: - | note=- | rep=- | row=- | drawn=-
+ui: show=0 -
+pixels: gold key 4208, blue key 4208 (gold FD20, blue 4D9F, key 4208)
+talk.py: PASS line 104: expect-min stack-free 8188 (got 24364)
+talk.py: FAIL line 106: expect 'framecrc: rows 21-205 00000000'

@@ -1,0 +1,8 @@
+M0 SURVIVED 
+M1 RED: 100-soroban:I01,N01,N02 ## rows_test rc 1, 2 short: FAIL: names: EQDROP (arg 0) can leave a row and has no name ## replay rc 1: arith084.txt:62: FAIL: framecrc 01F59328, the replay gives 9FB774A0 || arith084.txt:75: FAIL: framecrc 01F59328, the replay gives 9FB774A0 || cas088.txt:80: FAIL: framecrc 3C0C4FC9, the replay gives 6460E369 || cas088.txt:102: FAIL: framecrc 64939EE0, the replay gives 4B15E3D2
+M2 RED: 100-soroban:I02,N03,N04 ## rows_test rc 1, 2 short: FAIL: names: CASSIMP (arg 0) can leave a row and has no name ## replay rc 1: cas088.txt:102: FAIL: framecrc 64939EE0, the replay gives DEEB5112
+M3 RED: 100-soroban:I03,N05,N06 ## rows_test rc 1, 2 short: FAIL: names: CASEXP (arg 0) can leave a row and has no name
+M4 RED: 100-soroban:I04,N07,N08 ## rows_test rc 1, 2 short: FAIL: names: CASSOLVE (arg 0) can leave a row and has no name ## replay rc 1: cas088.txt:102: FAIL: framecrc 64939EE0, the replay gives 6A5F7CA5
+M5 RED: 100-soroban:I05,N09,N10 ## rows_test rc 1, 2 short: FAIL: names: SST (arg 0) can leave a row and has no name
+M6 RED: app_test rc 1, 1 short: app_test: 100: a row with an op this build doesn't name: its page line's left is empty, its value dr
+M7 RED: 100-soroban:I04,N07,N08 ## replay rc 1: cas088.txt:102: FAIL: framecrc 64939EE0, the replay gives 6A5F7CA5
