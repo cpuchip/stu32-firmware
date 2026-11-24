@@ -1,0 +1,14 @@
+# Unit 102 (work/page-line-kind.md at 660a5d2; abacus #17044, rulings #17048): each page line's kind, read by
+# %PAGEKIND-k (k as %PAGE-k, 1 the lowest): A an ALG row's text, O an op's name, D the dropped line, - no left (a typed
+# number, a two-line row's value line, an op this build doesn't name: app_test's). Each kind is read beside its line's
+# %PAGE-k, so the kind is checked against its text. Written from the blueprint and the rulings; the directive is new, so
+# the file can't run before src; each line was read on the draft build first.
+P01 | an RPN page: the typed 1 -, √x O, the typed 4 - | STU 4 SQRT 1 + | %PAGEN=3 %PAGE-1=_|1.0000 %PAGEKIND-1=- %PAGE-2=√x|2.0000 %PAGEKIND-2=O %PAGE-3=_|4.0000 %PAGEKIND-3=-
+P02 | unit 100's →X is an op's name | STU EQ:2×X+5 EQDROP 2 * | %PAGE-1=_|2.0000 %PAGEKIND-1=- %PAGE-2=→X|'2×X+5' %PAGEKIND-2=O
+P03 | an ALG page: the line's text is A | STU ALG 2 + 3 ENTER 7 ENTER | %PAGEN=1 %PAGE-1=2+3|5.0000 %PAGEKIND-1=A
+P04 | one page, both kinds: ALG's line 2 is A, RPN's + O, its typed 6 - | STU 5 ENTER 6 + ALG 2 ENTER 3 * 4 ENTER | %PAGEN=4 %PAGE-1=2|2.0000 %PAGEKIND-1=A %PAGE-2=+|11.0000 %PAGEKIND-2=O %PAGE-3=_|6.0000 %PAGEKIND-3=-
+P05 | an ALG line too long for one line: A above, - its value below | STU ALG 123456789 + 987654321 * 3 - 1111111 / 7 ENTER 5 ENTER | %PAGEN=2 %PAGE-2=123456789+987654321×3-1111111÷7|_ %PAGEKIND-2=A %PAGE-1=_|3086261021.8571 %PAGEKIND-1=-
+P06 | the dropped line is D | STU 1 ENTER 2 + ROWNEXT:4294967294 3 + | %PAGEN=1 %PAGE-1=4_OLDER_ROWS_DROPPED|_ %PAGEKIND-1=D
+P07 | the dropped line above the rows after it | STU 1 ENTER 2 + ROWNEXT:4294967294 3 + 4 + | %PAGEN=3 %PAGEKIND-1=- %PAGE-2=+|6.0000 %PAGEKIND-2=O %PAGEKIND-3=D
+K01 | the control: 35s mode, no page | MODE35 2 SQRT | %PAGEKIND-1=?
+K02 | the control: 33s mode, no page | MODE33 2 SQRT | %PAGEKIND-1=?

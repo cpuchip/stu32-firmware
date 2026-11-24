@@ -5471,10 +5471,52 @@ int main(void)
         expect(found && pg.page_on && pg.page_n == 3 && !pg.page[1].left[0] && !strcmp(pg.page[1].value, "2.0000") &&
                    !strcmp(pg.page[0].value, "1.0000") && !strcmp(pg.page[2].value, "4.0000"),
                "100: a row with an op this build doesn't name: its page line's left is empty, its value drawn");
+        expect(pg.pagekind[1] == '-' && pg.pagekind[0] == '-' && pg.pagekind[2] == '-',
+               "102: that row's kind is -, no left (ruling 2), as the typed numbers' around it");
         ab_do(&c, AB_SEL), ab_do(&c, AB_K8), ab_do(&c, AB_ROWINFO);
         screen_lines(&c, &su, &pg);
         expect(!strncmp(pg.x.text, "? OF ", 5), "100: INFO on that row keeps ? (ruling 2)");
         if (strncmp(pg.x.text, "? OF ", 5)) printf("app_test: 100: INFO reads %s\n", pg.x.text);
+    }
+    /* unit 102 (work/page-line-kind.md; abacus #17048): the kind census. A page built key by key, RPN and ALG in turns
+       of 40 keys on one page (typed numbers, ops, ALG lines); after every key, every page line's kind agrees with its
+       text: A and O have a left, - has none, D reads "OLDER ROWS DROPPED". (→X, a two-line ALG line and the dropped line
+       are 102-soroban's P02, P05 and P06-P07) */
+    {
+        static screen_page pg;
+        screen_ui su;
+        int lines = 0, seen[4] = {0, 0, 0, 0}, wrong = 0;
+        char m[200];
+        ab_init(&c);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        screen_ui_default(&su);
+        for (int i = 0; i < 600; i++) {
+            int step = i % 40;
+            if (step == 0) ab_do_arg(&c, AB_ENTRYM, (i / 40) % 2);     /* ALG and RPN in turn, on one page */
+            if (step < 30) {
+                static const ab_op keys[] = {AB_K3, AB_ENTER, AB_K4, AB_ADD, AB_SQRT, AB_K7, AB_MUL, AB_K2, AB_DIV,
+                                             AB_ENTER, AB_K9, AB_SUB, AB_K1, AB_K2, AB_K3, AB_K4, AB_K5, AB_K6, AB_K7,
+                                             AB_K8, AB_K9, AB_ADD, AB_K5, AB_MUL, AB_ENTER, AB_LN, AB_K8, AB_ADD,
+                                             AB_ENTER, AB_SQ};
+                ab_do(&c, keys[step]);
+            } else {
+                ab_do(&c, step % 2 ? AB_K6 : AB_ENTER);
+            }
+            screen_lines(&c, &su, &pg);
+            for (int l = 0; pg.page_on && l < pg.page_n; l++) {
+                char k = pg.pagekind[l];
+                const char *left = pg.page[l].left;
+                bool ok = k == 'A' || k == 'O' ? left[0] != '\0' : k == '-' ? left[0] == '\0' :
+                          k == 'D' ? strstr(left, "OLDER ROWS DROPPED") != NULL : false;
+                lines++;
+                seen[k == 'A' ? 0 : k == 'O' ? 1 : k == '-' ? 2 : 3]++;
+                if (!ok && wrong++ < 3) printf("app_test: 102: key %d, page line %d: kind %c, left \"%s\"\n", i, l + 1, k, left);
+            }
+        }
+        snprintf(m, sizeof m, "102: the kind census: %d page lines over 600 keys (A %d, O %d, - %d, D %d), %d wrong", lines,
+                 seen[0], seen[1], seen[2], seen[3], wrong);
+        expect(!wrong && seen[0] && seen[1] && seen[2], m);
+        printf("app_test: %s\n", m);
     }
     printf("app_test: %d/%d checks\n", checks - bad, checks);
     return bad != 0;

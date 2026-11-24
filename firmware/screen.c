@@ -424,27 +424,31 @@ static void peek_val_line(const ab_val *v, const char *t, const ab_calc *c, cons
 }
 
 /* The record at offset at: its left (a typed number's none, an ALG line's text, else the op's name as list.c's) and its
-   value, each as UTF-8. Unit 100: an op with no name (only a damaged image holds one) has no left, as level_op_text */
-static void pg_texts(const ab_calc *c, const screen_ui *ui, uint32_t at, char *left, int lsz, char *val, int vsz)
+   value, each as UTF-8. Unit 100: an op with no name (only a damaged image holds one) has no left, as level_op_text.
+   Unit 102: returns the left's kind, 'A' an ALG line's text, 'O' an op's name, '-' none (screen_page's pagekind) */
+static char pg_texts(const ab_calc *c, const screen_ui *ui, uint32_t at, char *left, int lsz, char *val, int vsz)
 {
     ab_row r;
     ab_val v;
     char t[AB_EQN_LEN];
     int ind;
+    char kind = '-';
     left[0] = val[0] = '\0';
-    if (!ab_rows_parse(c->rows + at, c->rows_len - at, &r)) return;
-    if (r.op == AB_ROW_OP_ALG) snprintf(left, (size_t)lsz, "%.*s", (int)r.tlen, r.text);
+    if (!ab_rows_parse(c->rows + at, c->rows_len - at, &r)) return kind;
+    if (r.op == AB_ROW_OP_ALG) snprintf(left, (size_t)lsz, "%.*s", (int)r.tlen, r.text), kind = left[0] ? 'A' : '-';
     else if (r.op != AB_ROW_OP_NUM && ab_op_text(c, (int)r.op, r.arg, left, lsz) <= 0) left[0] = '\0';
-    if (!ab_val_decode(r.val, r.vlen, &v, t, sizeof t)) return;
+    else if (r.op != AB_ROW_OP_NUM) kind = 'O';
+    if (!ab_val_decode(r.val, r.vlen, &v, t, sizeof t)) return kind;
     if (v.kind == AB_EXPR || v.kind == AB_NAME) {           /* as val_line writes one, without a slot */
         snprintf(val, (size_t)vsz, "'%s'", t);
-        return;
+        return kind;
     }
     ab_display d = display_of(c, ui, FMT_WIDTH);
     if (val_text(&v, &d, val, vsz, &ind) < 0) {
         d = display_of(c, ui, FMT_WIDE);
         if (val_text(&v, &d, val, vsz, &ind) < 0) snprintf(val, (size_t)vsz, "?");
     }
+    return kind;
 }
 
 /* One line or two: whether its sides fit together */
@@ -1587,18 +1591,20 @@ static void level_op(ls027_frame *f, const ab_calc *c, const composed *k, int i)
     if (level_op_text(c, k, i, t, sizeof t)) screen_text(f, NUM_X + 2, k->lvl_bot[i] - 14, 2, t, true);
 }
 
-/* One of the page's lines into l: its text at the left or its value at the right, as part says */
-static void pg_line_text(const ab_calc *c, const screen_ui *ui, const composed *k, int i, char *left, int lsz, char *val,
+/* One of the page's lines into l: its text at the left or its value at the right, as part says. Unit 102: returns the
+   left's kind, screen_page's pagekind ('D' the dropped line; a two-line row's value line '-', its left above its kind) */
+static char pg_line_text(const ab_calc *c, const screen_ui *ui, const composed *k, int i, char *left, int lsz, char *val,
                          int vsz)
 {
     left[0] = val[0] = '\0';
     if (k->pg[i].part == 3) {
         snprintf(left, (size_t)lsz, "%ld OLDER ROWS DROPPED", k->pg_top);
-        return;
+        return 'D';
     }
-    pg_texts(c, ui, k->pg[i].at, left, lsz, val, vsz);
+    char kind = pg_texts(c, ui, k->pg[i].at, left, lsz, val, vsz);
     if (k->pg[i].part == 1) val[0] = '\0';
-    if (k->pg[i].part == 2) left[0] = '\0';
+    if (k->pg[i].part == 2) left[0] = '\0', kind = '-';
+    return kind;
 }
 
 /* Unit 096: X's line at bot, with the mark before its number when it has one (≈, one cell, fitted as part of the line,
@@ -1751,9 +1757,9 @@ void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
         out->page_on = true;
         snprintf(out->levels, sizeof out->levels, "%s", k->alg ? "-" : &"TZYX"[4 - k->levels]);
         out->page_n = k->pg_n;
-        for (int i = 0; i < k->pg_n; i++)
-            pg_line_text(c, ui, k, i, out->page[i].left, sizeof out->page[i].left, out->page[i].value,
-                         sizeof out->page[i].value);
+        for (int i = 0; i < k->pg_n; i++)        /* (unit 102: each line's kind with its text) */
+            out->pagekind[i] = pg_line_text(c, ui, k, i, out->page[i].left, sizeof out->page[i].left, out->page[i].value,
+                                            sizeof out->page[i].value);
         out->pagetop = k->pg_top;
         out->sel = k->sel;                      /* unit 093 */
         for (int i = 0; i < k->pg_n; i++) out->pagemark[i] = k->pg[i].mark;

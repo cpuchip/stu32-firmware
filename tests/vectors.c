@@ -1305,7 +1305,7 @@ int vectors_run(const char *name, FILE *f)
                 } else if (strcmp(ex, "%ROWDROP") == 0) {
                     rows_asked = true;
                     snprintf(got, sizeof got, "%lu", (unsigned long)c.rows_dropped);
-                } else if (strcmp(ex, "%SEL") == 0 || strncmp(ex, "%PAGEMARK-", 10) == 0 || strncmp(ex, "%LEVELMARK-", 11) == 0 ||
+                } else if (strcmp(ex, "%SEL") == 0 || strncmp(ex, "%PAGEMARK-", 10) == 0 || strncmp(ex, "%PAGEKIND-", 10) == 0 || strncmp(ex, "%LEVELMARK-", 11) == 0 ||
                            strncmp(ex, "%LEVELOP-", 9) == 0 || strncmp(ex, "%SOFT-", 6) == 0 || strcmp(ex, "%XLINE") == 0 || strcmp(ex, "%BAND") == 0 ||
                            strcmp(ex, "%XMARK") == 0) {
                     /* (unit 096: %XMARK, the glyph X's line draws before its number, _ none) */
@@ -1320,8 +1320,9 @@ int vectors_run(const char *name, FILE *f)
                         if (pg.page_on && pg.sel) snprintf(got, sizeof got, "%lu", pg.sel);
                         else snprintf(got, sizeof got, "-");
                     } else if (ex[1] == 'P') {
-                        int k = atoi(ex + 10);
-                        snprintf(got, sizeof got, "%c", pg.page_on && k >= 1 && k <= pg.page_n ? pg.pagemark[k - 1] : '?');
+                        int k = atoi(ex + 10);    /* %PAGEMARK-k (093), %PAGEKIND-k (unit 102: A, O, D or -) */
+                        const char *pk = ex[5] == 'K' ? pg.pagekind : pg.pagemark;
+                        snprintf(got, sizeof got, "%c", pg.page_on && k >= 1 && k <= pg.page_n ? pk[k - 1] : '?');
                     } else if (ex[1] == 'L' && ex[6] == 'O') {
                         /* unit 098 (abacus #14713): %LEVELOP-k, the op drawn beside level k, _ none, ? the level not drawn */
                         const char *lv = ex[9] ? strchr("XYZT", ex[9]) : NULL;

@@ -172,6 +172,10 @@ typedef struct {
        selected row's, 'L' a row it links to, '-' neither; '?' a level not drawn) */
     unsigned long sel;
     char pagemark[SCREEN_PAGE_MAX];
+    /* unit 102 (work/page-line-kind.md, abacus #17044, #17048): what each page line's left is, lowest first as page[]: 'A' an
+       ALG row's text (a host speaks it through ab_alg_words), 'O' an op's name, 'D' the dropped line, '-' no left (a typed
+       number, a two-line row's value line, an op this build doesn't name) */
+    char pagekind[SCREEN_PAGE_MAX];
     char levelmark[4];                              /* X, Y, Z, T */
     /* unit 096 (work/mark-exact-rounded.md, look A): the mark X's line draws before its number on STU's home, UTF-8:
        "≈" when the value is rounded or the display drops a nonzero digit of it; "" none. Not in x's text */
