@@ -1,0 +1,20 @@
+Unit 101's mutants, each predicted before any run (written with the build's own commit). Each is one fault applied
+alone by work/101-evidence/mutants-runner.py; the binaries are deleted and rebuilt (and the restored tree built again at
+the end); the runner reads 101-soroban, the ALG files (029-soroban, 089, 090, 096, work/029, 029b, 031, 032b), and
+eqn_say_test on 101-alg-corpus and 086-corpus.
+
+M0  control: no change.                                                   SURVIVED.
+A1  the view branch's `k->xexpr = false` removed.                         RED: 101 A01, A02, A03 only (the export
+    says X's 2D form under INFO, SHOW and FRAC again). K01-K05 and every B line green; frames don't move (the frame
+    never drew it).
+B1  ab_alg_words passes ans = false (an ALG line read as an equation).    RED: 101 B01-B06 (ANS said as A times N
+    times S); eqn_say_test's ALG corpus FAILS on the ANS lines (read back as A×N×S, which evaluates otherwise with ANS
+    7.125). K03 and K05 green; 086-corpus green.
+B2  the ANS test without alg_eval (`p->ans` alone): an ALG line's
+    evaluation reads ANS as letters.                                      RED: the ALG vectors whose lines evaluate ANS
+    (in 029-soroban, 090 and work/029 at least; which lines, not predicted). 101's B lines GREEN (the words still set the
+    field); eqn_say_test's ALG corpus GREEN (its evaluation and its read-back both read ANS as letters, so they agree:
+    a gap of this test, named).
+B3  ab_eqn_words passes ans = true (an equation's ANS read as ANS).       RED: 101 K05 (an equation's ANS+1 said "the
+    last answer plus 1"); 086-corpus FAILS on its 35s line ANS+1 (today no words, the 35s parser refusing it; under the
+    fault the words' parse takes ANS, so it is spoken while the parser refuses it). The ALG corpus green.
