@@ -1,0 +1,15 @@
+# h100: unit 100's hidden set (abacus, 2026-11-24): every op that leaves a worksheet row has a name. From soroban's
+# blueprint stu32-firmware work/row-op-names.md at fa79084 and the rulings (#16953): the five names →X, SIMP, EXPND,
+# SOLVE, SST on the page's left and beside the levels; the named ops and the 33s and 35s unchanged.
+H01 | the phone's case: →X, then 2 ×; the →X row named on the page | STU EQ:2×X+5 EQDROP 2 * | %PAGEN=2 %PAGE-1=_|2.0000 %PAGE-2=→X|'2×X+5' %LEVELOP-X=_
+H02 | SIMP's row above, under a ×, the →X row above it | STU EQ:X+X EQDROP CASSIMP 2 * | %PAGEN=3 %PAGE-1=_|2.0000 %PAGE-2=SIMP|'2×X' %PAGE-3=→X|'X+X'
+H03 | EXPND's row above | STU EQ:(X+1)^2 EQDROP CASEXP 2 * | %PAGE-2=EXPND|'2×X+X^2+1' %PAGE-3=→X|'(X+1)^2'
+H04 | ENTER on a root: SOLVE beside X, the dropped expression's →X beside Y, the typed 7 none | 7 STU EQ:2×X+5=11 EQDROP CASSOLVE:X SST ENTER | X=3 %LEVELOP-X=SOLVE %LEVELOP-Y=→X %LEVELOP-Z=_
+H05 | EVAL on the list's report: SOLVE's row on the page under a × | STU EQ:X^2-4 CASSOLVE:X SST CASEVAL 3 * | %PAGE-1=_|3.0000 %PAGE-2=SOLVE|-2.0000
+H06 | EXPND beside Y once a root is in X | STU EQ:(X+1)×(X-1)=0 EQDROP CASEXP CASSOLVE:X SST ENTER | %LEVELOP-Y=EXPND %LEVELOP-X=SOLVE
+H07 | SIMP to a number, named beside X | STU EQ:X+5-X EQDROP CASSIMP | X=5 %LEVELOP-X=SIMP
+H08 | SST's run row, named beside X | STU PRGM CLPGM LBL:A 5 RTN PRGM GTO:A SST SST | X=5 %LEVELOP-X=SST
+K01 | control: a named op beside X | STU 2 SQRT | %LEVELOP-X=√x
+K02 | control: a named op on the page | STU 3 ENTER 4 * 5 + | %PAGE-1=_|5.0000 %PAGE-2=×|12.0000
+K03 | control: 35s, no page | MODE35 2 SQRT | %LEVELOP-X=?
+K04 | control: 33s, no page | MODE33 2 SQRT | %LEVELOP-X=?

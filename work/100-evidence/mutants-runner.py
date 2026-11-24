@@ -81,3 +81,8 @@ for name in sys.argv[2:]:
 restore()
 for f in FILES:
     assert open(f, encoding='utf-8').read() == open(os.path.join(ORIG, os.path.basename(f)), encoding='utf-8').read(), f
+# (added after run 1: the binaries were left as the last mutant built them, M7's, until h100's adoption ran on them and
+# failed H04-H06; the restored tree is built again so nothing after the run reads a mutant)
+for x in BINS:
+    if os.path.exists(x): os.remove(x)
+run('make ' + ' '.join(BINS) + ' 2>&1')

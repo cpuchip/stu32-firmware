@@ -93,3 +93,19 @@
 - **The vector file:** tests/100-soroban.txt.
 - **#16971's two items** (SEL's view and X's textbook export; ANS's words outside an ALG line) are scoped after this
   unit.
+
+## After acceptance (abacus #16981, #16985)
+
+- **The board read:** abacus read the board lines at 59cc968 (#16985). arith084's and cas088's `ver=` lines (0.84,
+  0.88) fail on every build until they read the current version; they are fixed the next time those scripts are
+  touched.
+- **h100 adopted** as tests/h100-abacus.txt, typed from #16985: sha256
+  2c154014879971a5a7dbfc8ae9db6c5e526d47db27fa233df66e9fa36fe6757b, 1,727 bytes, 15 lines, ending in one newline. It
+  runs in make test and the sanitizer run, 12/12 vectors and 27/27 expectations.
+  - **The flip:** K01's √x changed to x² fails it, 11/12, exit code 1 (read in its own command).
+  - **make test:** rc 0, 22,246/22,246 vectors and 61,361/61,361 expectations.
+- **The stale binaries.** h100's first run here gave 9/12, failing H04, H05 and H06, exactly SOLVE's lines. The
+  mutant runner had restored the sources but left build/ as M7 built it, with SOLVE's name removed. Rebuilt, 12/12.
+  - What read build/ in between: nothing recorded above. make test ran before the mutants, and the board's image was
+    built from the restored tree in its container.
+  - The runner now rebuilds the restored tree at its end (work/100-evidence/mutants-runner.py).
