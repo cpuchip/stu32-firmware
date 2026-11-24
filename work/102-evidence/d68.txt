@@ -1,0 +1,38 @@
+Preparing worktree (detached HEAD 660a5d2)
+HEAD is now at 660a5d2 Blueprint (unit 102, abacus #17044 from tally #17042): pagekind[] in screen_page, one per page line beside pagemark: A an ALG row's text (speak through ab_alg_words), O an op's name, D the dropped line, - no left; set in pg_line_text, the one writer of page[i].left. Export only, VER 0.103. Oracle: 102-soroban with %PAGEKIND-k, app_test's damaged row, a kind-vs-text census, mutants M0-M4. No prototype (the kind comes from the line's part and its row's op). Three asks. No src
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+casim c564e411d208a2960ee222590c4dd90bcee1c5bf
+Preparing worktree (detached HEAD 439ef9c)
+HEAD is now at 439ef9c Unit 102: each page line's kind (work/page-line-kind.md at 660a5d2; abacus #17044, rulings #17048; h102 frozen 03d2a7f6 before src). screen_page gains pagekind[], beside pagemark: A an ALG row's text (for ab_alg_words), O an op's name, D the dropped line, - no left (a typed number, a two-line row's value line, an op this build doesn't name, ruling 2). Set in pg_line_text, the one writer of page[i].left; export only. tests/102-soroban.txt (9, read by %PAGEKIND-k beside %PAGE-k); app_test: the damaged row reads -, and a kind census over 600 keys of a mixed RPN/ALG page (2,991 lines, 0 wrong). make test rc 0, 22,314/22,314 vectors, 61,509/61,509 expectations. VER 0.103
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+casim c564e411d208a2960ee222590c4dd90bcee1c5bf
+
+### standin: 660a5d2 -> 439ef9c
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,414,592 | 2,414,688 | +96 |
+| internal RAM static (DIRAM, of 341,760) | 207,731 | 207,731 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 59,074 | 59,074 | +0 |
+| calc_task's frame (under every deep path's stack), B | 144 | 144 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 851,330 -> 851,438 (+108)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 160,677 -> 160,677 (+0), none changed
+
+### reva: 660a5d2 -> 439ef9c
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,341,568 | 2,341,600 | +32 |
+| internal RAM static (DIRAM, of 341,760) | 215,374 | 215,374 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 78,086 | 78,086 | +0 |
+| calc_task's frame (under every deep path's stack), B | 128 | 128 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 791,560 -> 791,592 (+32)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 133,339 -> 133,339 (+0), none changed

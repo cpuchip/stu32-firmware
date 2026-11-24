@@ -1,0 +1,5 @@
+M0 SURVIVED 
+M1 RED: 102-soroban.txt:P03,P04,P05 ## app_test rc 1, 1 short: app_test: 102: the kind census: 2991 page lines over 600 keys (A 0, O 899, - 2092, D 0), 0 wrong || app_test: 102: the kind census: 2991 page lines over 600 keys (A 0, O 899, - 2092, D 0), 0 wrong
+M2 RED: 102-soroban.txt:P05
+M3 RED: 102-soroban.txt:P06,P07
+M4 RED: app_test rc 1, 1 short: app_test: 102: that row's kind is -, no left (ruling 2), as the typed numbers' around it || app_test: 102: the kind census: 2991 page lines over 600 keys (A 266, O 633, - 2092, D 0), 0 wrong
