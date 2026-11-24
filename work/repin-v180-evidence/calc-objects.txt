@@ -1,0 +1,46 @@
+## 4708e3f reva calc.c.obj
+.text.solve_core: 13994 B, sha256 f72105887749d08b
+.literal.solve_core: 1344 B, sha256 b17d9cb51e4e5a61
+.rela.text.solve_core: 13596 B, sha256 9671a3abe2424ced
+.text.do_key: 12566 B, sha256 530fd4b208ec78b7
+.literal.do_key: 1400 B, sha256 b5a176acaefcdcdf
+.rela.text.do_key: 20196 B, sha256 56c5d7e6227d93a5
+.text.ev: 188 B, sha256 bb2abe8656ea6559
+.text.prog_run_lines: 2676 B, sha256 0ded129ac4495da1
+## 4708e3f standin calc.c.obj
+.text.solve_core: 13994 B, sha256 f72105887749d08b
+.literal.solve_core: 1344 B, sha256 b17d9cb51e4e5a61
+.rela.text.solve_core: 13596 B, sha256 9671a3abe2424ced
+.text.do_key: 12566 B, sha256 530fd4b208ec78b7
+.literal.do_key: 1400 B, sha256 b5a176acaefcdcdf
+.rela.text.do_key: 20196 B, sha256 56c5d7e6227d93a5
+.text.ev: 188 B, sha256 bb2abe8656ea6559
+.text.prog_run_lines: 2676 B, sha256 0ded129ac4495da1
+## 0a9b505 reva calc.c.obj
+.text.solve_core: 13994 B, sha256 f72105887749d08b
+.literal.solve_core: 1344 B, sha256 b17d9cb51e4e5a61
+.rela.text.solve_core: 13596 B, sha256 9671a3abe2424ced
+.text.do_key: 12566 B, sha256 530fd4b208ec78b7
+.literal.do_key: 1400 B, sha256 b5a176acaefcdcdf
+.rela.text.do_key: 20196 B, sha256 56c5d7e6227d93a5
+.text.ev: 188 B, sha256 bb2abe8656ea6559
+.text.prog_run_lines: 2676 B, sha256 0ded129ac4495da1
+## 0a9b505 standin calc.c.obj
+.text.solve_core: 13994 B, sha256 f72105887749d08b
+.literal.solve_core: 1344 B, sha256 b17d9cb51e4e5a61
+.rela.text.solve_core: 13596 B, sha256 9671a3abe2424ced
+.text.do_key: 12566 B, sha256 530fd4b208ec78b7
+.literal.do_key: 1400 B, sha256 b5a176acaefcdcdf
+.rela.text.do_key: 20196 B, sha256 56c5d7e6227d93a5
+.text.ev: 188 B, sha256 bb2abe8656ea6559
+.text.prog_run_lines: 2676 B, sha256 0ded129ac4495da1
+## 4708e3f standin state.c.obj
+.literal.ab_state_load: 192 B, sha256 bbb0485750bac5c7
+.literal.parse: 832 B, sha256 a35c4bf48d592cf2
+.text.ab_state_load: 1056 B, sha256 4e657ffba1145d69
+.text.parse: 9322 B, sha256 8e224f16378de6de
+## 0a9b505 standin state.c.obj
+.literal.ab_state_load: 192 B, sha256 bbb0485750bac5c7
+.literal.parse: 832 B, sha256 a35c4bf48d592cf2
+.text.ab_state_load: 1056 B, sha256 4e657ffba1145d69
+.text.parse: 9322 B, sha256 8e224f16378de6de

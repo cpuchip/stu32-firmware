@@ -1,0 +1,32 @@
+# tests/repin-v180-soroban.txt on the 1.7.0 pin's build (scratch worktree at 4708e3f, build/casim/.pin 8a76a80e5cd3e3bac574a93498c8c3c2838d22f8)
+FAIL R01: expected %CASREP=SOLVED,_8_CPLX:_X=4^(1÷3), got PARTIAL,_DEGREE_9_LEFT
+FAIL R01: expected %CASROW=SOLVED,_8_CPLX_ROOTS_NOT_SHOWN, got PARTIAL,_DEGREE_9_LEFT
+FAIL R02: expected X=1.587401051968199474751705639272308, got +0E-6176
+FAIL R03: expected %CASREP=SOLVED,_10_CPLX:_X=-2;_X=2, got PARTIAL,_DEGREE_4_LEFT,_6_CPLX:_X=-2;_X=2
+FAIL R04: expected %CASREP=NO_REAL_ROOTS._CAS3_CPLX_ON, got PARTIAL,_DEGREE_4_LEFT
+FAIL R05: expected %CASREP=SOLVED,_2_CPLX:_X=2^(1÷3), got PARTIAL,_DEGREE_3_LEFT
+FAIL R06: 1 operation(s) returned an error
+FAIL R06: expected %CASREP=SOLVED:_X=SQRT(A);_X=-SQRT(A);_A≥0, got none
+FAIL R06: expected %CASROW=SOLVED, got none
+FAIL R07: 1 operation(s) returned an error
+FAIL R07: expected X=-3, got +9E+0
+FAIL R08: 1 operation(s) returned an error
+FAIL R08: expected %CASREP=SOLVED:_X=-(B+SQRT(B^2-4×A×C))÷2÷A;_X=-(B-SQRT(B^2-4×A×C))÷2÷A;_A≠0;_B^2-4×A×C≥0, got none
+FAIL R09: 1 operation(s) returned an error
+FAIL R09: expected %CASREP=SOLVED:_X=A^(1÷3);_A≥0, got none
+FAIL R10: 1 operation(s) returned an error
+FAIL R10: expected %CASREP=SOLVED:_X=1÷SQRT(A);_X=-1÷SQRT(A);_A>0, got none
+FAIL R11: expected %CASREP=SOLVED,_8_CPLX:_X=4^(1÷3), got PARTIAL,_DEGREE_9_LEFT
+FAIL P01: expected %STEPN=4, got 3
+FAIL P01: expected %STEP=PURE_POWER:_X^9=64:_X=4^(1÷3), got ANSWER:_PARTIAL,_DEGREE_9_LEFT
+FAIL P01: expected %STEPRULE=PURE_POWER, got ANSWER
+FAIL P02: expected %STEPN=14, got 13
+FAIL P02: expected %STEPK=13, got 12
+FAIL P02: expected %STEP=PURE_POWER:_X^12=4096:_NO_OTHER_REAL_ROOT, got LEFT:_X^4-4×X^2+16=0:_DEGREE_4_LEFT
+FAIL P02: expected %STEPRULE=PURE_POWER, got LEFT
+FAIL P03: expected %STEPN=4, got 3
+FAIL P03: expected %STEP=PURE_POWER:_X^4=-16:_NO_REAL_ROOTS, got ANSWER:_PARTIAL,_DEGREE_4_LEFT
+FAIL P03: expected %STEPRULE=PURE_POWER, got ANSWER
+FAIL P04: expected %ERRMSG=UNSUPPORTED, got none
+FAIL P04: expected %STEPREQ=S:X, got -
+/home/claude/code/stuffleberry/workspace/projects-internal/stu32-firmware/tests/repin-v180-soroban.txt: 4/19 vectors, 6/31 expectations
