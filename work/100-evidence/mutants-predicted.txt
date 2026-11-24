@@ -1,0 +1,21 @@
+Unit 100's mutants, each predicted before any run (written with the build's own commit). Each is one fault applied
+alone by work/100-evidence/mutants-runner.py; the binaries are deleted and rebuilt; the runner reads 100-soroban
+(plain), app_test, rows_test, and the stand-in replay of arith084 and cas088.
+
+M0  control: no change.                                                   SURVIVED.
+M1  NAMES[AB_EQDROP] removed (→X has no name).                             RED: 100 N01, N02, I01; rows_test's names
+    (EQDROP, 1 short); replay arith084 (both frames) and cas088 frames 2 and 4 (the →X page line).
+M2  NAMES[AB_CASSIMP] removed.                                            RED: 100 N03, N04, I02; rows_test's names
+    (CASSIMP); replay cas088 frame 4 only (SIMP beside Y; in frame 2 SIMP's row is X's, drawn in 2D with no name).
+M3  NAMES[AB_CASEXP] removed.                                             RED: 100 N05, N06, I03; rows_test's names
+    (CASEXP). No replay frame holds an EXPND row.
+M4  NAMES[AB_CASSOLVE] removed.                                           RED: 100 N07, N08, I04; rows_test's names
+    (CASSOLVE); replay cas088 frame 4 (SOLVE beside X). K03 (the numeric SOLVE X) passes: another op.
+M5  NAMES[AB_SST] removed.                                                RED: 100 N09, N10, I05; rows_test's names
+    (SST, arg 0). No replay frame holds an SST row.
+M6  pg_texts' fallback reverted (the page writes ab_op_text's ? again).   RED: app_test's damaged-row check only
+    (1 short). Every named op's page line is the same either way.
+M7  M4's fault, and rows_test's route list without AB_CASSOLVE (the test told less than the code does).
+                                                                          rows_test GREEN (no table kind and no listed
+    route reaches CASSOLVE; the census loop's ops on numbers make no report). RED: 100 N07, N08, I04 and replay cas088
+    frame 4, as M4. This is why the vectors stand beside the census (blueprint, M7).
