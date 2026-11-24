@@ -317,6 +317,7 @@ test: all
 	./build/vectors tests/h101-A-abacus.txt   # (abacus #17037: h101-A as frozen, sha256 140c760e...0190)
 	./build/vectors tests/h101-B-abacus.txt   # (abacus #17037: h101-B as frozen, sha256 5cb8c7b4...eab1)
 	./build/vectors tests/102-soroban.txt    # (unit 102: each page line's kind, work/page-line-kind.md; no save/load pass: the page)
+	./build/vectors tests/h102-abacus.txt   # (abacus #17067: h102 as frozen, sha256 03d2a7f6...b892)
 	./build/vectors tests/repin-v170-soroban.txt    # (the Casimir 1.7.0 repin: CAS 040 through the keys; fails on 175c160)
 	./build/vectors tests/repin-v180-soroban.txt    # (the Casimir 1.8.0 repin: CAS 041 through the keys; R and P lines fail on 8a76a80)
 	./build/rows_test
@@ -534,6 +535,7 @@ sanitize: build/san/load_fuzz build/san/expr_test build/san/app_test build/san/v
 	./build/san/vectors tests/h101-A-abacus.txt
 	./build/san/vectors tests/h101-B-abacus.txt
 	./build/san/vectors tests/102-soroban.txt
+	./build/san/vectors tests/h102-abacus.txt
 	./build/san/store_sim tests/092-soroban-store.txt   # (unit 092)
 	./build/san/app_test
 	for f in $(KEYV) work/016-vectors.txt work/017-vectors.txt; do AB_SAVELOAD=1 AB_STORE=1 ./build/san/vectors $$f || exit 1; done

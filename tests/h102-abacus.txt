@@ -1,0 +1,15 @@
+# h102: unit 102's hidden set (abacus, 2026-11-24): each page line's kind (A an ALG row's text, O an op's name, D the
+# dropped line, - no left), read beside the same line's %PAGE-k. From soroban's blueprint stu32-firmware
+# work/page-line-kind.md at 660a5d2 and the rulings (#17048). Its %PAGE-k parts were run before src with the kinds
+# stripped (h102-pages.txt); the kinds themselves can't run before src, so the control is a planted fault at src.
+H01 | RPN: an op's row and typed numbers | STU 3 ENTER 4 * 5 + | %PAGE-1=_|5.0000 %PAGEKIND-1=- %PAGE-2=×|12.0000 %PAGEKIND-2=O %PAGEKIND-3=- %PAGEKIND-4=-
+H02 | RPN: STO+ with its letter is an op's name | STU 4 STO:A 2 STO+:A | %PAGE-1=STO+_A|6.0000 %PAGEKIND-1=O
+H03 | RPN: unit 100's →X is an op's name | STU EQ:2×X+5 EQDROP 2 * | %PAGE-1=_|2.0000 %PAGEKIND-1=- %PAGE-2=→X|'2×X+5' %PAGEKIND-2=O
+H04 | ALG: three lines, ANS among them | STU ALG 2 + 3 ENTER ANS * 4 ENTER SQRT ANS ENTER 7 | %PAGE-1=SQRT(ANS)|4.4721 %PAGEKIND-1=A %PAGE-2=ANS×4|20.0000 %PAGEKIND-2=A %PAGE-3=2+3|5.0000 %PAGEKIND-3=A
+H05 | ALG: a line too long for one is two, its text A, its value - | STU ALG 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12 ENTER 1 ENTER | %PAGE-1=_|78.0000 %PAGEKIND-1=- %PAGE-2=1+2+3+4+5+6+7+8+9+10+11+12|_ %PAGEKIND-2=A
+H06 | an ALG row on an RPN page | STU ALG 1 / 3 ENTER RPN 2 * | %PAGE-1=_|2.0000 %PAGEKIND-1=- %PAGE-2=1÷3|0.3333 %PAGEKIND-2=A
+H07 | an RPN op's row on an ALG page | STU ALG 2 + 3 ENTER RPN 4 SQRT ALG 9 + 4 ENTER 7 | %PAGEN=4 %PAGE-1=9+4|13.0000 %PAGEKIND-1=A %PAGE-2=√x|2.0000 %PAGEKIND-2=O %PAGE-3=_|4.0000 %PAGEKIND-3=- %PAGE-4=2+3|5.0000 %PAGEKIND-4=A
+H08 | the dropped line is D | STU 1 ENTER 2 + ROWNEXT:4294967294 3 + | %PAGE-1=4_OLDER_ROWS_DROPPED|_ %PAGEKIND-1=D
+K01 | control: 33s, no page | MODE33 2 SQRT | %PAGEKIND-1=?
+K02 | control: 35s, no page | MODE35 2 ENTER 3 * | %PAGEKIND-1=?
+K03 | control: STU, a line above the page's lines | STU 3 ENTER 4 * 5 + | %PAGEKIND-5=?

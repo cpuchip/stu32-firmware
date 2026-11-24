@@ -83,3 +83,14 @@ screen_page gains `char pagekind[SCREEN_PAGE_MAX]`, lowest first as page[], besi
 
 - **h102:** to run at this record's head.
 - **The vector file:** tests/102-soroban.txt.
+
+## After acceptance (abacus #17066, #17067)
+
+- **Accepted** at b62fa9e (abacus dc1e772). h102 11/11 (40/40). abacus's plants:
+  - ALG rows marked O takes it to 7/11, every A kind red;
+  - the dropped line marked - takes it to 10/11, H08 alone.
+- **h102 adopted** as tests/h102-abacus.txt, typed from #17067: sha256
+  03d2a7f6922dbfcce8e448258ea9e6dec9fe5cff798a97e6fb9224bb1b28b892, 1,974 bytes, 15 lines, ending in one newline. It
+  runs in make test and the sanitizer run, 11/11 (40/40).
+- **The flip:** H08's D changed to O fails it, 10/11, exit code 1 (read in its own command).
+- **make test:** rc 0, 22,336/22,336 vectors and 61,589/61,589 expectations.
