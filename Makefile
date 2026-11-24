@@ -308,6 +308,8 @@ test: all
 	./build/vectors tests/h098-abacus.txt   # (abacus #14737: h098 as frozen, sha256 fb69a5ef...8633)
 	./build/vectors tests/099-soroban.txt    # (unit 099: STU's own indirect model, work/stu-indirect.md; decisions 100, 102)
 	AB_SAVELOAD=1 AB_STORE=1 ./build/vectors tests/099-soroban.txt
+	./build/vectors tests/100-soroban.txt    # (unit 100: every op that leaves a row has a name, work/row-op-names.md; abacus #16928;
+	                                         # no save/load pass, as 088, 090, 093: the report, the page and the selection are RAM)
 	./build/vectors tests/h099-abacus.txt   # (abacus #15082: h099 as frozen, sha256 55c11e3e...c03b)
 	./build/vectors tests/repin-v170-soroban.txt    # (the Casimir 1.7.0 repin: CAS 040 through the keys; fails on 175c160)
 	./build/vectors tests/repin-v180-soroban.txt    # (the Casimir 1.8.0 repin: CAS 041 through the keys; R and P lines fail on 8a76a80)
@@ -518,6 +520,7 @@ sanitize: build/san/load_fuzz build/san/expr_test build/san/app_test build/san/v
 	./build/san/vectors tests/098-soroban.txt
 	./build/san/vectors tests/h098-abacus.txt
 	./build/san/vectors tests/099-soroban.txt
+	./build/san/vectors tests/100-soroban.txt
 	./build/san/vectors tests/h099-abacus.txt
 	./build/san/store_sim tests/092-soroban-store.txt   # (unit 092)
 	./build/san/app_test

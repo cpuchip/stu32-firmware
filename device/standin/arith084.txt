@@ -58,7 +58,8 @@ send X
 expect state: X='(3×X^2-4)×2' 10
 expect drawn=(3X^2-4)·2 10
 send FRAMECRC
-expect framecrc: rows 21-205 3BC9431D 10
+# (unit 100: the →X row's page line reads →X where it read ?; 3BC9431D before)
+expect framecrc: rows 21-205 01F59328 10
 # the state across a restart: the version-21 image saved to flash and loaded
 send SAVE
 expect save:
@@ -70,7 +71,8 @@ send X
 expect state: X='(3×X^2-4)×2' 10
 expect drawn=(3X^2-4)·2 10
 send FRAMECRC
-expect framecrc: rows 21-205 3BC9431D 10
+# (unit 100: the →X row's page line reads →X where it read ?; 3BC9431D before)
+expect framecrc: rows 21-205 01F59328 10
 send X
 expect-min stack-free 8188 10
 # CONTROL: must FAIL

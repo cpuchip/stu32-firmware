@@ -424,7 +424,7 @@ static void peek_val_line(const ab_val *v, const char *t, const ab_calc *c, cons
 }
 
 /* The record at offset at: its left (a typed number's none, an ALG line's text, else the op's name as list.c's) and its
-   value, each as UTF-8 */
+   value, each as UTF-8. Unit 100: an op with no name (only a damaged image holds one) has no left, as level_op_text */
 static void pg_texts(const ab_calc *c, const screen_ui *ui, uint32_t at, char *left, int lsz, char *val, int vsz)
 {
     ab_row r;
@@ -434,7 +434,7 @@ static void pg_texts(const ab_calc *c, const screen_ui *ui, uint32_t at, char *l
     left[0] = val[0] = '\0';
     if (!ab_rows_parse(c->rows + at, c->rows_len - at, &r)) return;
     if (r.op == AB_ROW_OP_ALG) snprintf(left, (size_t)lsz, "%.*s", (int)r.tlen, r.text);
-    else if (r.op != AB_ROW_OP_NUM) ab_op_text(c, (int)r.op, r.arg, left, lsz);
+    else if (r.op != AB_ROW_OP_NUM && ab_op_text(c, (int)r.op, r.arg, left, lsz) <= 0) left[0] = '\0';
     if (!ab_val_decode(r.val, r.vlen, &v, t, sizeof t)) return;
     if (v.kind == AB_EXPR || v.kind == AB_NAME) {           /* as val_line writes one, without a slot */
         snprintf(val, (size_t)vsz, "'%s'", t);

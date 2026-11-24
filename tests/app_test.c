@@ -5441,6 +5441,41 @@ int main(void)
         press(&a, "k:5");
         expect(a.menu == prob && !c.msg, "097: and does nothing");
     }
+    /* unit 100 (work/row-op-names.md; abacus #16953 ruling 2): a row whose op this build doesn't name (only a damaged image
+       holds one; a newer image is refused whole) draws an empty left on the page, as 098's level op does, and INFO keeps
+       "?", which says something is wrong. The √x row's op is rewritten past AB_OP_LAST in RAM, as such an image loads */
+    {
+        static screen_page pg;
+        screen_ui su;
+        ab_init(&c);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        ab_do(&c, AB_K4), ab_do(&c, AB_SQRT);
+        uint32_t s = c.x.row, at = 0;
+        bool found = false;
+        while (at + 8 <= c.rows_len) {
+            uint32_t len = (uint32_t)c.rows[at] | (uint32_t)c.rows[at + 1] << 8;
+            uint32_t ser = (uint32_t)c.rows[at + 2] | (uint32_t)c.rows[at + 3] << 8 | (uint32_t)c.rows[at + 4] << 16 |
+                           (uint32_t)c.rows[at + 5] << 24;
+            if (ser == s) {
+                c.rows[at + 6] = (uint8_t)((AB_OP_LAST + 7) & 0xFF), c.rows[at + 7] = (uint8_t)((AB_OP_LAST + 7) >> 8);
+                found = true;
+                break;
+            }
+            if (len < 8) break;
+            at += len;
+        }
+        ab_do(&c, AB_K1), ab_do(&c, AB_ADD);
+        screen_ui_default(&su);
+        screen_lines(&c, &su, &pg);
+        /* (the page, lowest first: the typed 1, the √x row, the typed 4) */
+        expect(found && pg.page_on && pg.page_n == 3 && !pg.page[1].left[0] && !strcmp(pg.page[1].value, "2.0000") &&
+                   !strcmp(pg.page[0].value, "1.0000") && !strcmp(pg.page[2].value, "4.0000"),
+               "100: a row with an op this build doesn't name: its page line's left is empty, its value drawn");
+        ab_do(&c, AB_SEL), ab_do(&c, AB_K8), ab_do(&c, AB_ROWINFO);
+        screen_lines(&c, &su, &pg);
+        expect(!strncmp(pg.x.text, "? OF ", 5), "100: INFO on that row keeps ? (ruling 2)");
+        if (strncmp(pg.x.text, "? OF ", 5)) printf("app_test: 100: INFO reads %s\n", pg.x.text);
+    }
     printf("app_test: %d/%d checks\n", checks - bad, checks);
     return bad != 0;
 }

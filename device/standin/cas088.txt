@@ -76,7 +76,8 @@ send X
 expect state: X='4×X+10=22' 10
 expect soft1=SIMP 10
 send FRAMECRC
-expect framecrc: rows 21-205 5CB15E5E 10
+# (unit 100: the →X row's page line reads →X where it read ?; 5CB15E5E before)
+expect framecrc: rows 21-205 3C0C4FC9 10
 # the bar's SOLVE, in X: the report, its own bar (the dump prints soft1= before rep=)
 send K2
 sleep 0.25
@@ -97,7 +98,8 @@ expect state: X=3  10
 expect soft1=- 10
 send FRAMECRC
 # (unit 096: the root copied out of the report is rounded, ruling (b): ≈ before it; A98892E5 before)
-expect framecrc: rows 21-205 EEC9832B 10
+# (unit 100: →X on the page, SIMP beside Y and SOLVE beside X, where they read ? and nothing; EEC9832B before)
+expect framecrc: rows 21-205 64939EE0 10
 send X
 expect-min stack-free 8188 10
 # CONTROL: must FAIL

@@ -1,0 +1,25 @@
+# Unit 100 (work/row-op-names.md at fa79084; abacus #16928, rulings #16953): every op that leaves a worksheet row has a
+# name. The five that had none (EQDROP, SIMP, EXPND, CAS SOLVE, SST) take their soft keys' names, read on the page
+# (%PAGE-k=LEFT|VALUE, 090's grammar), beside a level (%LEVELOP-k, 098's) and in INFO (%XLINE, 093's). A level holding an expression in X is drawn
+# in 2D with no op beside it (098), so SIMP, EXPND and →X are read beside Y. Written from the blueprint and run on
+# 4237c2e's code (fa79084) before src: every N and I line fails there (the page's left is ?, the level's none, INFO's
+# op ?), and K01-K04 pass there, as here. INFO's other words (OF, ROUNDED) are 093's and 096's, the same on both.
+N01 | abacus's case (#16928): →X, then 2 ×: the →X row's page line | STU EQ:2×X+5 EQDROP 2 * | %PAGEN=2 %PAGE-2=→X|'2×X+5' %PAGE-1=_|2.0000
+N02 | →X beside Y | STU EQ:2×X+5 EQDROP 3 | %LEVELOP-Y=→X
+N03 | SIMP on the page | STU EQ:X+X EQDROP CASSIMP 2 + | %PAGE-2=SIMP|'2×X'
+N04 | SIMP beside Y; X, a typed 2, none | STU EQ:X+X EQDROP CASSIMP 2 | %LEVELS=YX %LEVELOP-Y=SIMP %LEVELOP-X=_
+N05 | EXPND on the page | STU EQ:(X+1)^2 EQDROP CASEXP 2 + | %PAGE-2=EXPND|'2×X+X^2+1'
+N06 | EXPND beside Y | STU EQ:(X+1)^2 EQDROP CASEXP 2 | %LEVELOP-Y=EXPND
+N07 | CAS SOLVE's EVAL: SOLVE beside X (the key's label, ruling 1) | STU EQ:X^2-4 CASSOLVE:X SST CASEVAL | %LEVELOP-X=SOLVE X=-2
+N08 | CAS SOLVE on the page | STU EQ:X^2-4 CASSOLVE:X SST CASEVAL 1 + | %PAGE-2=SOLVE|-2.0000
+N09 | SST from the keyboard runs a line: SST beside X | STU PRGM CLPGM LBL:A 5 RTN PRGM GTO:A SST SST | %LEVELOP-X=SST X=5
+N10 | SST on the page | STU PRGM CLPGM LBL:A 5 RTN PRGM GTO:A SST SST 1 + | %PAGE-2=SST|5.0000
+I01 | INFO on the →X row (093's view, SEL from the newest row above X) | STU EQ:X+X EQDROP CASSIMP SEL ROWINFO | %XLINE=→X
+I02 | INFO on the SIMP row | STU EQ:X+X EQDROP CASSIMP 2 + SEL 8 ROWINFO | %XLINE=SIMP_OF_'X+X',_ROUNDED
+I03 | INFO on the EXPND row | STU EQ:(X+1)^2 EQDROP CASEXP 2 + SEL 8 ROWINFO | %XLINE=EXPND_OF_'(X+1)^2',_ROUNDED
+I04 | INFO on CAS SOLVE's row (the list's: no link) | STU EQ:X^2-4 CASSOLVE:X SST CASEVAL SEL ROWINFO | %XLINE=SOLVE,_ROUNDED
+I05 | INFO on SST's row | STU PRGM CLPGM LBL:A 5 RTN PRGM GTO:A SST SST SEL ROWINFO | %XLINE=SST_OF_0.0000,_ROUNDED
+K01 | the control: × beside X | STU 2 ENTER 3 * | %LEVELOP-X=×
+K02 | the control: √x on the page | STU 4 SQRT 1 + | %PAGE-2=√x|2.0000
+K03 | the control: the numeric solver's row keeps its letter, SOLVE X | STU PRGM CLPGM LBL:A RCL:X 2 - RTN PRGM FN=:A 0 STO:X SOLVE:X | %LEVELOP-X=SOLVE_X
+K04 | the control: a typed number's page line has no left | STU 7 ENTER 1 + | %PAGE-2=_|7.0000

@@ -11,6 +11,10 @@
  *    the letters) carries a new row, unless the table says the op moves or clears, or a number is still being typed.
  * 3. The format: the record's layout; a save's budget, its held rows past it and its dropped count; a record longer
  *    than this build knows, skipped; the image's version (a rowless state as before, 23 with rows); the serial's end.
+ * 4. Unit 100 (work/row-op-names.md, abacus #16928): every op that can leave a row has a name (ab_op_text > 0), so the
+ *    page never draws ? for it. By construction: each op the table makes a row for (OP, RUN and LETTER kinds, CMPLX with
+ *    each of its operations, the letter ops with each letter), and the ops the other routes write (rows.c: the report's
+ *    CASSOLVE, the list's EQDROP, COPY). And by the census above: every row any op made on any base.
  * Exit status 0 when everything passes. */
 #include <stdio.h>
 #include <stdlib.h>
@@ -120,6 +124,25 @@ static bool skipped(ab_op op)
 }
 
 static int fails_census, fails_inv, ops_op, made_rows;
+static int named_rows, fails_named;
+
+/* unit 100: every row made since top has a name (a typed number and an ALG line have their own left) */
+static void rows_named(ab_calc *c, uint32_t top, int op, int arg, int b)
+{
+    char t[64], what[256];
+    for (int k = 1; k <= ab_rows_count(c); k++) {
+        ab_row r;
+        if (!ab_rows_get(c, k, &r) || r.serial <= top) break;
+        if (r.op == AB_ROW_OP_NUM || r.op == AB_ROW_OP_ALG) continue;
+        named_rows++;
+        if (ab_op_text(c, (int)r.op, r.arg, t, sizeof t) <= 0) {
+            fails_named++;
+            snprintf(what, sizeof what, "names: %s (arg %d) on base %d made a row (op %u, arg %d) with no name",
+                     AB_OPNAMES[op], arg, b, (unsigned)r.op, (int)r.arg);
+            expect(false, what);
+        }
+    }
+}
 
 static void census(void)
 {
@@ -140,6 +163,7 @@ static void census(void)
                 uint32_t top = c0.row_top;
                 abn_status st = ab_do_arg(&c0, (ab_op)op, arg);
                 bool typing = c0.entry.active || c0.cpart || c0.vlen;
+                rows_named(&c0, top, op, arg, b);       /* unit 100 */
                 /* the invariant */
                 for (int i = 0; i < 4 && !typing; i++) {
                     ab_val *v = lv(&c0, i);
@@ -371,9 +395,38 @@ static void format(void)
     printf("rows_test: %s\n", what);
 }
 
+/* Unit 100: the name census by construction, over every op */
+static void names(void)
+{
+    static const int routes[] = {AB_CASSOLVE, AB_EQDROP, AB_COPY};   /* rows.c's report, the list's →X, COPY */
+    char t[64], what[160];
+    int n = 0, bad = 0;
+    for (int op = 0; op <= AB_OP_LAST; op++) {
+        bool route = false;
+        for (size_t i = 0; i < sizeof routes / sizeof routes[0]; i++) route = route || routes[i] == op;
+        int kind = ab_rows_op((ab_op)op, arg_of((ab_op)op)).kind;
+        if (!route && kind != AB_ROWK_OP && kind != AB_ROWK_RUN && kind != AB_ROWK_LETTER) continue;
+        bool letters = ab_rows_op((ab_op)op, 0).src == AB_ROWSRC_VAR || op == AB_SOLVE || op == AB_INTEG;
+        int nargs = op == AB_CMPLX ? AB_CXP_N : letters ? 27 : op == AB_XEQ ? 2 : 1;
+        for (int a = 0; a < nargs; a++) {
+            int arg = op == AB_CMPLX || letters ? a : op == AB_XEQ ? a : arg_of((ab_op)op);   /* (XEQ: A000 and A001) */
+            n++;
+            if (ab_op_text(&pre, op, arg, t, sizeof t) > 0) continue;
+            bad++;
+            snprintf(what, sizeof what, "names: %s (arg %d) can leave a row and has no name", AB_OPNAMES[op], arg);
+            expect(false, what);
+        }
+    }
+    checks++;
+    if (bad) fails++;
+    printf("rows_test: names: %d (op, arg) that can leave a row, %d with no name; the census's rows: %d, %d with no "
+           "name\n", n, bad, named_rows, fails_named);
+}
+
 int main(void)
 {
     census();
+    names();
     format();
     printf("rows_test: %d/%d checks\n", checks - fails, checks);
     return fails ? 1 : 0;
