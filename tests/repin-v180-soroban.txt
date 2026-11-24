@@ -1,0 +1,25 @@
+# The Casimir 1.8.0 repin (CASIM_PIN c564e41, the v1.8.0 tag d189385; abacus #16902, under Michael's #10856 rule): what
+# moves through the firmware. CAS 041 solves letter quadratics and pure powers, x^n = c with numbers gives its real roots
+# exactly, and a PURE POWER steps page comes just before the answer. The expected texts are casim's 1.8.0 release notes'
+# (x^n = c, X^2=A, X^3=A, the letter quadratic, the three PURE POWER pages), and the values by hand: 64^(1/9) = 4^(1/3),
+# 4096^(1/12) = 2, and SQRT(9) = 3. Every line was read on both pins before this file was written: R01-R11 and P01-P04
+# fail on 1.7.0 (8a76a80), where x^n = c is PARTIAL and a letter quadratic COEF NOT NUMERIC; K01-K04 read the same on both.
+R01 | x^n = c, the real root exact (8 complex not shown) | STU EQ:X^9=64 CASSOLVE:X | %CASREP=SOLVED,_8_CPLX:_X=4^(1÷3) %CASROW=SOLVED,_8_CPLX_ROOTS_NOT_SHOWN
+R02 | EVAL on that root: 4^(1/3) | STU EQ:X^9=64 CASSOLVE:X SST CASEVAL | X=1.587401051968199474751705639272308
+R03 | both real roots of an even power | STU EQ:X^12=4096 CASSOLVE:X | %CASREP=SOLVED,_10_CPLX:_X=-2;_X=2
+R04 | an even power of a negative: NO REAL ROOTS, with 076's hint (CPLX off) | STU EQ:X^4=-16 CASSOLVE:X | %CASREP=NO_REAL_ROOTS._CAS3_CPLX_ON
+R05 | an odd power: one real root | STU EQ:X^3=2 CASSOLVE:X | %CASREP=SOLVED,_2_CPLX:_X=2^(1÷3)
+R06 | a letter quadratic: both roots and the row | STU EQ:X^2=A CASSOLVE:X | %CASREP=SOLVED:_X=SQRT(A);_X=-SQRT(A);_A≥0 %CASROW=SOLVED
+R07 | EVAL on the second root at A = 9: -3 | STU 9 STO:A EQ:X^2=A CASSOLVE:X SST SST CASEVAL | X=-3
+R08 | the formula with letters | STU EQ:A×X^2+B×X+C=0 CASSOLVE:X | %CASREP=SOLVED:_X=-(B+SQRT(B^2-4×A×C))÷2÷A;_X=-(B-SQRT(B^2-4×A×C))÷2÷A;_A≠0;_B^2-4×A×C≥0
+R09 | a letter pure power, odd n | STU EQ:X^3=A CASSOLVE:X | %CASREP=SOLVED:_X=A^(1÷3);_A≥0
+R10 | 048 S09's equation (casim V0017): solved now | STU EQ:A×X^2-1 CASSOLVE:X | %CASREP=SOLVED:_X=1÷SQRT(A);_X=-1÷SQRT(A);_A>0
+R11 | 048 S12's equation (casim V0014), X^3^2-64 stamped STU | STU EQ:X^3^2-64 CASSOLVE:X | %CASREP=SOLVED,_8_CPLX:_X=4^(1÷3)
+P01 | the PURE POWER page, just before the answer | STU EQ:X^9=64 CASSOLVE:X CASSTEPS SST SST | %STEPN=4 %STEPK=3 %STEP=PURE_POWER:_X^9=64:_X=4^(1÷3) %STEPRULE=PURE_POWER %STEPDEPTH=0
+P02 | after the LINEAR pages found ±2 | STU EQ:X^12=4096 CASSOLVE:X CASSTEPS BST BST | %STEPN=14 %STEPK=13 %STEP=PURE_POWER:_X^12=4096:_NO_OTHER_REAL_ROOT %STEPRULE=PURE_POWER
+P03 | no real roots | STU EQ:X^4=-16 CASSOLVE:X CASSTEPS SST SST | %STEPN=4 %STEP=PURE_POWER:_X^4=-16:_NO_REAL_ROOTS %STEPRULE=PURE_POWER
+P04 | a letter quadratic's steps are refused (casim's BAD_ARG): UNSUPPORTED, the report still open | STU EQ:X^2=A CASSOLVE:X CASSTEPS | ERR %ERRMSG=UNSUPPORTED %STEPREQ=S:X
+K01 | the control: a numeric quadratic | STU EQ:X^2=4 CASSOLVE:X | %CASREP=SOLVED:_X=-2;_X=2
+K02 | the control: 076's complex pair | STU CASCPLX EQ:X^2+X+1 CASSOLVE:X | %CASREP=SOLVED:_X=(-1-SQRT(3)×0i1)÷2;_X=(-1+SQRT(3)×0i1)÷2
+K03 | with CAS3's CPLX on, x^n = c is PARTIAL on both pins (asked of abacus: R04's hint points here) | STU CASCPLX EQ:X^4=-16 CASSOLVE:X | %CASREP=PARTIAL,_DEGREE_4_LEFT
+K04 | and an odd one too, where CPLX off gives R05's root | STU CASCPLX EQ:X^3=2 CASSOLVE:X | %CASREP=PARTIAL,_DEGREE_3_LEFT

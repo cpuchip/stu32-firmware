@@ -33,7 +33,7 @@ S06 | C leaves the report, the expression still in X | STU EQ:2×X+5=11 EQDROP C
 S08 | X's text, not the list's: X+1=0 dropped, the list then showing X-5=0 | STU EQ:X+1=0 EQDROP EQ:X-5=0 EQN CASSOLVE:X | %CASREP=SOLVED:_X=-1 %XEXPR=X+1=0
 S07 | a C during SOLVE: no report, X as it was | STU EQ:2×X+5=11 EQDROP INTR:1 CASSOLVE:X | ERR %ERR=INTERRUPTED %CASREP=none %XEXPR=2×X+5=11
 # Refusals leave everything as it was (their messages as on the list)
-R01 | SOLVE refused: degree 2 with a letter | STU EQ:A×X^2-1 EQDROP CASSOLVE:X | ERR %ERR=CAS_NOT_NUMERIC %ERRMSG=COEF_NOT_NUMERIC %XEXPR=A×X^2-1
+R01 | SOLVE refused: degree 3 with a letter. Amended by the Casimir 1.8.0 repin (work/repin-v180.md): A×X^2-1, degree 2, solves since CAS 041, so the refusal is A×X^3+X=1, still refused (casim 1.8.0's notes), the same on both pins | STU EQ:A×X^3+X=1 EQDROP CASSOLVE:X | ERR %ERR=CAS_NOT_NUMERIC %ERRMSG=COEF_NOT_NUMERIC %XEXPR=A×X^3+X=1
 R02 | SIMP of a pole: UNDEFINED, X kept | STU RAD EQ:LN(0)+X EQDROP CASSIMP | ERR %ERR=CAS_UNDEFINED %ERRMSG=UNDEFINED %XEXPR=LN(0)+X
 R03 | SOLVE of what isn't a polynomial | STU EQ:SIN(X)-0.5 EQDROP CASSOLVE:X | ERR %ERR=CAS_NOT_POLY %XEXPR=SIN(X)-0.5
 R04 | a number in X: NO EQN, as before | STU 5 CASSIMP | ERR %ERR=NO_EQN X=5
