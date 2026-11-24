@@ -1,0 +1,22 @@
+diff --git a/tests/vectors.c b/tests/vectors.c
+index 3222ad4..aff7d5c 100644
+--- a/tests/vectors.c
++++ b/tests/vectors.c
+@@ -923,6 +923,8 @@ int vectors_run(const char *name, FILE *f)
+         char *say = strstr(expect, "%GSAY=");   /* unit 085: the spoken graph's text, the rest of the line (spaces in it) */
+         bool say_eq = false;
+         if (!say && (say = strstr(expect, "%EQSAY="))) say_eq = true;   /* unit 086: the equation shown, spoken */
++        bool say_alg = false;
++        if (!say && (say = strstr(expect, "%ALGSAY="))) say_alg = true, say_eq = true;   /* PROTO 101 B */
+         if (say) {
+             *say = '\0';
+             say += say_eq ? 7 : 6;
+@@ -945,6 +947,8 @@ int vectors_run(const char *name, FILE *f)
+                 n = ab_graph_words(&c, words, sizeof words);
+             } else {                            /* unit 086: -1 (no words) is the empty text */
+                 words[0] = '\0';
++                if (say_alg) n = ab_alg_words(&c, c.ebuf, words, sizeof words);   /* PROTO: the ALG line typed */
++                else
+                 n = c.eqn_cur >= 0 && c.eqn_cur < c.eqn_count ?
+                     ab_eqn_words(&c, c.eqn[c.eqn_cur], c.eqn_model[c.eqn_cur], words, sizeof words) : -1;
+                 if (n < 0 && !words[0]) n = 0;

@@ -1,0 +1,81 @@
+diff --git a/core/eqn.c b/core/eqn.c
+index b26326d..6318bc7 100644
+--- a/core/eqn.c
++++ b/core/eqn.c
+@@ -128,6 +128,7 @@ typedef struct {
+     const char *s;
+     int i;                  /* byte offset */
+     bool check;             /* syntax only */
++    bool ans;               /* PROTO 101 B: an ALG line's words: ANS is ANS */
+     abn_status st;          /* the first error */
+     int errpos;             /* its character offset */
+     bool rtl;               /* unit 031: ^ groups right to left (an STU equation) */
+@@ -623,7 +624,7 @@ static void parse_prim(parser *p, ab_val *v)
+             return;
+         }
+     }
+-    if (p->c->alg_eval && at(p, "ANS")) {
++    if ((p->c->alg_eval || p->ans) && at(p, "ANS")) {
+         /* the expression line's last result (unit 029); a name on that line only */
+         rec(p, SN_ANS, 0, 0, 0, 0, 0);
+         if (!p->check && p->st == ABN_OK) ab_rows_read(p->c, &p->c->ans), take_val(p, v, &p->c->ans);
+@@ -960,6 +961,10 @@ int ab_eqn_words(ab_calc *c, const char *text, int model, char *out, int size)
+     if (size > 0) out[0] = '\0';
+     return -1;
+ }
++int ab_alg_words(ab_calc *c, const char *text, char *out, int size)
++{
++    return ab_eqn_words(c, text, AB_MODEL_STU, out, size);
++}
+ #else
+ /* ---- unit 086: the spoken equation (work/086-spoken-equation.md, revision 3; abacus #13546, #13551, #13555,
+    #13557). The parse records its own operations (rec), the record is rebuilt as a tree, and the tree is said in
+@@ -1240,7 +1245,16 @@ static void say_say(say_out *w, int k, int cx)
+     }
+ }
+ 
++static int words(ab_calc *c, const char *text, int model, bool ans, char *out, int size);
+ int ab_eqn_words(ab_calc *c, const char *text, int model, char *out, int size)
++{
++    return words(c, text, model, false, out, size);
++}
++int ab_alg_words(ab_calc *c, const char *text, char *out, int size)
++{
++    return words(c, text, AB_MODEL_STU, true, out, size);
++}
++static int words(ab_calc *c, const char *text, int model, bool ans, char *out, int size)
+ {
+     struct say_rec r;
+     parser p;
+@@ -1253,6 +1267,7 @@ int ab_eqn_words(ab_calc *c, const char *text, int model, char *out, int size)
+     p.c = c;
+     p.s = text;
+     p.check = true;
++    p.ans = ans;
+     p.st = ABN_OK;
+     p.rtl = p.implied = model == AB_MODEL_STU;  /* read as the model reads it (unit 031 rule 3) */
+     p.m33 = model == 33;
+diff --git a/core/eqn.h b/core/eqn.h
+index 82224c9..c4029bc 100644
+--- a/core/eqn.h
++++ b/core/eqn.h
+@@ -61,6 +61,7 @@ bool eqn_too_deep(ab_calc *c, const char *text, int model);
+    parser's own reading of it in model (33, 35 or AB_MODEL_STU), for a screen reader. Pure. Returns the length, or -1
+    with "" when the text doesn't parse in that model (or the words don't fit size); the caller then shows the text. */
+ int ab_eqn_words(ab_calc *c, const char *text, int model, char *out, int size);
++int ab_alg_words(ab_calc *c, const char *text, char *out, int size);   /* PROTO 101 B */
+ #ifndef ESP_PLATFORM
+ /* The units an unbounded parse reaches (+8 a group, vector or argument list, +1 a step of STU's power chain): tests'
+    only, for tests/eqn_depth.py's check; on a host, whose stack is large. */
+diff --git a/firmware/screen.c b/firmware/screen.c
+index 2b66117..925c77d 100644
+--- a/firmware/screen.c
++++ b/firmware/screen.c
+@@ -1304,6 +1304,7 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
+         k->x_letter = false;
+         k->xk = SCREEN_VIEW;
+         k->xe_top = 0;
++        k->xexpr = false;   /* PROTO 101 A */
+     }
+ }
+ 

@@ -1,0 +1,7 @@
+# make -i test on the prototype (aa68826 + prototype.diff + prototype-vectors.diff): no step failed
+22246/22246 vectors
+app_test: 917/917 checks
+eqn_say_test: 959 equations: 895 spoken and read back (1 RAND apart, 5 too deep to re-read), 64 refused by the parser too; every one the same
+screen_test: 22-tb-stu3 (STU, "3×X^2-4" shown) rows 21-205 CRC 43FC116C
+screen_test: 9529/9529 checks, 67/67 frames match tests/frames
+standin_replay: 51 scripts, every current frame matches

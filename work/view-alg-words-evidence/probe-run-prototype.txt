@@ -1,0 +1,14 @@
+FAIL B1: expected %EQSAY==?, got (22) the last answer plus 4
+FAIL B2: expected %EQSAY==?, got (8) 2 plus 3
+FAIL A1: expected %XDRAWN=?, got none
+FAIL A1: expected %XLINE=?, got →X
+  the page, 2 row(s), newest last (dropped 0):
+    1:NUM:-:+7E+0
+    2:EQDROP:-:E:3×X^2-4
+FAIL A2: expected %XDRAWN=?, got 3X^2-4
+FAIL A3: expected %XDRAWN=?, got none
+FAIL A3: expected %XLINE=?, got 0.5
+  the page, 2 row(s), newest last (dropped 0):
+    1:NUM:-:+5E-1
+    2:EQDROP:-:E:3×X^2-4
+/home/claude/code/stuffleberry/workspace/projects-internal/stu32-firmware/work/view-alg-words-evidence/probe.txt: 0/5 vectors, 1/8 expectations

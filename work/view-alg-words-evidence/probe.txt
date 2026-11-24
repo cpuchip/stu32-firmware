@@ -1,0 +1,5 @@
+B1 | ALG line with ANS | STU ALG 2 + 3 ENTER + 4 | %LINE=ANS+4 %ALGSAY=?
+B2 | ALG line no ANS | STU ALG 2 + 3 | %ALGSAY=?
+A1 | INFO view over an expr | STU 7 EQ:3×X^2-4 EQDROP SEL ROWINFO | %XDRAWN=? %XLINE=?
+A2 | no view | STU 7 EQ:3×X^2-4 EQDROP | %XDRAWN=?
+A3 | SHOW | STU 0.5 EQ:3×X^2-4 EQDROP SEL 8 ROWSHOW | %XDRAWN=? %XLINE=?
