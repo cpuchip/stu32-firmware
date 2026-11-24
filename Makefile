@@ -312,10 +312,13 @@ test: all
 	                                         # no save/load pass, as 088, 090, 093: the report, the page and the selection are RAM)
 	./build/vectors tests/h099-abacus.txt   # (abacus #15082: h099 as frozen, sha256 55c11e3e...c03b)
 	./build/vectors tests/h100-abacus.txt   # (abacus #16985: h100 as frozen, sha256 2c154014...757b)
+	./build/vectors tests/101-soroban.txt    # (unit 101: a row's view and X's drawn form; an ALG line's words; no save/load
+	                                         # pass: the selection and ALG's line are RAM)
 	./build/vectors tests/repin-v170-soroban.txt    # (the Casimir 1.7.0 repin: CAS 040 through the keys; fails on 175c160)
 	./build/vectors tests/repin-v180-soroban.txt    # (the Casimir 1.8.0 repin: CAS 041 through the keys; R and P lines fail on 8a76a80)
 	./build/rows_test
 	./build/eqn_say_test tests/086-corpus.txt    # (unit 086: the round trip over every equation the vectors type)
+	./build/eqn_say_test tests/101-alg-corpus.txt    # (unit 101: the ALG lines the vectors state, said by ab_alg_words)
 	if AB_SAY_PLANT=1 ./build/eqn_say_test tests/086-corpus.txt > /dev/null; then \
 	  echo "eqn_say_test: the planted reader passed: the round trip doesn't bite"; exit 1; fi
 	./build/vectors tests/076-soroban.txt    # (no save/load pass: the report isn't in the image; app_test saves and loads CPLX)
@@ -524,6 +527,7 @@ sanitize: build/san/load_fuzz build/san/expr_test build/san/app_test build/san/v
 	./build/san/vectors tests/100-soroban.txt
 	./build/san/vectors tests/h099-abacus.txt
 	./build/san/vectors tests/h100-abacus.txt
+	./build/san/vectors tests/101-soroban.txt
 	./build/san/store_sim tests/092-soroban-store.txt   # (unit 092)
 	./build/san/app_test
 	for f in $(KEYV) work/016-vectors.txt work/017-vectors.txt; do AB_SAVELOAD=1 AB_STORE=1 ./build/san/vectors $$f || exit 1; done

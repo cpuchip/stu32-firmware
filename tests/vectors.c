@@ -923,9 +923,11 @@ int vectors_run(const char *name, FILE *f)
         char *say = strstr(expect, "%GSAY=");   /* unit 085: the spoken graph's text, the rest of the line (spaces in it) */
         bool say_eq = false;
         if (!say && (say = strstr(expect, "%EQSAY="))) say_eq = true;   /* unit 086: the equation shown, spoken */
+        bool say_alg = false;               /* unit 101: the ALG line X's line shows (the editor's text), spoken */
+        if (!say && (say = strstr(expect, "%ALGSAY="))) say_alg = say_eq = true;
         if (say) {
             *say = '\0';
-            say += say_eq ? 7 : 6;
+            say += say_alg ? 8 : say_eq ? 7 : 6;
             for (size_t n = strlen(say); n > 0 && (say[n - 1] == ' ' || say[n - 1] == '\t'); n--) say[n - 1] = '\0';
         }
         for (char *ex = strtok(expect, " \t"); ex; ex = strtok(NULL, " \t")) {
@@ -945,8 +947,11 @@ int vectors_run(const char *name, FILE *f)
                 n = ab_graph_words(&c, words, sizeof words);
             } else {                            /* unit 086: -1 (no words) is the empty text */
                 words[0] = '\0';
-                n = c.eqn_cur >= 0 && c.eqn_cur < c.eqn_count ?
-                    ab_eqn_words(&c, c.eqn[c.eqn_cur], c.eqn_model[c.eqn_cur], words, sizeof words) : -1;
+                if (say_alg)
+                    n = ab_alg_words(&c, c.ebuf, words, sizeof words);
+                else
+                    n = c.eqn_cur >= 0 && c.eqn_cur < c.eqn_count ?
+                        ab_eqn_words(&c, c.eqn[c.eqn_cur], c.eqn_model[c.eqn_cur], words, sizeof words) : -1;
                 if (n < 0 && !words[0]) n = 0;
             }
             checks++;
@@ -954,7 +959,7 @@ int vectors_run(const char *name, FILE *f)
                 checks_ok++;
             } else {
                 vec_ok = 0;
-                printf("FAIL %s: expected %%%s=%s, got (%d) %s\n", id, say_eq ? "EQSAY" : "GSAY", say, n, words);
+                printf("FAIL %s: expected %%%s=%s, got (%d) %s\n", id, say_alg ? "ALGSAY" : say_eq ? "EQSAY" : "GSAY", say, n, words);
             }
         }
         for (int k = 0; k < nexp; k++) {

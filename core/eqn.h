@@ -61,6 +61,10 @@ bool eqn_too_deep(ab_calc *c, const char *text, int model);
    parser's own reading of it in model (33, 35 or AB_MODEL_STU), for a screen reader. Pure. Returns the length, or -1
    with "" when the text doesn't parse in that model (or the words don't fit size); the caller then shows the text. */
 int ab_eqn_words(ab_calc *c, const char *text, int model, char *out, int size);
+/* Unit 101 (work/view-alg-words.md, abacus #16992): an ALG line's words, the line read as STU reads it with ANS "the last
+   answer" (ab_eqn_words reads no ANS: an equation holds letters). The same returns. tally (native/stu32_ffi.c) and primer
+   (web/calc/calc.c) bind it as they bind ab_eqn_words; on the devices, no words, as ab_eqn_words */
+int ab_alg_words(ab_calc *c, const char *text, char *out, int size);
 #ifndef ESP_PLATFORM
 /* The units an unbounded parse reaches (+8 a group, vector or argument list, +1 a step of STU's power chain): tests'
    only, for tests/eqn_depth.py's check; on a host, whose stack is large. */

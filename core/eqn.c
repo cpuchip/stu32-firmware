@@ -128,6 +128,7 @@ typedef struct {
     const char *s;
     int i;                  /* byte offset */
     bool check;             /* syntax only */
+    bool ans;               /* unit 101: an ALG line's words (ab_alg_words): ANS is ANS, as while the line is evaluated */
     abn_status st;          /* the first error */
     int errpos;             /* its character offset */
     bool rtl;               /* unit 031: ^ groups right to left (an STU equation) */
@@ -623,8 +624,8 @@ static void parse_prim(parser *p, ab_val *v)
             return;
         }
     }
-    if (p->c->alg_eval && at(p, "ANS")) {
-        /* the expression line's last result (unit 029); a name on that line only */
+    if ((p->c->alg_eval || p->ans) && at(p, "ANS")) {
+        /* the expression line's last result (unit 029); a name on that line only, while it is evaluated or said (101) */
         rec(p, SN_ANS, 0, 0, 0, 0, 0);
         if (!p->check && p->st == ABN_OK) ab_rows_read(p->c, &p->c->ans), take_val(p, v, &p->c->ans);
         return;
@@ -960,6 +961,12 @@ int ab_eqn_words(ab_calc *c, const char *text, int model, char *out, int size)
     if (size > 0) out[0] = '\0';
     return -1;
 }
+int ab_alg_words(ab_calc *c, const char *text, char *out, int size)
+{
+    (void)c, (void)text;
+    if (size > 0) out[0] = '\0';
+    return -1;
+}
 #else
 /* ---- unit 086: the spoken equation (work/086-spoken-equation.md, revision 3; abacus #13546, #13551, #13555,
    #13557). The parse records its own operations (rec), the record is rebuilt as a tree, and the tree is said in
@@ -1240,7 +1247,20 @@ static void say_say(say_out *w, int k, int cx)
     }
 }
 
+static int say_text(ab_calc *c, const char *text, int model, bool ans, char *out, int size);
+
 int ab_eqn_words(ab_calc *c, const char *text, int model, char *out, int size)
+{
+    return say_text(c, text, model, false, out, size);
+}
+
+/* Unit 101 (work/view-alg-words.md, abacus #16992): an ALG line's words, read as STU reads it with ANS a name */
+int ab_alg_words(ab_calc *c, const char *text, char *out, int size)
+{
+    return say_text(c, text, AB_MODEL_STU, true, out, size);
+}
+
+static int say_text(ab_calc *c, const char *text, int model, bool ans, char *out, int size)
 {
     struct say_rec r;
     parser p;
@@ -1253,6 +1273,7 @@ int ab_eqn_words(ab_calc *c, const char *text, int model, char *out, int size)
     p.c = c;
     p.s = text;
     p.check = true;
+    p.ans = ans;
     p.st = ABN_OK;
     p.rtl = p.implied = model == AB_MODEL_STU;  /* read as the model reads it (unit 031 rule 3) */
     p.m33 = model == 33;

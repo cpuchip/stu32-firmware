@@ -8,7 +8,11 @@
  *
  * Allowed, each counted and printed: a text the parser refuses gets no words; RAND and RANDOM differ by nature; a
  * read-back text whose groups nest past the parser's bound (047) can't be evaluated or spoken again. Anything else
- * fails, and so does a corpus with no spoken line. AB_SAY_PLANT=1 plants a fault in the reader (its control). */
+ * fails, and so does a corpus with no spoken line. AB_SAY_PLANT=1 plants a fault in the reader (its control).
+ *
+ * Unit 101 (work/view-alg-words.md): a row whose model is ALG is an ALG line (tests/101-alg-corpus.txt). It is said by
+ * ab_alg_words, and evaluated as the line is, with alg_eval set (ANS a name) and ANS holding 7.125, which no product of
+ * the letters' values here gives, so a line read back with ANS as A×N×S evaluates otherwise. */
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,6 +39,10 @@ static const phrase FN1[] = {
     {"the conversion to Fahrenheit of", "\xe2\x86\x92\xc2\xb0" "F"}, {"the conversion to centimeters of", "\xe2\x86\x92" "CM"},
     {"the conversion to inches of", "\xe2\x86\x92IN"}, {"the seeding with", "SEED"}, {"the argument of", "ARG"},
     {"x hat of", "x\xcc\x82"}, {"y hat of", "\xc5\xb7"}, {"the logical not of", "NOT"}, {"the cube of", "CB"},
+    /* unit 101: 097's five (no spec holds their words: taken from the core's say table at c50b13f, so this round trip
+       checks that they read back to their function, not that they are the right words; abacus told, #16971's unit) */
+    {"the error function of", "ERF"}, {"the complementary error function of", "ERFC"},
+    {"the normal probability below", "NCDF"}, {"the normal probability above", "NCDFC"}, {"the normal quantile of", "NCDFINV"},
     {"the cube root of", "CBRT"},
 };
 typedef struct { const char *say, *name, *mid, *post; } phrase2;
@@ -426,12 +434,19 @@ int main(int argc, char **argv)
         if (!tab) continue;
         *tab = 0;
         const char *text = tab + 1;
-        int model = !strcmp(line, "STU") ? AB_MODEL_STU : atoi(line);
+        bool alg = !strcmp(line, "ALG");       /* unit 101: an ALG line */
+        int model = !strcmp(line, "STU") || alg ? AB_MODEL_STU : atoi(line);
+        c.alg_eval = alg;
+        if (alg) {
+            memset(&c.ans, 0, sizeof c.ans);
+            c.ans.kind = AB_REAL;
+            abn_from_text(&c.ans.re, "7.125");
+        }
         lines++;
         ab_val v;
         int ep;
         bool parses = eqn_eval(&c, text, model, false, true, &v, &ep) == ABN_OK;
-        int n = ab_eqn_words(&c, text, model, words, sizeof words);
+        int n = alg ? ab_alg_words(&c, text, words, sizeof words) : ab_eqn_words(&c, text, model, words, sizeof words);
         if (n < 0) {                            /* no words: the parser must refuse it too */
             if (parses) {
                 printf("eqn_say_test: FAIL %s %s: it parses, but has no words\n", line, text);
@@ -465,7 +480,8 @@ int main(int argc, char **argv)
             continue;
         }
         if (rnd && !same) random++;
-        if (ab_eqn_words(&c, back, model, again, sizeof again) < 0 || strcmp(again, words)) {
+        if ((alg ? ab_alg_words(&c, back, again, sizeof again) : ab_eqn_words(&c, back, model, again, sizeof again)) < 0 ||
+            strcmp(again, words)) {
             printf("eqn_say_test: FAIL %s %s: read back as %s, which is said otherwise: %s\n", line, text, back, again);
             bad++;
         }

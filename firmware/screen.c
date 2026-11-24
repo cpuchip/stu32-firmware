@@ -1304,6 +1304,8 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
         k->x_letter = false;
         k->xk = SCREEN_VIEW;
         k->xe_top = 0;
+        k->xexpr = false;                       /* unit 101: the view replaces X's line, so X's 2D form isn't drawn or
+                                                   exported (screen_lines, screen_drawn) while it's open */
     }
 }
 

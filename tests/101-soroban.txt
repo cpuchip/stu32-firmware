@@ -1,0 +1,20 @@
+# Unit 101 (work/view-alg-words.md at c50b13f; abacus #16971, rulings #16992). A: a row's view (093's INFO, SHOW, FRAC)
+# open over an expression in X exports no 2D form (%XDRAWN none, 082's), as the frame draws none; X's line is the view's.
+# B: an ALG line's words (ab_alg_words): ANS is "the last answer" (086's words), the line read as STU reads it. %ALGSAY=
+# is the words of the ALG line X's line shows (the editor's text), the rest of the line. Written from the blueprint and run
+# on c50b13f's code before src (B's lines through ab_eqn_words in STU, what the core gave): every A and B line fails
+# there, and the K lines pass there, as here.
+A01 | INFO over an expression in X: no drawn form while the view is open | STU 7 EQ:3×X^2-4 EQDROP SEL ROWINFO | %XLINE=→X %XDRAWN=none
+A02 | SHOW on the row above: X's line its value, no drawn form | STU 0.5 EQ:3×X^2-4 EQDROP SEL 8 ROWSHOW | %XLINE=0.5 %XDRAWN=none
+A03 | FRAC on the row above | STU 0.5 EQ:3×X^2-4 EQDROP SEL 8 ROWFRAC | %XLINE=0_1/2 %XDRAWN=none
+K04 | the control: the view ended by the next key (8, the selection kept, 093): the drawn form back | STU 0.5 EQ:3×X^2-4 EQDROP SEL 8 ROWSHOW 8 | %XDRAWN=3X^2-4 %XLINE='3×X^2-4'
+K01 | the control: no view, the drawn form | STU 7 EQ:3×X^2-4 EQDROP | %XDRAWN=3X^2-4
+K02 | the control: a view over a number in X, no drawn form either way | STU 3 ENTER 4 + SEL ROWINFO | %XDRAWN=none
+B01 | an operator after a result starts the line with ANS | STU ALG 2 + 3 ENTER + 4 | %LINE=ANS+4 %ALGSAY=the last answer plus 4
+B02 | the line after its ENTER | STU ALG 2 + 3 ENTER + 4 ENTER | %LINE=ANS+4 %ALGSAY=the last answer plus 4
+B03 | ANS typed after a number: implied product | STU ALG 3 ENTER 2 ANS | %LINE=2ANS %ALGSAY=2 times the last answer
+B04 | ANS squared | STU ALG 3 ENTER POW 2 | %LINE=ANS^2 %ALGSAY=the last answer squared
+B05 | ANS twice | STU ALG 5 ENTER ANS * ANS | %LINE=ANS×ANS %ALGSAY=the last answer times the last answer
+B06 | ANS first on a fresh line | STU ALG ANS + 1 | %LINE=ANS+1 %ALGSAY=the last answer plus 1
+K03 | the control: a line with no ANS reads as before | STU ALG 2 + 3 | %LINE=2+3 %ALGSAY=2 plus 3
+K05 | the control: an equation's letters stay letters, so ab_eqn_words is unchanged (ruling 2): ANS in an equation is A×N×S | STU EQ:ANS+1 | %EQSAY=A times N times S plus 1
