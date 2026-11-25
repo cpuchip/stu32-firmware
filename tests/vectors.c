@@ -33,6 +33,7 @@
 #include "opnames.h"
 #ifndef AB_DEVICE
 #include "screen.h"   /* %XDRAWN (082): the console's drawn=, from the screen's compose */
+#include "ls027.h"    /* %BOXES (103): a frame to draw */
 #include "keymap.h"   /* %SOFT-n (093): the row menu's labels */
 #endif
 
@@ -94,6 +95,7 @@ static ab_val saved_x;
    save, load, save gives the same bytes); AB_SLICE=n runs every program in slices of n lines. */
 static int env_saveload;
 static long env_slice;
+static bool drawn_census;           /* unit 103: AB_DRAWN_CENSUS, every key's frame drawn and its boxes printed */
 static uint8_t *img;            /* the image SAVE made (grown as needed: a device has little RAM) */
 static size_t img_len, img_cap;
 static uint8_t *mark;           /* a second image, MARK's, for %SAMEMARK */
@@ -831,6 +833,7 @@ int vectors_run(const char *name, FILE *f)
 {
     env_saveload = getenv("AB_SAVELOAD") != NULL;
     env_slice = getenv("AB_SLICE") ? atol(getenv("AB_SLICE")) : 0;
+    drawn_census = getenv("AB_DRAWN_CENSUS") != NULL;
 #ifndef AB_DEVICE
     if (getenv("AB_STORE") && !vectors_flash) vectors_flash = &host_flash;
 #endif
@@ -878,6 +881,16 @@ int vectors_run(const char *name, FILE *f)
                 fprintf(stderr, "%s:%d: %s: unknown key token '%s'\n", name, lineno, id, tok);
                 return 2;
             }
+#ifndef AB_DEVICE
+            if (drawn_census) {                 /* unit 103: scripts/glyph_frames.py, every key's frame drawn */
+                static ls027_frame df;
+                screen_ui du;
+                screen_ui_default(&du);
+                long before = screen_missed;
+                screen_render(&c, &du, &df);
+                if (screen_missed > before) printf("DRAWN %s:%s %ld\n", name, id, screen_missed - before);
+            }
+#endif
             /* a PSE stop resumes by itself after the device's pause (unit 012 rule 1): the runner
                plays the device */
             while (!holdpse && c.stop == AB_STOP_PSE)
@@ -1089,6 +1102,26 @@ int vectors_run(const char *name, FILE *f)
                     snprintf(got, sizeof got, "%s", e ? e : "none");
                     for (char *q = got; *q; q++)
                         if (*q == ' ') *q = '_';
+                } else if (strcmp(ex, "%STEPSON") == 0 || strcmp(ex, "%BOXES") == 0) {
+                    /* unit 103 (work/glyphs-steps.md, abacus #17497): %STEPSON 1 when the steps view is drawn (screen_page's
+                       steps_on), else 0; %BOXES the hollow boxes screen_render draws in the frame after the keys (the
+                       face lacking a character), with the default ui. The on-chip runner has no screen */
+#ifndef AB_DEVICE
+                    static screen_page spg;
+                    static ls027_frame bf;
+                    screen_ui sui;
+                    screen_ui_default(&sui);
+                    if (ex[1] == 'S') {
+                        screen_lines(&c, &sui, &spg);
+                        snprintf(got, sizeof got, "%d", spg.steps_on ? 1 : 0);
+                    } else {
+                        screen_missed = 0;
+                        screen_render(&c, &sui, &bf);
+                        snprintf(got, sizeof got, "%ld", screen_missed);
+                    }
+#else
+                    snprintf(got, sizeof got, "(no screen on the device runner)");
+#endif
                 } else if (strcmp(ex, "%XDRAWN") == 0) {
                     /* unit 082: X as the screen draws it in 2D, the console's drawn= (screen_drawn with the default
                        ui); none when nothing is drawn. Y has no drawn form. The on-chip runner has no screen */

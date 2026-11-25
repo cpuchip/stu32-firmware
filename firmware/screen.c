@@ -92,6 +92,10 @@ static bool combining(uint32_t cp)
 static uint32_t next_cell(const char **s)
 {
     uint32_t cp = next_cp(s);
+    /* unit 103 (work/glyphs-steps.md): the statistics' y-hat and y-bar, typed precomposed (U+0177, U+0233), drawn as x-hat
+       and x-bar are, the letter with the face's combining circumflex or macron: one cell, no glyph of their own */
+    if (cp == 0x0177) cp = 'y' | (uint32_t)(0x0302 - 0x02FF) << MARK_SHIFT;
+    if (cp == 0x0233) cp = 'y' | (uint32_t)(0x0304 - 0x02FF) << MARK_SHIFT;
     while (**s) {
         const char *t = *s;
         uint32_t m = next_cp(&t);
@@ -1685,6 +1689,7 @@ void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
         page_line(&out->x, &k->x, SCREEN_VALUE, true, NULL);
     } else if (k->view) {
         out->view = true;
+        out->steps_on = k->steps;               /* unit 103: the steps view, which the phone draws from the frame */
         page_line(&out->t, &k->t, SCREEN_MESSAGE, true, NULL);
         page_line(&out->z, &k->z, SCREEN_MESSAGE, true, NULL);
         page_line(&out->y, &k->y, SCREEN_MESSAGE, true, NULL);

@@ -1302,6 +1302,35 @@ int main(int argc, char **argv)
             for (int k = 0; k < 6; k++) ui.soft[k] = NULL;
             ui.soft_sub[5] = false;
         }
+        /* unit 103 (work/glyphs-steps.md, tally #17478): the face's five characters, none a hollow box now (screen_missed
+           is checked over every frame below), and the steps view's flag */
+        STU0();
+        ab_do(&c, AB_RAD);
+        ab_eqn_add(&c, "X^2\xc3\x97" "SIN(X)");
+        ab_do_arg(&c, AB_CASD, 23);
+        ab_do(&c, AB_CASSTEPS);
+        screen_lines(&c, &ui, &pg);
+        expect(pg.view && pg.steps_on, "103: the steps view sets steps_on with view");
+        STU0();
+        ab_do(&c, AB_CASCPLX);
+        ab_eqn_add(&c, "X^3=2");
+        ab_do_arg(&c, AB_CASSOLVE, 23);
+        screen_lines(&c, &ui, &pg);
+        expect(pg.view && !pg.steps_on, "103: SOLVE's report is a view, not the steps view");
+        ab_do(&c, AB_CASSTEPS);
+        ab_do(&c, AB_BST);
+        ab_do(&c, AB_BST);
+        frame("68-steps-semicolon", &c, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(pg.steps_on && strstr(pg.x.text, "X=2^(1\xc3\xb7" "3);"), "103: ';' on the PURE POWER page, its glyph drawn");
+        STU0();
+        ab_eqn_add(&c, "\xe2\x92\xa4+\xe2\x92\xa5\xc3\x97" "2");
+        frame("69-eqn-indirect", &c, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(!pg.steps_on, "103: the equation list is no steps view");
+        STU0();
+        ab_eqn_add(&c, "\xc5\xb7(2)+\xc8\xb3");
+        frame("70-eqn-yhat-ybar", &c, &ui);
 #undef STU0
 #undef PAGE
     }

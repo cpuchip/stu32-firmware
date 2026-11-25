@@ -219,6 +219,15 @@ U+003A :
 .##..
 .....
 
+U+003B ; (unit 103: CAS reports' and steps pages' separator)
+.....
+.##..
+.##..
+.....
+.##..
+..#..
+.#...
+
 U+003C <
 ...#.
 ..#..
@@ -1118,6 +1127,24 @@ U+2265 ≥
 .#...
 .....
 #####
+
+U+24A4 parenthesized i (unit 103: the indirect glyph in equations, one cell; its look is Michael's, T120)
+.#.#.
+#.#.#
+#...#
+#.#.#
+#.#.#
+#.#.#
+.#.#.
+
+U+24A5 parenthesized j (unit 103, as U+24A4)
+.#.#.
+#.#.#
+#...#
+#.#.#
+#.#.#
+##..#
+.#.#.
 
 U+25B2 ▲
 .....

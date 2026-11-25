@@ -318,6 +318,8 @@ test: all
 	./build/vectors tests/h101-B-abacus.txt   # (abacus #17037: h101-B as frozen, sha256 5cb8c7b4...eab1)
 	./build/vectors tests/102-soroban.txt    # (unit 102: each page line's kind, work/page-line-kind.md; no save/load pass: the page)
 	./build/vectors tests/h102-abacus.txt   # (abacus #17067: h102 as frozen, sha256 03d2a7f6...b892)
+	./build/vectors tests/103-soroban.txt    # (unit 103: the face's five characters, %BOXES; the steps view's flag, %STEPSON; no
+	                                         # save/load pass: the report and the steps are RAM)
 	./build/vectors tests/repin-v170-soroban.txt    # (the Casimir 1.7.0 repin: CAS 040 through the keys; fails on 175c160)
 	./build/vectors tests/repin-v180-soroban.txt    # (the Casimir 1.8.0 repin: CAS 041 through the keys; R and P lines fail on 8a76a80)
 	./build/vectors tests/repin-v190-soroban.txt    # (the Casimir 1.9.0 repin: CAS 042 through the keys; R and P lines fail on c564e41)
@@ -370,6 +372,7 @@ test: all
 	./build/screen_test tests/frames
 	./build/tbook_test build/casim/golden/corpus.txt
 	python3 scripts/gen_font.py --check
+	python3 tests/glyph_census.py    # (unit 103: every character the core and Casimir emit has a glyph or a mapping)
 	python3 tests/eqn_fuzz.py 1 2000 > build/eqn_fuzz.txt
 	./build/vectors build/eqn_fuzz.txt
 	python3 tests/prog_fuzz.py 1 1000 > build/prog_fuzz.txt
@@ -538,6 +541,7 @@ sanitize: build/san/load_fuzz build/san/expr_test build/san/app_test build/san/v
 	./build/san/vectors tests/h101-B-abacus.txt
 	./build/san/vectors tests/102-soroban.txt
 	./build/san/vectors tests/h102-abacus.txt
+	./build/san/vectors tests/103-soroban.txt
 	./build/san/store_sim tests/092-soroban-store.txt   # (unit 092)
 	./build/san/app_test
 	for f in $(KEYV) work/016-vectors.txt work/017-vectors.txt; do AB_SAVELOAD=1 AB_STORE=1 ./build/san/vectors $$f || exit 1; done

@@ -1,0 +1,16 @@
+# Unit 103 (work/glyphs-steps.md at 1bb74de; abacus #17479, rulings #17497). The face lacked five characters, drawn as
+# hollow boxes: ';' (CAS reports and steps pages), ⒤ and ⒥ (the indirect glyphs in equations), ŷ and ȳ (the statistics'
+# tokens). %BOXES=n is the hollow boxes in the frame after the keys (screen_render, the default ui); %STEPSON is 1 while
+# the steps view is drawn (screen_page's steps_on), else 0. Written from the blueprint; the directives are new, so the
+# file can't run before src. Each line was read on the prototype first; the B lines' frames drew boxes at e83e8d2
+# (work/glyphs-steps-evidence/); K01 and S02-S04 read the same there.
+B01 | ';' on a steps page: the roots' ends (tally's frame, X^3=2 under CPLX, page 3) | STU CASCPLX EQ:X^3=2 CASSOLVE:X CASSTEPS BST BST | %BOXES=0 %STEPSON=1
+B02 | ';' on page 4, mid-line | STU CASCPLX EQ:X^3=2 CASSOLVE:X CASSTEPS BST | %BOXES=0 %STEPSON=1
+B03 | ⒤ and ⒥ in an STU equation, one cell each | STU EQ:⒤+⒥×2 | %BOXES=0
+B04 | ⒤ in a 33s equation | MODE33 EQ:⒤^2 | %BOXES=0
+B05 | ŷ and ȳ in an equation: y with the face's hat and bar | STU EQ:ŷ(2)+ȳ | %BOXES=0
+K01 | the control: SOLVE's report draws its roots as rows split at ';', so no ';' is drawn, before the unit or after | STU EQ:X^2=A CASSOLVE:X | %BOXES=0
+S01 | SOLVE's report is a view, not the steps view | STU EQ:X^2-4 CASSOLVE:X | %STEPSON=0
+S02 | the equation list | STU EQ:X^2-4 | %STEPSON=0
+S03 | the home | STU 2 ENTER 3 + | %STEPSON=0 %BOXES=0
+S04 | the steps view closed by C: off again | STU EQ:X^2×SIN(X) CASD:X CASSTEPS C | %STEPSON=0
