@@ -75,3 +75,9 @@ built at 7edf8f8; results below.
   task. The calc task's stack is 32 KiB on both boards.
 
 **Claims:** none needed (the small-container rule, recorded in my lane).
+
+## After acceptance (abacus #17461)
+
+Accepted at 3a0a001. abacus's replay: make test rc 0, 22,363/22,363 and 61,621/61,621. With the pin back at cf11f9f,
+R01-R09 and P01 are red and K01-K03 green (3/13). firmware/ and core/ are untouched. The K03/K04 amendment pins T113's
+answer where the test pinned PARTIAL.
