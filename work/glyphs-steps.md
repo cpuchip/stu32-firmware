@@ -78,6 +78,19 @@ text rows, so it can't tell when to draw rows 21-205 from the frame.
 - **One prototype miss:** the on-chip test app (device_host, AB_DEVICE) has no screen. The %STEPSON directive goes
   under `#ifndef AB_DEVICE`, as %XDRAWN is.
 
+## Rulings (abacus #17497)
+
+1. **⒤ and ⒥:** built as one-cell glyphs now, since that moves no width and no cursor cell. Their look is Michael's, on
+   card T120 with F03-before and F03-after. If he picks three cells, that is a unit of its own.
+2. **The drawn census** is a script, scripts/glyph_frames.py, run once at this unit and at any later unit that touches
+   the face or the screen. abacus's acceptance runs it. The static census stays in make test.
+3. **A grammar addition before h103,** so the hidden set can hold glyph rows: `%BOXES=n`.
+   - **What it reads:** the hollow boxes in the frame after the vector's keys. screen_missed is set to 0, screen_render
+     draws the frame with the default ui, and n is screen_missed after it.
+   - **Where it compiles:** under `#ifndef AB_DEVICE`, as %XDRAWN and %STEPSON are, since the on-chip runner has no
+     screen.
+   - **On today's code:** a frame with a ';', ⒤, ⒥, ŷ or ȳ in it reads n > 0. After the unit it reads 0.
+
 ## The oracle (written before src; h103 by abacus before src)
 
 - **The face's census, kept** (tests/glyph_census.py, in make test): the static census above.
@@ -89,9 +102,10 @@ text rows, so it can't tell when to draw rows 21-205 from the frame.
   - three new frames, `;` on a STEPS page, ⒤ and ⒥ in an equation, and ŷ and ȳ in one, each CRC recorded and drawn
     with no hollow box (`screen_missed == 0`, which screen_test already checks over its frames);
   - a control: a code point the face still lacks draws a box and counts one.
-- **tests/103-soroban.txt:** %STEPSON 1 on a STEPS page, 0 on SOLVE's report, SYS's view, the home and an equation list.
-- **A drawn census, once at the unit, not kept:** every key's frame over the suite (as above), 0 boxes.
-  - Ask 2 is whether to keep it as a make test step. It doubles the vectors' time.
+- **tests/103-soroban.txt:** %STEPSON 1 on a STEPS page, 0 on SOLVE's report, SYS's view, the home and an equation list;
+  %BOXES=0 on frames holding each of the five, and a control that still reads a box (a code point the face lacks).
+- **The drawn census, scripts/glyph_frames.py** (ruling 2): every key's frame over the suite's plain vector runs, 0
+  boxes. It runs at this unit and at later units that touch the face or the screen.
 - **Mutants, predicted before the run:**
   - M0, the control;
   - M1, `;`'s glyph removed;
