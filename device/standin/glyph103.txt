@@ -1,0 +1,80 @@
+# Unit 103 on the stand-in (work/glyphs-steps.md): the face's new glyphs drawn on the board as the host draws them.
+# From MEMORY CLEAR in STU, X^2-4 typed and stored, CAS2's SOLVE in X (keys from tests/stackkeys.c cas s X^2-4), the
+# report's STEPS, then ▲ to the last page, ANSWER: SOLVED: X=-2; X=2, whose ';' was a hollow box before 103. Then C three
+# times, EQN, RCL and the (J) key: the equation ⒤, stored and shown, a box before 103. Each frame's rows 21-205 have the
+# host's CRC (standin_replay). Keys checked on the host through the app first. Ends with a control that must FAIL.
+# replay: current
+wait : heap internal 30
+sleep 3
+send WIPE
+expect wipe: both slots erased
+send RESTART
+expect load: no image: MEMORY CLEAR 30
+expect ver=0.104 30
+wait READY 30
+send K42
+sleep 0.25
+send K42
+sleep 0.25
+send K36
+sleep 0.25
+send K18
+sleep 0.25
+send K2
+sleep 0.25
+send K42
+sleep 0.25
+send K30
+sleep 0.25
+send K43
+sleep 0.25
+send K13
+sleep 0.25
+send K33
+sleep 0.25
+send K9
+sleep 0.25
+send K38
+sleep 0.25
+send K40
+sleep 0.25
+send K31
+sleep 0.25
+send K18
+sleep 0.25
+send K4
+sleep 0.25
+send K5
+sleep 0.25
+send K0
+sleep 0.25
+send K33
+sleep 0.25
+# the report's STEPS (soft 4), then ▲: the last page, its ';'
+send K3
+sleep 0.25
+send K0
+sleep 0.25
+send FRAMECRC
+expect framecrc: rows 21-205 4AFAD607 10
+# C three times, then EQN, RCL and (J): the equation ⒤
+send K42
+sleep 0.25
+send K42
+sleep 0.25
+send K42
+sleep 0.25
+send K30
+sleep 0.25
+send K43
+sleep 0.25
+send K13
+sleep 0.25
+send K43
+sleep 0.25
+send K18
+sleep 0.25
+send FRAMECRC
+expect framecrc: rows 21-205 AC98D863 10
+# CONTROL: must FAIL
+expect framecrc: rows 21-205 00000000 3

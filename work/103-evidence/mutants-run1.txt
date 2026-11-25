@@ -1,0 +1,6 @@
+M0 SURVIVED 
+M1 RED: 103-soroban.txt:B01,B02 ## screen_test rc 1, 1 short: frame 68-steps-semicolon differs from tests/frames/68-steps-semicolon.png || a frame drew a character the face lacks ## glyph_census: U+003B ## glyph_frames: 131 vector runs, every key's frame drawn; 7 frames drew 12 hollow boxes
+M2 RED: 103-soroban.txt:B03,B04 ## screen_test rc 1, 1 short: frame 69-eqn-indirect differs from tests/frames/69-eqn-indirect.png || a frame drew a character the face lacks ## glyph_census: U+24A4 ## glyph_frames: 131 vector runs, every key's frame drawn; 17 frames drew 17 hollow boxes
+M3 RED: 103-soroban.txt:B05 ## screen_test rc 1, 1 short: frame 70-eqn-yhat-ybar differs from tests/frames/70-eqn-yhat-ybar.png || a frame drew a character the face lacks ## glyph_census: U+0177 ## glyph_frames: 131 vector runs, every key's frame drawn; 1 frames drew 1 hollow boxes
+M4 RED: 103-soroban.txt:B01,B02 ## screen_test rc 1, 2 short: 103: the steps view sets steps_on with view || 103: ';' on the PURE POWER page, its glyph drawn
+M5 RED: 103-soroban.txt:S01 ## screen_test rc 1, 1 short: 103: SOLVE's report is a view, not the steps view

@@ -1,0 +1,50 @@
+Preparing worktree (detached HEAD e83e8d2)
+HEAD is now at e83e8d2 repin-v1-10-0: accepted (abacus #17461)
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+casim 2e620567905e58b5752032f31651f5c4b6b22a52
+Preparing worktree (detached HEAD bb72df9)
+HEAD is now at bb72df9 Unit 103: the characters the face lacked, and the steps view's flag (work/glyphs-steps.md at 1bb74de; abacus #17479, rulings #17497; h103 frozen 90307544 before src). The face gains ';' (CAS reports' and steps pages' separator) and the indirect glyphs ⒤ ⒥ as one cell each (their look is Michael's, T120); screen.c's next_cell draws the statistics' ŷ ȳ as y with the face's circumflex and macron, as x̂ x̄. screen_page gains steps_on, set with view for the steps view. tests/glyph_census.py (in make test: every character core, firmware and Casimir emit has a glyph or a mapping found in next_cell; 5 failed before), scripts/glyph_frames.py (the drawn census, at units touching the face: every key's frame over the suite, 27 boxes before, 0 now), %BOXES and %STEPSON in vectors.c (#ifndef AB_DEVICE), tests/103-soroban.txt (10), screen_test frames 68-70 and steps_on checks. make test rc 0, 22,383/22,383 vectors, 61,647/61,647 expectations; 70/70 frames. VER 0.104
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+casim 2e620567905e58b5752032f31651f5c4b6b22a52
+
+### standin: e83e8d2 -> bb72df9
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,426,928 | 2,427,008 | +80 |
+| internal RAM static (DIRAM, of 341,760) | 207,731 | 207,731 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 59,074 | 59,074 | +0 |
+| calc_task's frame (under every deep path's stack), B | 144 | 144 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 863,627 -> 863,707 (+80)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 160,677 -> 160,677 (+0), none changed
+
+Loaded sections that moved outside the sources these commits change (the section and its relocations compared in the two builds' objects):
+
+- none
+
+(13 moved lines of the changed sources, 103-soroban.txt, 68-steps-semicolon.png, 69-eqn-indirect.png, 70-eqn-yhat-ybar.png, F01-after.png, F01-before.png, F02-after.png, F02-before.png, F03-after.png, F03-before.png, F04-after.png, F04-before.png, Makefile, font5x7.c, font5x7.txt, glyph-census-frames.txt, glyph-census-static.py, glyph-census-static.txt, glyph_census.py, glyph_frames.py, glyphs-steps.md, probe.txt, prototype.diff, screen.c, screen.h, screen_test.c, vectors.c, version.h, not listed)
+
+### reva: e83e8d2 -> bb72df9
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,354,736 | 2,354,800 | +64 |
+| internal RAM static (DIRAM, of 341,760) | 215,374 | 215,374 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 78,086 | 78,086 | +0 |
+| calc_task's frame (under every deep path's stack), B | 128 | 128 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 804,601 -> 804,677 (+76)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 133,339 -> 133,339 (+0), none changed
+
+Loaded sections that moved outside the sources these commits change (the section and its relocations compared in the two builds' objects):
+
+- none
+
+(12 moved lines of the changed sources, 103-soroban.txt, 68-steps-semicolon.png, 69-eqn-indirect.png, 70-eqn-yhat-ybar.png, F01-after.png, F01-before.png, F02-after.png, F02-before.png, F03-after.png, F03-before.png, F04-after.png, F04-before.png, Makefile, font5x7.c, font5x7.txt, glyph-census-frames.txt, glyph-census-static.py, glyph-census-static.txt, glyph_census.py, glyph_frames.py, glyphs-steps.md, probe.txt, prototype.diff, screen.c, screen.h, screen_test.c, vectors.c, version.h, not listed)
