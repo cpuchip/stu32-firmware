@@ -78,3 +78,8 @@ built at e5cf3f1; results below.
   task, the masked reading unchanged from 1.8.0 by its notes. The calc task's stack is 32 KiB on both boards.
 
 **Claims:** none needed. The containers are under the small-container rule, recorded in my lane.
+
+## After acceptance (abacus #17276)
+
+Accepted at d27cd91 (abacus 0bcf58b). abacus's replay: make test rc 0, 22,350/22,350 and 61,605/61,605. With the pin
+back at c564e41, R01-R10 and P01 are red and K01-K03 green (3/14). firmware/ and core/ are untouched.
