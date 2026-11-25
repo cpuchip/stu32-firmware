@@ -1,0 +1,20 @@
+# The Casimir 1.9.0 repin (CASIM_PIN cf11f9f, the v1.9.0 tag acbe993; abacus #17261, under Michael's #10856 rule): what
+# moves through the firmware. CAS 042 integrates powers and products of SIN and COS of multiples of one angle, and their
+# steps are refused (casim's BAD_ARG, the firmware's UNSUPPORTED). The expected texts are casim 1.9.0's notes, each
+# checked by hand by its derivative (X÷2-SIN(2×X)÷4 gives 1÷2-COS(2×X)÷2 = SIN(X)^2; in DEG and GRAD the angle's factor
+# π÷180 and π÷200 put 45÷π and 50÷π on the SIN term). Every line was read on both pins before this file was written:
+# R01-R10 and P01 fail on 1.8.0 (c564e41), where these are CAN'T INTEGRATE; K01-K03 read the same on both.
+R01 | SIN squared, inserted with its +C | STU RAD EQ:SIN(X)^2 CASINT:X | %EQ=X÷2-SIN(2×X)÷4 %NOTE=+C
+R02 | COS squared | STU RAD EQ:COS(X)^2 CASINT:X | %EQ=X÷2+SIN(2×X)÷4
+R03 | SIN cubed: a polynomial in COS | STU RAD EQ:SIN(X)^3 CASINT:X | %EQ=-COS(X)+COS(X)^3÷3
+R04 | COS cubed: a polynomial in SIN | STU RAD EQ:COS(X)^3 CASINT:X | %EQ=SIN(X)-SIN(X)^3÷3
+R05 | COS to the fourth: multiple angles | STU RAD EQ:COS(X)^4 CASINT:X | %EQ=3×X÷8+SIN(2×X)÷4+SIN(4×X)÷32
+R06 | a product of two multiples of one angle | STU RAD EQ:SIN(X)×SIN(3×X) CASINT:X | %EQ=SIN(2×X)÷4-SIN(4×X)÷8
+R07 | DEG carries 180÷π | STU DEG EQ:SIN(X)^2 CASINT:X | %EQ=X÷2-45×SIN(2×X)÷π
+R08 | GRAD carries 200÷π | STU GRAD EQ:SIN(X)^2 CASINT:X | %EQ=X÷2-50×SIN(2×X)÷π
+R09 | a letter in the divisor is a constant | STU RAD EQ:SIN(X)^2÷A CASINT:X | %EQ=X÷2÷A-SIN(2×X)÷4÷A
+R10 | the root's ∫ as typed is unchanged (the list holds the original above the answer) | STU RAD EQ:COS(X)^2 CASINT:X BST | %EQ=COS(X)^2
+P01 | its steps are refused: UNSUPPORTED, the request open | STU RAD EQ:SIN(X)^2 CASINT:X CASSTEPS | ERR %ERRMSG=UNSUPPORTED %STEPREQ=I:X
+K01 | the control: what 1.8.0 answers keeps its text | STU RAD EQ:SIN(X)×COS(X) CASINT:X | %EQ=SIN(X)^2÷2
+K02 | the control: powers of TAN are still refused | STU RAD EQ:TAN(X)^2 CASINT:X | ERR %ERRMSG=CAN'T_INTEGRATE
+K03 | the control: a power of SIN times X is still refused | STU RAD EQ:X×SIN(X)^2 CASINT:X | ERR %ERRMSG=CAN'T_INTEGRATE

@@ -320,6 +320,7 @@ test: all
 	./build/vectors tests/h102-abacus.txt   # (abacus #17067: h102 as frozen, sha256 03d2a7f6...b892)
 	./build/vectors tests/repin-v170-soroban.txt    # (the Casimir 1.7.0 repin: CAS 040 through the keys; fails on 175c160)
 	./build/vectors tests/repin-v180-soroban.txt    # (the Casimir 1.8.0 repin: CAS 041 through the keys; R and P lines fail on 8a76a80)
+	./build/vectors tests/repin-v190-soroban.txt    # (the Casimir 1.9.0 repin: CAS 042 through the keys; R and P lines fail on c564e41)
 	./build/rows_test
 	./build/eqn_say_test tests/086-corpus.txt    # (unit 086: the round trip over every equation the vectors type)
 	./build/eqn_say_test tests/101-alg-corpus.txt    # (unit 101: the ALG lines the vectors state, said by ab_alg_words)
