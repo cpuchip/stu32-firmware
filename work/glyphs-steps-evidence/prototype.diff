@@ -1,0 +1,104 @@
+diff --git a/firmware/font5x7.txt b/firmware/font5x7.txt
+index 215964a..dff524d 100644
+--- a/firmware/font5x7.txt
++++ b/firmware/font5x7.txt
+@@ -219,6 +219,15 @@ U+003A :
+ .##..
+ .....
+ 
++U+003B ;
++.....
++.##..
++.##..
++.....
++.##..
++..#..
++.#...
++
+ U+003C <
+ ...#.
+ ..#..
+@@ -1119,6 +1128,24 @@ U+2265 ≥
+ .....
+ #####
+ 
++U+24A4 parenthesized i
++.#.#.
++#.#.#
++#...#
++#.#.#
++#.#.#
++#.#.#
++.#.#.
++
++U+24A5 parenthesized j
++.#.#.
++#.#.#
++#...#
++#.#.#
++#.#.#
++##..#
++.#.#.
++
+ U+25B2 ▲
+ .....
+ ..#..
+diff --git a/firmware/screen.c b/firmware/screen.c
+index 16ab777..77e4802 100644
+--- a/firmware/screen.c
++++ b/firmware/screen.c
+@@ -92,6 +92,8 @@ static bool combining(uint32_t cp)
+ static uint32_t next_cell(const char **s)
+ {
+     uint32_t cp = next_cp(s);
++    if (cp == 0x0177) cp = 'y' | (uint32_t)(0x0302 - 0x02FF) << MARK_SHIFT;   /* PROTO 103: y hat as x hat is drawn */
++    if (cp == 0x0233) cp = 'y' | (uint32_t)(0x0304 - 0x02FF) << MARK_SHIFT;   /* PROTO 103: y bar */
+     while (**s) {
+         const char *t = *s;
+         uint32_t m = next_cp(&t);
+@@ -132,6 +134,16 @@ int screen_missing(const char *s)
+ }
+ 
+ long screen_missed;
++#include <stdio.h>
++#include <stdlib.h>
++const char *proto_glyph_id = "";   /* PROTO 103: the census's log */
++static void proto_miss(uint32_t cp)
++{
++    static FILE *lf;
++    const char *p = getenv("AB_GLYPHLOG");
++    if (p && !lf) lf = fopen(p, "a");
++    if (lf) fprintf(lf, "U+%04X %s\n", (unsigned)cp, proto_glyph_id), fflush(lf);
++}
+ 
+ static void draw_glyph(ls027_frame *f, int x, int y, int scale, uint32_t cp, bool dark);
+ 
+@@ -147,7 +159,7 @@ static void draw_glyph(ls027_frame *f, int x, int y, int scale, uint32_t cp, boo
+ {
+     const font_glyph *g = screen_glyph(cp);
+     if (!g) {                                   /* the face lacks it: a hollow box */
+-        screen_missed++;
++        screen_missed++, proto_miss(cp);
+         for (int r = 0; r < 7; r++)
+             for (int col = 0; col < 5; col++)
+                 if (r == 0 || r == 6 || col == 0 || col == 4)
+@@ -1685,6 +1697,7 @@ void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
+         page_line(&out->x, &k->x, SCREEN_VALUE, true, NULL);
+     } else if (k->view) {
+         out->view = true;
++        out->steps_on = k->steps;               /* PROTO 103 */
+         page_line(&out->t, &k->t, SCREEN_MESSAGE, true, NULL);
+         page_line(&out->z, &k->z, SCREEN_MESSAGE, true, NULL);
+         page_line(&out->y, &k->y, SCREEN_MESSAGE, true, NULL);
+diff --git a/firmware/screen.h b/firmware/screen.h
+index 1c1ddec..7bc9ccc 100644
+--- a/firmware/screen.h
++++ b/firmware/screen.h
+@@ -152,6 +152,7 @@ typedef struct {
+     screen_graph_text graph;
+     screen_line t, z, y, x;
+     bool view;                      /* four message lines, not the stack: SYS's view, 048's report (tally #5455) */
++    bool steps_on;                  /* PROTO 103: the steps view (095), drawn in rows 21-205 of screen_render's frame */
+     const char *soft[SCREEN_SOFT];  /* as screen_ui's */
+     bool soft_on[SCREEN_SOFT], soft_sub[SCREEN_SOFT], soft_dim[SCREEN_SOFT];
+     /* Unit 090 (work/worksheet-2-page.md): STU's home is the worksheet. The lines above are the levels (as before, every

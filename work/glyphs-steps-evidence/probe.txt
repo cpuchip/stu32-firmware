@@ -1,0 +1,4 @@
+F01 | steps page with ; | STU CASCPLX EQ:X^3=2 CASSOLVE:X CASSTEPS BST BST | %STEPSON=1
+F02 | report with ; rows | STU EQ:X^2=A CASSOLVE:X | %STEPSON=0
+F03 | indirect glyphs in an equation | STU EQ:⒤+⒥×2 | %STEPSON=0
+F04 | y hat and y bar | STU EQ:ŷ(2)+ȳ | %STEPSON=0

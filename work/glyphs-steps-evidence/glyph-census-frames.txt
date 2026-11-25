@@ -1,0 +1,8 @@
+# The dynamic census: every key of every plain vector run make test makes (130 runs) drew its frame (screen_render,
+# the default ui) at e83e8d2; each hollow box logged as code point and file:vector. Counts of boxes, then vectors.
+      6 U+003B
+     15 U+24A4
+      6 U+24A5
+U+003B: tests/095-soroban.txt:S04 tests/repin-v1-10-0-soroban.txt:P01 tests/repin-v180-soroban.txt:P02 
+U+24A4: tests/086-soroban.txt:M07 tests/099-soroban.txt:E01 work/015b-vectors.txt:B11 work/015-vectors.txt:M51 work/025-vectors.txt:N06 work/025-vectors.txt:Q59 
+U+24A5: tests/099-soroban.txt:E02 work/015b-vectors.txt:B17 work/015b-vectors.txt:B18 

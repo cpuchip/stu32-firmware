@@ -1,0 +1,12 @@
+font: 129 code points; emitted (printable, from string literals and the golden corpus): 139
+U+0022 '"': 1 sources: golden
+U+003B ';': 5 sources: build/casim/casim.c, core/calc.c, firmware/pins.c, firmware/tbook.c, golden
+U+005C '\\': 1 sources: golden
+U+007B '{': 1 sources: firmware/help_text.c
+U+007C '|': 1 sources: firmware/tbook.c
+U+007D '}': 1 sources: firmware/help_text.c
+U+00B1 '±': 1 sources: golden
+U+0177 'ŷ': 3 sources: build/casim/casim.c, core/calc.c, core/eqn.c
+U+0233 'ȳ': 3 sources: build/casim/casim.c, core/calc.c, core/eqn.c
+U+24A4 '⒤': 4 sources: build/casim/casim.c, core/calc.c, core/eqn.c, core/state.c
+U+24A5 '⒥': 4 sources: build/casim/casim.c, core/calc.c, core/eqn.c, core/state.c
