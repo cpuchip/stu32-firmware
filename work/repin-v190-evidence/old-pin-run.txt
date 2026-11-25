@@ -1,0 +1,24 @@
+# tests/repin-v190-soroban.txt on the 1.8.0 pin's build (scratch worktree at d638ef6, build/casim/.pin c564e411d208a2960ee222590c4dd90bcee1c5bf)
+FAIL R01: 1 operation(s) returned an error
+FAIL R01: expected %EQ=X÷2-SIN(2×X)÷4, got SIN(X)^2
+FAIL R01: expected %NOTE=+C, got none
+FAIL R02: 1 operation(s) returned an error
+FAIL R02: expected %EQ=X÷2+SIN(2×X)÷4, got COS(X)^2
+FAIL R03: 1 operation(s) returned an error
+FAIL R03: expected %EQ=-COS(X)+COS(X)^3÷3, got SIN(X)^3
+FAIL R04: 1 operation(s) returned an error
+FAIL R04: expected %EQ=SIN(X)-SIN(X)^3÷3, got COS(X)^3
+FAIL R05: 1 operation(s) returned an error
+FAIL R05: expected %EQ=3×X÷8+SIN(2×X)÷4+SIN(4×X)÷32, got COS(X)^4
+FAIL R06: 1 operation(s) returned an error
+FAIL R06: expected %EQ=SIN(2×X)÷4-SIN(4×X)÷8, got SIN(X)×SIN(3×X)
+FAIL R07: 1 operation(s) returned an error
+FAIL R07: expected %EQ=X÷2-45×SIN(2×X)÷π, got SIN(X)^2
+FAIL R08: 1 operation(s) returned an error
+FAIL R08: expected %EQ=X÷2-50×SIN(2×X)÷π, got SIN(X)^2
+FAIL R09: 1 operation(s) returned an error
+FAIL R09: expected %EQ=X÷2÷A-SIN(2×X)÷4÷A, got SIN(X)^2÷A
+FAIL R10: 1 operation(s) returned an error
+FAIL P01: expected %ERRMSG=UNSUPPORTED, got none
+FAIL P01: expected %STEPREQ=I:X, got -
+/home/claude/code/stuffleberry/workspace/projects-internal/stu32-firmware/tests/repin-v190-soroban.txt: 3/14 vectors, 4/16 expectations

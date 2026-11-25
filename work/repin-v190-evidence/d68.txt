@@ -1,0 +1,45 @@
+Preparing worktree (detached HEAD d638ef6)
+HEAD is now at d638ef6 102 closed (abacus #17066): h102 adopted as tests/h102-abacus.txt (sha256 03d2a7f6...b892, 1,974 B, from #17067), in make test and the sanitizer run, 11/11; H08 flipped fails 10/11 (rc 1); make test rc 0, 22,336/22,336 vectors, 61,589/61,589 expectations
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+casim c564e411d208a2960ee222590c4dd90bcee1c5bf
+Preparing worktree (detached HEAD e5cf3f1)
+HEAD is now at e5cf3f1 Repin: Casimir 1.9.0 (CASIM_PIN cf11f9f, the v1.9.0 tag acbe993; abacus #17261, under Michael's #10856 rule). CAS 042: integrate answers powers and products of SIN and COS of multiples of one angle; their steps BAD_ARG (UNSUPPORTED here). The census (make -i test on the new pin) moved nothing; tbook reads 2 more golden answers (4,873), all drawn. tests/repin-v190-soroban.txt (14, from casim 1.9.0's notes, each checked by its derivative): R01-R10 and P01 fail on c564e41 (rc 1), K01-K03 the same on both. make test rc 0, 22,350/22,350 vectors, 61,605/61,605 expectations. No firmware code changes; VER stays 0.103
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+casim cf11f9fd801f390cd74076f27dc865f52d32871f
+
+### standin: d638ef6 -> e5cf3f1
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,414,688 | 2,423,536 | +8,848 |
+| internal RAM static (DIRAM, of 341,760) | 207,731 | 207,731 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 59,074 | 59,074 | +0 |
+| calc_task's frame (under every deep path's stack), B | 144 | 144 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 851,438 -> 860,230 (+8,792)
+- libbid.a: 1,440,283 -> 1,440,299 (+16)
+- libesp_hw_support.a: 32,118 -> 32,122 (+4)
+- libesp_lcd.a: 9,193 -> 9,189 (-4)
+- libesp_driver_i2c.a: 10,005 -> 10,001 (-4)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 160,677 -> 160,677 (+0), none changed
+
+### reva: d638ef6 -> e5cf3f1
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,341,600 | 2,351,200 | +9,600 |
+| internal RAM static (DIRAM, of 341,760) | 215,374 | 215,374 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 78,086 | 78,086 | +0 |
+| calc_task's frame (under every deep path's stack), B | 128 | 128 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 791,592 -> 801,112 (+9,520)
+- libbid.a: 1,393,345 -> 1,393,381 (+36)
+- libesp_driver_gpio.a: 7,797 -> 7,793 (-4)
+- libesp_rom.a: 511 -> 507 (-4)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 133,339 -> 133,339 (+0), none changed
