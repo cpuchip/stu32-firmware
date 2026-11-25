@@ -1,0 +1,67 @@
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+
+### standin: d638ef6 -> e5cf3f1
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,414,688 | 2,423,536 | +8,848 |
+| internal RAM static (DIRAM, of 341,760) | 207,731 | 207,731 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 59,074 | 59,074 | +0 |
+| calc_task's frame (under every deep path's stack), B | 144 | 144 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 851,438 -> 860,230 (+8,792)
+- libbid.a: 1,440,283 -> 1,440,299 (+16)
+- libesp_hw_support.a: 32,118 -> 32,122 (+4)
+- libesp_driver_i2c.a: 10,005 -> 10,001 (-4)
+- libesp_lcd.a: 9,193 -> 9,189 (-4)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 160,677 -> 160,677 (+0), none changed
+
+Loaded sections that moved outside the sources these commits change (the section and its relocations compared in the two builds' objects):
+
+- .literal.ab_prog_line esp-idf/main/libmain.a(list.c.obj): 52 -> 56 (+4): object identical
+- .literal.ab_state_load esp-idf/main/libmain.a(state.c.obj): 68 -> 84 (+16): object identical
+- .literal.bi_to_abn esp-idf/main/libmain.a(bigint.c.obj): 4 -> 0 (-4): object identical
+- .literal.parse esp-idf/main/libmain.a(state.c.obj): 304 -> 288 (-16): object identical
+- .literal.rgb_panel_init esp-idf/esp_lcd/libesp_lcd.a(esp_lcd_panel_rgb.c.obj): 96 -> 92 (-4): object identical
+- .literal.rtc_init esp-idf/esp_hw_support/libesp_hw_support.a(rtc_init.c.obj): 268 -> 272 (+4): object identical
+- .literal.s_i2c_start_end_command esp-idf/esp_driver_i2c/libesp_driver_i2c.a(i2c_master.c.obj): 28 -> 24 (-4): object identical
+
+(173 moved lines of the changed sources, CASIM_PIN, Makefile, casim.c, repin-v190-soroban.txt, not listed)
+
+### reva: d638ef6 -> e5cf3f1
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,341,600 | 2,351,200 | +9,600 |
+| internal RAM static (DIRAM, of 341,760) | 215,374 | 215,374 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 78,086 | 78,086 | +0 |
+| calc_task's frame (under every deep path's stack), B | 128 | 128 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 791,592 -> 801,112 (+9,520)
+- libbid.a: 1,393,345 -> 1,393,381 (+36)
+- libesp_driver_gpio.a: 7,797 -> 7,793 (-4)
+- libesp_rom.a: 511 -> 507 (-4)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 133,339 -> 133,339 (+0), none changed
+
+Loaded sections that moved outside the sources these commits change (the section and its relocations compared in the two builds' objects):
+
+- .literal.ab_prog_line esp-idf/main/libmain.a(list.c.obj): 52 -> 56 (+4): object identical
+- .literal.draw_frame_rect esp-idf/main/libmain.a(draw.c.obj): 4 -> 0 (-4): object identical
+- .literal.esp_rom_efuse_get_opiconfig esp-idf/esp_rom/libesp_rom.a(esp_rom_efuse.c.obj): 12 -> 8 (-4): object identical
+- .literal.gk15 esp-idf/main/libmain.a(calc.c.obj): 12 -> 16 (+4): object identical
+- .literal.gpio_install_isr_service esp-idf/esp_driver_gpio/libesp_driver_gpio.a(gpio.c.obj): 20 -> 16 (-4): object identical
+- .literal.integ_core esp-idf/main/libmain.a(calc.c.obj): 32 -> 36 (+4): object identical
+- .literal.land_ground esp-idf/main/libmain.a(land_logic.c.obj): 12 -> 8 (-4): object identical
+- .literal.land_step esp-idf/main/libmain.a(land_logic.c.obj): 36 -> 32 (-4): object identical
+- .text.gk15 esp-idf/main/libmain.a(calc.c.obj): 1,112 -> 1,160 (+48): object identical
+- .text.integ_core esp-idf/main/libmain.a(calc.c.obj): 710 -> 718 (+8): object identical
+- .text.solve_core esp-idf/main/libmain.a(calc.c.obj): 13,286 -> 13,898 (+612): object identical
+
+(159 moved lines of the changed sources, CASIM_PIN, Makefile, casim.c, repin-v190-soroban.txt, not listed)

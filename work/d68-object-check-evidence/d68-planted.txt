@@ -1,0 +1,71 @@
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+Preparing worktree (detached HEAD 91d2dcc)
+HEAD is now at 91d2dcc PLANT for abacus #17284 (never pushed): one nop in bigint_impl.h's inline, so bigint.c.obj and sbig.c.obj change while their sources don't
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+casim cf11f9fd801f390cd74076f27dc865f52d32871f
+
+### standin: e5cf3f1 -> 91d2dcc
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,423,536 | 2,423,408 | -128 |
+| internal RAM static (DIRAM, of 341,760) | 207,731 | 207,731 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 59,074 | 59,074 | +0 |
+| calc_task's frame (under every deep path's stack), B | 144 | 144 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 860,230 -> 860,095 (-135)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 160,677 -> 160,677 (+0), none changed
+
+Loaded sections that moved outside the sources these commits change (the section and its relocations compared in the two builds' objects):
+
+- .literal.state_write$constprop$0 esp-idf/main/libmain.a(state.c.obj): 468 -> 464 (-4): object identical
+- .text.bi_add_u32 esp-idf/main/libmain.a(bigint.c.obj): 180 -> 179 (-1): object changed
+- .text.bi_from_abn esp-idf/main/libmain.a(bigint.c.obj): 69 -> 73 (+4): object changed
+- .text.bi_mul esp-idf/main/libmain.a(bigint.c.obj): 540 -> 465 (-75): object changed
+- .text.bi_mul_u32 esp-idf/main/libmain.a(bigint.c.obj): 254 -> 264 (+10): object changed
+- .text.bi_sub_u32 esp-idf/main/libmain.a(bigint.c.obj): 202 -> 198 (-4): object changed
+- .text.sb_add_u32 esp-idf/main/libmain.a(sbig.c.obj): 179 -> 178 (-1): object changed
+- .text.sb_from_digits esp-idf/main/libmain.a(sbig.c.obj): 104 -> 100 (-4): object changed
+- .text.sb_mul esp-idf/main/libmain.a(sbig.c.obj): 540 -> 466 (-74): object changed
+- .text.sb_mul_u32 esp-idf/main/libmain.a(sbig.c.obj): 254 -> 264 (+10): object changed
+- .text.sb_sub_u32 esp-idf/main/libmain.a(sbig.c.obj): 198 -> 202 (+4): object changed
+
+(0 moved lines of the changed sources, bigint_impl.h, not listed)
+
+### reva: e5cf3f1 -> 91d2dcc
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,351,200 | 2,351,072 | -128 |
+| internal RAM static (DIRAM, of 341,760) | 215,374 | 215,374 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 78,086 | 78,086 | +0 |
+| calc_task's frame (under every deep path's stack), B | 128 | 128 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 801,112 -> 800,985 (-127)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 133,339 -> 133,339 (+0), none changed
+
+Loaded sections that moved outside the sources these commits change (the section and its relocations compared in the two builds' objects):
+
+- .literal.app_key esp-idf/main/libmain.a(app.c.obj): 84 -> 88 (+4): object identical
+- .literal.app_key_to esp-idf/main/libmain.a(app.c.obj): 4 -> 0 (-4): object identical
+- .literal.ib_choose esp-idf/main/libmain.a(casim.c.obj): 4 -> 0 (-4): object identical
+- .literal.save_set esp-idf/main/libmain.a(app.c.obj): 0 -> 12 (+12): object identical
+- .text.bi_add_u32 esp-idf/main/libmain.a(bigint.c.obj): 180 -> 179 (-1): object changed
+- .text.bi_from_abn esp-idf/main/libmain.a(bigint.c.obj): 65 -> 69 (+4): object changed
+- .text.bi_mul esp-idf/main/libmain.a(bigint.c.obj): 540 -> 465 (-75): object changed
+- .text.bi_mul_u32 esp-idf/main/libmain.a(bigint.c.obj): 254 -> 264 (+10): object changed
+- .text.bi_sub_u32 esp-idf/main/libmain.a(bigint.c.obj): 202 -> 198 (-4): object changed
+- .text.gk15 esp-idf/main/libmain.a(calc.c.obj): 1,160 -> 1,156 (-4): object identical
+- .text.sb_add_u32 esp-idf/main/libmain.a(sbig.c.obj): 179 -> 178 (-1): object changed
+- .text.sb_from_digits esp-idf/main/libmain.a(sbig.c.obj): 104 -> 100 (-4): object changed
+- .text.sb_mul esp-idf/main/libmain.a(sbig.c.obj): 540 -> 466 (-74): object changed
+- .text.sb_mul_u32 esp-idf/main/libmain.a(sbig.c.obj): 254 -> 264 (+10): object changed
+- .text.sb_sub_u32 esp-idf/main/libmain.a(sbig.c.obj): 198 -> 202 (+4): object changed
+
+(0 moved lines of the changed sources, bigint_impl.h, not listed)

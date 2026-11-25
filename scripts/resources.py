@@ -6,6 +6,9 @@
         (nm, 0x3FC88000-0x3FD00000), for two commits; no board. --env sets a build option in both builds: with
         STU_WASM=1, WAMR is fetched into each worktree that has scripts/fetch-wamr.sh (WAMR_REPO from the
         environment, default ../wasm-micro-runtime); the device CMakeLists append device/sdkconfig.wasm
+        It also lists each loaded section that moved in the map outside the sources the commits change, with
+        "object identical" (its object's section and relocations the same: the linker's layout, not code) or
+        "object changed" (scripts/obj_section.py; abacus #17284). A report, not a pass or fail.
     scripts/resources.py board BASE NEW --port PORT [--targets standin,reva]
         on the stand-in's board: the internal heap free after boot and its largest block, the worst stack through the
         keys (047's deepest site, 048's CAS keys) and the speed benches (device/standin/speed.txt), each commit flashed
@@ -27,6 +30,9 @@ import re
 import shutil
 import subprocess
 import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import obj_section            # noqa: E402 (abacus #17284)
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 IMAGE = "espressif/idf:v5.4.2"
@@ -140,7 +146,7 @@ def read_build(b, wasm=False):
         m = re.search(r"entry\s+a1,\s*(0x[0-9a-f]+|\d+)", open(cf).read())
         frame = int(m.group(1), 0) if m else None
     return {"image": image, "region": region, "arch": {k: v["size"] for k, v in arch.items()}, "syms": syms,
-            "frame": frame}
+            "frame": frame, "dir": b}
 
 
 def iram_code(r):
@@ -205,6 +211,24 @@ def static(args):
               f"({sum(sb.values()) - sum(sa.values()):+,})" + ("" if ch else ", none changed"))
         for k in ch[:20]:
             print(f"- {k}: {sa.get(k, 0)} -> {sb.get(k, 0)}")
+        # abacus #17284: each loaded section that moved in the map outside the sources these commits change, with
+        # whether its object moved too (scripts/obj_section.py: the section and its relocations, byte for byte). The
+        # Xtensa linker's relaxation moves sizes with layout alone, so "object identical" is layout, not code. A report.
+        diff = sh(["git", "diff", "--name-only", s0, s1], capture=True).split()
+        targets = {os.path.basename(f) for f in diff} | ({"casim.c"} if "CASIM_PIN" in diff else set())
+        rows, skipped = obj_section.moved(a["dir"], b["dir"], tuple(targets))
+        print("\nLoaded sections that moved outside the sources these commits change (the section and its relocations "
+              "compared in the two builds' objects):\n")
+        if rows is None:
+            print("- (no map to read)")
+        else:
+            for sec, obj, x, y, v in rows[:40]:
+                print(f"- {sec} {obj}: {x:,} -> {y:,} ({y - x:+,}): {v}")
+            if len(rows) > 40:
+                print(f"- and {len(rows) - 40} more")
+            if not rows:
+                print("- none")
+            print(f"\n({skipped} moved lines of the changed sources, {', '.join(sorted(targets)) or 'none'}, not listed)")
 
 
 # ---- board ----
