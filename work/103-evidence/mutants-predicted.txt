@@ -1,0 +1,17 @@
+Unit 103's mutants, each predicted before any run (written with the build's own commit). Each is one fault applied
+alone by work/103-evidence/mutants-runner.py (a font fault regenerates font5x7.c from the drawing); the binaries are
+deleted and rebuilt, and the restored tree is built again at the end. The runner reads 103-soroban, screen_test,
+tests/glyph_census.py and scripts/glyph_frames.py (the drawn census).
+
+M0  control: no change.                                                   SURVIVED.
+M1  ';''s glyph removed from the face.                                    RED: 103 B01, B02 (%BOXES 2 each, as at
+    e83e8d2); screen_test's frame 68 and its no-box check; glyph_census (U+003B); glyph_frames (the 6 boxes of
+    the 3 STEPS vectors, and 103's own).
+M2  ⒤'s glyph removed.                                                    RED: 103 B03 (1 box), B04; screen_test's
+    frame 69 and the no-box check; glyph_census (U+24A4); glyph_frames (⒤'s vectors).
+M3  the ŷ mapping removed from next_cell.                                 RED: 103 B05 (1 box); screen_test's frame
+    70 and the no-box check; glyph_census (U+0177). glyph_frames: 103 B05's frame only (no other vector shows ŷ).
+M4  steps_on never set.                                                   RED: 103 B01, B02 (%STEPSON); screen_test's
+    two steps_on checks. glyph_census, glyph_frames and the frames green (nothing drawn changes).
+M5  steps_on set with every view (SYS's and the report's too).            RED: 103 S01 (SOLVE's report); screen_test's
+    report check. S02, S03 and S04 green (no view there). glyph_census, glyph_frames and the frames green.
