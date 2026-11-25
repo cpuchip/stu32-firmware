@@ -21,5 +21,5 @@ P03 | no real roots | STU EQ:X^4=-16 CASSOLVE:X CASSTEPS SST SST | %STEPN=4 %STE
 P04 | a letter quadratic's steps are refused (casim's BAD_ARG): UNSUPPORTED, the report still open | STU EQ:X^2=A CASSOLVE:X CASSTEPS | ERR %ERRMSG=UNSUPPORTED %STEPREQ=S:X
 K01 | the control: a numeric quadratic | STU EQ:X^2=4 CASSOLVE:X | %CASREP=SOLVED:_X=-2;_X=2
 K02 | the control: 076's complex pair | STU CASCPLX EQ:X^2+X+1 CASSOLVE:X | %CASREP=SOLVED:_X=(-1-SQRT(3)×0i1)÷2;_X=(-1+SQRT(3)×0i1)÷2
-K03 | with CAS3's CPLX on, x^n = c is PARTIAL on both pins (asked of abacus: R04's hint points here) | STU CASCPLX EQ:X^4=-16 CASSOLVE:X | %CASREP=PARTIAL,_DEGREE_4_LEFT
-K04 | and an odd one too, where CPLX off gives R05's root | STU CASCPLX EQ:X^3=2 CASSOLVE:X | %CASREP=PARTIAL,_DEGREE_3_LEFT
+K03 | with CAS3's CPLX on, x^n = c is PARTIAL on both pins (asked of abacus: R04's hint points here). Amended by the Casimir 1.10.0 repin (CAS 043, work/repin-v1-10-0.md): the four roots now, as R04's hint promised | STU CASCPLX EQ:X^4=-16 CASSOLVE:X | %CASREP=SOLVED:_X=SQRT(2)-SQRT(2)×0i1;_X=SQRT(2)+SQRT(2)×0i1;_X=-SQRT(2)-SQRT(2)×0i1;_X=-SQRT(2)+SQRT(2)×0i1
+K04 | and an odd one too, where CPLX off gives R05's root. Amended by the Casimir 1.10.0 repin (CAS 043): the real root and the pair, never less than CPLX off | STU CASCPLX EQ:X^3=2 CASSOLVE:X | %CASREP=SOLVED:_X=2^(1÷3);_X=2^(1÷3)×(-1-SQRT(3)×0i1)÷2;_X=2^(1÷3)×(-1+SQRT(3)×0i1)÷2

@@ -1,0 +1,21 @@
+# The Casimir 1.10.0 repin (CASIM_PIN 2e62056, the v1.10.0 tag f693e9c; abacus #17447, under Michael's #10856 rule): what
+# moves through the firmware. CAS 043: with CAS3's CPLX on (casim's complex bit), x^n = c prints every root where the
+# line holds them, else the line without the bit, never less; the PURE POWER page runs under the bit too. This answers
+# the tension the 1.8.0 repin raised (076's "NO REAL ROOTS. CAS3 CPLX ON" led to PARTIAL), whose controls, 1.8.0's K03
+# and K04, are amended in place. The expected texts are casim 1.10.0's notes; R07's value is computed apart (Python's
+# decimal at 60 digits: 2^(1/3)×(-1-i√3)÷2, whose cube is 2 to 59 digits), compared within 8 units of the 34th digit as
+# 076 compares a complex X. Every line was read on both pins before this file was written: R01-R09 and P01 fail on 1.9.0
+# (cf11f9f), where these are PARTIAL under the bit; K01-K03 read the same on both.
+R01 | x^3 = 2, CPLX on: every root, the real first, then the pair, minus first | STU CASCPLX EQ:X^3=2 CASSOLVE:X | %CASREP=SOLVED:_X=2^(1÷3);_X=2^(1÷3)×(-1-SQRT(3)×0i1)÷2;_X=2^(1÷3)×(-1+SQRT(3)×0i1)÷2
+R02 | x^4 = -16, CPLX on: where CPLX off says NO REAL ROOTS. CAS3 CPLX ON (K03), the four roots | STU CASCPLX EQ:X^4=-16 CASSOLVE:X | %CASREP=SOLVED:_X=SQRT(2)-SQRT(2)×0i1;_X=SQRT(2)+SQRT(2)×0i1;_X=-SQRT(2)-SQRT(2)×0i1;_X=-SQRT(2)+SQRT(2)×0i1
+R03 | x^6 = -1: ρ and D left out where they are 1 | STU CASCPLX EQ:X^6=-1 CASSOLVE:X | %CASREP=SOLVED:_X=(SQRT(3)-0i1)÷2;_X=(SQRT(3)+0i1)÷2;_X=-0i1;_X=0i1;_X=(-SQRT(3)-0i1)÷2;_X=(-SQRT(3)+0i1)÷2
+R04 | x^5 = 32 in RAD: an angle the table doesn't hold keeps the cosine form | STU RAD CASCPLX EQ:X^5=32 CASSOLVE:X | %CASREP=SOLVED:_X=2;_X=2×(COS(2×π÷5)-SIN(2×π÷5)×0i1);_X=2×(COS(2×π÷5)+SIN(2×π÷5)×0i1);_X=2×(COS(4×π÷5)-SIN(4×π÷5)×0i1);_X=2×(COS(4×π÷5)+SIN(4×π÷5)×0i1)
+R05 | the same in DEG: COS(72) | STU DEG CASCPLX EQ:X^5=32 CASSOLVE:X | %CASREP=SOLVED:_X=2;_X=2×(COS(72)-SIN(72)×0i1);_X=2×(COS(72)+SIN(72)×0i1);_X=2×(COS(144)-SIN(144)×0i1);_X=2×(COS(144)+SIN(144)×0i1)
+R06 | x^12 = 4096: all twelve fit the line | STU CASCPLX EQ:X^12=4096 CASSOLVE:X | %CASREP=SOLVED:_X=-2;_X=2;_X=SQRT(3)-0i1;_X=SQRT(3)+0i1;_X=1-SQRT(3)×0i1;_X=1+SQRT(3)×0i1;_X=-2×0i1;_X=2×0i1;_X=-1-SQRT(3)×0i1;_X=-1+SQRT(3)×0i1;_X=-SQRT(3)-0i1;_X=-SQRT(3)+0i1
+R07 | EVAL on x^3 = 2's second root: its value in X, complex | STU CASCPLX EQ:X^3=2 CASSOLVE:X SST SST CASEVAL | X^-0.6299605249474365823836053036391142i-1.091123635971721403560072614189809
+R08 | a root's own row | STU CASCPLX EQ:X^4=-16 CASSOLVE:X SST | %CASROW=X=SQRT(2)-SQRT(2)×0i1
+R09 | x^9 = 64: the roots don't fit the line, so the line without the bit, never less (1.9.0: PARTIAL) | STU CASCPLX EQ:X^9=64 CASSOLVE:X | %CASREP=SOLVED,_8_CPLX:_X=4^(1÷3)
+P01 | the PURE POWER page under the bit, before the answer, with the answer's roots | STU CASCPLX EQ:X^3=2 CASSOLVE:X CASSTEPS BST BST | %STEPN=4 %STEPK=3 %STEP=PURE_POWER:_X^3=2:_X=2^(1÷3);_X=2^(1÷3)×(-1-SQRT(3)×0i1)÷2;_X=2^(1÷3)×(-1+SQRT(3)×0i1)÷2 %STEPRULE=PURE_POWER
+K01 | the control: what 1.9.0 printed whole under the bit keeps its text | STU CASCPLX EQ:X^3=1 CASSOLVE:X | %CASREP=SOLVED:_X=1;_X=(-1-SQRT(3)×0i1)÷2;_X=(-1+SQRT(3)×0i1)÷2
+K02 | the control: letters print as at 1.9.0 | STU CASCPLX EQ:X^3=A CASSOLVE:X | %CASREP=SOLVED:_X=A^(1÷3);_A≥0
+K03 | the control: CPLX off, 076's hint, which now leads to R02's answer | STU EQ:X^4=-16 CASSOLVE:X | %CASREP=NO_REAL_ROOTS._CAS3_CPLX_ON
