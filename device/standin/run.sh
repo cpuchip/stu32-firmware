@@ -27,17 +27,29 @@ fi
 [ "${FLASH:-1}" = 1 ] && python3 "$ROOT/scripts/gen_games.py" "$LIST" "$ROOT/build/games"
 [ "${FLASH:-1}" = 1 ] && "$ROOT/scripts/fetch-casim.sh"
 [ "${FLASH:-1}" = 1 ] && [ "$WASM" = 1 ] && "$ROOT/scripts/fetch-wamr.sh"
-docker run --rm -i -v "$ROOT:/project" -w /project \
-    --user "$(id -u):$(id -g)" --group-add "$(stat -c %g "$PORT")" --device "$PORT" \
-    -e HOME=/tmp -e AB_CORE_COMMIT_HOST="$(sh "$ROOT/scripts/host-commit.sh" "$ROOT")" -e PORT="$PORT" -e FLASH="${FLASH:-1}" -e SCRIPT="$SCRIPT" -e STU_WASM="$WASM" -e B="$B" "$IMAGE" bash -c '
-set -euo pipefail
-. "$IDF_PATH/export.sh" >/dev/null
-if [ "$FLASH" = 1 ]; then
-    TARGET=esp32s3 scripts/fetch-intel-dfp.sh
-    cd device/standin
-    idf.py -B "$B" -DSDKCONFIG="$B/sdkconfig" build
-    idf.py -B "$B" -DSDKCONFIG="$B/sdkconfig" -p "$PORT" flash
-    cd /project
+# the container's environment, the same for the flash and the talk
+run_in() {
+    local dev; dev=$(readlink -f "$PORT")
+    docker run --rm -i -v "$ROOT:/project" -w /project \
+        --user "$(id -u):$(id -g)" --group-add "$(stat -c %g "$dev")" --device "$dev" \
+        -e HOME=/tmp -e AB_CORE_COMMIT_HOST="$(sh "$ROOT/scripts/host-commit.sh" "$ROOT")" -e PORT="$dev" -e SCRIPT="$SCRIPT" \
+        -e STU_WASM="$WASM" -e B="$B" "$IMAGE" bash -c "set -euo pipefail; . \"\$IDF_PATH/export.sh\" >/dev/null; $1"
+}
+if [ "${FLASH:-1}" = 1 ]; then
+    run_in 'TARGET=esp32s3 scripts/fetch-intel-dfp.sh
+        cd device/standin
+        idf.py -B "$B" -DSDKCONFIG="$B/sdkconfig" build
+        idf.py -B "$B" -DSDKCONFIG="$B/sdkconfig" -p "$PORT" flash'
+    # The port after a flash (abacus #17527): esptool's reset re-enumerates the board's USB serial during its first boot,
+    # and a container holds only the device node it started with, so talking from the flash's container lost the console
+    # at every flash (units 087, 096, 100, 103). Talk from a new container once the by-id link is back: 3 s (as
+    # scripts/resources.py's board path waits), then up to 10 s for the link to name a character device. Not opened here:
+    # an open of a cdc-acm port raises DTR and RTS.
+    sleep 3
+    for _ in $(seq 1 20); do
+        [ -c "$(readlink -f "$PORT")" ] && break
+        sleep 0.5
+    done
+    [ -c "$(readlink -f "$PORT")" ] || { echo "run.sh: $PORT did not come back after the flash" >&2; exit 1; }
 fi
-python device/standin/talk.py "$PORT" /project/build/standin.log ${SCRIPT:+"/project/$SCRIPT"}
-'
+run_in 'python device/standin/talk.py "$PORT" /project/build/standin.log ${SCRIPT:+"/project/$SCRIPT"}'
