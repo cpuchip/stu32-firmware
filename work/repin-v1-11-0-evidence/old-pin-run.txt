@@ -1,0 +1,32 @@
+old pin: /home/claude/scratch/soroban/claude-1001/-home-claude-code-stuffleberry-workspace/153a9ea4-8327-4f6d-b9bf-7e56bb37ca2d/scratchpad/oldpin1110 at 05ccd9f, CASIM_PIN 2e620567905e58b5752032f31651f5c4b6b22a52
+FAIL R01: 1 operation(s) returned an error
+FAIL R01: expected %EQ=π÷2, got SIN(X)^2
+FAIL R01: expected %EQN=2, got 1
+FAIL R01: expected %ERRMSG=none, got CAN'T_INTEGRATE
+FAIL R02: 1 operation(s) returned an error
+FAIL R02: expected %EQ=3×π÷16, got COS(X)^4
+FAIL R02: expected %EQN=2, got 1
+FAIL R03: 1 operation(s) returned an error
+FAIL R03: expected %EQ=4÷3, got SIN(X)^3
+FAIL R04: 1 operation(s) returned an error
+FAIL R04: expected %EQ=53÷480, got SIN(X)^5
+FAIL R05: 1 operation(s) returned an error
+FAIL R05: expected %EQ=1÷2, got SIN(X)×COS(X)
+FAIL R06: 1 operation(s) returned an error
+FAIL R06: expected %EQ=-π÷2, got SIN(X)^2
+FAIL R07: 1 operation(s) returned an error
+FAIL R07: expected %EQ=-SIN(2)÷4+1÷2, got SIN(X)^2
+FAIL R08: 1 operation(s) returned an error
+FAIL R08: expected %EQ=-45÷π+45÷2, got SIN(X)^2
+FAIL R09: 1 operation(s) returned an error
+FAIL R09: expected %EQ=100, got SIN(X)^2
+FAIL R10: 1 operation(s) returned an error
+FAIL R10: expected %EQ=A×π÷2, got A×SIN(X)^2
+FAIL R11: 1 operation(s) returned an error
+FAIL R11: expected %EQ=COS(-1)-COS(1)-COS(-1)^3÷3+COS(1)^3÷3, got SIN(X)^3
+FAIL R12: 1 operation(s) returned an error
+FAIL R12: expected %EQ=0, got SIN(X)×SIN(3×X)
+FAIL B01: expected %ERRMSG=BOUND_NOT_NUMERIC, got CAN'T_INTEGRATE
+FAIL B02: expected %ERRMSG=IMPROPER_INTEGRAL, got CAN'T_INTEGRATE
+tests/repin-v1-11-0-soroban.txt: 4/18 vectors, 12/29 expectations
+rc=1

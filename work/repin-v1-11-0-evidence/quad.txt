@@ -1,0 +1,13 @@
+R01 SIN^2 0..pi              quad 1.57079632679491  form 1.5707963267949  diff 8.7e-15  ok
+R02 COS^4 0..pi/2            quad 0.589048622548086  form 0.589048622548086  diff 1.1e-16  ok
+R03 SIN^3 0..pi              quad 1.33333333333332  form 1.33333333333333  diff 1.8e-14  ok
+R04 SIN^5 0..pi/3            quad 0.110416666666665  form 0.110416666666667  diff 1.2e-15  ok
+R05 SIN*COS 0..pi/2          quad 0.499999999999995  form 0.5  diff 5.3e-15  ok
+R06 SIN^2 pi..0              quad -1.57079632679491  form -1.5707963267949  diff 8.7e-15  ok
+R07 SIN^2 0..1               quad 0.272675643293576  form 0.27267564329358  diff 3.7e-15  ok
+R08 DEG SIN^2 0..45          quad 8.17605512172942  form 8.17605512172942  diff 1.8e-15  ok
+R09 GRAD SIN^2 0..200        quad 100.000000000001  form 100  diff 5.5e-13  ok
+R10 A*SIN^2 0..pi (A=1.7)    quad 2.67035375555138  form 2.67035375555132  diff 5.7e-14  ok
+R11 SIN^3 -1..1              quad 9.61527154193694e-17  form 0  diff 9.6e-17  ok
+R12 SIN*SIN3 0..pi           quad 3.4580433131629e-16  form 0  diff 3.5e-16  ok
+mismatches 0
