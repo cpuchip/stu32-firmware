@@ -1,0 +1,51 @@
+Preparing worktree (detached HEAD 5742f06)
+HEAD is now at 5742f06 105 closed (abacus #17916): h105 adopted as tests/h105-abacus.txt (sha256 f25e5cd5...0149, 3,118 B, from #17919), in make test and the sanitizer run, 25/25; T07 flipped fails 24/25 (rc 1); make test rc 0, 22,601/22,601 vectors, 62,034/62,034 expectations. Carried: DIRAM +0/-8 against -4 and the flash image's 16 B
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+casim 84da80f4a3dd47ea38dd3f1337f524ed24a40a88
+Preparing worktree (detached HEAD 024687e)
+HEAD is now at 024687e Unit 106: each line's drawn text (work/drawn-text.md at 83c3efe; abacus #17953, rulings #17960; inside Michael's T136; h106 frozen 8a56ff23 before src). screen_line gains drawn[SCREEN_TEXT_MAX]: page_line writes the line's own cells through cell_u8, %XDRAW's function, no second mapping (R1): a token's own pair where text writes ( ), y-hat and y-bar as y and the combining mark (R2); text and its readers unchanged; cursor is the same cell in both (screen.h). %XCELLS reads X's drawn string (R3). tests/106-soroban.txt (14); screen_test checks all four lines' drawn against text (as many cells, the cursor's cell '_' in both, the cells equal but the pair), the token pages, and screen_page's 12,312 B. The check found a sibling from unit 080: screen_lines left T, Z and Y beside STU's area with cursor 0 (memset), not -1; fixed. make test rc 0, 22,629/22,629 vectors, 62,104/62,104 expectations, 9,946 screen_test checks. VER 0.107
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+casim 84da80f4a3dd47ea38dd3f1337f524ed24a40a88
+
+### standin: 5742f06 -> 024687e
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,429,248 | 2,428,800 | -448 |
+| internal RAM static (DIRAM, of 341,760) | 207,739 | 207,739 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 59,074 | 59,074 | +0 |
+| calc_task's frame (under every deep path's stack), B | 144 | 144 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 865,963 -> 865,509 (-454)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 160,681 -> 160,681 (+0), none changed
+
+Loaded sections that moved outside the sources these commits change (the section and its relocations compared in the two builds' objects):
+
+- .literal.sm_shift esp-idf/main/libmain.a(casim.c.obj): 12 -> 8 (-4): object identical
+
+(16 moved lines of the changed sources, 106-soroban.txt, Makefile, alg.out, alg.txt, census.py, census.txt, drawn-text.md, make-i-test.txt, make-test.txt, measure.out, measure.txt, prototype.diff, screen.c, screen.h, screen_test.c, sz.c, sz.out, vectors.c, version.h, not listed)
+
+### reva: 5742f06 -> 024687e
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,356,960 | 2,356,944 | -16 |
+| internal RAM static (DIRAM, of 341,760) | 215,374 | 215,374 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 78,086 | 78,086 | +0 |
+| calc_task's frame (under every deep path's stack), B | 128 | 128 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 806,851 -> 806,831 (-20)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 133,343 -> 133,343 (+0), none changed
+
+Loaded sections that moved outside the sources these commits change (the section and its relocations compared in the two builds' objects):
+
+- none
+
+(11 moved lines of the changed sources, 106-soroban.txt, Makefile, alg.out, alg.txt, census.py, census.txt, drawn-text.md, make-i-test.txt, make-test.txt, measure.out, measure.txt, prototype.diff, screen.c, screen.h, screen_test.c, sz.c, sz.out, vectors.c, version.h, not listed)
+rc=0

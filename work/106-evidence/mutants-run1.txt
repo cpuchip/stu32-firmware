@@ -1,0 +1,7 @@
+M0 SURVIVED 
+M1 RED: 106-soroban.txt:C01,C02,C03,C04,C05,C07,C08,C09,C11 ## screen_test rc 1, 1 short: 106: the two token pages draw ⟮ in drawn (35's typing and the program 
+M2 RED: 106-soroban.txt:C01,C02,C03,C04,C11,K03 ## screen_test rc 1, 1 short: 106: each line's drawn string has its text's cells, the cursor the sam
+M3 RED: 106-soroban.txt:C11
+M4 RED: screen_test rc 1, 1 short: 106: each line's drawn string has its text's cells, the cursor the sam
+M5 RED: 106-soroban.txt:C09,C10 ## screen_test rc 1, 1 short: 106: each line's drawn string has its text's cells, the cursor the sam
+rc=0

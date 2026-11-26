@@ -1,0 +1,36 @@
+# 105's two open measurements (abacus #17916), settled with mapdiff.py (this folder) and the link maps' output sections.
+
+## 1. DIRAM +0 (stand-in) / -8 (Rev A) against a predicted -4: input sections placed in the image, 8c4fad7 -> 10fbb7d,
+## data and bss only (mapdiff.py RES 8c4fad7 10fbb7d standin reva, filtered)
+== standin: 8c4fad7 -> 10fbb7d, 34 sections differ; loaded ones +189 B
+  .bss.fit_watch                               libmain.a(screen.c.obj)      4 -> 0 (-4)
+== reva: 8c4fad7 -> 10fbb7d, 41 sections differ; loaded ones +181 B
+  .bss.fit_watch                               libmain.a(screen.c.obj)      4 -> 0 (-4)
+
+## the output section .dram0.bss (the link map), both boards
+standin 8c4fad7: .dram0.data=45200 .dram0.bss=119848 
+standin 10fbb7d: .dram0.data=45200 .dram0.bss=119848 
+reva 8c4fad7: .dram0.data=44464 .dram0.bss=92832 
+reva 10fbb7d: .dram0.data=44464 .dram0.bss=92824 
+
+## 2. The flash image's 16 B: D68's 10fbb7d stand-in build against the board's flash build (device/standin/build, 19:11:45Z,
+## core=4cc6180+dirty), loaded sections only (the other 264 sections that differ are .debug_str, not loaded)
+== standin: 10fbb7d -> flash, 267 sections differ; loaded ones +24 B
+  .rodata.app_sysinfo_build.str1.4             libmain.a(apps.c.obj)        80 -> 88 (+8)
+  .rodata.dev_boot_print.str1.4                libmain.a(standin_main.c.obj) 314 -> 322 (+8)
+  .rodata.__esp_system_init_fn_init_show_app_info.str1.4 libesp_app_format.a(esp_app_desc.c.obj) 76086 -> 76094 (+8)
+
+## the output section .flash.rodata and the images
+.flash.rodata=1307684 bin=2429248
+.flash.rodata=1307700 bin=2429264
+
+## What they say
+
+1. DIRAM: the only .bss or .data input section that changed is fit_watch, -4 on both boards (.dram0.data is unchanged). The output section .dram0.bss
+   reads +0 on the stand-in and -8 on Rev A, so the alignment fill between its input sections moved +4 and -4. That's the
+   difference from the predicted -4, and nothing else changed in internal RAM.
+2. The 16 B: three string-literal pools grew by 8 B each (+24), and the output section .flash.rodata grew by 16, as the
+   image did (2,429,248 -> 2,429,264). The two builds' core commit strings differ: 10fbb7d's image holds "10fbb7d", the
+   board's "4cc6180+dirty" (strings -n 6 on each .bin; the board's also holds ESP-IDF's "4cc6180-dirty"). "10fbb7d" and
+   its NUL are 8 B; "4cc6180+dirty" and its NUL are 14, 16 padded to 4: +8, each pool's growth. That's consistent with
+   the commit string, not a byte-by-byte reading of the pools.
