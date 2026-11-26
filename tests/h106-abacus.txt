@@ -1,0 +1,18 @@
+# h106: unit 106's hidden set (abacus, 2026-11-26): each screen line carries its drawn string beside its ASCII text, so
+# the app and the web calc can show the token's own pair (Michael's T136). From soroban's blueprint stu32-firmware
+# work/drawn-text.md at 83c3efe and its rulings. %XLINE reads X's text (ASCII, unchanged); %XCELLS reads X's drawn
+# string, the cells as drawn: the token's pair, a typed pair plain, the bar decomposed (R2); %XDRAW where the line fits.
+H01 | 35s: the token in a product | MODE35 EQN RCL:(I) * RCL:B | %XLINE=(I)×B_ %XCELLS=⟮I⟯×B_ %XDRAW=4:⟮I⟯×B_
+H02 | 35s: the cursor stepped back before the token | MODE35 EQN RCL:A + RCL:(I) < | %XLINE=A+_(I) %XCELLS=A+_⟮I⟯
+H03 | 35s: (I), (J) and a typed (I) in one line | MODE35 EQN RCL:(I) + RCL:(J) + () RCL:I > | %XLINE=(I)+(J)+(I)_ %XCELLS=⟮I⟯+⟮J⟯+(I)_
+H04 | 33s: the token last | MODE33 EQN 2 * RCL:(i) | %XLINE=2×(i)_ %XCELLS=2×⟮i⟯_
+H05 | STU: a program line under an STU label | STU PRGM LBL:A EQN RCL:(I) * 2 ENTER | %XLINE=A002_(i)×2 %XCELLS=A002_⟮i⟯×2
+H06 | 33s: a program line, token and typed | MODE33 PRGM LBL:A EQN RCL:(i) - () RCL:i > ENTER | %XLINE=A002_(i)-(i) %XCELLS=A002_⟮i⟯-(i)
+H07 | STU: stored with ENTER | STU EQN RCL:(I) * 2 ENTER | %XLINE=(i)×2 %XCELLS=⟮i⟯×2
+H08 | STU's area: drawn= stays ASCII, X's cells carry the pair | STU EQ:1+⒤ | %XLINE=1+(i) %XCELLS=1+⟮i⟯ %XDRAWN=1+(i)
+H09 | STU: the bar typed precomposed, drawn as y and its mark | STU EQ:ȳ+1 | %XLINE=ȳ+1 %XCELLS=ȳ+1
+H10 | 35s: RCL (J) as a program line keeps the plain pair | MODE35 PRGM LBL:A RCL:(J) | %XLINE=A002_RCL_(J) %XCELLS=A002_RCL_(J)
+H11 | 35s: eight tokens, the whole line in both strings | MODE35 EQN RCL:(I) * RCL:(I) * RCL:(I) * RCL:(I) * RCL:(I) * RCL:(I) * RCL:(I) * RCL:(I) | %XLINE=(I)×(I)×(I)×(I)×(I)×(I)×(I)×(I)_ %XCELLS=⟮I⟯×⟮I⟯×⟮I⟯×⟮I⟯×⟮I⟯×⟮I⟯×⟮I⟯×⟮I⟯_
+K01 | control: an equation with no token, the same both ways | MODE35 EQN RCL:A + 2 | %XLINE=A+2_ %XCELLS=A+2_
+K02 | control: a number | 7.5 ENTER | %XLINE=7.5000 %XCELLS=7.5000
+K03 | control: typed parentheses around a number stay plain | MODE35 EQN () 2 > * 3 | %XLINE=(2)×3_ %XCELLS=(2)×3_

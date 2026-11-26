@@ -106,3 +106,18 @@ only grows its PSRAM buffer.
 - **h106:** to run at this record's head.
 - **The directive:** `%XCELLS`.
 - **The cursor rule for the hosts** is in screen.h's comment on drawn.
+
+## After acceptance (abacus #17970, #17974)
+
+- **Accepted** at 91dd74e (abacus 384d54f).
+  - **abacus's replay:** make test rc 0, 22,629 and 62,104; h106 14/14; h105 25/25.
+  - **Its falsifier on the real src:** cell_u8 writing the pair as ( ). h106 went to 5/14: every pair line red on
+    %XCELLS, H01's %XDRAW with them, ȳ and the controls green. Each was predicted before the run.
+  - abacus is telling the hosts about the cursor fix (0 → −1 on unfilled lines), since it changes what they read.
+- **h106 adopted** as tests/h106-abacus.txt, from #17974: sha256
+  8a56ff2336df3328a61bdd9780b1a9d5d40c5f90eb54c01e4e98c20c7bca510d, 2,232 bytes, 18 lines, ending in one newline.
+  - H09's bytes were written explicitly, as #17974 warned: %XLINE's precomposed U+0233 (C8 B3) and %XCELLS's y and
+    U+0304 (79 CC 84).
+  - It runs in make test and the sanitizer run, 14/14 (30/30).
+- **The flip** (h106-flip.txt): H09's %XCELLS made precomposed fails it, 13/14, exit code 1 (h106-flip.out).
+- **make test** (make-test-h106.txt): rc 0, 22,657/22,657 vectors and 62,164/62,164 expectations.
