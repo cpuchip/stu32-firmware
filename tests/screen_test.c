@@ -1483,7 +1483,14 @@ int main(int argc, char **argv)
             }
             expect(ok == pages, "106: each line's drawn string has its text's cells, the cursor the same cell in both");
             expect(pair == 2, "106: the two token pages draw ⟮ in drawn (35's typing and the program line)");
-            expect(sizeof(screen_page) == 12312, "106: screen_page is 12,312 B (drawn beside text in each line)");
+            /* the sizes, on any data model (abacus #18028: 12,312 was LP64's page, and primer's wasm32 build read less):
+               text and drawn are SCREEN_TEXT_MAX each; the rest of a line (its int, enum, bool and pointer) is under 64 B;
+               the page beyond its four lines is under 8 KB (LP64 4,024 B, ILP32 measured in work/106-evidence/), so a
+               later string in each line, or a field that doubles the page, shows */
+            expect(sizeof(((screen_line *)0)->text) == SCREEN_TEXT_MAX && sizeof(((screen_line *)0)->drawn) == SCREEN_TEXT_MAX,
+                   "106: a line's text and drawn are SCREEN_TEXT_MAX each");
+            expect(sizeof(screen_line) - 2 * SCREEN_TEXT_MAX < 64, "106: a line beyond its two strings is under 64 B");
+            expect(sizeof(screen_page) - 4 * sizeof(screen_line) < 8192, "106: the page beyond its four lines is under 8 KB");
         }
 #undef STU0
 #undef PAGE
