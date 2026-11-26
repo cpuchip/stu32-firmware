@@ -1,0 +1,16 @@
+# the X line as draw_line_lead fits it (a measurement print, never committed): scale, cells drawn, the cells (# a non-ASCII cell, ~ the ellipsis); T14 is the textbook's wheel, no X line
+T01  s=4 n=2 drawn=#_
+T02  s=4 n=6 drawn=A+##2_
+T03  s=4 n=6 drawn=A+##_2
+T04  s=4 n=6 drawn=A+#_#2
+T05  s=4 n=6 drawn=A+_##2
+T06  s=4 n=6 drawn=A+#_#2
+T07  s=4 n=5 drawn=A+_#2
+T08  s=4 n=5 drawn=A_##2
+T09  s=4 n=4 drawn=#+1_
+T10  s=4 n=5 drawn=A+##2
+T11  s=4 n=4 drawn=#^2_
+T12  s=4 n=3 drawn=#^2
+T13  s=4 n=6 drawn=#+##2_
+T15  s=4 n=10 drawn=#+#+#+#+#_
+T16  s=3 n=18 drawn=#+#+#+#+#+#+#+#+#_

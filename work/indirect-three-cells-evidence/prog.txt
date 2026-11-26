@@ -1,0 +1,6 @@
+L01 | 35s program equation line | MODE35 PRGM LBL:A EQN RCL:(I) + 1 ENTER | %XLINE=?
+L02 | 33s program equation line | MODE33 PRGM LBL:A EQN RCL:(i) + 1 ENTER | %XLINE=?
+L03 | STU program equation line | STU PRGM LBL:A EQN RCL:(I) + 1 ENTER | %XLINE=?
+L04 | 35s STO (I) line beside it | MODE35 PRGM LBL:A STO:(I) | %XLINE=?
+L05 | 35s typed in a program, before ENTER | MODE35 PRGM LBL:A EQN RCL:(I) + 1 | %XLINE=?
+L06 | 35s (I) typed by user parentheses | MODE35 EQN () RCL:I | %XLINE=?

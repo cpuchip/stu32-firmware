@@ -1,0 +1,17 @@
+# measurement only (unit 104 blueprint): every expectation is a placeholder, read from the mismatch
+T01 | 35s typing (I) | MODE35 EQN RCL:(I) | %XLINE=?
+T02 | 35s typing A+(I)x2 | MODE35 EQN RCL:A + RCL:(I) * 2 | %XLINE=?
+T03 | 35s cursor left 1 | MODE35 EQN RCL:A + RCL:(I) * 2 < | %XLINE=?
+T04 | 35s cursor left 2 | MODE35 EQN RCL:A + RCL:(I) * 2 < < | %XLINE=?
+T05 | 35s cursor left 3 (before the token) | MODE35 EQN RCL:A + RCL:(I) * 2 < < < | %XLINE=?
+T06 | 35s cursor left 3 then right 1 (over the token) | MODE35 EQN RCL:A + RCL:(I) * 2 < < < > | %XLINE=?
+T07 | 35s backspace after the token | MODE35 EQN RCL:A + RCL:(I) * 2 < < BKSP | %XLINE=?
+T08 | 35s backspace before the token | MODE35 EQN RCL:A + RCL:(I) * 2 < < < BKSP | %XLINE=?
+T09 | 35s (J) | MODE35 EQN RCL:(J) + 1 | %XLINE=?
+T10 | 35s stored, the list | MODE35 EQN RCL:A + RCL:(I) * 2 ENTER | %XLINE=?
+T11 | 33s typing | MODE33 EQN RCL:(i) POW 2 | %XLINE=?
+T12 | 33s stored | MODE33 EQN RCL:(i) POW 2 ENTER | %XLINE=?
+T13 | STU typing | STU EQN RCL:(I) + RCL:(J) * 2 | %XLINE=?
+T14 | STU stored (textbook) | STU EQN RCL:(I) + RCL:(J) * 2 ENTER | %XLINE=?
+T15 | 35s 5 tokens (15 cells?) | MODE35 EQN RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) | %XLINE=?
+T16 | 35s 8 tokens long | MODE35 EQN RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) | %XLINE=?

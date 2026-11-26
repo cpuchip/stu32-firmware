@@ -1,0 +1,3 @@
+D01 | STU stored, the textbook's text | STU EQ:⒤+⒥×2 | %XDRAWN=?
+D02 | a 35-stamped equation in STU's wheel, shown as its text | MODE35 EQ:⒤+1 STU | %XDRAWN=?
+D03 | STU, a fraction with the token | STU EQ:⒤÷(A+1) | %XDRAWN=?

@@ -1,0 +1,210 @@
+diff --git a/core/list.c b/core/list.c
+index a0db6f7..39e2f43 100644
+--- a/core/list.c
++++ b/core/list.c
+@@ -136,6 +136,10 @@ int ab_prog_line(const ab_calc *c, int i, const ab_display *d, char *out, int si
+     }
+     if (op == AB_EQLINE) {                      /* an equation line: its text (UG p.13-7) */
+         snprintf(out, (size_t)size, "%s%s", c->peqn[arg], ab_eqn_mark(c, c->peqn[arg], c->peqn_model[arg]));
++        for (char *q = out; (q = strstr(q, "\xe2\x92")) != NULL;)   /* PROTO 104 */
++            if ((unsigned char)q[2] == 0xa4) memcpy(q, line_m35 ? "(I)" : "(i)", 3), q += 3;
++            else if ((unsigned char)q[2] == 0xa5) memcpy(q, "(J)", 3), q += 3;
++            else q += 2;
+         return (int)strlen(out);                /* (the mark: unit 031 rule 3) */
+     }
+     return op_text(c, op, arg, false, out, size);
+diff --git a/firmware/font5x7.txt b/firmware/font5x7.txt
+index 2914e2a..3adec60 100644
+--- a/firmware/font5x7.txt
++++ b/firmware/font5x7.txt
+@@ -1128,24 +1128,6 @@ U+2265 ≥
+ .....
+ #####
+ 
+-U+24A4 parenthesized i (unit 103: the indirect glyph in equations, one cell; its look is Michael's, T120)
+-.#.#.
+-#.#.#
+-#...#
+-#.#.#
+-#.#.#
+-#.#.#
+-.#.#.
+-
+-U+24A5 parenthesized j (unit 103, as U+24A4)
+-.#.#.
+-#.#.#
+-#...#
+-#.#.#
+-#.#.#
+-##..#
+-.#.#.
+-
+ U+25B2 ▲
+ .....
+ ..#..
+diff --git a/firmware/screen.h b/firmware/screen.h
+index a9ec959..606d94d 100644
+--- a/firmware/screen.h
++++ b/firmware/screen.h
+@@ -219,6 +219,7 @@ int screen_text(ls027_frame *f, int x, int y, int scale, const char *s, bool dar
+ 
+ const font_glyph *screen_glyph(uint32_t cp);    /* NULL when the face has none */
+ extern long screen_missed;                      /* hollow boxes drawn so far (a test reads it) */
++int screen_cells_n(const char *s, int len);   /* PROTO 104 */
+ int screen_cells(const char *s);                /* cells in UTF-8 text: a combining mark takes none */
+ int screen_missing(const char *s);              /* of those, the ones the face lacks */
+ /* For drawing elsewhere (the stand-in's keys): text as cells (a combining mark folded into its
+diff --git a/firmware/tbook.c b/firmware/tbook.c
+index aebb3b0..e2c6c67 100644
+--- a/firmware/tbook.c
++++ b/firmware/tbook.c
+@@ -31,9 +31,7 @@ static uint32_t utf8(const char **s)
+ 
+ static int cells_n(const char *u, int len)
+ {
+-    int n = 0;
+-    for (const char *p = u; p < u + len;) utf8(&p), n++;
+-    return n;
++    return screen_cells_n(u, len);   /* PROTO 104 */
+ }
+ 
+ static int text_w(int cells, int s) { return cells ? 6 * s * cells - s : 0; }
+@@ -849,8 +847,9 @@ int tb_text_lines(const char *s, int cells, int starts[], int lens[], int max)
+         const char *p = s + at, *cut = NULL;
+         int k = 0;
+         while (*p && k < cells) {
++            const char *q0 = p;
+             uint32_t c = utf8(&p);
+-            k++;
++            k += screen_cells_n(q0, (int)(p - q0));
+             if (c == '+' || c == '-' || c == 0xD7 || c == 0xF7 || c == '=' || c == ';' || c == ',') cut = p;
+         }
+         if (!*p || !cut) cut = p;
+diff --git a/firmware/screen.c b/firmware/screen.c
+index c79b42c..8c88502 100644
+--- a/firmware/screen.c
++++ b/firmware/screen.c
+@@ -1,3 +1,5 @@
++#include <stdlib.h>
++#include <stdio.h>
+ /* screen: layout v0 (see screen.h). */
+ #include "screen.h"
+ #include "tbook.h"
+@@ -106,6 +108,29 @@ static uint32_t next_cell(const char **s)
+     return cp;
+ }
+ 
++/* PROTO 104: the indirect tokens as three cells */
++static bool ind_upper;
++static int cells_of(const char **s, uint32_t out[3])
++{
++    const char *t = *s;
++    uint32_t cp = next_cp(&t);
++    if (cp == 0x24A4 || cp == 0x24A5) {
++        *s = t;
++        out[0] = '(', out[1] = cp == 0x24A5 ? 'J' : ind_upper ? 'I' : 'i', out[2] = ')';
++        return 3;
++    }
++    out[0] = next_cell(s);
++    return 1;
++}
++
++int screen_cells_n(const char *s, int len)
++{
++    int n = 0;
++    uint32_t o[3];
++    for (const char *p = s; p < s + len && *p;) n += cells_of(&p, o);
++    return n;
++}
++
+ const font_glyph *screen_glyph(uint32_t cp)
+ {
+     int lo = 0, hi = FONT5X7_COUNT - 1;
+@@ -121,10 +146,8 @@ const font_glyph *screen_glyph(uint32_t cp)
+ int screen_cells(const char *s)
+ {
+     int n = 0;
+-    while (*s) {
+-        next_cell(&s);
+-        n++;
+-    }
++    uint32_t o[3];
++    while (*s) n += cells_of(&s, o);
+     return n;
+ }
+ 
+@@ -172,7 +195,9 @@ static int draw_cps(ls027_frame *f, int x, int y, int scale, const uint32_t *cp,
+ int screen_decode(const char *s, uint32_t *cells, int max)
+ {
+     int n = 0;
+-    while (*s && n < max) cells[n++] = next_cell(&s);
++    uint32_t o[3];
++    while (*s && n < max)
++        for (int i = 0, k = cells_of(&s, o); i < k && n < max; i++) cells[n++] = o[i];
+     return n;
+ }
+ 
+@@ -191,7 +216,9 @@ void screen_cell_bitmap(uint32_t cell, uint8_t rows[8])
+ int screen_text(ls027_frame *f, int x, int y, int scale, const char *s, bool dark)
+ {
+     int n = 0;
+-    while (*s) draw_cp(f, x + n++ * 6 * scale, y, scale, next_cell(&s), dark);
++    uint32_t o[3];
++    while (*s)
++        for (int i = 0, k = cells_of(&s, o); i < k; i++) draw_cp(f, x + n++ * 6 * scale, y, scale, o[i], dark);
+     return n;
+ }
+ 
+@@ -214,11 +241,19 @@ static void u8_add(line *l, const char *b, int n)
+     l->u8[l->ulen] = '\0';
+ }
+ 
++static void line_add_cp(line *l, uint32_t cp);
++
+ static void line_add(line *l, const char *s)
+ {
+     while (*s && l->n < LINE_MAX_CP) {
+         const char *b = s;
+-        l->cp[l->n++] = next_cell(&s);
++        uint32_t o[3];
++        int k = cells_of(&s, o);
++        if (k == 3) {
++            for (int i = 0; i < 3; i++) line_add_cp(l, o[i]);
++            continue;
++        }
++        l->cp[l->n++] = o[0];
+         u8_add(l, b, (int)(s - b));
+     }
+ }
+@@ -280,6 +315,11 @@ static int draw_line_lead(ls027_frame *f, int bot, int max, const line *l, bool
+         left = true;
+     }
+     int x = left ? NUM_X : NUM_R - span(n, s);
++    if (max == 4 && getenv("PROTO_SCALE")) {     /* PROTO 104 measurement, never committed */
++        fprintf(stderr, "XSCALE s=%d n=%d drawn=", s, n);
++        for (int i = 0; i < n; i++) fprintf(stderr, "%s", cp[i] == 0x2026 ? "~" : cp[i] < 128 ? (char[]){(char)cp[i], 0} : "#");
++        fprintf(stderr, "\n");
++    }
+     draw_cps(f, x, bot - 7 * s, s, cp, n, true);
+     return n;
+ }
+@@ -509,7 +549,8 @@ static void eqn_line(const char *s, int cur, line *l)
+     const char *p = s;
+     while (*p) {
+         if (cur >= 0 && p - s == cur) line_cursor(l);
+-        line_add_cp(l, next_cell(&p));
++        uint32_t o[3];
++        for (int i = 0, k = cells_of(&p, o); i < k; i++) line_add_cp(l, o[i]);
+     }
+     if (cur >= 0 && p - s <= cur) line_cursor(l);
+ }
+@@ -1451,7 +1492,8 @@ void screen_wheel_text(const ab_calc *c, int i, char *out, int size)
+         return;
+     }
+     const char *p = b;
+-    for (int n = 0; n < WH_CELLS && *p; n++) next_cell(&p);
++    uint32_t o[3];
++    for (int n = 0; n < WH_CELLS && *p;) n += cells_of(&p, o);
+     snprintf(out, (size_t)size, "%.*s\xe2\x80\xa6", (int)(p - b), b);
+ }
+ 

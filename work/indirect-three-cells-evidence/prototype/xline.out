@@ -1,0 +1,16 @@
+FAIL T01: (i)_
+FAIL T02: A+(i)×2_
+FAIL T03: A+(i)×_2
+FAIL T04: A+(i)_×2
+FAIL T05: A+_(i)×2
+FAIL T06: A+(i)_×2
+FAIL T07: A+_×2
+FAIL T08: A_(i)×2
+FAIL T09: (J)+1_
+FAIL T10: A+(i)×2
+FAIL T11: (i)^2_
+FAIL T12: (i)^2
+FAIL T13: (i)+(J)×2_
+FAIL T14: (i)+(J)×2
+FAIL T15: (i)+(i)+(i)+(i)+(i)_
+FAIL T16: (i)+(i)+(i)+(i)+(i)+(i)+(i)+(i)+(i)_
