@@ -1466,6 +1466,17 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
 static void page_line(screen_line *o, const line *l, screen_kind kind, bool left, const char *label)
 {
     snprintf(o->text, sizeof o->text, "%s", l->u8);
+    /* unit 106 (R1): the drawn string is the line's own cells through cell_u8, %XDRAW's function, never a second
+       mapping; it stops at a whole cell when the buffer is full */
+    int u = 0;
+    for (int i = 0; i < l->n; i++) {
+        char b[8];
+        int m = cell_u8(l->cp[i], b);
+        if (u + m >= (int)sizeof o->drawn) break;
+        memcpy(o->drawn + u, b, (size_t)m);
+        u += m;
+    }
+    o->drawn[u] = '\0';
     o->cursor = l->cursor;
     o->kind = kind;
     o->left = left;
@@ -1835,6 +1846,9 @@ void screen_lines(const ab_calc *c, const screen_ui *ui, screen_page *out)
     screen_status *st = &out->status;
     compose(c, ui, k);
     memset(out, 0, sizeof *out);
+    /* unit 106 (found by its drawn check): a line no branch below fills (T, Z and Y beside STU's area) has no cursor,
+       -1 as screen.h says, not the memset's 0, which told a host its cursor was at cell 0 of an empty line */
+    out->t.cursor = out->z.cursor = out->y.cursor = out->x.cursor = -1;
     if (k->textbook) {                          /* unit 080: the area is drawn in the frame; X keeps the equation's text,
                                                    and the drawn text is beside it (tutor #10917) */
         out->textbook_on = true;

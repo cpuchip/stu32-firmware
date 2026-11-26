@@ -1438,7 +1438,7 @@ int vectors_run(const char *name, FILE *f)
                     rows_asked = true;
                     snprintf(got, sizeof got, "%lu", (unsigned long)c.rows_dropped);
                 } else if (strcmp(ex, "%SEL") == 0 || strncmp(ex, "%PAGEMARK-", 10) == 0 || strncmp(ex, "%PAGEKIND-", 10) == 0 || strncmp(ex, "%LEVELMARK-", 11) == 0 ||
-                           strncmp(ex, "%LEVELOP-", 9) == 0 || strncmp(ex, "%SOFT-", 6) == 0 || strcmp(ex, "%XLINE") == 0 || strcmp(ex, "%BAND") == 0 ||
+                           strncmp(ex, "%LEVELOP-", 9) == 0 || strncmp(ex, "%SOFT-", 6) == 0 || strcmp(ex, "%XLINE") == 0 || strcmp(ex, "%XCELLS") == 0 || strcmp(ex, "%BAND") == 0 ||
                            strcmp(ex, "%XMARK") == 0) {
                     /* (unit 096: %XMARK, the glyph X's line draws before its number, _ none) */
                     /* unit 093 (abacus #14133, #14135): the selection as screen_lines tells it; blanks _, an empty text _ */
@@ -1471,6 +1471,9 @@ int vectors_run(const char *name, FILE *f)
                         snprintf(got, sizeof got, "%s", lab && lab[0] ? lab : "_");
                     } else if (ex[1] == 'X' && ex[2] == 'M') {
                         snprintf(got, sizeof got, "%s", pg.xmark[0] ? pg.xmark : "_");
+                    } else if (ex[1] == 'X' && ex[2] == 'C') {
+                        /* unit 106 (work/drawn-text.md R3): %XCELLS, X's drawn string (its cells as drawn), _ empty */
+                        snprintf(got, sizeof got, "%.*s", (int)sizeof got - 1, pg.x.drawn[0] ? pg.x.drawn : "_");
                     } else if (ex[1] == 'X') {
                         snprintf(got, sizeof got, "%.*s", (int)sizeof got - 1, pg.x.text[0] ? pg.x.text : "_");
                     } else {

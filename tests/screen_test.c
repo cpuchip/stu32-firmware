@@ -124,6 +124,24 @@ static const char *line_text(const ab_calc *c, int i)
     return buf;
 }
 
+/* Unit 106 (work/drawn-text.md R3; abacus #17960): a line's drawn string against its text. As many cells in each
+   (screen_cells), the cursor's cell a '_' in both, since a host places the cursor in drawn by that cell count; and the
+   cells decoded from both the same, but where text has a token's ( or ) and drawn its own ⟮ or ⟯ (a combining mark is
+   in its base's cell either way, so ŷ precomposed and y with its mark decode alike). Empty both, or the check fails */
+static int drawn_agrees(const screen_line *l)
+{
+    static uint32_t a[SCREEN_TEXT_MAX], b[SCREEN_TEXT_MAX];
+    int na = screen_decode(l->text, a, SCREEN_TEXT_MAX), nb = screen_decode(l->drawn, b, SCREEN_TEXT_MAX);
+    if (na != nb || screen_cells(l->text) != screen_cells(l->drawn) || na != screen_cells(l->text)) return 0;
+    if (l->cursor >= 0 && (l->cursor >= na || (a[l->cursor] & 0xFFFFFFu) != '_' || (b[l->cursor] & 0xFFFFFFu) != '_'))
+        return 0;
+    for (int i = 0; i < na; i++) {
+        uint32_t x = a[i] & 0x7FFFFFFFu, y = b[i] & 0x7FFFFFFFu;
+        if (x != y && !(x == '(' && y == 0x27EE) && !(x == ')' && y == 0x27EF)) return 0;
+    }
+    return 1;
+}
+
 static void expect_line(const ab_calc *c, int i, const char *want, const char *what)
 {
     char m[256];
@@ -1419,6 +1437,54 @@ int main(int argc, char **argv)
             ab_eqn_add(&c, t);
         }
         frame("73-tb-indirect-wrap", &c, &ui);
+        /* unit 106: each of T, Z, Y and X's drawn string agrees with its text (drawn_agrees), on pages with a token beside
+           typed parentheses and the cursor inside the line (35), a program line with a token over the stack's values, ŷ
+           and ȳ in STU's list, x̂, and a plain value; and the token pages do differ, ⟮ in drawn where text has ( */
+        {
+            int pages = 0, ok = 0, pair = 0;
+            for (int p = 0; p < 5; p++) {
+                ab_init(&c);
+                if (p == 0) {
+                    ab_do_arg(&c, AB_MODEL, 35);
+                    ab_do(&c, AB_EQN);
+                    ab_do_arg(&c, AB_RCL, AB_VAR_IND_I);
+                    ab_do(&c, AB_ADD);
+                    ab_do(&c, AB_KPAREN);
+                    ab_do_arg(&c, AB_RCL, AB_VAR_A + 8);
+                    ab_do(&c, AB_KRIGHT);
+                    ab_do(&c, AB_KLEFT);
+                    ab_do(&c, AB_KLEFT);
+                } else if (p == 1) {
+                    ab_do_arg(&c, AB_MODEL, 35);
+                    keys(&c, "7 ENTER 8 ENTER 9");
+                    ab_do(&c, AB_PRGM);
+                    ab_do_arg(&c, AB_LBL, 0);
+                    ab_do(&c, AB_EQN);
+                    ab_do_arg(&c, AB_RCL, AB_VAR_IND_J);
+                    ab_do(&c, AB_ADD);
+                    ab_do(&c, AB_K1);
+                    ab_do(&c, AB_ENTER);
+                } else if (p == 2) {
+                    ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+                    ab_eqn_add(&c, "\xc5\xb7(2)+\xc8\xb3");
+                } else if (p == 3) {
+                    ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+                    ab_eqn_add(&c, "x\xcc\x82+1");
+                } else {
+                    keys(&c, "1 ENTER 2 ENTER 3 ENTER 45");
+                }
+                screen_lines(&c, &ui, &pg);
+                const screen_line *L[4] = {&pg.t, &pg.z, &pg.y, &pg.x};
+                for (int i = 0; i < 4; i++) {
+                    pages++;
+                    ok += drawn_agrees(L[i]);
+                    pair += strstr(L[i]->drawn, "\xe2\x9f\xae") != NULL;
+                }
+            }
+            expect(ok == pages, "106: each line's drawn string has its text's cells, the cursor the same cell in both");
+            expect(pair == 2, "106: the two token pages draw ⟮ in drawn (35's typing and the program line)");
+            expect(sizeof(screen_page) == 12312, "106: screen_page is 12,312 B (drawn beside text in each line)");
+        }
 #undef STU0
 #undef PAGE
     }

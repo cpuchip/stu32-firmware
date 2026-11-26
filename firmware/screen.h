@@ -100,7 +100,12 @@ typedef enum {
 
 typedef struct {
     char text[SCREEN_TEXT_MAX];     /* UTF-8; a cursor is the '_' in it */
-    int cursor;                     /* the cursor's cell (screen_cells counting), -1 none */
+    /* unit 106 (work/drawn-text.md; abacus #17953, #17960): the line's cells as the screen draws them, UTF-8, for a host
+       that draws the line in its own font: text's cells, but a token's own pair ⟮ ⟯ (105) where text writes ( ), and ŷ,
+       ȳ as y and the face's combining mark. The whole line, as text. Every cell is one code point and its marks (count
+       a mark with its base), and drawn has as many cells as text, so cursor is the same cell in both */
+    char drawn[SCREEN_TEXT_MAX];
+    int cursor;                     /* the cursor's cell (screen_cells counting) in text and in drawn, -1 none */
     screen_kind kind;
     bool left;                      /* drawn from the left, else right aligned */
     const char *label;              /* the letter at its left ("T", "Z", "Y", "X"), NULL none */

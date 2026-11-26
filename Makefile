@@ -327,6 +327,8 @@ test: all
 	./build/vectors tests/105-soroban.txt    # (unit 105: the tokens' own pair, %LOOK's frames against typed parentheses; no
 	                                         # save/load pass: the cursor and the typing are RAM)
 	./build/vectors tests/h105-abacus.txt   # (abacus #17919: h105 as frozen, sha256 f25e5cd5...0149)
+	./build/vectors tests/106-soroban.txt    # (unit 106: each line's drawn string, %XCELLS beside %XLINE; no save/load pass:
+	                                         # the typing is RAM)
 	./build/vectors tests/repin-v170-soroban.txt    # (the Casimir 1.7.0 repin: CAS 040 through the keys; fails on 175c160)
 	./build/vectors tests/repin-v180-soroban.txt    # (the Casimir 1.8.0 repin: CAS 041 through the keys; R and P lines fail on 8a76a80)
 	./build/vectors tests/repin-v190-soroban.txt    # (the Casimir 1.9.0 repin: CAS 042 through the keys; R and P lines fail on c564e41)
@@ -555,6 +557,7 @@ sanitize: build/san/load_fuzz build/san/expr_test build/san/app_test build/san/v
 	./build/san/vectors tests/h104-abacus.txt
 	./build/san/vectors tests/105-soroban.txt
 	./build/san/vectors tests/h105-abacus.txt
+	./build/san/vectors tests/106-soroban.txt
 	./build/san/store_sim tests/092-soroban-store.txt   # (unit 092)
 	./build/san/app_test
 	for f in $(KEYV) work/016-vectors.txt work/017-vectors.txt; do AB_SAVELOAD=1 AB_STORE=1 ./build/san/vectors $$f || exit 1; done

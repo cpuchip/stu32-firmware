@@ -1,0 +1,25 @@
+# Unit 106 (work/drawn-text.md at 83c3efe; abacus #17953, rulings #17960; inside Michael's T136): each screen line's
+# drawn string beside its text, the line's cells as the screen draws them (page_line through cell_u8, %XDRAW's own
+# function): a token's own pair ⟮ ⟯ where the text writes ( ) (R2 of 105 holds), and ŷ, ȳ as y and the face's
+# combining mark (R2). %XCELLS reads X's drawn string as %XLINE reads its text (blanks _); where the line fits
+# unwindowed, %XDRAW's cells after its scale are the same string. Every expectation was read on the prototype
+# (work/drawn-text-evidence/measure.out).
+# A token beside typed parentheses, each model's case
+C01 | 35: the token, then I typed | MODE35 EQN RCL:(I) + () RCL:I > | %XLINE=(I)+(I)_ %XCELLS=⟮I⟯+(I)_ %XDRAW=4:⟮I⟯+(I)_
+C02 | 33s: (i), then i typed | MODE33 EQN RCL:(i) + () RCL:i > | %XLINE=(i)+(i)_ %XCELLS=⟮i⟯+(i)_ %XDRAW=4:⟮i⟯+(i)_
+C03 | STU: (i), then i typed | STU EQN RCL:(I) + () RCL:i > | %XLINE=(i)+(i)_ %XCELLS=⟮i⟯+(i)_ %XDRAW=4:⟮i⟯+(i)_
+C04 | 35: (J), the cursor inside the line, after the token | MODE35 EQN RCL:(J) * 2 < < | %XLINE=(J)_×2 %XCELLS=⟮J⟯_×2 %XDRAW=4:⟮J⟯_×2
+# The other places a token is drawn
+C05 | a program line: the pair from its equation, typed plain | MODE35 PRGM LBL:A EQN RCL:(I) + () RCL:I > ENTER | %XLINE=A002_(I)+(I) %XCELLS=A002_⟮I⟯+(I) %XDRAW=4:A002_⟮I⟯+(I)
+C06 | STO (I) as a program line keeps the plain pair (105's R3) | MODE35 PRGM LBL:A STO:(I) | %XLINE=A002_STO_(I) %XCELLS=A002_STO_(I)
+C07 | the list, a stored entry | MODE35 EQN RCL:(I) + 1 ENTER | %XLINE=(I)+1 %XCELLS=⟮I⟯+1
+C08 | STU's list row: drawn= stays ASCII, X's drawn string has the pair | STU EQ:⒤+1 | %XLINE=(i)+1 %XCELLS=⟮i⟯+1 %XDRAWN=(i)+1
+# The marks (R2): the cell as it is
+C09 | ŷ and ȳ: the text precomposed, drawn as y and its combining mark | STU EQ:ŷ(2)+ȳ | %XLINE=ŷ(2)+ȳ %XCELLS=ŷ(2)+ȳ
+C10 | x̂ is typed with its mark: the same bytes both ways | STU EQ:x̂+1 | %XLINE=x̂+1 %XCELLS=x̂+1
+# The whole line, not the window (fitting is the host's)
+C11 | nine tokens: drawn whole, %XDRAW the scale-2 window | MODE35 EQN RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) | %XCELLS=⟮I⟯+⟮I⟯+⟮I⟯+⟮I⟯+⟮I⟯+⟮I⟯+⟮I⟯+⟮I⟯+⟮I⟯_ %XDRAW=2:…+⟮I⟯+⟮I⟯+⟮I⟯+⟮I⟯+⟮I⟯+⟮I⟯+⟮I⟯_
+# Controls: no token, the same both ways
+K01 | a number | 12.5 ENTER | %XLINE=12.5000 %XCELLS=12.5000
+K02 | the list's top | MODE35 EQN | %XLINE=EQN_LIST_TOP %XCELLS=EQN_LIST_TOP
+K03 | typed parentheses alone stay plain | MODE35 EQN () RCL:I > * 2 | %XLINE=(I)×2_ %XCELLS=(I)×2_ %XDRAW=4:(I)×2_
