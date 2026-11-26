@@ -1,0 +1,535 @@
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+Checking "python3" ...
+Python 3.12.3
+"python3" has been detected
+Activating ESP-IDF 5.4
+Setting IDF_PATH to '/opt/esp/idf'.
+* Checking python version ... 3.12.3
+* Checking python dependencies ... OK
+* Deactivating the current ESP-IDF environment (if any) ... OK
+* Establishing a new ESP-IDF environment ... OK
+* Identifying shell ... bash
+* Detecting outdated tools in system ... OK - no outdated tools found
+warning:  Failed to get username with error: 'getpwuid(): uid not found: 1001'. Using default temporary directory /tmp/esp_idf_activate.
+* Shell completion ... Autocompletion code generated
+
+Done! You can now compile ESP-IDF projects.
+Go to the project directory and run:
+
+  idf.py build
+Activating ESP-IDF 5.4
+Setting IDF_PATH to '/opt/esp/idf'.
+* Checking python version ... 3.12.3
+* Checking python dependencies ... OK
+* Deactivating the current ESP-IDF environment (if any) ... OK
+* Establishing a new ESP-IDF environment ... OK
+* Identifying shell ... bash
+* Detecting outdated tools in system ... OK - no outdated tools found
+warning:  Failed to get username with error: 'getpwuid(): uid not found: 1001'. Using default temporary directory /tmp/esp_idf_activate.
+* Shell completion ... Autocompletion code generated
+fetch-intel-dfp: verified 85dafd70f0fe2a8da218ade4233fca9d3228b0b04cd6d8527f7499926be01037, built build/intel-esp32s3/libbid.a
+Executing action: all (aliases: build)
+Running ninja in directory /project/device/standin/build
+Executing "ninja all"...
+[0/2] Re-checking globbed directories...
+[1/2] Re-running CMake...
+-- ccache will be used for faster recompilation
+-- Building ESP-IDF components for target esp32s3
+-- Project sdkconfig file /project/device/standin/build/sdkconfig
+Loading defaults file /project/device/standin/sdkconfig.defaults...
+-- Compiler supported targets: xtensa-esp-elf
+-- USING O3
+-- App "abacus_standin" version: 2de858a
+-- Adding linker script /project/device/standin/build/esp-idf/esp_system/ld/memory.ld
+-- Adding linker script /project/device/standin/build/esp-idf/esp_system/ld/sections.ld.in
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.api.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.bt_funcs.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.libgcc.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.wdt.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.version.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.ble_master.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.ble_50.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.ble_smp.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.ble_dtm.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.ble_test.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.ble_scan.ld
+-- Adding linker script /opt/esp/idf/components/esp_rom/esp32s3/ld/esp32s3.rom.newlib.ld
+-- Adding linker script /opt/esp/idf/components/soc/esp32s3/ld/esp32s3.peripherals.ld
+-- Components: app_update bootloader bootloader_support cxx driver efuse esp_app_format esp_bootloader_format esp_common esp_driver_ana_cmpr esp_driver_dac esp_driver_gpio esp_driver_gptimer esp_driver_i2c esp_driver_i2s esp_driver_ledc esp_driver_mcpwm esp_driver_parlio esp_driver_pcnt esp_driver_rmt esp_driver_sdio esp_driver_sdm esp_driver_sdmmc esp_driver_sdspi esp_driver_spi esp_driver_tsens esp_driver_uart esp_driver_usb_serial_jtag esp_hw_support esp_lcd esp_mm esp_partition esp_pm esp_psram esp_ringbuf esp_rom esp_security esp_system esp_timer esp_vfs_console esptool_py freertos hal heap log main mbedtls newlib partition_table pthread sdmmc soc spi_flash vfs xtensa
+-- Component paths: /opt/esp/idf/components/app_update /opt/esp/idf/components/bootloader /opt/esp/idf/components/bootloader_support /opt/esp/idf/components/cxx /opt/esp/idf/components/driver /opt/esp/idf/components/efuse /opt/esp/idf/components/esp_app_format /opt/esp/idf/components/esp_bootloader_format /opt/esp/idf/components/esp_common /opt/esp/idf/components/esp_driver_ana_cmpr /opt/esp/idf/components/esp_driver_dac /opt/esp/idf/components/esp_driver_gpio /opt/esp/idf/components/esp_driver_gptimer /opt/esp/idf/components/esp_driver_i2c /opt/esp/idf/components/esp_driver_i2s /opt/esp/idf/components/esp_driver_ledc /opt/esp/idf/components/esp_driver_mcpwm /opt/esp/idf/components/esp_driver_parlio /opt/esp/idf/components/esp_driver_pcnt /opt/esp/idf/components/esp_driver_rmt /opt/esp/idf/components/esp_driver_sdio /opt/esp/idf/components/esp_driver_sdm /opt/esp/idf/components/esp_driver_sdmmc /opt/esp/idf/components/esp_driver_sdspi /opt/esp/idf/components/esp_driver_spi /opt/esp/idf/components/esp_driver_tsens /opt/esp/idf/components/esp_driver_uart /opt/esp/idf/components/esp_driver_usb_serial_jtag /opt/esp/idf/components/esp_hw_support /opt/esp/idf/components/esp_lcd /opt/esp/idf/components/esp_mm /opt/esp/idf/components/esp_partition /opt/esp/idf/components/esp_pm /opt/esp/idf/components/esp_psram /opt/esp/idf/components/esp_ringbuf /opt/esp/idf/components/esp_rom /opt/esp/idf/components/esp_security /opt/esp/idf/components/esp_system /opt/esp/idf/components/esp_timer /opt/esp/idf/components/esp_vfs_console /opt/esp/idf/components/esptool_py /opt/esp/idf/components/freertos /opt/esp/idf/components/hal /opt/esp/idf/components/heap /opt/esp/idf/components/log /project/device/standin/main /opt/esp/idf/components/mbedtls /opt/esp/idf/components/newlib /opt/esp/idf/components/partition_table /opt/esp/idf/components/pthread /opt/esp/idf/components/sdmmc /opt/esp/idf/components/soc /opt/esp/idf/components/spi_flash /opt/esp/idf/components/vfs /opt/esp/idf/components/xtensa
+-- Configuring done (4.6s)
+-- Generating done (0.3s)
+-- Build files have been written to: /project/device/standin/build
+[0/2] Re-checking globbed directories...
+[1/53] cd /project/device/standin/build/esp-idf/main && /opt/esp/tools/cmake/3.30.2/bin/cmake -DREPO=/project -DOUT=/project/device/standin/build/esp-idf/main/ab_commit.h -P /project/scripts/gen_commit.cmake
+[2/53] Performing build step for 'bootloader'
+[1/1] cd /project/device/standin/build/bootloader/esp-idf/esptool_py && /opt/esp/python_env/idf5.4_py3.12_env/bin/python /opt/esp/idf/components/partition_table/check_sizes.py --offset 0x8000 bootloader 0x0 /project/device/standin/build/bootloader/bootloader.bin
+Bootloader binary size 0x5760 bytes. 0x28a0 bytes (32%) free.
+[3/53] No install step for 'bootloader'
+[4/53] Completed 'bootloader'
+[5/53] Building C object esp-idf/esp_app_format/CMakeFiles/__idf_esp_app_format.dir/esp_app_desc.c.obj
+[6/53] Linking C static library esp-idf/esp_app_format/libesp_app_format.a
+[7/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/row.c.obj
+[8/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/vec3.c.obj
+[9/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/firmware/font5x7.c.obj
+[10/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/input_jump.c.obj
+[11/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/fake_input.c.obj
+[12/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/player_event.c.obj
+[13/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/row_generator.c.obj
+[14/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/slab.c.obj
+[15/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/maths.c.obj
+[16/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/level.c.obj
+[17/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/chacha20.c.obj
+[18/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/input_steer.c.obj
+[19/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/timeval.c.obj
+[20/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/time_tracker.c.obj
+[21/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/points_counter.c.obj
+[22/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/skill.c.obj
+[23/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/core/list.c.obj
+[24/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/aim/games/aim/aim_app.c.obj
+[25/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/firmware/apps.c.obj
+[26/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/snake/games/snake/snake_logic.c.obj
+[27/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/app/render.c.obj
+[28/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/land/games/land/land_logic.c.obj
+[29/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/salvo/games/salvo/salvo_app.c.obj
+[30/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/moles/games/moles/moles_logic.c.obj
+[31/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/catch/games/catch/catch_logic.c.obj
+[32/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/snake/games/snake/snake_app.c.obj
+[33/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/firmware/standin.c.obj
+[34/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/app/babal_app.c.obj
+[35/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/land/games/land/land_app.c.obj
+[36/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/salvo/games/salvo/salvo_logic.c.obj
+[37/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/mines/games/mines/mines_app.c.obj
+[38/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/mines/games/mines/mines_logic.c.obj
+[39/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/rocks/games/3720/rocks_app.c.obj
+[40/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/aim/games/aim/aim_logic.c.obj
+[41/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/babal/games/babal/core/player.c.obj
+[42/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/moles/games/moles/moles_app.c.obj
+[43/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/rocks/games/3720/rocks_logic.c.obj
+[44/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/build/games/catch/games/catch/catch_app.c.obj
+[45/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/firmware/tbook.c.obj
+[46/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/firmware/app.c.obj
+[47/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/standin_main.c.obj
+[48/53] Building C object esp-idf/main/CMakeFiles/__idf_main.dir/project/firmware/screen.c.obj
+[49/53] Linking C static library esp-idf/main/libmain.a
+[50/53] Generating ld/sections.ld
+[51/53] Linking CXX executable abacus_standin.elf
+[52/53] Generating binary image from built executable
+esptool.py v4.9.0
+Creating esp32s3 image...
+Merged 2 ELF sections
+Successfully created esp32s3 image.
+Generated /project/device/standin/build/abacus_standin.bin
+[53/53] cd /project/device/standin/build/esp-idf/esptool_py && /opt/esp/python_env/idf5.4_py3.12_env/bin/python /opt/esp/idf/components/partition_table/check_sizes.py --offset 0x8000 partition --type app /project/device/standin/build/partition_table/partition-table.bin /project/device/standin/build/abacus_standin.bin
+abacus_standin.bin binary size 0x250cc0 bytes. Smallest app partition is 0x500000 bytes. 0x2af340 bytes (54%) free.
+
+Project build complete. To flash, run:
+ idf.py flash
+or
+ idf.py -p PORT flash
+or
+ python -m esptool --chip esp32s3 -b 460800 --before default_reset --after hard_reset write_flash --flash_mode dio --flash_size 8MB --flash_freq 80m 0x0 build/bootloader/bootloader.bin 0x8000 build/partition_table/partition-table.bin 0x10000 build/abacus_standin.bin
+or from the "/project/device/standin/build" directory
+ python -m esptool --chip esp32s3 -b 460800 --before default_reset --after hard_reset write_flash "@flash_args"
+Executing action: flash
+Running ninja in directory /project/device/standin/build
+Executing "ninja flash"...
+[0/2] Re-checking globbed directories...
+[1/12] cd /project/device/standin/build/esp-idf/main && /opt/esp/tools/cmake/3.30.2/bin/cmake -DREPO=/project -DOUT=/project/device/standin/build/esp-idf/main/ab_commit.h -P /project/scripts/gen_commit.cmake
+[2/6] cd /project/device/standin/build/esp-idf/esptool_py && /opt/esp/python_env/idf5.4_py3.12_env/bin/python /opt/esp/idf/components/partition_table/check_sizes.py --offset 0x8000 partition --type app /project/device/standin/build/partition_table/partition-table.bin /project/device/standin/build/abacus_standin.bin
+abacus_standin.bin binary size 0x250cc0 bytes. Smallest app partition is 0x500000 bytes. 0x2af340 bytes (54%) free.
+[3/6] Performing build step for 'bootloader'
+[1/1] cd /project/device/standin/build/bootloader/esp-idf/esptool_py && /opt/esp/python_env/idf5.4_py3.12_env/bin/python /opt/esp/idf/components/partition_table/check_sizes.py --offset 0x8000 bootloader 0x0 /project/device/standin/build/bootloader/bootloader.bin
+Bootloader binary size 0x5760 bytes. 0x28a0 bytes (32%) free.
+[4/6] No install step for 'bootloader'
+[5/6] Completed 'bootloader'
+[5/6] cd /opt/esp/idf/components/esptool_py && /opt/esp/tools/cmake/3.30.2/bin/cmake -D IDF_PATH=/opt/esp/idf -D "SERIAL_TOOL=/opt/esp/python_env/idf5.4_py3.12_env/bin/python;;/opt/esp/idf/components/esptool_py/esptool/esptool.py;--chip;esp32s3" -D "SERIAL_TOOL_ARGS=--before=default_reset;--after=hard_reset;write_flash;@flash_args" -D WORKING_DIRECTORY=/project/device/standin/build -P /opt/esp/idf/components/esptool_py/run_serial_tool.cmake
+esptool.py --chip esp32s3 -p /dev/ttyACM1 -b 460800 --before=default_reset --after=hard_reset write_flash --flash_mode dio --flash_freq 80m --flash_size 8MB 0x0 bootloader/bootloader.bin 0x10000 abacus_standin.bin 0x8000 partition_table/partition-table.bin
+esptool.py v4.9.0
+Serial port /dev/ttyACM1
+Connecting...
+Chip is ESP32-S3 (QFN56) (revision v0.1)
+Features: WiFi, BLE, Embedded PSRAM 8MB (AP_3v3)
+Crystal is 40MHz
+MAC: 34:85:18:76:ce:8c
+Uploading stub...
+Running stub...
+Stub running...
+Changing baud rate to 460800
+Changed.
+Configuring flash size...
+Flash will be erased from 0x00000000 to 0x00005fff...
+Flash will be erased from 0x00010000 to 0x00260fff...
+Flash will be erased from 0x00008000 to 0x00008fff...
+SHA digest in image updated
+Compressed 22368 bytes to 14198...
+Writing at 0x00000000... (100 %)
+Wrote 22368 bytes (14198 compressed) at 0x00000000 in 0.6 seconds (effective 293.2 kbit/s)...
+Hash of data verified.
+Compressed 2428096 bytes to 1989578...
+Writing at 0x00010000... (0 %)
+Writing at 0x00019e6c... (1 %)
+Writing at 0x00024ec0... (2 %)
+Writing at 0x0002e811... (3 %)
+Writing at 0x00032abe... (4 %)
+Writing at 0x00036ab9... (4 %)
+Writing at 0x0003aab4... (5 %)
+Writing at 0x0003eaaf... (6 %)
+Writing at 0x00042aaa... (7 %)
+Writing at 0x00046aa5... (8 %)
+Writing at 0x0004aaa0... (9 %)
+Writing at 0x0004ea9b... (9 %)
+Writing at 0x00052a96... (10 %)
+Writing at 0x00056a91... (11 %)
+Writing at 0x0005aa8c... (12 %)
+Writing at 0x0005ea87... (13 %)
+Writing at 0x00062a82... (13 %)
+Writing at 0x00066a7d... (14 %)
+Writing at 0x0006aa78... (15 %)
+Writing at 0x0006ea73... (16 %)
+Writing at 0x00072a6e... (17 %)
+Writing at 0x00076a00... (18 %)
+Writing at 0x0007c25c... (18 %)
+Writing at 0x00080417... (19 %)
+Writing at 0x00084412... (20 %)
+Writing at 0x0008840d... (21 %)
+Writing at 0x0008c408... (22 %)
+Writing at 0x00090403... (22 %)
+Writing at 0x000943fe... (23 %)
+Writing at 0x000983f9... (24 %)
+Writing at 0x0009c3f4... (25 %)
+Writing at 0x000a03ef... (26 %)
+Writing at 0x000a49c1... (27 %)
+Writing at 0x000a89bb... (27 %)
+Writing at 0x000ac9b6... (28 %)
+Writing at 0x000b09b1... (29 %)
+Writing at 0x000b49ac... (30 %)
+Writing at 0x000b89a7... (31 %)
+Writing at 0x000bc9a2... (31 %)
+Writing at 0x000c099d... (32 %)
+Writing at 0x000c4998... (33 %)
+Writing at 0x000c8993... (34 %)
+Writing at 0x000cc98e... (35 %)
+Writing at 0x000d0989... (36 %)
+Writing at 0x000d4984... (36 %)
+Writing at 0x000d897f... (37 %)
+Writing at 0x000dc97a... (38 %)
+Writing at 0x000e0975... (39 %)
+Writing at 0x000e4970... (40 %)
+Writing at 0x000e896b... (40 %)
+Writing at 0x000ec966... (41 %)
+Writing at 0x000f0961... (42 %)
+Writing at 0x000f4f31... (43 %)
+Writing at 0x000f8f29... (44 %)
+Writing at 0x000fcf24... (45 %)
+Writing at 0x00100f1f... (45 %)
+Writing at 0x00104f1a... (46 %)
+Writing at 0x00108f15... (47 %)
+Writing at 0x0010cf10... (48 %)
+Writing at 0x00110f0b... (49 %)
+Writing at 0x00114f06... (50 %)
+Writing at 0x0011ae69... (50 %)
+Writing at 0x00122fb2... (51 %)
+Writing at 0x001271de... (52 %)
+Writing at 0x0012b416... (53 %)
+Writing at 0x0012f635... (54 %)
+Writing at 0x001338a1... (54 %)
+Writing at 0x00137bbc... (55 %)
+Writing at 0x0013bdda... (56 %)
+Writing at 0x0013fffe... (57 %)
+Writing at 0x00144222... (58 %)
+Writing at 0x001484e0... (59 %)
+Writing at 0x0014e984... (59 %)
+Writing at 0x001551d5... (60 %)
+Writing at 0x0015b19d... (61 %)
+Writing at 0x001605dd... (62 %)
+Writing at 0x00165bd8... (63 %)
+Writing at 0x0016b122... (63 %)
+Writing at 0x0017082f... (64 %)
+Writing at 0x00175e82... (65 %)
+Writing at 0x0017b3de... (66 %)
+Writing at 0x001805a7... (67 %)
+Writing at 0x00185ae9... (68 %)
+Writing at 0x0018ab9d... (68 %)
+Writing at 0x00190619... (69 %)
+Writing at 0x00195704... (70 %)
+Writing at 0x0019a6dc... (71 %)
+Writing at 0x0019f666... (72 %)
+Writing at 0x001a482e... (72 %)
+Writing at 0x001a9c82... (73 %)
+Writing at 0x001aeecc... (74 %)
+Writing at 0x001b3f4a... (75 %)
+Writing at 0x001b8f3c... (76 %)
+Writing at 0x001be275... (77 %)
+Writing at 0x001c32a9... (77 %)
+Writing at 0x001c8460... (78 %)
+Writing at 0x001cd769... (79 %)
+Writing at 0x001d264d... (80 %)
+Writing at 0x001d78b0... (81 %)
+Writing at 0x001dca6b... (81 %)
+Writing at 0x001e2028... (82 %)
+Writing at 0x001e70b5... (83 %)
+Writing at 0x001ec5fc... (84 %)
+Writing at 0x001f17bf... (85 %)
+Writing at 0x001f71fb... (86 %)
+Writing at 0x001fc58d... (86 %)
+Writing at 0x00201f20... (87 %)
+Writing at 0x00207dbb... (88 %)
+Writing at 0x0020d562... (89 %)
+Writing at 0x002122e0... (90 %)
+Writing at 0x00217bfb... (90 %)
+Writing at 0x0021c860... (91 %)
+Writing at 0x00221714... (92 %)
+Writing at 0x002263ad... (93 %)
+Writing at 0x0022b482... (94 %)
+Writing at 0x00230700... (95 %)
+Writing at 0x0023a988... (95 %)
+Writing at 0x00241b04... (96 %)
+Writing at 0x002470e6... (97 %)
+Writing at 0x00252a6d... (98 %)
+Writing at 0x0025816f... (99 %)
+Writing at 0x0025e20a... (100 %)
+Wrote 2428096 bytes (1989578 compressed) at 0x00010000 in 44.1 seconds (effective 441.0 kbit/s)...
+Hash of data verified.
+Compressed 3072 bytes to 137...
+Writing at 0x00008000... (100 %)
+Wrote 3072 bytes (137 compressed) at 0x00008000 in 0.0 seconds (effective 535.6 kbit/s)...
+Hash of data verified.
+
+Leaving...
+Hard resetting via RTS pin...
+Done
+Checking "python3" ...
+Python 3.12.3
+"python3" has been detected
+Activating ESP-IDF 5.4
+Setting IDF_PATH to '/opt/esp/idf'.
+* Checking python version ... 3.12.3
+* Checking python dependencies ... OK
+* Deactivating the current ESP-IDF environment (if any) ... OK
+* Establishing a new ESP-IDF environment ... OK
+* Identifying shell ... bash
+* Detecting outdated tools in system ... OK - no outdated tools found
+warning:  Failed to get username with error: 'getpwuid(): uid not found: 1001'. Using default temporary directory /tmp/esp_idf_activate.
+* Shell completion ... Autocompletion code generated
+
+Done! You can now compile ESP-IDF projects.
+Go to the project directory and run:
+
+  idf.py build
+Activating ESP-IDF 5.4
+Setting IDF_PATH to '/opt/esp/idf'.
+* Checking python version ... 3.12.3
+* Checking python dependencies ... OK
+* Deactivating the current ESP-IDF environment (if any) ... OK
+* Establishing a new ESP-IDF environment ... OK
+* Identifying shell ... bash
+* Detecting outdated tools in system ... OK - no outdated tools found
+warning:  Failed to get username with error: 'getpwuid(): uid not found: 1001'. Using default temporary directory /tmp/esp_idf_activate.
+* Shell completion ... Autocompletion code generated
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x1 (POWERON),boot:0x8 (SPI_FAST_FLASH_BOOT)
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x16d0
+load:0x403c8700,len:0x4
+load:0x403c8704,len:0xec8
+load:0x403cb700,len:0x3160
+entry 0x403c8950
+I (27) boot: ESP-IDF v5.4.2 2nd stage bootloader
+I (27) boot: compile time Oct 14 2026 14:41:40
+I (27) boot: Multicore bootloader
+I (27) boot: chip revision: v0.1
+I (30) boot: efuse block revision: v1.2
+I (33) qio_mode: Enabling default flash chip QIO
+I (38) boot.esp32s3: Boot SPI Speed : 80MHz
+I (42) boot.esp32s3: SPI Mode       : QIO
+I (45) boot.esp32s3: SPI Flash Size : 8MB
+I (49) boot: Enabling RNG early entropy source...
+I (54) boot: Partition Table:
+I (56) boot: ## Label            Usage          Type ST Offset   Length
+I (63) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (69) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (76) boot:  2 factory          factory app      00 00 00010000 00500000
+I (82) boot:  3 abstate          Unknown data     01 40 00510000 00080000
+I (89) boot:  4 abapps           Unknown data     01 41 00590000 00012000
+I (95) boot: End of partition table
+I (98) esp_image: segment 0: paddr=00010020 vaddr=3c100020 size=13f514h (1307924) map
+I (300) esp_image: segment 1: paddr=0014f53c vaddr=3fc92700 size=00adch (  2780) load
+I (301) esp_image: segment 2: paddr=00150020 vaddr=42000020 size=f7fd0h (1015760) map
+I (455) esp_image: segment 3: paddr=00247ff8 vaddr=3fc931dc size=0a5b4h ( 42420) load
+I (462) esp_image: segment 4: paddr=002525b4 vaddr=40374000 size=0e6c4h ( 59076) load
+I (474) esp_image: segment 5: paddr=00260c80 vaddr=600fe000 size=0001ch (    28) load
+I (481) boot: Loaded app from partition at offset 0x10000
+I (482) boot: Disabling RNG early entropy source...
+I (492) octal_psram: vendor id    : 0x0d (AP)
+I (492) octal_psram: dev id       : 0x02 (generation 3)
+I (492) octal_psram: density      : 0x03 (64 Mbit)
+I (494) octal_psram: good-die     : 0x01 (Pass)
+I (499) octal_psram: Latency      : 0x01 (Fixed)
+I (503) octal_psram: VCC          : 0x01 (3V)
+I (507) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (512) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (517) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (521) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (527) octal_psram: DriveStrength: 0x00 (1/1)
+I (531) MSPI Timing: PSRAM timing tuning index: 4
+I (535) esp_psram: Found 8MB PSRAM device
+I (539) esp_psram: Speed: 80MHz
+I (542) cpu_start: Multicore app
+I (951) esp_psram: SPI SRAM memory test OK
+I (962) cpu_start: Pro cpu start user code
+I (962) cpu_start: cpu freq: 240000000 Hz
+I (962) app_init: Application information:
+I (962) app_init: Project name:     abacus_standin
+I (967) app_init: App version:      2de858a
+I (971) app_init: Compile time:     Nov 26 2026 02:38:49
+I (976) app_init: ELF file SHA256:  30c45e473...
+I (980) app_init: ESP-IDF:          v5.4.2
+I (984) efuse_init: Min chip rev:     v0.0
+I (988) efuse_init: Max chip rev:     v0.99 
+I (992) efuse_init: Chip rev:         v0.1
+I (996) heap_init: Initializing. RAM available for dynamic allocation:
+I (1002) heap_init: At 3FCBABB8 len 0002EB58 (186 KiB): RAM
+I (1007) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (1012) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (1018) heap_init: At 600FE01C len 00001FCC (7 KiB): RTCRAM
+I (1023) esp_psram: Adding pool of 8100K of PSRAM memory to heap allocator
+I (1030) spi_flash: detected chip: gd
+I (1033) spi_flash: flash io: qio
+I (1036) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (1043) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (1050) main_task: Started on CPU0
+I (1080) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (1080) main_task: Calling app_main()
+standin: largest internal block 139264; calc stack 32768, then 110592; keyboard image 96000, then 31744
+touch: GT911 id '911' (ESP_OK)
+load: 792 bytes ok
+apps: saves loaded
+standin: heap internal 71451 (largest block 31744), PSRAM 6972472
+I (1340) main_task: Returned from app_main()
+boot: boots=1 reason=POWERON new=1 wake=none pins=0x0 ver=0.105 core=2de858a id=1f78c604
+STANDIN READY
+tone: use 16 level 4
+wipe: both slots erased
+talk.py: PASS line 9: expect 'wipe: both slots erased'
+x �ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x40377164
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x16d0
+load:0x403c8700,len:0x4
+load:0x403c8704,len:0xec8
+load:0x403cb700,len:0x3160
+entry 0x403c8950
+I (31) boot: ESP-IDF v5.4.2 2nd stage bootloader
+I (31) boot: compile time Oct 14 2026 14:41:40
+I (31) boot: Multicore bootloader
+I (31) boot: chip revision: v0.1
+I (34) boot: efuse block revision: v1.2
+I (38) qio_mode: Enabling default flash chip QIO
+I (42) boot.esp32s3: Boot SPI Speed : 80MHz
+I (46) boot.esp32s3: SPI Mode       : QIO
+I (50) boot.esp32s3: SPI Flash Size : 8MB
+I (54) boot: Enabling RNG early entropy source...
+I (58) boot: Partition Table:
+I (61) boot: ## Label            Usage          Type ST Offset   Length
+I (67) boot:  0 nvs              WiFi data        01 02 00009000 00006000
+I (73) boot:  1 phy_init         RF data          01 01 0000f000 00001000
+I (80) boot:  2 factory          factory app      00 00 00010000 00500000
+I (87) boot:  3 abstate          Unknown data     01 40 00510000 00080000
+I (93) boot:  4 abapps           Unknown data     01 41 00590000 00012000
+I (100) boot: End of partition table
+I (103) esp_image: segment 0: paddr=00010020 vaddr=3c100020 size=13f514h (1307924) map
+I (306) esp_image: segment 1: paddr=0014f53c vaddr=3fc92700 size=00adch (  2780) load
+I (306) esp_image: segment 2: paddr=00150020 vaddr=42000020 size=f7fd0h (1015760) map
+I (461) esp_image: segment 3: paddr=00247ff8 vaddr=3fc931dc size=0a5b4h ( 42420) load
+I (469) esp_image: segment 4: paddr=002525b4 vaddr=40374000 size=0e6c4h ( 59076) load
+I (480) esp_image: segment 5: paddr=00260c80 vaddr=600fe000 size=0001ch (    28) load
+I (488) boot: Loaded app from partition at offset 0x10000
+I (488) boot: Disabling RNG early entropy source...
+I (498) octal_psram: vendor id    : 0x0d (AP)
+I (499) octal_psram: dev id       : 0x02 (generation 3)
+I (499) octal_psram: density      : 0x03 (64 Mbit)
+I (501) octal_psram: good-die     : 0x01 (Pass)
+I (505) octal_psram: Latency      : 0x01 (Fixed)
+I (509) octal_psram: VCC          : 0x01 (3V)
+I (513) octal_psram: SRF          : 0x01 (Fast Refresh)
+I (518) octal_psram: BurstType    : 0x01 (Hybrid Wrap)
+I (523) octal_psram: BurstLen     : 0x01 (32 Byte)
+I (528) octal_psram: Readlatency  : 0x02 (10 cycles@Fixed)
+I (533) octal_psram: DriveStrength: 0x00 (1/1)
+I (538) MSPI Timing: PSRAM timing tuning index: 4
+I (542) esp_psram: Found 8MB PSRAM device
+I (545) esp_psram: Speed: 80MHz
+I (548) cpu_start: Multicore app
+I (958) esp_psram: SPI SRAM memory test OK
+I (969) cpu_start: Pro cpu start user code
+I (969) cpu_start: cpu freq: 240000000 Hz
+I (969) app_init: Application information:
+I (969) app_init: Project name:     abacus_standin
+I (973) app_init: App version:      2de858a
+I (977) app_init: Compile time:     Nov 26 2026 02:38:49
+I (982) app_init: ELF file SHA256:  30c45e473...
+I (987) app_init: ESP-IDF:          v5.4.2
+I (990) efuse_init: Min chip rev:     v0.0
+I (994) efuse_init: Max chip rev:     v0.99 
+I (998) efuse_init: Chip rev:         v0.1
+I (1002) heap_init: Initializing. RAM available for dynamic allocation:
+I (1008) heap_init: At 3FCBABB8 len 0002EB58 (186 KiB): RAM
+I (1014) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (1019) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (1024) heap_init: At 600FE01C len 00001FCC (7 KiB): RTCRAM
+I (1030) esp_psram: Adding pool of 8100K of PSRAM memory to heap allocator
+I (1037) spi_flash: detected chip: gd
+I (1040) spi_flash: flash io: qio
+I (1043) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (1049) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (1056) main_task: Started on CPU0
+I (1086) esp_psram: Reserving pool of 32K of internal memory for DMA/internal allocations
+I (1086) main_task: Calling app_main()
+standin: largest internal block 139264; calc stack 32768, then 110592; keyboard image 96000, then 31744
+touch: GT911 id '911' (ESP_OK)
+load: no image: MEMORY CLEAR
+apps: saves loaded
+standin: heap internal 71451 (largest block 31744), PSRAM 6972472
+I (1336) main_task: Returned from app_main()
+talk.py: PASS line 11: expect 'load: no image: MEMORY CLEAR'
+boot: boots=2 reason=SW new=1 wake=none pins=0x0 ver=0.105 core=2de858a id=e1e76e73
+STANDIN READY
+tone: use 16 level 4
+talk.py: PASS line 12: expect 'ver=0.105'
+key 36
+tone: use 1 level 4
+key 18
+tone: use 1 level 4
+key 1
+tone: use 1 level 4
+key 30
+tone: use 1 level 4
+key 43
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 6
+tone: use 1 level 4
+key 46
+tone: use 1 level 4
+key 13
+tone: use 1 level 4
+key 39
+tone: use 1 level 4
+key 34
+tone: use 1 level 4
+key 38
+tone: use 1 level 4
+key 18
+tone: use 1 level 4
+framecrc: rows 21-205 9A392C27
+talk.py: PASS line 43: expect 'framecrc: rows 21-205 9A392C27'
+talk.py: FAIL line 45: expect 'framecrc: rows 21-205 00000000'
+talk.py: 1 NOT MET

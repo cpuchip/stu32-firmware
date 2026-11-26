@@ -1,0 +1,88 @@
+Preparing worktree (detached HEAD a6c4e89)
+HEAD is now at a6c4e89 Unit 104's blueprint: abacus's rulings (#17600) written in: R1 the case by model, R2 (J) upper, R3 the window drops a token whole, R4 (a) built, (b) to Michael as T136, R5 glyphs retired; the textbook's ⒤ refusal a known limit. Measured after the ruling (case.txt): under (a) the token and parenthesised i/I typed look the same in every mode, not only 35s: STU's and the 33s's index variable is lower-case i, so a typed (i) reads as the token's (i)
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+casim 2e620567905e58b5752032f31651f5c4b6b22a52
+Preparing worktree (detached HEAD 5141220)
+HEAD is now at 5141220 Unit 104: ⒤ and ⒥ drawn as three cells (work/indirect-three-cells.md at a6c4e89; abacus #17595, rulings #17600; Michael's T120; h104 frozen 81cf5cb8 before src). screen.c's cells_of, one decoder at every decode site (screen_cells, screen_decode, screen_text, line_add, eqn_line, the wheel's cut): (, the letter, ), the letter's case the text's model as the listing's (I) (35 (I), 33 and STU (i), (J) always), the token's later cells flagged; a pure fit_line split from draw_line_lead, whose window and cuts never split a token (R3), and screen_x_fit for the tests; the textbook counts with the screen (screen_cells_n), its text wrap never splits one; list.c's equation line and the exported texts (wheel, drawn=) carry the three characters; the one-cell glyphs retired (R5); glyph_census finds the expansion in cells_of. The sibling eqn_line carried: a marked cell's text (x̂ in an equation exported 4 stray bytes). %XDRAW in vectors.c (#ifndef AB_DEVICE), tests/104-soroban.txt (28), screen_test frames 69 re-pinned, 71-72 and the cursor's cell, glyph103's ⒤ frame re-pinned (CCA1527E), device/standin/glyph104.txt (35's A+(I)×2, 9A392C27, the core's CRC the same). make test rc 0, 22,461/22,461 vectors, 61,757/61,757 expectations; 72/72 frames; clang-check 76 files 0 failing. VER 0.105
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+casim 2e620567905e58b5752032f31651f5c4b6b22a52
+
+### standin: a6c4e89 -> 5141220
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,427,008 | 2,428,096 | +1,088 |
+| internal RAM static (DIRAM, of 341,760) | 207,731 | 207,739 | +8 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 59,074 | 59,074 | +0 |
+| calc_task's frame (under every deep path's stack), B | 144 | 144 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 863,707 -> 864,794 (+1,087)
+- libesp_app_format.a: 76,714 -> 76,718 (+4)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 160,677 -> 160,685 (+8)
+- fit_seen: 0 -> 4
+- fit_watch: 0 -> 4
+
+Loaded sections that moved outside the sources these commits change (the section and its relocations compared in the two builds' objects):
+
+- .literal.do_op esp-idf/main/libmain.a(app.c.obj): 24 -> 28 (+4): object identical
+- .literal.lq_out$constprop$0 esp-idf/main/libmain.a(casim.c.obj): 12 -> 8 (-4): object identical
+- .literal.lq_witness esp-idf/main/libmain.a(casim.c.obj): 8 -> 12 (+4): object identical
+- .literal.ls_zero esp-idf/main/libmain.a(casim.c.obj): 4 -> 0 (-4): object identical
+- .literal.parse esp-idf/main/libmain.a(state.c.obj): 288 -> 284 (-4): object identical
+- .literal.sm_false0 esp-idf/main/libmain.a(casim.c.obj): 0 -> 4 (+4): object identical
+- .literal.sm_shift esp-idf/main/libmain.a(casim.c.obj): 4 -> 12 (+8): object identical
+- .literal.ss_cxpage esp-idf/main/libmain.a(casim.c.obj): 12 -> 8 (-4): object identical
+- .rodata.__esp_system_init_fn_init_show_app_info.str1.4 esp-idf/esp_app_format/libesp_app_format.a(esp_app_desc.c.obj): 76,082 -> 76,086 (+4): object identical
+
+(71 moved lines of the changed sources, 104-soroban.txt, 69-eqn-indirect.png, 71-eqn-indirect-window.png, 72-prgm-eqn-indirect.png, Makefile, font5x7.c, font5x7.txt, glyph103.txt, glyph104.txt, glyph_census.py, list.c, screen.c, screen.h, screen_test.c, tbook.c, vectors.c, version.h, not listed)
+
+### reva: a6c4e89 -> 5141220
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,354,800 | 2,355,808 | +1,008 |
+| internal RAM static (DIRAM, of 341,760) | 215,374 | 215,382 | +8 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 78,086 | 78,086 | +0 |
+| calc_task's frame (under every deep path's stack), B | 128 | 128 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 804,677 -> 805,698 (+1,021)
+- libesp_app_format.a: 74,810 -> 74,802 (-8)
+- libbid.a: 1,393,421 -> 1,393,417 (-4)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 133,339 -> 133,347 (+8)
+- fit_seen: 0 -> 4
+- fit_watch: 0 -> 4
+
+Loaded sections that moved outside the sources these commits change (the section and its relocations compared in the two builds' objects):
+
+- .literal.add_score esp-idf/main/libmain.a(babal_app.c.obj): 24 -> 20 (-4): object identical
+- .literal.app_exit esp-idf/main/libmain.a(app.c.obj): 0 -> 16 (+16): object identical
+- .literal.app_key esp-idf/main/libmain.a(app.c.obj): 84 -> 64 (-20): object identical
+- .literal.cx_fix esp-idf/main/libmain.a(casim.c.obj): 16 -> 80 (+64): object identical
+- .literal.do_op esp-idf/main/libmain.a(app.c.obj): 48 -> 44 (-4): object identical
+- .literal.graph_rows esp-idf/main/libmain.a(app.c.obj): 20 -> 12 (-8): object identical
+- .literal.graph_start esp-idf/main/libmain.a(app.c.obj): 72 -> 48 (-24): object identical
+- .literal.graph_step esp-idf/main/libmain.a(app.c.obj): 24 -> 32 (+8): object identical
+- .literal.ib_steps esp-idf/main/libmain.a(casim.c.obj): 16 -> 12 (-4): object identical
+- .literal.integ_factor esp-idf/main/libmain.a(casim.c.obj): 8 -> 4 (-4): object identical
+- .literal.ir_hole esp-idf/main/libmain.a(casim.c.obj): 4 -> 0 (-4): object identical
+- .literal.irs_answer esp-idf/main/libmain.a(casim.c.obj): 0 -> 8 (+8): object identical
+- .literal.irs_quad esp-idf/main/libmain.a(casim.c.obj): 92 -> 64 (-28): object identical
+- .literal.lq_pow esp-idf/main/libmain.a(casim.c.obj): 4 -> 0 (-4): object identical
+- .literal.ls027_dirty esp-idf/main/libmain.a(ls027.c.obj): 8 -> 4 (-4): object identical
+- .literal.ls_solve esp-idf/main/libmain.a(casim.c.obj): 12 -> 8 (-4): object identical
+- .literal.ls_steps esp-idf/main/libmain.a(casim.c.obj): 16 -> 4 (-12): object identical
+- .literal.mem_fill esp-idf/main/libmain.a(app.c.obj): 16 -> 20 (+4): object identical
+- .literal.menu_named esp-idf/main/libmain.a(app.c.obj): 4 -> 0 (-4): object identical
+- .literal.put_istep esp-idf/main/libmain.a(casim.c.obj): 16 -> 4 (-12): object identical
+- .literal.save_set esp-idf/main/libmain.a(app.c.obj): 0 -> 12 (+12): object identical
+- .literal.sm_rational esp-idf/main/libmain.a(casim.c.obj): 20 -> 0 (-20): object identical
+- .rodata.__esp_system_init_fn_init_show_app_info.str1.4 esp-idf/esp_app_format/libesp_app_format.a(esp_app_desc.c.obj): 74,178 -> 74,170 (-8): object identical
+- .text.put_template esp-idf/main/libmain.a(casim.c.obj): 1,848 -> 1,852 (+4): object identical
+
+(70 moved lines of the changed sources, 104-soroban.txt, 69-eqn-indirect.png, 71-eqn-indirect-window.png, 72-prgm-eqn-indirect.png, Makefile, font5x7.c, font5x7.txt, glyph103.txt, glyph104.txt, glyph_census.py, list.c, screen.c, screen.h, screen_test.c, tbook.c, vectors.c, version.h, not listed)
