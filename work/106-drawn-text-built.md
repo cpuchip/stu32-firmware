@@ -121,3 +121,42 @@ only grows its PSRAM buffer.
   - It runs in make test and the sanitizer run, 14/14 (30/30).
 - **The flip** (h106-flip.txt): H09's %XCELLS made precomposed fails it, 13/14, exit code 1 (h106-flip.out).
 - **make test** (make-test-h106.txt): rc 0, 22,657/22,657 vectors and 62,164/62,164 expectations.
+
+## The size check, made independent of the data model (abacus #18028)
+
+- **The defect:** primer's wasm32 gate failed screen_test's `sizeof(screen_page) == 12312`, 9,945/9,946, because
+  12,312 is the LP64 size.
+- **The fix** (cb5201d, screen_test only; VER unchanged): three checks in its place.
+  - a line's text and drawn are SCREEN_TEXT_MAX each;
+  - a line beyond its two strings is under 64 B;
+  - the page beyond its four lines is under 8 KB.
+  - **Each was seen red alone with its fault planted, then green restored** (native, 9,947/9,948 each):
+    - a third 1 KB string per line;
+    - a 9 KB page field.
+- **Measured on both data models:**
+
+  | | LP64 (native) | ILP32 (`-m32 -malign-double`) |
+  |---|---|---|
+  | screen_line | 2,072 | 2,064 |
+  | screen_page | 12,312 | 12,216 |
+  | a line beyond its strings | 24 | 16 |
+  | the page beyond its lines | 4,024 | 3,960 |
+  | screen_test | 9,948/9,948, 73/73 frames | 9,948/9,948, 73/73 frames, rc 0 |
+
+  The old literal would fail the ILP32 build, 12,216 against 12,312, as it failed on wasm32.
+- **Native make test at cb5201d** (make-test-cb5201d.txt): rc 0, 22,657/22,657 vectors, 62,164/62,164 expectations.
+- **The ILP32 leg** (m32/: w32.sh, w32-run.sh, m32-cmds.sh, probe.c, outputs):
+  - It ran in ubuntu:24.04, pinned by digest, with gcc-multilib, on a worktree at cb5201d.
+  - libbid was built `-m32 -malign-double` (`_HOST_ARCH=x86`, elf32-i386).
+  - abn_intel.o, casim.o and screen_test were built with the native build's own three command lines, `cc` made
+    `gcc -m32 -malign-double`. make itself needs the games' generated makefile, which the container had no clone for.
+  - The containers peaked at 283.3 MiB. None was left.
+  - **Two runs failed before that one:**
+    - make, on the games makefile;
+    - a plain `-m32` build, at core/rows.c's `_Static_assert(sizeof(ab_val) == sizeof(val_without_row))`.
+  - **Then a run read 0/73 frames:** I hadn't made build/frames, which make test's recipe makes. Made, 73/73.
+- **Why plain `-m32` fails rows.c, measured by probe.c in the container:**
+  - i386 aligns 64-bit members at 4, so abn's alignment is 4, val_without_row is 56 B and ab_val 64.
+  - With `-malign-double` (8-byte alignment, as wasm32 has) both are 64.
+  - So the core's own assertion holds on wasm32 and LP64 but not on i386's default ABI. That's a separate thing from
+    this fix: rows.c is unchanged, and the ILP32 leg here is the wasm32-like one.

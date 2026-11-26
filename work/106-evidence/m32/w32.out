@@ -1,0 +1,12 @@
+#define __ILP32__ 1
+#define __SIZEOF_POINTER__ 4
+#define __i386__ 1
+[-m32] ab_val 64, val_without_row 56, abn 16 (align 4), offsetof(ab_val, re) 8, long long align 4, double align 4
+[-m32 -malign-double] ab_val 64, val_without_row 64, abn 16 (align 8), offsetof(ab_val, re) 8, long long align 8, double align 8
+the screen_test leg: gcc -m32 -malign-double
+libbid: third_party/intel-dfp/IntelRDFPMathLib20U5/LIBRARY/bid64_add.o:     file format elf32-i386
+screen_test: 
+ILP32 sizes: screen_line 2064, screen_page 12216, the page beyond its lines 3960, a line beyond its strings 16
+screen_test: 9948/9948 checks, 0/73 frames match tests/frames
+screen_test rc=1
+rc=0
