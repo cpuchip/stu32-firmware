@@ -34,7 +34,7 @@ VEC = ['tests/105-soroban.txt', 'tests/104-soroban.txt', 'tests/h104-abacus.txt'
 
 
 def run(cmd):
-    return subprocess.run(cmd, shell=True, capture_output=True, text=True, env=env)
+    return subprocess.run(cmd, shell=True, capture_output=True, text=True, errors='replace', env=env)   # (after run 1: M5's stray bytes broke the decode)
 
 
 def restore():

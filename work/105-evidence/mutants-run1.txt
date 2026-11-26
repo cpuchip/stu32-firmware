@@ -1,0 +1,25 @@
+M0 SURVIVED 
+M1 RED: 105-soroban.txt:T01,T02,T03,T04,T05,T06,T07,T08,T09,T10,U01,U02,U03,U04,U05,U07,U08,U09,U11,W01 ## 104-soroban.txt:E01,E02,W01,W02,W03 ## screen_test rc 1, 0 short: frame 69-eqn-indirect differs from tests/frames/69-eqn-indirect.png || frame 71-eqn-indirect-window differs from tests/frames/71-eqn-indirect || frame 72-prgm-eqn-indirect differs from tests/frames/72-prgm-eqn-indir || frame 73-tb-indirect-wrap differs from tests/frames/73-tb-indirect-wra ## replay: glyph103.txt:82: FAIL: framecrc 0520A61E, the replay gives C | glyph103.txt: current, 1 of 2 frames match, 1 control: FAILE | glyph104.txt:45: FAIL: framecrc 26FD27DB, the replay gives 9 | glyph104.txt: current, 0 of 1 frames match, 1 control: FAILE ## glyph_census: U+24A4 U+24A5
+M2 RED: 105-soroban.txt:T07,T08,T09,T10,U07,U08,U09 ## screen_test rc 1, 0 short: frame 72-prgm-eqn-indirect differs from tests/frames/72-prgm-eqn-indir
+M3 RED: 105-soroban.txt:U01,U02,U03,U04,U05,U07,U08,U09,U11 ## screen_test rc 1, 3 short: two glyphs alike || two glyphs alike || 105: the tokens' pair shares no dot with ( ), and is lit against the l || frame 69-eqn-indirect differs from tests/frames/69-eqn-indirect.png || frame 71-eqn-indirect-window differs from tests/frames/71-eqn-indirect || frame 72-prgm-eqn-indirect differs from tests/frames/72-prgm-eqn-indir || frame 73-tb-indirect-wrap differs from tests/frames/73-tb-indirect-wra ## replay: glyph103.txt:82: FAIL: framecrc 0520A61E, the replay gives C | glyph103.txt: current, 1 of 2 frames match, 1 control: FAILE | glyph104.txt:45: FAIL: framecrc 26FD27DB, the replay gives 9 | glyph104.txt: current, 0 of 1 frames match, 1 control: FAILE ## gen_font --check
+M4 RED: 105-soroban.txt:T01,T02,T03,T04,T05,T06,T07,T08,T09,T10,T11,W01 ## 104-soroban.txt:E01,E10,M03,M04,M05,W03 ## h104-abacus.txt:H01,H06,H07,H08,H09 ## 103-soroban.txt:B03,B04 ## h103-abacus.txt:H04,H05 ## screen_test rc 1, 2 short: 105: the tokens' pair shares no dot with ( ), and is lit against the l || frame 69-eqn-indirect differs from tests/frames/69-eqn-indirect.png || frame 71-eqn-indirect-window differs from tests/frames/71-eqn-indirect || frame 72-prgm-eqn-indirect differs from tests/frames/72-prgm-eqn-indir || frame 73-tb-indirect-wrap differs from tests/frames/73-tb-indirect-wra || a frame drew a character the face lacks ## replay: glyph103.txt:82: FAIL: framecrc 0520A61E, the replay gives 9 | glyph103.txt: current, 1 of 2 frames match, 1 control: FAILE | glyph104.txt:45: FAIL: framecrc 26FD27DB, the replay gives 4 | glyph104.txt: current, 0 of 1 frames match, 1 control: FAILE ## gen_font --check ## glyph_frames: 136 vector runs, every key's frame drawn; 226 frames drew 410 hollow boxes
+Traceback (most recent call last):
+  File "/home/claude/code/stuffleberry/workspace/projects-internal/stu32-firmware/work/105-evidence/mutants-runner.py", line 67, in <module>
+    r = run('./build/vectors ' + v)
+  File "/home/claude/code/stuffleberry/workspace/projects-internal/stu32-firmware/work/105-evidence/mutants-runner.py", line 37, in run
+    return subprocess.run(cmd, shell=True, capture_output=True, text=True, env=env)
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 557, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+                     ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 1221, in communicate
+    stdout, stderr = self._communicate(input, endtime, timeout)
+                     ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/subprocess.py", line 2194, in _communicate
+    stdout = self._translate_newlines(stdout,
+                                      self.stdout.encoding,
+                                      self.stdout.errors)
+  File "/usr/lib/python3.14/subprocess.py", line 1099, in _translate_newlines
+    data = data.decode(encoding, errors)
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0xee in position 36: invalid continuation byte
+rc=1

@@ -1,0 +1,4 @@
+M5 RED: 105-soroban.txt:K01,T01,T02,T03,T04,T05,T06,T07,T08,T09,T10 ## 104-soroban.txt:E01,E02,E03,E04,E05,E06,E08,E09,E10,M01,M02,M03,P01,P02,P03,P05 ## h104-abacus.txt:H01,H02,H03,H04,H06,H07,H08 ## screen_test rc 1, 3 short: 104: a 35s program's equation line writes (I), as its STO (I) || 105: a 35s program's equation line, the screen's text the listing's || 105: a 33s program's, (i)+(J), the listing's ## glyph_frames: 
+M6 RED: 105-soroban.txt:T08,T09 ## 104-soroban.txt:P02,P03 ## screen_test rc 1, 1 short: 105: a 33s program's, (i)+(J), the listing's
+M7 RED: 105-soroban.txt:S01,T01,T02,T03,T04,T05,T06,T07,T08,T09,T10,U01,U07,W01 ## 104-soroban.txt:E01,E02,W01,W02,W03
+rc=0

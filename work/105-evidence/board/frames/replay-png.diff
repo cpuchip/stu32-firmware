@@ -1,0 +1,78 @@
+--- tests/standin_replay.c	2026-11-08 23:06:54.271046599 +0000
++++ standin_replay_png.c	2026-11-26 19:15:23.426893173 +0000
+@@ -37,12 +37,74 @@
+     app_powered_on(&app);
+ }
+ 
++/* THROWAWAY (unit 105 frames for abacus): each FRAMECRC frame written as REPLAY_PNG/<crc>.png */
++static void be32(uint8_t *p, uint32_t v)
++{
++    p[0] = (uint8_t)(v >> 24);
++    p[1] = (uint8_t)(v >> 16);
++    p[2] = (uint8_t)(v >> 8);
++    p[3] = (uint8_t)v;
++}
++
++static int png_chunk(FILE *o, const char *type, const uint8_t *data, size_t n)
++{
++    static uint8_t buf[4 + 16384];
++    uint8_t len[4], crc[4];
++    if (n > sizeof buf - 4) return 0;
++    memcpy(buf, type, 4);
++    if (n) memcpy(buf + 4, data, n);
++    be32(len, (uint32_t)n);
++    be32(crc, ab_crc32(buf, 4 + n));
++    return fwrite(len, 1, 4, o) == 4 && fwrite(buf, 1, 4 + n, o) == 4 + n && fwrite(crc, 1, 4, o) == 4;
++}
++
++/* The frame as a PNG: greyscale, one bit a pixel (1 white), each row filter 0, the image data a
++   zlib stream of one stored deflate block, so no compressor is needed and the bytes are fixed. */
++static int write_png(const char *path, const ls027_frame *f)
++{
++    enum { ROW = 1 + LS027_ROW_BYTES, RAW = ROW * LS027_H };
++    static uint8_t z[2 + 5 + RAW + 4];
++    uint8_t hdr[13] = {0};
++    uint32_t a = 1, b = 0;
++    be32(hdr, LS027_W);
++    be32(hdr + 4, LS027_H);
++    hdr[8] = 1;                                 /* bit depth; colour type 0, the rest 0 */
++    z[0] = 0x78;                                /* zlib: deflate, 32K window, no dictionary */
++    z[1] = 0x01;
++    z[2] = 0x01;                                /* the final block, stored */
++    z[3] = (uint8_t)(RAW & 0xFF);
++    z[4] = (uint8_t)(RAW >> 8);
++    z[5] = (uint8_t)~z[3];
++    z[6] = (uint8_t)~z[4];
++    for (int y = 0; y < LS027_H; y++) {
++        uint8_t *r = z + 7 + y * ROW;
++        r[0] = 0;
++        for (int i = 0; i < LS027_ROW_BYTES; i++) {     /* the leftmost pixel in the top bit */
++            uint8_t v = f->px[y][i], o = 0;
++            for (int k = 0; k < 8; k++) o |= (uint8_t)((~v >> k & 1) << (7 - k));
++            r[1 + i] = o;
++        }
++    }
++    for (int i = 0; i < RAW; i++) {             /* Adler-32 of the raw rows */
++        a = (a + z[7 + i]) % 65521;
++        b = (b + a) % 65521;
++    }
++    be32(z + 7 + RAW, b << 16 | a);
++    FILE *o = fopen(path, "wb");
++    if (!o) return 0;
++    int ok = fwrite("\x89PNG\r\n\x1a\n", 1, 8, o) == 8 && png_chunk(o, "IHDR", hdr, sizeof hdr) &&
++             png_chunk(o, "IDAT", z, sizeof z) && png_chunk(o, "IEND", NULL, 0);
++    return fclose(o) == 0 && ok;
++}
++
+ static unsigned long frame_crc(void)
+ {
+     screen_ui ui;
+     app_ui(&app, &ui);
+     screen_render(&calc, &ui, &frame);
+-    return (unsigned long)ab_crc32((const uint8_t *)frame.px[21], (205 - 21 + 1) * LS027_ROW_BYTES);
++    unsigned long k = (unsigned long)ab_crc32((const uint8_t *)frame.px[21], (205 - 21 + 1) * LS027_ROW_BYTES);
++    if (getenv("REPLAY_PNG")) { char p[512]; snprintf(p, sizeof p, "%s/%08lX.png", getenv("REPLAY_PNG"), k); write_png(p, &frame); }
++    return k;
+ }
+ 
+ /* one script: 0 when it passes (or is retired), else the number of failures */

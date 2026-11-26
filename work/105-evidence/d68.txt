@@ -1,0 +1,60 @@
+Preparing worktree (detached HEAD 8c4fad7)
+HEAD is now at 8c4fad7 Repin 1.11.0 accepted (abacus #17727, at ddecbc5): replay make test rc 0, 22,501/22,501 and 61,818/61,818; pin back at 2e62056 gives 4/18 (R and B red, K green); B02 pinned with its note stands
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+casim 84da80f4a3dd47ea38dd3f1337f524ed24a40a88
+Preparing worktree (detached HEAD 10fbb7d)
+HEAD is now at 10fbb7d Unit 105: the indirect tokens' own parentheses (work/token-parentheses.md at 7ffc6a5; abacus #17893, rulings #17900; Michael's T136 A74; h105 frozen f25e5cd5 before src). The face gains U+27EE ⟮ and U+27EF ⟯, a flat stroke against the letter sharing no dot with ( ); cells_of draws ⒤ and ⒥ as ⟮ letter ⟯ (R1), the texts still writing ( ) (line_piece, R2: %XLINE, drawn=, the listing unchanged; h104 11/11); a program equation line is drawn from its equation in its label's case through the new core ab_prog_m35 (list.c's rule factored, R5); operand (I) forms keep the plain pair (R3); fit_watch's pointer dropped for x_line() (abacus #17631, DIRAM -4 expected). %LOOK=ID / %LOOK=!ID in vectors.c (R4): the whole frame against an earlier vector's, frames kept only in a file holding a %LOOK. tests/105-soroban.txt (25; 5/25 on 8c4fad7 with the directive alone); 104's E01, E02, W01-W03 %XDRAW read the pair; glyph_census finds the pair in cells_of; screen_test's face check and the program line's text against the listing, frames 69, 71, 72, 73 re-pinned (each looked at); glyph103's and glyph104's board frames re-pinned to the host's 0520A61E and 26FD27DB. make test rc 0, 22,551/22,551 vectors, 61,940/61,940 expectations, 9,943 screen_test checks, 73/73 frames. VER 0.106
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+casim 84da80f4a3dd47ea38dd3f1337f524ed24a40a88
+
+### standin: 8c4fad7 -> 10fbb7d
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,429,056 | 2,429,248 | +192 |
+| internal RAM static (DIRAM, of 341,760) | 207,739 | 207,739 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 59,074 | 59,074 | +0 |
+| calc_task's frame (under every deep path's stack), B | 144 | 144 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 865,774 -> 865,963 (+189)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 160,685 -> 160,681 (-4)
+- fit_watch: 4 -> 0
+
+Loaded sections that moved outside the sources these commits change (the section and its relocations compared in the two builds' objects):
+
+- .literal.ab_state_load esp-idf/main/libmain.a(state.c.obj): 84 -> 76 (-8): object identical
+
+(19 moved lines of the changed sources, 104-soroban.txt, 105-soroban.txt, 69-eqn-indirect.png, 71-eqn-indirect-window.png, 72-prgm-eqn-indirect.png, 73-tb-indirect-wrap.png, B33.png, B35.png, BA.png, BJ.png, BP.png, BST.png, BW.png, Makefile, beside-proto.out, beside-today.out, beside.txt, calc.h, census.txt, dots.py, dots.txt, font5x7.c, font5x7.txt, glyph103.txt, glyph104.txt, glyph_census.py, list.c, look-proto-noPL.out, look-proto.out, look-today.out, look.txt, make-test.txt, more-proto.out, more-today.out, more.txt, prototype.diff, refuse.out, refuse.txt, screen.c, screen_test.c, token-parentheses.md, vectors.c, version.h, not listed)
+
+### reva: 8c4fad7 -> 10fbb7d
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,356,784 | 2,356,960 | +176 |
+| internal RAM static (DIRAM, of 341,760) | 215,382 | 215,374 | -8 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 78,086 | 78,086 | +0 |
+| calc_task's frame (under every deep path's stack), B | 128 | 128 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 806,670 -> 806,851 (+181)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 133,347 -> 133,343 (-4)
+- fit_watch: 4 -> 0
+
+Loaded sections that moved outside the sources these commits change (the section and its relocations compared in the two builds' objects):
+
+- .literal.do_irational esp-idf/main/libmain.a(casim.c.obj): 12 -> 20 (+8): object identical
+- .literal.graph_rows esp-idf/main/libmain.a(app.c.obj): 12 -> 20 (+8): object identical
+- .literal.graph_step esp-idf/main/libmain.a(app.c.obj): 32 -> 24 (-8): object identical
+- .literal.help_refused esp-idf/main/libmain.a(app.c.obj): 16 -> 0 (-16): object identical
+- .literal.irs_answer esp-idf/main/libmain.a(casim.c.obj): 8 -> 4 (-4): object identical
+- .literal.item_hidden esp-idf/main/libmain.a(app.c.obj): 32 -> 28 (-4): object identical
+- .literal.mem_fill esp-idf/main/libmain.a(app.c.obj): 20 -> 16 (-4): object identical
+- .literal.menu_named esp-idf/main/libmain.a(app.c.obj): 0 -> 4 (+4): object identical
+
+(19 moved lines of the changed sources, 104-soroban.txt, 105-soroban.txt, 69-eqn-indirect.png, 71-eqn-indirect-window.png, 72-prgm-eqn-indirect.png, 73-tb-indirect-wrap.png, B33.png, B35.png, BA.png, BJ.png, BP.png, BST.png, BW.png, Makefile, beside-proto.out, beside-today.out, beside.txt, calc.h, census.txt, dots.py, dots.txt, font5x7.c, font5x7.txt, glyph103.txt, glyph104.txt, glyph_census.py, list.c, look-proto-noPL.out, look-proto.out, look-today.out, look.txt, make-test.txt, more-proto.out, more-today.out, more.txt, prototype.diff, refuse.out, refuse.txt, screen.c, screen_test.c, token-parentheses.md, vectors.c, version.h, not listed)
+rc=0
