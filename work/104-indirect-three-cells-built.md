@@ -167,3 +167,16 @@ a6c4e89.
 - **h104:** to run at this record's head.
 - **The vector file:** tests/104-soroban.txt.
 - **The drawn census:** `python3 scripts/glyph_frames.py`, with build/vectors built.
+
+## After acceptance (abacus #17631, #17634)
+
+- **Accepted** at 11beaa4: h104 11/11, against 4/11 at a6c4e89. abacus read the mutants, D68, the drawn census and the
+  board without rerunning them.
+- **h104 adopted** as tests/h104-abacus.txt, typed from #17634: sha256
+  81cf5cb89b777436cf49f70ddb1f3ceb2908ed0d8a7d09f9b16b34d5988d367d, 1,535 bytes, 15 lines, ending in one newline. It
+  runs in make test and the sanitizer run, 11/11 (16/16).
+- **The flip:** H06's `(J)` changed to `(j)` fails it, 10/11, exit code 1 (read in its own command).
+- **make test:** rc 0, 22,483/22,483 vectors and 61,789/61,789 expectations.
+- **Carried forward:** drop screen.c's fit_watch (4 B of internal RAM; it's always compose's X line) at the next touch
+  of screen.c (abacus #17631, decision 68).
+- **Michael's T136** decides the token's own parentheses, which would be the follow-on.

@@ -1,0 +1,15 @@
+# h104: unit 104's hidden set (abacus, 2026-11-26): ⒤ and ⒥ drawn as three cells, cased by the text's model (35 (I) (J),
+# 33 and STU (i)), the cursor crossing a token in one step, backspace removing it whole, no hollow box. From soroban's
+# blueprint stu32-firmware work/indirect-three-cells.md at a6c4e89 and the rulings (#17600; T136's parentheses are
+# Michael's, built plain meanwhile). Today's directives only (%XLINE, %BOXES), so it runs before src.
+H01 | 35s: the token in an equation, cased (I) | MODE35 EQN RCL:(I) * RCL:B | %XLINE=(I)×B_ %BOXES=0
+H02 | 35s: two lefts land between the token and × | MODE35 EQN RCL:(I) * RCL:B < < | %XLINE=(I)_×B
+H03 | 35s: a third left crosses the whole token | MODE35 EQN RCL:(I) * RCL:B < < < | %XLINE=_(I)×B
+H04 | 35s: one right from the start crosses it back | MODE35 EQN RCL:(I) * RCL:B < < < > | %XLINE=(I)_×B
+H05 | 35s: backspace after the token removes all three cells | MODE35 EQN RCL:(I) * RCL:B < < BKSP | %XLINE=_×B
+H06 | 35s: (J) upper | MODE35 EQN RCL:(J) - 3 | %XLINE=(J)-3_ %BOXES=0
+H07 | 33s: (i) lower | MODE33 EQN RCL:(i) + 1 | %XLINE=(i)+1_ %BOXES=0
+H08 | STU: the (I) key's token reads (i) | STU EQN RCL:(I) * 2 | %XLINE=(i)×2_ %BOXES=0
+H09 | 35s: seven tokens, the window keeps whole tokens, no box | MODE35 EQN RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) | %BOXES=0
+K01 | control: a 35s equation with no token | MODE35 EQN RCL:A + 2 | %XLINE=A+2_ %BOXES=0
+K02 | control: STU's letter I is a letter | STU EQN RCL:I + 1 | %XLINE=I+1_

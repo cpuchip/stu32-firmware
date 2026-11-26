@@ -323,6 +323,7 @@ test: all
 	./build/vectors tests/h103-abacus.txt   # (abacus #17527: h103 as frozen, sha256 90307544...d78a)
 	./build/vectors tests/104-soroban.txt    # (unit 104: ⒤ and ⒥ as three cells, the case by model, %XDRAW's fit and window; no
 	                                         # save/load pass: the cursor and the typing are RAM)
+	./build/vectors tests/h104-abacus.txt   # (abacus #17634: h104 as frozen, sha256 81cf5cb8...367d)
 	./build/vectors tests/repin-v170-soroban.txt    # (the Casimir 1.7.0 repin: CAS 040 through the keys; fails on 175c160)
 	./build/vectors tests/repin-v180-soroban.txt    # (the Casimir 1.8.0 repin: CAS 041 through the keys; R and P lines fail on 8a76a80)
 	./build/vectors tests/repin-v190-soroban.txt    # (the Casimir 1.9.0 repin: CAS 042 through the keys; R and P lines fail on c564e41)
@@ -547,6 +548,7 @@ sanitize: build/san/load_fuzz build/san/expr_test build/san/app_test build/san/v
 	./build/san/vectors tests/103-soroban.txt
 	./build/san/vectors tests/h103-abacus.txt
 	./build/san/vectors tests/104-soroban.txt
+	./build/san/vectors tests/h104-abacus.txt
 	./build/san/store_sim tests/092-soroban-store.txt   # (unit 092)
 	./build/san/app_test
 	for f in $(KEYV) work/016-vectors.txt work/017-vectors.txt; do AB_SAVELOAD=1 AB_STORE=1 ./build/san/vectors $$f || exit 1; done
