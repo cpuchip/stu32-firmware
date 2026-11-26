@@ -1,0 +1,39 @@
+# Unit 105 (work/token-parentheses.md at 7ffc6a5; abacus #17893, rulings #17900; Michael's T136 A74, "Token's own
+# parentheses"): the indirect tokens drawn with their own tighter pair, ⟮ ⟯ (U+27EE, U+27EF), so a token never draws
+# as the user's typed ( I ). Each T line is a token, each U line the same letter typed in the user's parentheses with the
+# cursor after them; %LOOK=!T compares the whole frame (it was 0 pixels apart on every pair at 8c4fad7, look-today.out).
+# The texts stay ASCII (R2): each pair's %XLINE or %XDRAWN is the same on both lines. %XDRAW is the cells drawn, so it
+# shows the pair. Every expectation was read on the prototype (work/token-parentheses-evidence/).
+# Typing, each model's case (104's R1, R2)
+T01 | 35: (I) | MODE35 EQN RCL:(I) | %XLINE=(I)_ %XDRAW=4:⟮I⟯_ %BOXES=0
+U01 | 35: I typed in parentheses | MODE35 EQN () RCL:I > | %XLINE=(I)_ %XDRAW=4:(I)_ %LOOK=!T01
+T02 | 35: (J) | MODE35 EQN RCL:(J) | %XLINE=(J)_ %XDRAW=4:⟮J⟯_ %BOXES=0
+U02 | 35: J typed | MODE35 EQN () RCL:J > | %XLINE=(J)_ %LOOK=!T02
+T03 | 33s: (i) | MODE33 EQN RCL:(i) | %XLINE=(i)_ %XDRAW=4:⟮i⟯_ %BOXES=0
+U03 | 33s: i typed | MODE33 EQN () RCL:i > | %XLINE=(i)_ %LOOK=!T03
+T04 | STU: the (I) key's token, (i) | STU EQN RCL:(I) | %XLINE=(i)_ %XDRAW=4:⟮i⟯_ %BOXES=0
+U04 | STU: i typed | STU EQN () RCL:i > | %XLINE=(i)_ %LOOK=!T04
+# The list, a stored entry
+T05 | 35: stored | MODE35 EQN RCL:(I) + 1 ENTER | %XLINE=(I)+1 %XDRAW=4:⟮I⟯+1 %BOXES=0
+U05 | 35: typed, stored | MODE35 EQN () RCL:I > + 1 ENTER | %XLINE=(I)+1 %LOOK=!T05
+T06 | 33s: stored | MODE33 EQN RCL:(i) + 1 ENTER | %XLINE=(i)+1 %XDRAW=4:⟮i⟯+1 %BOXES=0
+# Program lines: drawn from the equation, the label's case (ab_prog_m35); the listing's text as before
+T07 | a 35s label | MODE35 PRGM LBL:A EQN RCL:(I) + 1 ENTER | %XLINE=A002_(I)+1 %XDRAW=4:A002_⟮I⟯+1 %BOXES=0
+U07 | a 35s label, typed | MODE35 PRGM LBL:A EQN () RCL:I > + 1 ENTER | %XLINE=A002_(I)+1 %XDRAW=4:A002_(I)+1 %LOOK=!T07
+T08 | a 33s label | MODE33 PRGM LBL:A EQN RCL:(i) + 1 ENTER | %XLINE=A002_(i)+1 %XDRAW=4:A002_⟮i⟯+1 %BOXES=0
+U08 | a 33s label, typed | MODE33 PRGM LBL:A EQN () RCL:i > + 1 ENTER | %XLINE=A002_(i)+1 %LOOK=!T08
+T09 | an STU label | STU PRGM LBL:A EQN RCL:(I) + 1 ENTER | %XLINE=A002_(i)+1 %XDRAW=4:A002_⟮i⟯+1 %BOXES=0
+U09 | an STU label, typed | STU PRGM LBL:A EQN () RCL:i > + 1 ENTER | %XLINE=A002_(i)+1 %LOOK=!T09
+T10 | (J) under a 35s label | MODE35 PRGM LBL:A EQN RCL:(J) - 3 ENTER | %XLINE=A002_(J)-3 %XDRAW=4:A002_⟮J⟯-3 %BOXES=0
+# STU's list
+T11 | STU's list row | STU EQ:⒤+1 | %XDRAWN=(i)+1 %BOXES=0
+U11 | STU's list row, typed | STU EQ:(i)+1 | %XDRAWN=(i)+1 %LOOK=!T11
+# The window (104's R3) keeps the pair whole; its pair isn't a %LOOK (typed parentheses are cut as any cells, so nine
+# typed differ from nine tokens already at 8c4fad7, more-today.out)
+W01 | nine tokens: scale 2, the pair whole | MODE35 EQN RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) | %XDRAW=2:…+⟮I⟯+⟮I⟯+⟮I⟯+⟮I⟯+⟮I⟯+⟮I⟯+⟮I⟯_ %BOXES=0
+# Only the equation tokens (R3): an operand's (I) keeps the plain pair
+S01 | STO (I) as a program line | MODE35 PRGM LBL:A STO:(I) | %XLINE=A002_STO_(I) %XDRAW=4:A002_STO_(I)
+# Controls: the instrument
+K01 | the token, the cursor back and forth: the same frame | MODE35 EQN RCL:(I) < > | %XLINE=(I)_ %LOOK=T01
+K02 | typed, the cursor back and forth: the same frame | MODE35 EQN () RCL:I > < > | %XLINE=(I)_ %LOOK=U01
+K03 | another equation differs | MODE35 EQN RCL:A | %LOOK=!T01

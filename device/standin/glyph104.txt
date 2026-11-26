@@ -2,6 +2,8 @@
 # host draws it. From MEMORY CLEAR (STU), MODE's 35s, then EQN, RCL A, +, RCL and the (I) key, ×, 2, ENTER: the
 # equation A+(I)×2 stored and shown, (I) three cells in 35's case (one cell, ⒤, before 104). The frame's rows 21-205
 # have the host's CRC (standin_replay). Keys checked on the host through the app first. Ends with a control that must FAIL.
+# Unit 105 (work/token-parentheses.md): the token's parentheses are its own pair ⟮ ⟯: re-pinned from 9A392C27 to the
+# host's 26FD27DB.
 # replay: current
 wait : heap internal 30
 sleep 3
@@ -40,6 +42,6 @@ sleep 0.25
 send K18
 sleep 0.25
 send FRAMECRC
-expect framecrc: rows 21-205 9A392C27 10
+expect framecrc: rows 21-205 26FD27DB 10
 # CONTROL: must FAIL
 expect framecrc: rows 21-205 00000000 3

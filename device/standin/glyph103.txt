@@ -5,6 +5,8 @@
 # host's CRC (standin_replay). Keys checked on the host through the app first. Ends with a control that must FAIL.
 # Unit 104 (work/indirect-three-cells.md): the equation's ⒤ is three cells now, STU's (i): its frame's CRC re-pinned
 # from AC98D863 (one cell) to the host's CCA1527E.
+# Unit 105 (work/token-parentheses.md): its parentheses are the token's own pair ⟮ ⟯ now: re-pinned from CCA1527E to
+# the host's 0520A61E.
 # replay: current
 wait : heap internal 30
 sleep 3
@@ -77,6 +79,6 @@ sleep 0.25
 send K18
 sleep 0.25
 send FRAMECRC
-expect framecrc: rows 21-205 CCA1527E 10
+expect framecrc: rows 21-205 0520A61E 10
 # CONTROL: must FAIL
 expect framecrc: rows 21-205 00000000 3

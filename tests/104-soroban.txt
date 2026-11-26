@@ -5,8 +5,10 @@
 # area's text. Each line was written from the blueprint's table and its measurements; the blueprint
 # shows each one's before (dc0cdeb drew ⒤ as one cell, the scale and window on cells counted that way).
 # Widths, the cursor's cell, editing across a token (35s)
-E01 | (I) typed: three cells | MODE35 EQN RCL:(I) | %XLINE=(I)_ %XDRAW=4:(I)_ %BOXES=0
-E02 | A+(I)×2: 8 cells, scale 4 | MODE35 EQN RCL:A + RCL:(I) * 2 | %XLINE=A+(I)×2_ %XDRAW=4:A+(I)×2_
+# Unit 105 (work/token-parentheses.md, abacus #17900): the token's parentheses are its own pair ⟮ ⟯, so E01, E02 and
+# W01-W03's %XDRAW (the cells drawn) read ⟮I⟯; every text (%XLINE, %XDRAWN) still writes (I)
+E01 | (I) typed: three cells | MODE35 EQN RCL:(I) | %XLINE=(I)_ %XDRAW=4:⟮I⟯_ %BOXES=0
+E02 | A+(I)×2: 8 cells, scale 4 | MODE35 EQN RCL:A + RCL:(I) * 2 | %XLINE=A+(I)×2_ %XDRAW=4:A+⟮I⟯×2_
 E03 | ◀ once: the cursor's cell 6 | MODE35 EQN RCL:A + RCL:(I) * 2 < | %XLINE=A+(I)×_2
 E04 | ◀ twice: after the token, cell 5 | MODE35 EQN RCL:A + RCL:(I) * 2 < < | %XLINE=A+(I)_×2
 E05 | ◀ three times: one key crosses the token's three cells | MODE35 EQN RCL:A + RCL:(I) * 2 < < < | %XLINE=A+_(I)×2
@@ -29,9 +31,9 @@ P03 | under an STU label | STU PRGM LBL:A EQN RCL:(I) + 1 ENTER | %XLINE=A002_(i
 P04 | the STO (I) line it matches | MODE35 PRGM LBL:A STO:(I) | %XLINE=A002_STO_(I)
 P05 | typed in a 35s program, before ENTER: the label's (I) | MODE35 PRGM LBL:A EQN RCL:(I) + 1 | %XLINE=(I)+1_
 # Scale and the window (R3: a cut never splits a token)
-W01 | five tokens: 20 cells, scale 3 (4 at dc0cdeb) | MODE35 EQN RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) | %XDRAW=3:(I)+(I)+(I)+(I)+(I)_
-W02 | nine: scale 2, the window drops the token it would cut (30 cells, no stray ')') | MODE35 EQN RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) | %XDRAW=2:…+(I)+(I)+(I)+(I)+(I)+(I)+(I)_
-W03 | a long entry cut at its end: the eighth token goes whole | MODE35 EQ:⒤+⒤+⒤+⒤+⒤+⒤+⒤+⒤+⒤+⒤ | %XDRAW=2:(I)+(I)+(I)+(I)+(I)+(I)+(I)+… %BOXES=0
+W01 | five tokens: 20 cells, scale 3 (4 at dc0cdeb) | MODE35 EQN RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) | %XDRAW=3:⟮I⟯+⟮I⟯+⟮I⟯+⟮I⟯+⟮I⟯_
+W02 | nine: scale 2, the window drops the token it would cut (30 cells, no stray ')') | MODE35 EQN RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) | %XDRAW=2:…+⟮I⟯+⟮I⟯+⟮I⟯+⟮I⟯+⟮I⟯+⟮I⟯+⟮I⟯_
+W03 | a long entry cut at its end: the eighth token goes whole | MODE35 EQ:⒤+⒤+⒤+⒤+⒤+⒤+⒤+⒤+⒤+⒤ | %XDRAW=2:⟮I⟯+⟮I⟯+⟮I⟯+⟮I⟯+⟮I⟯+⟮I⟯+⟮I⟯+… %BOXES=0
 # (a), as ruled: the token and the user's parentheses look alike (R4 asks Michael, T136)
 A01 | I typed in parentheses under 35: the same three cells as the token | MODE35 EQN () RCL:I | %XLINE=(I_)
 A02 | i typed in parentheses under STU: as STU's token | STU EQN () RCL:i | %XLINE=(i_)

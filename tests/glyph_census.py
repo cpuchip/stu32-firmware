@@ -4,7 +4,8 @@
 Every printable code point in the C string literals of core/, firmware/ and Casimir's casim.c, and in the answer column
 of Casimir's golden corpus, must be drawable: a glyph in firmware/font5x7.txt, or a mapping screen.c's next_cell makes
 (found in that function's body, not taken on this file's word) to a glyph and a combining mark the face has, or
-(unit 104) the three cells screen.c's cells_of draws ⒤ and ⒥ as, found in its body. A code
+(unit 104) the three cells screen.c's cells_of draws ⒤ and ⒥ as, found in its body (unit 105: the token's own pair ⟮ ⟯
+around the letter, found there as the code points 0x27EE and 0x27EF). A code
 point that is never drawn is named below with its reason. Exit 1 on any other: the screen would draw it as a hollow
 box.
 
@@ -24,8 +25,9 @@ NOT_DRAWN = {
 # Drawn as a letter and a combining mark (screen.c next_cell, unit 103), as x-hat and x-bar are typed
 MAPPED = {0x0177: (ord('y'), 0x0302), 0x0233: (ord('y'), 0x0304)}
 # Unit 104 (work/indirect-three-cells.md): the indirect tokens, drawn as three cells by screen.c's cells_of, the
-# characters each can be drawn as (the letter's case is the model's)
-EXPANDED = {0x24A4: "(iI)", 0x24A5: "(J)"}
+# characters each can be drawn as (the letter's case is the model's); unit 105 (work/token-parentheses.md): their own
+# pair, U+27EE and U+27EF, in place of ( and )
+EXPANDED = {0x24A4: "\u27eeiI\u27ef", 0x24A5: "\u27eeJ\u27ef"}
 
 
 def c_strings(path):
@@ -89,7 +91,8 @@ def main():
     m = re.search(r'static int cells_of\(const char \*\*s, bool upper, uint32_t out\[3\]\)\n\{(.*?)\n\}', sc, re.S)
     ebody = m.group(1) if m else ''
     expanded = {cp for cp, chars in EXPANDED.items()
-                if f'0x{cp:04X}' in ebody and all(f"'{ch}'" in ebody for ch in chars)}
+                if f'0x{cp:04X}' in ebody and all((f'0x{ord(ch):04X}' if ord(ch) > 0x7F else f"'{ch}'") in ebody
+                                                  for ch in chars)}
     printable = [cp for cp in seen if cp >= 0x20 and cp != 0xFFFD and not 0x0300 <= cp <= 0x036F]
     bad = []
     for cp in sorted(printable):

@@ -1172,3 +1172,23 @@ U+25C0 ◀
 ..###
 ...##
 ....#
+
+# unit 105 (work/token-parentheses.md): the indirect tokens' own pair, drawn by screen.c's cells_of around ⒤'s and
+# ⒥'s letter, never typed: a flat stroke against the letter, no dot shared with ( or ) (screen_test checks it)
+U+27EE ⟮
+....#
+...#.
+...#.
+...#.
+...#.
+...#.
+....#
+
+U+27EF ⟯
+#....
+.#...
+.#...
+.#...
+.#...
+.#...
+#....

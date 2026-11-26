@@ -827,6 +827,59 @@ static int seen_add(const char *id, int line)
     return 0;
 }
 
+#ifndef AB_DEVICE
+/* Unit 105 (work/token-parentheses.md, abacus #17900 R4): %LOOK's frames, each vector's after its keys (screen_render,
+   the default ui), kept by id, in a file that holds a %LOOK only (no other file pays for a render) */
+static struct look { char *id; ls027_frame *f; } *looks;
+static int looks_n, looks_cap;
+static bool looks_on;
+
+static void looks_reset(void)
+{
+    for (int i = 0; i < looks_n; i++) free(looks[i].id), free(looks[i].f);
+    looks_n = 0;
+}
+
+static const ls027_frame *look_of(const char *id)
+{
+    for (int i = 0; i < looks_n; i++)
+        if (!strcmp(looks[i].id, id)) return looks[i].f;
+    return NULL;
+}
+
+static void look_keep(const char *id, const ab_calc *c)
+{
+    if (looks_n == looks_cap) {
+        int cap = looks_cap ? 2 * looks_cap : 64;
+        struct look *p = realloc(looks, (size_t)cap * sizeof *p);
+        if (!p) return;                         /* out of memory: a %LOOK naming it reads as no earlier vector */
+        looks = p, looks_cap = cap;
+    }
+    ls027_frame *f = malloc(sizeof *f);
+    char *copy = malloc(strlen(id) + 1);
+    if (!f || !copy) {
+        free(f);
+        free(copy);
+        return;
+    }
+    strcpy(copy, id);
+    screen_ui ui;
+    screen_ui_default(&ui);
+    screen_render(c, &ui, f);
+    looks[looks_n].id = copy, looks[looks_n].f = f, looks_n++;
+}
+
+/* the pixels two frames differ in */
+static long look_diff(const ls027_frame *a, const ls027_frame *b)
+{
+    long n = 0;
+    for (int y = 0; y < LS027_H; y++)
+        for (int i = 0; i < LS027_ROW_BYTES; i++)
+            for (unsigned v = (unsigned)(a->px[y][i] ^ b->px[y][i]); v; v &= v - 1) n++;
+    return n;
+}
+#endif
+
 /* Runs one vectors file from f (opened by the caller, who closes it); name labels the report.
  * Returns 0 when every vector passes, 1 on a failure, 2 on a malformed file. */
 int vectors_run(const char *name, FILE *f)
@@ -840,6 +893,15 @@ int vectors_run(const char *name, FILE *f)
     char line[LINE_MAX_];
     int lineno = 0, vectors = 0, vectors_ok = 0, checks = 0, checks_ok = 0;
     seen_reset();
+#ifndef AB_DEVICE
+    looks_reset();                              /* unit 105: a file that holds a %LOOK keeps its vectors' frames */
+    looks_on = false;
+    {
+        long at = ftell(f);
+        while (at >= 0 && !looks_on && fgets(line, sizeof line, f)) looks_on = strstr(line, "%LOOK=") != NULL;
+        if (at >= 0) fseek(f, at, SEEK_SET);
+    }
+#endif
     while (fgets(line, sizeof line, f)) {
         lineno++;
         char *s = trim(line);
@@ -927,6 +989,9 @@ int vectors_run(const char *name, FILE *f)
             }
         }
 
+#ifndef AB_DEVICE
+        if (looks_on) look_keep(id, &c);        /* unit 105: before the expectations, which may move the state */
+#endif
         if (getenv("AB_IMGCRC") && buf_save(&c, &himg, &himg_len, &himg_cap) && himg_len > 4)   /* the final state's
                                                    identity: its body's CRC (the whole image's is the residue) */
             fprintf(stderr, "%s %08lX\n", id, (unsigned long)ab_crc32(himg, himg_len - 4));
@@ -1134,6 +1199,25 @@ int vectors_run(const char *name, FILE *f)
                     if (screen_x_fit(&c, &ui, &xf, &fit)) snprintf(got, sizeof got, "%d:%.*s", fit.scale, (int)sizeof got - 8, fit.text);
                     else snprintf(got, sizeof got, "none");
                     spaces_out(got);
+#else
+                    snprintf(got, sizeof got, "(no screen on the device runner)");
+#endif
+                } else if (strcmp(ex, "%LOOK") == 0) {
+                    /* unit 105 (work/token-parentheses.md, abacus #17900 R4): %LOOK=ID, the frame after this vector's
+                       keys is pixel for pixel vector ID's, an earlier vector of this file; %LOOK=!ID, it differs in a
+                       pixel at least. got is ID or !ID as the frames are; (no_earlier_vector_ID) when ID has none yet.
+                       AB_LOOKPX=1 prints each comparison's differing pixels (a measurement aid). The on-chip runner has
+                       no screen */
+#ifndef AB_DEVICE
+                    const char *rid = eq[1] == '!' ? eq + 2 : eq + 1;
+                    const ls027_frame *mine = look_of(id), *ref = look_of(rid);
+                    if (!ref || !mine) {
+                        snprintf(got, sizeof got, "(no_earlier_vector_%s)", rid);
+                    } else {
+                        long d = look_diff(mine, ref);
+                        if (getenv("AB_LOOKPX")) fprintf(stderr, "LOOKPX %s %s %ld\n", id, rid, d);
+                        snprintf(got, sizeof got, "%s%s", d ? "!" : "", rid);
+                    }
 #else
                     snprintf(got, sizeof got, "(no screen on the device runner)");
 #endif

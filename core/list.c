@@ -97,6 +97,17 @@ static void target_text(int arg, char *out, size_t size)
 
 static int op_text(const ab_calc *c, int op, int arg, bool row, char *out, int size);
 
+bool ab_prog_m35(const ab_calc *c, int i)
+{
+    int best = -1, pos = -1;
+    for (int l = 0; l < 26; l++)
+        if (c->labelpos[l] >= 0 && c->labelpos[l] <= i && c->labelpos[l] > pos) {
+            pos = c->labelpos[l];
+            best = l;
+        }
+    return best >= 0 && c->lmode[best] ? c->lmode[best] == 35 : c->m35 && !c->stu;   /* 099: STU's is (i) */
+}
+
 int ab_prog_line(const ab_calc *c, int i, const ab_display *d, char *out, int size)
 {
     char a[AB_EQN_LEN];
@@ -104,15 +115,7 @@ int ab_prog_line(const ab_calc *c, int i, const ab_display *d, char *out, int si
     out[0] = '\0';
     if (i < 0 || i >= c->prog_len) return -1;
     int op = c->prog[i].op, arg = c->prog[i].arg;
-    {   /* the line's mode: its label's stamp, else the calculator's (unit 025) */
-        int best = -1, pos = -1;
-        for (int l = 0; l < 26; l++)
-            if (c->labelpos[l] >= 0 && c->labelpos[l] <= i && c->labelpos[l] > pos) {
-                pos = c->labelpos[l];
-                best = l;
-            }
-        line_m35 = best >= 0 && c->lmode[best] ? c->lmode[best] == 35 : c->m35 && !c->stu;   /* 099: STU's is (i) */
-    }
+    line_m35 = ab_prog_m35(c, i);              /* the line's mode: its label's stamp, else the calculator's (unit 025) */
     if ((op == AB_LIT && (arg < 0 || arg >= AB_PROG_LITS)) || (op == AB_EQLINE && (arg < 0 || arg >= AB_PEQN_MAX))) {
         snprintf(out, (size_t)size, "?");       /* a pool index out of range: not a line the core makes */
         return -1;

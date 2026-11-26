@@ -535,6 +535,9 @@ void ab_init(ab_calc *c);
    number in the display d gives (NULL: ALL in the current base). Returns its length in bytes, or
    -1 and "?" for no such line. */
 int ab_prog_line(const ab_calc *c, int i, const ab_display *d, char *out, int size);
+/* Unit 105 (work/token-parentheses.md R5): whether line i's mode is the 35s's, its label's stamp, else the calculator's
+   (unit 025; 099: STU's is the 33s's): the case its (I) is written in, and an equation line's tokens drawn in */
+bool ab_prog_m35(const ab_calc *c, int i);
 /* Unit 090: an op's name as a worksheet row shows it (list.c's names: R/S's row reads R/S, a keyboard XEQ A its letter) */
 int ab_op_text(const ab_calc *c, int op, int arg, char *out, int size);
 /* Unit 093: the row menu for the selected row (RPN) or the row shown (ALG): "ROW NUM", "ROW EXPR", "ROW ALG"; NULL none.

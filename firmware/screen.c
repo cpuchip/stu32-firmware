@@ -111,19 +111,22 @@ static uint32_t next_cell(const char **s)
 }
 
 /* Unit 104 (work/indirect-three-cells.md; Michael's T120, "Three cells"; abacus #17600): the core's indirect tokens, ⒤
-   and ⒥ (one code point and one token each, eqn.c), drawn as three cells: (, the letter, ). The letter's case is the
-   model the text belongs to, as the listing writes (I) (list.c, units 025 and 099): (I) under 35, (i) under the 33s and
-   STU; (J) always (it works under 35 alone). upper is that choice; the public decoders take (i), STU's and the 33s's.
-   The second and third cells carry TOK_MORE. Every other code point is next_cell's one cell. Returns the cells. */
+   and ⒥ (one code point and one token each, eqn.c), drawn as three cells: an opening, the letter, a closing. The
+   letter's case is the model the text belongs to, as the listing writes (I) (list.c, units 025 and 099): (I) under 35,
+   (i) under the 33s and STU; (J) always (it works under 35 alone). upper is that choice; the public decoders take (i),
+   STU's and the 33s's. Unit 105 (work/token-parentheses.md; Michael's T136, "Token's own parentheses"; abacus #17900):
+   the opening and closing are the token's own pair, ⟮ and ⟯ (U+27EE, U+27EF, the face's), never the user's ( ), so a
+   token never draws as I typed in parentheses; the texts still write ( ) (line_piece). The second and third cells
+   carry TOK_MORE. Every other code point is next_cell's one cell. Returns the cells. */
 static int cells_of(const char **s, bool upper, uint32_t out[3])
 {
     const char *t = *s;
     uint32_t cp = next_cp(&t);
     if (cp == 0x24A4 || cp == 0x24A5) {
         *s = t;
-        out[0] = '(';
+        out[0] = 0x27EE;
         out[1] = (cp == 0x24A5 ? 'J' : upper ? 'I' : 'i') | TOK_MORE;
-        out[2] = ')' | TOK_MORE;
+        out[2] = 0x27EF | TOK_MORE;
         return 3;
     }
     out[0] = next_cell(s);
@@ -276,8 +279,8 @@ static void u8_add(line *l, const char *b, int n)
 }
 
 /* One code point of s into l, its cells and their text: a token's three cells written as their three characters (unit
-   104), any other cell as its own bytes, its mark with it (unit 104: eqn_line wrote a marked cell's text from the cell,
-   so x̂ in an equation exported four bytes of nothing) */
+   104; 105: its pair written ( and ), the texts ASCII, R2), any other cell as its own bytes, its mark with it (unit
+   104: eqn_line wrote a marked cell's text from the cell, so x̂ in an equation exported four bytes of nothing) */
 static void line_piece(line *l, const char **s, bool upper)
 {
     const char *b = *s;
@@ -286,7 +289,7 @@ static void line_piece(line *l, const char **s, bool upper)
     for (int i = 0; i < k && l->n < LINE_MAX_CP; i++) {
         l->cp[l->n++] = o[i];
         if (k == 3) {
-            char ch = (char)(o[i] & CP_MASK);
+            char ch = i == 0 ? '(' : i == 2 ? ')' : (char)(o[i] & CP_MASK);
             u8_add(l, &ch, 1);
         } else {
             u8_add(l, b, (int)(*s - b));
@@ -376,9 +379,10 @@ static int fit_line(const line *l, int max, bool *left, uint32_t lead, uint32_t 
     return s;
 }
 
-/* screen_x_fit's (unit 104): the line it watches (compose's X) and where the fit goes; NULL when nothing asks */
-static const line *fit_watch;
+/* screen_x_fit's (unit 104): where the fit of compose's X line goes; NULL when nothing asks (unit 105, abacus #17631:
+   the line it watches is always compose's X, so no pointer holds it) */
 static screen_fit *fit_seen;
+static const line *x_line(void);
 
 static int cell_u8(uint32_t cell, char *b)
 {
@@ -402,7 +406,7 @@ static int draw_line_lead(ls027_frame *f, int bot, int max, const line *l, bool 
     uint32_t cp[LINE_MAX_CP];
     int n, s = fit_line(l, max, &left, lead, cp, &n);
     int x = left ? NUM_X : NUM_R - span(n, s);
-    if (fit_seen && l == fit_watch) {
+    if (fit_seen && l == x_line()) {
         int u = 0;
         fit_seen->scale = s, fit_seen->cells = n;
         for (int i = 0; i < n && u + 8 < (int)sizeof fit_seen->text; i++) u += cell_u8(cp[i], fit_seen->text + u);
@@ -939,6 +943,12 @@ typedef struct {
 static composed comp;           /* compose's result, shared by screen_render and screen_lines (one at a time:
                                    about 8 KB, kept off the stack) */
 
+/* compose's X line, the one screen_x_fit reads (unit 105: in place of fit_watch's pointer) */
+static const line *x_line(void)
+{
+    return &comp.x;
+}
+
 /* Unit 080: whether the list's entry shown takes the textbook area: STU mode, not while typing (typing stays one line),
    and an STU-stamped equation (another mode's text groups differently), or EQN LIST TOP or a built-in solver's entry,
    drawn as text on a clean screen (abacus #11109, Michael's ask) */
@@ -1316,7 +1326,15 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
             ab_prog_line(c, c->pc, &d, t, sizeof t);
             line_add(xl, a);
             line_add_cp(xl, ' ');
-            line_add(xl, t);
+            int op = c->prog[c->pc].op, arg = c->prog[c->pc].arg;
+            if (op == AB_EQLINE && arg >= 0 && arg < AB_PEQN_MAX) {
+                /* unit 105 (R5): an equation line from its equation, so its tokens draw their own pair (the listing's
+                   text writes them ( )), in its label's case; then its mark, as list.c's text; the same text */
+                eqn_line(c->peqn[arg], -1, xl, ab_prog_m35(c, c->pc));
+                line_add(xl, ab_eqn_mark(c, c->peqn[arg], c->peqn_model[arg]));
+            } else {
+                line_add(xl, t);
+            }
         }
         k->x_left = true;
     } else if (c->alg) {                        /* the result: the entry shown's (unit 090: its row's), else ANS */
@@ -1943,7 +1961,6 @@ bool screen_x_fit(const ab_calc *c, const screen_ui *ui, ls027_frame *f, screen_
 {
     out->scale = out->cells = 0;
     out->text[0] = '\0';
-    fit_watch = &comp.x;
     fit_seen = out;
     screen_render(c, ui, f);
     fit_seen = NULL;

@@ -324,6 +324,21 @@ int main(int argc, char **argv)
                 expect(a && b && d >= 3, what);
             }
     }
+    /* unit 105 (work/token-parentheses.md; abacus #17900 R4: the face check pins where %LOOK's difference is): the
+       indirect tokens' own pair, ⟮ and ⟯, shares no dot with ( and ), and each is lit in the column against the letter
+       (⟮'s column 4, bit 0; ⟯'s column 0, bit 4), where no plain parenthesis is: tighter, and of its own */
+    {
+        const font_glyph *o = screen_glyph(0x27EE), *e = screen_glyph(0x27EF), *po = screen_glyph('('),
+                         *pe = screen_glyph(')');
+        int shared = 0, inner = 0, plain_inner = 0;
+        for (int r = 0; o && e && po && pe && r < 7; r++) {
+            shared |= (o->rows[r] & po->rows[r]) | (e->rows[r] & pe->rows[r]);
+            inner |= (o->rows[r] & 0x01 ? 1 : 0) | (e->rows[r] & 0x10 ? 2 : 0);
+            plain_inner |= (po->rows[r] & 0x01) | (pe->rows[r] & 0x10);
+        }
+        expect(o && e && po && pe && !shared && inner == 3 && !plain_inner,
+               "105: the tokens' pair shares no dot with ( ), and is lit against the letter where ( ) aren't");
+    }
     expect(screen_glyph(0x4E00) == NULL && screen_glyph(0) == NULL, "a glyph found that is not drawn");
     /* what the core's formatter and the layout write */
     expect(screen_missing("0123456789ABCDEF.,-+E i[]/:?=()_ !^#%x") == 0, "the formatter's characters");
@@ -1353,6 +1368,26 @@ int main(int argc, char **argv)
         frame("72-prgm-eqn-indirect", &c, &ui);
         screen_lines(&c, &ui, &pg);
         expect(!strcmp(pg.x.text, "A002 (I)+1"), "104: a 35s program's equation line writes (I), as its STO (I)");
+        {   /* unit 105 (contract 3): the screen draws an equation line from its equation, so its text must still be the
+               listing's: the address, a space, ab_prog_line's text, byte for byte; under a 35s label and a 33s one */
+            char t[AB_EQN_LEN + 16], w[AB_EQN_LEN + 32];
+            ab_prog_line(&c, c.pc, NULL, t, sizeof t);
+            snprintf(w, sizeof w, "A002 %s", t);
+            expect(!strcmp(pg.x.text, w), "105: a 35s program's equation line, the screen's text the listing's");
+            ab_init(&c);
+            ab_do_arg(&c, AB_MODEL, 33);
+            ab_do(&c, AB_PRGM);
+            ab_do_arg(&c, AB_LBL, 0);
+            ab_do(&c, AB_EQN);
+            ab_do_arg(&c, AB_RCL, AB_VAR_IND_I);
+            ab_do(&c, AB_ADD);
+            ab_do_arg(&c, AB_RCL, AB_VAR_IND_J);
+            ab_do(&c, AB_ENTER);
+            screen_lines(&c, &ui, &pg);
+            ab_prog_line(&c, c.pc, NULL, t, sizeof t);
+            snprintf(w, sizeof w, "A002 %s", t);
+            expect(!strcmp(pg.x.text, w) && !strcmp(t, "(i)+(J)"), "105: a 33s program's, (i)+(J), the listing's");
+        }
         /* the cursor's cell is the '_''s cell in the text, counted in cells, the token three (screen.h): A+(I)x2 with the
            cursor moved left 1 to 4 times, ◀ crossing the token in one key */
         {
