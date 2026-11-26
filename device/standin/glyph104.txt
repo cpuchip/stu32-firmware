@@ -1,0 +1,45 @@
+# Unit 104 on the stand-in (work/indirect-three-cells.md): the indirect token drawn as three cells on the board as the
+# host draws it. From MEMORY CLEAR (STU), MODE's 35s, then EQN, RCL A, +, RCL and the (I) key, ×, 2, ENTER: the
+# equation A+(I)×2 stored and shown, (I) three cells in 35's case (one cell, ⒤, before 104). The frame's rows 21-205
+# have the host's CRC (standin_replay). Keys checked on the host through the app first. Ends with a control that must FAIL.
+# replay: current
+wait : heap internal 30
+sleep 3
+send WIPE
+expect wipe: both slots erased
+send RESTART
+expect load: no image: MEMORY CLEAR 30
+expect ver=0.105 30
+wait READY 30
+# MODE (blue, ENTER), its 35s (soft 2)
+send K36
+sleep 0.25
+send K18
+sleep 0.25
+send K1
+sleep 0.25
+# EQN (gold, 0), RCL A, +, RCL (I), ×, 2, ENTER
+send K30
+sleep 0.25
+send K43
+sleep 0.25
+send K13
+sleep 0.25
+send K6
+sleep 0.25
+send K46
+sleep 0.25
+send K13
+sleep 0.25
+send K39
+sleep 0.25
+send K34
+sleep 0.25
+send K38
+sleep 0.25
+send K18
+sleep 0.25
+send FRAMECRC
+expect framecrc: rows 21-205 9A392C27 10
+# CONTROL: must FAIL
+expect framecrc: rows 21-205 00000000 3

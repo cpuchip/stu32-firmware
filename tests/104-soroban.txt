@@ -1,0 +1,40 @@
+# Unit 104 (work/indirect-three-cells.md at a6c4e89; abacus #17595, rulings #17600; Michael's T120, "Three cells"). The
+# core's indirect tokens ⒤ and ⒥ drawn as three cells: (, the letter, ); the letter's case the model's, as the listing
+# writes (I) (35 (I); 33 and STU (i); (J) always). %XLINE is X's text (screen_page, _ the cursor and blanks); %XDRAW=s:cells
+# is X's line as screen_render fits it (new: the scale, then the cells drawn, the window's ellipses); %XDRAWN the 2D
+# area's text. Each line was written from the blueprint's table and its measurements; the blueprint
+# shows each one's before (dc0cdeb drew ⒤ as one cell, the scale and window on cells counted that way).
+# Widths, the cursor's cell, editing across a token (35s)
+E01 | (I) typed: three cells | MODE35 EQN RCL:(I) | %XLINE=(I)_ %XDRAW=4:(I)_ %BOXES=0
+E02 | A+(I)×2: 8 cells, scale 4 | MODE35 EQN RCL:A + RCL:(I) * 2 | %XLINE=A+(I)×2_ %XDRAW=4:A+(I)×2_
+E03 | ◀ once: the cursor's cell 6 | MODE35 EQN RCL:A + RCL:(I) * 2 < | %XLINE=A+(I)×_2
+E04 | ◀ twice: after the token, cell 5 | MODE35 EQN RCL:A + RCL:(I) * 2 < < | %XLINE=A+(I)_×2
+E05 | ◀ three times: one key crosses the token's three cells | MODE35 EQN RCL:A + RCL:(I) * 2 < < < | %XLINE=A+_(I)×2
+E06 | ▶ back across it, one key | MODE35 EQN RCL:A + RCL:(I) * 2 < < < > | %XLINE=A+(I)_×2
+E07 | backspace after the token takes its three cells | MODE35 EQN RCL:A + RCL:(I) * 2 < < BKSP | %XLINE=A+_×2
+E08 | backspace before it leaves it whole | MODE35 EQN RCL:A + RCL:(I) * 2 < < < BKSP | %XLINE=A_(I)×2
+E09 | (J) under 35 | MODE35 EQN RCL:(J) + 1 | %XLINE=(J)+1_
+E10 | stored, the list shows its stamp's (I) | MODE35 EQN RCL:A + RCL:(I) * 2 ENTER | %XLINE=A+(I)×2 %BOXES=0
+# The case by model (R1, R2)
+M01 | the 33s's (i), typed | MODE33 EQN RCL:(i) POW 2 | %XLINE=(i)^2_
+M02 | the 33s's (i), stored | MODE33 EQN RCL:(i) POW 2 ENTER | %XLINE=(i)^2
+M03 | STU's (i), and (J) | STU EQN RCL:(I) + RCL:(J) * 2 | %XLINE=(i)+(J)×2_ %BOXES=0
+M04 | STU's area, the text drawn | STU EQ:⒤+⒥×2 | %XDRAWN=(i)+(J)×2 %BOXES=0
+M05 | a 35-stamped entry in STU's area keeps its stamp's (I) | MODE35 EQ:⒤+1 STU | %XDRAWN=(I)+1 %BOXES=0
+M06 | a 33-stamped entry there, (i) | MODE33 EQ:⒤+1 STU | %XDRAWN=(i)+1
+# The program listing: the line's mode, as its STO (I) beside it (contract 4)
+P01 | an equation line under a 35s label | MODE35 PRGM LBL:A EQN RCL:(I) + 1 ENTER | %XLINE=A002_(I)+1
+P02 | under a 33s label | MODE33 PRGM LBL:A EQN RCL:(i) + 1 ENTER | %XLINE=A002_(i)+1
+P03 | under an STU label | STU PRGM LBL:A EQN RCL:(I) + 1 ENTER | %XLINE=A002_(i)+1
+P04 | the STO (I) line it matches | MODE35 PRGM LBL:A STO:(I) | %XLINE=A002_STO_(I)
+P05 | typed in a 35s program, before ENTER: the label's (I) | MODE35 PRGM LBL:A EQN RCL:(I) + 1 | %XLINE=(I)+1_
+# Scale and the window (R3: a cut never splits a token)
+W01 | five tokens: 20 cells, scale 3 (4 at dc0cdeb) | MODE35 EQN RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) | %XDRAW=3:(I)+(I)+(I)+(I)+(I)_
+W02 | nine: scale 2, the window drops the token it would cut (30 cells, no stray ')') | MODE35 EQN RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) | %XDRAW=2:…+(I)+(I)+(I)+(I)+(I)+(I)+(I)_
+W03 | a long entry cut at its end: the eighth token goes whole | MODE35 EQ:⒤+⒤+⒤+⒤+⒤+⒤+⒤+⒤+⒤+⒤ | %XDRAW=2:(I)+(I)+(I)+(I)+(I)+(I)+(I)+… %BOXES=0
+# (a), as ruled: the token and the user's parentheses look alike (R4 asks Michael, T136)
+A01 | I typed in parentheses under 35: the same three cells as the token | MODE35 EQN () RCL:I | %XLINE=(I_)
+A02 | i typed in parentheses under STU: as STU's token | STU EQN () RCL:i | %XLINE=(i_)
+# The sibling eqn_line carried: a marked cell's text (x̂ exported 4 stray bytes at dc0cdeb)
+X01 | x̂ in a list entry's text | MODE35 EQ:x̂(2)+1 | %XLINE=x̂(2)+1
+X02 | x̂ typed | MODE35 EQN XHAT | %XLINE=x̂(_)

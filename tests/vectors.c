@@ -1122,6 +1122,21 @@ int vectors_run(const char *name, FILE *f)
 #else
                     snprintf(got, sizeof got, "(no screen on the device runner)");
 #endif
+                } else if (strcmp(ex, "%XDRAW") == 0) {
+                    /* unit 104 (work/indirect-three-cells.md): X's line as screen_render fits it, "s:cells" (the scale,
+                       then the cells drawn: the window, its ellipses, a token's three cells); blanks _, none when X isn't
+                       drawn as a line. The on-chip runner has no screen */
+#ifndef AB_DEVICE
+                    static ls027_frame xf;
+                    static screen_fit fit;
+                    screen_ui ui;
+                    screen_ui_default(&ui);
+                    if (screen_x_fit(&c, &ui, &xf, &fit)) snprintf(got, sizeof got, "%d:%.*s", fit.scale, (int)sizeof got - 8, fit.text);
+                    else snprintf(got, sizeof got, "none");
+                    spaces_out(got);
+#else
+                    snprintf(got, sizeof got, "(no screen on the device runner)");
+#endif
                 } else if (strcmp(ex, "%XDRAWN") == 0) {
                     /* unit 082: X as the screen draws it in 2D, the console's drawn= (screen_drawn with the default
                        ui); none when nothing is drawn. Y has no drawn form. The on-chip runner has no screen */

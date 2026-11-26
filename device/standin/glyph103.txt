@@ -3,6 +3,8 @@
 # report's STEPS, then ▲ to the last page, ANSWER: SOLVED: X=-2; X=2, whose ';' was a hollow box before 103. Then C three
 # times, EQN, RCL and the (J) key: the equation ⒤, stored and shown, a box before 103. Each frame's rows 21-205 have the
 # host's CRC (standin_replay). Keys checked on the host through the app first. Ends with a control that must FAIL.
+# Unit 104 (work/indirect-three-cells.md): the equation's ⒤ is three cells now, STU's (i): its frame's CRC re-pinned
+# from AC98D863 (one cell) to the host's CCA1527E.
 # replay: current
 wait : heap internal 30
 sleep 3
@@ -75,6 +77,6 @@ sleep 0.25
 send K18
 sleep 0.25
 send FRAMECRC
-expect framecrc: rows 21-205 AC98D863 10
+expect framecrc: rows 21-205 CCA1527E 10
 # CONTROL: must FAIL
 expect framecrc: rows 21-205 00000000 3

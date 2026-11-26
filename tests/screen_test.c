@@ -1331,6 +1331,49 @@ int main(int argc, char **argv)
         STU0();
         ab_eqn_add(&c, "\xc5\xb7(2)+\xc8\xb3");
         frame("70-eqn-yhat-ybar", &c, &ui);
+        /* unit 104 (work/indirect-three-cells.md): the tokens as three cells under 35, (I); nine typed, the window at scale
+           2 drops the token its cut would split; an equation line in a 35s program, as its STO (I) */
+        ab_init(&c);
+        ab_do_arg(&c, AB_MODEL, 35);
+        ab_do(&c, AB_EQN);
+        for (int r = 0; r < 9; r++) {
+            if (r) ab_do(&c, AB_ADD);
+            ab_do_arg(&c, AB_RCL, AB_VAR_IND_I);
+        }
+        frame("71-eqn-indirect-window", &c, &ui);
+        ab_init(&c);
+        ab_do_arg(&c, AB_MODEL, 35);
+        ab_do(&c, AB_PRGM);
+        ab_do_arg(&c, AB_LBL, 0);
+        ab_do(&c, AB_EQN);
+        ab_do_arg(&c, AB_RCL, AB_VAR_IND_I);
+        ab_do(&c, AB_ADD);
+        ab_do(&c, AB_K1);
+        ab_do(&c, AB_ENTER);
+        frame("72-prgm-eqn-indirect", &c, &ui);
+        screen_lines(&c, &ui, &pg);
+        expect(!strcmp(pg.x.text, "A002 (I)+1"), "104: a 35s program's equation line writes (I), as its STO (I)");
+        /* the cursor's cell is the '_''s cell in the text, counted in cells, the token three (screen.h): A+(I)x2 with the
+           cursor moved left 1 to 4 times, ◀ crossing the token in one key */
+        {
+            static const int want[4] = {6, 5, 2, 5};
+            for (int t = 0; t < 4; t++) {
+                ab_init(&c);
+                ab_do_arg(&c, AB_MODEL, 35);
+                ab_do(&c, AB_EQN);
+                ab_do_arg(&c, AB_RCL, 0);
+                ab_do(&c, AB_ADD);
+                ab_do_arg(&c, AB_RCL, AB_VAR_IND_I);
+                ab_do(&c, AB_MUL);
+                ab_do(&c, AB_K2);
+                for (int m = 0; m < (t < 3 ? t + 1 : 3); m++) ab_do(&c, AB_KLEFT);
+                if (t == 3) ab_do(&c, AB_KRIGHT);
+                screen_lines(&c, &ui, &pg);
+                const char *u = strchr(pg.x.text, '_');
+                expect(u && pg.x.cursor == want[t] && screen_cells_n(pg.x.text, (int)(u - pg.x.text)) == want[t],
+                       "104: the cursor's cell, the token counted as three");
+            }
+        }
 #undef STU0
 #undef PAGE
     }

@@ -209,6 +209,14 @@ void screen_wheel_text(const ab_calc *c, int i, char *out, int size);
 
 /* The whole frame for c and ui. */
 void screen_render(const ab_calc *c, const screen_ui *ui, ls027_frame *f);
+/* Unit 104 (work/indirect-three-cells.md): X's line as screen_render fits it (the window and its ellipses, the scale):
+   renders into f, and gives the scale, the cells drawn and their UTF-8 text; false when X isn't drawn as a line (2D, the
+   steps view). The test seam for the window and the tokens' three cells (vectors' %XDRAW) */
+typedef struct {
+    int scale, cells;
+    char text[SCREEN_TEXT_MAX];
+} screen_fit;
+bool screen_x_fit(const ab_calc *c, const screen_ui *ui, ls027_frame *f, screen_fit *out);
 
 /* Drawing, clipped to the frame. A set pixel is dark. */
 void screen_clear(ls027_frame *f);
@@ -220,6 +228,9 @@ int screen_text(ls027_frame *f, int x, int y, int scale, const char *s, bool dar
 const font_glyph *screen_glyph(uint32_t cp);    /* NULL when the face has none */
 extern long screen_missed;                      /* hollow boxes drawn so far (a test reads it) */
 int screen_cells(const char *s);                /* cells in UTF-8 text: a combining mark takes none */
+/* Unit 104: the cells in len bytes of UTF-8 (the textbook's count, so it measures what screen_text draws); ⒤ and ⒥ are
+   three cells each, (i) and (J), wherever the screen draws them */
+int screen_cells_n(const char *s, int len);
 int screen_missing(const char *s);              /* of those, the ones the face lacks */
 /* For drawing elsewhere (the stand-in's keys): text as cells (a combining mark folded into its
    letter), and a cell as 8 rows of 5 bits, bit 4 the left column: row 0 is the mark's own row

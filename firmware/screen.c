@@ -83,6 +83,10 @@ static uint32_t next_cp(const char **s)
    as mark - U+02FF, so it is drawn over its letter and takes no cell of its own. */
 #define MARK_SHIFT 24
 #define CP_MASK 0xFFFFFFu
+#define MARK_OF(cell) ((cell) >> MARK_SHIFT & 0x7Fu)
+/* Unit 104 (work/indirect-three-cells.md): a cell that continues a token, the second and third of (I) (bit 31, above
+   the marks); a window or a cut never shows part of one */
+#define TOK_MORE 0x80000000u
 
 static bool combining(uint32_t cp)
 {
@@ -106,6 +110,58 @@ static uint32_t next_cell(const char **s)
     return cp;
 }
 
+/* Unit 104 (work/indirect-three-cells.md; Michael's T120, "Three cells"; abacus #17600): the core's indirect tokens, ⒤
+   and ⒥ (one code point and one token each, eqn.c), drawn as three cells: (, the letter, ). The letter's case is the
+   model the text belongs to, as the listing writes (I) (list.c, units 025 and 099): (I) under 35, (i) under the 33s and
+   STU; (J) always (it works under 35 alone). upper is that choice; the public decoders take (i), STU's and the 33s's.
+   The second and third cells carry TOK_MORE. Every other code point is next_cell's one cell. Returns the cells. */
+static int cells_of(const char **s, bool upper, uint32_t out[3])
+{
+    const char *t = *s;
+    uint32_t cp = next_cp(&t);
+    if (cp == 0x24A4 || cp == 0x24A5) {
+        *s = t;
+        out[0] = '(';
+        out[1] = (cp == 0x24A5 ? 'J' : upper ? 'I' : 'i') | TOK_MORE;
+        out[2] = ')' | TOK_MORE;
+        return 3;
+    }
+    out[0] = next_cell(s);
+    return 1;
+}
+
+/* the case of a text typed or stamped in model (33, 35, AB_MODEL_STU; 0 counts as 35, eqn.h) */
+static bool upper_of(int model)
+{
+    return model == 35 || model == 0;
+}
+
+/* Unit 104: the tokens in UTF-8 text written as the three characters they're drawn as, in place (each is 3 bytes either
+   way, so offsets into the text hold), for the texts the screen exports */
+static void ind_text(char *s, bool upper)
+{
+    for (char *q = s; (q = strstr(q, "\xe2\x92")) != NULL;)
+        if ((unsigned char)q[2] == 0xA4 || (unsigned char)q[2] == 0xA5) {
+            q[1] = (unsigned char)q[2] == 0xA5 ? 'J' : upper ? 'I' : 'i';
+            q[0] = '(', q[2] = ')', q += 3;
+        } else {
+            q += 2;
+        }
+}
+
+static int cells_in(const char *s, int len, bool upper)
+{
+    int n = 0;
+    uint32_t o[3];
+    for (const char *p = s; p < s + len && *p;) n += cells_of(&p, upper, o);
+    return n;
+}
+
+int screen_cells_n(const char *s, int len)
+{
+    return cells_in(s, len, false);
+}
+
 const font_glyph *screen_glyph(uint32_t cp)
 {
     int lo = 0, hi = FONT5X7_COUNT - 1;
@@ -120,12 +176,7 @@ const font_glyph *screen_glyph(uint32_t cp)
 
 int screen_cells(const char *s)
 {
-    int n = 0;
-    while (*s) {
-        next_cell(&s);
-        n++;
-    }
-    return n;
+    return cells_in(s, (int)strlen(s), false);
 }
 
 int screen_missing(const char *s)
@@ -144,7 +195,7 @@ static void draw_cp(ls027_frame *f, int x, int y, int scale, uint32_t cell, bool
     draw_glyph(f, x, y, scale, cell & CP_MASK, dark);
     /* a mark one row above its glyph's own rows, so a row stays clear between it and a lowercase
        letter (a hat on y touching it read as 9) */
-    if (cell >> MARK_SHIFT) draw_glyph(f, x, y - scale, scale, (cell >> MARK_SHIFT) + 0x02FF, dark);
+    if (MARK_OF(cell)) draw_glyph(f, x, y - scale, scale, MARK_OF(cell) + 0x02FF, dark);
 }
 
 static void draw_glyph(ls027_frame *f, int x, int y, int scale, uint32_t cp, bool dark)
@@ -172,7 +223,9 @@ static int draw_cps(ls027_frame *f, int x, int y, int scale, const uint32_t *cp,
 int screen_decode(const char *s, uint32_t *cells, int max)
 {
     int n = 0;
-    while (*s && n < max) cells[n++] = next_cell(&s);
+    uint32_t o[3];
+    while (*s && n < max)
+        for (int i = 0, k = cells_of(&s, false, o); i < k && n < max; i++) cells[n++] = o[i];
     return n;
 }
 
@@ -182,17 +235,25 @@ void screen_cell_bitmap(uint32_t cell, uint8_t rows[8])
     memset(rows, 0, 8);
     if (!g) screen_missed++;
     for (int r = 0; r < 7; r++) rows[r + 1] = g ? g->rows[r] : (uint8_t)(r == 0 || r == 6 ? 0x1F : 0x11);
-    if (cell >> MARK_SHIFT) {                   /* the mark a row above the glyph's rows, as drawn */
-        const font_glyph *m = screen_glyph((cell >> MARK_SHIFT) + 0x02FF);
+    if (MARK_OF(cell)) {                        /* the mark a row above the glyph's rows, as drawn */
+        const font_glyph *m = screen_glyph(MARK_OF(cell) + 0x02FF);
         for (int r = 0; m && r < 7; r++) rows[r] |= m->rows[r];
     }
 }
 
-int screen_text(ls027_frame *f, int x, int y, int scale, const char *s, bool dark)
+/* screen_text with the tokens' case (unit 104) */
+static int text_case(ls027_frame *f, int x, int y, int scale, const char *s, bool dark, bool upper)
 {
     int n = 0;
-    while (*s) draw_cp(f, x + n++ * 6 * scale, y, scale, next_cell(&s), dark);
+    uint32_t o[3];
+    while (*s)
+        for (int i = 0, k = cells_of(&s, upper, o); i < k; i++) draw_cp(f, x + n++ * 6 * scale, y, scale, o[i], dark);
     return n;
+}
+
+int screen_text(ls027_frame *f, int x, int y, int scale, const char *s, bool dark)
+{
+    return text_case(f, x, y, scale, s, dark, false);
 }
 
 /* ---- a line of text, fitted ---- */
@@ -214,13 +275,28 @@ static void u8_add(line *l, const char *b, int n)
     l->u8[l->ulen] = '\0';
 }
 
+/* One code point of s into l, its cells and their text: a token's three cells written as their three characters (unit
+   104), any other cell as its own bytes, its mark with it (unit 104: eqn_line wrote a marked cell's text from the cell,
+   so x̂ in an equation exported four bytes of nothing) */
+static void line_piece(line *l, const char **s, bool upper)
+{
+    const char *b = *s;
+    uint32_t o[3];
+    int k = cells_of(s, upper, o);
+    for (int i = 0; i < k && l->n < LINE_MAX_CP; i++) {
+        l->cp[l->n++] = o[i];
+        if (k == 3) {
+            char ch = (char)(o[i] & CP_MASK);
+            u8_add(l, &ch, 1);
+        } else {
+            u8_add(l, b, (int)(*s - b));
+        }
+    }
+}
+
 static void line_add(line *l, const char *s)
 {
-    while (*s && l->n < LINE_MAX_CP) {
-        const char *b = s;
-        l->cp[l->n++] = next_cell(&s);
-        u8_add(l, b, (int)(s - b));
-    }
+    while (*s && l->n < LINE_MAX_CP) line_piece(l, &s, false);
 }
 
 static void line_add_cp(line *l, uint32_t cp)
@@ -249,15 +325,23 @@ static int span(int n, int s)
     return n > 0 ? n * 6 * s - s : 0;
 }
 
-/* Draws l with its bottom at bot, at the largest scale up to max that holds it; at scale 2 a
-   line still too long shows a window of it (around the cursor, else its start), a cut side marked
-   with an ellipsis. Right aligned unless left. */
-/* Unit 096: lead, when not 0, is one cell drawn before the line's own (X's ≈), fitted with it; the cells drawn */
-static int draw_line_lead(ls027_frame *f, int bot, int max, const line *l, bool left, uint32_t lead)
+/* Unit 104: a right cut at cell at, where an ellipsis takes cell at's place: when that cell continues a token, the cut
+   moves to the token's first cell, so the cells before it that belong to the token go too; the cell the ellipsis takes */
+static int cut_right(const uint32_t *cp, int at)
+{
+    while (at > 0 && (cp[at] & TOK_MORE)) at--;
+    return at;
+}
+
+/* Fits l at the largest scale up to max that holds it, into cp (its cells, n of them); at scale 2 a line still too long
+   shows a window of it (around the cursor, else its start), a cut side marked with an ellipsis. Unit 096: lead, when not
+   0, is one cell before the line's own (X's ≈), fitted with it. Unit 104: a cut never shows part of a token: the cells
+   of a token a cut would split go with the cut, and the line is a cell or two short. *left, the line's side: a cut
+   line is drawn from the left. Pure; returns the scale (unit 104's test seam, screen_x_fit, reads what it gives). */
+static int fit_line(const line *l, int max, bool *left, uint32_t lead, uint32_t *cp, int *cells)
 {
     int s = max;
     int n = l->n, k = lead && n < LINE_MAX_CP ? 1 : 0;
-    uint32_t cp[LINE_MAX_CP];
     if (k) cp[0] = lead;
     memcpy(cp + k, l->cp, sizeof cp[0] * (size_t)n);
     n += k;
@@ -265,21 +349,65 @@ static int draw_line_lead(ls027_frame *f, int bot, int max, const line *l, bool 
     while (s > 2 && span(n, s) > NUM_R - NUM_X) s--;
     int room = (NUM_R - NUM_X + s) / (6 * s);
     if (n > room && lv.tail > 0 && lv.cursor < 0 && lv.tail < room - 1) {    /* its start, an ellipsis, its tail */
-        memmove(cp + room - lv.tail, cp + n - lv.tail, sizeof cp[0] * (size_t)lv.tail);
-        cp[room - lv.tail - 1] = 0x2026;
-        n = room;
-        left = true;
+        int e = cut_right(cp, room - lv.tail - 1);
+        memmove(cp + e + 1, cp + n - lv.tail, sizeof cp[0] * (size_t)lv.tail);
+        cp[e] = 0x2026;
+        n = e + 1 + lv.tail;
+        *left = true;
     } else if (n > room) {
         int start = 0;
         if (lv.cursor >= 0 && lv.cursor > room - 2) start = lv.cursor - (room - 2);
         if (start > n - room) start = n - room;
-        memmove(cp, cp + start, sizeof cp[0] * (size_t)room);
-        if (start > 0) cp[0] = 0x2026;
-        if (start + room < n) cp[room - 1] = 0x2026;
-        n = room;
-        left = true;
+        bool cut_end = start + room < n;
+        int end = cut_end ? cut_right(cp, start + room - 1) : start + room;   /* the window's cells: start .. end - 1 */
+        memmove(cp, cp + start, sizeof cp[0] * (size_t)(end - start));
+        n = end - start;
+        if (cut_end) cp[n++] = 0x2026;
+        if (start > 0) {                        /* the ellipsis takes cell start's place, and the rest of its token */
+            int d = 0;
+            while (1 + d < n && (cp[1 + d] & TOK_MORE)) d++;
+            memmove(cp + 1, cp + 1 + d, sizeof cp[0] * (size_t)(n - 1 - d));
+            n -= d;
+            cp[0] = 0x2026;
+        }
+        *left = true;
     }
+    *cells = n;
+    return s;
+}
+
+/* screen_x_fit's (unit 104): the line it watches (compose's X) and where the fit goes; NULL when nothing asks */
+static const line *fit_watch;
+static screen_fit *fit_seen;
+
+static int cell_u8(uint32_t cell, char *b)
+{
+    uint32_t cp = cell & CP_MASK;
+    int n = cp < 0x80 ? 1 : cp < 0x800 ? 2 : cp < 0x10000 ? 3 : 4;
+    if (n == 1) b[0] = (char)cp;
+    else if (n == 2) b[0] = (char)(0xC0 | cp >> 6), b[1] = (char)(0x80 | (cp & 0x3F));
+    else if (n == 3) b[0] = (char)(0xE0 | cp >> 12), b[1] = (char)(0x80 | (cp >> 6 & 0x3F)), b[2] = (char)(0x80 | (cp & 0x3F));
+    else b[0] = (char)(0xF0 | cp >> 18), b[1] = (char)(0x80 | (cp >> 12 & 0x3F)), b[2] = (char)(0x80 | (cp >> 6 & 0x3F)),
+         b[3] = (char)(0x80 | (cp & 0x3F));
+    if (MARK_OF(cell)) {
+        uint32_t m = MARK_OF(cell) + 0x02FF;
+        b[n++] = (char)(0xC0 | m >> 6), b[n++] = (char)(0x80 | (m & 0x3F));
+    }
+    return n;
+}
+
+/* Draws l with its bottom at bot as fit_line fits it. Right aligned unless left. The cells drawn */
+static int draw_line_lead(ls027_frame *f, int bot, int max, const line *l, bool left, uint32_t lead)
+{
+    uint32_t cp[LINE_MAX_CP];
+    int n, s = fit_line(l, max, &left, lead, cp, &n);
     int x = left ? NUM_X : NUM_R - span(n, s);
+    if (fit_seen && l == fit_watch) {
+        int u = 0;
+        fit_seen->scale = s, fit_seen->cells = n;
+        for (int i = 0; i < n && u + 8 < (int)sizeof fit_seen->text; i++) u += cell_u8(cp[i], fit_seen->text + u);
+        fit_seen->text[u] = '\0';
+    }
     draw_cps(f, x, bot - 7 * s, s, cp, n, true);
     return n;
 }
@@ -502,14 +630,14 @@ static void entry_line(const ab_calc *c, char radix, line *l)
     if (c->vlen > 0) line_add_cp(l, ']');
 }
 
-/* an equation's text with the cursor at byte offset cur (-1 none) */
-static void eqn_line(const char *s, int cur, line *l)
+/* an equation's text with the cursor at byte offset cur (-1 none); upper, its tokens' case (unit 104: upper_of its model) */
+static void eqn_line(const char *s, int cur, line *l, bool upper)
 {
     if (s[0] == '\x01') s++;                    /* a built-in solver: its LCD name (unit 015) */
     const char *p = s;
     while (*p) {
         if (cur >= 0 && p - s == cur) line_cursor(l);
-        line_add_cp(l, next_cell(&p));
+        line_piece(l, &p, upper);
     }
     if (cur >= 0 && p - s <= cur) line_cursor(l);
 }
@@ -843,7 +971,7 @@ static void pg_draw_text(ls027_frame *f, int bot, const char *s, bool left)
     uint32_t cp[PG_CELLS + 1];
     int n = screen_decode(s, cp, PG_CELLS + 1);
     if (n > PG_CELLS) {
-        n = PG_CELLS;
+        n = cut_right(cp, PG_CELLS - 1) + 1;    /* unit 104: a token goes whole */
         cp[n - 1] = 0x2026;
         left = true;
     }
@@ -1161,7 +1289,7 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
         line *ls[4] = {&k->t, &k->z, &k->y, &k->x};
         char row[AB_EQN_LEN];
         for (int i = 0; i < 4; i++)
-            if (ab_cas_row(c, c->cas_row - 3 + i, row, sizeof row)) eqn_line(row, -1, ls[i]);
+            if (ab_cas_row(c, c->cas_row - 3 + i, row, sizeof row)) eqn_line(row, -1, ls[i], upper_of(ab_rec_model(c)));
         k->view = k->x_left = true;
         k->xk = k->yk = SCREEN_MESSAGE;
         return;
@@ -1172,7 +1300,7 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
     } else if (c->prgm && c->eqn_typing) {      /* an equation line being typed (UG p.13-7): the text and
                                                    its cursor, as Equation mode's typing (unit 030's review
                                                    found the line shown in its place) */
-        eqn_line(c->ebuf, c->ecur, xl);
+        eqn_line(c->ebuf, c->ecur, xl, upper_of(ab_rec_model(c)));
         k->x_left = true;
         k->xk = SCREEN_EQN;
     } else if (c->prgm) {                       /* the pointer's address and its line (list.c) */
@@ -1197,13 +1325,13 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
         if (c->hist_row && ab_rows_peek(c, c->hist_row, &hv, ht, sizeof ht)) peek_val_line(&hv, ht, c, ui, xl, &k->ind);
         else val_line(&c->ans, c, ui, xl, &k->ind);
     } else if (c->eqn_mode && c->eqn_typing) {
-        eqn_line(c->ebuf, c->ecur, xl);
+        eqn_line(c->ebuf, c->ecur, xl, upper_of(ab_rec_model(c)));
         k->x_left = true;
         k->xk = SCREEN_EQN;
     } else if (c->eqn_mode) {
         if (c->eqn_cur < 0) line_add(xl, "EQN LIST TOP");
         else {
-            eqn_line(c->eqn[c->eqn_cur], -1, xl);
+            eqn_line(c->eqn[c->eqn_cur], -1, xl, upper_of(c->eqn_model[c->eqn_cur]));
             line_add(xl, ab_eqn_mark(c, c->eqn[c->eqn_cur], c->eqn_model[c->eqn_cur]));   /* unit 031 rule 3 */
             if ((m = ab_cas_note(c)) != NULL && m[0] == '+') {
                 line_add(xl, " +C");            /* unit 048: ∫'s +C beside the answer, never in its text, kept in
@@ -1290,9 +1418,9 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
         if (c->hist_row) {
             char ht[AB_EQN_LEN];
             ab_rows_text(c, c->hist_row, ht, sizeof ht);
-            eqn_line(ht, -1, &k->y);
+            eqn_line(ht, -1, &k->y, upper_of(ab_rec_model(c)));
         } else {
-            eqn_line(c->ebuf, c->alg_shown ? -1 : c->ecur, &k->y);
+            eqn_line(c->ebuf, c->alg_shown ? -1 : c->ecur, &k->y, upper_of(ab_rec_model(c)));
         }
         k->yk = SCREEN_EQN;
         k->prompt = false;
@@ -1345,6 +1473,7 @@ typedef struct {
     int s, sc, n, gap, top, k, ctop, h;     /* sc: the text's scale (s 0); h: the block's height */
     int starts[24], lens[24];   /* the text's lines (s 0) */
     char buf[AB_EQN_LEN + 16];  /* an equation stamped 33 or 35, with its mark */
+    bool up;                    /* unit 104: the text's tokens upper case (an entry stamped 35, drawn as its text) */
 } tb_area;
 
 static int area_line_h(const tb_area *a, int i)
@@ -1371,6 +1500,7 @@ static void area_fit(const ab_calc *c, tb_area *a)
     if (!math && c->eqn_cur >= 0 && c->eqn[c->eqn_cur][0] != '\x01') {     /* 081: another stamp, its text and mark */
         snprintf(a->buf, sizeof a->buf, "%s%s", a->text, ab_eqn_mark(c, a->text, c->eqn_model[c->eqn_cur]));
         a->text = a->buf;
+        a->up = upper_of(c->eqn_model[c->eqn_cur]);
     }
     a->label = m && m[0] != '+' ? m : NULL;
     a->plus_c = m && m[0] == '+';
@@ -1379,7 +1509,7 @@ static void area_fit(const ab_calc *c, tb_area *a)
         a->n = tb_lines(&tb_screen), a->gap = 3 * a->s;
     } else {                                                /* the text: at 3 when it fits a line, else at 2, wrapped */
         a->s = 0;
-        a->sc = screen_cells(a->text) <= (w + 3) / 18 ? 3 : 2;
+        a->sc = cells_in(a->text, (int)strlen(a->text), a->up) <= (w + 3) / 18 ? 3 : 2;
         a->n = tb_text_lines(a->text, (w + a->sc) / (6 * a->sc), a->starts, a->lens, 24);
         a->gap = 3 * a->sc;
     }
@@ -1410,6 +1540,7 @@ bool screen_drawn_text(const ab_calc *c, char *out, int size)
     bool math;
     const char *t = shown_text(c, &math);
     if (!math || tb_parse(&tb_screen, t) != 0 || tb_text(&tb_screen, false, out, size) < 0) snprintf(out, (size_t)size, "%s", t);
+    ind_text(out, !math && c->eqn_cur >= 0 && upper_of(c->eqn_model[c->eqn_cur]));  /* unit 104: as the area draws it */
     return true;
 }
 
@@ -1446,13 +1577,22 @@ void screen_wheel_text(const ab_calc *c, int i, char *out, int size)
     const char *t = i < 0 ? "EQN LIST TOP" : c->eqn[i] + (c->eqn[i][0] == '\x01');
     char b[AB_EQN_LEN + 16];
     snprintf(b, sizeof b, "%s%s", t, i >= 0 && c->eqn[i][0] != '\x01' ? ab_eqn_mark(c, t, c->eqn_model[i]) : "");
-    if (screen_cells(b) <= WH_CELLS + 1) {
+    bool up = i >= 0 && upper_of(c->eqn_model[i]);   /* unit 104: its tokens as their three characters, its stamp's case */
+    if (cells_in(b, (int)strlen(b), up) <= WH_CELLS + 1) {
         snprintf(out, (size_t)size, "%s", b);
+        ind_text(out, up);
         return;
     }
     const char *p = b;
-    for (int n = 0; n < WH_CELLS && *p; n++) next_cell(&p);
+    uint32_t o[3];
+    for (int n = 0; *p;) {                      /* (a whole token or none: unit 104) */
+        const char *q = p;
+        int k = cells_of(&q, up, o);
+        if (n + k > WH_CELLS) break;
+        n += k, p = q;
+    }
     snprintf(out, (size_t)size, "%.*s\xe2\x80\xa6", (int)(p - b), b);
+    ind_text(out, up);
 }
 
 /* The entry shown in 2D: whole, its block centred, ▶ at its first line, and (081) up to two neighbours either side at 2;
@@ -1478,7 +1618,7 @@ static void draw_textbook(ls027_frame *f, const ab_calc *c, const screen_ui *ui)
         for (int i = first; i < first + n; i++) {
             char b[AB_EQN_LEN + 16];
             snprintf(b, sizeof b, "%.*s", a.lens[i], a.text + a.starts[i]);
-            screen_text(f, TB_X, top, sc, b, true);
+            text_case(f, TB_X, top, sc, b, true, a.up);
             last_w = 6 * sc * screen_cells(b) - sc;
             top += 7 * sc + a.gap;
         }
@@ -1667,6 +1807,7 @@ bool screen_drawn(const ab_calc *c, const screen_ui *ui, char *out, int size)
     if (comp.textbook) return screen_drawn_text(c, out, size);
     if (!comp.xexpr || !xexpr_fit(c, &top)) return false;
     if (tb_text(&tb_screen, false, out, size) < 0) snprintf(out, (size_t)size, "%s", ab_expr_text(c, &c->x));
+    ind_text(out, false);                       /* unit 104: STU's (i) */
     return true;
 }
 
@@ -1796,6 +1937,17 @@ void screen_level_bottoms(const ab_calc *c, int bot[4])
     screen_ui_default(&ui);
     compose(c, &ui, k);
     for (int i = 0; i < 4; i++) bot[i] = k->page && !k->alg && i < k->levels ? k->lvl_bot[i] : -1;
+}
+
+bool screen_x_fit(const ab_calc *c, const screen_ui *ui, ls027_frame *f, screen_fit *out)
+{
+    out->scale = out->cells = 0;
+    out->text[0] = '\0';
+    fit_watch = &comp.x;
+    fit_seen = out;
+    screen_render(c, ui, f);
+    fit_seen = NULL;
+    return out->scale != 0;
 }
 
 void screen_render(const ab_calc *c, const screen_ui *ui, ls027_frame *f)

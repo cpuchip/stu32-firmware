@@ -29,11 +29,10 @@ static uint32_t utf8(const char **s)
     return c;
 }
 
+/* unit 104: the screen's own count, so an atom measures what screen_text draws (⒤ three cells) */
 static int cells_n(const char *u, int len)
 {
-    int n = 0;
-    for (const char *p = u; p < u + len;) utf8(&p), n++;
-    return n;
+    return screen_cells_n(u, len);
 }
 
 static int text_w(int cells, int s) { return cells ? 6 * s * cells - s : 0; }
@@ -848,9 +847,13 @@ int tb_text_lines(const char *s, int cells, int starts[], int lens[], int max)
     while (at < len && n < max) {
         const char *p = s + at, *cut = NULL;
         int k = 0;
-        while (*p && k < cells) {
-            uint32_t c = utf8(&p);
-            k++;
+        while (*p) {
+            const char *q = p;
+            uint32_t c = utf8(&q);
+            int w = screen_cells_n(p, (int)(q - p));   /* unit 104: a token's three cells, never split */
+            if (k + w > cells && k > 0) break;
+            p = q;
+            k += w;
             if (c == '+' || c == '-' || c == 0xD7 || c == 0xF7 || c == '=' || c == ';' || c == ',') cut = p;
         }
         if (!*p || !cut) cut = p;

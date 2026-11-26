@@ -136,6 +136,15 @@ int ab_prog_line(const ab_calc *c, int i, const ab_display *d, char *out, int si
     }
     if (op == AB_EQLINE) {                      /* an equation line: its text (UG p.13-7) */
         snprintf(out, (size_t)size, "%s%s", c->peqn[arg], ab_eqn_mark(c, c->peqn[arg], c->peqn_model[arg]));
+        /* unit 104 (work/indirect-three-cells.md): its tokens as the line's other lines write them, (I) or (i) by the
+           line's mode, (J); each is 3 bytes either way */
+        for (char *q = out; (q = strstr(q, "\xe2\x92")) != NULL;)
+            if ((unsigned char)q[2] == 0xA4 || (unsigned char)q[2] == 0xA5) {
+                q[1] = (unsigned char)q[2] == 0xA5 ? 'J' : line_m35 ? 'I' : 'i';
+                q[0] = '(', q[2] = ')', q += 3;
+            } else {
+                q += 2;
+            }
         return (int)strlen(out);                /* (the mark: unit 031 rule 3) */
     }
     return op_text(c, op, arg, false, out, size);
