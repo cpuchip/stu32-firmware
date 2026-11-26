@@ -1,0 +1,51 @@
+Preparing worktree (detached HEAD 05ccd9f)
+HEAD is now at 05ccd9f 104 closed (abacus #17631): h104 adopted as tests/h104-abacus.txt (sha256 81cf5cb8...367d, 1,535 B, from #17634), in make test and the sanitizer run, 11/11; H06 flipped fails 10/11 (rc 1); make test rc 0, 22,483/22,483 vectors, 61,789/61,789 expectations
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+casim 2e620567905e58b5752032f31651f5c4b6b22a52
+Preparing worktree (detached HEAD c9af29d)
+HEAD is now at c9af29d Repin: Casimir 1.11.0 (CASIM_PIN 84da80f, the v1.11.0 tag c5ca367; abacus #17715, under Michael's #10856 rule). CAS 044: ∫AB answers powers and products of SIN and COS of one angle exactly, where 1.10.0 said CAN'T INTEGRATE. The census (make -i test on the new pin) moved nothing: no earlier vector sends such an integrand through ∫AB. tests/repin-v1-11-0-soroban.txt (18, from casim 1.11.0's notes, each R value checked by a separate Simpson quadrature): R01-R12, B01 (a letter bound now BOUND NOT NUMERIC) and B02 (casim's Not yet: IMPROPER where CAN'T INTEGRATE is right) fail on 2e62056 (rc 1), K01-K04 the same on both. make test rc 0, 22,501/22,501 vectors, 61,818/61,818 expectations. No firmware code changes; VER stays 0.105
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+casim 84da80f4a3dd47ea38dd3f1337f524ed24a40a88
+
+### standin: 05ccd9f -> c9af29d
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,428,096 | 2,429,056 | +960 |
+| internal RAM static (DIRAM, of 341,760) | 207,739 | 207,739 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 59,074 | 59,074 | +0 |
+| calc_task's frame (under every deep path's stack), B | 144 | 144 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 864,794 -> 865,774 (+980)
+- libbid.a: 1,440,295 -> 1,440,263 (-32)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 160,685 -> 160,685 (+0), none changed
+
+Loaded sections that moved outside the sources these commits change (the section and its relocations compared in the two builds' objects):
+
+- none
+
+(13 moved lines of the changed sources, CASIM_PIN, Makefile, casim.c, census.txt, make-test.txt, old-pin-run.txt, quad.py, quad.txt, repin-v1-11-0-soroban.txt, not listed)
+
+### reva: 05ccd9f -> c9af29d
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,355,808 | 2,356,784 | +976 |
+| internal RAM static (DIRAM, of 341,760) | 215,382 | 215,382 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 78,086 | 78,086 | +0 |
+| calc_task's frame (under every deep path's stack), B | 128 | 128 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 805,698 -> 806,670 (+972)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 133,347 -> 133,347 (+0), none changed
+
+Loaded sections that moved outside the sources these commits change (the section and its relocations compared in the two builds' objects):
+
+- .text.eqn_step esp-idf/main/libmain.a(calc.c.obj): 1,410 -> 1,414 (+4): object identical
+
+(11 moved lines of the changed sources, CASIM_PIN, Makefile, casim.c, census.txt, make-test.txt, old-pin-run.txt, quad.py, quad.txt, repin-v1-11-0-soroban.txt, not listed)
