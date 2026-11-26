@@ -1,0 +1,8 @@
+alg.txt:3: A3: unknown key token 'XEQ:EQN'
+FAIL A1: expected %XLINE=?, got 0.0000
+FAIL A1: expected %XCELLS=?, got 0.0000
+  the page, 0 row(s), newest last (dropped 0):
+FAIL A2: 2 operation(s) returned an error
+FAIL A2: expected %PAGEN=?, got 0
+FAIL A2: expected %XCELLS=?, got 0.0000
+  the page, 0 row(s), newest last (dropped 0):

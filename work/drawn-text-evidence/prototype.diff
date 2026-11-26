@@ -1,0 +1,79 @@
+diff --git a/firmware/screen.c b/firmware/screen.c
+index 5c530cf..33f43ee 100644
+--- a/firmware/screen.c
++++ b/firmware/screen.c
+@@ -6,6 +6,7 @@
+ 
+ #include <stdio.h>
+ #include <string.h>
++#include <stdlib.h>   /* PROTO 106 */
+ 
+ #define W LS027_W
+ #define H LS027_H
+@@ -1466,6 +1467,18 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
+ static void page_line(screen_line *o, const line *l, screen_kind kind, bool left, const char *label)
+ {
+     snprintf(o->text, sizeof o->text, "%s", l->u8);
++    {   /* PROTO 106: the cells as drawn, each through cell_u8 */
++        int u = 0;
++        char b[8];
++        for (int i = 0; i < l->n; i++) {
++            int m = cell_u8(l->cp[i], b);
++            if (u + m >= (int)sizeof o->drawn) break;
++            memcpy(o->drawn + u, b, (size_t)m);
++            u += m;
++        }
++        o->drawn[u] = '\0';
++        if (getenv("PROTO_DIFF") && strcmp(o->drawn, o->text)) fprintf(stderr, "PROTODIFF text=[%s] drawn=[%s]\n", o->text, o->drawn);
++    }
+     o->cursor = l->cursor;
+     o->kind = kind;
+     o->left = left;
+diff --git a/firmware/screen.h b/firmware/screen.h
+index 9a728d1..b9bfad4 100644
+--- a/firmware/screen.h
++++ b/firmware/screen.h
+@@ -100,6 +100,7 @@ typedef enum {
+ 
+ typedef struct {
+     char text[SCREEN_TEXT_MAX];     /* UTF-8; a cursor is the '_' in it */
++    char drawn[SCREEN_TEXT_MAX];    /* PROTO 106 */
+     int cursor;                     /* the cursor's cell (screen_cells counting), -1 none */
+     screen_kind kind;
+     bool left;                      /* drawn from the left, else right aligned */
+diff --git a/tests/vectors.c b/tests/vectors.c
+index a2c676d..b91036d 100644
+--- a/tests/vectors.c
++++ b/tests/vectors.c
+@@ -990,6 +990,13 @@ int vectors_run(const char *name, FILE *f)
+         }
+ 
+ #ifndef AB_DEVICE
++        if (getenv("PROTO_DIFF")) {             /* PROTO 106 census: every vector's lines, text against drawn */
++            static screen_page cpg;
++            screen_ui cui;
++            screen_ui_default(&cui);
++            fprintf(stderr, "PROTOVEC %s:%s\n", name, id);
++            screen_lines(&c, &cui, &cpg);
++        }
+         if (looks_on) look_keep(id, &c);        /* unit 105: before the expectations, which may move the state */
+ #endif
+         if (getenv("AB_IMGCRC") && buf_save(&c, &himg, &himg_len, &himg_cap) && himg_len > 4)   /* the final state's
+@@ -1438,7 +1445,7 @@ int vectors_run(const char *name, FILE *f)
+                     rows_asked = true;
+                     snprintf(got, sizeof got, "%lu", (unsigned long)c.rows_dropped);
+                 } else if (strcmp(ex, "%SEL") == 0 || strncmp(ex, "%PAGEMARK-", 10) == 0 || strncmp(ex, "%PAGEKIND-", 10) == 0 || strncmp(ex, "%LEVELMARK-", 11) == 0 ||
+-                           strncmp(ex, "%LEVELOP-", 9) == 0 || strncmp(ex, "%SOFT-", 6) == 0 || strcmp(ex, "%XLINE") == 0 || strcmp(ex, "%BAND") == 0 ||
++                           strncmp(ex, "%LEVELOP-", 9) == 0 || strncmp(ex, "%SOFT-", 6) == 0 || strcmp(ex, "%XLINE") == 0 || strcmp(ex, "%XCELLS") == 0 || strcmp(ex, "%BAND") == 0 ||
+                            strcmp(ex, "%XMARK") == 0) {
+                     /* (unit 096: %XMARK, the glyph X's line draws before its number, _ none) */
+                     /* unit 093 (abacus #14133, #14135): the selection as screen_lines tells it; blanks _, an empty text _ */
+@@ -1471,6 +1478,8 @@ int vectors_run(const char *name, FILE *f)
+                         snprintf(got, sizeof got, "%s", lab && lab[0] ? lab : "_");
+                     } else if (ex[1] == 'X' && ex[2] == 'M') {
+                         snprintf(got, sizeof got, "%s", pg.xmark[0] ? pg.xmark : "_");
++                    } else if (ex[1] == 'X' && ex[2] == 'C') {   /* PROTO 106: %XCELLS */
++                        snprintf(got, sizeof got, "%.*s", (int)sizeof got - 1, pg.x.drawn[0] ? pg.x.drawn : "_");
+                     } else if (ex[1] == 'X') {
+                         snprintf(got, sizeof got, "%.*s", (int)sizeof got - 1, pg.x.text[0] ? pg.x.text : "_");
+                     } else {

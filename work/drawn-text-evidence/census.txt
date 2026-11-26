@@ -1,0 +1,18 @@
+114 vector files (every one make test names, plain; the three fuzz files from the main tree's last make test), 9829 vectors read, 106 line reads whose drawn string differs from the text; missing: []
+== pair: 103
+  work/015b-vectors.txt:B17: text [[C,REGZ,(J)]] drawn [[C,REGZ,⟮J⟯]]
+  tests/086-soroban.txt:M07: text [(i)^2] drawn [⟮i⟯^2]
+  tests/103-soroban.txt:B03: text [(i)+(J)×2] drawn [⟮i⟯+⟮J⟯×2]
+  tests/103-soroban.txt:B04: text [(i)^2] drawn [⟮i⟯^2]
+  tests/h103-abacus.txt:H04: text [2×(i)-(J)] drawn [2×⟮i⟯-⟮J⟯]
+  tests/h103-abacus.txt:H04: text [2×(i)-(J)] drawn [2×⟮i⟯-⟮J⟯]
+  tests/h103-abacus.txt:H05: text [(J)+1] drawn [⟮J⟯+1]
+  tests/104-soroban.txt:E01: text [(I)_] drawn [⟮I⟯_]
+  tests/104-soroban.txt:E01: text [(I)_] drawn [⟮I⟯_]
+  tests/104-soroban.txt:E02: text [A+(I)×2_] drawn [A+⟮I⟯×2_]
+  tests/104-soroban.txt:E02: text [A+(I)×2_] drawn [A+⟮I⟯×2_]
+  tests/104-soroban.txt:E03: text [A+(I)×_2] drawn [A+⟮I⟯×_2]
+== mark: 3
+  tests/103-soroban.txt:B05: text [ŷ(2)+ȳ] drawn [ŷ(2)+ȳ]
+  tests/h103-abacus.txt:H06: text [ŷ(3)] drawn [ŷ(3)]
+  tests/h103-abacus.txt:H07: text [ȳ×2] drawn [ȳ×2]

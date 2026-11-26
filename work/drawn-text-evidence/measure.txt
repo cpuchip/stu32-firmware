@@ -1,0 +1,14 @@
+# PROTO 106: X's text and its drawn string (each read with =?)
+C01 | 35: the token beside typed | MODE35 EQN RCL:(I) + () RCL:I > | %XLINE=? %XCELLS=? %XDRAW=?
+C02 | 33s | MODE33 EQN RCL:(i) + () RCL:i > | %XLINE=? %XCELLS=? %XDRAW=?
+C03 | STU | STU EQN RCL:(I) + () RCL:i > | %XLINE=? %XCELLS=? %XDRAW=?
+C04 | 35: (J), the cursor inside the line | MODE35 EQN RCL:(J) * 2 < < | %XLINE=? %XCELLS=? %XDRAW=?
+C05 | a program line | MODE35 PRGM LBL:A EQN RCL:(I) + () RCL:I > ENTER | %XLINE=? %XCELLS=? %XDRAW=?
+C06 | STO (I) as a program line | MODE35 PRGM LBL:A STO:(I) | %XLINE=? %XCELLS=?
+C07 | the list | MODE35 EQN RCL:(I) + 1 ENTER | %XLINE=? %XCELLS=?
+C08 | STU's area: X keeps the text | STU EQ:⒤+1 | %XLINE=? %XCELLS=? %XDRAWN=?
+C09 | y-hat precomposed | STU EQ:ŷ(2)+ȳ | %XLINE=? %XCELLS=?
+C10 | x-hat typed with its mark | STU EQ:x̂+1 | %XLINE=? %XCELLS=?
+C11 | nine tokens: the whole line, unwindowed | MODE35 EQN RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) | %XLINE=? %XCELLS=? %XDRAW=?
+C12 | a number | 12.5 ENTER | %XLINE=? %XCELLS=?
+C13 | empty X line | MODE35 EQN | %XLINE=? %XCELLS=?
