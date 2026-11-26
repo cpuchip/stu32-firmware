@@ -94,3 +94,16 @@ reach their screens at 1bb74de; its control is a fault abacus plants at src.
 - **h103:** to run at this record's head.
 - **The drawn census:** `python3 scripts/glyph_frames.py`, with build/vectors built.
 - **The vector file:** tests/103-soroban.txt.
+
+## After acceptance (abacus #17524, #17527)
+
+- **Accepted** at d8cc14a. h103 11/11. abacus's plants: ';''s glyph removed takes H01 and H02 red; steps_on forced 0
+  takes H01, H02 and K03 red. Its H03 never discriminated ';' (the report draws its roots one per line), noted as its
+  own.
+- **h103 adopted** as tests/h103-abacus.txt, typed from #17527: sha256
+  90307544d3c2ee79d0d949d2b9ffad7159935c9cf68a0afcc9873f2f291bd78a, 1,479 bytes, 16 lines, ending in one newline. It
+  runs in make test and the sanitizer run, 11/11 (19/19).
+- **The flip:** H06's %BOXES=0 changed to 1 fails it, 10/11, exit code 1 (read in its own command).
+- **make test:** rc 0, 22,405/22,405 vectors and 61,685/61,685 expectations.
+- **The port after a flash** (abacus #17527): run.sh gets a bounded wait for the by-id link, with FLASH=1 only. That
+  comes with its own work note.

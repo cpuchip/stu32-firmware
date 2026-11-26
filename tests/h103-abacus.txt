@@ -1,0 +1,16 @@
+# h103: unit 103's hidden set (abacus, 2026-11-25): the face draws ';', ⒤, ⒥, ŷ and ȳ with no hollow box (%BOXES), and
+# screen_page's steps_on is 1 on a STEPS page only (%STEPSON). From soroban's blueprint stu32-firmware work/glyphs-steps.md at
+# 1bb74de and the rulings (#17497). Both directives are new with the unit, so before src the runner refuses this file
+# whole; h103-keys.txt (the same keys with today's directives) shows each row reaches its screen, and the control at src
+# is a planted fault.
+H01 | a PURE POWER page with three ';' (X^4=-16's four roots) | STU CASCPLX EQ:X^4=-16 CASSOLVE:X CASSTEPS BST BST | %STEPSON=1 %BOXES=0
+H02 | a letter solve's ANSWER page, its row after a ';' | STU EQ:V=I×R CASSOLVE:R CASSTEPS BST | %STEPSON=1 %BOXES=0
+H03 | SOLVE's report, two roots joined by ';' | STU EQ:X^2-5×X+6 CASSOLVE:X | %STEPSON=0 %BOXES=0
+H04 | ⒤ and ⒥ in a STU equation | STU EQ:2×⒤-⒥ | %STEPSON=0 %BOXES=0
+H05 | ⒥ in the 35s | MODE35 EQ:⒥+1 | %BOXES=0
+H06 | ŷ alone | STU EQ:ŷ(3) | %BOXES=0
+H07 | ȳ alone | STU EQ:ȳ×2 | %BOXES=0
+K01 | control: the home, a plain number | STU 2 SQRT | %STEPSON=0 %BOXES=0
+K02 | control: the equation list, plain text | STU EQ:X+1 | %STEPSON=0 %BOXES=0
+K03 | control: a STEPS page with no ';' is still a STEPS page | STU EQ:X^9=64 CASSOLVE:X CASSTEPS BST BST | %STEPSON=1 %BOXES=0
+K04 | control: steps refused, the request open | STU EQ:X^2=A CASSOLVE:X CASSTEPS | ERR %ERRMSG=UNSUPPORTED %STEPSON=0
