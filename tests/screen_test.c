@@ -1374,6 +1374,16 @@ int main(int argc, char **argv)
                        "104: the cursor's cell, the token counted as three");
             }
         }
+        /* the textbook's text (its parser takes no token, a known limit): a long STU equation of tokens wrapped at 2, each
+           line within the area, no token split across lines */
+        ab_init(&c);
+        ab_do_arg(&c, AB_MODEL, AB_MODEL_STU);
+        {
+            char t[AB_EQN_LEN] = "";
+            for (int r = 0; r < 15; r++) strcat(t, r ? "+\xe2\x92\xa4" : "\xe2\x92\xa4");
+            ab_eqn_add(&c, t);
+        }
+        frame("73-tb-indirect-wrap", &c, &ui);
 #undef STU0
 #undef PAGE
     }

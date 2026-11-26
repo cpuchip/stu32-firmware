@@ -1,0 +1,29 @@
+Unit 104's mutants, each predicted before any run (committed before the runner first ran). Each is one fault applied
+alone by work/104-evidence/mutants-runner.py; the binaries are deleted and rebuilt (a stale binary is never a pass), and
+the restored tree is built again at the end. The runner reads tests/104-soroban.txt, tests/103-soroban.txt,
+tests/h103-abacus.txt, screen_test, the stand-in replay, tests/glyph_census.py and scripts/glyph_frames.py.
+The blueprint's M4 ("the textbook counting code points again") would survive by construction: the textbook's parser
+takes no token (the known limit), so its atom count never meets one, and x̂'s frame is the same both ways (P1). Its M4
+here is the textbook's text wrap, the one place it meets a token; screen_test's frame 73 was added for it, before this
+file (no test read the wrap).
+
+M0  control: no change.                                              SURVIVED.
+M1  cells_of's expansion removed (a token one cell, no glyph).       RED: 104 E01-E06, E08-E10, M01-M05 (M04 and M05
+    on %BOXES: the area's text draws boxes, its exported text still rewritten), P05, W01-W03; green E07 (no token
+    left), M06 (%XDRAWN alone), P01-P04 (list.c writes the three characters itself), A01, A02, X01, X02. 103 B03, B04
+    and h103 H04, H05 (%BOXES). screen_test: frames 69, 71, 73 differ (72 is list.c's text), the no-box check, and
+    3 of the 4 cursor-cell checks (◀◀◀'s cell 2 is the same either way). glyph_census U+24A4, U+24A5. glyph_frames
+    red (boxes in the tokens' frames). The replay: glyph103's ⒤ frame and glyph104's.
+M2  upper_of always false (every token (i)).                         RED: 104 E01-E06, E08, E10, M05 (the 35-stamped
+    entry's drawn text), P05, W01-W03; green E07, E09 ((J)), M01-M04, M06, P01-P04 (list.c has its own mode), A01,
+    A02, X01, X02. screen_test: frame 71. The replay: glyph104 (35). 103, h103, glyph_census, glyph_frames green.
+M3  upper_of always true (every token (I)).                          RED: 104 M01, M02 (33s), M03 (STU typing), M06
+    (the 33-stamped entry's drawn text); green everything else, M04 too (an STU-stamped entry's text is (i) whatever
+    upper_of says). screen_test green (its STU frames draw the area, upper only for a 35 stamp), the replay green.
+M4  the textbook's text wrap counting a token as one cell.           RED: screen_test frame 73 only (the fifteen tokens
+    fit one 29-code-point line and run past the area). 104, 103, h103, the replay, glyph_census, glyph_frames green.
+M5  a token's later cells not flagged (TOK_MORE never set).          RED: 104 W02, W03 (the window and the end cut
+    split a token: …)+(I)… and …(I…); screen_test frame 71. Everything else green.
+M6  list.c's rewrite removed (the line's text keeps the core's ⒤).  RED: 104 P01 only (line_add draws it (i), STU's
+    and the 33s's case, so P02 and P03 read the same); screen_test frame 72 and its text check. Everything else green.
+M7  screen_drawn's rewrite removed (drawn= keeps the core's ⒤).      RED: 104 M04, M05, M06. Everything else green.
