@@ -1,0 +1,43 @@
+Unit 105's mutants, each predicted before any run (committed before the runner first ran). Each is one fault applied
+alone by work/105-evidence/mutants-runner.py; the binaries are deleted and rebuilt (a stale binary is never a pass), and
+the restored tree is built again at the end. The runner reads tests/105-soroban.txt, tests/104-soroban.txt,
+tests/h104-abacus.txt, tests/103-soroban.txt, tests/h103-abacus.txt, screen_test, the stand-in replay,
+tests/glyph_census.py, scripts/glyph_frames.py and scripts/gen_font.py --check. A frame "differs" is screen_test's
+pinned frame; "U lines" are 105's %LOOK=! lines U01-U05, U07-U09, U11.
+
+M0  control: no change.                                              SURVIVED.
+M1  cells_of's pair back to ( ) (out[0] '(', out[2] ')').            RED: 105 T01-T10 (%XDRAW), W01, every U line
+    (%LOOK: the frames are 104's again, 0 px); green T11 (no %XDRAW), S01, K01-K03. 104 E01, E02, W01-W03 (their
+    %XDRAW amended to the pair). h104, 103, h103 green. screen_test: frames 69, 71, 72, 73 differ; the face check
+    green (the face is unchanged). The replay: glyph103's ⒤ frame and glyph104's (104's CRCs again). glyph_census
+    U+24A4, U+24A5 (cells_of's body holds no 0x27EE). glyph_frames, gen_font green.
+M2  the program line through list.c's text again (the EQLINE branch never taken).
+                                                                     RED: 105 T07-T10 (%XDRAW), U07-U09 (%LOOK: 0 px);
+    green everything else in 105 (the texts are the listing's either way). 104, h104, 103, h103 green. screen_test:
+    frame 72 differs; its text checks green. The replay green (no program line in glyph103 or glyph104), glyph_census,
+    glyph_frames, gen_font green.
+M3  the pair drawn with the plain parentheses' rows (font5x7.c's U+27EE and U+27EF rows set to ( and )'s).
+                                                                     RED: 105 every U line (%LOOK: 0 px); green
+    every %XDRAW and T line (the cells are still the pair's code points), W01, S01, K01-K03. 104, h104, 103, h103
+    green. screen_test: the face check, "two glyphs alike" (twice), frames 69, 71, 72, 73 differ (drawn as 104's). The
+    replay: glyph103, glyph104 (104's CRCs). gen_font --check red (font5x7.c isn't the drawing). glyph_census,
+    glyph_frames green. The pixels catch what the text can't.
+M4  U+27EF removed from the face (its font5x7.c entry deleted).    RED: %BOXES on every line drawing a token: 105
+    T01-T11, W01; 104 E01, E10, M03, M04, M05, W03; h104 H01, H06, H07, H08, H09; 103 B03, B04; h103 H04, H05. Green:
+    every U line (a box differs from ")" too), every %XDRAW and %XLINE. screen_test: the face check, the no-box check,
+    frames 69, 71, 72, 73 differ. The replay: glyph103, glyph104. glyph_census U+24A4, U+24A5. glyph_frames red (boxes
+    in the tokens' frames). gen_font --check red.
+M5  line_piece writing the pair's cells as they are (its ( ) mapping removed: the text gets the code points' low
+    bytes, 0xEE and 0xEF, not UTF-8).                               RED: every %XLINE that shows a token: 105 T01-T10,
+    K01; 104 E01-E06, E08-E10, M01-M03, P01-P03, P05; h104 H01-H04, H06-H08. Green: every U line's %XLINE and %LOOK
+    (the frames are drawn from the cells), %XDRAW (cell_u8 writes the cells), %XDRAWN (screen_drawn's ind_text), 104's
+    P04, A01, A02, E07, h104 H05, H09, K01, K02; 103, h103. screen_test: 104's text check at frame 72 and 105's two
+    program-line text checks; the four cursor-cell checks (screen_cells_n over the stray bytes) not predicted. The
+    replay, glyph_census, glyph_frames, gen_font green.
+M6  ab_prog_m35 always true (every program line's case 35's).       RED: 105 T08, T09 (%XLINE and %XDRAW read (I));
+    104 P02, P03 (the listing's (I)). Green: U08, U09 (a token (I) still isn't typed (i)), every other line. screen_test:
+    105's 33s program-line text check (t is "(I)+(J)"). The replay, glyph_census, glyph_frames, gen_font green.
+M7  x_line returning compose's Y line (screen_x_fit watching the wrong line).
+                                                                     RED: every %XDRAW line: 105 T01-T10, U01, U07,
+    W01, S01; 104 E01, E02, W01-W03. Green: every %LOOK, %XLINE, %XDRAWN, %BOXES. screen_test, the replay,
+    glyph_census, glyph_frames, gen_font green.
