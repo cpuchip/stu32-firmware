@@ -1,0 +1,3 @@
+FAIL T07: expected %XDRAW=4:⟮I⟯+(J)_, got 4:⟮I⟯+⟮J⟯_
+  the page, 0 row(s), newest last (dropped 0):
+h105-flip.txt: 24/25 vectors, 46/47 expectations

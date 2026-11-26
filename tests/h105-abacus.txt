@@ -1,0 +1,31 @@
+# h105: unit 105's hidden set (abacus, 2026-11-26): the indirect tokens drawn with a tighter pair of their own (Michael's
+# T136, A74 "Token's own parentheses"), so a token never draws as the user's own typed (I)/(i). From soroban's blueprint
+# stu32-firmware work/token-parentheses.md at 7ffc6a5 and its rulings. Each T line is a token; its U line is the same
+# letter typed in the user's parentheses, with the same text (R2: the texts stay ASCII) and a different frame (%LOOK=!).
+# E lines: the cursor and backspace still treat a token as one step (equal frames). S lines: operand forms keep the
+# plain pair (R3). K lines: the instrument's controls.
+T01 | 35s: the token in a product | MODE35 EQN RCL:(I) * RCL:B | %XLINE=(I)×B_ %BOXES=0
+U01 | 35s: I typed in parentheses, the same product | MODE35 EQN () RCL:I > * RCL:B | %XLINE=(I)×B_ %LOOK=!T01
+T02 | 35s: one left steps back over the whole token | MODE35 EQN RCL:A + RCL:(I) < | %XLINE=A+_(I) %BOXES=0
+U02 | 35s: typed, three lefts to the same place | MODE35 EQN RCL:A + () RCL:I > < < < | %XLINE=A+_(I) %LOOK=!T02
+T03 | 35s: (J) | MODE35 EQN RCL:(J) * 2 | %XLINE=(J)×2_ %BOXES=0
+U03 | 35s: J typed | MODE35 EQN () RCL:J > * 2 | %XLINE=(J)×2_ %LOOK=!T03
+T04 | 33s: the token last | MODE33 EQN 2 * RCL:(i) | %XLINE=2×(i)_ %BOXES=0
+U04 | 33s: i typed last | MODE33 EQN 2 * () RCL:i > | %XLINE=2×(i)_ %LOOK=!T04
+T05 | STU: stored with ENTER | STU EQN RCL:(I) * 2 ENTER | %XLINE=(i)×2 %BOXES=0
+U05 | STU: typed, stored | STU EQN () RCL:i > * 2 ENTER | %XLINE=(i)×2 %LOOK=!T05
+T06 | STU: a program line under an STU label | STU PRGM LBL:A EQN RCL:(I) * 2 ENTER | %XLINE=A002_(i)×2 %BOXES=0
+U06 | STU: typed, a program line | STU PRGM LBL:A EQN () RCL:i > * 2 ENTER | %XLINE=A002_(i)×2 %LOOK=!T06
+T07 | 35s: (I) and (J) in one line, drawn as the pair | MODE35 EQN RCL:(I) + RCL:(J) | %XLINE=(I)+(J)_ %BOXES=0 %XDRAW=4:⟮I⟯+⟮J⟯_
+U07 | 35s: both typed, drawn with the plain pair | MODE35 EQN () RCL:I > + () RCL:J > | %XLINE=(I)+(J)_ %LOOK=!T07 %XDRAW=4:(I)+(J)_
+T08 | STU's list: EQ:1+⒤ | STU EQ:1+⒤ | %XDRAWN=1+(i) %BOXES=0
+U08 | STU's list: EQ:1+(i) | STU EQ:1+(i) | %XDRAWN=1+(i) %LOOK=!T08
+E02 | 35s: two lefts, the cursor after the token | MODE35 EQN RCL:(I) * RCL:B < < | %XLINE=(I)_×B
+E01 | 35s: three lefts and one right is the same frame | MODE35 EQN RCL:(I) * RCL:B < < < > | %XLINE=(I)_×B %LOOK=E02
+E03 | 35s: A+ alone | MODE35 EQN RCL:A + | %XLINE=A+_
+E04 | 35s: backspace removes the token whole, the frame is A+'s | MODE35 EQN RCL:A + RCL:(I) BKSP | %LOOK=E03
+S01 | 35s: STO (J) as a program line keeps the plain pair | MODE35 PRGM LBL:A STO:(J) | %XLINE=A002_STO_(J) %XDRAW=4:A002_STO_(J)
+S02 | 35s: RCL (I) as a program line keeps the plain pair | MODE35 PRGM LBL:A RCL:(I) | %XLINE=A002_RCL_(I) %XDRAW=4:A002_RCL_(I)
+K01 | control: another equation differs | MODE35 EQN RCL:A * RCL:B | %LOOK=!T01
+K02 | control: typed, the cursor back and forth, the same frame | MODE35 EQN () RCL:I > * RCL:B < > | %LOOK=U01
+K03 | control: typed parentheses around a number stay plain | MODE35 EQN () 2 > * 3 | %XLINE=(2)×3_ %XDRAW=4:(2)×3_

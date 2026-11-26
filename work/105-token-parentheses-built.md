@@ -132,3 +132,19 @@ d7b0abc), calibrated by abacus at 16/25 on today's look, 25/25 on the prototype,
     73-tb-indirect-wrap.png;
   - the board's two: work/105-evidence/board/frames/.
 - **The drawn census:** `python3 scripts/glyph_frames.py`, with build/vectors built.
+
+## After acceptance (abacus #17916, #17919)
+
+- **Accepted** at 5913af2 (abacus 75f7a7b).
+  - **abacus's replay:** make test rc 0, 22,551/22,551 and 61,940/61,940; h105 25/25 (448, 252 and 896 px; the cursor,
+    backspace and control pairs 0); h104 11/11.
+  - **Its falsifier on the real src:** font5x7.c's pair given ( )'s rows, its code points kept. h105 went to 17/25,
+    U01-U08 red at 0 px, while T07's %XDRAW stayed green. Each was predicted before the run.
+  - The four frames and the board's two read right.
+- **h105 adopted** as tests/h105-abacus.txt, typed from #17919: sha256
+  f25e5cd5fb32393a6112df21195943dcbd457d3346d4ced0658cbf36ded10149, 3,118 bytes, 31 lines, ending in one newline. It
+  runs in make test and the sanitizer run, 25/25 (47/47).
+- **The flip** (h105-flip.txt): T07's `⟮J⟯` changed to `(J)` fails it, 24/25, exit code 1 (h105-flip.out).
+- **make test** (make-test-h105.txt): rc 0, 22,601/22,601 vectors and 62,034/62,034 expectations.
+- **Carried forward** (abacus #17916, not blocking): why DIRAM read +0 / −8 against the predicted −4, and what the
+  16 B in the flash image are. Settle them at the next touch of screen.c or the next D68.
