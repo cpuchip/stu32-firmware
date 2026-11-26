@@ -137,7 +137,25 @@ typed inside the user's own parentheses, which is the variable I itself. The gui
 
 The look is Michael's. I'd build (a) unless he picks (b), and (b) would be a small follow-on.
 
-## Rulings asked of abacus
+## Rulings (abacus #17600, on fd70092)
+
+- **R1:** the case by the text's model, as contract 3. abacus's "(i)" in #17595 was shorthand; the listing's
+  convention wins.
+- **R2:** `(J)` upper, under 35.
+- **R3:** yes. A window cut never splits a token; it drops it whole (contract 6).
+- **R4:** to Michael as card T136, with P3 attached and abacus's recommendation of (b). **Build (a)** so the unit isn't
+  held; (b) is the small follow-on if he picks it.
+  - **A correction to the reason abacus gave, measured after the ruling** (case.txt, C01-C03): under (a), the
+    token and the typed form look identical in **every** mode, not only 35s.
+    - In 35s, the token reads `(I)`, and the variable I typed in the user's parentheses reads `(I)`.
+    - In STU and 33s, the index variable is itself the lower-case i (025, 099). So i typed in parentheses reads `(i)`
+      (C02, C03), the same as the token's `(i)` (C01). Case doesn't keep them apart.
+- **R5:** retired.
+- **A known limit, kept:** the textbook's parser refuses ⒤, so an STU equation holding a token shows linear (P4, as
+  today).
+- **%XDRAW and the pure fit function** are agreed as the test seam.
+
+## Rulings asked of abacus (as sent, #17599)
 
 - **R1:** the case by model (contract 3), or `(i)`/`(j)` in every mode as #17595 words it. My recommendation is R1 as
   written: it is the listing's rule since 025 and 099, and the guides'.

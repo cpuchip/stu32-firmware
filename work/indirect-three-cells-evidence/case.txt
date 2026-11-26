@@ -1,0 +1,3 @@
+C01 | STU token | STU EQN RCL:(I) | %XLINE=?
+C02 | STU i typed in the user's parentheses | STU EQN () RCL:i | %XLINE=?
+C03 | 33s i typed in the user's parentheses | MODE33 EQN () RCL:i | %XLINE=?
