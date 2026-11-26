@@ -1,0 +1,16 @@
+LOOKPX U35 T35 448
+LOOKPX UJ TJ 448
+LOOKPX U33 T33 448
+LOOKPX UST TST 448
+LOOKPX UL TL 448
+LOOKPX UP TP 0
+LOOKPX UP3 TP3 0
+LOOKPX UA TA 252
+LOOKPX K1 T35 0
+LOOKPX K2 U35 0
+LOOKPX K3 T35 688
+FAIL UP: expected %LOOK=!TP, got TP
+  the page, 0 row(s), newest last (dropped 0):
+FAIL UP3: expected %LOOK=!TP3, got TP3
+  the page, 0 row(s), newest last (dropped 0):
+look.txt: 17/19 vectors, 35/37 expectations

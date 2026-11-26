@@ -1,0 +1,14 @@
+FAIL B35: expected %XLINE=?, got (I)+(I)_
+  the page, 0 row(s), newest last (dropped 0):
+FAIL BJ: expected %XLINE=?, got (J)+(J)_
+  the page, 0 row(s), newest last (dropped 0):
+FAIL B33: expected %XLINE=?, got (i)+(i)_
+  the page, 0 row(s), newest last (dropped 0):
+FAIL BST: expected %XLINE=?, got (i)+(i)_
+  the page, 0 row(s), newest last (dropped 0):
+FAIL BP: expected %XLINE=?, got A002_(I)+(I)
+  the page, 0 row(s), newest last (dropped 0):
+FAIL BA: expected %XDRAWN=?, got (i)+(i)
+FAIL BW: expected %XLINE=?, got (I)+(I)+(I)+(I)+(I)+(I)+(I)+(I)+(I)_
+  the page, 0 row(s), newest last (dropped 0):
+beside.txt: 0/7 vectors, 1/8 expectations

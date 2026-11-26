@@ -1,0 +1,12 @@
+LOOKPX UW TW 1180
+FAIL TW: expected %XDRAW=?, got 2:…+(I)+(I)+(I)+(I)+(I)+(I)+(I)_
+FAIL UW: expected %XDRAW=?, got 2:…)+(I)+(I)+(I)+(I)+(I)+(I)+(I)_
+FAIL UW: expected %XLINE=?, got (I)+(I)+(I)+(I)+(I)+(I)+(I)+(I)+(I)_
+  the page, 0 row(s), newest last (dropped 0):
+FAIL XJ: expected %XDRAW=?, got 4:(J)_
+FAIL XI: expected %XDRAW=?, got 4:(i)_
+FAIL XS: expected %XDRAW=?, got 4:(i)_
+FAIL XO: expected %XDRAW=?, got 4:A002_STO_(I)
+FAIL XO: expected %XLINE=?, got A002_STO_(I)
+  the page, 0 row(s), newest last (dropped 0):
+more.txt: 0/6 vectors, 2/10 expectations

@@ -1,0 +1,21 @@
+# PROTO 105 (work/token-parentheses.md): each token beside the user's own parentheses, the whole frame compared
+# (%LOOK); the texts the same on both (%XLINE, %XDRAWN). U-lines' %LOOK=! is the unit; K-lines are the instrument's controls
+T35 | 35: the token | MODE35 EQN RCL:(I) | %XLINE=(I)_ %BOXES=0
+U35 | 35: I typed in parentheses, the cursor after | MODE35 EQN () RCL:I > | %XLINE=(I)_ %LOOK=!T35
+TJ | 35: (J) | MODE35 EQN RCL:(J) | %XLINE=(J)_ %BOXES=0
+UJ | 35: J typed | MODE35 EQN () RCL:J > | %XLINE=(J)_ %LOOK=!TJ
+T33 | 33: the token | MODE33 EQN RCL:(i) | %XLINE=(i)_ %BOXES=0
+U33 | 33: i typed | MODE33 EQN () RCL:i > | %XLINE=(i)_ %LOOK=!T33
+TST | STU: the token | STU EQN RCL:(I) | %XLINE=(i)_ %BOXES=0
+UST | STU: i typed | STU EQN () RCL:i > | %XLINE=(i)_ %LOOK=!TST
+TL | 35: stored, the list | MODE35 EQN RCL:(I) + 1 ENTER | %XLINE=(I)+1 %BOXES=0
+UL | 35: typed, stored | MODE35 EQN () RCL:I > + 1 ENTER | %XLINE=(I)+1 %LOOK=!TL
+TP | 35: a program line | MODE35 PRGM LBL:A EQN RCL:(I) + 1 ENTER | %XLINE=A002_(I)+1 %BOXES=0
+UP | 35: typed, a program line | MODE35 PRGM LBL:A EQN () RCL:I > + 1 ENTER | %XLINE=A002_(I)+1 %LOOK=!TP
+TP3 | 33: a program line | MODE33 PRGM LBL:A EQN RCL:(i) + 1 ENTER | %XLINE=A002_(i)+1 %BOXES=0
+UP3 | 33: typed, a program line | MODE33 PRGM LBL:A EQN () RCL:i > + 1 ENTER | %XLINE=A002_(i)+1 %LOOK=!TP3
+TA | STU's list | STU EQ:⒤+1 | %XDRAWN=(i)+1 %BOXES=0
+UA | STU's list, typed | STU EQ:(i)+1 | %XDRAWN=(i)+1 %LOOK=!TA
+K1 | control: the token, the cursor back and forth, the same frame | MODE35 EQN RCL:(I) < > | %XLINE=(I)_ %LOOK=T35
+K2 | control: typed, the cursor back and forth, the same frame | MODE35 EQN () RCL:I > < > | %XLINE=(I)_ %LOOK=U35
+K3 | control: another equation differs | MODE35 EQN RCL:A | %LOOK=!T35

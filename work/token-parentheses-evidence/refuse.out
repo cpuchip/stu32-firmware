@@ -1,0 +1,4 @@
+FAIL R1: expected %LOOK=R2, got (no_earlier_vector_R2)
+FAIL R2: expected %LOOK=!NOPE, got (no_earlier_vector_NOPE)
+FAIL R3: expected %LOOK=!R3, got R3
+refuse.txt: 0/3 vectors, 0/3 expectations

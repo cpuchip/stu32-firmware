@@ -1,0 +1,7 @@
+# PROTO 105 (work/token-parentheses.md): the window's pair, and %XDRAW's texts (each %XDRAW read with =? first)
+TW | 35: nine tokens, the scale-2 window | MODE35 EQN RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) | %XDRAW=? %BOXES=0
+UW | 35: nine typed | MODE35 EQN () RCL:I > + () RCL:I > + () RCL:I > + () RCL:I > + () RCL:I > + () RCL:I > + () RCL:I > + () RCL:I > + () RCL:I > | %XDRAW=? %XLINE=? %LOOK=!TW
+XJ | 35: (J) | MODE35 EQN RCL:(J) | %XDRAW=?
+XI | 33s: (i) | MODE33 EQN RCL:(i) | %XDRAW=?
+XS | STU: (i) | STU EQN RCL:(I) | %XDRAW=?
+XO | 35: STO (I) as a program line keeps the plain pair | MODE35 PRGM LBL:A STO:(I) | %XDRAW=? %XLINE=?

@@ -1,0 +1,259 @@
+diff --git a/firmware/font5x7.c b/firmware/font5x7.c
+index 9824c79..e257417 100644
+--- a/firmware/font5x7.c
++++ b/firmware/font5x7.c
+@@ -133,5 +133,7 @@ const font_glyph FONT5X7[] = {
+     {0x25B8, {0x00, 0x08, 0x0C, 0x0E, 0x0C, 0x08, 0x00}},
+     {0x25BC, {0x00, 0x1F, 0x0E, 0x0E, 0x04, 0x04, 0x00}},
+     {0x25C0, {0x01, 0x03, 0x07, 0x0F, 0x07, 0x03, 0x01}},
++    {0x27EE, {0x01, 0x02, 0x02, 0x02, 0x02, 0x02, 0x01}},
++    {0x27EF, {0x10, 0x08, 0x08, 0x08, 0x08, 0x08, 0x10}},
+ };
+ const int FONT5X7_COUNT = (int)(sizeof FONT5X7 / sizeof FONT5X7[0]);
+diff --git a/firmware/font5x7.txt b/firmware/font5x7.txt
+index 3adec60..16fcf96 100644
+--- a/firmware/font5x7.txt
++++ b/firmware/font5x7.txt
+@@ -1172,3 +1172,21 @@ U+25C0 ◀
+ ..###
+ ...##
+ ....#
++
++U+27EE ⟮
++....#
++...#.
++...#.
++...#.
++...#.
++...#.
++....#
++
++U+27EF ⟯
++#....
++.#...
++.#...
++.#...
++.#...
++.#...
++#....
+diff --git a/firmware/screen.c b/firmware/screen.c
+index 5a56242..9fecc0e 100644
+--- a/firmware/screen.c
++++ b/firmware/screen.c
+@@ -6,6 +6,7 @@
+ 
+ #include <stdio.h>
+ #include <string.h>
++#include <stdlib.h>
+ 
+ #define W LS027_W
+ #define H LS027_H
+@@ -121,9 +122,9 @@ static int cells_of(const char **s, bool upper, uint32_t out[3])
+     uint32_t cp = next_cp(&t);
+     if (cp == 0x24A4 || cp == 0x24A5) {
+         *s = t;
+-        out[0] = '(';
++        out[0] = getenv("PROTO_PLAIN") ? '(' : 0x27EE;                        /* PROTO 105: the token's own pair */
+         out[1] = (cp == 0x24A5 ? 'J' : upper ? 'I' : 'i') | TOK_MORE;
+-        out[2] = ')' | TOK_MORE;
++        out[2] = (getenv("PROTO_PLAIN") ? ')' : 0x27EF) | TOK_MORE;
+         return 3;
+     }
+     out[0] = next_cell(s);
+@@ -286,7 +287,7 @@ static void line_piece(line *l, const char **s, bool upper)
+     for (int i = 0; i < k && l->n < LINE_MAX_CP; i++) {
+         l->cp[l->n++] = o[i];
+         if (k == 3) {
+-            char ch = (char)(o[i] & CP_MASK);
++            char ch = i == 0 ? '(' : i == 2 ? ')' : (char)(o[i] & CP_MASK);   /* PROTO 105: the text keeps ( ) */
+             u8_add(l, &ch, 1);
+         } else {
+             u8_add(l, b, (int)(*s - b));
+@@ -1316,6 +1317,14 @@ static void compose(const ab_calc *c, const screen_ui *ui, composed *k)
+             ab_prog_line(c, c->pc, &d, t, sizeof t);
+             line_add(xl, a);
+             line_add_cp(xl, ' ');
++            if (c->prog[c->pc].op == AB_EQLINE && getenv("PROTO_PL")) {   /* PROTO 105: the equation's own tokens */
++                const char *e = c->peqn[c->prog[c->pc].arg];
++                size_t el = strlen(e);
++                const char *tk = strstr(e, "\xe2\x92");
++                bool up = tk && t[(tk - e) + 1] == 'I';
++                eqn_line(e, -1, xl, up);
++                line_add(xl, t + el);
++            } else
+             line_add(xl, t);
+         }
+         k->x_left = true;
+diff --git a/tests/vectors.c b/tests/vectors.c
+index a03a77c..bd24ad2 100644
+--- a/tests/vectors.c
++++ b/tests/vectors.c
+@@ -827,6 +827,120 @@ static int seen_add(const char *id, int line)
+     return 0;
+ }
+ 
++#ifndef AB_DEVICE
++/* PROTO 105: %LOOK's frames, each vector's after its keys (screen_render, the default ui), kept by id in a file that
++   holds a %LOOK (none kept otherwise, so no other file pays for a render) */
++static int write_png(const char *path, const ls027_frame *f);
++static struct look { char *id; ls027_frame *f; } *looks;
++static int looks_n, looks_cap;
++static bool looks_on;
++
++static void looks_reset(void)
++{
++    for (int i = 0; i < looks_n; i++) free(looks[i].id), free(looks[i].f);
++    looks_n = 0;
++}
++
++static const ls027_frame *look_of(const char *id)
++{
++    for (int i = 0; i < looks_n; i++)
++        if (!strcmp(looks[i].id, id)) return looks[i].f;
++    return NULL;
++}
++
++static void look_keep(const char *id, const ab_calc *c)
++{
++    if (looks_n == looks_cap) {
++        int cap = looks_cap ? 2 * looks_cap : 64;
++        struct look *p = realloc(looks, (size_t)cap * sizeof *p);
++        if (!p) return;
++        looks = p, looks_cap = cap;
++    }
++    ls027_frame *f = malloc(sizeof *f);
++    char *copy = malloc(strlen(id) + 1);
++    if (!f || !copy) { free(f); free(copy); return; }
++    strcpy(copy, id);
++    screen_ui ui;
++    screen_ui_default(&ui);
++    screen_render(c, &ui, f);
++    looks[looks_n].id = copy, looks[looks_n].f = f, looks_n++;
++    if (getenv("AB_LOOKDIR")) {
++        char path[512];
++        snprintf(path, sizeof path, "%s/%s.png", getenv("AB_LOOKDIR"), id);
++        write_png(path, f);
++    }
++}
++
++/* PROTO 105: the PNG writer, screen_test's */
++static void be32(uint8_t *p, uint32_t v)
++{
++    p[0] = (uint8_t)(v >> 24);
++    p[1] = (uint8_t)(v >> 16);
++    p[2] = (uint8_t)(v >> 8);
++    p[3] = (uint8_t)v;
++}
++
++static int png_chunk(FILE *o, const char *type, const uint8_t *data, size_t n)
++{
++    static uint8_t buf[4 + 16384];
++    uint8_t len[4], crc[4];
++    if (n > sizeof buf - 4) return 0;
++    memcpy(buf, type, 4);
++    if (n) memcpy(buf + 4, data, n);
++    be32(len, (uint32_t)n);
++    be32(crc, ab_crc32(buf, 4 + n));
++    return fwrite(len, 1, 4, o) == 4 && fwrite(buf, 1, 4 + n, o) == 4 + n && fwrite(crc, 1, 4, o) == 4;
++}
++
++/* The frame as a PNG: greyscale, one bit a pixel (1 white), each row filter 0, the image data a
++   zlib stream of one stored deflate block, so no compressor is needed and the bytes are fixed. */
++static int write_png(const char *path, const ls027_frame *f)
++{
++    enum { ROW = 1 + LS027_ROW_BYTES, RAW = ROW * LS027_H };
++    static uint8_t z[2 + 5 + RAW + 4];
++    uint8_t hdr[13] = {0};
++    uint32_t a = 1, b = 0;
++    be32(hdr, LS027_W);
++    be32(hdr + 4, LS027_H);
++    hdr[8] = 1;                                 /* bit depth; colour type 0, the rest 0 */
++    z[0] = 0x78;                                /* zlib: deflate, 32K window, no dictionary */
++    z[1] = 0x01;
++    z[2] = 0x01;                                /* the final block, stored */
++    z[3] = (uint8_t)(RAW & 0xFF);
++    z[4] = (uint8_t)(RAW >> 8);
++    z[5] = (uint8_t)~z[3];
++    z[6] = (uint8_t)~z[4];
++    for (int y = 0; y < LS027_H; y++) {
++        uint8_t *r = z + 7 + y * ROW;
++        r[0] = 0;
++        for (int i = 0; i < LS027_ROW_BYTES; i++) {     /* the leftmost pixel in the top bit */
++            uint8_t v = f->px[y][i], o = 0;
++            for (int k = 0; k < 8; k++) o |= (uint8_t)((~v >> k & 1) << (7 - k));
++            r[1 + i] = o;
++        }
++    }
++    for (int i = 0; i < RAW; i++) {             /* Adler-32 of the raw rows */
++        a = (a + z[7 + i]) % 65521;
++        b = (b + a) % 65521;
++    }
++    be32(z + 7 + RAW, b << 16 | a);
++    FILE *o = fopen(path, "wb");
++    if (!o) return 0;
++    int ok = fwrite("\x89PNG\r\n\x1a\n", 1, 8, o) == 8 && png_chunk(o, "IHDR", hdr, sizeof hdr) &&
++             png_chunk(o, "IDAT", z, sizeof z) && png_chunk(o, "IEND", NULL, 0);
++    return fclose(o) == 0 && ok;
++}
++
++/* the pixels two frames differ in */
++static long look_diff(const ls027_frame *a, const ls027_frame *b)
++{
++    long n = 0;
++    for (int y = 0; y < LS027_H; y++)
++        for (int i = 0; i < LS027_ROW_BYTES; i++) n += __builtin_popcount((unsigned)(a->px[y][i] ^ b->px[y][i]));
++    return n;
++}
++#endif
++
+ /* Runs one vectors file from f (opened by the caller, who closes it); name labels the report.
+  * Returns 0 when every vector passes, 1 on a failure, 2 on a malformed file. */
+ int vectors_run(const char *name, FILE *f)
+@@ -840,6 +954,15 @@ int vectors_run(const char *name, FILE *f)
+     char line[LINE_MAX_];
+     int lineno = 0, vectors = 0, vectors_ok = 0, checks = 0, checks_ok = 0;
+     seen_reset();
++#ifndef AB_DEVICE
++    looks_reset();
++    looks_on = false;
++    {
++        long at = ftell(f);
++        while (at >= 0 && !looks_on && fgets(line, sizeof line, f)) looks_on = strstr(line, "%LOOK=") != NULL;
++        if (at >= 0) fseek(f, at, SEEK_SET);
++    }
++#endif
+     while (fgets(line, sizeof line, f)) {
+         lineno++;
+         char *s = trim(line);
+@@ -927,6 +1050,9 @@ int vectors_run(const char *name, FILE *f)
+             }
+         }
+ 
++#ifndef AB_DEVICE
++        if (looks_on) look_keep(id, &c);
++#endif
+         if (getenv("AB_IMGCRC") && buf_save(&c, &himg, &himg_len, &himg_cap) && himg_len > 4)   /* the final state's
+                                                    identity: its body's CRC (the whole image's is the residue) */
+             fprintf(stderr, "%s %08lX\n", id, (unsigned long)ab_crc32(himg, himg_len - 4));
+@@ -1136,6 +1262,21 @@ int vectors_run(const char *name, FILE *f)
+                     spaces_out(got);
+ #else
+                     snprintf(got, sizeof got, "(no screen on the device runner)");
++#endif
++                } else if (strcmp(ex, "%LOOK") == 0) {
++                    /* PROTO 105: %LOOK=ID, the frame after this vector's keys is pixel for pixel vector ID's (an earlier
++                       vector of this file); %LOOK=!ID, it differs from it. got is ID or !ID, as the frames are */
++#ifndef AB_DEVICE
++                    const char *rid = eq[1] == '!' ? eq + 2 : eq + 1;
++                    const ls027_frame *mine = look_of(id), *ref = look_of(rid);
++                    if (!ref) snprintf(got, sizeof got, "(no_earlier_vector_%s)", rid);
++                    else {
++                        long d = look_diff(mine, ref);
++                        if (getenv("AB_LOOKPX")) fprintf(stderr, "LOOKPX %s %s %ld\n", id, rid, d);
++                        snprintf(got, sizeof got, "%s%s", d ? "!" : "", rid);
++                    }
++#else
++                    snprintf(got, sizeof got, "(no screen on the device runner)");
+ #endif
+                 } else if (strcmp(ex, "%XDRAWN") == 0) {
+                     /* unit 082: X as the screen draws it in 2D, the console's drawn= (screen_drawn with the default

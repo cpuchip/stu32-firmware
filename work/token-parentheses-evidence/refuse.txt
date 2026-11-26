@@ -1,0 +1,4 @@
+# PROTO 105: %LOOK refuses an id that isn't an earlier vector of the file (each line here must FAIL)
+R1 | a later id | MODE35 EQN RCL:A | %LOOK=R2
+R2 | a missing id | MODE35 EQN RCL:A | %LOOK=!NOPE
+R3 | itself (kept before its expectations): the same frame | MODE35 EQN RCL:A | %LOOK=!R3

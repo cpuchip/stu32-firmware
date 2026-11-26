@@ -1,0 +1,8 @@
+# PROTO 105 frames (AB_LOOKDIR writes each vector's frame; a file is kept only when it holds a %LOOK, so BW has one): the token beside the user's own parentheses, in one equation, each mode
+B35 | 35: (I) the token, then I typed in parentheses | MODE35 EQN RCL:(I) + () RCL:I > | %XLINE=?
+BJ | 35: (J), then J typed | MODE35 EQN RCL:(J) + () RCL:J > | %XLINE=?
+B33 | 33: (i), then i typed | MODE33 EQN RCL:(i) + () RCL:i > | %XLINE=?
+BST | STU: (i), then i typed | STU EQN RCL:(I) + () RCL:i > | %XLINE=?
+BP | 35: a program line | MODE35 PRGM LBL:A EQN RCL:(I) + () RCL:I > ENTER | %XLINE=?
+BA | STU's area | STU EQ:⒤+(i) | %XDRAWN=?
+BW | 35: nine tokens, the window at scale 2 | MODE35 EQN RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) + RCL:(I) | %XLINE=? %LOOK=!B35

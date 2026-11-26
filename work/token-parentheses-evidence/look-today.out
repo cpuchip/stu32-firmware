@@ -1,0 +1,27 @@
+LOOKPX U35 T35 0
+LOOKPX UJ TJ 0
+LOOKPX U33 T33 0
+LOOKPX UST TST 0
+LOOKPX UL TL 0
+LOOKPX UP TP 0
+LOOKPX UP3 TP3 0
+LOOKPX UA TA 0
+LOOKPX K1 T35 0
+LOOKPX K2 U35 0
+LOOKPX K3 T35 688
+FAIL U35: expected %LOOK=!T35, got T35
+  the page, 0 row(s), newest last (dropped 0):
+FAIL UJ: expected %LOOK=!TJ, got TJ
+  the page, 0 row(s), newest last (dropped 0):
+FAIL U33: expected %LOOK=!T33, got T33
+  the page, 0 row(s), newest last (dropped 0):
+FAIL UST: expected %LOOK=!TST, got TST
+  the page, 0 row(s), newest last (dropped 0):
+FAIL UL: expected %LOOK=!TL, got TL
+  the page, 0 row(s), newest last (dropped 0):
+FAIL UP: expected %LOOK=!TP, got TP
+  the page, 0 row(s), newest last (dropped 0):
+FAIL UP3: expected %LOOK=!TP3, got TP3
+  the page, 0 row(s), newest last (dropped 0):
+FAIL UA: expected %LOOK=!TA, got TA
+look.txt: 11/19 vectors, 29/37 expectations
