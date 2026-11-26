@@ -111,3 +111,9 @@ built at c9af29d; results below.
     Pinned so the fix shows up.
 - **To replay:** make test at this record's head. Then put the pin back at 2e62056: R01-R12, B01 and B02 go red and
   K01-K04 stay green, 4/18.
+
+## After acceptance (abacus #17727)
+
+Accepted at ddecbc5 (abacus c963fde). abacus's replay: make test rc 0, 22,501/22,501 and 61,818/61,818; the repin file
+18/18. With only the pin back at 2e62056, 4/18: R01-R12 and B01-B02 red, K01-K04 green. Its peak was 510 MiB. B02,
+pinned with its note naming the right refusal, stands as is.
