@@ -1,0 +1,22 @@
+Unit 106's mutants, each predicted before any run (committed before the runner first ran). Each is one fault in
+firmware/screen.c applied alone by work/106-evidence/mutants-runner.py; the binaries are deleted and rebuilt (a stale
+binary is never a pass), and the restored tree is built again at the end. The runner reads tests/106-soroban.txt,
+tests/105-soroban.txt, tests/h105-abacus.txt, tests/h104-abacus.txt, screen_test and app_test. M0-M3 are the
+blueprint's; M3 is made reachable as a cut at 31 cells (X's window at scale 2), since page_line has no fit; M4 and M5
+were added with src (M4 for the cursor fix the drawn check found, M5 for the marks, R2).
+
+M0  control: no change.                                              SURVIVED.
+M1  drawn copied from text (the second mapping the contract rules out).
+                                                                     RED: 106 C01-C05, C07, C08, C09, C11 (%XCELLS);
+    green C06, C10, K01-K03 (their text is their cells). screen_test: "the two token pages draw ⟮" only (drawn_agrees
+    holds: text's cells and drawn's are then the same). 105, h105, h104, app_test green.
+M2  drawn cut at the cursor's cell (the loop stops at i == cursor).  RED: 106 C01-C04, C11, K03 (a cursor, at or
+    before the end); green C05-C10, K01, K02 (no cursor). screen_test: the drawn check (35's page, the cursor inside
+    the line); the ⟮ count green (the token is before the cursor). 105, h105, h104, app_test green.
+M3  drawn cut at 31 cells.                                           RED: 106 C11 only (40 cells). Everything else
+    green: every other line in the runner's files and screen_test's pages is shorter.
+M4  the unfilled lines' cursor fix removed (memset's 0 again).       RED: screen_test's drawn check (STU's pages: T, Z
+    and Y empty with cursor 0). Every vector file green (no directive reads T, Z or Y's cursor); app_test green.
+M5  drawn's cells written without their marks (the mark bits masked before cell_u8).
+                                                                     RED: 106 C09, C10 (y and x bare); screen_test's
+    drawn check (STU's ŷ and x̂ pages). Everything else green: %XDRAW's own cell_u8 is untouched.
