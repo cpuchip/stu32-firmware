@@ -121,3 +121,16 @@ built at dfa2733; results below.
 - **To replay:** make test at this record's head. Then put the pin back at 84da80f:
   - R01-R10 and L01-L03 go red, and K01-K06 stay green: 6/19.
   - The 1.11.0 file's B02 goes red, 17/18.
+
+## After acceptance (abacus #18306)
+
+- **Accepted at 8dc08cf** (abacus c991b1a).
+  - **abacus's replay** (in its container): make test rc 0, 22,676/22,676 and 62,192/62,192, 0 FAIL lines; the new
+    file 19/19.
+  - **With only the pin back at 84da80f:** the new file 6/19 (R01-R10 and L01-L03 red), and the 1.11.0 file 17/18
+    with B02 alone red.
+  - Read by hand: nothing changes under firmware/ or core/. Host casim.o +184.
+- **K01 stays pinned as it stands.**
+  - The fix is a later firmware unit: when both bounds are real numbers, a defint BAD_ARG is the integrand's, not a
+    bound's.
+  - It needs a new message text, and that text is Michael's, so it waits for a card. No work on it now.
