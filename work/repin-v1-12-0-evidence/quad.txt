@@ -1,0 +1,15 @@
+R01 COS(LN(EXP(X+1))) 1..2           quad -0.768177418765815  form -0.768177418765814  diff 5.6e-16  ok
+R02 COS(LN(EXP(X+1))) -1..1          quad 0.909297426825694  form 0.909297426825682  diff 1.3e-14  ok
+R03 DEG COS(LN(EXP(X+1))) 1..2       quad 0.999035541318007  form 0.999035541317995  diff 1.2e-14  ok
+R04 LN(EXP(SIN(X))) 0..2             quad 1.41614683654716  form 1.41614683654714  diff 2.0e-14  ok
+R05 LN(EXP(SIN(X))) 2..0             quad -1.41614683654713  form -1.41614683654714  diff 1.2e-14  ok
+R06 DEG LN(EXP(SIN(X))) 0..90        quad 57.2957795130821  form 57.2957795130823  diff 2.6e-13  ok
+R07 GRAD LN(EXP(SIN(X))) 0..100      quad 63.6619772367579  form 63.6619772367581  diff 2.6e-13  ok
+R08 LN(EXP(SIN(X)))^3 0..pi          quad 1.33333333333332  form 1.33333333333333  diff 1.8e-14  ok
+R09 LOG(ALOG(SIN(X))) 0..pi          quad 1.99999999999998  form 2  diff 2.1e-14  ok
+R10 SIN(X)*LN(EXP(COS(X))) 0..pi/2   quad 0.499999999999995  form 0.5  diff 5.3e-15  ok
+R11 LN(EXP(COS(X+1))) -1..0.5        quad 0.997494986604034  form 0.997494986604054  diff 2.0e-14  ok
+L01 LN(EXP(K))*SIN(X) 0..1 (K=1.37)  quad 0.629785840960641  form 0.629785840960649  diff 7.3e-15  ok
+L02 SQRT(EXP(K))^2*SIN(X) 0..1       quad 1.80907164030799  form 1.80907164030799  diff 1.1e-15  ok
+L03 LN(EXP(K))*X 0..1                quad 0.685  form 0.685  diff 1.1e-16  ok
+mismatches 0

@@ -335,6 +335,7 @@ test: all
 	./build/vectors tests/repin-v190-soroban.txt    # (the Casimir 1.9.0 repin: CAS 042 through the keys; R and P lines fail on c564e41)
 	./build/vectors tests/repin-v1-10-0-soroban.txt    # (the Casimir 1.10.0 repin: CAS 043 through the keys; R and P lines fail on cf11f9f)
 	./build/vectors tests/repin-v1-11-0-soroban.txt    # (the Casimir 1.11.0 repin: CAS 044 through the keys; R and B lines fail on 2e62056)
+	./build/vectors tests/repin-v1-12-0-soroban.txt    # (the Casimir 1.12.0 repin: CAS 045 through the keys; R and L lines fail on 84da80f)
 	./build/rows_test
 	./build/eqn_say_test tests/086-corpus.txt    # (unit 086: the round trip over every equation the vectors type)
 	./build/eqn_say_test tests/101-alg-corpus.txt    # (unit 101: the ALG lines the vectors state, said by ab_alg_words)

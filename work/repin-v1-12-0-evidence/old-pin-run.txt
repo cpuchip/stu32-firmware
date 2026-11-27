@@ -1,0 +1,34 @@
+# the old pin's build: scratch worktree at 1b7b706, CASIM_PIN 84da80f4a3dd47ea38dd3f1337f524ed24a40a88; casim "1.11.0"
+FAIL R01: 1 operation(s) returned an error
+FAIL R01: expected %EQ=SIN(2), got COS(LN(EXP(X+1)))
+FAIL R01: expected %EQN=2, got 1
+FAIL R01: expected %ERRMSG=none, got IMPROPER_INTEGRAL
+FAIL R02: 1 operation(s) returned an error
+FAIL R02: expected %EQ=-180×SIN(2)÷π+180×SIN(3)÷π, got COS(LN(EXP(X+1)))
+FAIL R03: 1 operation(s) returned an error
+FAIL R03: expected %EQ=-COS(2)+1, got LN(EXP(SIN(X)))
+FAIL R03: expected %EQN=2, got 1
+FAIL R04: 1 operation(s) returned an error
+FAIL R04: expected %EQ=COS(2)-1, got LN(EXP(SIN(X)))
+FAIL R05: 1 operation(s) returned an error
+FAIL R05: expected %EQ=180÷π, got LN(EXP(SIN(X)))
+FAIL R06: 1 operation(s) returned an error
+FAIL R06: expected %EQ=200÷π, got LN(EXP(SIN(X)))
+FAIL R07: 1 operation(s) returned an error
+FAIL R07: expected %EQ=4÷3, got LN(EXP(SIN(X)))^3
+FAIL R08: 1 operation(s) returned an error
+FAIL R08: expected %EQ=2, got LOG(ALOG(SIN(X)))
+FAIL R09: 1 operation(s) returned an error
+FAIL R09: expected %EQ=1÷2, got SIN(X)×LN(EXP(COS(X)))
+FAIL R10: 1 operation(s) returned an error
+FAIL R10: expected %EQ=SIN(1.5), got LN(EXP(COS(X+1)))
+FAIL L01: 1 operation(s) returned an error
+FAIL L01: expected %EQ=K-K×COS(1), got LN(EXP(K))×SIN(X)
+FAIL L01: expected %EQN=2, got 1
+FAIL L01: expected %ERRMSG=none, got BOUND_NOT_REAL
+FAIL L02: 1 operation(s) returned an error
+FAIL L02: expected %EQ=EXP(K)-EXP(K)×COS(1), got SQRT(EXP(K))^2×SIN(X)
+FAIL L03: 1 operation(s) returned an error
+FAIL L03: expected %EQ=K÷2, got LN(EXP(K))×X
+tests/repin-v1-12-0-soroban.txt: 6/19 vectors, 9/27 expectations
+rc=1

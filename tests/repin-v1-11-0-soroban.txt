@@ -21,7 +21,7 @@ R11 | casim's Not yet: an odd function's 0 by symmetry over bounds off the table
 R12 | orthogonality: ∫SIN(X)×SIN(3×X) from 0 to π is 0 | STU RAD EQ:SIN(X)×SIN(3×X) CASDEF:X 0 ENTER PI ENTER | %EQ=0
 # The refusals that moved
 B01 | a letter bound is BOUND NOT NUMERIC, as for every ∫AB (casim's BAD_ARG; 1.10.0: CAN'T INTEGRATE, its table first) | STU RAD EQ:COS(X)^2 CASDEF:X RCL:A ENTER RCL:B ENTER | ERR %ERRMSG=BOUND_NOT_NUMERIC %EQN=1
-B02 | casim's Not yet: LN(EXP(u)) with X inside u is IMPROPER on a finite integrand, where CAN'T INTEGRATE is right (1.10.0's); the interval check reads the typed form, a later casim unit's fix | STU RAD EQ:COS(LN(EXP(X+1))) CASDEF:X 1 ENTER 2 ENTER | ERR %ERRMSG=IMPROPER_INTEGRAL %EQN=1
+B02 | casim's Not yet: LN(EXP(u)) with X inside u is IMPROPER on a finite integrand, where CAN'T INTEGRATE is right (1.10.0's); the interval check reads the typed form, a later casim unit's fix. Amended by the Casimir 1.12.0 repin (CAS 045, work/repin-v1-12-0.md): the fix came, and the right result is the answer, as casim 1.12.0's notes correct their own line | STU RAD EQ:COS(LN(EXP(X+1))) CASDEF:X 1 ENTER 2 ENTER | %EQ=-SIN(2)+SIN(3) %EQN=2 %ERRMSG=none
 # Controls, the same on both pins
 K01 | outside CAS 042's form: X×SIN(X)^2 is CAN'T INTEGRATE | STU RAD EQ:X×SIN(X)^2 CASDEF:X 0 ENTER PI ENTER | ERR %ERRMSG=CAN'T_INTEGRATE %EQN=1
 K02 | CAS 017's typed check holds: SIN(X)^2×X÷X is refused, as integrate refuses it | STU RAD EQ:SIN(X)^2×X÷X CASDEF:X 1 CHS ENTER 1 ENTER | ERR %ERRMSG=CAN'T_INTEGRATE %EQN=1

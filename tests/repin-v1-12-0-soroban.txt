@@ -1,0 +1,32 @@
+# The Casimir 1.12.0 repin (CASIM_PIN e7b2c51, the v1.12.0 tag 7a2a646; abacus #18300, under Michael's #10856 rule): what
+# moves through the firmware. CAS 045: ∫AB (CAS 009's defint) no longer refuses on a typed condition that always holds.
+# Typed LN(u) asks u > 0 and SQRT(u) asks u ≥ 0; where u is EXP, ALOG or COSH of anything, u > 0 wherever it has a
+# value, so LN(EXP(SIN(X))) answers where 1.11.0 said IMPROPER INTEGRAL, and LN(EXP(K))×SIN(X) answers where the
+# firmware showed BOUND NOT REAL (casim's BAD_ARG; unit 056 reads every defint BAD_ARG as a bound's). The census (make -i
+# test on the new pin, before this file) moved one line, the 1.11.0 repin's B02, pinned to move with this fix and amended
+# there. The expected texts are casim's CAS 045 tables (work/045-typed-domain-positive.md); each R and L value was
+# checked apart by a composite Simpson quadrature over the integrand as typed (200,000 panels, floats, K at 1.37), within
+# 1E-10 of the printed form (work/repin-v1-12-0-evidence/quad.txt). Every line was read on both pins before this file
+# was written: R01-R10 are IMPROPER_INTEGRAL and L01-L03 BOUND_NOT_REAL on 1.11.0 (84da80f); K01-K06 read the same on both.
+# The answers (CAS 045)
+R01 | COS(LN(EXP(X+1))) from -1 to 1 is SIN(2) (from 1 to 2 is the 1.11.0 repin's B02) | STU RAD EQ:COS(LN(EXP(X+1))) CASDEF:X 1 CHS ENTER 1 ENTER | %EQ=SIN(2) %EQN=2 %ERRMSG=none
+R02 | DEG: the same integrand from 1 to 2 | STU DEG EQ:COS(LN(EXP(X+1))) CASDEF:X 1 ENTER 2 ENTER | %EQ=-180×SIN(2)÷π+180×SIN(3)÷π
+R03 | LN(EXP(SIN(X))) from 0 to 2 | STU RAD EQ:LN(EXP(SIN(X))) CASDEF:X 0 ENTER 2 ENTER | %EQ=-COS(2)+1 %EQN=2
+R04 | the bounds in the order typed: from 2 to 0 | STU RAD EQ:LN(EXP(SIN(X))) CASDEF:X 2 ENTER 0 ENTER | %EQ=COS(2)-1
+R05 | DEG: from 0 to 90 is 180÷π | STU DEG EQ:LN(EXP(SIN(X))) CASDEF:X 0 ENTER 90 ENTER | %EQ=180÷π
+R06 | GRAD: from 0 to 100 is 200÷π | STU GRAD EQ:LN(EXP(SIN(X))) CASDEF:X 0 ENTER 100 ENTER | %EQ=200÷π
+R07 | a power of it: LN(EXP(SIN(X)))^3 from 0 to π is 4÷3 | STU RAD EQ:LN(EXP(SIN(X)))^3 CASDEF:X 0 ENTER PI ENTER | %EQ=4÷3
+R08 | ALOG's: LOG(ALOG(SIN(X))) from 0 to π is 2 | STU RAD EQ:LOG(ALOG(SIN(X))) CASDEF:X 0 ENTER PI ENTER | %EQ=2
+R09 | a product: SIN(X)×LN(EXP(COS(X))) from 0 to π÷2 is 1÷2 | STU RAD EQ:SIN(X)×LN(EXP(COS(X))) CASDEF:X 0 ENTER PI / 2 ENTER | %EQ=1÷2
+R10 | a bound with a fraction: LN(EXP(COS(X+1))) from -1 to 0.5 | STU RAD EQ:LN(EXP(COS(X+1))) CASDEF:X 1 CHS ENTER 0.5 ENTER | %EQ=SIN(1.5)
+# A letter's condition that always holds (CAS 045 ruling 1: EXP(K) > 0 for every real K)
+L01 | LN(EXP(K))×SIN(X) from 0 to 1 (1.11.0: BOUND NOT REAL, casim's BAD_ARG) | STU RAD EQ:LN(EXP(K))×SIN(X) CASDEF:X 0 ENTER 1 ENTER | %EQ=K-K×COS(1) %EQN=2 %ERRMSG=none
+L02 | SQRT(EXP(K))^2×SIN(X) from 0 to 1 | STU RAD EQ:SQRT(EXP(K))^2×SIN(X) CASDEF:X 0 ENTER 1 ENTER | %EQ=EXP(K)-EXP(K)×COS(1)
+L03 | the table's path: LN(EXP(K))×X from 0 to 1 is K÷2 | STU RAD EQ:LN(EXP(K))×X CASDEF:X 0 ENTER 1 ENTER | %EQ=K÷2
+# Controls, the same on both pins
+K01 | casim's true refusal (K < 0 has no value): BAD_ARG, which the firmware shows as BOUND NOT REAL though both bounds are real (unit 056's mapping; asked of abacus at this repin) | STU RAD EQ:SQRT(K)^2×SIN(X) CASDEF:X 0 ENTER 1 ENTER | ERR %ERRMSG=BOUND_NOT_REAL %EQN=1
+K02 | a pole at 1 stays IMPROPER INTEGRAL | STU RAD EQ:1÷(X-1) CASDEF:X 0 ENTER 2 ENTER | ERR %ERRMSG=IMPROPER_INTEGRAL %EQN=1
+K03 | TAN's pole at π÷2 stays IMPROPER INTEGRAL | STU RAD EQ:TAN(X) CASDEF:X 1 ENTER 2 ENTER | ERR %ERRMSG=IMPROPER_INTEGRAL
+K04 | casim's Not yet after 1.12.0: LN(EXP(X)) from -1 to 1 stays CAN'T INTEGRATE | STU RAD EQ:LN(EXP(X)) CASDEF:X 1 CHS ENTER 1 ENTER | ERR %ERRMSG=CAN'T_INTEGRATE %EQN=1
+K05 | a letter bound stays BOUND NOT NUMERIC | STU RAD EQ:LN(EXP(SIN(X))) CASDEF:X RCL:A ENTER 2 ENTER | ERR %ERRMSG=BOUND_NOT_NUMERIC
+K06 | a negative number's root stays UNDEFINED (abacus's F2 on CAS 045 pins it) | STU RAD EQ:SQRT(-1)×X CASDEF:X 0 ENTER 1 ENTER | ERR %ERRMSG=UNDEFINED
