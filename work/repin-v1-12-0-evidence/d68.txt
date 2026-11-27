@@ -1,0 +1,52 @@
+Preparing worktree (detached HEAD 1b7b706)
+HEAD is now at 1b7b706 Unit 106's size check on both data models (abacus #18028): native and ILP32 (-m32 -malign-double, the wasm32-like ABI, in ubuntu:24.04 by digest) each screen_test 9,948/9,948, 73/73 frames; screen_page 12,312 / 12,216 B, so the old literal failed ILP32 as it did wasm32. A plain -m32 build stops at core/rows.c's ab_val size assert: i386 aligns 64-bit members at 4 (probe.c), a separate matter, rows.c unchanged. Native make test rc 0, 22,657/22,657, 62,164/62,164
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+casim 84da80f4a3dd47ea38dd3f1337f524ed24a40a88
+Preparing worktree (detached HEAD dfa2733)
+HEAD is now at dfa2733 Repin: Casimir 1.12.0 (CASIM_PIN e7b2c51, the v1.12.0 tag 7a2a646; abacus #18300, under Michael's #10856 rule). CAS 045: ∫AB no longer refuses on a typed LN or SQRT condition that always holds (EXP, ALOG, COSH of anything), so LN(EXP(SIN(X))) answers where 1.11.0 said IMPROPER INTEGRAL, and LN(EXP(K))×SIN(X) where the firmware showed BOUND NOT REAL. The census (make -i test on the new pin) moved one line, the 1.11.0 repin's B02, pinned to move with this fix: amended in place to -SIN(2)+SIN(3). tests/repin-v1-12-0-soroban.txt (19, from casim's CAS 045 tables, each R and L value checked by a separate Simpson quadrature over the typed integrand): R01-R10 and L01-L03 fail on 84da80f (6/19, rc 1), K01-K06 the same on both. K01 pins casim's true BAD_ARG on SQRT(K)^2×SIN(X), which the firmware shows as BOUND NOT REAL though both bounds are real (unit 056's mapping; asked of abacus). No firmware code changes; VER stays 0.107
+gen_games: 9 game(s): BABAL (babal at bca20f0), AIM (aim at 5fe8cea), LAND (land at bca20f0), SNAKE (snake at 5947c16), MINES (mines at 7344045), SALVO (salvo at bca20f0), 3720 (rocks at 7686766), MOLES (moles at 7686766), CATCH (catch at 7686766)
+casim e7b2c516c1aa8b190268f02e14fec7d9e3c5c7a6
+
+### standin: 1b7b706 -> dfa2733
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,428,800 | 2,428,912 | +112 |
+| internal RAM static (DIRAM, of 341,760) | 207,739 | 207,739 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 59,074 | 59,074 | +0 |
+| calc_task's frame (under every deep path's stack), B | 144 | 144 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 865,509 -> 865,638 (+129)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 160,681 -> 160,681 (+0), none changed
+
+Loaded sections that moved outside the sources these commits change (the section and its relocations compared in the two builds' objects):
+
+- .literal.ab_state_load esp-idf/main/libmain.a(state.c.obj): 76 -> 68 (-8): object identical
+- .literal.parse esp-idf/main/libmain.a(state.c.obj): 284 -> 292 (+8): object identical
+
+(85 moved lines of the changed sources, CASIM_PIN, Makefile, casim.c, census.txt, old-pin-run.txt, quad.py, quad.txt, repin-v1-11-0-soroban.txt, repin-v1-12-0-soroban.txt, not listed)
+
+### reva: 1b7b706 -> dfa2733
+
+| resource | before | after | change |
+|---|---|---|---|
+| flash (the app's .bin) | 2,356,944 | 2,357,056 | +112 |
+| internal RAM static (DIRAM, of 341,760) | 215,374 | 215,374 | +0 |
+| IRAM code (the 16 KB block + DIRAM's .text and .vectors) | 78,086 | 78,086 | +0 |
+| calc_task's frame (under every deep path's stack), B | 128 | 128 | +0 |
+
+Libraries that changed (all memory types):
+
+- libmain.a: 806,831 -> 806,960 (+129)
+
+Internal-RAM symbols (nm, 0x3FC88000-0x3FD00000): 133,343 -> 133,343 (+0), none changed
+
+Loaded sections that moved outside the sources these commits change (the section and its relocations compared in the two builds' objects):
+
+- none
+
+(85 moved lines of the changed sources, CASIM_PIN, Makefile, casim.c, census.txt, old-pin-run.txt, quad.py, quad.txt, repin-v1-11-0-soroban.txt, repin-v1-12-0-soroban.txt, not listed)
+rc=0
